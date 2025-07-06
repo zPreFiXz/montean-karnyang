@@ -1,12 +1,13 @@
+import CarCard from "@/components/cards/CarCard";
 import StatusCard from "@/components/cards/StatusCard";
-import { Repairing } from "@/components/icons/Icon";
+import { Success, Repairing, Paid, Car } from "@/components/icons/Icon";
 
 const Dashboard = () => {
   return (
-    <div>
+    <div className="w-full px-[24px]">
       {/* Income Card */}
       <div
-        className="w-[385px] h-[157px] p-[16px] mt-[24px] ml-[24px] rounded-[10px]"
+        className="w-fit h-[157px] p-[16px] mt-[24px] rounded-[10px]"
         style={{ boxShadow: "0px 0px 50px 0 rgba(0,0,0,0.1)" }}
       >
         <p className="font-medium text-[22px] text-subtle-dark">
@@ -20,16 +21,79 @@ const Dashboard = () => {
           <p className="font-medium text-[32px] text-surface">5,400 ฿</p>
         </div>
       </div>
+      
       {/* Status Card */}
       <div
-        className="w-[1123px] h-[510px] p-[16px] mt-[24px] ml-[24px] mb-[24px] rounded-[10px]"
-        style={{ boxShadow: "0px 0px 50px 0 rgba(0,0,0,0.1)" }}
+        className="w-full min-h-[calc(100vh-302px)] h-auto p-[16px] mt-[24px] mb-[24px] rounded-[10px]"
+        style={{
+          boxShadow: "0px 0px 50px 0 rgba(0,0,0,0.1)",
+        }}
       >
         <p className="font-medium text-[22px] text-subtle-dark">สถานะการซ่อม</p>
-        <div className="flex items-center gap-[16px] mt-[16px]">
-          <StatusCard bg="progress" icon={Repairing} />
-          {/* <StatusCard bg="done" />
-          <StatusCard bg="payment" /> */}
+        <div className="flex justify-start items-start gap-[16px] mt-[16px]">
+
+          {/* In Progress Card */}
+          <div className="flex-1 flex-col items-center gap-[16px]">
+            <StatusCard
+              bg="in-progress"
+              icon={Repairing}
+              label={"กำลังซ่อม"}
+              amount={0}
+            />
+            <div className="mt-[16px]">
+              <CarCard
+                bg="in-progress"
+                color="#F4B809"
+                icon={Car}
+                plateId={"ขก1799 อุบลราชธานี"}
+                band={"Honda Jazz"}
+                time={"15:23"}
+                price={4300}
+              />
+            </div>
+          </div>
+
+          {/* Completed Card */}
+          <div className="flex-1 flex-col items-center gap-[16px]">
+            <StatusCard
+              bg="completed"
+              icon={Success}
+              label={"ซ่อมเสร็จสิ้น"}
+              amount={0}
+            />
+            <div className="mt-[16px]">
+              <CarCard
+                bg="completed"
+                color="#66BB6A"
+                icon={Car}
+                plateId={"ขก1799 อุบลราชธานี"}
+                band={"Honda Jazz"}
+                time={"15:23"}
+                price={4300}
+              />
+            </div>
+          </div>
+
+          {/* Paid Card */}
+          <div className="flex-1 flex-col items-center gap-[16px]">
+            <StatusCard
+              bg="paid"
+              icon={Paid}
+              label={"ชำระเงินแล้ว"}
+              amount={0}
+            />
+            <div className="mt-[16px]">
+              <CarCard
+                bg="paid"
+                color="#1976D2"
+                icon={Car}
+                plateId={"ขก1799 อุบลราชธานี"}
+                band={"Honda Jazz"}
+                time={"15:23"}
+                price={4300}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

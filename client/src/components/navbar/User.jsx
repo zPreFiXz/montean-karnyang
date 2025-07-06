@@ -1,6 +1,6 @@
 import { CircleUserRound, ChevronDown } from "lucide-react";
 
-const UserIcon = () => {
+const User = () => {
   return (
     <div className="flex items-center gap-[8px]">
       <CircleUserRound className="w-[32px] h-[32px] stroke-[1.5] text-subtle-dark" />
@@ -11,4 +11,4 @@ const UserIcon = () => {
     </div>
   );
 };
-export default UserIcon;
+export default User;

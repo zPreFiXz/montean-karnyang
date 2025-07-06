@@ -1,5 +1,5 @@
 import Logo from "./Logo";
-import UserIcon from "./UserIcon";
+import User from "./User";
 
 const Navbar = () => {
   return (
@@ -8,7 +8,7 @@ const Navbar = () => {
       style={{ boxShadow: "0px 0px 50px 0 rgba(0,0,0,0.1)" }}
     >
       <Logo />
-      <UserIcon />
+      <User />
     </div>
   );
 };

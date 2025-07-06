@@ -10,9 +10,9 @@
   --color-subtle-dark: #61646b;
   --color-normal: #19191b;
   --color-surface: #ffffff;
-  --color-progress: #F4B809;
-  --color-done: #66BB6A;
-  --color-payment: #1976D2;
+  --color-in-progress: #F4B809;
+  --color-completed: #66BB6A;
+  --color-paid: #1976D2;
 }
 
 @theme inline {
