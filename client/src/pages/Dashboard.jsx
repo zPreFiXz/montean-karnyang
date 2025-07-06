@@ -25,7 +25,7 @@ const Dashboard = () => {
         className="w-[1123px] h-[510px] p-[16px] mt-[24px] ml-[24px] mb-[24px] rounded-[10px]"
         style={{ boxShadow: "0px 0px 50px 0 rgba(0,0,0,0.1)" }}
       >
-        <p className="font-medium text-[22px] text-subtle-dark">สถานะการซ่อม</p>
+        <p className="font-medim text-[22px] text-subtle-dark">สถานะการซ่อม</p>
         <div className="flex items-center gap-[16px] mt-[16px]">
           <StatusCard bg="progress" icon={Repairing} />
           {/* <StatusCard bg="done" />

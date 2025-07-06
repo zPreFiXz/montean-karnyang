@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route } from "react-router";
 import Dashboard from "../pages/Dashboard";
 import NotFound from "../pages/NotFound";
 import Layout from "../layouts/Layout";
+import Status from "@/pages/Status";
+import { NewRepair } from "@/pages/NewRepair";
 
 const AppRoutes = () => {
   return (
@@ -10,6 +12,8 @@ const AppRoutes = () => {
         {/* Public */}
         <Route element={<Layout />}>
           <Route path="dashboard" element={<Dashboard />} />
+          <Route path="status" element={<Status/>} />
+          <Route path="new" element={<NewRepair/>} />
         </Route>
 
         {/* Private */}
