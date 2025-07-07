@@ -1,4 +1,5 @@
-import { CircleUserRound, ChevronDown } from "lucide-react";
+import { CircleUserRound } from "lucide-react";
+import DropdownListMenu from "./DropdownListMenu";
 
 const User = () => {
   return (
@@ -7,7 +8,7 @@ const User = () => {
       <p className="font-medium text-[22px] text-subtle-dark">
         ภาคภูมิ สุขชาติ
       </p>
-      <ChevronDown className="text-subtle-dark" />
+      <DropdownListMenu />
     </div>
   );
 };

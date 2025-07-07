@@ -11,6 +11,7 @@ const AppRoutes = () => {
       <Routes>
         {/* Public */}
         <Route element={<Layout />}>
+          <Route path="/" element={<Dashboard />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="status" element={<Status/>} />
           <Route path="new" element={<NewRepair/>} />
