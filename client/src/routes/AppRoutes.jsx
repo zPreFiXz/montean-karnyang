@@ -4,6 +4,7 @@ import NotFound from "../pages/NotFound";
 import Layout from "../layouts/Layout";
 import Status from "@/pages/Status";
 import { NewRepair } from "@/pages/NewRepair";
+import CheckSuspension from "../pages/CheckSuspension";
 
 const AppRoutes = () => {
   return (
@@ -13,7 +14,8 @@ const AppRoutes = () => {
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="status" element={<Status/>} />
+          <Route path="check-suspension" element={<CheckSuspension />} />
+          <Route path="status" element={<Status />} />
           <Route path="new" element={<NewRepair/>} />
         </Route>
 

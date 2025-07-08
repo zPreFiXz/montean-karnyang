@@ -3,8 +3,7 @@ import React from "react";
 export const NewRepair = () => {
   return (
     <div
-      className="w-full h-[500px] bg-primary"
-      style={{ boxShadow: "0px 0px 50px 0 rgba(0,0,0,0.1)" }}
+      className="w-full h-[500px] bg-primary shadow-[0px_0px_50px_0_rgba(0,0,0,0.1)]"
     >
       <p className="pt-[16px] pl-[20px] font-semibold text-[20px] text-surface">
         รายการซ่อมใหม่
@@ -48,8 +47,7 @@ export const NewRepair = () => {
         />
       </div>
       <div
-        className="w-full h-full mt-[30px] rounded-tl-2xl rounded-tr-2xl bg-surface"
-        style={{ boxShadow: "0px 0px 50px 0 rgba(0,0,0,0.1)" }}
+        className="w-full h-full mt-[30px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-[0px_0px_50px_0_rgba(0,0,0,0.1)]"
       >
         <div className="flex justify-between items-center px-[20px] pt-[20px]">
           <p className="font-semibold text-[20px] text-normal">รายการซ่อม</p>
@@ -59,8 +57,7 @@ export const NewRepair = () => {
         </div>
         <div>
           <div
-            className="w-[335px] h-[80px] rounded-[10px] mx-auto mt-[16px] bg-white flex justify-center items-center"
-            style={{ boxShadow: "0px 0px 50px 0 rgba(0,0,0,0.1)" }}
+            className="w-[335px] h-[80px] rounded-[10px] mx-auto mt-[16px] bg-white flex justify-center items-center shadow-[0px_0px_50px_0_rgba(0,0,0,0.1)]"
           >
             <p className="text-[16px] text-gray-500">ไม่มีรายการซ่อม</p>
           </div>
