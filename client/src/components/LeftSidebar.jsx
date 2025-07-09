@@ -17,11 +17,12 @@ const LeftSidebar = () => {
   ];
 
   return (
-    <div
-      className="hidden lg:flex flex-col items-center w-[269px] min-h-[calc(100vh-73px)] gap-[24px] px-[16px] shadow-[0px_0px_50px_0_rgba(0,0,0,0.1)]"
-    >
-      <Link to="/new" className="flex justify-center items-center w-[237px] h-[65px] mt-[24px] gap-[8px] rounded-[10px] bg-gradient-to-r from-[#5b46f4] to-[#8663f8] hover:opacity-90 hover:scale-[1.03] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer">
-        <Plus />
+    <div className="hidden lg:flex flex-col items-center w-[269px] min-h-[calc(100vh-73px)] gap-[24px] px-[16px] shadow-[0px_0px_50px_0_rgba(0,0,0,0.1)]">
+      <Link
+        to="/new"
+        className="flex justify-center items-center w-[237px] h-[65px] mt-[24px] gap-[8px] rounded-[10px] bg-gradient-to-r from-[#5b46f4] to-[#8663f8] hover:opacity-90 hover:scale-[1.03] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer"
+      >
+        <Plus size="sm" />
         <p className="font-medium text-[22px] text-surface">รายการซ่อมใหม่</p>
       </Link>
 
@@ -42,10 +43,12 @@ const LeftSidebar = () => {
                   : "border-2 border-black/10 hover:border-2 hover:border-primary hover:bg-surface hover:shadow-[0px_0px_50px_0_rgba(0,0,0,0.1)] hover:scale-[1.03] hover:-translate-y-1"
               }`}
             >
-              <Icon isActive={isActive} />
+              <Icon isActive={isActive} size="md" />
               <p
                 className={`font-medium text-[22px] ${
-                  isActive ? "text-primary" : "text-subtle-dark group-hover:text-primary"
+                  isActive
+                    ? "text-primary"
+                    : "text-subtle-dark group-hover:text-primary"
                 }`}
               >
                 {item.label}

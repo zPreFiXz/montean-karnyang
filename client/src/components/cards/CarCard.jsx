@@ -1,4 +1,4 @@
-const CarCard = ({ bg, color, icon: Icon, plateId, band, time, price }) => {
+const CarCard = ({ bg, color, icon: Icon, plateId, band, time, price, amount }) => {
   const bgColorMap = {
     "in-progress": "bg-[var(--color-in-progress)]",
     completed: "bg-[var(--color-completed)]",
@@ -26,12 +26,15 @@ const CarCard = ({ bg, color, icon: Icon, plateId, band, time, price }) => {
             {plateId}
           </p>
           <p className="font-medium text-[14px] text-subtle-dark">
-            {band} | {time} น.
+            {[band, time && `${time} น.`].filter(Boolean).join(' | ') || ''}
           </p>
         </div>
       </div>
       <p className={`font-semibold text-[22px] ${textColorMap[bg]}`}>
-        {price} ฿
+        {price ? `${price} ฿` : ''}
+      </p>
+      <p className={`font-semibold text-[32px] ${textColorMap[bg]}`}>
+        {amount ? `${amount} คัน` : ''}
       </p>
     </div>
   );
