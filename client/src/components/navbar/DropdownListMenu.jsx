@@ -2,7 +2,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -37,7 +36,7 @@ const DropdownListMenu = () => {
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        className="w-[220px] p-[8px] bg-white rounded-[12px] shadow-[0px_10px_40px_0_rgba(0,0,0,0.15)] border border-gray-100 font-athiti"
+        className="w-[220px] p-[8px] font-athiti rounded-[12px] bg-white shadow-[0px_10px_40px_0_rgba(0,0,0,0.15)] border border-gray-100"
         align="end"
         sideOffset={8}
       >
@@ -50,16 +49,16 @@ const DropdownListMenu = () => {
           </p>
         </div>
         <DropdownMenuSeparator className="my-[4px]" />
-        <DropdownMenuItem className="flex items-center gap-[12px] px-[12px] py-[8px] font-medium text-[14px] cursor-pointer rounded-[8px] hover:bg-surface/50 focus:bg-surface/50 transition-colors duration-200">
+        <DropdownMenuItem className="flex items-center gap-[12px] px-[12px] py-[8px] font-medium text-[14px] rounded-[8px] cursor-pointer hover:bg-surface/50 focus:bg-surface/50 transition-colors duration-200">
           <CircleUserRound className="w-[16px] h-[16px]" />
           <span>โปรไฟล์</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className="flex items-center gap-[12px] px-[12px] py-[8px] font-medium text-[14px] cursor-pointer rounded-[8px] hover:bg-surface/50 focus:bg-surface/50 transition-colors duration-200">
+        <DropdownMenuItem className="flex items-center gap-[12px] px-[12px] py-[8px] font-medium text-[14px] rounded-[8px] cursor-pointer hover:bg-surface/50 focus:bg-surface/50 transition-colors duration-200">
           <Settings className="w-[16px] h-[16px]" />
           <span>การตั้งค่า</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator className="my-[4px]" />
-        <DropdownMenuItem className="flex items-center gap-[12px] px-[12px] py-[8px] font-medium text-[14px] cursor-pointer rounded-[8px] hover:bg-red-50 focus:bg-red-50 hover:text-red-600 focus:text-red-600 transition-colors duration-200">
+        <DropdownMenuItem className="flex items-center gap-[12px] px-[12px] py-[8px] font-medium text-[14px] rounded-[8px] cursor-pointer hover:bg-red-50 focus:bg-red-50 hover:text-red-600 focus:text-red-600 transition-colors duration-200">
           <LogOut className="w-[16px] h-[16px]" />
           <span>ออกจากระบบ</span>
         </DropdownMenuItem>

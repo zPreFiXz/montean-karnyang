@@ -1,10 +1,6 @@
-import React from "react";
-
-export const NewRepair = () => {
+const RepairCreate = () => {
   return (
-    <div
-      className="w-full h-[500px] bg-primary shadow-[0px_0px_50px_0_rgba(0,0,0,0.1)]"
-    >
+    <div className="w-full h-[500px] bg-primary shadow-[0px_0px_50px_0_rgba(0,0,0,0.1)]">
       <p className="pt-[16px] pl-[20px] font-semibold text-[20px] text-surface">
         รายการซ่อมใหม่
       </p>
@@ -46,9 +42,7 @@ export const NewRepair = () => {
           className="w-full h-[40px] px-[12px] rounded-[10px] bg-white border border-gray-300 text-[16px] text-black placeholder-subtle-dark focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
-      <div
-        className="w-full h-full mt-[30px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-[0px_0px_50px_0_rgba(0,0,0,0.1)]"
-      >
+      <div className="w-full h-full mt-[30px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-[0px_0px_50px_0_rgba(0,0,0,0.1)]">
         <div className="flex justify-between items-center px-[20px] pt-[20px]">
           <p className="font-semibold text-[20px] text-normal">รายการซ่อม</p>
           <p className="font-medium text-[18px] text-primary cursor-pointer">
@@ -56,9 +50,7 @@ export const NewRepair = () => {
           </p>
         </div>
         <div>
-          <div
-            className="w-[335px] h-[80px] rounded-[10px] mx-auto mt-[16px] bg-white flex justify-center items-center shadow-[0px_0px_50px_0_rgba(0,0,0,0.1)]"
-          >
+          <div className="w-[335px] h-[80px] rounded-[10px] mx-auto mt-[16px] bg-white flex justify-center items-center shadow-[0px_0px_50px_0_rgba(0,0,0,0.1)]">
             <p className="text-[16px] text-gray-500">ไม่มีรายการซ่อม</p>
           </div>
         </div>
@@ -66,3 +58,5 @@ export const NewRepair = () => {
     </div>
   );
 };
+
+export default RepairCreate;

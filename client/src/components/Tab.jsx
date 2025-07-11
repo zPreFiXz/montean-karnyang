@@ -46,10 +46,10 @@ const Tab = () => {
   return (
     <div className="flex justify-between md:justify-around items-center w-full h-[60px] pl-[20px] pr-[15px] md:px-auto rounded-tl-2xl rounded-tr-2xl bg-surface shadow-[0px_0px_50px_0_rgba(0,0,0,0.2)]">
       {/* Dashboard Button */}
-      <TabButton icon={DashboardBar} label="แดชบอร์ด" to="/" />
+      <TabButton icon={DashboardBar} label="แดชบอร์ด" to="/dashboard" />
 
       {/* Check Suspension Button */}
-      <TabButton icon={CarRepair} label="เช็คช่วงล่าง" to="/check-suspension" />
+      <TabButton icon={CarRepair} label="เช็คช่วงล่าง" to="/suspension-check" />
 
       {/* New Repair Button */}
       <div
@@ -59,16 +59,20 @@ const Tab = () => {
             "linear-gradient(46.07deg, #5b46f4 2.59%, #8663f8 100.02%)",
         }}
       >
-        <Link to="/new">
+        <Link to="/repairs/new">
           <Plus size="md" />
         </Link>
       </div>
 
       {/* Customer History Button */}
-      <TabButton icon={Document} label="ประวัติลูกค้า" to="/history" />
+      <TabButton
+        icon={Document}
+        label="ประวัติลูกค้า"
+        to="/customers/history"
+      />
 
-      {/* Inventory Button */}
-      <TabButton icon={BoxSearch} label="สต็อกอะไหล่" to="/inventory" />
+      {/* Part Stock Button */}
+      <TabButton icon={BoxSearch} label="สต็อกอะไหล่" to="/stock/parts" />
     </div>
   );
 };

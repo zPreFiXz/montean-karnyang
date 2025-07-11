@@ -1,10 +1,12 @@
-import { BrowserRouter, Routes, Route } from "react-router";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import Dashboard from "../pages/Dashboard";
 import NotFound from "../pages/NotFound";
 import Layout from "../layouts/Layout";
 import Status from "@/pages/Status";
-import { NewRepair } from "@/pages/NewRepair";
-import CheckSuspension from "../pages/CheckSuspension";
+import RepairCreate from "@/pages/RepairCreate";
+import CustomerHistory from "@/pages/CustomerHistory";
+import PartStock from "@/pages/PartStock";
+import SuspensionCheck from "@/pages/SuspensionCheck";
 
 const AppRoutes = () => {
   return (
@@ -12,11 +14,13 @@ const AppRoutes = () => {
       <Routes>
         {/* Public */}
         <Route element={<Layout />}>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="check-suspension" element={<CheckSuspension />} />
+          <Route path="suspension-check" element={<SuspensionCheck />} />
+          <Route path="/repairs/new" element={<RepairCreate />} />
+          <Route path="/customers/history" element={<CustomerHistory />} />
+          <Route path="//stock/parts" element={<PartStock />} />
           <Route path="status" element={<Status />} />
-          <Route path="new" element={<NewRepair/>} />
         </Route>
 
         {/* Private */}
