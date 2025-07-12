@@ -99,7 +99,7 @@ const Dashboard = () => {
               "linear-gradient(46.07deg, #5b46f4 2.59%, #8663f8 100.02%)",
           }}
         >
-          <p className="font-medium text-[32px] text-surface">มณเฑียรการยาง</p>
+          <p className="font-semibold text-[32px] text-surface">มณเฑียรการยาง</p>
           <p className="font-medium text-[18px] text-surface">
             วันที่ 1 มีนาคม 2568
           </p>
@@ -111,7 +111,7 @@ const Dashboard = () => {
           </div>
         </div>
         <div className="flex flex-col w-full min-h-[calc(100vh-201px)] gap-[16px] px-[20px] -mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface">
-          <p className="pt-[16px] font-medium text-[22px] text-normal">
+          <p className="pt-[16px] font-semibold text-[22px] text-normal">
             สถานะการซ่อม
           </p>
           {/* Status Card */}

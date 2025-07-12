@@ -44,7 +44,7 @@ const RepairCreate = () => {
       </div>
       <div className="w-full h-full mt-[30px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-[0px_0px_50px_0_rgba(0,0,0,0.1)]">
         <div className="flex justify-between items-center px-[20px] pt-[20px]">
-          <p className="font-semibold text-[20px] text-normal">รายการซ่อม</p>
+          <p className="font-semibold text-[20px] text-[22px]l">รายการซ่อม</p>
           <p className="font-medium text-[18px] text-primary cursor-pointer">
             เพิ่มรายการ
           </p>
