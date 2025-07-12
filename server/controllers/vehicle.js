@@ -1,5 +1,6 @@
 exports.getAllVehicles = (req, res) => {
   try {
+    console.log("Fetching all vehicles");
     res.json({ message: "List of all vehicles" });
   } catch (error) {
     console.error("Error fetching vehicles:", error);
@@ -10,6 +11,7 @@ exports.getAllVehicles = (req, res) => {
 exports.getVehicleById = (req, res) => {
   const vehicleId = req.params.id;
   try {
+    console.log(`Fetching vehicle with ID: ${vehicleId}`);
     res.json({ message: `Vehicle details for ID: ${vehicleId}` });
   } catch (error) {
     console.error("Error fetching vehicle by ID:", error);
@@ -19,6 +21,7 @@ exports.getVehicleById = (req, res) => {
 
 exports.createVehicle = (req, res) => {
   try {
+    console.log("Creating a new vehicle");
     res.json({ message: "Vehicle created successfully" });
   } catch (error) {
     console.error("Error creating vehicle:", error);
@@ -28,6 +31,7 @@ exports.createVehicle = (req, res) => {
 
 exports.updateVehicle = (req, res) => {
   try {
+    console.log("Updating vehicle");
     res.json({ message: "Vehicle updated successfully" });
   } catch (error) {
     console.error("Error updating vehicle:", error);
@@ -37,6 +41,7 @@ exports.updateVehicle = (req, res) => {
 
 exports.deleteVehicle = (req, res) => {
   try {
+    console.log("Deleting vehicle");
     res.json({ message: "Vehicle deleted successfully" });
   } catch (error) {
     console.error("Error deleting vehicle:", error);
