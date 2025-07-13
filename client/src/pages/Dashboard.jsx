@@ -1,8 +1,20 @@
 import CarCard from "@/components/cards/CarCard";
 import StatusCard from "@/components/cards/StatusCard";
 import { Success, Repairing, Paid, Car } from "@/components/icons/Icon";
+import axios from "axios";
 
 const Dashboard = () => {
+  const handleSubmit = async (data) => {
+    await axios
+      .post("http://localhost:3000/api/vehicle", data)
+      .then((res) => {
+        console.log(res.data);
+      })
+      .catch((error) => {
+        console.log(error.response.data);
+      });
+  };
+
   return (
     <div className="w-full">
       {/* Desktop Layout */}
@@ -99,7 +111,9 @@ const Dashboard = () => {
               "linear-gradient(46.07deg, #5b46f4 2.59%, #8663f8 100.02%)",
           }}
         >
-          <p className="font-semibold text-[32px] text-surface">มณเฑียรการยาง</p>
+          <p className="font-semibold text-[32px] text-surface">
+            มณเฑียรการยาง
+          </p>
           <p className="font-medium text-[18px] text-surface">
             วันที่ 1 มีนาคม 2568
           </p>

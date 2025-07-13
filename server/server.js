@@ -4,15 +4,20 @@ const morgan = require("morgan");
 const app = express();
 
 const { readdirSync } = require("fs");
+const handleError = require("./middlewares/error");
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
 
+// Routing
 readdirSync("./routes").map((r) => {
   app.use("/api", require("./routes/" + r));
 });
+
+// Error handling
+app.use(handleError);
 
 const PORT = 3000;
 app.listen(PORT, () => {
