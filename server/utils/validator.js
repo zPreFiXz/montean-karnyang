@@ -3,8 +3,9 @@ const { object, string } = require("yup");
 
 exports.registerSchema = object({
   email: string().email().required(),
-  name: string().required(),
-  password: string().min(8).required(),
+  password_hash: string().min(8).required(),
+  first_name: string().required(),
+  last_name: string().required(),
 });
 
 exports.validate = (schema) => async (req, res, next) => {
