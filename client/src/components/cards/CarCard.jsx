@@ -1,11 +1,13 @@
 const CarCard = ({ bg, color, icon: Icon, plateId, band, time, price, amount }) => {
   const bgColorMap = {
+    primary: "bg-[var(--color-primary)]",
     "in-progress": "bg-[var(--color-in-progress)]",
     completed: "bg-[var(--color-completed)]",
     paid: "bg-[var(--color-paid)]",
   };
 
   const textColorMap = {
+    primary: "text-[var(--color-primary)]",
     "in-progress": "text-[var(--color-in-progress)]",
     completed: "text-[var(--color-completed)]",
     paid: "text-[var(--color-paid)]",
@@ -30,11 +32,8 @@ const CarCard = ({ bg, color, icon: Icon, plateId, band, time, price, amount }) 
           </p>
         </div>
       </div>
-      <p className={`font-semibold text-[22px] ${textColorMap[bg]}`}>
-        {price ? `${price} ฿` : ''}
-      </p>
-      <p className={`font-semibold text-[32px] ${textColorMap[bg]}`}>
-        {amount ? `${amount} คัน` : ''}
+      <p className={`font-semibold ${price ? 'text-[22px]' : 'text-[32px]'} ${textColorMap[bg]}`}>
+        {price ? `${price} ฿` : amount ? `${amount} คัน` : ''}
       </p>
     </div>
   );

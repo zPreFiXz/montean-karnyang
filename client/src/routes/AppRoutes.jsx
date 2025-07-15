@@ -7,6 +7,7 @@ import RepairCreate from "@/pages/RepairCreate";
 import CustomerHistory from "@/pages/CustomerHistory";
 import PartStock from "@/pages/PartStock";
 import SuspensionCheck from "@/pages/SuspensionCheck";
+import SalesReport from "@/pages/SalesReport";
 
 const AppRoutes = () => {
   return (
@@ -21,6 +22,10 @@ const AppRoutes = () => {
           <Route path="/customers/history" element={<CustomerHistory />} />
           <Route path="/stock/parts" element={<PartStock />} />
           <Route path="status" element={<Status />} />
+          <Route path="/sales/daily" element={<SalesReport />} />
+          <Route path="/sales/weekly" element={<SalesReport />} />
+          <Route path="/sales/monthly" element={<SalesReport />} />
+          <Route path="/sales/yearly" element={<SalesReport />} />
         </Route>
 
         {/* Private */}

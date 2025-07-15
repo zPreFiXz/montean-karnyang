@@ -12,7 +12,7 @@ const SuspensionCheck = () => {
       <InputField label="รุ่นรถ" placeholder="กรอกรุ่นรถ" />
       <InputField label="ทะเบียนรถ" placeholder="กรอกทะเบียนรถ" />
       <div className="w-full min-h-[calc(100vh-30px)] mt-[30px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
-        <div className="flex justify-between items-center px-[20px] pt-[20px]">
+        <div className="px-[20px] pt-[20px]">
           <p className="font-semibold text-[22px] text-normal">รายการซ่อม</p>
         </div>
         <div className="flex justify-center gap-[16px] mx-[20px] mt-[16px] ]">
