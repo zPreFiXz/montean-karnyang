@@ -20,18 +20,18 @@ const Dashboard = () => {
       {/* Desktop Layout */}
       <div className="hidden lg:block w-full px-[24px]">
         {/* Income Card */}
-        <div className="w-fit h-[157px] p-[16px] mt-[24px] rounded-[10px] shadow-[0px_0px_50px_0_rgba(0,0,0,0.1)]">
+        <div className="w-fit h-[157px] p-[16px] mt-[24px] rounded-[10px] shadow-primary">
           <p className="font-medium text-[22px] text-subtle-dark">
             วันที่ 1 มีนาคม 2568
           </p>
-          <div className="flex justify-between items-center w-[353px] h-[80px] px-[16px] mt-[12px] rounded-[10px] bg-primary shadow-[0px_0px_50px_0_rgba(0,0,0,0.1)]">
+          <div className="flex justify-between items-center w-[353px] h-[80px] px-[16px] mt-[12px] rounded-[10px] bg-primary shadow-primary">
             <p className="font-medium text-[22px] text-surface">ยอดขายวันนี้</p>
             <p className="font-medium text-[32px] text-surface">5,400 ฿</p>
           </div>
         </div>
 
         {/* Status Card */}
-        <div className="w-full min-h-[calc(100vh-302px)] h-auto p-[16px] mt-[24px] mb-[24px] rounded-[10px] shadow-[0px_0px_50px_0_rgba(0,0,0,0.1)]">
+        <div className="w-full min-h-[calc(100vh-302px)] h-auto p-[16px] mt-[24px] mb-[24px] rounded-[10px] shadow-primary">
           <p className="font-medium text-[22px] text-subtle-dark">
             สถานะการซ่อม
           </p>
@@ -104,20 +104,14 @@ const Dashboard = () => {
 
       {/* Mobile Layout */}
       <div className="lg:hidden">
-        <div
-          className="w-full h-[217px] pt-[16px] px-[20px]"
-          style={{
-            background:
-              "linear-gradient(46.07deg, #5b46f4 2.59%, #8663f8 100.02%)",
-          }}
-        >
+        <div className="w-full h-[217px] pt-[16px] px-[20px] bg-gradient-primary">
           <p className="font-semibold text-[32px] text-surface">
             มณเฑียรการยาง
           </p>
           <p className="font-medium text-[18px] text-surface">
             วันที่ 1 มีนาคม 2568
           </p>
-          <div className="flex justify-between items-center w-full h-[80px] px-[16px] mx-auto mt-[16px] rounded-[10px] bg-surface shadow-[0px_0px_50px_0_rgba(0,0,0,0.1)]">
+          <div className="flex justify-between items-center w-full h-[80px] px-[16px] mx-auto mt-[16px] rounded-[10px] bg-surface shadow-primary">
             <p className="font-medium text-[18px] text-subtle-dark">
               ยอดขายวันนี้
             </p>

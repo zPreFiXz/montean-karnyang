@@ -19,7 +19,7 @@ const AppRoutes = () => {
           <Route path="suspension-check" element={<SuspensionCheck />} />
           <Route path="/repairs/new" element={<RepairCreate />} />
           <Route path="/customers/history" element={<CustomerHistory />} />
-          <Route path="//stock/parts" element={<PartStock />} />
+          <Route path="/stock/parts" element={<PartStock />} />
           <Route path="status" element={<Status />} />
         </Route>
 

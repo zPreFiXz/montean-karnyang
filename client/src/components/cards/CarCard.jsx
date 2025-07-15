@@ -13,7 +13,7 @@ const CarCard = ({ bg, color, icon: Icon, plateId, band, time, price, amount }) 
 
   return (
     <div
-      className="flex justify-between items-center w-full h-[80px] px-[16px] rounded-[10px] bg-surface shadow-[0px_0px_50px_0_rgba(0,0,0,0.1)]"
+      className="flex justify-between items-center w-full h-[80px] px-[16px] rounded-[10px] bg-surface shadow-primary"
     >
       <div className="flex items-center gap-[8px]">
         <div
