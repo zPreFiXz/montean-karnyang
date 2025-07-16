@@ -1,15 +1,23 @@
 import { Input } from "./input";
 
-const InputField = ({ label, placeholder }) => {
+const InputField = ({ label, placeholder, color }) => {
+  const getTextColor = () => {
+    if (color === "surface") return "text-surface";
+    if (color === "primary") return "text-primary";
+    if (color === "subtle-dark") return "text-subtle-dark";
+    return "text-normal";
+  };
+
   return (
     <div className="px-[20px] pt-[16px]">
-      <p className="font-medium text-[18px] text-surface mb-[8px]">
+      <p className={`font-medium text-[18px] ${getTextColor()} mb-[8px]`}>
         {label}
       </p>
       <Input
         type="text"
         placeholder={placeholder}
         className="w-full h-[40px] px-[12px] rounded-[20px] bg-surface"
+        
       />
     </div>
   );

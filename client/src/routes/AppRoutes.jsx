@@ -8,6 +8,7 @@ import CustomerHistory from "@/pages/CustomerHistory";
 import PartStock from "@/pages/PartStock";
 import SuspensionCheck from "@/pages/SuspensionCheck";
 import SalesReport from "@/pages/SalesReport";
+import NewStock from "@/pages/NewStock";
 
 const AppRoutes = () => {
   return (
@@ -26,6 +27,7 @@ const AppRoutes = () => {
           <Route path="/sales/weekly" element={<SalesReport />} />
           <Route path="/sales/monthly" element={<SalesReport />} />
           <Route path="/sales/yearly" element={<SalesReport />} />
+          <Route path="/stock/new" element={<NewStock />} />
         </Route>
 
         {/* Private */}

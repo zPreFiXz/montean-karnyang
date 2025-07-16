@@ -70,7 +70,7 @@ const SalesReport = () => {
           </Link>
         </div>
         <div className="flex items-center justify-center">
-          <p className="pt-[16px] font-semibold text-[18px] text-surface">
+          <p className="pt-[16px] font-semibold text-[20px] text-surface">
             1 มีนาคม 2568
           </p>
         </div>
