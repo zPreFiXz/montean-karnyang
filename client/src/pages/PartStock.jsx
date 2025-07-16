@@ -1,8 +1,9 @@
 import { Search } from "lucide-react";
+import { Link } from "react-router";
 
 const PartStock = () => {
   return (
-    <div className="w-full h-[500px] bg-primary shadow-primary">
+    <div className="w-full h-[500px] bg-gradient-primary shadow-primary">
       <p className="pt-[16px] pl-[20px] font-semibold text-[22px] text-surface">
         สต็อกอะไหล่
       </p>
@@ -24,9 +25,12 @@ const PartStock = () => {
             {/* หัวข้อ */}
             <div className="flex justify-between items-center">
               <p className="font-semibold text-[22px]">รายการอะไหล่</p>
-              <p className="font-medium text-[18px] text-primary cursor-pointer">
+              <Link
+                to="/stock/new"
+                className="font-medium text-[18px] text-primary cursor-pointer hover:text-primary/80 transition-colors"
+              >
                 เพิ่มรายการ
-              </p>
+              </Link>
             </div>
             {/* กล่องอะไหล่ */}
             <div className="flex items-center gap-[16px] mt-[16px]">

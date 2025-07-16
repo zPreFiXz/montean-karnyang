@@ -4,7 +4,7 @@ import { Search } from "lucide-react";
 
 const CustomerHistory = () => {
   return (
-    <div className="w-full h-[500px] bg-primary shadow-primary">
+    <div className="w-full h-[500px] bg-gradient-primary shadow-primary">
       <p className="pt-[16px] pl-[20px] font-semibold text-[22px] text-surface">
         ประวัติลูกค้า
       </p>

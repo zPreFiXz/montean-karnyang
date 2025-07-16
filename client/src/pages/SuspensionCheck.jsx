@@ -3,14 +3,14 @@ import InputField from "@/components/ui/InputField";
 
 const SuspensionCheck = () => {
   return (
-    <div className="w-full h-[500px] bg-gradient-primary shadow-primary">
+    <div className="w-full min-h-[calc(100vh-30px)] bg-gradient-primary shadow-primary">
       <p className="pt-[16px] pl-[20px] font-semibold text-[22px] text-surface">
         เช็คช่วงล่าง
       </p>
-      <InputField label="ชื่อลูกค้า" placeholder="กรอกชื่อลูกค้า" />
-      <InputField label="ยี่ห้อรถ" placeholder="กรอกยี่ห้อรถ" />
-      <InputField label="รุ่นรถ" placeholder="กรอกรุ่นรถ" />
-      <InputField label="ทะเบียนรถ" placeholder="กรอกทะเบียนรถ" />
+      <InputField label="ชื่อลูกค้า" placeholder="กรอกชื่อลูกค้า" color="surface"/>
+      <InputField label="ยี่ห้อรถ" placeholder="กรอกยี่ห้อรถ" color="surface" />
+      <InputField label="รุ่นรถ" placeholder="กรอกรุ่นรถ" color="surface"/>
+      <InputField label="ทะเบียนรถ" placeholder="กรอกทะเบียนรถ" color="surface" />
       <div className="w-full min-h-[calc(100vh-30px)] mt-[30px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         <div className="px-[20px] pt-[20px]">
           <p className="font-semibold text-[22px] text-normal">รายการซ่อม</p>
