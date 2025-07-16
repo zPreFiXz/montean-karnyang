@@ -14,18 +14,129 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model employees {
+model Employee {
   id            Int      @id @default(autoincrement())
-  email         String
+  email         String   @unique
   password_hash String
-  role          Role     @default(employee)
+  role          Role     @default(EMPLOYEE)
   first_name    String
-  last_name     String 
+  last_name     String
+  nickname      String
+  date_of_birth DateTime
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
+  repairs       Repair[]
 }
 
 enum Role {
-  employee
-  admin
+  EMPLOYEE
+  ADMIN
+}
+
+model Repair {
+  id             Int             @id @default(autoincrement())
+  description    String?
+  total_price    Decimal
+  started_at     DateTime        @default(now())
+  completed_at   DateTime?
+  status         RepairStatus    @default(IN_PROGRESS)
+  payment_method PaymentMethod?  @default(CASH)
+  paid_at        DateTime?
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @updatedAt
+  employee_id    Int
+  employee       Employee        @relation(fields: [employee_id], references: [id])
+  vehicle_id     Int
+  vehicle        Vehicle         @relation(fields: [vehicle_id], references: [id])
+  repairParts    RepairPart[]
+  repairServices RepairService[]
+}
+
+enum RepairStatus {
+  IN_PROGRESS
+  COMPLETED
+  PAID
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  BANK_TRANSFER
+}
+
+model Vehicle {
+  id            Int       @id @default(autoincrement())
+  license_plate String    @unique
+  brand         String
+  model         String
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  customer_id   Int?
+  customer      Customer? @relation(fields: [customer_id], references: [id])
+  repairs       Repair[]
+}
+
+model Customer {
+  id           Int       @id @default(autoincrement())
+  first_name   String?
+  last_name    String?
+  address      String?
+  phone_number String?   @unique
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  vehicles     Vehicle[]
+}
+
+model RepairPart {
+  id         Int      @id @default(autoincrement())
+  unit_price Decimal
+  quantity   Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  repair_id  Int
+  repair     Repair   @relation(fields: [repair_id], references: [id])
+  part_id    Int
+  part       Part     @relation(fields: [part_id], references: [id])
+}
+
+model Part {
+  id              Int          @id @default(autoincrement())
+  name            String
+  stock_quantity  Int
+  min_stock_level Int          @default(2)
+  cost_price      Decimal
+  selling_price   Decimal
+  img_url         String?
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+  category_id     Int
+  category        Category     @relation(fields: [category_id], references: [id])
+  RepairParts     RepairPart[]
+}
+
+model Category {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+  Part Part[]
+}
+
+model RepairService {
+  id         Int      @id @default(autoincrement())
+  unit_price Decimal
+  quantity   Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  repair_id  Int
+  repair     Repair   @relation(fields: [repair_id], references: [id])
+  service_id Int
+  service    Service  @relation(fields: [service_id], references: [id])
+}
+
+model Service {
+  id             Int             @id @default(autoincrement())
+  name           String          @unique
+  price          Decimal
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @updatedAt
+  repairServices RepairService[]
 }
