@@ -5,9 +5,16 @@ const jwt = require("jsonwebtoken");
 
 exports.register = async (req, res, next) => {
   try {
-    const { email, password_hash, first_name, last_name } = req.body;
+    const {
+      email,
+      password_hash,
+      first_name,
+      last_name,
+      nickname,
+      date_of_birth,
+    } = req.body;
 
-    const user = await prisma.employees.findFirst({
+    const user = await prisma.Employee.findFirst({
       where: {
         email: email,
       },
@@ -19,16 +26,16 @@ exports.register = async (req, res, next) => {
 
     const hashPassword = bcrypt.hashSync(password_hash, 10);
 
-    const result = await prisma.employees.create({
+    const result = await prisma.Employee.create({
       data: {
-        email: email,
+        email,
         password_hash: hashPassword,
-        first_name: first_name,
-        last_name: last_name,
+        first_name,
+        last_name,
+        nickname,
+        date_of_birth,
       },
     });
-
-    console.log(result)
 
     res.json({ message: "User registered successfully" });
   } catch (error) {

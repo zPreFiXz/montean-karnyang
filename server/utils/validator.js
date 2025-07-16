@@ -5,6 +5,8 @@ exports.registerSchema = z.object({
   password_hash: z.string().min(8),
   first_name: z.string().min(1),
   last_name: z.string().min(1),
+  nickname: z.string().min(1),
+  date_of_birth: z.coerce.date(),
 });
 
 exports.validate = (schema) => (req, res, next) => {
