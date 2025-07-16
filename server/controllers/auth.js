@@ -7,7 +7,7 @@ exports.register = async (req, res, next) => {
   try {
     const { email, password_hash, first_name, last_name } = req.body;
 
-    const user = await prisma.account.findFirst({
+    const user = await prisma.employees.findFirst({
       where: {
         email: email,
       },
@@ -19,7 +19,7 @@ exports.register = async (req, res, next) => {
 
     const hashPassword = bcrypt.hashSync(password_hash, 10);
 
-    const result = await prisma.account.create({
+    const result = await prisma.employees.create({
       data: {
         email: email,
         password_hash: hashPassword,

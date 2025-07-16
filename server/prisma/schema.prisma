@@ -14,11 +14,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model account {
+model employees {
   id            Int      @id @default(autoincrement())
   email         String
   password_hash String
-  role          Role     @default(user)
+  role          Role     @default(employee)
   first_name    String
   last_name     String 
   created_at    DateTime @default(now())
@@ -26,6 +26,6 @@ model account {
 }
 
 enum Role {
-  user
+  employee
   admin
 }
