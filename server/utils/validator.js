@@ -9,6 +9,11 @@ exports.registerSchema = z.object({
   date_of_birth: z.coerce.date(),
 });
 
+exports.loginSchema = z.object({
+  email: z.string().email(),
+  password_hash: z.string().min(8),
+});
+
 exports.validate = (schema) => (req, res, next) => {
   const result = schema.safeParse(req.body);
 

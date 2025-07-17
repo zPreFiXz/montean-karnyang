@@ -8,33 +8,23 @@ const {
   createVehicle,
   updateVehicle,
   deleteVehicle,
-} = require("../controllers/vehicle");
+} = require("../controllers/vehicle.controller");
 
-const { authCheck } = require("../middlewares/auth");
+const { authCheck } = require("../middlewares/authCheck");
 
 // @ENDPOINTS http://localhost:3000/api/vehicle
-// Methods GET
-// ACCESS Private
 router.get("/vehicle", authCheck, getAllVehicles);
 
 // @ENDPOINTS http://localhost:3000/api/vehicle/1
-// Methods GET
-// ACCESS Private
-router.get("/vehicle/:id", getVehicleById);
+router.get("/vehicle/:id", authCheck, getVehicleById);
 
 // @ENDPOINTS http://localhost:3000/api/vehicle
-// Methods POST
-// ACCESS Private
-router.post("/vehicle", createVehicle);
+router.post("/vehicle", authCheck, createVehicle);
 
 // @ENDPOINTS http://localhost:3000/api/vehicle/1
-// Methods PUT
-// ACCESS Private
-router.put("/vehicle", updateVehicle);
+router.put("/vehicle", authCheck, updateVehicle);
 
 // @ENDPOINTS http://localhost:3000/api/vehicle/1
-// Methods DELETE
-// ACCESS Private
-router.delete("/vehicle", deleteVehicle);
+router.delete("/vehicle", authCheck, deleteVehicle);
 
 module.exports = router;

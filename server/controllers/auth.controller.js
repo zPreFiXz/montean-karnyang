@@ -14,7 +14,7 @@ exports.register = async (req, res, next) => {
       date_of_birth,
     } = req.body;
 
-    const user = await prisma.Employee.findFirst({
+    const user = await prisma.User.findFirst({
       where: {
         email: email,
       },
@@ -26,7 +26,7 @@ exports.register = async (req, res, next) => {
 
     const hashPassword = bcrypt.hashSync(password_hash, 10);
 
-    const result = await prisma.Employee.create({
+    const result = await prisma.User.create({
       data: {
         email,
         password_hash: hashPassword,
@@ -43,9 +43,41 @@ exports.register = async (req, res, next) => {
   }
 };
 
-exports.login = (req, res, next) => {
+exports.login = async (req, res, next) => {
   try {
-    res.json({ message: "User logged in successfully" });
+    const { email, password_hash } = req.body;
+
+    const user = await prisma.User.findFirst({
+      where: {
+        email,
+      },
+    });
+
+    if (!user) {
+      createError(400, "Invalid email or password");
+    }
+
+    const checkPassword = bcrypt.compareSync(password_hash, user.password_hash);
+
+    if (!checkPassword) {
+      createError(400, "Invalid email or password");
+    }
+
+    const payload = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "15m",
+    });
+
+    res.json({
+      message: "User logged in successfully",
+      payload,
+      token,
+    });
   } catch (error) {
     next(error);
   }
