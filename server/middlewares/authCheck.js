@@ -5,7 +5,7 @@ exports.authCheck = async (req, res, next) => {
   try {
     const headerToken = req.headers.authorization;
 
-    if (!headerToken || !headerToken.startsWith("Bearer ")) {
+    if (!headerToken) {
       return res.status(401).json({ message: "Unauthorized access" });
     }
 
@@ -16,6 +16,7 @@ exports.authCheck = async (req, res, next) => {
     const user = await prisma.User.findFirst({
       where: { email: req.user.email },
     });
+
     next();
   } catch (error) {
     next(error);
@@ -33,6 +34,7 @@ exports.adminCheck = async (req, res, next) => {
     if (!adminUser || adminUser.role !== "ADMIN") {
       return res.status(403).json({ message: "Access denied" });
     }
+    
     next();
   } catch (error) {
     next(error);
