@@ -1,16 +1,31 @@
 const express = require("express");
-const { register, login } = require("../controllers/auth.controller");
+const {
+  register,
+  login,
+  currentUser,
+} = require("../controllers/auth.controller");
 const { registerSchema, validate, loginSchema } = require("../utils/validator");
+const { authCheck, adminCheck } = require("../middlewares/auth");
 const router = express.Router();
 
-// @ENDPOINTS http://localhost:3000/api/auth/register
+// @ENDPOINTS http://localhost:3000/api/register
 // METHOD POST
 // ACCESS Public
-router.post("/auth/register", validate(registerSchema), register);
+router.post("/register", validate(registerSchema), register);
 
-// @ENDPOINTS http://localhost:3000/api/auth/login
+// @ENDPOINTS http://localhost:3000/api/login
 // METHOD POST
 // ACCESS Public
-router.post("/auth/login", validate(loginSchema), login);
+router.post("/login", validate(loginSchema), login);
+
+// @ENDPOINTS http://localhost:3000/api/current-user
+// METHOD POST
+// ACCESS Private
+router.post("/current-user", authCheck, currentUser);
+
+// @ENDPOINTS http://localhost:3000/api/current-admin
+// METHOD POST
+// ACCESS Private
+router.post("/current-admin", authCheck, adminCheck, currentUser);
 
 module.exports = router;

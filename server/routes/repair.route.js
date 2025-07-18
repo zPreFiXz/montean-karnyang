@@ -10,7 +10,7 @@ const {
   deleteRepair,
 } = require("../controllers/repair.controller");
 
-const { authCheck } = require("../middlewares/authCheck");
+const { authCheck } = require("../middlewares/auth");
 
 // @ENDPOINTS http://localhost:3000/api/repairs
 // METHOD GET

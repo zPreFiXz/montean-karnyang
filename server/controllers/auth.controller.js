@@ -82,3 +82,24 @@ exports.login = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.currentUser = async (req, res, next) => {
+  try {
+    const user = await prisma.User.findFirst({
+      where: {
+        email: req.user.email,
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        first_name: true,
+        last_name: true,
+      },
+    });
+
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+};

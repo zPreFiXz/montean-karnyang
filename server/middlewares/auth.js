@@ -1,12 +1,13 @@
 const jwt = require("jsonwebtoken");
 const prisma = require("../config/prisma");
+const createError = require("../utils/createError");
 
 exports.authCheck = async (req, res, next) => {
   try {
     const headerToken = req.headers.authorization;
 
     if (!headerToken) {
-      return res.status(401).json({ message: "Unauthorized access" });
+      createError(401, "Unauthorized access. No token provided.");
     }
 
     const token = headerToken.split(" ")[1];
@@ -32,9 +33,9 @@ exports.adminCheck = async (req, res, next) => {
     });
 
     if (!adminUser || adminUser.role !== "ADMIN") {
-      return res.status(403).json({ message: "Access denied" });
+      createError(403, "Access denied. Admins only.");
     }
-    
+
     next();
   } catch (error) {
     next(error);
