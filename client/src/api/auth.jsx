@@ -1,7 +1,7 @@
 import axios from "axios";
 
-export const currentUser = (token) => {
-  return axios.post(
+export const currentUser = async (token) => {
+  return await axios.post(
     "http://localhost:3000/api/current-user",
     {},
     {
@@ -12,8 +12,8 @@ export const currentUser = (token) => {
   );
 };
 
-export const currentAdmin = (token) => {
-  return axios.post(
+export const currentAdmin = async (token) => {
+  return await axios.post(
     "http://localhost:3000/api/current-admin",
     {},
     {
