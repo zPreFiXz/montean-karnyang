@@ -20,7 +20,7 @@ const LoadingToRedirect = () => {
   }, []);
 
   if (redirect) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" />;
   }
 
   return <div>No Permission, Redirect in {count} seconds.</div>;

@@ -14,7 +14,7 @@ exports.authCheck = async (req, res, next) => {
     const decode = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decode;
 
-    const user = await prisma.User.findFirst({
+    await prisma.User.findUnique({
       where: { email: req.user.email },
     });
 
@@ -28,7 +28,7 @@ exports.adminCheck = async (req, res, next) => {
   try {
     const { email } = req.user;
 
-    const adminUser = await prisma.User.findFirst({
+    const adminUser = await prisma.User.findUnique({
       where: { email },
     });
 

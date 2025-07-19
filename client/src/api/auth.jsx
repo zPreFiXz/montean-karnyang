@@ -2,7 +2,7 @@ import axios from "axios";
 
 export const currentUser = async (token) => {
   return await axios.post(
-    "http://localhost:3000/api/current-user",
+    `${import.meta.env.VITE_API_URL}/api/current-user`,
     {},
     {
       headers: {
@@ -14,7 +14,7 @@ export const currentUser = async (token) => {
 
 export const currentAdmin = async (token) => {
   return await axios.post(
-    "http://localhost:3000/api/current-admin",
+    `${import.meta.env.VITE_API_URL}/api/current-admin`,
     {},
     {
       headers: {

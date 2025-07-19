@@ -2,7 +2,7 @@ const { z } = require("zod");
 
 exports.registerSchema = z.object({
   email: z.string().email(),
-  password_hash: z.string().min(8),
+  password: z.string().min(8),
   first_name: z.string().min(1),
   last_name: z.string().min(1),
   nickname: z.string().min(1),
@@ -11,7 +11,7 @@ exports.registerSchema = z.object({
 
 exports.loginSchema = z.object({
   email: z.string().email(),
-  password_hash: z.string().min(8),
+  password: z.string().min(8),
 });
 
 exports.validate = (schema) => (req, res, next) => {

@@ -2,6 +2,9 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const app = express();
+const dotenv = require("dotenv");
+
+dotenv.config();
 
 const { readdirSync } = require("fs");
 const handleError = require("./middlewares/error");
@@ -19,7 +22,7 @@ readdirSync("./routes").map((r) => {
 // Error handling
 app.use(handleError);
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

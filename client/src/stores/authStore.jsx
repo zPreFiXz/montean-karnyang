@@ -6,13 +6,13 @@ const authStore = (set) => ({
   user: null,
   token: null,
   actionLogin: async (form) => {
-    const res = await axios.post("http://localhost:3000/api/login", form);
+    const res = await axios.post(`${process.env.VITE_API_URL}/api/login`, form);
     set({
-        user: res.data.payload,
-        token: res.data.token,
+      user: res.data.payload,
+      token: res.data.token,
     });
     return res;
-},
+  },
 });
 
 const usePersist = {

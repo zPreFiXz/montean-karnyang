@@ -5,16 +5,10 @@ const jwt = require("jsonwebtoken");
 
 exports.register = async (req, res, next) => {
   try {
-    const {
-      email,
-      password_hash,
-      first_name,
-      last_name,
-      nickname,
-      date_of_birth,
-    } = req.body;
+    const { email, password, first_name, last_name, nickname, date_of_birth } =
+      req.body;
 
-    const user = await prisma.User.findFirst({
+    const user = await prisma.User.findUnique({
       where: {
         email: email,
       },
@@ -24,9 +18,9 @@ exports.register = async (req, res, next) => {
       createError(400, "User already exists");
     }
 
-    const hashPassword = bcrypt.hashSync(password_hash, 10);
+    const hashPassword = bcrypt.hashSync(password, 10);
 
-    const result = await prisma.User.create({
+    await prisma.User.create({
       data: {
         email,
         password_hash: hashPassword,
@@ -45,7 +39,7 @@ exports.register = async (req, res, next) => {
 
 exports.login = async (req, res, next) => {
   try {
-    const { email, password_hash } = req.body;
+    const { email, password } = req.body;
 
     const user = await prisma.User.findFirst({
       where: {
@@ -57,7 +51,7 @@ exports.login = async (req, res, next) => {
       createError(400, "Invalid email or password");
     }
 
-    const checkPassword = bcrypt.compareSync(password_hash, user.password_hash);
+    const checkPassword = await bcrypt.compare(password, user.password_hash);
 
     if (!checkPassword) {
       createError(400, "Invalid email or password");
@@ -85,7 +79,7 @@ exports.login = async (req, res, next) => {
 
 exports.currentUser = async (req, res, next) => {
   try {
-    const user = await prisma.User.findFirst({
+    const user = await prisma.User.findUnique({
       where: {
         email: req.user.email,
       },
