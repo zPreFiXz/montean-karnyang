@@ -4,13 +4,12 @@ const createError = require("../utils/createError");
 
 exports.authCheck = async (req, res, next) => {
   try {
-    const headerToken = req.headers.authorization;
+    const token = req.cookies.token;
 
-    if (!headerToken) {
+    if (!token) {
       createError(401, "Unauthorized access. No token provided.");
     }
 
-    const token = headerToken.split(" ")[1];
     const decode = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decode;
 

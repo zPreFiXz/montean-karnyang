@@ -4,9 +4,8 @@ exports.getRepairs = async (req, res, next) => {
   try {
     const repairs = await prisma.Repair.findMany();
 
-    res.json({ result: repairs });
+    res.json(repairs);
   } catch (error) {
-    console.log(error.message);
     next(error);
   }
 };
@@ -19,7 +18,7 @@ exports.getRepairById = async (req, res, next) => {
       where: { id: Number(id) },
     });
 
-    res.json({ result: repair });
+    res.json(repair);
   } catch (error) {
     next(error);
   }
@@ -87,7 +86,7 @@ exports.createRepair = async (req, res, next) => {
       },
     });
 
-    res.json({ result: vehicle });
+    res.json({ message: "Repair created successfully", data: vehicle });
   } catch (error) {
     next(error);
   }

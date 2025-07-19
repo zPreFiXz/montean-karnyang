@@ -18,7 +18,7 @@ exports.register = async (req, res, next) => {
       createError(400, "User already exists");
     }
 
-    const hashPassword = bcrypt.hashSync(password, 10);
+    const hashPassword = await bcrypt.hash(password, 12);
 
     await prisma.User.create({
       data: {
@@ -41,7 +41,7 @@ exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const user = await prisma.User.findFirst({
+    const user = await prisma.User.findUnique({
       where: {
         email,
       },
@@ -67,11 +67,31 @@ exports.login = async (req, res, next) => {
       expiresIn: "1d",
     });
 
-    res.json({
-      message: "User logged in successfully",
-      payload,
-      token,
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000,
     });
+
+    res.json({
+      message: "Login successful",
+      payload,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.logout = async (req, res, next) => {
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    });
+
+    res.json({ message: "Logout successful" });
   } catch (error) {
     next(error);
   }

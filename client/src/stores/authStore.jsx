@@ -6,10 +6,15 @@ const authStore = (set) => ({
   user: null,
   token: null,
   actionLogin: async (form) => {
-    const res = await axios.post(`${process.env.VITE_API_URL}/api/login`, form);
+    const res = await axios.post(
+      `${import.meta.env.VITE_API_URL}/api/login`,
+      form,
+      {
+        withCredentials: true,
+      }
+    );
     set({
       user: res.data.payload,
-      token: res.data.token,
     });
     return res;
   },
