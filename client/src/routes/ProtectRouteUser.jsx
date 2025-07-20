@@ -4,15 +4,14 @@ import { useState, useEffect } from "react";
 import LoadingToRedirect from "./LoadingToRedirect";
 
 const ProtectRouteUser = ({ element }) => {
-  const [ok, isOk] = useState(false);
+  const [ok, setOk] = useState(false);
   const user = useAuthStore((state) => state.user);
-  const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
-    if (user && token) {
-      currentUser(token)
-        .then((res) => isOk(true))
-        .catch((err) => isOk(false));
+    if (user) {
+      currentUser()
+        .then((res) => setOk(true))
+        .catch((err) => setOk(false));
     }
   }, []);
 

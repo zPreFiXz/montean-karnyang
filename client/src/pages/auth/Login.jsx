@@ -1,10 +1,12 @@
 import useAuthStore from "@/stores/authStore";
-import { useNavigate } from "react-router";
+import { replace, useNavigate } from "react-router";
+import { useForm } from "react-hook-form";
+import FormInputs from "@/components/form/FormInputs";
 
 const Login = () => {
+  const { register, handleSubmit } = useForm();
   const navigate = useNavigate();
-  const { actionLogin } = useAuthStore((state) => state.actionLogin);
-  const user = useAuthStore((state) => state.user);
+  const actionLogin = useAuthStore((state) => state.actionLogin);
 
   const roleRedirect = (role) => {
     if (role === "EMPLOYEE") {
@@ -14,6 +16,43 @@ const Login = () => {
     }
   };
 
-  return <div>Login</div>;
+  const handleLogin = async (data) => {
+    try {
+      const res = await actionLogin(data);
+      const role = res.data.payload.role;
+      roleRedirect(role);
+    } catch (error) {
+      console.error("Login error:", error);
+    }
+  };
+
+  return (
+    <div>
+      <form onSubmit={handleSubmit(handleLogin)}>
+        <FormInputs
+          register={register}
+          name="email"
+          type="email"
+          label="Email"
+          placeholder="Enter your email"
+          color="primary"
+        />
+        <FormInputs
+          register={register}
+          name="password"
+          type="password"
+          label="Password"
+          placeholder="Enter your password"
+          color="primary"
+        />
+        <button
+          type="submit"
+          className="w-full h-[40px] mt-[16px] bg-primary text-white rounded-[20px] hover:bg-primary-dark"
+        >
+          Login
+        </button>
+      </form>
+    </div>
+  );
 };
 export default Login;

@@ -18,13 +18,13 @@ exports.validate = (schema) => (req, res, next) => {
   const result = schema.safeParse(req.body);
 
   if (!result.success) {
-    const errors = result.error.issues.map(({ path, message }) => ({
-      field: path[0] ?? "unknown",
-      message,
+    const errors = result.error.issues.map((error) => ({
+      field: error.path.join("."),
+      message: error.message,
     }));
     return res.status(400).json({ errors });
   }
 
-  req.validated = result.data;
+  req.body = result.data;
   next();
 };

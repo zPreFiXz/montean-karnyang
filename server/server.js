@@ -13,17 +13,17 @@ const { readdirSync } = require("fs");
 const handleError = require("./middlewares/error");
 
 // Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 50,
-  message: "Too many requests from this IP",
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000,
+//   max: 50,
+//   message: "Too many requests from this IP",
+//   standardHeaders: true,
+//   legacyHeaders: false,
+// });
 
 // Security Middleware
 app.use(helmet());
-app.use(limiter);
+// app.use(limiter);
 
 // Middleware
 app.use(

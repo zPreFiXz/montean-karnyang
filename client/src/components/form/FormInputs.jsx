@@ -1,11 +1,10 @@
-import { Input } from "./input";
+import { Input } from "../ui/input";
 
-const InputField = ({ label, placeholder, color }) => {
+const FormInputs = ({ register, name, label, type, placeholder, color }) => {
   const getTextColor = () => {
     if (color === "surface") return "text-surface";
     if (color === "primary") return "text-primary";
     if (color === "subtle-dark") return "text-subtle-dark";
-    return "text-normal";
   };
 
   return (
@@ -14,12 +13,12 @@ const InputField = ({ label, placeholder, color }) => {
         {label}
       </p>
       <Input
-        type="text"
+        {...register(name)}
+        type={type}
         placeholder={placeholder}
         className="w-full h-[40px] px-[12px] rounded-[20px] bg-surface"
-        
       />
     </div>
   );
 };
-export default InputField;
+export default FormInputs;

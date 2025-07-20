@@ -23,6 +23,43 @@ const LoadingToRedirect = () => {
     return <Navigate to="/login" />;
   }
 
-  return <div>No Permission, Redirect in {count} seconds.</div>;
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-sm w-full mx-4">
+        <div className="bg-white rounded-lg shadow-sm border p-8 text-center">
+          {/* Simple Loading Spinner */}
+          <div className="mb-6">
+            <div className="w-8 h-8 mx-auto border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+          </div>
+
+          {/* Title */}
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">
+            Please Login
+          </h2>
+
+          {/* Message */}
+          <p className="text-gray-600 text-sm mb-6">
+            You need to login to access this page
+          </p>
+
+          {/* Simple Countdown */}
+          <div className="mb-4">
+            <span className="text-2xl font-bold text-blue-600">{count}</span>
+            <p className="text-xs text-gray-500 mt-1">
+              Redirecting to login...
+            </p>
+          </div>
+
+          {/* Simple Button */}
+          <button
+            onClick={() => setRedirect(true)}
+            className="text-blue-600 hover:text-blue-800 text-sm underline"
+          >
+            Login now
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 export default LoadingToRedirect;

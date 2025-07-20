@@ -4,7 +4,6 @@ import { persist, createJSONStorage } from "zustand/middleware";
 
 const authStore = (set) => ({
   user: null,
-  token: null,
   actionLogin: async (form) => {
     const res = await axios.post(
       `${import.meta.env.VITE_API_URL}/api/login`,
@@ -17,6 +16,11 @@ const authStore = (set) => ({
       user: res.data.payload,
     });
     return res;
+  },
+  logout: () => {
+    set({
+      user: null,
+    });
   },
 });
 

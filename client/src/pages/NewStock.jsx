@@ -1,6 +1,5 @@
-import React from "react";
 import { ImageIcon } from "lucide-react";
-import InputField from "@/components/ui/InputField";
+import FormInputs from "@/components/form/FormInputs";
 
 const NewStock = () => {
   return (
@@ -20,13 +19,37 @@ const NewStock = () => {
             </p>
           </div>
         </div>
-        <InputField label="รหัสอะไหล่" placeholder="กรอกรหัสอะไหล่" color="subtle-dark"/>
-        <InputField label="ชื่ออะไหล่" placeholder="กรอกรหัสอะไหล่" color="subtle-dark"/>
-        <InputField label="หมวดหมู่" placeholder="กรอกหมวดหมู่" color="subtle-dark"/>
-        <InputField label="ราคาต้นทุน" placeholder="กรอกราคาต้นทุน" color="subtle-dark"/>
-        <InputField label="ราคาขาย" placeholder="กรอกราคาขาย" color="subtle-dark"/>
-        <InputField label="จำนวน" placeholder="กรอกจำนวน" color="subtle-dark"/>
-        <InputField label="แจ้งเตือน" placeholder="กรอกแจ้งเตือน" color="subtle-dark"/>
+        <FormInputs
+          label="รหัสอะไหล่"
+          placeholder="กรอกรหัสอะไหล่"
+          color="subtle-dark"
+        />
+        <FormInputs
+          label="ชื่ออะไหล่"
+          placeholder="กรอกรหัสอะไหล่"
+          color="subtle-dark"
+        />
+        <FormInputs
+          label="หมวดหมู่"
+          placeholder="กรอกหมวดหมู่"
+          color="subtle-dark"
+        />
+        <FormInputs
+          label="ราคาต้นทุน"
+          placeholder="กรอกราคาต้นทุน"
+          color="subtle-dark"
+        />
+        <FormInputs
+          label="ราคาขาย"
+          placeholder="กรอกราคาขาย"
+          color="subtle-dark"
+        />
+        <FormInputs label="จำนวน" placeholder="กรอกจำนวน" color="subtle-dark" />
+        <FormInputs
+          label="แจ้งเตือน"
+          placeholder="กรอกแจ้งเตือน"
+          color="subtle-dark"
+        />
       </div>
     </div>
   );

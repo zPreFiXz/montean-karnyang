@@ -13,14 +13,21 @@ import ProtectRouteUser from "./ProtectRouteUser";
 import ProtectRouteAdmin from "./ProtectRouteAdmin";
 import Login from "@/pages/auth/Login";
 import Register from "@/pages/auth/Register";
+import ProtectRouteGuest from "./ProtectRouteGuest";
 
 const AppRoutes = () => {
   return (
     <BrowserRouter>
       <Routes>
         {/* Public Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route
+          path="/login"
+          element={<ProtectRouteGuest element={<Login />} />}
+        />
+        <Route
+          path="/register"
+          element={<ProtectRouteGuest element={<Register />} />}
+        />
 
         {/* User Routes */}
         <Route element={<ProtectRouteUser element={<Layout />} />}>
