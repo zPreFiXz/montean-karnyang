@@ -1,21 +1,9 @@
-import axios from "axios";
+import api from "@/lib/api";
 
 export const currentUser = async () => {
-  return await axios.post(
-    `${import.meta.env.VITE_API_URL}/api/current-user`,
-    {},
-    {
-      withCredentials: true,
-    }
-  );
+  await api.post("/api/current-user");
 };
 
 export const currentAdmin = async () => {
-  return await axios.post(
-    `${import.meta.env.VITE_API_URL}/api/current-admin`,
-    {},
-    {
-      withCredentials: true,
-    }
-  );
+  await api.post("/api/current-admin");
 };

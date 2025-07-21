@@ -1,17 +1,13 @@
-import axios from "axios";
+import api from "@/lib/api";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
 const authStore = (set) => ({
   user: null,
   actionLogin: async (form) => {
-    const res = await axios.post(
-      `${import.meta.env.VITE_API_URL}/api/login`,
-      form,
-      {
-        withCredentials: true,
-      }
-    );
+    const res = await api.post("/api/login", form);
+
+    console.log("Login Response:", res.data);
     set({
       user: res.data.payload,
     });

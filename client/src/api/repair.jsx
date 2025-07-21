@@ -1,7 +1,5 @@
-import axios from "axios";
+import api from "@/lib/api";
 
-export const createRepair = async (token, data) => {
-  return await axios.post(`${import.meta.env.VITE_API_URL}/api/repair`, data, {
-    withCredentials: true,
-  });
+export const createRepair = async (data) => {
+  await api.post("/api/repair", data);
 };
