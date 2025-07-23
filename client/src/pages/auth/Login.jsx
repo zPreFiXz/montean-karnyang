@@ -2,6 +2,7 @@ import useAuthStore from "@/stores/authStore";
 import { useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import FormInputs from "@/components/form/FormInputs";
+import { toast } from "sonner";
 
 const Login = () => {
   const { register, handleSubmit } = useForm();
@@ -20,9 +21,11 @@ const Login = () => {
     try {
       const res = await actionLogin(data);
       const role = res.data.payload.role;
+      toast.success("เข้าสู่ระบบสำเร็จ");
       roleRedirect(role);
     } catch (error) {
       console.error("Login error:", error);
+      toast.error("เข้าสู่ระบบล้มเหลว");
     }
   };
 

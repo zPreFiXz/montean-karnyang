@@ -27,11 +27,6 @@ const LoadingToRedirect = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-sm w-full mx-4">
         <div className="bg-white rounded-lg shadow-sm border p-8 text-center">
-          {/* Simple Loading Spinner */}
-          <div className="mb-6">
-            <div className="w-8 h-8 mx-auto border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
-          </div>
-
           {/* Title */}
           <h2 className="text-lg font-semibold text-gray-800 mb-2">
             Please Login
