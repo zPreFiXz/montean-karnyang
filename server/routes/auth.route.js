@@ -2,6 +2,7 @@ const express = require("express");
 const {
   register,
   login,
+  logout,
   currentUser,
 } = require("../controllers/auth.controller");
 const { registerSchema, validate, loginSchema } = require("../utils/validator");
@@ -17,6 +18,11 @@ router.post("/register", validate(registerSchema), register);
 // METHOD POST
 // ACCESS Public
 router.post("/login", validate(loginSchema), login);
+
+// @ENDPOINTS http://localhost:3000/api/logout
+// METHOD POST
+// ACCESS Private
+router.post("/logout", authCheck, logout);
 
 // @ENDPOINTS http://localhost:3000/api/current-user
 // METHOD POST

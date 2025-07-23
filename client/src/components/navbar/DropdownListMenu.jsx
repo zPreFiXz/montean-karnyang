@@ -7,8 +7,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "../ui/button";
 import { CircleUserRound, LogOut, Settings, ChevronDown } from "lucide-react";
+import useAuthStore from "@/stores/authStore";
+import { toast } from "sonner";
+import { useNavigate } from "react-router";
 
 const DropdownListMenu = () => {
+  const navigate = useNavigate();
+  const logout = useAuthStore((state) => state.logout);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("ออกจากระบบสำเร็จ");
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("ออกจากระบบล้มเหลว");
+    }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -58,7 +75,12 @@ const DropdownListMenu = () => {
           <span>การตั้งค่า</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator className="my-[4px]" />
-        <DropdownMenuItem className="flex items-center gap-[12px] px-[12px] py-[8px] font-medium text-[14px] rounded-[8px] cursor-pointer hover:bg-red-50 focus:bg-red-50 hover:text-red-600 focus:text-red-600 transition-colors duration-200">
+        <DropdownMenuItem
+          onClick={() => {
+            handleLogout();
+          }}
+          className="flex items-center gap-[12px] px-[12px] py-[8px] font-medium text-[14px] rounded-[8px] cursor-pointer hover:bg-red-50 focus:bg-red-50 hover:text-red-600 focus:text-red-600 transition-colors duration-200"
+        >
           <LogOut className="w-[16px] h-[16px]" />
           <span>ออกจากระบบ</span>
         </DropdownMenuItem>

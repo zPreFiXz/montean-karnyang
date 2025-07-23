@@ -7,16 +7,19 @@ const authStore = (set) => ({
   actionLogin: async (form) => {
     const res = await api.post("/api/login", form);
 
-    console.log("Login Response:", res.data);
     set({
       user: res.data.payload,
     });
     return res;
   },
-  logout: () => {
-    set({
-      user: null,
-    });
+  logout: async () => {
+    try {
+      await api.post("/api/logout");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+
+    set({ user: null });
   },
 });
 

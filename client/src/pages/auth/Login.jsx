@@ -24,8 +24,8 @@ const Login = () => {
       toast.success("เข้าสู่ระบบสำเร็จ");
       roleRedirect(role);
     } catch (error) {
-      toast.error("เข้าสู่ระบบล้มเหลว");
       console.error("Login error:", error);
+      toast.error("เข้าสู่ระบบล้มเหลว");
     }
   };
 
