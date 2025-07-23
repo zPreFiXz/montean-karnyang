@@ -1,6 +1,6 @@
 import { Input } from "../ui/input";
 
-const FormInputs = ({ register, name, label, type, placeholder, color }) => {
+const FormInputs = ({ register, name, label, type, placeholder, color, noLabel, noPadding }) => {
   const getTextColor = () => {
     if (color === "surface") return "text-surface";
     if (color === "primary") return "text-primary";
@@ -8,10 +8,12 @@ const FormInputs = ({ register, name, label, type, placeholder, color }) => {
   };
 
   return (
-    <div className="px-[20px] pt-[16px]">
-      <p className={`font-medium text-[18px] ${getTextColor()} mb-[8px]`}>
-        {label}
-      </p>
+    <div className={noPadding ? "" : "px-[20px] pt-[16px]"}>
+      {label && !noLabel && (
+        <p className={`font-medium text-[18px] ${getTextColor()} mb-[8px]`}>
+          {label}
+        </p>
+      )}
       <Input
         {...register(name)}
         type={type}

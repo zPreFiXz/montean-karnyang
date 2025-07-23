@@ -1,7 +1,18 @@
 import { Search } from "lucide-react";
 import { Link } from "react-router";
+import { useState } from "react";
+import { Tire, Shock, Oil, ToolBox } from "@/components/icons/Icon";
 
 const PartStock = () => {
+  const [activeTab, setActiveTab] = useState("ทั้งหมด");
+
+  const tabs = [
+    { id: "ทั้งหมด", name: "ทั้งหมด", icon: ToolBox },
+    { id: "ยาง", name: "ยาง", icon: Tire },
+    { id: "ช่วงล่าง", name: "ช่วงล่าง", icon: Shock },
+    { id: "น้ำมันเครื่อง", name: "น้ำมันเครื่อง", icon: Oil },
+  ];
+
   return (
     <div className="w-full h-[500px] bg-gradient-primary shadow-primary">
       <p className="pt-[16px] pl-[20px] font-semibold text-[22px] text-surface">
@@ -20,6 +31,32 @@ const PartStock = () => {
               className="w-full h-[40px] pl-[40px] pr-[12px] rounded-[10px] bg-white border text-[16px] text-black placeholder-subtle-dark focus:outline-none focus:ring-2 focus:ring-primary shadow-primary"
             />
           </div>
+          
+          {/* แท็บหมวดหมู่ */}
+          <div className="flex gap-[18px] mt-[16px] overflow-x-auto pb-[8px]">
+            {tabs.map((tab) => {
+              const IconComponent = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex flex-col items-center justify-center gap-[8px] px-[20px] py-[12px] rounded-[20px] whitespace-nowrap transition-all duration-200 w-[120px] ${
+                    isActive
+                      ? 'bg-primary text-white shadow-lg'
+                      : 'bg-white text-subtle-dark border border-gray-400 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className={`w-[48px] h-[48px] flex items-center justify-center ${
+                    isActive ? 'text-white' : 'text-subtle-dark'
+                  }`}>
+                    <IconComponent />
+                  </div>
+                  <div className="font-semibold text-[16px]">{tab.name}</div>
+                </button>
+              );
+            })}
+          </div>
           {/* หัวข้อและกล่องอะไหล่ */}
           <div className="w-full pt-[20px]">
             {/* หัวข้อ */}
@@ -27,7 +64,7 @@ const PartStock = () => {
               <p className="font-semibold text-[22px]">รายการอะไหล่</p>
               <Link
                 to="/stock/new"
-                className="font-medium text-[18px] text-primary cursor-pointer hover:text-primary/80 transition-colors"
+                className="font-semibold text-[18px] text-primary cursor-pointer hover:text-primary/80 transition-colors"
               >
                 เพิ่มรายการ
               </Link>

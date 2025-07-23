@@ -37,7 +37,9 @@ const AppRoutes = () => {
           <Route path="repairs/new" element={<RepairCreate />} />
           <Route path="customers/history" element={<CustomerHistory />} />
           <Route path="stock/parts" element={<PartStock />} />
-          <Route path="status" element={<Status />} />
+          <Route path="status/inprogress" element={<Status />} />
+          <Route path="status/completed" element={<Status />} />
+          <Route path="status/paid" element={<Status />} />
           <Route path="sales/daily" element={<SalesReport />} />
           <Route path="sales/weekly" element={<SalesReport />} />
           <Route path="sales/monthly" element={<SalesReport />} />
