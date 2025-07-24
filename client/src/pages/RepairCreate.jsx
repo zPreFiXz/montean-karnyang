@@ -3,6 +3,8 @@ import { useState } from "react";
 import FormInputs from "@/components/form/FormInputs";
 import LicensePlate from "@/components/form/LicensePlate";
 import { Input } from "@/components/ui/input";
+import api from "@/lib/api";
+import { toast } from "sonner";
 
 const RepairCreate = () => {
   const { register, handleSubmit, reset } = useForm();
@@ -11,31 +13,20 @@ const RepairCreate = () => {
   const [savedData, setSavedData] = useState(null);
 
   const handleCreateRepair = async (data) => {
-    setIsSubmitting(true);
-    console.log("Repair data:", data);
-
-    // จำลองการบันทึกข้อมูล
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // เก็บข้อมูลที่บันทึก
-    setSavedData({
-      ...data,
-      licensePlate:
-        data.plate_letters +
-        "-" +
-        data.plate_numbers +
-        " " +
-        data.plate_province,
-    });
-
-    setIsSubmitting(false);
-    setShowSuccessMessage(true);
-    // ไม่ล้างฟอร์ม เพื่อให้ข้อมูลยังแสดงอยู่
-
-    // ซ่อนข้อความสำเร็จหลัง 3 วินาที
-    setTimeout(() => {
-      setShowSuccessMessage(false);
-    }, 3000);
+    try {
+      console.log(data);
+      await api.post("/api/repair", {
+        brand: data.brand,
+        model: data.model,
+        plate_number: `${data.plate_letters}${data.plate_numbers}`,
+        province: data.province,
+        description: data.description,
+        total_price: 0,
+      });
+      toast.success("บันทึกข้อมูลเรียบร้อยแล้ว!");
+    } catch (error) {
+      console.error("Error creating repair:", error);
+    }
   };
 
   return (
