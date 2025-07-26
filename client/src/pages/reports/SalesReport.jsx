@@ -13,12 +13,12 @@ const SalesReport = () => {
         <p className="font-semibold text-[22px] text-surface">ยอดขาย</p>
         <div className="flex justify-center gap-[17px] mt-[16px] ]">
           <Link
-            to="/sales/daily"
+            to="/reports/sales/daily"
             className="flex items-center justify-center w-[78px] h-[30px] rounded-[10px] bg-surface shadow-primary cursor-pointer hover:bg-surface/90 transition-colors"
           >
             <p
               className={`font-semibold text-[18px] ${
-                location.pathname === "/sales/daily"
+                location.pathname === "/reports/sales/daily"
                   ? "text-primary"
                   : "text-subtle-light"
               }`}
@@ -27,12 +27,12 @@ const SalesReport = () => {
             </p>
           </Link>
           <Link
-            to="/sales/weekly"
+            to="/reports/sales/weekly"
             className="flex items-center justify-center w-[78px] h-[30px] rounded-[10px] bg-surface shadow-primary cursor-pointer hover:bg-surface/90 transition-colors"
           >
             <p
               className={`font-semibold text-[18px] ${
-                location.pathname === "/sales/weekly"
+                location.pathname === "/reports/sales/weekly"
                   ? "text-primary"
                   : "text-subtle-light"
               }`}
@@ -41,12 +41,12 @@ const SalesReport = () => {
             </p>
           </Link>
           <Link
-            to="/sales/monthly"
+            to="/reports/sales/monthly"
             className="flex items-center justify-center w-[78px] h-[30px] rounded-[10px] bg-surface shadow-primary cursor-pointer hover:bg-surface/90 transition-colors"
           >
             <p
               className={`font-semibold text-[18px] ${
-                location.pathname === "/sales/monthly"
+                location.pathname === "/reports/sales/monthly"
                   ? "text-primary"
                   : "text-subtle-light"
               }`}
@@ -55,12 +55,12 @@ const SalesReport = () => {
             </p>
           </Link>
           <Link
-            to="/sales/yearly"
+            to="/reports/sales/yearly"
             className="flex items-center justify-center w-[78px] h-[30px] rounded-[10px] bg-surface shadow-primary cursor-pointer hover:bg-surface/90 transition-colors"
           >
             <p
               className={`font-semibold text-[18px] ${
-                location.pathname === "/sales/yearly"
+                location.pathname === "/reports/sales/yearly"
                   ? "text-primary"
                   : "text-subtle-light"
               }`}

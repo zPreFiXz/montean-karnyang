@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { useState } from "react";
 import { Tire, Shock, Oil, ToolBox } from "@/components/icons/Icon";
 
-const PartStock = () => {
+const InventoryPart = () => {
   const [activeTab, setActiveTab] = useState("ทั้งหมด");
 
   const tabs = [
@@ -63,7 +63,7 @@ const PartStock = () => {
             <div className="flex justify-between items-center">
               <p className="font-semibold text-[22px]">รายการอะไหล่</p>
               <Link
-                to="/stock/new"
+                to="/inventory/new"
                 className="font-semibold text-[18px] text-primary cursor-pointer hover:text-primary/80 transition-colors"
               >
                 เพิ่มรายการ
@@ -132,4 +132,4 @@ const PartStock = () => {
     </div>
   );
 };
-export default PartStock;
+export default InventoryPart;

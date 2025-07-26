@@ -1,7 +1,7 @@
 import useAuthStore from "@/stores/authStore";
 import { useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
-import FormInputs from "@/components/form/FormInputs";
+import FormInput from "@/components/form/FormInput";
 import { toast } from "sonner";
 
 const Login = () => {
@@ -32,7 +32,7 @@ const Login = () => {
   return (
     <div>
       <form onSubmit={handleSubmit(handleLogin)}>
-        <FormInputs
+        <FormInput
           register={register}
           name="email"
           type="email"
@@ -40,7 +40,7 @@ const Login = () => {
           placeholder="Enter your email"
           color="primary"
         />
-        <FormInputs
+        <FormInput
           register={register}
           name="password"
           type="password"

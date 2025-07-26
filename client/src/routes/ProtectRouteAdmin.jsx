@@ -15,6 +15,6 @@ const ProtectRouteAdmin = ({ element }) => {
     }
   }, []);
 
-  return ok ? element : <LoadingToRedirect />;
+  return element;
 };
 export default ProtectRouteAdmin;

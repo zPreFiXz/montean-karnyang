@@ -1,14 +1,26 @@
 import { Input } from "../ui/input";
 
-const LicensePlate = ({ register, name, type, placeholder, className }) => {
+const FormInput = ({ register, name, label, type, placeholder, color, noLabel, noPadding }) => {
+  const getTextColor = () => {
+    if (color === "surface") return "text-surface";
+    if (color === "primary") return "text-primary";
+    if (color === "subtle-dark") return "text-subtle-dark";
+  };
+
   return (
-    <Input
-      {...register(name)}
-      type={type}
-      placeholder={placeholder}
-      className={className || "w-full h-[40px] px-[12px] rounded-[20px] bg-surface"}
-    />
+    <div className={noPadding ? "" : "px-[20px] pt-[16px]"}>
+      {label && !noLabel && (
+        <p className={`font-medium text-[18px] ${getTextColor()} mb-[8px]`}>
+          {label}
+        </p>
+      )}
+      <Input
+        {...register(name)}
+        type={type}
+        placeholder={placeholder}
+        className="w-full h-[40px] px-[12px] rounded-[20px] bg-surface"
+      />
+    </div>
   );
 };
-
-export default LicensePlate;
+export default FormInput;

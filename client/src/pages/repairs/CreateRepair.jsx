@@ -1,12 +1,11 @@
 import { useForm } from "react-hook-form";
 import { useState } from "react";
-import FormInputs from "@/components/form/FormInputs";
-import LicensePlate from "@/components/form/LicensePlate";
-import { Input } from "@/components/ui/input";
+import FormInput from "@/components/form/FormInput";
+import LicensePlateInput from "@/components/form/LicensePlateInput";
 import api from "@/lib/api";
 import { toast } from "sonner";
 
-const RepairCreate = () => {
+const CreateRepair = () => {
   const { register, handleSubmit, reset } = useForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -44,21 +43,21 @@ const RepairCreate = () => {
       )}
 
       <form onSubmit={handleSubmit(handleCreateRepair)}>
-        <FormInputs
+        <FormInput
           register={register}
           name="first_name"
           label="ชื่อลูกค้า"
           placeholder="กรอกชื่อลูกค้า"
           color="surface"
         />
-        <FormInputs
+        <FormInput
           register={register}
           name="brand"
           label="ยี่ห้อรถ"
           placeholder="กรอกยี่ห้อรถ เช่น Toyota"
           color="surface"
         />
-        <FormInputs
+        <FormInput
           register={register}
           name="model"
           label="รุ่นรถ"
@@ -72,7 +71,7 @@ const RepairCreate = () => {
           </p>
           <div className="flex gap-[12px] items-center">
             <div className="flex-1">
-              <LicensePlate
+              <LicensePlateInput
                 register={register}
                 name="plate_letters"
                 placeholder="กข"
@@ -87,7 +86,7 @@ const RepairCreate = () => {
             </div>
             <span className="text-surface font-medium text-[18px]">-</span>
             <div className="flex-1">
-              <LicensePlate
+              <LicensePlateInput
                 register={register}
                 name="plate_numbers"
                 placeholder="1234"
@@ -102,7 +101,7 @@ const RepairCreate = () => {
               />
             </div>
             <div className="flex-1">
-              <LicensePlate
+              <LicensePlateInput
                 register={register}
                 name="province"
                 placeholder="อุบลราชธานี"
@@ -111,7 +110,7 @@ const RepairCreate = () => {
           </div>
         </div>
 
-        <FormInputs
+        <FormInput
           register={register}
           name="description"
           label="รายละเอียดการซ่อม"
@@ -147,4 +146,4 @@ const RepairCreate = () => {
   );
 };
 
-export default RepairCreate;
+export default CreateRepair;

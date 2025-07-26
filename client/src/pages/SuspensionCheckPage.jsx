@@ -1,10 +1,10 @@
-import FormInputs from "@/components/form/FormInputs";
+import FormInput from "@/components/form/FormInput";
 import { Success } from "@/components/icons/Icon";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
-import LicensePlate from "@/components/form/LicensePlate";
+import LicensePlateInput from "@/components/form/LicensePlateInput";
 
-const SuspensionCheck = () => {
+const SuspensionCheckPage = () => {
   const { register, handleSubmit, reset } = useForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -53,21 +53,21 @@ const SuspensionCheck = () => {
       )}
 
       <form onSubmit={handleSubmit(handleSuspensionCheck)}>
-        <FormInputs
+        <FormInput
           register={register}
           name="customer_name"
           label="ชื่อลูกค้า"
           placeholder="กรอกชื่อลูกค้า"
           color="surface"
         />
-        <FormInputs
+        <FormInput
           register={register}
           name="brand"
           label="ยี่ห้อรถ"
           placeholder="กรอกยี่ห้อรถ เช่น Toyota"
           color="surface"
         />
-        <FormInputs
+        <FormInput
           register={register}
           name="model"
           label="รุ่นรถ"
@@ -81,7 +81,7 @@ const SuspensionCheck = () => {
           </p>
           <div className="flex gap-[12px] items-center">
             <div className="flex-1">
-              <LicensePlate
+              <LicensePlateInput
                 register={register}
                 name="plate_letters"
                 placeholder="กข"
@@ -96,7 +96,7 @@ const SuspensionCheck = () => {
             </div>
             <span className="text-surface font-medium text-[18px]">-</span>
             <div className="flex-1">
-              <LicensePlate
+              <LicensePlateInput
                 register={register}
                 name="plate_numbers"
                 placeholder="1234"
@@ -111,7 +111,7 @@ const SuspensionCheck = () => {
               />
             </div>
             <div className="flex-1">
-              <LicensePlate
+              <LicensePlateInput
                 register={register}
                 name="plate_province"
                 placeholder="อุบลราชธานี"
@@ -120,7 +120,7 @@ const SuspensionCheck = () => {
             </div>
           </div>
         </div>
-        <FormInputs
+        <FormInput
           register={register}
           name="description"
           label="รายละเอียดการซ่อม"
@@ -210,4 +210,4 @@ const SuspensionCheck = () => {
     </div>
   );
 };
-export default SuspensionCheck;
+export default SuspensionCheckPage;

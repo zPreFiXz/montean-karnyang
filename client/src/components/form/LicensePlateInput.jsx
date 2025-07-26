@@ -1,6 +1,6 @@
 import { Input } from "../ui/input";
 
-const LicensePlate = ({ register, name, type, placeholder, className, pattern, maxLength, onInput }) => {
+const LicensePlateInput = ({ register, name, type, placeholder, className, pattern, maxLength, onInput }) => {
   return (
     <Input
       {...register(name)}
@@ -14,4 +14,4 @@ const LicensePlate = ({ register, name, type, placeholder, className, pattern, m
   );
 };
 
-export default LicensePlate;
+export default LicensePlateInput;

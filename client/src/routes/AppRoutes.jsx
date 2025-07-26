@@ -1,18 +1,18 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
-import Dashboard from "../pages/Dashboard";
-import NotFound from "../pages/NotFound";
 import Layout from "../layouts/Layout";
-import Status from "@/pages/Status";
-import RepairCreate from "@/pages/RepairCreate";
-import CustomerHistory from "@/pages/CustomerHistory";
-import PartStock from "@/pages/PartStock";
-import SuspensionCheck from "@/pages/SuspensionCheck";
-import SalesReport from "@/pages/SalesReport";
-import NewStock from "@/pages/NewStock";
-import ProtectRouteUser from "./ProtectRouteUser";
-import ProtectRouteAdmin from "./ProtectRouteAdmin";
 import Login from "@/pages/auth/Login";
 import Register from "@/pages/auth/Register";
+import Dashboard from "../pages/Dashboard";
+import NotFound from "../pages/NotFound";
+import SalesReport from "@/pages/reports/SalesReport";
+import RepairStatus from "@/pages/repairs/RepairStatus";
+import SuspensionCheckPage from "@/pages/SuspensionCheckPage";
+import CreateRepair from "@/pages/repairs/CreateRepair";
+import InventoryPart from "@/pages/inventory/InventoryPart";
+import AddInventory from "@/pages/inventory/AddInventory";
+import CustomerHistory from "@/pages/customers/CustomerHistory";
+import ProtectRouteUser from "./ProtectRouteUser";
+import ProtectRouteAdmin from "./ProtectRouteAdmin";
 import ProtectRouteGuest from "./ProtectRouteGuest";
 
 const AppRoutes = () => {
@@ -20,31 +20,30 @@ const AppRoutes = () => {
     <BrowserRouter>
       <Routes>
         {/* Public Routes */}
-        <Route
-          path="/login"
-          element={<ProtectRouteGuest element={<Login />} />}
-        />
-        <Route
-          path="/register"
-          element={<ProtectRouteGuest element={<Register />} />}
-        />
+        <Route path="/login" element={<ProtectRouteGuest element={<Login />} />} />
+        <Route path="/register" element={<ProtectRouteGuest element={<Register />} />} />
 
         {/* User Routes */}
         <Route element={<ProtectRouteUser element={<Layout />} />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="suspension-check" element={<SuspensionCheck />} />
-          <Route path="repairs/new" element={<RepairCreate />} />
+
+          <Route path="inspection/suspension" element={<SuspensionCheckPage />} />
+
+          <Route path="reports/sales/daily" element={<SalesReport />} />
+          <Route path="reports/sales/weekly" element={<SalesReport />} />
+          <Route path="reports/sales/monthly" element={<SalesReport />} />
+          <Route path="reports/sales/yearly" element={<SalesReport />} />
+
+          <Route path="repairs/new" element={<CreateRepair />} />
+          <Route path="repairs/status/inprogress" element={<RepairStatus />} />
+          <Route path="repairs/status/completed" element={<RepairStatus />} />
+          <Route path="repairs/status/paid" element={<RepairStatus />} />
+
+          <Route path="inventory/new" element={<AddInventory />} />
+          <Route path="inventory/parts" element={<InventoryPart />} />
+
           <Route path="customers/history" element={<CustomerHistory />} />
-          <Route path="stock/parts" element={<PartStock />} />
-          <Route path="status/inprogress" element={<Status />} />
-          <Route path="status/completed" element={<Status />} />
-          <Route path="status/paid" element={<Status />} />
-          <Route path="sales/daily" element={<SalesReport />} />
-          <Route path="sales/weekly" element={<SalesReport />} />
-          <Route path="sales/monthly" element={<SalesReport />} />
-          <Route path="sales/yearly" element={<SalesReport />} />
-          <Route path="stock/new" element={<NewStock />} />
         </Route>
 
         {/* Admin Routes */}

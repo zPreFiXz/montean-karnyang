@@ -1,9 +1,9 @@
 import { ImageIcon } from "lucide-react";
-import FormInputs from "@/components/form/FormInputs";
+import FormInput from "@/components/form/FormInput";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 
-const NewStock = () => {
+const AddInventory = () => {
   const { register, handleSubmit, reset } = useForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -56,49 +56,49 @@ const NewStock = () => {
           </div>
         </div>
         <form onSubmit={handleSubmit(handleNewStock)}>
-          <FormInputs
+          <FormInput
             register={register}
             name="id"
             label="รหัสอะไหล่"
             placeholder="กรอกรหัสอะไหล่"
             color="subtle-dark"
           />
-          <FormInputs
+          <FormInput
             register={register}
             name="name"
             label="ชื่ออะไหล่"
             placeholder="กรอกชื่ออะไหล่"
             color="subtle-dark"
           />
-          <FormInputs
+          <FormInput
             register={register}
             name="category"
             label="หมวดหมู่"
             placeholder="กรอกหมวดหมู่"
             color="subtle-dark"
           />
-          <FormInputs
+          <FormInput
             register={register}
             name="cost_price"
             label="ราคาต้นทุน"
             placeholder="กรอกราคาต้นทุน"
             color="subtle-dark"
           />
-          <FormInputs
+          <FormInput
             register={register}
             name="selling_price"
             label="ราคาขาย"
             placeholder="กรอกราคาขาย"
             color="subtle-dark"
           />
-          <FormInputs
+          <FormInput
             register={register}
             name="quantity"
             label="จำนวน"
             placeholder="กรอกจำนวนที่มีในสต็อก"
             color="subtle-dark"
           />
-          <FormInputs
+          <FormInput
             register={register}
             name="min_stock_level"
             label="แจ้งเตือนเมื่อจำนวนต่ำกว่า"
@@ -124,4 +124,4 @@ const NewStock = () => {
   );
 };
 
-export default NewStock;
+export default AddInventory;

@@ -41,7 +41,7 @@ const Tab = () => {
       <TabButton icon={DashboardBar} label="แดชบอร์ด" to="/dashboard" />
 
       {/* Check Suspension Button */}
-      <TabButton icon={CarRepair} label="เช็คช่วงล่าง" to="/suspension-check" />
+      <TabButton icon={CarRepair} label="เช็คช่วงล่าง" to="/inspection/suspension" />
 
       {/* New Repair Button */}
       <div className="flex justify-center items-center w-[75px] h-[45px] rounded-2xl bg-gradient-primary">
@@ -58,7 +58,7 @@ const Tab = () => {
       />
 
       {/* Part Stock Button */}
-      <TabButton icon={BoxSearch} label="สต็อกอะไหล่" to="/stock/parts" />
+      <TabButton icon={BoxSearch} label="สต็อกอะไหล่" to="/inventory/parts" />
     </div>
   );
 };

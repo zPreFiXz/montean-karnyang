@@ -115,7 +115,7 @@ const Dashboard = () => {
             วันที่ 1 มีนาคม 2568
           </p>
           <Link
-            to="/sales/daily"
+            to="/reports/sales/daily"
             className="flex justify-between items-center w-full h-[80px] px-[16px] mx-auto mt-[16px] rounded-[10px] bg-surface shadow-primary cursor-pointer"
           >
             <p className="font-medium text-[18px] text-subtle-dark">
