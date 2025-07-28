@@ -20,12 +20,12 @@ const AppRoutes = () => {
     <BrowserRouter>
       <Routes>
         {/* Public Routes */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<ProtectRouteGuest element={<Login />} />} />
         <Route path="/register" element={<ProtectRouteGuest element={<Register />} />} />
 
         {/* User Routes */}
         <Route element={<ProtectRouteUser element={<Layout />} />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
 
           <Route path="inspection/suspension" element={<SuspensionCheckPage />} />
@@ -55,7 +55,7 @@ const AppRoutes = () => {
         </Route>
 
         {/* Not Found Route */}
-        <Route path="*" element={<NotFound />} />
+        <Route path="*" element={<ProtectRouteGuest element={<NotFound />} />} />
       </Routes>
     </BrowserRouter>
   );

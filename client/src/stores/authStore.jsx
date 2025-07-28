@@ -1,4 +1,5 @@
 import api from "@/lib/api";
+import { toast } from "sonner";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
@@ -14,7 +15,8 @@ const authStore = (set) => ({
   },
   logout: async () => {
     try {
-      await api.post("/api/logout");
+      const res = await api.post("/api/logout");
+      toast.success(res.data.message);
     } catch (error) {
       console.error("Logout error:", error);
     }

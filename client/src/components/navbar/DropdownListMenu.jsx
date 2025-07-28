@@ -8,7 +8,6 @@ import {
 import { Button } from "../ui/button";
 import { CircleUserRound, LogOut, Settings, ChevronDown } from "lucide-react";
 import useAuthStore from "@/stores/authStore";
-import { toast } from "sonner";
 import { useNavigate } from "react-router";
 
 const DropdownListMenu = () => {
@@ -16,14 +15,8 @@ const DropdownListMenu = () => {
   const logout = useAuthStore((state) => state.logout);
 
   const handleLogout = async () => {
-    try {
-      await logout();
-      toast.success("ออกจากระบบสำเร็จ");
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
-      toast.error("ออกจากระบบล้มเหลว");
-    }
+    await logout();
+    navigate("/login");
   };
 
   return (

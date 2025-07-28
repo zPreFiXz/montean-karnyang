@@ -13,7 +13,7 @@ exports.authCheck = async (req, res, next) => {
     const decode = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decode;
 
-    await prisma.User.findUnique({
+    await prisma.user.findUnique({
       where: { email: req.user.email },
     });
 
@@ -27,7 +27,7 @@ exports.adminCheck = async (req, res, next) => {
   try {
     const { email } = req.user;
 
-    const adminUser = await prisma.User.findUnique({
+    const adminUser = await prisma.user.findUnique({
       where: { email },
     });
 

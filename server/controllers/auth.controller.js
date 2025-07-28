@@ -5,33 +5,33 @@ const jwt = require("jsonwebtoken");
 
 exports.register = async (req, res, next) => {
   try {
-    const { email, password, first_name, last_name, nickname, date_of_birth } =
+    const { email, password, firstName, lastName, nickname, dateOfBirth } =
       req.body;
 
-    const user = await prisma.User.findUnique({
+    const user = await prisma.user.findUnique({
       where: {
         email: email,
       },
     });
 
     if (user) {
-      createError(400, "User already exists");
+      createError(400, "อีเมลนี้ถูกใช้งานแล้ว");
     }
 
     const hashPassword = await bcrypt.hash(password, 12);
 
-    await prisma.User.create({
+    await prisma.user.create({
       data: {
         email,
-        password_hash: hashPassword,
-        first_name,
-        last_name,
+        passwordHash: hashPassword,
+        firstName,
+        lastName,
         nickname,
-        date_of_birth,
+        dateOfBirth,
       },
     });
 
-    res.json({ message: "User registered successfully" });
+    res.json({ message: "ลงทะเบียนสำเร็จ" });
   } catch (error) {
     next(error);
   }
@@ -41,20 +41,20 @@ exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const user = await prisma.User.findUnique({
+    const user = await prisma.user.findUnique({
       where: {
         email,
       },
     });
 
     if (!user) {
-      createError(400, "Invalid email or password");
+      createError(400, "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
     }
 
-    const checkPassword = await bcrypt.compare(password, user.password_hash);
+    const checkPassword = await bcrypt.compare(password, user.passwordHash);
 
     if (!checkPassword) {
-      createError(400, "Invalid email or password");
+      createError(400, "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
     }
 
     const payload = {
@@ -75,7 +75,7 @@ exports.login = async (req, res, next) => {
     });
 
     res.json({
-      message: "Login successful",
+      message: "เข้าสู่ระบบสำเร็จ",
       payload,
     });
   } catch (error) {
@@ -91,7 +91,7 @@ exports.logout = (req, res, next) => {
       sameSite: "strict",
     });
 
-    res.json({ message: "Logout successful" });
+    res.json({ message: "ออกจากระบบสำเร็จ" });
   } catch (error) {
     next(error);
   }
@@ -99,7 +99,7 @@ exports.logout = (req, res, next) => {
 
 exports.currentUser = async (req, res, next) => {
   try {
-    const user = await prisma.User.findUnique({
+    const user = await prisma.user.findUnique({
       where: {
         email: req.user.email,
       },
@@ -107,8 +107,8 @@ exports.currentUser = async (req, res, next) => {
         id: true,
         email: true,
         role: true,
-        first_name: true,
-        last_name: true,
+        firstName: true,
+        lastName: true,
       },
     });
 

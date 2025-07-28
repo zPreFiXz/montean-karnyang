@@ -3,15 +3,15 @@ const { z } = require("zod");
 exports.registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
-  first_name: z.string().min(1),
-  last_name: z.string().min(1),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
   nickname: z.string().min(1),
-  date_of_birth: z.coerce.date(),
+  dateOfBirth: z.coerce.date(),
 });
 
 exports.loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
+  email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
+  password: z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร"),
 });
 
 exports.validate = (schema) => (req, res, next) => {

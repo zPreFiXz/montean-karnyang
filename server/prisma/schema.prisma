@@ -15,39 +15,39 @@ datasource db {
 }
 
 model User {
-  id            Int      @id @default(autoincrement())
-  email         String   @unique
-  password_hash String
-  role          Role     @default(EMPLOYEE)
-  first_name    String
-  last_name     String
-  nickname      String
-  date_of_birth DateTime
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
-  repairs       Repair[]
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(USER)
+  firstName    String
+  lastName     String
+  nickname     String
+  dateOfBirth  DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  repairs      Repair[]
 }
 
 enum Role {
-  EMPLOYEE
+  USER
   ADMIN
 }
 
 model Repair {
   id             Int             @id @default(autoincrement())
   description    String?
-  total_price    Decimal
-  started_at     DateTime        @default(now())
-  completed_at   DateTime?
+  totalPrice     Decimal
+  startedAt      DateTime        @default(now())
+  completedAt    DateTime?
   status         RepairStatus    @default(IN_PROGRESS)
-  payment_method PaymentMethod?  @default(CASH)
-  paid_at        DateTime?
-  created_at     DateTime        @default(now())
-  updated_at     DateTime        @updatedAt
-  user_id        Int
-  user           User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  vehicle_id     Int
-  vehicle        Vehicle         @relation(fields: [vehicle_id], references: [id], onDelete: Cascade)
+  paymentMethod  PaymentMethod?  @default(CASH)
+  paidAt         DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  userId         Int
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId      Int
+  vehicle        Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   repairParts    RepairPart[]
   repairServices RepairService[]
 }
@@ -68,87 +68,87 @@ model Vehicle {
   id           Int            @id @default(autoincrement())
   brand        String
   model        String
-  created_at   DateTime       @default(now())
-  updated_at   DateTime       @updatedAt
-  customer_id  Int?
-  customer     Customer?      @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  customerId   Int?
+  customer     Customer?      @relation(fields: [customerId], references: [id], onDelete: Cascade)
   repairs      Repair[]
   licensePlate LicensePlate[]
 }
 
 model LicensePlate {
-  id           Int      @id @default(autoincrement())
-  plate_number String
-  province     String
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
-  vehicle_id   Int
-  vehicle      Vehicle  @relation(fields: [vehicle_id], references: [id], onDelete: Cascade)
+  id          Int      @id @default(autoincrement())
+  plateNumber String
+  province    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  vehicleId   Int
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 
-  @@unique([plate_number, province], name: "plate_number_province")
+  @@unique([plateNumber, province], name: "plateNumber_province")
 }
 
 model Customer {
-  id           Int       @id @default(autoincrement())
-  first_name   String?
-  last_name    String?
-  address      String?
-  phone_number String?   @unique
-  created_at   DateTime  @default(now())
-  updated_at   DateTime  @updatedAt
-  vehicles     Vehicle[]
+  id          Int       @id @default(autoincrement())
+  firstName   String?
+  lastName    String?
+  address     String?
+  phoneNumber String?   @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  vehicles    Vehicle[]
 }
 
 model RepairPart {
-  id         Int      @id @default(autoincrement())
-  unit_price Decimal
-  quantity   Int
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  repair_id  Int
-  repair     Repair   @relation(fields: [repair_id], references: [id], onDelete: Cascade)
-  part_id    Int
-  part       Part     @relation(fields: [part_id], references: [id], onDelete: Cascade)
+  id        Int      @id @default(autoincrement())
+  unitPrice Decimal
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  repairId  Int
+  repair    Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
+  partId    Int
+  part      Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
 }
 
 model Part {
-  id              Int          @id @default(autoincrement())
-  name            String
-  stock_quantity  Int
-  min_stock_level Int          @default(2)
-  cost_price      Decimal
-  selling_price   Decimal
-  img_url         String?
-  created_at      DateTime     @default(now())
-  updated_at      DateTime     @updatedAt
-  category_id     Int
-  category        Category     @relation(fields: [category_id], references: [id], onDelete: Cascade)
-  RepairParts     RepairPart[]
+  id            Int          @id @default(autoincrement())
+  name          String
+  stockQuantity Int
+  minStockLevel Int          @default(2)
+  costPrice     Decimal
+  sellingPrice  Decimal
+  imgUrl        String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  categoryId    Int
+  category      Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  repairParts   RepairPart[]
 }
 
 model Category {
-  id   Int    @id @default(autoincrement())
-  name String @unique
-  Part Part[]
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  parts Part[]
 }
 
 model RepairService {
-  id         Int      @id @default(autoincrement())
-  unit_price Decimal
-  quantity   Int
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  repair_id  Int
-  repair     Repair   @relation(fields: [repair_id], references: [id], onDelete: Cascade)
-  service_id Int
-  service    Service  @relation(fields: [service_id], references: [id], onDelete: Cascade)
+  id        Int      @id @default(autoincrement())
+  unitPrice Decimal
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  repairId  Int
+  repair    Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
+  serviceId Int
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 }
 
 model Service {
   id             Int             @id @default(autoincrement())
   name           String          @unique
   price          Decimal
-  created_at     DateTime        @default(now())
-  updated_at     DateTime        @updatedAt
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   repairServices RepairService[]
 }

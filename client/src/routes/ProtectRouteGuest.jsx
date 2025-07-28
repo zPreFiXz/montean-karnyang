@@ -8,12 +8,12 @@ const ProtectRouteGuest = ({ element }) => {
 
   useEffect(() => {
     if (user) {
-      const role = user.role;
-      
-      if (role === "EMPLOYEE") {
-        navigate("/dashboard");
-      } else {
-        navigate("/admin");
+      const { role } = user;
+
+      if (role === "USER") {
+        navigate("/dashboard", { replace: true });
+      } else if (role === "ADMIN") {
+        navigate("/admin", { replace: true });
       }
     }
   }, []);

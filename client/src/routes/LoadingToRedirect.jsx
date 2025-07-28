@@ -20,12 +20,12 @@ const LoadingToRedirect = () => {
   }, []);
 
   if (redirect) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/" />;
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <div className="w-[32px] h-[32px] border-3 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="w-[32px] h-[32px] border-3 border-t-transparent border-primary rounded-full animate-spin" />
     </div>
   );
 };

@@ -10,9 +10,9 @@ const Login = () => {
   const actionLogin = useAuthStore((state) => state.actionLogin);
 
   const roleRedirect = (role) => {
-    if (role === "EMPLOYEE") {
+    if (role === "USER") {
       navigate("/dashboard");
-    } else {
+    } else if (role === "ADMIN") {
       navigate("/admin");
     }
   };
@@ -21,16 +21,20 @@ const Login = () => {
     try {
       const res = await actionLogin(data);
       const role = res.data.payload.role;
-      toast.success("เข้าสู่ระบบสำเร็จ");
       roleRedirect(role);
+      toast.success(res.data.message);
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("เข้าสู่ระบบล้มเหลว");
+
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.errors[0]?.message;
+      toast.error(errorMessage);
     }
   };
 
   return (
-    <div>
+    <main>
       <form onSubmit={handleSubmit(handleLogin)}>
         <FormInput
           register={register}
@@ -55,7 +59,7 @@ const Login = () => {
           Login
         </button>
       </form>
-    </div>
+    </main>
   );
 };
 export default Login;
