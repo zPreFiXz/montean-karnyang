@@ -11,20 +11,19 @@ const CreateRepair = () => {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [savedData, setSavedData] = useState(null);
 
-  const handleCreateRepair = async (data) => {
+  const handleAddRepair = async (data) => {
     try {
-      console.log(data);
       await api.post("/api/repair", {
         brand: data.brand,
         model: data.model,
-        plate_number: `${data.plate_letters}${data.plate_numbers}`,
+        plateNumber: `${data.plate_letters}${data.plate_numbers}`,
         province: data.province,
         description: data.description,
-        total_price: 0,
+        totalPrice: 0,
       });
       toast.success("บันทึกข้อมูลเรียบร้อยแล้ว!");
     } catch (error) {
-      console.error("Error creating repair:", error);
+      console.error(error);
     }
   };
 
@@ -42,7 +41,7 @@ const CreateRepair = () => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit(handleCreateRepair)}>
+      <form onSubmit={handleSubmit(handleAddRepair)}>
         <FormInput
           register={register}
           name="first_name"

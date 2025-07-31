@@ -2,7 +2,7 @@ const prisma = require("../config/prisma");
 
 exports.getRepairs = async (req, res, next) => {
   try {
-    const repairs = await prisma.Repair.findMany();
+    const repairs = await prisma.repair.findMany();
 
     res.json(repairs);
   } catch (error) {
@@ -14,7 +14,7 @@ exports.getRepairById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const repair = await prisma.Repair.findFirst({
+    const repair = await prisma.repair.findFirst({
       where: { id: Number(id) },
     });
 
@@ -26,13 +26,13 @@ exports.getRepairById = async (req, res, next) => {
 
 exports.createRepair = async (req, res, next) => {
   try {
-    const { brand, model, plate_number, province, description, total_price } =
+    const { brand, model, plateNumber, province, description, totalPrice } =
       req.body;
 
-    const licensePlate = await prisma.LicensePlate.findUnique({
+    const licensePlate = await prisma.licensePlate.findUnique({
       where: {
-        plate_number_province: {
-          plate_number,
+        plateNumber_province: {
+          plateNumber,
           province,
         },
       },
@@ -41,70 +41,82 @@ exports.createRepair = async (req, res, next) => {
     let vehicle;
 
     if (licensePlate) {
-      vehicle = await prisma.Vehicle.findUnique({
-        where: { id: licensePlate.vehicle_id },
+      vehicle = await prisma.vehicle.findUnique({
+        where: { id: licensePlate.vehicleId },
       });
 
       const isSameVehicle = vehicle.brand === brand && vehicle.model === model;
 
       if (!isSameVehicle) {
-        vehicle = await prisma.Vehicle.create({
+        vehicle = await prisma.vehicle.create({
           data: {
             brand,
             model,
           },
         });
 
-        await prisma.LicensePlate.update({
+        await prisma.licensePlate.update({
           where: { id: licensePlate.id },
-          data: { vehicle_id: vehicle.id },
+          data: { vehicleId: vehicle.id },
         });
       }
     } else {
-      vehicle = await prisma.Vehicle.create({
+      vehicle = await prisma.vehicle.create({
         data: {
           brand,
           model,
         },
       });
 
-      await prisma.LicensePlate.create({
+      await prisma.licensePlate.create({
         data: {
-          plate_number,
+          plateNumber,
           province,
-          vehicle_id: vehicle.id,
+          vehicleId: vehicle.id,
         },
       });
     }
 
-    await prisma.Repair.create({
+    await prisma.repair.create({
       data: {
         description,
-        total_price,
-        vehicle_id: vehicle.id,
-        user_id: req.user.id,
+        totalPrice,
+        vehicleId: vehicle.id,
+        userId: req.user.id,
       },
     });
 
-    res.json({ message: "Repair created successfully", data: vehicle });
+    res.json({ message: "Repair created successfully" });
   } catch (error) {
     next(error);
   }
 };
 
-exports.updateRepair = (req, res, next) => {
+exports.updateRepair = async (req, res, next) => {
   try {
-    console.log("Updating vehicle");
-    res.json({ message: "Vehicle updated successfully" });
+    const { id } = req.params;
+    const { description, totalPrice } = req.body;
+
+    await prisma.repair.update({
+      where: { id: Number(id) },
+      data: { description, totalPrice },
+    });
+
+    res.json({ message: "Repair updated successfully" });
   } catch (error) {
     next(error);
   }
 };
 
-exports.deleteRepair = (req, res, next) => {
+exports.deleteRepair = async (req, res, next) => {
   try {
-    console.log("Deleting vehicle");
-    res.json({ message: "Vehicle deleted successfully" });
+    const { id } = req.params;
+
+    await prisma.repair.delete({
+      where: { id: Number(id) },
+    });
+
+    res.json({ message: "Repair deleted successfully" });
   } catch (error) {
     next(error);
   }

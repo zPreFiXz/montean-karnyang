@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
 
+// Middlewares
+const { authCheck } = require("../middlewares/auth");
+
 // Controllers
 const {
   getRepairs,
@@ -9,8 +12,6 @@ const {
   updateRepair,
   deleteRepair,
 } = require("../controllers/repair.controller");
-
-const { authCheck } = require("../middlewares/auth");
 
 // @ENDPOINTS http://localhost:3000/api/repairs
 // METHOD GET

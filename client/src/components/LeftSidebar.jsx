@@ -11,7 +11,7 @@ const LeftSidebar = () => {
   const location = useLocation();
   const menuItems = [
     { path: "/dashboard", label: "แดชบอร์ด", icon: DashboardBar },
-    { path: "/inspection/suspension", label: "เช็คช่วงล่าง", icon: CarRepair },
+    { path: "/inspections/suspension", label: "เช็คช่วงล่าง", icon: CarRepair },
     { path: "/customers/history", label: "ประวัติลูกค้า", icon: Document },
     { path: "/inventory/parts", label: "สต็อกอะไหล่", icon: BoxSearch },
   ];

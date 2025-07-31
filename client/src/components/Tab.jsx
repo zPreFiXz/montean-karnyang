@@ -41,7 +41,11 @@ const Tab = () => {
       <TabButton icon={DashboardBar} label="แดชบอร์ด" to="/dashboard" />
 
       {/* Check Suspension Button */}
-      <TabButton icon={CarRepair} label="เช็คช่วงล่าง" to="/inspection/suspension" />
+      <TabButton
+        icon={CarRepair}
+        label="เช็คช่วงล่าง"
+        to="/inspections/suspension"
+      />
 
       {/* New Repair Button */}
       <div className="flex justify-center items-center w-[75px] h-[45px] rounded-2xl bg-gradient-primary">
@@ -54,11 +58,11 @@ const Tab = () => {
       <TabButton
         icon={Document}
         label="ประวัติลูกค้า"
-        to="/customers/history"
+        to="/customers"
       />
 
-      {/* Part Stock Button */}
-      <TabButton icon={BoxSearch} label="สต็อกอะไหล่" to="/inventory/parts" />
+      {/* Inventory Overview Button */}
+      <TabButton icon={BoxSearch} label="สต็อกอะไหล่" to="/inventory" />
     </div>
   );
 };

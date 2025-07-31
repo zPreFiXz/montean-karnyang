@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { useState } from "react";
 import { Tire, Shock, Oil, ToolBox } from "@/components/icons/Icon";
 
-const InventoryPart = () => {
+const Parts = () => {
   const [activeTab, setActiveTab] = useState("ทั้งหมด");
 
   const tabs = [
@@ -132,4 +132,4 @@ const InventoryPart = () => {
     </div>
   );
 };
-export default InventoryPart;
+export default Parts;

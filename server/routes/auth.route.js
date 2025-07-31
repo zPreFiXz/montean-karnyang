@@ -1,13 +1,17 @@
 const express = require("express");
+const { registerSchema, validate, loginSchema } = require("../utils/validator");
+const router = express.Router();
+
+// Middlewares
+const { authCheck, adminCheck } = require("../middlewares/auth");
+
+// Controllers
 const {
   register,
   login,
   logout,
   currentUser,
 } = require("../controllers/auth.controller");
-const { registerSchema, validate, loginSchema } = require("../utils/validator");
-const { authCheck, adminCheck } = require("../middlewares/auth");
-const router = express.Router();
 
 // @ENDPOINTS http://localhost:3000/api/register
 // METHOD POST

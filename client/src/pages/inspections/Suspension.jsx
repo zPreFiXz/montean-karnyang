@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import LicensePlateInput from "@/components/form/LicensePlateInput";
 
-const SuspensionCheckPage = () => {
+const SuspensionCheck = () => {
   const { register, handleSubmit, reset } = useForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -210,4 +210,4 @@ const SuspensionCheckPage = () => {
     </div>
   );
 };
-export default SuspensionCheckPage;
+export default SuspensionCheck;

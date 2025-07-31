@@ -34,22 +34,21 @@ enum Role {
 }
 
 model Repair {
-  id             Int             @id @default(autoincrement())
-  description    String?
-  totalPrice     Decimal
-  startedAt      DateTime        @default(now())
-  completedAt    DateTime?
-  status         RepairStatus    @default(IN_PROGRESS)
-  paymentMethod  PaymentMethod?  @default(CASH)
-  paidAt         DateTime?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  userId         Int
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  vehicleId      Int
-  vehicle        Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
-  repairParts    RepairPart[]
-  repairServices RepairService[]
+  id            Int           @id @default(autoincrement())
+  description   String?
+  totalPrice    Decimal
+  startedAt     DateTime      @default(now())
+  completedAt   DateTime?
+  status        RepairStatus  @default(IN_PROGRESS)
+  paymentMethod PaymentMethod @default(CASH)
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  userId        Int
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId     Int
+  vehicle       Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  repairItems   RepairItem[]
 }
 
 enum RepairStatus {
@@ -99,23 +98,27 @@ model Customer {
   vehicles    Vehicle[]
 }
 
-model RepairPart {
-  id        Int      @id @default(autoincrement())
-  unitPrice Decimal
-  quantity  Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  repairId  Int
-  repair    Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
-  partId    Int
-  part      Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
+model RepairItem {
+  id          Int      @id @default(autoincrement())
+  unitPrice   Decimal
+  quantity    Int      @default(1)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  repairId    Int
+  repair      Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
+  partId      Int?
+  part        Part?    @relation(fields: [partId], references: [id], onDelete: Cascade)
+  serviceId   Int?
+  service     Service? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 }
 
 model Part {
   id            Int          @id @default(autoincrement())
+  partNumber    String?      @unique
   name          String
   stockQuantity Int
-  minStockLevel Int          @default(2)
+  minStockLevel Int
   costPrice     Decimal
   sellingPrice  Decimal
   imgUrl        String?
@@ -123,32 +126,23 @@ model Part {
   updatedAt     DateTime     @updatedAt
   categoryId    Int
   category      Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  repairParts   RepairPart[]
-}
-
-model Category {
-  id    Int    @id @default(autoincrement())
-  name  String @unique
-  parts Part[]
-}
-
-model RepairService {
-  id        Int      @id @default(autoincrement())
-  unitPrice Decimal
-  quantity  Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  repairId  Int
-  repair    Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
-  serviceId Int
-  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  repairItems   RepairItem[]
 }
 
 model Service {
-  id             Int             @id @default(autoincrement())
-  name           String          @unique
-  price          Decimal
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  repairServices RepairService[]
+  id         Int          @id @default(autoincrement())
+  name       String       @unique
+  price      Decimal
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  categoryId Int
+  category   Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  repairItems RepairItem[]
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  parts    Part[]
+  services Service[]
 }
