@@ -33,6 +33,8 @@ exports.createPart = async (req, res, next) => {
       sellingPrice,
       stockQuantity,
       minStockLevel,
+      image,
+      categoryId,
     } = req.body;
 
     await prisma.part.create({
@@ -43,10 +45,13 @@ exports.createPart = async (req, res, next) => {
         sellingPrice: Number(sellingPrice),
         stockQuantity: Number(stockQuantity),
         minStockLevel: Number(minStockLevel),
+        publicId: image?.publicId,
+        secureUrl: image?.secureUrl,
+        categoryId: Number(categoryId),
       },
     });
 
-    res.json({ message: "Part created successfully" });
+    res.json({ message: "เพิ่มอะไหล่สำเร็จ" });
   } catch (error) {
     next(error);
   }
@@ -55,7 +60,7 @@ exports.createPart = async (req, res, next) => {
 exports.updatePart = async (req, res, next) => {
   try {
     const { id } = req.params;
-    
+
     res.json({ message: "Part updated successfully" });
   } catch (error) {
     next(error);
@@ -70,7 +75,7 @@ exports.deletePart = async (req, res, next) => {
       where: { id: Number(id) },
     });
 
-    res.json({ message: "Part deleted successfully" });
+    res.json({ message: "ลบอะไหล่สำเร็จ" });
   } catch (error) {
     next(error);
   }

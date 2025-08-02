@@ -10,7 +10,7 @@ const ProtectRouteGuest = ({ element }) => {
     if (user) {
       const { role } = user;
 
-      if (role === "USER") {
+      if (role === "EMPLOYEE") {
         navigate("/dashboard", { replace: true });
       } else if (role === "ADMIN") {
         navigate("/admin", { replace: true });

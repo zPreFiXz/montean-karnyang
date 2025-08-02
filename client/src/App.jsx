@@ -8,7 +8,7 @@ const App = () => {
         richColors
         position="bottom-right"
         expand={false}
-        duration={3000}
+        duration={2000}
         closeButton
         toastOptions={{
           style: {

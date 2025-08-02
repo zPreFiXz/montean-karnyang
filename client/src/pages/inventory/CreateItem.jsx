@@ -1,25 +1,24 @@
-import { ImageIcon } from "lucide-react";
 import FormInput from "@/components/form/FormInput";
 import { useForm } from "react-hook-form";
-import { Label } from "@/components/ui/label";
 import FormButton from "@/components/form/FormButton";
 import { createPart } from "@/api/part";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { getCategories } from "@/api/category";
 import ComboBox from "@/components/ui/ComboBox";
+import FormUploadImage from "@/components/form/FormUploadImage";
+import { resizeImage } from "@/utils/resizeImage";
+import { uploadImage } from "@/api/uploadImage";
 
 const CreatePart = () => {
-  const { register, handleSubmit, setValue, watch } = useForm();
+  const { register, handleSubmit, setValue, watch, reset } = useForm();
   const [categories, setCategories] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     fetchCategories();
   }, []);
-
-  console.log(categories);
 
   const fetchCategories = async () => {
     try {
@@ -27,35 +26,40 @@ const CreatePart = () => {
       setCategories(res.data);
     } catch (error) {
       console.error(error);
-      return [];
     }
   };
 
-  const handleAddInventory = async (data) => {
+  const onSubmit = async (data) => {
+    setIsSubmitting(true);
     try {
-      const res = await createPart(data);
-      toast.success("เพิ่มอะไหล่สำเร็จ");
+      let image = null;
+
+      if (selectedImage) {
+        const resizedImage = await resizeImage(selectedImage);
+        const res = await uploadImage(resizedImage);
+
+        image = {
+          publicId: res.data?.public_id,
+          secureUrl: res.data?.secure_url,
+        };
+      }
+
+      const partData = {
+        ...data,
+        image,
+      };
+
+      const response = await createPart(partData);
+      toast.success(response.data.message);
+      reset();
+      setSelectedImage(null);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       console.error(error);
       toast.error("เพิ่มอะไหล่ไม่สำเร็จ");
+    } finally {
+      setIsSubmitting(false);
     }
-  };
-
-  const handleImageChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeImage = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
   };
 
   return (
@@ -64,56 +68,11 @@ const CreatePart = () => {
         สต็อกอะไหล่
       </div>
       <section className="w-full mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
-        <Label className="pt-[16px] px-[20px] font-medium text-[18px] text-subtle-dark">
-          รูปอะไหล่
-        </Label>
-        <div className="flex justify-center mt-[8px]">
-          <div className="relative">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="hidden"
-              id="image-upload"
-            />
-            <label
-              htmlFor="image-upload"
-              className="group flex flex-col items-center justify-center w-[280px] h-[280px] border-2 border-dashed border-subtle-light rounded-[20px] bg-surface hover:border-primary duration-300 cursor-pointer"
-            >
-              {imagePreview ? (
-                <div className="relative w-full h-full">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-full object-contain rounded-[20px]"
-                  />
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      removeImage();
-                    }}
-                    className="absolute top-2 right-2 flex items-center justify-center w-8 h-8 border border-black/5 hover:border-surface rounded-full font-medium text-lg text-subtle-dark bg-surface hover:bg-primary hover:text-surface shadow-lg hover:shadow-xl backdrop-blur-sm  duration-300 cursor-pointer"
-                  >
-                    ×
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <ImageIcon className="w-[48px] h-[48px] text-subtle-light mb-[8px] duration-300 group-hover:text-primary group-hover:scale-110" />
-                  <p className="font-medium text-[16px] text-subtle-light mb-[4px] transition-colors duration-300 group-hover:text-primary">
-                    เลือกรูปอะไหล่
-                  </p>
-                  <p className="text-[12px] text-subtle-light transition-colors duration-300 group-hover:text-subtle-dark">
-                    PNG, JPG ขนาดไม่เกิน 5MB
-                  </p>
-                </>
-              )}
-            </label>
-          </div>
-        </div>
-        <form onSubmit={handleSubmit(handleAddInventory)}>
+        <FormUploadImage
+          setSelectedImage={setSelectedImage}
+          selectedImage={selectedImage}
+        />
+        <form onSubmit={handleSubmit(onSubmit)}>
           <FormInput
             register={register}
             name="partNumber"
@@ -144,6 +103,7 @@ const CreatePart = () => {
             type="number"
             placeholder="เช่น 500"
             color="subtle-dark"
+            onWheel={(e) => e.target.blur()}
           />
           <FormInput
             register={register}
@@ -152,6 +112,7 @@ const CreatePart = () => {
             type="number"
             placeholder="เช่น 750"
             color="subtle-dark"
+            onWheel={(e) => e.target.blur()}
           />
           <FormInput
             register={register}
@@ -160,6 +121,7 @@ const CreatePart = () => {
             type="number"
             placeholder="เช่น 10"
             color="subtle-dark"
+            onWheel={(e) => e.target.blur()}
           />
           <FormInput
             register={register}
@@ -168,9 +130,10 @@ const CreatePart = () => {
             type="number"
             placeholder="เช่น 3"
             color="subtle-dark"
+            onWheel={(e) => e.target.blur()}
           />
           <div className="flex justify-center pb-[60px]">
-            <FormButton label="เพิ่มสินค้า" />
+            <FormButton label="เพิ่มอะไหล่" isLoading={isSubmitting} />
           </div>
         </form>
       </section>

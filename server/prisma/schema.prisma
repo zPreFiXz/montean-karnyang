@@ -18,7 +18,7 @@ model User {
   id           Int      @id @default(autoincrement())
   email        String   @unique
   passwordHash String
-  role         Role     @default(USER)
+  role         Role     @default(EMPLOYEE)
   firstName    String
   lastName     String
   nickname     String
@@ -29,7 +29,7 @@ model User {
 }
 
 enum Role {
-  USER
+  EMPLOYEE
   ADMIN
 }
 
@@ -121,22 +121,23 @@ model Part {
   minStockLevel Int
   costPrice     Decimal
   sellingPrice  Decimal
-  imgUrl        String?
+  publicId      String?
+  secureUrl     String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
-  categoryId    Int
-  category      Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId    Int?
+  category      Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   repairItems   RepairItem[]
 }
 
 model Service {
-  id         Int          @id @default(autoincrement())
-  name       String       @unique
-  price      Decimal
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  categoryId Int
-  category   Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  price       Decimal
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  categoryId  Int
+  category    Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   repairItems RepairItem[]
 }
 

@@ -1,7 +1,7 @@
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 
-const FormInput = ({ register, name, label, type, placeholder, color }) => {
+const FormInput = ({ register, name, label, type, placeholder, color, ...props }) => {
   const getTextColor = () => {
     if (color === "surface") return "text-surface";
     if (color === "primary") return "text-primary";
@@ -21,6 +21,7 @@ const FormInput = ({ register, name, label, type, placeholder, color }) => {
         type={type}
         placeholder={placeholder}
         className="w-full h-[40px] px-[12px] rounded-[20px] bg-surface"
+        {...props}
       />
     </div>
   );

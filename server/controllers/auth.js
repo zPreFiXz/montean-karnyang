@@ -31,7 +31,9 @@ exports.register = async (req, res, next) => {
       },
     });
 
-    res.json({ message: "ลงทะเบียนสำเร็จ" });
+    res.json({
+      message: "สร้างบัญชีพนักงานสำเร็จ",
+    });
   } catch (error) {
     next(error);
   }

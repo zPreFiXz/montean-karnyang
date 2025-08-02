@@ -32,8 +32,8 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json({ limit: "500kb" }));
-app.use(express.urlencoded({ extended: true, limit: "500kb" }));
+app.use(express.json({ limit: "5mb" }));
+app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 app.use(morgan("dev"));
 app.use(cookieParser());
 

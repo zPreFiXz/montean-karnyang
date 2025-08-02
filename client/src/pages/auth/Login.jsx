@@ -10,7 +10,7 @@ const Login = () => {
   const actionLogin = useAuthStore((state) => state.actionLogin);
 
   const roleRedirect = (role) => {
-    if (role === "USER") {
+    if (role === "EMPLOYEE") {
       navigate("/dashboard");
     } else if (role === "ADMIN") {
       navigate("/admin");
