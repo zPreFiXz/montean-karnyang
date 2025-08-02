@@ -117,6 +117,7 @@ model Part {
   id            Int          @id @default(autoincrement())
   partNumber    String?      @unique
   name          String
+  unit          String
   stockQuantity Int
   minStockLevel Int
   costPrice     Decimal

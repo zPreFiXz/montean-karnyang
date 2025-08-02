@@ -125,6 +125,14 @@ const CreatePart = () => {
           />
           <FormInput
             register={register}
+            name="unit"
+            label="หน่วย"
+            type="text"
+            placeholder="เช่น ชิ้น, ลิตร"
+            color="subtle-dark"
+          />
+          <FormInput
+            register={register}
             name="minStockLevel"
             label="สต็อกขั้นต่ำ"
             type="number"

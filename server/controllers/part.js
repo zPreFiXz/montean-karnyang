@@ -27,13 +27,14 @@ exports.getPartById = async (req, res, next) => {
 exports.createPart = async (req, res, next) => {
   try {
     const {
+      image,
       partNumber,
       name,
       costPrice,
       sellingPrice,
       stockQuantity,
+      unit,
       minStockLevel,
-      image,
       categoryId,
     } = req.body;
 
@@ -44,6 +45,7 @@ exports.createPart = async (req, res, next) => {
         costPrice: Number(costPrice),
         sellingPrice: Number(sellingPrice),
         stockQuantity: Number(stockQuantity),
+        unit,
         minStockLevel: Number(minStockLevel),
         publicId: image?.publicId,
         secureUrl: image?.secureUrl,
