@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
 
-// Controllers
-
+// Middlewares
 const { authCheck } = require("../middlewares/auth");
+
+// Controllers
 const {
   getParts,
   getPartById,

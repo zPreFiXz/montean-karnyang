@@ -35,6 +35,7 @@ exports.createPart = async (req, res, next) => {
       stockQuantity,
       unit,
       minStockLevel,
+      compatibleVehicles,
       categoryId,
     } = req.body;
 
@@ -49,6 +50,7 @@ exports.createPart = async (req, res, next) => {
         minStockLevel: Number(minStockLevel),
         publicId: image?.publicId,
         secureUrl: image?.secureUrl,
+        compatibleVehicles: compatibleVehicles ? compatibleVehicles : undefined,
         categoryId: Number(categoryId),
       },
     });

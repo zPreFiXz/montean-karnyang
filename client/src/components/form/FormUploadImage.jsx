@@ -60,7 +60,10 @@ const FormUploadImage = ({ setSelectedImage, selectedImage }) => {
 
   return (
     <div className="w-full justify-center px-[20px] pt-[16px]">
-      <Label className="font-medium text-[18px] text-subtle-dark">
+      <Label
+        htmlFor="image-upload"
+        className="font-medium text-[18px] text-subtle-dark"
+      >
         รูปอะไหล่
       </Label>
       <div className="flex items-center justify-center mt-[8px]">

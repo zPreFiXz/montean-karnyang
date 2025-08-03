@@ -1,0 +1,36 @@
+exports.parts = [
+  {
+    partNumber: "ENG001",
+    name: "น้ำมันเครื่อง 10W-40",
+    unit: "ลิตร",
+    stockQuantity: 50,
+    minStockLevel: 10,
+    costPrice: 150.0,
+    sellingPrice: 200.0,
+    compatibleVehicles: [
+      { brand: "Toyota", model: "Vios", yearRange: "2015-2020" },
+      { brand: "Honda", model: "City", yearRange: "2014-2020" },
+      { brand: "Nissan", model: "Almera", yearRange: "2016-2020" },
+    ],
+    publicId: null,
+    secureUrl: null,
+    categoryId: 1,
+  },
+  {
+    partNumber: "BRK001",
+    name: "ผ้าเบรกหน้า",
+    unit: "ชุด",
+    stockQuantity: 25,
+    minStockLevel: 5,
+    costPrice: 800.0,
+    sellingPrice: 1200.0,
+    compatibleVehicles: [
+      { brand: "Toyota", model: "Vios", yearRange: "2015-2020" },
+      { brand: "Honda", model: "City", yearRange: "2014-2020" },
+      { brand: "Honda", model: "Jazz", yearRange: "2012-2020" },
+    ],
+    publicId: null,
+    secureUrl: null,
+    categoryId: 2,
+  },
+];

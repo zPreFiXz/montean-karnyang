@@ -114,21 +114,22 @@ model RepairItem {
 }
 
 model Part {
-  id            Int          @id @default(autoincrement())
-  partNumber    String?      @unique
-  name          String
-  unit          String
-  stockQuantity Int
-  minStockLevel Int
-  costPrice     Decimal
-  sellingPrice  Decimal
-  publicId      String?
-  secureUrl     String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  categoryId    Int?
-  category      Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  repairItems   RepairItem[]
+  id                 Int          @id @default(autoincrement())
+  partNumber         String?      @unique
+  name               String
+  unit               String
+  stockQuantity      Int
+  minStockLevel      Int
+  costPrice          Decimal
+  sellingPrice       Decimal
+  compatibleVehicles Json?
+  publicId           String?
+  secureUrl          String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  categoryId         Int?
+  category           Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  repairItems        RepairItem[]
 }
 
 model Service {
