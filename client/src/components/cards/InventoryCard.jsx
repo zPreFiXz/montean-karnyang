@@ -11,6 +11,7 @@ const InventoryCard = ({
   category,
 }) => {
   const isTire = category === "ยาง";
+  const isService = category === "บริการ";
 
   const renderProductInfo = () => {
     if (isTire && typeSpecificData && typeSpecificData.aspectRatio) {
@@ -55,7 +56,7 @@ const InventoryCard = ({
           <div className="flex flex-col">
             {renderProductInfo()}
             <p className="font-semibold text-[14px] text-subtle-dark">
-              จำนวน: {stockQuantity} {unit}
+              {isService ? "" : `จำนวน: ${stockQuantity} ${unit}`}
             </p>
           </div>
         </div>

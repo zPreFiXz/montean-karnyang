@@ -6,15 +6,11 @@ const { authCheck } = require("../middlewares/auth");
 
 // Controllers
 const {
-  getParts,
   getPartById,
   createPart,
   updatePart,
   deletePart,
 } = require("../controllers/part");
-
-// @ENDPOINTS http://localhost:3000/api/parts
-router.get("/parts", authCheck, getParts);
 
 // @ENDPOINTS http://localhost:3000/api/part/1
 router.get("/part/:id", authCheck, getPartById);

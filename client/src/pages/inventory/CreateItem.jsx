@@ -97,7 +97,7 @@ const CreatePart = () => {
                 aspectRatio: data.aspectRatio,
                 rimDiameter: data.rimDiameter,
               }
-            : null,
+            : undefined,
           compatibleVehicles: watch("compatibleVehicles") || undefined,
           image,
           categoryId: data.categoryId,

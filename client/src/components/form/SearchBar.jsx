@@ -1,10 +1,17 @@
 import { useSearchParams } from "react-router";
 import { Input } from "../ui/input";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useDebouncedCallback } from "use-debounce";
+import { useState, useEffect } from "react";
 
-const SearchBar = ({ value }) => {
+const SearchBar = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [inputValue, setInputValue] = useState("");
+
+  useEffect(() => {
+    const searchParam = searchParams.get("search") || "";
+    setInputValue(searchParam);
+  }, [searchParams]);
 
   const updateSearch = useDebouncedCallback((value) => {
     const params = new URLSearchParams(searchParams);
@@ -17,20 +24,29 @@ const SearchBar = ({ value }) => {
   }, 500);
 
   const handleSearch = (e) => {
-    updateSearch(e.target.value);
+    const value = e.target.value;
+    setInputValue(value);
+    updateSearch(value);
+  };
+
+  const handleClear = () => {
+    setInputValue("");
+    const params = new URLSearchParams(searchParams);
+    params.delete("search");
+    setSearchParams(params);
   };
 
   return (
     <div className="relative flex items-center">
-      <div className="absolute left-[12px] h-full flex items-center text-subtle-dark pointer-events-none">
+      <div className="absolute left-[16px] h-full flex items-center text-subtle-dark pointer-events-none">
         <Search size={20} />
       </div>
       <Input
         type="text"
-        value={value}
+        value={inputValue}
         onChange={handleSearch}
         placeholder="ค้นหาชื่อ, ยี่ห้อ, รหัสอะไหล่"
-        className="w-full h-[40px] pl-[40px] pr-[16px] rounded-[20px] bg-surface focus:outline-none"
+        className="w-full h-[40px] px-[40px] rounded-[20px] bg-surface focus:outline-none"
         style={{
           "--tw-ring-color": "#5b46f4",
           "--tw-border-opacity": "1",
@@ -46,6 +62,16 @@ const SearchBar = ({ value }) => {
           e.target.style.boxShadow = "";
         }}
       />
+
+    {/* Clear button */}
+      {inputValue && (
+        <button
+          onClick={handleClear}
+          className="absolute right-[16px] h-full flex items-center text-subtle-dark"
+        >
+          <X size={18} />
+        </button>
+      )}
     </div>
   );
 };

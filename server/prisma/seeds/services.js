@@ -62,6 +62,6 @@ exports.services = [
   {
     name: "เติมลม",
     price: 10,
-    categoryId: 2,
+    categoryId: 1,
   },
 ];
