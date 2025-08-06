@@ -11,6 +11,7 @@ import FormUploadImage from "@/components/form/FormUploadImage";
 import { resizeImage } from "@/utils/resizeImage";
 import { uploadImage } from "@/api/uploadImage";
 import VehicleCompatibilityInput from "@/components/form/VehicleCompatibilityInput";
+import { useNavigate } from "react-router";
 
 const CreatePart = () => {
   const { register, handleSubmit, setValue, watch, reset } = useForm();
@@ -18,8 +19,10 @@ const CreatePart = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [vehicleKey, setVehicleKey] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     fetchCategories();
   }, []);
 
@@ -40,12 +43,35 @@ const CreatePart = () => {
     return selectedCategory?.name === "บริการ";
   };
 
+  const isTireCategory = () => {
+    const selectedCategoryId = watch("categoryId");
+    const selectedCategory = categories.find(
+      (cat) => cat.id === selectedCategoryId
+    );
+    return selectedCategory?.name === "ยาง";
+  };
+
+  const handleCategoryChange = (value) => {
+    setValue("categoryId", value);
+
+    setValue("costPrice", undefined);
+    setValue("sellingPrice", undefined);
+    setValue("stockQuantity", undefined);
+    setValue("minStockLevel", undefined);
+
+    setValue("width", undefined);
+    setValue("aspectRatio", undefined);
+    setValue("rimDiameter", undefined);
+  };
+
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
+      let partData = {};
+      let serviceData = {};
       let image = null;
 
-      if (!isServiceCategory() && selectedImage) {
+      if (selectedImage) {
         const resizedImage = await resizeImage(selectedImage);
         const res = await uploadImage(resizedImage);
 
@@ -55,38 +81,48 @@ const CreatePart = () => {
         };
       }
 
-      const partData = {
-        partNumber: data.partNumber,
-        name: data.name,
-        costPrice: Number(data.costPrice),
-        sellingPrice: Number(data.sellingPrice),
-        stockQuantity: Number(data.stockQuantity),
-        unit: data.unit,
-        minStockLevel: Number(data.minStockLevel),
-        compatibleVehicles: watch("compatibleVehicles"),
-        publicId: image?.publicId,
-        secureUrl: image?.secureUrl,
-        categoryId: Number(data.categoryId),
-      };
-
-      const serviceData = {
-        name: data.name,
-        price: Number(data.price),
-        categoryId: Number(data.categoryId),
-      };
+      if (!isServiceCategory()) {
+        partData = {
+          partNumber: data.partNumber,
+          brand: data.brand,
+          name: data.name,
+          costPrice: data.costPrice,
+          sellingPrice: data.sellingPrice,
+          unit: data.unit,
+          stockQuantity: data.stockQuantity,
+          minStockLevel: data.minStockLevel,
+          typeSpecificData: isTireCategory()
+            ? {
+                width: data.width,
+                aspectRatio: data.aspectRatio,
+                rimDiameter: data.rimDiameter,
+              }
+            : null,
+          compatibleVehicles: watch("compatibleVehicles") || undefined,
+          image,
+          categoryId: data.categoryId,
+        };
+      } else {
+        serviceData = {
+          name: data.name,
+          price: data.price,
+          categoryId: data.categoryId,
+        };
+      }
 
       if (isServiceCategory()) {
         await createService(serviceData);
         toast.success("เพิ่มบริการสำเร็จ");
+        navigate("/inventory");
       } else {
         await createPart(partData);
         toast.success("เพิ่มอะไหล่สำเร็จ");
+        navigate("/inventory");
       }
 
       reset();
       setSelectedImage(null);
       setVehicleKey((prev) => prev + 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       console.error(error);
       if (isServiceCategory()) {
@@ -100,17 +136,17 @@ const CreatePart = () => {
   };
 
   return (
-    <main className="w-full bg-gradient-primary shadow-primary">
+    <main className="w-full h-[78px] bg-gradient-primary shadow-primary">
       <div className="pt-[16px] pl-[20px] font-semibold text-[22px] text-surface">
-        {isServiceCategory() ? "เพิ่มบริการ" : "เพิ่มอะไหล่"}
+        เพิ่มรายการ
       </div>
-      <section className="w-full mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+      <section className="w-full min-h-[calc(100svh-65px)] sm:min-h-[calc(100vh-65px)] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         <form onSubmit={handleSubmit(onSubmit)}>
           <ComboBox
             label="หมวดหมู่"
             options={categories}
             value={watch("categoryId")}
-            onChange={(value) => setValue("categoryId", value)}
+            onChange={handleCategoryChange}
             placeholder="-- เลือกหมวดหมู่ --"
           />
 
@@ -130,7 +166,7 @@ const CreatePart = () => {
                 name="price"
                 label="ราคา (บาท)"
                 type="text"
-                placeholder="เช่น 500"
+                placeholder="เช่น 400"
                 color="subtle-dark"
               />
             </div>
@@ -140,6 +176,7 @@ const CreatePart = () => {
           {!isServiceCategory() && (
             <div>
               <FormUploadImage
+                label="รูปภาพอะไหล่"
                 setSelectedImage={setSelectedImage}
                 selectedImage={selectedImage}
               />
@@ -148,17 +185,61 @@ const CreatePart = () => {
                 name="partNumber"
                 label="รหัสอะไหล่"
                 type="text"
-                placeholder="เช่น P001, BR-123"
+                placeholder="เช่น SB-3882"
+                color="subtle-dark"
+              />
+              <FormInput
+                register={register}
+                name="brand"
+                label="ยี่ห้อ"
+                type="text"
+                placeholder={
+                  isTireCategory() ? "เช่น Linglong, Maxxis" : "เช่น 333, 555"
+                }
                 color="subtle-dark"
               />
               <FormInput
                 register={register}
                 name="name"
-                label="ชื่ออะไหล่"
+                label={isTireCategory() ? "รุ่น" : "ชื่ออะไหล่"}
                 type="text"
-                placeholder="เช่น ยางรถยนต์ มิชลิน"
+                placeholder={
+                  isTireCategory()
+                    ? "เช่น CROSSWIND HP010"
+                    : "เช่น ลูกหมากปีกนกบน REVO,VIGO 4x2"
+                }
                 color="subtle-dark"
               />
+
+              {/* ยาง */}
+              {isTireCategory() && (
+                <div className="space-y-4">
+                  <FormInput
+                    register={register}
+                    name="width"
+                    label="หน้ายาง (มม.)"
+                    type="text"
+                    placeholder="เช่น 175, 185, 195"
+                    color="subtle-dark"
+                  />
+                  <FormInput
+                    register={register}
+                    name="aspectRatio"
+                    label="แก้มยาง (%)"
+                    type="text"
+                    placeholder="เช่น 50, 55, 60"
+                    color="subtle-dark"
+                  />
+                  <FormInput
+                    register={register}
+                    name="rimDiameter"
+                    label="ขอบ (นิ้ว)"
+                    type="text"
+                    placeholder="เช่น 14, 15, 16"
+                    color="subtle-dark"
+                  />
+                </div>
+              )}
               <FormInput
                 register={register}
                 name="costPrice"
@@ -179,43 +260,40 @@ const CreatePart = () => {
               />
               <FormInput
                 register={register}
-                name="stockQuantity"
-                label="จำนวนสต็อก"
-                type="number"
-                placeholder="เช่น 10"
-                color="subtle-dark"
-                onWheel={(e) => e.target.blur()}
-              />
-              <FormInput
-                register={register}
                 name="unit"
                 label="หน่วย"
                 type="text"
-                placeholder="เช่น ชิ้น, ลิตร"
+                placeholder="เช่น เส้น, ชิ้น, ลิตร"
                 color="subtle-dark"
+              />
+              <FormInput
+                register={register}
+                name="stockQuantity"
+                label="จำนวนสต็อก"
+                type="number"
+                placeholder="เช่น 4"
+                color="subtle-dark"
+                onWheel={(e) => e.target.blur()}
               />
               <FormInput
                 register={register}
                 name="minStockLevel"
                 label="สต็อกขั้นต่ำ"
                 type="number"
-                placeholder="เช่น 3"
+                placeholder="เช่น 2"
                 color="subtle-dark"
                 onWheel={(e) => e.target.blur()}
               />
-              <div className="px-5 py-3">
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  รถที่เข้ากันได้
-                </label>
+              {!isTireCategory() && (
                 <VehicleCompatibilityInput
                   key={vehicleKey}
                   setValue={setValue}
                   watch={watch}
                 />
-              </div>
+              )}
             </div>
           )}
-          <div className="flex justify-center pb-[60px]">
+          <div className="flex justify-center pb-[88px]">
             <FormButton
               label={isServiceCategory() ? "เพิ่มบริการ" : "เพิ่มอะไหล่"}
               isLoading={isSubmitting}

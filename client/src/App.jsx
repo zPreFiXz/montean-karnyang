@@ -6,14 +6,14 @@ const App = () => {
     <>
       <Toaster
         richColors
-        position="bottom-right"
+        position="top-center"
         expand={false}
         duration={2000}
         closeButton
         toastOptions={{
           style: {
             fontFamily: '"Athiti", sans-serif',
-            fontSize: "16px",
+            fontSize: "18px",
           },
         }}
       />

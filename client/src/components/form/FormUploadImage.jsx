@@ -3,7 +3,7 @@ import { Input } from "../ui/input";
 import { useEffect, useState } from "react";
 import { ImageIcon, X } from "lucide-react";
 
-const FormUploadImage = ({ setSelectedImage, selectedImage }) => {
+const FormUploadImage = ({ label, setSelectedImage, selectedImage }) => {
   const [previewImage, setPreviewImage] = useState(null);
 
   useEffect(() => {
@@ -64,7 +64,7 @@ const FormUploadImage = ({ setSelectedImage, selectedImage }) => {
         htmlFor="image-upload"
         className="font-medium text-[18px] text-subtle-dark"
       >
-        รูปอะไหล่
+        {label}
       </Label>
       <div className="flex items-center justify-center mt-[8px]">
         <Input
@@ -76,7 +76,7 @@ const FormUploadImage = ({ setSelectedImage, selectedImage }) => {
         />
         <label
           htmlFor="image-upload"
-          className="group relative flex flex-col items-center justify-center w-[280px] h-[280px] border-2 border-dashed border-subtle-light rounded-[20px] bg-surface hover:border-primary duration-300 cursor-pointer"
+          className="group relative flex flex-col items-center justify-center w-[280px] h-[280px] border-2 border-dashed border-gray-300 rounded-[20px] bg-surface hover:border-primary duration-300 cursor-pointer"
         >
           {previewImage ? (
             <div className="w-full h-full">

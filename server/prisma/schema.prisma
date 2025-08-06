@@ -115,20 +115,22 @@ model RepairItem {
 
 model Part {
   id                 Int          @id @default(autoincrement())
-  partNumber         String?      @unique
+  partNumber         String       @unique
+  brand              String?
   name               String
-  unit               String
-  stockQuantity      Int
-  minStockLevel      Int
   costPrice          Decimal
   sellingPrice       Decimal
+  unit               String
+  stockQuantity      Int          @default(0)
+  minStockLevel      Int          @default(0)
+  typeSpecificData   Json?
   compatibleVehicles Json?
   publicId           String?
   secureUrl          String?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
-  categoryId         Int?
-  category           Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId         Int
+  category           Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   repairItems        RepairItem[]
 }
 

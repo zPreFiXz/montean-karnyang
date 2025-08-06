@@ -1,4 +1,7 @@
+import { Label } from "@radix-ui/react-label";
 import { useState, useEffect } from "react";
+import { Input } from "../ui/input";
+import { Trash } from "lucide-react";
 
 const VehicleCompatibilityInput = ({ setValue }) => {
   const [vehicles, setVehicles] = useState([{ brand: "", model: "" }]);
@@ -38,55 +41,83 @@ const VehicleCompatibilityInput = ({ setValue }) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="px-[20px] pt-[16px] space-y-[16px]">
+      <Label className="font-medium text-[18px] text-subtle-dark">
+        รถที่เข้ากันได้
+      </Label>
       {vehicles.map((vehicle, index) => (
-        <div
-          key={index}
-          className="border border-gray-200 rounded-lg p-4 bg-gray-50"
-        >
-          <div className="flex justify-between items-center mb-3">
-            <span className="text-sm font-medium text-gray-600">
+        <div key={index} className="p-[16px] mt-[8px] rounded-[10px] border">
+          <div className="flex justify-between items-center mb-[8px]">
+            <span className="font-medium text-[16px] text-subtle-dark">
               รถคันที่ {index + 1}
             </span>
             {vehicles.length > 1 && (
               <button
                 type="button"
                 onClick={() => handleRemoveVehicle(index)}
-                className="text-red-500 hover:text-red-700 text-sm"
+                className="flex items-center font-medium text-[16px] text-red-500 hover:text-red-600 transition-all cursor-pointer"
               >
+                <Trash className="w-4 h-4 mr-[4px]" />
                 ลบ
               </button>
             )}
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <Label className="block text-[14px] font-medium text-subtle-dark mb-[4px]">
                 ยี่ห้อ
-              </label>
-              <input
+              </Label>
+              <Input
                 type="text"
                 value={vehicle.brand}
                 onChange={(e) =>
                   handleUpdateVehicle(index, "brand", e.target.value)
                 }
                 placeholder="เช่น Toyota"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full mb-[8px] text-[16px] rounded-[20px]"
+                style={{
+                  "--tw-ring-color": "#5b46f4",
+                  "--tw-border-opacity": "1",
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = "#5b46f4";
+                  e.target.style.borderWidth = "2px";
+                  e.target.style.boxShadow = "0 0 0 3px rgba(91, 70, 244, 0.3)";
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = "";
+                  e.target.style.borderWidth = "";
+                  e.target.style.boxShadow = "";
+                }}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <Label className="block text-[14px] font-medium text-subtle-dark mb-[4px]">
                 รุ่น
-              </label>
-              <input
+              </Label>
+              <Input
                 type="text"
                 value={vehicle.model}
                 onChange={(e) =>
                   handleUpdateVehicle(index, "model", e.target.value)
                 }
                 placeholder="เช่น Vios"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full mb-[8px] text-[16px] rounded-[20px]"
+                style={{
+                  "--tw-ring-color": "#5b46f4",
+                  "--tw-border-opacity": "1",
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = "#5b46f4";
+                  e.target.style.borderWidth = "2px";
+                  e.target.style.boxShadow = "0 0 0 3px rgba(91, 70, 244, 0.3)";
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = "";
+                  e.target.style.borderWidth = "";
+                  e.target.style.boxShadow = "";
+                }}
               />
             </div>
           </div>
@@ -96,7 +127,7 @@ const VehicleCompatibilityInput = ({ setValue }) => {
       <button
         type="button"
         onClick={handleAddVehicle}
-        className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors"
+        className="w-full py-2 font-medium transition-colors border-2 border-gray-300 border-dashed rounded-lg cursor-pointer text-subtle-light hover:border-primary hover:text-primary"
       >
         + เพิ่มรถรุ่นอื่น
       </button>

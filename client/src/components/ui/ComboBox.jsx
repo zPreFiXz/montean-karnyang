@@ -65,25 +65,27 @@ const ComboBox = ({ label, options = [], value, onChange, placeholder }) => {
               </p>
             </CommandEmpty>
             <CommandGroup>
-              {options.map((item) => (
-                <CommandItem
-                  key={item.id}
-                  value={item.name}
-                  onSelect={() => {
-                    onChange(item.id);
-                    setOpen(false);
-                  }}
-                  className="font-athiti text-[16px] text-subtle-dark"
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === item.id ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {item.name}
-                </CommandItem>
-              ))}
+              {options
+                .sort((a, b) => a.id - b.id)
+                .map((item) => (
+                  <CommandItem
+                    key={item.id}
+                    value={item.name}
+                    onSelect={() => {
+                      onChange(item.id);
+                      setOpen(false);
+                    }}
+                    className="font-athiti text-[16px] text-subtle-dark"
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === item.id ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {item.name}
+                  </CommandItem>
+                ))}
             </CommandGroup>
           </Command>
         </PopoverContent>

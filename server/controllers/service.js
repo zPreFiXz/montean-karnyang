@@ -10,27 +10,12 @@ exports.getService = async (req, res, next) => {
   }
 };
 
-exports.getServiceById = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const service = await prisma.service.findFirst({
-      where: { id: Number(id) },
-    });
-
-    res.json(service);
-  } catch (error) {
-    next(error);
-  }
-};
-
 exports.createService = async (req, res, next) => {
   try {
-    const { image, name, price, categoryId } = req.body;
+    const { name, price, categoryId } = req.body;
 
     await prisma.service.create({
       data: {
-        image,
         name,
         price: Number(price),
         categoryId: Number(categoryId),
