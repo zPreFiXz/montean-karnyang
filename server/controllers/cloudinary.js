@@ -1,6 +1,5 @@
 const cloudinary = require("cloudinary").v2;
 
-// Configuration
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -10,6 +9,7 @@ cloudinary.config({
 exports.createImage = async (req, res, next) => {
   try {
     const { image } = req.body;
+    // สร้าง public_id โดยใช้ timestamp เพื่อป้องกันการซ้ำซ้อน
     const result = await cloudinary.uploader.upload(image, {
       public_id: `${Date.now()}`,
       resource_type: "auto",

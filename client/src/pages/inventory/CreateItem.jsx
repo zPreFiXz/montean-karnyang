@@ -81,6 +81,7 @@ const CreatePart = () => {
         };
       }
 
+      // สร้างข้อมูลอะไหล่หรือบริการตามหมวดหมู่ที่เลือก
       if (!isServiceCategory()) {
         partData = {
           partNumber: data.partNumber,

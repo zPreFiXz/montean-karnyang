@@ -1,4 +1,13 @@
-const CarCard = ({ bg, color, icon: Icon, plateId, band, time, price, amount }) => {
+const CarCard = ({
+  bg,
+  color,
+  icon: Icon,
+  plateId,
+  band,
+  time,
+  price,
+  amount,
+}) => {
   const bgColorMap = {
     primary: "bg-[var(--color-primary)]",
     "in-progress": "bg-[var(--color-in-progress)]",
@@ -14,9 +23,7 @@ const CarCard = ({ bg, color, icon: Icon, plateId, band, time, price, amount }) 
   };
 
   return (
-    <div
-      className="flex justify-between items-center w-full h-[80px] px-[16px] rounded-[10px] bg-surface shadow-primary"
-    >
+    <div className="flex justify-between items-center w-full h-[80px] px-[16px] rounded-[10px] bg-surface shadow-primary">
       <div className="flex items-center gap-[8px]">
         <div
           className={`flex justify-center items-center w-[45px] h-[45px] rounded-full ${bgColorMap[bg]}`}
@@ -28,12 +35,16 @@ const CarCard = ({ bg, color, icon: Icon, plateId, band, time, price, amount }) 
             {plateId}
           </p>
           <p className="font-medium text-[14px] text-subtle-dark">
-            {[band, time && `${time} น.`].filter(Boolean).join(' | ') || ''}
+            {[band, time && `${time} น.`].filter(Boolean).join(" | ") || ""}
           </p>
         </div>
       </div>
-      <p className={`font-semibold ${price ? 'text-[22px]' : 'text-[32px]'} ${textColorMap[bg]}`}>
-        {price ? `${price} ฿` : amount ? `${amount} คัน` : ''}
+      <p
+        className={`font-semibold ${price ? "text-[22px]" : "text-[32px]"} ${
+          textColorMap[bg]
+        }`}
+      >
+        {price ? `${price} ฿` : amount ? `${amount} คัน` : ""}
       </p>
     </div>
   );

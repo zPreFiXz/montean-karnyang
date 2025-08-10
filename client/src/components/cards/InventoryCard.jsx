@@ -14,6 +14,7 @@ const InventoryCard = ({
   const isService = category === "บริการ";
 
   const renderProductInfo = () => {
+    // แสดงข้อมูลยางที่มีขนาดแก้มยาง
     if (isTire && typeSpecificData && typeSpecificData.aspectRatio) {
       return (
         <p className="font-semibold text-[14px] text-normal">
@@ -21,6 +22,7 @@ const InventoryCard = ({
           {typeSpecificData.rimDiameter} {name}
         </p>
       );
+      // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
     } else if (isTire && typeSpecificData) {
       return (
         <p className="font-semibold text-[14px] text-normal">
@@ -29,6 +31,7 @@ const InventoryCard = ({
       );
     }
 
+    // แสดงข้อมูลอะไหล่หรือบริการ
     return (
       <p className="font-semibold text-[14px] text-normal">
         {brand} {name}
@@ -41,6 +44,7 @@ const InventoryCard = ({
       <div className="flex justify-between items-center w-full h-[80px] px-[8px] rounded-[10px] bg-white shadow-primary">
         <div className="flex items-center gap-[8px]">
           <div className="flex items-center justify-center w-[60px] h-[60px] rounded-[10px] border border-subtle-light bg-white shadow-primary">
+            {/* แสดงรูปภาพถ้ามี ถ้าไม่มีให้แสดงไอคอน Image */}
             {secureUrl ? (
               <img
                 src={secureUrl}

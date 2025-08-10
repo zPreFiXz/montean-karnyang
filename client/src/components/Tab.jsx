@@ -37,27 +37,27 @@ const Tab = () => {
   return (
     <div className="px-[20px] pb-[16px]">
       <div className="flex justify-between md:justify-around items-center w-full h-[72px] pl-[20px] pr-[15px] md:px-auto rounded-2xl bg-surface shadow-tab">
-        {/* Dashboard Button */}
+        {/* ปุ่มภาพรวม */}
         <TabButton icon={DashboardBar} label="ภาพรวม" to="/dashboard" />
 
-        {/* Check Suspension Button */}
+        {/* ปุ่มเช็กช่วงล่าง */}
         <TabButton
           icon={CarRepair}
           label="เช็กช่วงล่าง"
           to="/inspections/suspension"
         />
 
-        {/* New Repair Button */}
+        {/* ปุ่มสร้างรายการซ่อมใหม่ */}
         <div className="flex justify-center items-center w-[75px] h-[45px] rounded-2xl bg-gradient-primary">
           <Link to="/repairs/new">
             <Plus size="md" />
           </Link>
         </div>
 
-        {/* Customer History Button */}
+        {/* ปุ่มประวัติลูกค้า */}
         <TabButton icon={Document} label="ประวัติลูกค้า" to="/customers" />
 
-        {/* Inventory Overview Button */}
+        {/* ปุ่มอะไหล่และบริการ */}
         <TabButton icon={BoxSearch} label="อะไหล่" to="/inventory" />
       </div>
     </div>

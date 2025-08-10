@@ -45,6 +45,8 @@ const VehicleCompatibilityInput = ({ setValue }) => {
       <Label className="font-medium text-[18px] text-subtle-dark">
         รถที่เข้ากันได้
       </Label>
+
+      {/* แสดงรายการรถที่เข้ากันได้ */}
       {vehicles.map((vehicle, index) => (
         <div key={index} className="p-[16px] mt-[8px] rounded-[10px] border">
           <div className="flex justify-between items-center mb-[8px]">
@@ -91,7 +93,6 @@ const VehicleCompatibilityInput = ({ setValue }) => {
                 }}
               />
             </div>
-
             <div>
               <Label className="block text-[14px] font-medium text-subtle-dark mb-[4px]">
                 รุ่น

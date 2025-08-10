@@ -63,7 +63,7 @@ const SearchBar = () => {
         }}
       />
 
-      {/* Clear button */}
+      {/* ปุ่มล้างการค้นหา */}
       {inputValue && (
         <button
           onClick={handleClear}

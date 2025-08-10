@@ -1,5 +1,9 @@
 import api from "@/lib/api";
 
+// ถ้า `category` หรือ `search` ถูกระบุ จะส่งเป็นพารามิเตอร์ไปยัง API
+// ถ้าไม่ระบุ จะส่งพารามิเตอร์ว่างเปล่า
+// ใช้ `params` เพื่อส่งพารามิเตอร์ไปยัง API
+// ตัวอย่าง: getInventory("electronics", "laptop") จะส่ง { category: "electronics", search: "laptop" }
 export const getInventory = async (category, search) => {
   const params = {};
 

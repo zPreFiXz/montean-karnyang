@@ -16,28 +16,6 @@ exports.getRepairById = async (req, res, next) => {
 
     const repair = await prisma.repair.findFirst({
       where: { id: Number(id) },
-      include: {
-        customer: true,
-        vehicle: {
-          include: {
-            licensePlate: true,
-          },
-        },
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            nickname: true,
-          },
-        },
-        repairItems: {
-          include: {
-            part: true,
-            service: true,
-          },
-        },
-      },
     });
 
     res.json(repair);
@@ -68,6 +46,7 @@ exports.createRepair = async (req, res, next) => {
     let customer;
     let licensePlate;
 
+    // ค้นหาทะเบียนรถในฐานข้อมูล
     licensePlate = await prisma.licensePlate.findUnique({
       where: {
         plateNumber_province: {
@@ -77,15 +56,18 @@ exports.createRepair = async (req, res, next) => {
       },
     });
 
+    // ค้นหารถในฐานข้อมูลตามทะเบียนรถ
     if (licensePlate) {
       vehicle = await prisma.vehicle.findFirst({
         where: { licensePlateId: licensePlate.id },
       });
 
+      // ถ้ามีรถที่ตรงกับทะเบียนรถแล้ว ตรวจสอบว่ารถนั้นมียี่ห้อและรุ่นตรงกับที่ส่งมาหรือไม่
       if (vehicle) {
         const isSameVehicle =
           vehicle.brand === brand && vehicle.model === model;
 
+        // ถ้ายี่ห้อหรือรุ่นไม่ตรงกับทะเบียนรถเดิม จะลบทะเบียนรถเดิมออกจากรถคันนั้น
         if (!isSameVehicle) {
           await prisma.vehicle.update({
             where: { id: vehicle.id },
@@ -93,7 +75,7 @@ exports.createRepair = async (req, res, next) => {
               licensePlateId: null,
             },
           });
-
+          // สร้างรถใหม่ที่มีทะเบียนรถเดียวกัน
           vehicle = await prisma.vehicle.create({
             data: {
               brand,
@@ -102,6 +84,7 @@ exports.createRepair = async (req, res, next) => {
             },
           });
         }
+        // ถ้ายี่ห้อและรุ่นตรงกัน จะใช้รถคันเดิมที่มีทะเบียนรถนั้นอยู่
       } else {
         vehicle = await prisma.vehicle.create({
           data: {
@@ -111,6 +94,7 @@ exports.createRepair = async (req, res, next) => {
           },
         });
       }
+      // ถ้าไม่มีทะเบียนรถในฐานข้อมูล จะสร้างทะเบียนรถใหม่และรถใหม่
     } else {
       licensePlate = await prisma.licensePlate.create({
         data: {
@@ -127,11 +111,13 @@ exports.createRepair = async (req, res, next) => {
       });
     }
 
+    // ค้นหาลูกค้าในฐานข้อมูลตามหมายเลขโทรศัพท์
     if (phoneNumber) {
       customer = await prisma.customer.findUnique({
         where: { phoneNumber: phoneNumber },
       });
 
+      // ถ้าไม่พบลูกค้า จะสร้างลูกค้าใหม่
       if (!customer) {
         customer = await prisma.customer.create({
           data: {
@@ -141,6 +127,7 @@ exports.createRepair = async (req, res, next) => {
             phoneNumber: phoneNumber,
           },
         });
+        // ถ้าพบลูกค้าแล้ว จะอัปเดตข้อมูลลูกค้า
       } else if (firstName || lastName || address) {
         customer = await prisma.customer.update({
           where: { id: customer.id },
@@ -151,6 +138,7 @@ exports.createRepair = async (req, res, next) => {
           },
         });
       }
+      // ถ้าไม่มีหมายเลขโทรศัพท์แต่จะสร้างลูกค้าใหม่โดยไม่ระบุหมายเลขโทรศัพท์
     } else if (firstName && !phoneNumber) {
       customer = await prisma.customer.create({
         data: {
@@ -162,6 +150,7 @@ exports.createRepair = async (req, res, next) => {
       });
     }
 
+    // สร้างการซ่อม
     const repair = await prisma.repair.create({
       data: {
         description: description || null,
@@ -172,6 +161,7 @@ exports.createRepair = async (req, res, next) => {
       },
     });
 
+    // สร้างรายการซ่อม
     if (repairItems && repairItems.length > 0) {
       const repairItemsData = repairItems.map((item) => ({
         unitPrice: item.unitPrice,
@@ -181,10 +171,12 @@ exports.createRepair = async (req, res, next) => {
         serviceId: item.serviceId,
       }));
 
+      // บันทึกรายการซ่อมในฐานข้อมูล
       await prisma.repairItem.createMany({
         data: repairItemsData,
       });
 
+      // อัปเดตจำนวนสต็อกของชิ้นส่วนที่ใช้ในการซ่อม
       for (const item of repairItems) {
         if (item.partId) {
           await prisma.part.update({

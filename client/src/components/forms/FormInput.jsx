@@ -1,5 +1,6 @@
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { AlertCircle } from "lucide-react";
 
 const FormInput = ({
   register,
@@ -8,6 +9,7 @@ const FormInput = ({
   type,
   placeholder,
   color,
+  error,
   ...props
 }) => {
   const getTextColor = () => {
@@ -24,27 +26,48 @@ const FormInput = ({
       >
         {label}
       </Label>
-      <Input
-        {...register(name, type === "number" ? { valueAsNumber: true } : {})}
-        type={type}
-        placeholder={placeholder}
-        className="w-full h-[40px] px-[12px] rounded-[20px] bg-surface"
-        style={{
-          "--tw-ring-color": "#5b46f4",
-          "--tw-border-opacity": "1",
-        }}
-        onFocus={(e) => {
-          e.target.style.borderColor = "#5b46f4";
-          e.target.style.borderWidth = "2px";
-          e.target.style.boxShadow = "0 0 0 3px rgba(91, 70, 244, 0.3)";
-        }}
-        onBlur={(e) => {
-          e.target.style.borderColor = "";
-          e.target.style.borderWidth = "";
-          e.target.style.boxShadow = "";
-        }}
-        {...props}
-      />
+      <div className="relative">
+        <Input
+          {...register(name, type === "number" ? { valueAsNumber: true } : {})}
+          type={type}
+          placeholder={placeholder}
+          className={`w-full h-[40px] px-[12px] rounded-[20px] bg-surface ${
+            error ? "border-red-400 focus:border-red-500" : ""
+          }`}
+          style={{
+            "--tw-ring-color": error ? "#FF4545" : "#5b46f4",
+            "--tw-border-opacity": "1",
+          }}
+          onFocus={(e) => {
+            if (error) {
+              e.target.style.borderColor = "#FF4545";
+              e.target.style.borderWidth = "2px";
+              e.target.style.boxShadow = "0 0 0 3px rgba(255, 69, 69, 0.3)";
+            } else {
+              e.target.style.borderColor = "#5b46f4";
+              e.target.style.borderWidth = "2px";
+              e.target.style.boxShadow = "0 0 0 3px rgba(91, 70, 244, 0.3)";
+            }
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = "";
+            e.target.style.borderWidth = "";
+            e.target.style.boxShadow = "";
+          }}
+          {...props}
+        />
+        {error && (
+          <div className="absolute right-[12px] top-1/2 transform -translate-y-1/2">
+            <AlertCircle className="w-5 h-5 text-delete" />
+          </div>
+        )}
+      </div>
+      {error && (
+        <div className="flex items-center gap-[4px] px-[4px] mt-[6px]">
+          <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
+          <p className="text-delete text-[14px] font-medium">{error}</p>
+        </div>
+      )}
     </div>
   );
 };

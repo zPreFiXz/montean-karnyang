@@ -60,10 +60,10 @@ const Inventory = () => {
       </p>
       <div className="w-full min-h-[calc(100svh-88px)] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         <div className="px-[20px] pt-[16px]">
-          {/* Search Bar */}
+          {/* แถบค้นหา */}
           <SearchBar />
 
-          {/* Category List */}
+          {/* แถบหมวดหมู่ */}
           <CategoryList
             activeCategory={activeCategory}
             setActiveCategory={setActiveCategory}
@@ -79,7 +79,7 @@ const Inventory = () => {
             </Link>
           </div>
 
-          {/* Inventory Cards */}
+          {/* รายการอะไหล่และบริการ */}
           {isLoading ? (
             <div className="flex items-center justify-center h-[calc(100vh-343px)]">
               <LoaderCircle className="w-8 h-8 animate-spin text-primary" />

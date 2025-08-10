@@ -7,6 +7,7 @@ exports.getInventory = async (req, res, next) => {
     let partWhereCondition = {};
     let serviceWhereCondition = {};
 
+    // ถ้า category และ search ถูกระบุให้ค้นหาเฉพาะในหมวดหมู่และคำค้นหานั้น
     if (category && search) {
       partWhereCondition = {
         AND: [
@@ -23,9 +24,11 @@ exports.getInventory = async (req, res, next) => {
       serviceWhereCondition = {
         AND: [{ category: { name: category } }, { name: { contains: search } }],
       };
+      // ถ้า category ถูกระบุให้ค้นหาเฉพาะในหมวดหมู่นั้น
     } else if (category) {
       partWhereCondition.category = { name: category };
       serviceWhereCondition.category = { name: category };
+      // ถ้า search ถูกระบุให้ค้นหาทั้งในชื่อ, รหัสอะไหล่ และยี่ห้อ
     } else if (search) {
       partWhereCondition.OR = [
         { name: { contains: search } },
@@ -35,6 +38,7 @@ exports.getInventory = async (req, res, next) => {
       serviceWhereCondition.name = { contains: search };
     }
 
+    // ถ้าไม่มีการระบุ category หรือ search ให้ค้นหาทุกอย่าง
     const [parts, services] = await Promise.all([
       prisma.part.findMany({
         where: partWhereCondition,
@@ -48,6 +52,9 @@ exports.getInventory = async (req, res, next) => {
       }),
     ]);
 
+    // รวมรายการอะไหล่และบริการในรูปแบบเดียวกัน
+    // อะไหล่จะมีข้อมูลเพิ่มเติมเช่น partNumber, brand, costPrice, sellingPrice, unit, stockQuantity, minStockLevel
+    // บริการจะไม่มีข้อมูลเหล่านี้ แต่จะมี price แทน
     const inventory = [
       ...parts.map((item) => ({
         ...item,

@@ -47,7 +47,7 @@ const AddRepairItemDialog = ({ children, onAddItem }) => {
       const categoriesWithIcons = res.data
         .map((category) => ({
           ...category,
-          icon: iconMap[category.name] || ToolBox,
+          icon: iconMap[category.name] || ToolBox, // ถ้าไม่มี icon ให้ใช้ ToolBox เป็นค่าเริ่มต้น
         }))
         .sort((a, b) => a.id - b.id);
       setCategories(categoriesWithIcons);
@@ -56,6 +56,8 @@ const AddRepairItemDialog = ({ children, onAddItem }) => {
     }
   };
 
+  // ใช้ useDebouncedCallback เพื่อดีเลย์การค้นหา
+  // ป้องกันการเรียก API บ่อยเกินไป
   const debouncedSearch = useDebouncedCallback((value) => {
     const category = activeCategory === "ทั้งหมด" ? null : activeCategory;
     handleFilter(category, value || null);
@@ -85,6 +87,9 @@ const AddRepairItemDialog = ({ children, onAddItem }) => {
   };
 
   const handleAddItemToRepair = (item) => {
+    if (item.partNumber && item.brand && (item.stockQuantity || 0) === 0) {
+      return;
+    }
     onAddItem(item);
     setIsDialogOpen(false);
   };
@@ -102,7 +107,8 @@ const AddRepairItemDialog = ({ children, onAddItem }) => {
           <DialogDescription className="sr-only">
             เลือกอะไหล่และบริการที่ต้องการเพิ่มลงในรายการซ่อม
           </DialogDescription>
-          {/* Close Button */}
+
+          {/* ปุ่มปิด dialog */}
           <button
             onClick={() => setIsDialogOpen(false)}
             className="absolute top-[16px] right-[20px] flex items-center justify-center w-[32px] h-[32px] rounded-full bg-black/5 transition-all duration-200"
@@ -112,7 +118,7 @@ const AddRepairItemDialog = ({ children, onAddItem }) => {
         </DialogHeader>
         <div className="flex-1 overflow-hidden">
           <div className="overflow-y-auto max-h-[calc(100vh-100px)] px-[20px]">
-            {/* Search Bar */}
+            {/* แถบค้นหา */}
             <div className="relative flex items-center mt-[4px]">
               <div className="absolute left-[16px] h-full flex items-center text-subtle-dark pointer-events-none">
                 <Search size={20} />
@@ -138,7 +144,8 @@ const AddRepairItemDialog = ({ children, onAddItem }) => {
                   e.target.style.boxShadow = "";
                 }}
               />
-              {/* Clear button */}
+
+              {/* ปุ่มล้างการค้นหา */}
               {searchValue && (
                 <button
                   onClick={() => {
@@ -154,7 +161,7 @@ const AddRepairItemDialog = ({ children, onAddItem }) => {
               )}
             </div>
 
-            {/* Category List */}
+            {/* แถบหมวดหมู่ */}
             <div className="overflow-x-auto -mx-[20px] px-[20px] mt-[14px] font-athiti">
               <div className="flex gap-[8px] py-[2px]">
                 <button
@@ -204,7 +211,7 @@ const AddRepairItemDialog = ({ children, onAddItem }) => {
               </p>
             </div>
 
-            {/* Inventory Cards */}
+            {/* รายการอะไหล่และบริการ */}
             {isLoading ? (
               <div className="flex items-center justify-center h-[calc(100vh-283px)]">
                 <LoaderCircle className="w-8 h-8 text-primary animate-spin" />
@@ -218,24 +225,36 @@ const AddRepairItemDialog = ({ children, onAddItem }) => {
             ) : (
               <div className="flex items-start justify-center h-[calc(100vh-283px)]">
                 <div className="pb-[16px]">
-                  {inventory.map((item) => (
-                    <div
-                      key={`${item.category.name}-${item.id}`}
-                      onClick={() => handleAddItemToRepair(item)}
-                      className="rounded-lg cursor-pointer font-athiti"
-                    >
-                      <InventoryCard
-                        brand={item.brand}
-                        name={item.name}
-                        unit={item.unit}
-                        sellingPrice={item.sellingPrice}
-                        stockQuantity={item.stockQuantity}
-                        typeSpecificData={item.typeSpecificData}
-                        secureUrl={item.secureUrl}
-                        category={item.category.name}
-                      />
-                    </div>
-                  ))}
+                  {inventory.map((item) => {
+                    const isDisabled =
+                      item.partNumber &&
+                      item.brand &&
+                      (item.stockQuantity || 0) === 0;
+
+                    return (
+                      <div
+                        key={`${item.category.name}-${item.id}`}
+                        onClick={() => handleAddItemToRepair(item)}
+                        className={`rounded-lg font-athiti ${
+                          isDisabled
+                            ? "cursor-not-allowed opacity-50"
+                            : "cursor-pointer"
+                        }`}
+                      >
+                        <InventoryCard
+                          brand={item.brand}
+                          name={item.name}
+                          unit={item.unit}
+                          sellingPrice={item.sellingPrice}
+                          stockQuantity={item.stockQuantity}
+                          typeSpecificData={item.typeSpecificData}
+                          secureUrl={item.secureUrl}
+                          category={item.category.name}
+                          disabled={isDisabled}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

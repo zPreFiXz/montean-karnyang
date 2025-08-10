@@ -6,11 +6,17 @@ import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import FormButton from "@/components/forms/FormButton";
-import { Image, Trash, Plus, Minus } from "lucide-react";
+import { Image, Trash, Plus, Minus, AlertCircle } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { repairSchema } from "@/utils/schemas";
 
 const CreateRepair = () => {
-  const { register, handleSubmit, reset } = useForm();
+  const { register, handleSubmit, formState, reset } = useForm({
+    resolver: zodResolver(repairSchema),
+  });
   const [repairItems, setRepairItems] = useState([]);
+
+  const { errors } = formState;
 
   const onSubmit = async (data) => {
     try {
@@ -39,7 +45,7 @@ const CreateRepair = () => {
         })),
       });
 
-      toast.success("บันทึกข้อมูลเรียบร้อยแล้ว!");
+      toast.success("บันทึกข้อมูลเรียบร้อยแล้ว");
     } catch (error) {
       console.error(error);
     }
@@ -48,8 +54,20 @@ const CreateRepair = () => {
   const handleAddItemToRepair = (item) => {
     setRepairItems((prev) => [
       ...prev,
-      { ...item, quantity: 1, sellingPrice: item.sellingPrice },
+      {
+        ...item,
+        quantity: 1,
+        sellingPrice: item.sellingPrice,
+        stockQuantity: item.stockQuantity,
+      },
     ]);
+
+    setTimeout(() => {
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: "smooth",
+      });
+    }, 100);
   };
 
   const handleIncreaseQuantity = (index) => {
@@ -82,6 +100,7 @@ const CreateRepair = () => {
           label="ชื่อลูกค้า"
           placeholder="เช่น สมชาย"
           color="surface"
+          error={errors.firstName?.message}
         />
         <FormInput
           register={register}
@@ -89,6 +108,7 @@ const CreateRepair = () => {
           label="นามสกุล"
           placeholder="เช่น ใจดี"
           color="surface"
+          error={errors.lastName?.message}
         />
         <FormInput
           register={register}
@@ -96,13 +116,16 @@ const CreateRepair = () => {
           label="ที่อยู่"
           placeholder="เช่น 123/45 หมู่ 2 ต.บางพลี อ.บางพลี จ.สมุทรปราการ"
           color="surface"
+          error={errors.address?.message}
         />
         <FormInput
           register={register}
           name="phoneNumber"
           label="หมายเลขโทรศัพท์"
           placeholder="เช่น 0812345678"
+          maxLength={10}
           color="surface"
+          error={errors.phoneNumber?.message}
         />
         <FormInput
           register={register}
@@ -110,6 +133,7 @@ const CreateRepair = () => {
           label="ยี่ห้อรถ"
           placeholder="เช่น Toyota, Isuzu, Honda"
           color="surface"
+          error={errors.brand?.message}
         />
         <FormInput
           register={register}
@@ -117,20 +141,22 @@ const CreateRepair = () => {
           label="รุ่นรถ"
           placeholder="เช่น Hilux Revo, D-Max, City"
           color="surface"
+          error={errors.model?.message}
         />
 
-        {/* License Plate */}
+        {/* ป้ายทะเบียนรถ */}
         <div className="px-[20px] pt-[16px]">
           <p className="font-medium text-[18px] text-surface mb-[8px]">
             ทะเบียนรถ
           </p>
-          <div className="flex gap-[12px] items-center">
+          <div className="flex gap-[12px] items-start">
             <div className="w-[80px]">
               <LicensePlateInput
                 register={register}
                 name="plate_letters"
                 placeholder="กค"
                 maxLength={3}
+                error={errors.plate_letters?.message}
                 onInput={(e) => {
                   e.target.value = e.target.value
                     .replace(/[^ก-ฮ0-9]/g, "")
@@ -138,7 +164,9 @@ const CreateRepair = () => {
                 }}
               />
             </div>
-            <span className="text-surface font-medium text-[18px]">-</span>
+            <span className="pt-[8px] text-surface font-medium text-[18px]">
+              -
+            </span>
             <div className="w-[80px]">
               <LicensePlateInput
                 register={register}
@@ -146,6 +174,7 @@ const CreateRepair = () => {
                 placeholder="9876"
                 pattern="[0-9]*"
                 maxLength={4}
+                error={errors.plate_numbers?.message}
                 onInput={(e) => {
                   e.target.value = e.target.value
                     .replace(/[^0-9]/g, "")
@@ -158,17 +187,50 @@ const CreateRepair = () => {
                 register={register}
                 name="province"
                 placeholder="สมุทรปราการ"
+                error={errors.province?.message}
               />
             </div>
           </div>
-        </div>
 
+          {/* ข้อความ error ของป้ายทะเบียนรถ */}
+          {(errors.plate_letters ||
+            errors.plate_numbers ||
+            errors.province) && (
+            <div className="mt-[6px] space-y-[4px]">
+              {errors.plate_letters && (
+                <div className="flex items-center gap-[4px] px-[4px]">
+                  <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
+                  <p className="font-medium text-[14px] text-delete">
+                    {errors.plate_letters.message}
+                  </p>
+                </div>
+              )}
+              {errors.plate_numbers && (
+                <div className="flex items-center gap-[4px] px-[4px]">
+                  <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
+                  <p className="font-medium text-[14px] text-delete">
+                    {errors.plate_numbers.message}
+                  </p>
+                </div>
+              )}
+              {errors.province && (
+                <div className="flex items-center gap-[4px] px-[4px]">
+                  <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
+                  <p className="font-medium text-[14px] text-delete">
+                    {errors.province.message}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
         <FormInput
           register={register}
           name="description"
           label="รายละเอียดการซ่อม"
           placeholder="เช่น เบรคติด, สตาร์ทไม่ติด, มีเสียงดังจากล้อหน้า"
           color="surface"
+          error={errors.description?.message}
         />
 
         <div className="w-full h-full mt-[30px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
@@ -181,10 +243,10 @@ const CreateRepair = () => {
             </AddRepairItemDialog>
           </div>
 
-          {/* Repair Items List */}
+          {/* รายการซ่อม */}
           {repairItems.length === 0 ? (
             <div>
-              <div className="flex justify-center items-center h-[162px]">
+              <div className="flex justify-center items-center h-[228px]">
                 <p className="text-[18px] text-subtle-light">ไม่มีรายการซ่อม</p>
               </div>
               <div className="h-[88px]"></div>
@@ -197,7 +259,7 @@ const CreateRepair = () => {
                   className="flex items-center gap-[16px] px-[20px] mt-[16px]"
                 >
                   <div className="flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] bg-white shadow-primary">
-                    <div className="flex items-center gap-[8px] flex-1">
+                    <div className="flex-1 flex items-center gap-[8px]">
                       <div className="flex items-center justify-center w-[60px] h-[60px] rounded-[10px] border border-subtle-light bg-white shadow-primary">
                         {item.secureUrl ? (
                           <img
@@ -212,7 +274,7 @@ const CreateRepair = () => {
                         )}
                       </div>
                       <div className="flex flex-col flex-1">
-                        <p className="font-semibold text-[14px] text-normal truncate max-w-[180px]">
+                        <p className="max-w-[180px] font-semibold text-[14px] text-normal truncate">
                           {item.brand
                             ? `${item.brand} ${item.name}`
                             : item.name}
@@ -242,7 +304,12 @@ const CreateRepair = () => {
                             <button
                               type="button"
                               onClick={() => handleIncreaseQuantity(index)}
-                              className="w-[28px] h-[28px] flex items-center justify-center rounded-[8px] border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary"
+                              disabled={
+                                item.partNumber && item.brand
+                                  ? item.quantity >= (item.stockQuantity || 0)
+                                  : false
+                              }
+                              className="flex items-center justify-center w-[28px] h-[28px] rounded-[8px] border border-primary/30 disabled:border-gray-200 text-primary disabled:text-gray-300 bg-primary/10 hover:bg-primary/20 disabled:bg-gray-50 disabled:hover:bg-gray-50"
                             >
                               <Plus className="w-[14px] h-[14px]" />
                             </button>

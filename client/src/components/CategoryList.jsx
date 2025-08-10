@@ -58,6 +58,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
           <div className="font-semibold text-[14px] text-nowrap">ทั้งหมด</div>
         </button>
 
+        {/* แถบหมวดหมู่ */}
         {categories.map((item) => {
           const IconComponent = item.icon;
           const isActive = activeCategory === item.name;
