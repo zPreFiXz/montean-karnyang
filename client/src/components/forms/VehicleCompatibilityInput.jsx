@@ -73,7 +73,7 @@ const VehicleCompatibilityInput = ({ setValue }) => {
                 onChange={(e) =>
                   handleUpdateVehicle(index, "brand", e.target.value)
                 }
-                placeholder="เช่น Toyota"
+                placeholder="เช่น Toyota, Isuzu, Honda"
                 className="w-full mb-[8px] text-[16px] rounded-[20px]"
                 style={{
                   "--tw-ring-color": "#5b46f4",
@@ -102,7 +102,7 @@ const VehicleCompatibilityInput = ({ setValue }) => {
                 onChange={(e) =>
                   handleUpdateVehicle(index, "model", e.target.value)
                 }
-                placeholder="เช่น Vios"
+                placeholder="เช่น Hilux Revo, D-Max, City"
                 className="w-full mb-[8px] text-[16px] rounded-[20px]"
                 style={{
                   "--tw-ring-color": "#5b46f4",

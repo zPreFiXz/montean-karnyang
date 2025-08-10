@@ -1,16 +1,16 @@
-import FormInput from "@/components/form/FormInput";
+import FormInput from "@/components/forms/FormInput";
 import { useForm } from "react-hook-form";
-import FormButton from "@/components/form/FormButton";
+import FormButton from "@/components/forms/FormButton";
 import { createPart } from "@/api/part";
 import { createService } from "@/api/service";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { getCategories } from "@/api/category";
 import ComboBox from "@/components/ui/ComboBox";
-import FormUploadImage from "@/components/form/FormUploadImage";
+import FormUploadImage from "@/components/forms/FormUploadImage";
 import { resizeImage } from "@/utils/resizeImage";
 import { uploadImage } from "@/api/uploadImage";
-import VehicleCompatibilityInput from "@/components/form/VehicleCompatibilityInput";
+import VehicleCompatibilityInput from "@/components/forms/VehicleCompatibilityInput";
 import { useNavigate } from "react-router";
 
 const CreatePart = () => {
@@ -158,7 +158,7 @@ const CreatePart = () => {
                 name="name"
                 label="ชื่อบริการ"
                 type="text"
-                placeholder="เช่น ตั้งศูนย์, ถ่วงล้อ"
+                placeholder="เช่น ตั้งศูนย์, ถ่วงล้อ, เปลี่ยนน้ำมันเครื่อง"
                 color="subtle-dark"
               />
               <FormInput
@@ -219,7 +219,7 @@ const CreatePart = () => {
                     name="width"
                     label="หน้ายาง (มม.)"
                     type="text"
-                    placeholder="เช่น 175, 185, 195"
+                    placeholder="เช่น 195, 205, 215"
                     color="subtle-dark"
                   />
                   <FormInput
@@ -227,7 +227,7 @@ const CreatePart = () => {
                     name="aspectRatio"
                     label="แก้มยาง (%)"
                     type="text"
-                    placeholder="เช่น 50, 55, 60"
+                    placeholder="เช่น 55, 60, 65"
                     color="subtle-dark"
                   />
                   <FormInput
@@ -235,7 +235,7 @@ const CreatePart = () => {
                     name="rimDiameter"
                     label="ขอบ (นิ้ว)"
                     type="text"
-                    placeholder="เช่น 14, 15, 16"
+                    placeholder="เช่น 15, 16, 17"
                     color="subtle-dark"
                   />
                 </div>
@@ -245,7 +245,7 @@ const CreatePart = () => {
                 name="costPrice"
                 label="ต้นทุน (บาท)"
                 type="number"
-                placeholder="เช่น 500"
+                placeholder="เช่น 800"
                 color="subtle-dark"
                 onWheel={(e) => e.target.blur()}
               />
@@ -254,7 +254,7 @@ const CreatePart = () => {
                 name="sellingPrice"
                 label="ราคาขาย (บาท)"
                 type="number"
-                placeholder="เช่น 750"
+                placeholder="เช่น 1200"
                 color="subtle-dark"
                 onWheel={(e) => e.target.blur()}
               />
@@ -263,7 +263,7 @@ const CreatePart = () => {
                 name="unit"
                 label="หน่วย"
                 type="text"
-                placeholder="เช่น เส้น, ชิ้น, ลิตร"
+                placeholder="เช่น ชิ้น, คู่, ชุด, เส้น"
                 color="subtle-dark"
               />
               <FormInput
@@ -271,7 +271,7 @@ const CreatePart = () => {
                 name="stockQuantity"
                 label="จำนวนสต็อก"
                 type="number"
-                placeholder="เช่น 4"
+                placeholder="เช่น 10"
                 color="subtle-dark"
                 onWheel={(e) => e.target.blur()}
               />
@@ -280,7 +280,7 @@ const CreatePart = () => {
                 name="minStockLevel"
                 label="สต็อกขั้นต่ำ"
                 type="number"
-                placeholder="เช่น 2"
+                placeholder="เช่น 3"
                 color="subtle-dark"
                 onWheel={(e) => e.target.blur()}
               />

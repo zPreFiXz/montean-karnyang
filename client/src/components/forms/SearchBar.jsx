@@ -45,7 +45,7 @@ const SearchBar = () => {
         type="text"
         value={inputValue}
         onChange={handleSearch}
-        placeholder="ค้นหาชื่อ, ยี่ห้อ, รหัสอะไหล่"
+        placeholder="ค้นหารหัส, ยี่ห้อ, ชื่ออะไหล่"
         className="w-full h-[40px] px-[40px] rounded-[20px] bg-surface focus:outline-none"
         style={{
           "--tw-ring-color": "#5b46f4",
@@ -63,7 +63,7 @@ const SearchBar = () => {
         }}
       />
 
-    {/* Clear button */}
+      {/* Clear button */}
       {inputValue && (
         <button
           onClick={handleClear}

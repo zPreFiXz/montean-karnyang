@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from "react-router";
 import { useEffect, useState, useRef } from "react";
 import InventoryCard from "@/components/cards/InventoryCard";
-import SearchBar from "@/components/form/SearchBar";
+import SearchBar from "@/components/forms/SearchBar";
 import CategoryList from "@/components/CategoryList";
 import { getInventory } from "@/api/inventory";
 import { LoaderCircle } from "lucide-react";

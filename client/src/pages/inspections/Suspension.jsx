@@ -1,8 +1,8 @@
-import FormInput from "@/components/form/FormInput";
+import FormInput from "@/components/forms/FormInput";
 import { Success } from "@/components/icons/Icon";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
-import LicensePlateInput from "@/components/form/LicensePlateInput";
+import LicensePlateInput from "@/components/forms/LicensePlateInput";
 
 const SuspensionCheck = () => {
   const { register, handleSubmit, reset } = useForm();

@@ -41,9 +41,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
 
   return (
     <div className="overflow-x-auto scrollbar-hide -mx-[20px] px-[20px] mt-[16px]">
-      <div className="flex gap-[8px] w-max">
-        
-        {/* ปุ่มทั้งหมด */}
+      <div className="flex gap-[8px]">
         <button
           onClick={() => {
             const params = new URLSearchParams(searchParams);
@@ -51,16 +49,15 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
             setActiveCategory("ทั้งหมด");
             setSearchParams(params);
           }}
-          className={`flex flex-col items-center justify-center w-[80px] h-[80px] px-[20px] py-[12px] rounded-[10px] transition-all duration-200 flex-shrink-0 ${
+          className={`flex flex-col items-center justify-center w-[80px] h-[80px] px-[20px] py-[12px] border rounded-[10px] transition-all duration-200 ${
             activeCategory === "ทั้งหมด"
-              ? "text-surface bg-gradient-primary"
-              : "border-subtle-light text-subtle-dark border bg-surface"
+              ? "border-transparent text-surface bg-gradient-primary"
+              : "border-subtle-light text-subtle-dark bg-surface"
           }`}
         >
           <div className="font-semibold text-[14px] text-nowrap">ทั้งหมด</div>
         </button>
 
-        {/* ปุ่มหมวดหมู่ */}
         {categories.map((item) => {
           const IconComponent = item.icon;
           const isActive = activeCategory === item.name;
@@ -71,10 +68,10 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
                 setActiveCategory(item.name);
                 handleFilter(item.name);
               }}
-              className={`flex flex-col items-center justify-center w-[80px] h-[80px] px-[20px] py-[12px] rounded-[10px] transition-all duration-200 flex-shrink-0 ${
+              className={`flex flex-col items-center justify-center w-[80px] h-[80px] px-[20px] py-[12px] border rounded-[10px] transition-all duration-200 ${
                 isActive
-                  ? "text-surface bg-gradient-primary"
-                  : "border-subtle-light text-subtle-dark border bg-surface"
+                  ? "border-transparent text-surface bg-gradient-primary"
+                  : "border-subtle-light text-subtle-dark bg-surface"
               }`}
             >
               <div

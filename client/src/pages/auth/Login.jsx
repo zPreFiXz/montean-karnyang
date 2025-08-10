@@ -1,7 +1,7 @@
 import useAuthStore from "@/stores/authStore";
 import { useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
-import FormInput from "@/components/form/FormInput";
+import FormInput from "@/components/forms/FormInput";
 import { toast } from "sonner";
 
 const Login = () => {
