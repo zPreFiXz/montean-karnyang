@@ -1,4 +1,5 @@
 const prisma = require("../config/prisma");
+const createError = require("../utils/createError");
 
 exports.getService = async (req, res, next) => {
   try {
@@ -13,6 +14,14 @@ exports.getService = async (req, res, next) => {
 exports.createService = async (req, res, next) => {
   try {
     const { name, price, categoryId } = req.body;
+
+    const service = await prisma.service.findUnique({
+      where: { name },
+    });
+
+    if (service) {
+      createError(400, "บริการนี้มีอยู่แล้ว");
+    }
 
     await prisma.service.create({
       data: {

@@ -14,8 +14,6 @@ const Login = () => {
   const actionLogin = useAuthStore((state) => state.actionLogin);
   const { errors } = formState;
 
-  console.log(errors);
-
   const roleRedirect = (role) => {
     if (role === "EMPLOYEE") {
       navigate("/dashboard");

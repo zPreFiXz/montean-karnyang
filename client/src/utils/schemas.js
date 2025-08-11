@@ -91,7 +91,7 @@ export const createPartSchema = z
       if (!data.costPrice || data.costPrice <= 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกต้นทุน",
+          message: "กรุณากรอกราคาต้นทุน",
           path: ["costPrice"],
         });
       }

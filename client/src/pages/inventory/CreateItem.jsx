@@ -249,7 +249,7 @@ const CreatePart = () => {
               <FormInput
                 register={register}
                 name="costPrice"
-                label="ต้นทุน (บาท)"
+                label="ราคาต้นทุน (บาท)"
                 type="number"
                 placeholder="เช่น 800"
                 color="subtle-dark"
