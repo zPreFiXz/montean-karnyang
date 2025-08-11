@@ -9,7 +9,7 @@ const FormInput = ({
   type,
   placeholder,
   color,
-  error,
+  errors,
   ...props
 }) => {
   const getTextColor = () => {
@@ -28,18 +28,18 @@ const FormInput = ({
       </Label>
       <div className="relative">
         <Input
-          {...register(name, type === "number" ? { valueAsNumber: true } : {})}
+          {...register(name)}
           type={type}
           placeholder={placeholder}
           className={`w-full h-[40px] px-[12px] rounded-[20px] bg-surface ${
-            error ? "border-red-400 focus:border-red-500" : ""
+            errors[name] && "border-red-400 focus:border-red-500"
           }`}
           style={{
-            "--tw-ring-color": error ? "#FF4545" : "#5b46f4",
+            "--tw-ring-color": errors[name] ? "#FF4545" : "#5b46f4",
             "--tw-border-opacity": "1",
           }}
           onFocus={(e) => {
-            if (error) {
+            if (errors[name]) {
               e.target.style.borderColor = "#FF4545";
               e.target.style.borderWidth = "2px";
               e.target.style.boxShadow = "0 0 0 3px rgba(255, 69, 69, 0.3)";
@@ -56,16 +56,18 @@ const FormInput = ({
           }}
           {...props}
         />
-        {error && (
+        {errors[name] && (
           <div className="absolute right-[12px] top-1/2 transform -translate-y-1/2">
             <AlertCircle className="w-5 h-5 text-delete" />
           </div>
         )}
       </div>
-      {error && (
+      {errors[name] && (
         <div className="flex items-center gap-[4px] px-[4px] mt-[6px]">
           <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
-          <p className="text-delete text-[14px] font-medium">{error}</p>
+          <p className="text-delete text-[14px] font-medium">
+            {errors[name].message}
+          </p>
         </div>
       )}
     </div>

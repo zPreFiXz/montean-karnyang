@@ -1,4 +1,5 @@
 const prisma = require("../config/prisma");
+const createError = require("../utils/createError");
 
 exports.getPartById = async (req, res, next) => {
   try {
@@ -31,21 +32,33 @@ exports.createPart = async (req, res, next) => {
       categoryId,
     } = req.body;
 
+    if (categoryId === undefined) {
+      createError(400, "กรุณาเลือกหมวดหมู่");
+    }
+
+    const part = await prisma.part.findUnique({
+      where: { partNumber },
+    });
+
+    if (part) {
+      createError(400, "รหัสอะไหล่นี้ถูกใช้งานแล้ว");
+    }
+
     await prisma.part.create({
       data: {
         partNumber,
         brand,
         name,
-        costPrice: Number(costPrice),
-        sellingPrice: Number(sellingPrice),
+        costPrice,
+        sellingPrice,
         unit,
-        stockQuantity: Number(stockQuantity),
-        minStockLevel: Number(minStockLevel),
+        stockQuantity,
+        minStockLevel,
         typeSpecificData,
         compatibleVehicles,
         publicId: image?.publicId,
         secureUrl: image?.secureUrl,
-        categoryId: Number(categoryId),
+        categoryId,
       },
     });
 

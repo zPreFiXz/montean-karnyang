@@ -1,9 +1,8 @@
 const express = require("express");
-const { registerSchema, validate, loginSchema } = require("../utils/validator");
 const router = express.Router();
 
 // Middlewares
-const { authCheck, adminCheck } = require("../middlewares/auth");
+const { authCheck } = require("../middlewares/auth");
 
 // Controllers
 const { createImage, deleteImage } = require("../controllers/cloudinary");

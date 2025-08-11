@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { createPartSchema, validate } = require("../utils/validator");
 
 // Middlewares
 const { authCheck } = require("../middlewares/auth");
@@ -16,7 +17,7 @@ const {
 router.get("/part/:id", authCheck, getPartById);
 
 // @ENDPOINTS http://localhost:3000/api/part
-router.post("/part", authCheck, createPart);
+router.post("/part", authCheck, validate(createPartSchema), createPart);
 
 // @ENDPOINTS http://localhost:3000/api/part/1
 router.put("/part/:id", authCheck, updatePart);

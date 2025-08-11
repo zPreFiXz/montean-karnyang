@@ -11,11 +11,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
 
 const CreateRepair = () => {
-  const { register, handleSubmit, formState, reset } = useForm({
+  const { register, handleSubmit, reset, formState } = useForm({
     resolver: zodResolver(repairSchema),
   });
   const [repairItems, setRepairItems] = useState([]);
-
   const { errors } = formState;
 
   const onSubmit = async (data) => {
@@ -98,6 +97,7 @@ const CreateRepair = () => {
           register={register}
           name="firstName"
           label="ชื่อลูกค้า"
+          type="text"
           placeholder="เช่น สมชาย"
           color="surface"
           error={errors.firstName?.message}
@@ -106,6 +106,7 @@ const CreateRepair = () => {
           register={register}
           name="lastName"
           label="นามสกุล"
+          type="text"
           placeholder="เช่น ใจดี"
           color="surface"
           error={errors.lastName?.message}
@@ -114,6 +115,7 @@ const CreateRepair = () => {
           register={register}
           name="address"
           label="ที่อยู่"
+          type="text"
           placeholder="เช่น 123/45 หมู่ 2 ต.บางพลี อ.บางพลี จ.สมุทรปราการ"
           color="surface"
           error={errors.address?.message}
@@ -122,15 +124,20 @@ const CreateRepair = () => {
           register={register}
           name="phoneNumber"
           label="หมายเลขโทรศัพท์"
+          type="text"
           placeholder="เช่น 0812345678"
-          maxLength={10}
           color="surface"
+          maxLength={10}
           error={errors.phoneNumber?.message}
+          onInput={(e) => {
+            e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 10);
+          }}
         />
         <FormInput
           register={register}
           name="brand"
           label="ยี่ห้อรถ"
+          type="text"
           placeholder="เช่น Toyota, Isuzu, Honda"
           color="surface"
           error={errors.brand?.message}
@@ -139,6 +146,7 @@ const CreateRepair = () => {
           register={register}
           name="model"
           label="รุ่นรถ"
+          type="text"
           placeholder="เช่น Hilux Revo, D-Max, City"
           color="surface"
           error={errors.model?.message}
@@ -228,6 +236,7 @@ const CreateRepair = () => {
           register={register}
           name="description"
           label="รายละเอียดการซ่อม"
+          type="text"
           placeholder="เช่น เบรคติด, สตาร์ทไม่ติด, มีเสียงดังจากล้อหน้า"
           color="surface"
           error={errors.description?.message}

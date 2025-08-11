@@ -12,14 +12,21 @@ import { resizeImage } from "@/utils/resizeImage";
 import { uploadImage } from "@/api/uploadImage";
 import VehicleCompatibilityInput from "@/components/forms/VehicleCompatibilityInput";
 import { useNavigate } from "react-router";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createPartSchema } from "@/utils/schemas";
 
 const CreatePart = () => {
-  const { register, handleSubmit, setValue, watch, reset } = useForm();
+  const { register, handleSubmit, setValue, watch, reset, formState } = useForm(
+    {
+      resolver: zodResolver(createPartSchema),
+    }
+  );
   const [categories, setCategories] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [vehicleKey, setVehicleKey] = useState(0);
   const navigate = useNavigate();
+  const { errors } = formState;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -53,15 +60,6 @@ const CreatePart = () => {
 
   const handleCategoryChange = (value) => {
     setValue("categoryId", value);
-
-    setValue("costPrice", undefined);
-    setValue("sellingPrice", undefined);
-    setValue("stockQuantity", undefined);
-    setValue("minStockLevel", undefined);
-
-    setValue("width", undefined);
-    setValue("aspectRatio", undefined);
-    setValue("rimDiameter", undefined);
   };
 
   const onSubmit = async (data) => {
@@ -126,11 +124,9 @@ const CreatePart = () => {
       setVehicleKey((prev) => prev + 1);
     } catch (error) {
       console.error(error);
-      if (isServiceCategory()) {
-        toast.error("เพิ่มบริการไม่สำเร็จ");
-      } else {
-        toast.error("เพิ่มอะไหล่ไม่สำเร็จ");
-      }
+
+      const errorMessage = error.response.data.message;
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -149,6 +145,7 @@ const CreatePart = () => {
             value={watch("categoryId")}
             onChange={handleCategoryChange}
             placeholder="-- เลือกหมวดหมู่ --"
+            errors={errors}
           />
 
           {/* บริการ */}
@@ -161,14 +158,16 @@ const CreatePart = () => {
                 type="text"
                 placeholder="เช่น ตั้งศูนย์, ถ่วงล้อ, เปลี่ยนน้ำมันเครื่อง"
                 color="subtle-dark"
+                errors={errors}
               />
               <FormInput
                 register={register}
                 name="price"
                 label="ราคา (บาท)"
-                type="text"
+                type="number"
                 placeholder="เช่น 400"
                 color="subtle-dark"
+                errors={errors}
               />
             </div>
           )}
@@ -188,6 +187,7 @@ const CreatePart = () => {
                 type="text"
                 placeholder="เช่น SB-3882"
                 color="subtle-dark"
+                errors={errors}
               />
               <FormInput
                 register={register}
@@ -195,9 +195,10 @@ const CreatePart = () => {
                 label="ยี่ห้อ"
                 type="text"
                 placeholder={
-                  isTireCategory() ? "เช่น Linglong, Maxxis" : "เช่น 333, 555"
+                  isTireCategory() ? "เช่น LINGLONG, MAXXIS" : "เช่น 333, 555"
                 }
                 color="subtle-dark"
+                errors={errors}
               />
               <FormInput
                 register={register}
@@ -210,6 +211,7 @@ const CreatePart = () => {
                     : "เช่น ลูกหมากปีกนกบน REVO,VIGO 4x2"
                 }
                 color="subtle-dark"
+                errors={errors}
               />
 
               {/* ยาง */}
@@ -222,6 +224,7 @@ const CreatePart = () => {
                     type="text"
                     placeholder="เช่น 195, 205, 215"
                     color="subtle-dark"
+                    errors={errors}
                   />
                   <FormInput
                     register={register}
@@ -230,6 +233,7 @@ const CreatePart = () => {
                     type="text"
                     placeholder="เช่น 55, 60, 65"
                     color="subtle-dark"
+                    errors={errors}
                   />
                   <FormInput
                     register={register}
@@ -238,6 +242,7 @@ const CreatePart = () => {
                     type="text"
                     placeholder="เช่น 15, 16, 17"
                     color="subtle-dark"
+                    errors={errors}
                   />
                 </div>
               )}
@@ -248,7 +253,16 @@ const CreatePart = () => {
                 type="number"
                 placeholder="เช่น 800"
                 color="subtle-dark"
+                errors={errors}
                 onWheel={(e) => e.target.blur()}
+                onInput={(e) => {
+                  e.target.value = e.target.value.replace(/[^0-9.]/g, "");
+                  // ป้องกันการใส่จุดมากกว่า 1 ตัว
+                  const parts = e.target.value.split(".");
+                  if (parts.length > 2) {
+                    e.target.value = parts[0] + "." + parts.slice(1).join("");
+                  }
+                }}
               />
               <FormInput
                 register={register}
@@ -257,7 +271,16 @@ const CreatePart = () => {
                 type="number"
                 placeholder="เช่น 1200"
                 color="subtle-dark"
+                errors={errors}
                 onWheel={(e) => e.target.blur()}
+                onInput={(e) => {
+                  e.target.value = e.target.value.replace(/[^0-9.]/g, "");
+                  // ป้องกันการใส่จุดมากกว่า 1 ตัว
+                  const parts = e.target.value.split(".");
+                  if (parts.length > 2) {
+                    e.target.value = parts[0] + "." + parts.slice(1).join("");
+                  }
+                }}
               />
               <FormInput
                 register={register}
@@ -266,6 +289,7 @@ const CreatePart = () => {
                 type="text"
                 placeholder="เช่น ชิ้น, คู่, ชุด, เส้น"
                 color="subtle-dark"
+                errors={errors}
               />
               <FormInput
                 register={register}
@@ -274,7 +298,11 @@ const CreatePart = () => {
                 type="number"
                 placeholder="เช่น 10"
                 color="subtle-dark"
+                errors={errors}
                 onWheel={(e) => e.target.blur()}
+                onInput={(e) => {
+                  e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                }}
               />
               <FormInput
                 register={register}
@@ -283,7 +311,11 @@ const CreatePart = () => {
                 type="number"
                 placeholder="เช่น 3"
                 color="subtle-dark"
+                errors={errors}
                 onWheel={(e) => e.target.blur()}
+                onInput={(e) => {
+                  e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                }}
               />
               {!isTireCategory() && (
                 <VehicleCompatibilityInput

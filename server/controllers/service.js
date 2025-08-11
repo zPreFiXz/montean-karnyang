@@ -17,8 +17,8 @@ exports.createService = async (req, res, next) => {
     await prisma.service.create({
       data: {
         name,
-        price: Number(price),
-        categoryId: Number(categoryId),
+        price,
+        categoryId,
       },
     });
 

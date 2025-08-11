@@ -1,3 +1,4 @@
+const { Public } = require("@prisma/client/runtime/library");
 const { z } = require("zod");
 
 exports.registerSchema = z.object({
@@ -10,8 +11,29 @@ exports.registerSchema = z.object({
 });
 
 exports.loginSchema = z.object({
-  email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
-  password: z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร"),
+  email: z.string().email(),
+  password: z.string().min(8),
+});
+
+exports.createPartSchema = z.object({
+  partNumber: z.string().min(1),
+  brand: z.string().min(1),
+  name: z.string().min(1),
+  costPrice: z.coerce.number(),
+  sellingPrice: z.coerce.number(),
+  unit: z.string().min(1),
+  stockQuantity: z.coerce.number(),
+  minStockLevel: z.coerce.number(),
+  typeSpecificData: z.any().optional(),
+  compatibleVehicles: z.any().optional(),
+  image: z.any().optional(),
+  categoryId: z.any(),
+});
+
+exports.createServiceSchema = z.object({
+  name: z.string().min(1),
+  price: z.coerce.number().positive(),
+  categoryId: z.number(),
 });
 
 exports.validate = (schema) => (req, res, next) => {
