@@ -65,7 +65,7 @@ const InventoryCard = ({
           </div>
         </div>
         <p className="font-semibold text-[18px] text-primary text-nowrap">
-          {sellingPrice} บาท
+          {Number(sellingPrice).toLocaleString()} บาท
         </p>
       </div>
     </div>

@@ -32,10 +32,6 @@ exports.createPart = async (req, res, next) => {
       categoryId,
     } = req.body;
 
-    if (categoryId === undefined) {
-      createError(400, "กรุณาเลือกหมวดหมู่");
-    }
-
     const part = await prisma.part.findUnique({
       where: { partNumber },
     });
@@ -86,7 +82,7 @@ exports.deletePart = async (req, res, next) => {
       where: { id: Number(id) },
     });
 
-    res.json({ message: "ลบอะไหล่สำเร็จ" });
+    res.json({ message: "Part deleted successfully" });
   } catch (error) {
     next(error);
   }

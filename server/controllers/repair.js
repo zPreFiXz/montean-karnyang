@@ -40,8 +40,6 @@ exports.createRepair = async (req, res, next) => {
       repairItems,
     } = req.body;
 
-    console.log(req.body);
-
     let vehicle;
     let customer;
     let licensePlate;
@@ -140,14 +138,25 @@ exports.createRepair = async (req, res, next) => {
       }
       // ถ้าไม่มีหมายเลขโทรศัพท์แต่จะสร้างลูกค้าใหม่โดยไม่ระบุหมายเลขโทรศัพท์
     } else if (firstName && !phoneNumber) {
-      customer = await prisma.customer.create({
-        data: {
+      customer = await prisma.customer.findFirst({
+        where: {
           firstName: firstName,
-          lastName: lastName || null,
-          address: address || null,
-          phoneNumber: null,
+          lastName: lastName,
         },
       });
+      const isSameCustomer =
+        customer.firstName === firstName && customer.lastName === lastName;
+
+      if (!isSameCustomer) {
+        customer = await prisma.customer.create({
+          data: {
+            firstName: firstName,
+            lastName: lastName || null,
+            address: address || null,
+            phoneNumber: null,
+          },
+        });
+      }
     }
 
     // สร้างการซ่อม

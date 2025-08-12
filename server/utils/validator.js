@@ -1,4 +1,3 @@
-const { Public } = require("@prisma/client/runtime/library");
 const { z } = require("zod");
 
 exports.registerSchema = z.object({
@@ -15,6 +14,20 @@ exports.loginSchema = z.object({
   password: z.string().min(8),
 });
 
+exports.createRepairSchema = z.object({
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  address: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  brand: z.string().min(1),
+  model: z.string().min(1),
+  plateNumber: z.string().min(1),
+  province: z.string().min(1),
+  description: z.string().optional(),
+  totalPrice: z.coerce.number(),
+  repairItems: z.any(),
+});
+
 exports.createPartSchema = z.object({
   partNumber: z.string().min(1),
   brand: z.string().min(1),
@@ -27,13 +40,13 @@ exports.createPartSchema = z.object({
   typeSpecificData: z.any().optional(),
   compatibleVehicles: z.any().optional(),
   image: z.any().optional(),
-  categoryId: z.any(),
+  categoryId: z.coerce.number(),
 });
 
 exports.createServiceSchema = z.object({
   name: z.string().min(1),
-  price: z.coerce.number().positive(),
-  categoryId: z.number(),
+  price: z.coerce.number(),
+  categoryId: z.coerce.number(),
 });
 
 exports.validate = (schema) => (req, res, next) => {

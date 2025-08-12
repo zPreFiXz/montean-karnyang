@@ -16,11 +16,22 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createPartSchema } from "@/utils/schemas";
 
 const CreatePart = () => {
-  const { register, handleSubmit, setValue, watch, reset, formState } = useForm(
-    {
-      resolver: zodResolver(createPartSchema),
-    }
-  );
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState,
+    trigger,
+    clearErrors,
+  } = useForm({
+    resolver: zodResolver(createPartSchema),
+    mode: "onChange",
+    defaultValues: {
+      categoryId: undefined,
+    },
+  });
   const [categories, setCategories] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -32,6 +43,12 @@ const CreatePart = () => {
     window.scrollTo(0, 0);
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    if (errors.categoryId) {
+      window.scrollTo(0, 0);
+    }
+  }, [errors.categoryId]);
 
   const fetchCategories = async () => {
     try {
@@ -60,6 +77,21 @@ const CreatePart = () => {
 
   const handleCategoryChange = (value) => {
     setValue("categoryId", value);
+    clearErrors([
+      "name",
+      "price",
+      "partNumber",
+      "brand",
+      "costPrice",
+      "sellingPrice",
+      "unit",
+      "stockQuantity",
+      "minStockLevel",
+      "width",
+      "aspectRatio",
+      "rimDiameter",
+    ]);
+    trigger("categoryId");
   };
 
   const onSubmit = async (data) => {
@@ -146,6 +178,7 @@ const CreatePart = () => {
             onChange={handleCategoryChange}
             placeholder="-- เลือกหมวดหมู่ --"
             errors={errors}
+            name="categoryId"
           />
 
           {/* บริการ */}

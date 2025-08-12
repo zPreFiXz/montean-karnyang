@@ -31,7 +31,7 @@ exports.createService = async (req, res, next) => {
       },
     });
 
-    res.json({ message: "เพิ่มบริการสำเร็จ" });
+    res.json({ message: "Service created successfully" });
   } catch (error) {
     next(error);
   }
@@ -55,7 +55,7 @@ exports.deleteService = async (req, res, next) => {
       where: { id: Number(id) },
     });
 
-    res.json({ message: "ลบบริการสำเร็จ" });
+    res.json({ message: "Service deleted successfully" });
   } catch (error) {
     next(error);
   }

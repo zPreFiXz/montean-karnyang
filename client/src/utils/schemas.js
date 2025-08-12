@@ -12,8 +12,8 @@ export const repairSchema = z.object({
   phoneNumber: z.string().optional(),
   brand: z.string().min(1, "กรุณากรอกยี่ห้อรถ"),
   model: z.string().min(1, "กรุณากรอกรุ่นรถ"),
-  plate_letters: z.string().min(1, "กรุณากรอกทะเบียนตัวอักษร"),
-  plate_numbers: z.string().min(1, "กรุณากรอกทะเบียนตัวเลข"),
+  plateLetters: z.string().min(1, "กรุณากรอกทะเบียนตัวอักษร"),
+  plateNumbers: z.string().min(1, "กรุณากรอกทะเบียนตัวเลข"),
   province: z.string().min(1, "กรุณากรอกจังหวัด"),
   description: z.string().optional(),
 });
@@ -22,7 +22,7 @@ export const createPartSchema = z
   .object({
     // ฟิลด์ทั่วไป
     name: z.string().optional(),
-    categoryId: z.any(),
+    categoryId: z.number().optional(),
 
     // ฟิลด์สำหรับ service
     price: z.coerce.number().optional(),
@@ -44,6 +44,15 @@ export const createPartSchema = z
     rimDiameter: z.string().optional(),
   })
   .superRefine((data, ctx) => {
+    if (!data.categoryId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "กรุณาเลือกหมวดหมู่",
+        path: ["categoryId"],
+      });
+      return;
+    }
+
     const isServiceCategory = data.categoryId === 1;
     const isTireCategory = data.categoryId === 2;
 

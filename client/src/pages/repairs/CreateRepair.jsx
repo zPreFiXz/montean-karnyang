@@ -31,7 +31,7 @@ const CreateRepair = () => {
         phoneNumber: data.phoneNumber,
         brand: data.brand,
         model: data.model,
-        plateNumber: `${data.plate_letters}-${data.plate_numbers}`,
+        plateNumber: `${data.plateLetters}-${data.plateNumbers}`,
         province: data.province,
         description: data.description,
         totalPrice: totalPrice,
@@ -39,7 +39,7 @@ const CreateRepair = () => {
           ...(item.partNumber && item.brand
             ? { partId: item.id }
             : { serviceId: item.id }),
-          unitPrice: item.sellingPrice,
+          unitPrice: Number(item.sellingPrice),
           quantity: item.quantity,
         })),
       });
@@ -100,7 +100,7 @@ const CreateRepair = () => {
           type="text"
           placeholder="เช่น สมชาย"
           color="surface"
-          error={errors.firstName?.message}
+          errors={errors}
         />
         <FormInput
           register={register}
@@ -109,7 +109,7 @@ const CreateRepair = () => {
           type="text"
           placeholder="เช่น ใจดี"
           color="surface"
-          error={errors.lastName?.message}
+          errors={errors}
         />
         <FormInput
           register={register}
@@ -118,7 +118,7 @@ const CreateRepair = () => {
           type="text"
           placeholder="เช่น 123/45 หมู่ 2 ต.บางพลี อ.บางพลี จ.สมุทรปราการ"
           color="surface"
-          error={errors.address?.message}
+          errors={errors}
         />
         <FormInput
           register={register}
@@ -128,7 +128,7 @@ const CreateRepair = () => {
           placeholder="เช่น 0812345678"
           color="surface"
           maxLength={10}
-          error={errors.phoneNumber?.message}
+          errors={errors}
           onInput={(e) => {
             e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 10);
           }}
@@ -140,7 +140,7 @@ const CreateRepair = () => {
           type="text"
           placeholder="เช่น Toyota, Isuzu, Honda"
           color="surface"
-          error={errors.brand?.message}
+          errors={errors}
         />
         <FormInput
           register={register}
@@ -149,7 +149,7 @@ const CreateRepair = () => {
           type="text"
           placeholder="เช่น Hilux Revo, D-Max, City"
           color="surface"
-          error={errors.model?.message}
+          errors={errors}
         />
 
         {/* ป้ายทะเบียนรถ */}
@@ -161,10 +161,10 @@ const CreateRepair = () => {
             <div className="w-[80px]">
               <LicensePlateInput
                 register={register}
-                name="plate_letters"
+                name="plateLetters"
                 placeholder="กค"
                 maxLength={3}
-                error={errors.plate_letters?.message}
+                errosr={errors}
                 onInput={(e) => {
                   e.target.value = e.target.value
                     .replace(/[^ก-ฮ0-9]/g, "")
@@ -178,11 +178,11 @@ const CreateRepair = () => {
             <div className="w-[80px]">
               <LicensePlateInput
                 register={register}
-                name="plate_numbers"
+                name="plateNumbers"
                 placeholder="9876"
                 pattern="[0-9]*"
                 maxLength={4}
-                error={errors.plate_numbers?.message}
+                errors={errors}
                 onInput={(e) => {
                   e.target.value = e.target.value
                     .replace(/[^0-9]/g, "")
@@ -195,29 +195,27 @@ const CreateRepair = () => {
                 register={register}
                 name="province"
                 placeholder="สมุทรปราการ"
-                error={errors.province?.message}
+                errors={errors}
               />
             </div>
           </div>
 
           {/* ข้อความ error ของป้ายทะเบียนรถ */}
-          {(errors.plate_letters ||
-            errors.plate_numbers ||
-            errors.province) && (
+          {(errors.plateLetters || errors.plateNumbers || errors.province) && (
             <div className="mt-[6px] space-y-[4px]">
-              {errors.plate_letters && (
+              {errors.plateLetters && (
                 <div className="flex items-center gap-[4px] px-[4px]">
                   <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
                   <p className="font-medium text-[14px] text-delete">
-                    {errors.plate_letters.message}
+                    {errors.plateLetters.message}
                   </p>
                 </div>
               )}
-              {errors.plate_numbers && (
+              {errors.plateNumbers && (
                 <div className="flex items-center gap-[4px] px-[4px]">
                   <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
                   <p className="font-medium text-[14px] text-delete">
-                    {errors.plate_numbers.message}
+                    {errors.plateNumbers.message}
                   </p>
                 </div>
               )}
@@ -239,7 +237,7 @@ const CreateRepair = () => {
           type="text"
           placeholder="เช่น เบรคติด, สตาร์ทไม่ติด, มีเสียงดังจากล้อหน้า"
           color="surface"
-          error={errors.description?.message}
+          errors={errors}
         />
 
         <div className="w-full h-full mt-[30px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
@@ -289,14 +287,15 @@ const CreateRepair = () => {
                             : item.name}
                         </p>
                         <p className="font-medium text-[12px] text-subtle-dark">
-                          ราคาต่อหน่วย: {item.sellingPrice.toLocaleString()} บาท
+                          ราคาต่อหน่วย:{" "}
+                          {Number(item.sellingPrice).toLocaleString()} บาท
                         </p>
                         <div className="flex items-center justify-between w-full">
                           <p className="font-semibold text-[16px] text-primary">
                             {(
                               item.quantity * item.sellingPrice
-                            ).toLocaleString()}
-                            &nbsp;บาท
+                            ).toLocaleString()}{" "}
+                            บาท
                           </p>
                           <div className="flex items-center gap-[8px]">
                             <button
@@ -353,8 +352,8 @@ const CreateRepair = () => {
                         total + item.sellingPrice * item.quantity,
                       0
                     )
-                    .toLocaleString()}
-                  &nbsp;บาท
+                    .toLocaleString()}{" "}
+                  บาท
                 </p>
               </div>
               <div className="flex justify-center pb-[72px]">
