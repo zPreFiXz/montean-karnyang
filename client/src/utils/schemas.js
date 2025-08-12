@@ -6,8 +6,7 @@ export const loginSchema = z.object({
 });
 
 export const repairSchema = z.object({
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
+  fullName: z.string().optional(),
   address: z.string().optional(),
   phoneNumber: z.string().optional(),
   brand: z.string().min(1, "กรุณากรอกยี่ห้อรถ"),

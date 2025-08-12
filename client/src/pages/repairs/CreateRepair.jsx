@@ -1,53 +1,62 @@
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router";
 import FormInput from "@/components/forms/FormInput";
 import LicensePlateInput from "@/components/forms/LicensePlateInput";
 import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
-import api from "@/lib/api";
-import { toast } from "sonner";
 import FormButton from "@/components/forms/FormButton";
 import { Image, Trash, Plus, Minus, AlertCircle } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
 
 const CreateRepair = () => {
-  const { register, handleSubmit, reset, formState } = useForm({
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { register, handleSubmit, reset, formState, setValue } = useForm({
     resolver: zodResolver(repairSchema),
   });
   const [repairItems, setRepairItems] = useState([]);
   const { errors } = formState;
 
-  const onSubmit = async (data) => {
-    try {
-      const totalPrice = repairItems.reduce(
-        (total, item) => total + item.sellingPrice * item.quantity,
-        0
-      );
+  // กู้คืนข้อมูลเมื่อกลับมาจากหน้าสรุป
+  useEffect(() => {
+    if (location.state) {
+      const {
+        repairData,
+        repairItems: savedItems,
+        scrollToBottom,
+      } = location.state;
 
-      await api.post("/api/repair", {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        address: data.address,
-        phoneNumber: data.phoneNumber,
-        brand: data.brand,
-        model: data.model,
-        plateNumber: `${data.plateLetters}-${data.plateNumbers}`,
-        province: data.province,
-        description: data.description,
-        totalPrice: totalPrice,
-        repairItems: repairItems.map((item) => ({
-          ...(item.partNumber && item.brand
-            ? { partId: item.id }
-            : { serviceId: item.id }),
-          unitPrice: Number(item.sellingPrice),
-          quantity: item.quantity,
-        })),
-      });
+      if (repairData) {
+        Object.keys(repairData).forEach((key) => {
+          setValue(key, repairData[key]);
+        });
+      }
+      if (savedItems) {
+        setRepairItems(savedItems);
+      }
 
-      toast.success("บันทึกข้อมูลเรียบร้อยแล้ว");
-    } catch (error) {
-      console.error(error);
+      // ตรวจสอบว่าต้อง scroll ไปล่างหรือไม่
+      if (scrollToBottom) {
+        setTimeout(() => {
+          window.scrollTo({
+            top: document.documentElement.scrollHeight,
+            behavior: "smooth",
+          });
+        }, 100);
+      }
+    } else {
+      window.scrollTo(0, 0);
     }
+  }, [location.state, setValue]);
+
+  const onSubmit = async (data) => {
+    navigate("/repairs/summary", {
+      state: {
+        repairData: data,
+        repairItems: repairItems,
+      },
+    });
   };
 
   const handleAddItemToRepair = (item) => {
@@ -95,19 +104,10 @@ const CreateRepair = () => {
       <form onSubmit={handleSubmit(onSubmit)}>
         <FormInput
           register={register}
-          name="firstName"
+          name="fullName"
           label="ชื่อลูกค้า"
           type="text"
-          placeholder="เช่น สมชาย"
-          color="surface"
-          errors={errors}
-        />
-        <FormInput
-          register={register}
-          name="lastName"
-          label="นามสกุล"
-          type="text"
-          placeholder="เช่น ใจดี"
+          placeholder="เช่น สมชาย ใจดี"
           color="surface"
           errors={errors}
         />
@@ -341,20 +341,28 @@ const CreateRepair = () => {
                   </button>
                 </div>
               ))}
-              <div className="flex justify-between items-center px-[20px] mt-[16px]">
-                <p className="font-semibold text-[18px] text-subtle-dark">
-                  รวม {repairItems.length} รายการ
-                </p>
-                <p className="font-semibold text-[18px] text-primary">
-                  {repairItems
-                    .reduce(
-                      (total, item) =>
-                        total + item.sellingPrice * item.quantity,
-                      0
-                    )
-                    .toLocaleString()}{" "}
-                  บาท
-                </p>
+
+              {/* สรุปยอดรวม */}
+              <div className="mx-[20px] mt-[20px] p-[16px] rounded-[12px] bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
+                <div className="flex justify-between items-center">
+                  <div className="flex flex-col">
+                    <p className="font-semibold text-[18px] text-subtle-dark">
+                      รวม {repairItems.length} รายการ
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <p className="font-semibold text-[22px] text-primary">
+                      {repairItems
+                        .reduce(
+                          (total, item) =>
+                            total + item.sellingPrice * item.quantity,
+                          0
+                        )
+                        .toLocaleString()}{" "}
+                      บาท
+                    </p>
+                  </div>
+                </div>
               </div>
               <div className="flex justify-center pb-[72px]">
                 <FormButton label="ถัดไป" />

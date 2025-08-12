@@ -3,8 +3,7 @@ const { z } = require("zod");
 exports.registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
+  name: z.string().min(1),
   nickname: z.string().min(1),
   dateOfBirth: z.coerce.date(),
 });
@@ -15,8 +14,7 @@ exports.loginSchema = z.object({
 });
 
 exports.createRepairSchema = z.object({
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
+  fullName: z.string().optional(),
   address: z.string().optional(),
   phoneNumber: z.string().optional(),
   brand: z.string().min(1),

@@ -8,6 +8,7 @@ import SalesReport from "@/pages/reports/SalesReport";
 import RepairStatus from "@/pages/repairs/RepairStatus";
 import Suspension from "@/pages/inspections/Suspension";
 import CreateRepair from "@/pages/repairs/CreateRepair";
+import RepairSummary from "@/pages/repairs/RepairSummary";
 import RepairDetail from "@/pages/repairs/RepairDetail";
 import Inventory from "@/pages/inventory/Inventory";
 import CreateItem from "@/pages/inventory/CreateItem";
@@ -45,6 +46,7 @@ const AppRoutes = () => {
 
           {/* Repair Routes */}
           <Route path="repairs/new" element={<CreateRepair />} />
+          <Route path="repairs/summary" element={<RepairSummary />} />
           <Route path="repairs/status/:status" element={<RepairStatus />} />
           <Route path="repairs/:id" element={<RepairDetail />} />
 

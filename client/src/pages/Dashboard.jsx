@@ -5,6 +5,30 @@ import axios from "axios";
 import { Link } from "react-router";
 
 const Dashboard = () => {
+  const getCurrentDateThai = () => {
+    const now = new Date();
+    const thaiMonths = [
+      "มกราคม",
+      "กุมภาพันธ์",
+      "มีนาคม",
+      "เมษายน",
+      "พฤษภาคม",
+      "มิถุนายน",
+      "กรกฎาคม",
+      "สิงหาคม",
+      "กันยายน",
+      "ตุลาคม",
+      "พฤศจิกายน",
+      "ธันวาคม",
+    ];
+
+    const day = now.getDate();
+    const month = thaiMonths[now.getMonth()];
+    const year = now.getFullYear() + 543;
+
+    return `วันที่ ${day} ${month} ${year}`;
+  };
+
   const handleSubmit = async (data) => {
     await axios
       .post("http://localhost:3000/api/vehicle", data)
@@ -23,18 +47,16 @@ const Dashboard = () => {
         {/* Income Card */}
         <div className="w-fit h-[157px] p-[16px] mt-[24px] rounded-[10px] shadow-primary">
           <p className="font-medium text-[22px] text-subtle-dark">
-            วันที่ 1 มีนาคม 2568
+            {getCurrentDateThai()}
           </p>
-          <div
-            className="flex justify-between items-center w-[353px] h-[80px] px-[16px] mt-[12px] rounded-[10px] bg-primary shadow-primary cursor-pointer"
-          >
+          <div className="flex justify-between items-center w-[353px] h-[80px] px-[16px] mt-[12px] rounded-[10px] bg-primary shadow-primary cursor-pointer">
             <p className="font-medium text-[22px] text-surface">ยอดขายวันนี้</p>
             <p className="font-medium text-[32px] text-surface">5,400 ฿</p>
           </div>
         </div>
 
         {/* Status Card */}
-        <div className="w-full min-h-[calc(100vh-302px)] h-auto p-[16px] mt-[24px] mb-[24px] rounded-[10px] shadow-primary">
+        <div className="w-full p-[16px] mt-[24px] mb-[24px] rounded-[10px] shadow-primary">
           <p className="font-medium text-[22px] text-subtle-dark">
             สถานะการซ่อม
           </p>
@@ -112,7 +134,7 @@ const Dashboard = () => {
             มณเฑียรการยาง
           </p>
           <p className="font-medium text-[18px] text-surface">
-            วันที่ 1 มีนาคม 2568
+            {getCurrentDateThai()}
           </p>
           <Link
             to="/reports/sales/daily"
@@ -124,7 +146,7 @@ const Dashboard = () => {
             <p className="font-semibold text-[32px] text-primary">5,400 ฿</p>
           </Link>
         </div>
-        <div className="flex flex-col w-full min-h-[calc(100vh-201px)] gap-[16px] px-[20px] -mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface">
+        <div className="flex flex-col w-full gap-[16px] px-[20px] -mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface">
           <p className="pt-[16px] font-semibold text-[22px] text-normal">
             สถานะการซ่อม
           </p>

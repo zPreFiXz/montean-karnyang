@@ -27,8 +27,7 @@ exports.getRepairById = async (req, res, next) => {
 exports.createRepair = async (req, res, next) => {
   try {
     const {
-      firstName,
-      lastName,
+      fullName,
       address,
       phoneNumber,
       brand,
@@ -119,39 +118,34 @@ exports.createRepair = async (req, res, next) => {
       if (!customer) {
         customer = await prisma.customer.create({
           data: {
-            firstName: firstName || null,
-            lastName: lastName || null,
+            fullName: fullName || null,
             address: address || null,
             phoneNumber: phoneNumber,
           },
         });
         // ถ้าพบลูกค้าแล้ว จะอัปเดตข้อมูลลูกค้า
-      } else if (firstName || lastName || address) {
+      } else if (fullName || address) {
         customer = await prisma.customer.update({
           where: { id: customer.id },
           data: {
-            firstName: firstName || null,
-            lastName: lastName || null,
+            fullName: fullName || null,
             address: address || customer.address,
           },
         });
       }
       // ถ้าไม่มีหมายเลขโทรศัพท์แต่จะสร้างลูกค้าใหม่โดยไม่ระบุหมายเลขโทรศัพท์
-    } else if (firstName && !phoneNumber) {
+    } else if (fullName && !phoneNumber) {
       customer = await prisma.customer.findFirst({
         where: {
-          firstName: firstName,
-          lastName: lastName,
+          fullName: fullName,
         },
       });
-      const isSameCustomer =
-        customer.firstName === firstName && customer.lastName === lastName;
+      const isSameCustomer = customer.fullName === fullName;
 
       if (!isSameCustomer) {
         customer = await prisma.customer.create({
           data: {
-            firstName: firstName,
-            lastName: lastName || null,
+            fullName: fullName,
             address: address || null,
             phoneNumber: null,
           },

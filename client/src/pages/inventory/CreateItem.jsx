@@ -109,6 +109,8 @@ const CreatePart = () => {
           publicId: res.data?.public_id,
           secureUrl: res.data?.secure_url,
         };
+      } else if (!isServiceCategory()) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
       // สร้างข้อมูลอะไหล่หรือบริการตามหมวดหมู่ที่เลือก

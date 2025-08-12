@@ -14,15 +14,15 @@ const RepairStatus = () => {
       <div className="flex justify-center gap-[17px] mx-[20px] mt-[16px] ]">
         <div
           className={`flex items-center justify-center w-[106px] h-[45px] rounded-[10px] shadow-lg transition-all duration-200 ${
-            location.pathname === "/repairs/in-progress"
+            location.pathname === "/repairs/status/in-progress"
               ? "bg-in-progress ring-1 ring-white ring-offset-1 ring-offset-transparent"
               : "bg-surface"
           }`}
         >
           <Link
-            to="/repairs/in-progress"
+            to="/repairs/status/in-progress"
             className={`font-medium text-[18px] ${
-              location.pathname === "/repairs/in-progress"
+              location.pathname === "/repairs/status/in-progress"
                 ? "text-surface"
                 : "text-subtle-light"
             }`}
@@ -32,15 +32,15 @@ const RepairStatus = () => {
         </div>
         <div
           className={`flex items-center justify-center w-[106px] h-[45px] rounded-[10px] shadow-lg transition-all duration-200 ${
-            location.pathname === "/repairs/completed"
+            location.pathname === "/repairs/status/completed"
               ? "bg-[#66BB6A] ring-1 ring-white ring-offset-1 ring-offset-transparent"
               : "bg-surface"
           }`}
         >
           <Link
-            to="/repairs/completed"
+            to="/repairs/status/completed"
             className={`font-medium text-[18px] ${
-              location.pathname === "/repairs/completed"
+              location.pathname === "/repairs/status/completed"
                 ? "text-surface"
                 : "text-subtle-light"
             }`}
@@ -50,15 +50,15 @@ const RepairStatus = () => {
         </div>
         <div
           className={`flex items-center justify-center w-[106px] h-[45px] rounded-[10px] shadow-lg transition-all duration-200 ${
-            location.pathname === "/repairs/paid"
+            location.pathname === "/repairs/status/paid"
               ? "bg-[#1976D2] ring-1 ring-white ring-offset-1 ring-offset-transparent"
               : "bg-surface"
           }`}
         >
           <Link
-            to="/repairs/paid"
+            to="/repairs/status/paid"
             className={`font-medium text-[18px] ${
-              location.pathname === "/repairs/paid"
+              location.pathname === "/repairs/status/paid"
                 ? "text-surface"
                 : "text-subtle-light"
             }`}
