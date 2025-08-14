@@ -20,7 +20,7 @@ const LeftSidebar = () => {
     <div className="hidden lg:flex flex-col items-center w-[269px] min-h-[calc(100vh-73px)] gap-[24px] px-[16px] shadow-primary">
       <Link
         to="/repairs/new"
-        className="flex justify-center items-center w-[237px] h-[65px] mt-[24px] gap-[8px] rounded-[10px] bg-gradient-to-r from-[#5b46f4] to-[#8663f8] hover:opacity-90 hover:scale-[1.03] hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer"
+        className="flex justify-center items-center w-[237px] h-[65px] gap-[8px] mt-[24px] rounded-[10px] bg-gradient-to-r from-[#5b46f4] to-[#8663f8] hover:opacity-90 hover:scale-[1.03] hover:-translate-y-1 ease-out duration-300 cursor-pointer"
       >
         <Plus size="sm" />
         <p className="font-medium text-[22px] text-surface">รายการซ่อมใหม่</p>
@@ -37,7 +37,7 @@ const LeftSidebar = () => {
             className="w-full flex justify-center"
           >
             <div
-              className={`group flex justify-center items-center w-[237px] h-[65px] gap-[22px] rounded-[10px] transition-all duration-300 ease-out cursor-pointer ${
+              className={`group flex justify-center items-center w-[237px] h-[65px] gap-[22px] rounded-[10px] ease-out duration-300 cursor-pointer ${
                 isActive
                   ? "border-2 border-primary bg-surface shadow-primary"
                   : "border-2 border-black/10 hover:border-2 hover:border-primary hover:bg-surface hover:shadow-primary hover:scale-[1.03] hover:-translate-y-1"

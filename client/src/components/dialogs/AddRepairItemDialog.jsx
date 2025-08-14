@@ -100,11 +100,11 @@ const AddRepairItemDialog = ({ children, onAddItem }) => {
         {children}
       </DialogTrigger>
       <DialogContent
-        className="p-0 w-full h-[90vh] max-h-[650px]"
+        className="flex flex-col w-full h-[90vh] max-h-[650px] p-0"
         showCloseButton={false}
       >
-        <DialogHeader className="pt-[16px] relative flex-shrink-0">
-          <DialogTitle className="font-athiti font-semibold text-center text-[22px] text-subtle-dark">
+        <DialogHeader className="relative flex-shrink-0 pt-[16px]">
+          <DialogTitle className="text-center font-athiti font-semibold text-[22px] text-subtle-dark">
             เลือกอะไหล่และบริการ
           </DialogTitle>
           <DialogDescription className="sr-only">
@@ -116,16 +116,16 @@ const AddRepairItemDialog = ({ children, onAddItem }) => {
             onClick={() => setIsDialogOpen(false)}
             autoFocus={false}
             tabIndex={-1}
-            className="absolute top-[16px] right-[20px] flex items-center justify-center w-[32px] h-[32px] rounded-full bg-black/5 transition-all duration-200 hover:bg-black/10"
+            className="absolute top-[16px] right-[20px] flex items-center justify-center w-[32px] h-[32px] rounded-full bg-black/5"
           >
             <X size={18} className="text-subtle-dark" />
           </button>
         </DialogHeader>
-        <div className="overflow-hidden flex flex-col">
-          <div className="overflow-y-auto min-h-screen px-[20px]">
+        <div className="overflow-y-auto flex-1 flex flex-col">
+          <div className="flex-shrink-0 flex flex-col px-[20px]">
             {/* แถบค้นหา */}
             <div className="relative flex items-center mt-[4px]">
-              <div className="absolute left-[16px] h-full flex items-center text-subtle-dark pointer-events-none">
+              <div className="absolute left-[16px] flex items-center h-full text-subtle-dark pointer-events-none">
                 <Search size={20} />
               </div>
               <Input
@@ -175,12 +175,12 @@ const AddRepairItemDialog = ({ children, onAddItem }) => {
             </div>
 
             {/* แถบหมวดหมู่ */}
-            <div className="overflow-x-auto -mx-[20px] px-[20px] mt-[14px] font-athiti">
+            <div className="overflow-x-auto px-[20px] mt-[14px] -mx-[20px] font-athiti">
               <div className="flex gap-[8px] py-[2px]">
                 <button
                   onClick={() => handleCategoryChange("ทั้งหมด")}
                   tabIndex={-1}
-                  className={`flex flex-col items-center justify-center w-[80px] h-[80px] px-[20px] py-[12px] border rounded-[10px] transition-all duration-200 ${
+                  className={`flex flex-col items-center justify-center w-[80px] h-[80px] px-[20px] py-[12px] rounded-[10px] border duration-200 ${
                     activeCategory === "ทั้งหมด"
                       ? "border-transparent text-surface bg-gradient-primary "
                       : "border-subtle-light text-subtle-dark bg-surface"
@@ -198,7 +198,7 @@ const AddRepairItemDialog = ({ children, onAddItem }) => {
                       key={category.id}
                       onClick={() => handleCategoryChange(category.name)}
                       tabIndex={-1}
-                      className={`flex flex-col justify-center items-center w-[80px] h-[80px] px-[20px] py-[12px] border rounded-[10px] transition-all duration-200 ${
+                      className={`flex flex-col justify-center items-center w-[80px] h-[80px] px-[20px] py-[12px] border rounded-[10px] duration-200 ${
                         isActive
                           ? "border-transparent text-surface bg-gradient-primary"
                           : "border-subtle-light text-subtle-dark bg-surface"
@@ -225,26 +225,27 @@ const AddRepairItemDialog = ({ children, onAddItem }) => {
                 รายการอะไหล่และบริการ
               </p>
             </div>
+          </div>
 
-            {/* รายการอะไหล่และบริการ */}
+          {/* รายการอะไหล่และบริการ */}
+          <div className="flex-1 px-[20px] pb-[16px]">
             {isLoading ? (
-              <div className="flex items-center justify-center h-[300px]">
+              <div className="flex items-center justify-center h-full">
                 <LoaderCircle className="w-8 h-8 text-primary animate-spin" />
               </div>
             ) : inventory.length === 0 ? (
-              <div className="flex items-center justify-center h-[300px]">
+              <div className="flex items-center justify-center h-full">
                 <p className="font-medium font-athiti text-subtle-dark">
                   ไม่พบข้อมูล
                 </p>
               </div>
             ) : (
-              <div className="pb-[16px]">
+              <div className="flex flex-col">
                 {inventory.map((item) => {
                   const isDisabled =
                     item.partNumber &&
                     item.brand &&
                     (item.stockQuantity || 0) === 0;
-
                   return (
                     <div
                       key={`${item.category.name}-${item.id}`}

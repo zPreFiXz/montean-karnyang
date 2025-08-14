@@ -18,6 +18,38 @@ const CreateRepair = () => {
   const [repairItems, setRepairItems] = useState([]);
   const { errors } = formState;
 
+  const renderProductInfo = (item) => {
+    const isTire = item.category?.name === "ยาง";
+
+    // แสดงข้อมูลยางที่มีขนาดแก้มยาง
+    if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
+      return (
+        <p className="max-w-[180px] font-semibold text-[14px] text-normal truncate">
+          {item.brand} {item.typeSpecificData.width}/
+          {item.typeSpecificData.aspectRatio}R
+          {item.typeSpecificData.rimDiameter} {item.name}
+        </p>
+      );
+    }
+
+    // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
+    if (isTire && item.typeSpecificData) {
+      return (
+        <p className="max-w-[180px] font-semibold text-[14px] text-normal truncate">
+          {item.brand} {item.typeSpecificData.width}R
+          {item.typeSpecificData.rimDiameter} {item.name}
+        </p>
+      );
+    }
+
+    // แสดงข้อมูลอะไหล่หรือบริการ
+    return (
+      <p className="max-w-[180px] font-semibold text-[14px] text-normal truncate">
+        {item.brand} {item.name}
+      </p>
+    );
+  };
+
   // กู้คืนข้อมูลเมื่อกลับมาจากหน้าสรุป
   useEffect(() => {
     if (location.state) {
@@ -154,7 +186,7 @@ const CreateRepair = () => {
 
         {/* ป้ายทะเบียนรถ */}
         <div className="px-[20px] pt-[16px]">
-          <p className="font-medium text-[18px] text-surface mb-[8px]">
+          <p className="mb-[8px] font-medium text-[18px] text-surface">
             ทะเบียนรถ
           </p>
           <div className="flex gap-[12px] items-start">
@@ -172,7 +204,7 @@ const CreateRepair = () => {
                 }}
               />
             </div>
-            <span className="pt-[8px] text-surface font-medium text-[18px]">
+            <span className="pt-[8px] font-medium text-[18px] text-surface">
               -
             </span>
             <div className="w-[80px]">
@@ -202,7 +234,7 @@ const CreateRepair = () => {
 
           {/* ข้อความ error ของป้ายทะเบียนรถ */}
           {(errors.plateLetters || errors.plateNumbers || errors.province) && (
-            <div className="mt-[6px] space-y-[4px]">
+            <div className="space-y-[4px] mt-[6px]">
               {errors.plateLetters && (
                 <div className="flex items-center gap-[4px] px-[4px]">
                   <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
@@ -244,7 +276,7 @@ const CreateRepair = () => {
           <div className="flex justify-between items-center px-[20px] pt-[20px]">
             <p className="font-semibold text-[22px]">รายการซ่อม</p>
             <AddRepairItemDialog onAddItem={handleAddItemToRepair}>
-              <p className="font-semibold text-[18px] text-primary  hover:text-primary/80 cursor-pointer">
+              <p className="font-semibold text-[18px] text-primary hover:text-primary/80 cursor-pointer">
                 + เพิ่มรายการซ่อม
               </p>
             </AddRepairItemDialog>
@@ -267,7 +299,7 @@ const CreateRepair = () => {
                 >
                   <div className="flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] bg-white shadow-primary">
                     <div className="flex-1 flex items-center gap-[8px]">
-                      <div className="flex items-center justify-center w-[60px] h-[60px] rounded-[10px] border border-subtle-light bg-white shadow-primary">
+                      <div className="flex justify-center items-center w-[60px] h-[60px] rounded-[10px] border border-subtle-light bg-white shadow-primary">
                         {item.secureUrl ? (
                           <img
                             src={item.secureUrl}
@@ -275,17 +307,13 @@ const CreateRepair = () => {
                             className="object-cover w-full h-full rounded-[10px]"
                           />
                         ) : (
-                          <div className="flex items-center justify-center w-[60px] h-[60px] text-subtle-light">
+                          <div className="flex justify-center items-center w-[60px] h-[60px] text-subtle-light">
                             <Image className="w-8 h-8" />
                           </div>
                         )}
                       </div>
                       <div className="flex flex-col flex-1">
-                        <p className="max-w-[180px] font-semibold text-[14px] text-normal truncate">
-                          {item.brand
-                            ? `${item.brand} ${item.name}`
-                            : item.name}
-                        </p>
+                        {renderProductInfo(item)}
                         <p className="font-medium text-[12px] text-subtle-dark">
                           ราคาต่อหน่วย:{" "}
                           {Number(item.sellingPrice).toLocaleString()} บาท
@@ -302,7 +330,7 @@ const CreateRepair = () => {
                               type="button"
                               onClick={() => handleDecreaseQuantity(index)}
                               disabled={item.quantity <= 1}
-                              className="w-[28px] h-[28px] flex items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
+                              className="flex items-center justify-center w-[28px] h-[28px] rounded-[8px] border border-gray-200 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
                             >
                               <Minus className="w-[14px] h-[14px]" />
                             </button>
@@ -335,7 +363,7 @@ const CreateRepair = () => {
                     }
                     className="text-surface"
                   >
-                    <div className="w-[32px] h-[32px] flex items-center justify-center rounded-full bg-delete">
+                    <div className="flex items-center justify-center w-[32px] h-[32px] rounded-full bg-delete">
                       <Trash className="w-[18px] h-[18px]" />
                     </div>
                   </button>
@@ -343,7 +371,7 @@ const CreateRepair = () => {
               ))}
 
               {/* สรุปยอดรวม */}
-              <div className="mx-[20px] mt-[20px] p-[16px] rounded-[12px] bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
+              <div className="p-[16px] mx-[20px] mt-[20px] rounded-[12px] border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5">
                 <div className="flex justify-between items-center">
                   <div className="flex flex-col">
                     <p className="font-semibold text-[18px] text-subtle-dark">

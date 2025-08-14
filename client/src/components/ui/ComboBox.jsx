@@ -78,7 +78,7 @@ const ComboBox = ({
               }}
             >
               {selectedLabel || placeholder}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              <ChevronsUpDown className="shrink-0  h-4 w-4 ml-2 opacity-50" />
             </Button>
           </PopoverTrigger>
           <PopoverContent
@@ -110,7 +110,7 @@ const ComboBox = ({
                     >
                       <Check
                         className={cn(
-                          "mr-2 h-4 w-4",
+                          "h-4 w-4 mr-2",
                           value === item.id ? "opacity-100" : "opacity-0"
                         )}
                       />

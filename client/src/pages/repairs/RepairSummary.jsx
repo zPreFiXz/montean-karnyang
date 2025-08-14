@@ -13,10 +13,47 @@ const RepairSummary = () => {
   const { repairData, repairItems } = location.state || {};
 
   // หากไม่มีข้อมูลให้กลับไปหน้าสร้างรายการซ่อมใหม่
-  //   if (!repairData || !repairItems) {
-  //     navigate("/repairs/new", { replace: true });
-  //     return null;
-  //   }
+  useEffect(() => {
+    if (!repairData || !repairItems) {
+      navigate("/repairs/new", { replace: true });
+    }
+  }, [repairData, repairItems, navigate]);
+
+  if (!repairData || !repairItems) {
+    return null;
+  }
+
+  const renderProductInfo = (item) => {
+    const isTire = item.category?.name === "ยาง";
+
+    // แสดงข้อมูลยางที่มีขนาดแก้มยาง
+    if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
+      return (
+        <p className="font-semibold text-[14px] text-normal">
+          {item.brand} {item.typeSpecificData.width}/
+          {item.typeSpecificData.aspectRatio}R
+          {item.typeSpecificData.rimDiameter} {item.name}
+        </p>
+      );
+    }
+
+    // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
+    if (isTire && item.typeSpecificData) {
+      return (
+        <p className="font-semibold text-[14px] text-normal">
+          {item.brand} {item.typeSpecificData.width}R
+          {item.typeSpecificData.rimDiameter} {item.name}
+        </p>
+      );
+    }
+
+    // แสดงข้อมูลอะไหล่หรือบริการ
+    return (
+      <p className="font-semibold text-[14px] text-normal">
+        {item.brand} {item.name}
+      </p>
+    );
+  };
 
   const totalPrice = repairItems.reduce(
     (total, item) => total + item.sellingPrice * item.quantity,
@@ -78,7 +115,7 @@ const RepairSummary = () => {
           {/* ข้อมูลลูกค้า */}
           <div className="px-[20px]">
             <div className="mb-[16px]">
-              <p className="font-semibold text-[18px] text-normal mb-[16px]">
+              <p className="mb-[16px] font-semibold text-[18px] text-normal">
                 ข้อมูลลูกค้า
               </p>
               <div className="space-y-[8px] p-[16px] rounded-[10px] bg-gray-50">
@@ -102,7 +139,7 @@ const RepairSummary = () => {
                   <p className="font-medium text-[16px] text-subtle-dark">
                     ที่อยู่:
                   </p>
-                  <p className="font-medium text-[16px] text-normal text-right max-w-[250px] break-words">
+                  <p className="max-w-[250px] font-medium text-right text-[16px] text-normal break-words">
                     {repairData.address || "ไม่ระบุ"}
                   </p>
                 </div>
@@ -111,10 +148,10 @@ const RepairSummary = () => {
 
             {/* ข้อมูลรถยนต์ */}
             <div className="mb-[16px]">
-              <h3 className="font-semibold text-[18px] text-normal mb-[12px]">
+              <h3 className="mb-[12px] font-semibold text-[18px] text-normal">
                 ข้อมูลรถยนต์
               </h3>
-              <div className="p-[16px] rounded-[10px] bg-gray-50 space-y-[8px]">
+              <div className="space-y-[8px] p-[16px] rounded-[10px] bg-gray-50">
                 <div className="flex justify-between">
                   <p className="font-medium text-[16px] text-subtle-dark">
                     ยี่ห้อ-รุ่น:
@@ -133,10 +170,10 @@ const RepairSummary = () => {
                   </p>
                 </div>
                 <div className="flex justify-between items-start">
-                  <p className="font-medium text-[16px] text-subtle-dark flex-shrink-0">
+                  <p className="flex-shrink-0 font-medium text-[16px] text-subtle-dark">
                     รายละเอียดการซ่อม:
                   </p>
-                  <p className="font-medium text-[16px] text-normal text-right break-words min-w-0 leading-relaxed">
+                  <p className="min-w-0 font-medium text-right text-[16px] text-normal break-words leading-relaxed">
                     {repairData.description || "ไม่ระบุ"}
                   </p>
                 </div>
@@ -174,11 +211,7 @@ const RepairSummary = () => {
                           )}
                         </div>
                         <div className="flex flex-col">
-                          <p className="font-semibold text-[14px] text-normal">
-                            {item.brand
-                              ? `${item.brand} ${item.name}`
-                              : item.name}
-                          </p>
+                          {renderProductInfo(item)}
                           <p className="font-semibold text-[14px] text-subtle-dark">
                             {Number(item.sellingPrice).toLocaleString()} บาท ×{" "}
                             {item.quantity}
@@ -197,7 +230,7 @@ const RepairSummary = () => {
           </div>
 
           {/* สรุปยอดรวม */}
-          <div className="mx-[20px] mt-[20px] p-[16px] rounded-[12px] bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
+          <div className="p-[16px] mx-[20px] mt-[20px] rounded-[12px] border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5">
             <div className="flex justify-between items-center">
               <div className="flex flex-col">
                 <p className="font-semibold text-[18px] text-subtle-dark">

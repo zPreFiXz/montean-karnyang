@@ -24,8 +24,8 @@ const LoadingToRedirect = () => {
   }
 
   return (
-    <div className="min-h-[calc(100vh-108px)] flex items-center justify-center">
-      <div className="w-[32px] h-[32px] border-3 border-t-transparent border-primary rounded-full animate-spin" />
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="w-[32px] h-[32px] rounded-full border-3 border-t-transparent border-primary animate-spin" />
     </div>
   );
 };

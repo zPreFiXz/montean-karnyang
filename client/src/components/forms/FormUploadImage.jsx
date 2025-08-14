@@ -66,7 +66,7 @@ const FormUploadImage = ({ label, setSelectedImage, selectedImage }) => {
       >
         {label}
       </Label>
-      <div className="flex items-center justify-center mt-[8px]">
+      <div className="flex justify-center items-center mt-[8px]">
         <Input
           type="file"
           accept="image/png,image/jpeg,image/webp"
@@ -76,30 +76,30 @@ const FormUploadImage = ({ label, setSelectedImage, selectedImage }) => {
         />
         <label
           htmlFor="image-upload"
-          className="group relative flex flex-col items-center justify-center w-[280px] h-[280px] border-2 border-dashed border-gray-300 rounded-[20px] bg-surface hover:border-primary duration-300 cursor-pointer"
+          className="group relative flex flex-col justify-center items-center w-[280px] h-[280px] rounded-[20px] border-2 border-dashed border-gray-300 hover:border-primary bg-surface duration-300 cursor-pointer"
         >
           {previewImage ? (
             <div className="w-full h-full">
               <img
                 src={previewImage}
                 alt="Preview"
-                className="w-full h-full object-contain rounded-[20px]"
+                className="object-contain  w-full h-full rounded-[20px]"
               />
               <button
                 type="button"
                 onClick={handleDelete}
-                className="absolute top-2 right-2 flex items-center justify-center w-8 h-8 border border-black/5 hover:border-surface rounded-full font-medium text-lg text-subtle-dark bg-surface hover:bg-primary hover:text-surface shadow-lg hover:shadow-xl backdrop-blur-sm  duration-300 cursor-pointer"
+                className="absolute top-2 right-2 flex justify-center items-center w-8 h-8 rounded-full border border-black/5 hover:border-surface font-medium text-lg text-subtle-dark hover:text-surface bg-surface hover:bg-primary shadow-lg hover:shadow-xl backdrop-blur-sm  duration-300 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
           ) : (
             <>
-              <ImageIcon className="w-[48px] h-[48px] text-subtle-light mb-[8px] duration-300 group-hover:text-primary group-hover:scale-110" />
-              <p className="font-medium text-[16px] text-subtle-light mb-[4px] transition-colors duration-300 group-hover:text-primary">
+              <ImageIcon className="w-[48px] h-[48px] mb-[8px] text-subtle-light group-hover:text-primary group-hover:scale-110 duration-300" />
+              <p className="mb-[4px] font-medium text-[16px] text-subtle-light group-hover:text-primary duration-300">
                 เลือกรูปอะไหล่
               </p>
-              <p className="text-[12px] text-subtle-light transition-colors duration-300 group-hover:text-subtle-dark">
+              <p className="text-[12px] text-subtle-light group-hover:text-subtle-dark duration-300">
                 PNG, JPG, WEBP ขนาดไม่เกิน 5MB
               </p>
             </>

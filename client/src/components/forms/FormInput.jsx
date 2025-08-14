@@ -57,7 +57,7 @@ const FormInput = ({
           {...props}
         />
         {errors[name] && (
-          <div className="absolute right-[12px] top-1/2 transform -translate-y-1/2">
+          <div className="absolute top-1/2 right-[12px] transform -translate-y-1/2">
             <AlertCircle className="w-5 h-5 text-delete" />
           </div>
         )}
@@ -65,7 +65,7 @@ const FormInput = ({
       {errors[name] && (
         <div className="flex items-center gap-[4px] px-[4px] mt-[6px]">
           <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
-          <p className="text-delete text-[14px] font-medium">
+          <p className="font-medium text-delete text-[14px]">
             {errors[name].message}
           </p>
         </div>

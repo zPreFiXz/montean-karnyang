@@ -2,7 +2,26 @@ const prisma = require("../config/prisma");
 
 exports.getRepairs = async (req, res, next) => {
   try {
-    const repairs = await prisma.repair.findMany();
+    const repairs = await prisma.repair.findMany({
+      include: {
+        vehicle: {
+          include: {
+            licensePlate: true,
+          },
+        },
+        customer: true,
+        user: true,
+        repairItems: {
+          include: {
+            part: true,
+            service: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
     res.json(repairs);
   } catch (error) {

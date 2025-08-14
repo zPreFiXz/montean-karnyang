@@ -40,7 +40,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
   }, []);
 
   return (
-    <div className="overflow-x-auto scrollbar-hide -mx-[20px] px-[20px] mt-[16px]">
+    <div className="overflow-x-auto scrollbar-hide  px-[20px] -mx-[20px] mt-[16px]">
       <div className="flex gap-[8px]">
         <button
           onClick={() => {
@@ -49,7 +49,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
             setActiveCategory("ทั้งหมด");
             setSearchParams(params);
           }}
-          className={`flex flex-col items-center justify-center w-[80px] h-[80px] px-[20px] py-[12px] border rounded-[10px] transition-all duration-200 ${
+          className={`flex flex-col justify-center items-center w-[80px] h-[80px] px-[20px] py-[12px] rounded-[10px] border duration-200 ${
             activeCategory === "ทั้งหมด"
               ? "border-transparent text-surface bg-gradient-primary"
               : "border-subtle-light text-subtle-dark bg-surface"
@@ -69,14 +69,14 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
                 setActiveCategory(item.name);
                 handleFilter(item.name);
               }}
-              className={`flex flex-col items-center justify-center w-[80px] h-[80px] px-[20px] py-[12px] border rounded-[10px] transition-all duration-200 ${
+              className={`flex flex-col justify-center items-center w-[80px] h-[80px] px-[20px] py-[12px] border rounded-[10px] duration-200 ${
                 isActive
                   ? "border-transparent text-surface bg-gradient-primary"
                   : "border-subtle-light text-subtle-dark bg-surface"
               }`}
             >
               <div
-                className={`w-[45px] h-[45px] flex items-center justify-center ${
+                className={`flex items-center justify-center w-[45px] h-[45px] ${
                   isActive ? "text-surface" : "text-subtle-dark"
                 }`}
               >

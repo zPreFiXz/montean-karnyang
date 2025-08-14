@@ -1,7 +1,6 @@
 import CarCard from "@/components/cards/CarCard";
 import StatusCard from "@/components/cards/StatusCard";
 import { Success, Repairing, Paid, Car } from "@/components/icons/Icon";
-import axios from "axios";
 import { Link } from "react-router";
 
 const Dashboard = () => {
@@ -29,22 +28,11 @@ const Dashboard = () => {
     return `วันที่ ${day} ${month} ${year}`;
   };
 
-  const handleSubmit = async (data) => {
-    await axios
-      .post("http://localhost:3000/api/vehicle", data)
-      .then((res) => {
-        console.log(res.data);
-      })
-      .catch((error) => {
-        console.log(error.response.data);
-      });
-  };
-
   return (
     <div className="w-full">
-      {/* Desktop Layout */}
+      {/* มุมมองเดสก์ท็อป */}
       <div className="hidden lg:block w-full px-[24px]">
-        {/* Income Card */}
+        {/* ยอดขาย */}
         <div className="w-fit h-[157px] p-[16px] mt-[24px] rounded-[10px] shadow-primary">
           <p className="font-medium text-[22px] text-subtle-dark">
             {getCurrentDateThai()}
@@ -55,13 +43,13 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Status Card */}
+        {/* สถานะการซ่อม */}
         <div className="w-full p-[16px] mt-[24px] mb-[24px] rounded-[10px] shadow-primary">
           <p className="font-medium text-[22px] text-subtle-dark">
             สถานะการซ่อม
           </p>
           <div className="flex justify-start items-start gap-[16px] mt-[16px]">
-            {/* In Progress Card */}
+            {/* กำลังซ่อม */}
             <div className="flex-1 flex-col items-center gap-[16px]">
               <StatusCard
                 bg="in-progress"
@@ -70,19 +58,21 @@ const Dashboard = () => {
                 amount={0}
               />
               <div className="mt-[16px]">
-                <CarCard
-                  bg="in-progress"
-                  color="#F4B809"
-                  icon={Car}
-                  plateId={"ขก1799 อุบลราชธานี"}
-                  band={"Honda Jazz"}
-                  time={"15:23"}
-                  price={4300}
-                />
+                <Link to="/repairs/status/in-progress">
+                  <CarCard
+                    bg="in-progress"
+                    color="#F4B809"
+                    icon={Car}
+                    plateId={"ขก1799 อุบลราชธานี"}
+                    band={"Honda Jazz"}
+                    time={"15:23"}
+                    price={4300}
+                  />
+                </Link>
               </div>
             </div>
 
-            {/* Completed Card */}
+            {/* ซ่อมเสร็จสิ้น */}
             <div className="flex-1 flex-col items-center gap-[16px]">
               <StatusCard
                 bg="completed"
@@ -91,19 +81,21 @@ const Dashboard = () => {
                 amount={0}
               />
               <div className="mt-[16px]">
-                <CarCard
-                  bg="completed"
-                  color="#66BB6A"
-                  icon={Car}
-                  plateId={"ขก1799 อุบลราชธานี"}
-                  band={"Honda Jazz"}
-                  time={"15:23"}
-                  price={4300}
-                />
+                <Link to="/repairs/status/completed">
+                  <CarCard
+                    bg="completed"
+                    color="#66BB6A"
+                    icon={Car}
+                    plateId={"ขก1799 อุบลราชธานี"}
+                    band={"Honda Jazz"}
+                    time={"15:23"}
+                    price={4300}
+                  />
+                </Link>
               </div>
             </div>
 
-            {/* Paid Card */}
+            {/* ชำระเงินแล้ว */}
             <div className="flex-1 flex-col items-center gap-[16px]">
               <StatusCard
                 bg="paid"
@@ -112,22 +104,24 @@ const Dashboard = () => {
                 amount={0}
               />
               <div className="mt-[16px]">
-                <CarCard
-                  bg="paid"
-                  color="#1976D2"
-                  icon={Car}
-                  plateId={"ขก1799 อุบลราชธานี"}
-                  band={"Honda Jazz"}
-                  time={"15:23"}
-                  price={4300}
-                />
+                <Link to="/repairs/status/paid">
+                  <CarCard
+                    bg="paid"
+                    color="#1976D2"
+                    icon={Car}
+                    plateId={"ขก1799 อุบลราชธานี"}
+                    band={"Honda Jazz"}
+                    time={"15:23"}
+                    price={4300}
+                  />
+                </Link>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Mobile Layout */}
+      {/* มุมมองมือถือ */}
       <div className="lg:hidden">
         <div className="w-full h-[217px] pt-[16px] px-[20px] bg-gradient-primary">
           <p className="font-semibold text-[32px] text-surface">
@@ -150,28 +144,33 @@ const Dashboard = () => {
           <p className="pt-[16px] font-semibold text-[22px] text-normal">
             สถานะการซ่อม
           </p>
-          {/* Status Card */}
-          <CarCard
-            bg="in-progress"
-            color="#F4B809"
-            icon={Repairing}
-            plateId={"กำลังซ่อม"}
-            amount={5}
-          />
-          <CarCard
-            bg="completed"
-            color="#66BB6A"
-            icon={Success}
-            plateId={"ซ่อมเสร็จสิ้น"}
-            amount={2}
-          />
-          <CarCard
-            bg="paid"
-            color="#1976D2"
-            icon={Paid}
-            plateId={"ชำระเงินแล้ว"}
-            amount={10}
-          />
+          <Link to="/repairs/status/in-progress">
+            <CarCard
+              bg="in-progress"
+              color="#F4B809"
+              icon={Repairing}
+              plateId={"กำลังซ่อม"}
+              amount={5}
+            />
+          </Link>
+          <Link to="/repairs/status/completed">
+            <CarCard
+              bg="completed"
+              color="#66BB6A"
+              icon={Success}
+              plateId={"ซ่อมเสร็จสิ้น"}
+              amount={2}
+            />
+          </Link>
+          <Link to="/repairs/status/paid">
+            <CarCard
+              bg="paid"
+              color="#1976D2"
+              icon={Paid}
+              plateId={"ชำระเงินแล้ว"}
+              amount={10}
+            />
+          </Link>
         </div>
       </div>
     </div>

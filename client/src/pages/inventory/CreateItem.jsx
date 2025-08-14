@@ -352,13 +352,11 @@ const CreatePart = () => {
                   e.target.value = e.target.value.replace(/[^0-9]/g, "");
                 }}
               />
-              {!isTireCategory() && (
-                <VehicleCompatibilityInput
-                  key={vehicleKey}
-                  setValue={setValue}
-                  watch={watch}
-                />
-              )}
+              <VehicleCompatibilityInput
+                key={vehicleKey}
+                setValue={setValue}
+                watch={watch}
+              />
             </div>
           )}
           <div className="flex justify-center pb-[88px]">

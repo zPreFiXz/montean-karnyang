@@ -44,7 +44,7 @@ const LicensePlateInput = ({
         }}
       />
       {error && (
-        <div className="absolute right-[8px] top-1/2 transform -translate-y-1/2">
+        <div className="absolute top-1/2 right-[8px] transform -translate-y-1/2">
           <AlertCircle className="w-4 h-4 text-delete" />
         </div>
       )}

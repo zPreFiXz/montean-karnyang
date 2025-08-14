@@ -73,7 +73,7 @@ const Inventory = () => {
             <p className="font-semibold text-[18px]">รายการอะไหล่และบริการ</p>
             <Link
               to="/inventory/new"
-              className="font-semibold text-[18px] text-primary hover:text-primary/80 transition-colors cursor-pointer"
+              className="font-semibold text-[18px] text-primary hover:text-primary/80 cursor-pointer"
             >
               + เพิ่มรายการ
             </Link>
@@ -81,11 +81,11 @@ const Inventory = () => {
 
           {/* รายการอะไหล่และบริการ */}
           {isLoading ? (
-            <div className="flex items-center justify-center h-[calc(100vh-343px)]">
+            <div className="flex justify-center items-center h-[calc(100vh-343px)]">
               <LoaderCircle className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : inventory.length === 0 ? (
-            <div className="flex items-center justify-center h-[calc(100vh-343px)]">
+            <div className="flex justify-center items-center h-[calc(100vh-343px)]">
               <p className="font-medium text-subtle-dark">ไม่พบข้อมูล</p>
             </div>
           ) : (

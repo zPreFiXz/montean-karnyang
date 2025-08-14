@@ -6,7 +6,7 @@ const FormButton = ({ label, isLoading, onClick }) => {
       type={onClick ? "button" : "submit"}
       disabled={isLoading}
       onClick={onClick}
-      className="w-full h-[40px] mx-[20px] my-[16px] rounded-[20px] font-semibold text-surface bg-gradient-primary shadow-primary disabled:opacity-70 disabled:cursor-not-allowed transition-opacity duration-200 flex items-center justify-center"
+      className="flex items-center justify-center w-full h-[40px] mx-[20px] my-[16px] rounded-[20px] font-semibold text-surface bg-gradient-primary duration-200 shadow-primary disabled:opacity-70 disabled:cursor-not-allowed"
     >
       {isLoading ? (
         <>

@@ -41,7 +41,7 @@ const VehicleCompatibilityInput = ({ setValue }) => {
   };
 
   return (
-    <div className="px-[20px] pt-[16px] space-y-[16px]">
+    <div className="space-y-[16px] px-[20px] pt-[16px]">
       <Label className="font-medium text-[18px] text-subtle-dark">
         รถที่เข้ากันได้
       </Label>
@@ -57,7 +57,7 @@ const VehicleCompatibilityInput = ({ setValue }) => {
               <button
                 type="button"
                 onClick={() => handleRemoveVehicle(index)}
-                className="flex items-center font-medium text-[16px] text-red-500 hover:text-red-600 transition-all cursor-pointer"
+                className="flex items-center font-medium text-[16px] text-red-500 hover:text-red-600 cursor-pointer"
               >
                 <Trash className="w-4 h-4 mr-[4px]" />
                 ลบ
@@ -66,7 +66,7 @@ const VehicleCompatibilityInput = ({ setValue }) => {
           </div>
           <div>
             <div>
-              <Label className="block text-[14px] font-medium text-subtle-dark mb-[4px]">
+              <Label className="block mb-[4px] font-medium text-[14px] text-subtle-dark">
                 ยี่ห้อ
               </Label>
               <Input
@@ -94,7 +94,7 @@ const VehicleCompatibilityInput = ({ setValue }) => {
               />
             </div>
             <div>
-              <Label className="block text-[14px] font-medium text-subtle-dark mb-[4px]">
+              <Label className="mb-[4px] block font-medium text-[14px] text-subtle-dark">
                 รุ่น
               </Label>
               <Input
@@ -128,7 +128,7 @@ const VehicleCompatibilityInput = ({ setValue }) => {
       <button
         type="button"
         onClick={handleAddVehicle}
-        className="w-full py-2 font-medium transition-colors border-2 border-gray-300 border-dashed rounded-lg cursor-pointer text-subtle-light hover:border-primary hover:text-primary"
+        className="w-full py-2  rounded-lg  border-2 border-dashed border-gray-300 hover:border-primary font-medium text-subtle-light hover:text-primary cursor-pointer"
       >
         + เพิ่มรถรุ่นอื่น
       </button>
