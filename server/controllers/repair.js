@@ -35,6 +35,36 @@ exports.getRepairById = async (req, res, next) => {
 
     const repair = await prisma.repair.findFirst({
       where: { id: Number(id) },
+      include: {
+        vehicle: {
+          include: {
+            licensePlate: true,
+          },
+        },
+        customer: true,
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            nickname: true,
+            email: true,
+          },
+        },
+        repairItems: {
+          include: {
+            part: {
+              include: {
+                category: true,
+              },
+            },
+            service: {
+              include: {
+                category: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     res.json(repair);
@@ -230,6 +260,63 @@ exports.updateRepair = async (req, res, next) => {
     });
 
     res.json({ message: "Repair updated successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateRepairStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status, paymentMethod } = req.body;
+
+    const updatedData = { status };
+
+    if (status === "COMPLETED") {
+      updatedData.completedAt = new Date();
+    } else if (status === "PAID") {
+      updatedData.paidAt = new Date();
+      // ถ้ามี paymentMethod ให้อัปเดตด้วย
+      if (paymentMethod) {
+        const validPaymentMethods = ["CASH", "CREDIT_CARD", "BANK_TRANSFER"];
+        if (validPaymentMethods.includes(paymentMethod)) {
+          updatedData.paymentMethod = paymentMethod;
+        }
+      }
+    }
+
+    const updatedRepair = await prisma.repair.update({
+      where: { id: Number(id) },
+      data: updatedData,
+      include: {
+        vehicle: {
+          include: {
+            licensePlate: true,
+          },
+        },
+        customer: true,
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            nickname: true,
+            email: true,
+          },
+        },
+        repairItems: {
+          include: {
+            part: {
+              include: {
+                category: true,
+              },
+            },
+            service: true,
+          },
+        },
+      },
+    });
+
+    res.json(updatedRepair);
   } catch (error) {
     next(error);
   }

@@ -22,7 +22,7 @@ const iconMap = {
   น้ำมันเครื่อง: Oil,
 };
 
-const AddRepairItemDialog = ({ children, onAddItem }) => {
+const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [inventory, setInventory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,7 +87,18 @@ const AddRepairItemDialog = ({ children, onAddItem }) => {
   };
 
   const handleAddItemToRepair = (item) => {
-    if (item.partNumber && item.brand && (item.stockQuantity || 0) === 0) {
+    // คำนวณจำนวนที่เหลือจริงหลังจากหักที่เลือกไปแล้ว
+    const selectedQuantity =
+      selectedItems.find(
+        (selected) =>
+          selected.partNumber === item.partNumber &&
+          selected.brand === item.brand &&
+          selected.name === item.name
+      )?.quantity || 0;
+
+    const remainingStock = (item.stockQuantity || 0) - selectedQuantity;
+
+    if (item.partNumber && item.brand && remainingStock <= 0) {
       return;
     }
     onAddItem(item);
@@ -235,17 +246,28 @@ const AddRepairItemDialog = ({ children, onAddItem }) => {
               </div>
             ) : inventory.length === 0 ? (
               <div className="flex items-center justify-center h-full">
-                <p className="font-medium font-athiti text-subtle-dark">
-                  ไม่พบข้อมูล
+                <p className="font-athiti font-medium text-subtle-light">
+                  ไม่พบอะไหล่และบริการ
                 </p>
               </div>
             ) : (
               <div className="flex flex-col">
                 {inventory.map((item) => {
+                  // คำนวณจำนวนที่เหลือจริงหลังจากหักที่เลือกไปแล้ว
+                  const selectedQuantity =
+                    selectedItems.find(
+                      (selected) =>
+                        selected.partNumber === item.partNumber &&
+                        selected.brand === item.brand &&
+                        selected.name === item.name
+                    )?.quantity || 0;
+
+                  const remainingStock =
+                    (item.stockQuantity || 0) - selectedQuantity;
+
                   const isDisabled =
-                    item.partNumber &&
-                    item.brand &&
-                    (item.stockQuantity || 0) === 0;
+                    item.partNumber && item.brand && remainingStock <= 0;
+
                   return (
                     <div
                       key={`${item.category.name}-${item.id}`}
@@ -261,7 +283,7 @@ const AddRepairItemDialog = ({ children, onAddItem }) => {
                         name={item.name}
                         unit={item.unit}
                         sellingPrice={item.sellingPrice}
-                        stockQuantity={item.stockQuantity}
+                        stockQuantity={remainingStock}
                         typeSpecificData={item.typeSpecificData}
                         secureUrl={item.secureUrl}
                         category={item.category.name}

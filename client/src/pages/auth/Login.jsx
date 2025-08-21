@@ -32,8 +32,8 @@ const Login = () => {
       console.error(error);
 
       const errorMessage =
-        error.response?.data?.message ||
-        error.response?.data?.errors[0]?.message;
+        error.res?.data?.message ||
+        error.res?.data?.errors[0]?.message;
       toast.error(errorMessage);
     }
   };

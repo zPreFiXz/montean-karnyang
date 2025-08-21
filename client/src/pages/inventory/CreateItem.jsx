@@ -14,6 +14,7 @@ import VehicleCompatibilityInput from "@/components/forms/VehicleCompatibilityIn
 import { useNavigate } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createPartSchema } from "@/utils/schemas";
+import { ChevronLeft } from "lucide-react";
 
 const CreatePart = () => {
   const {
@@ -159,7 +160,7 @@ const CreatePart = () => {
     } catch (error) {
       console.error(error);
 
-      const errorMessage = error.response.data.message;
+      const errorMessage = error.res.data.message;
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -168,7 +169,10 @@ const CreatePart = () => {
 
   return (
     <main className="w-full h-[78px] bg-gradient-primary shadow-primary">
-      <div className="pt-[16px] pl-[20px] font-semibold text-[22px] text-surface">
+      <div className="flex items-center gap-[8px] pt-[16px] pl-[20px] font-semibold text-[22px] text-surface">
+        <button onClick={() => navigate(-1)} className="mt-[2px] text-surface">
+          <ChevronLeft />
+        </button>
         เพิ่มรายการ
       </div>
       <section className="w-full min-h-[calc(100svh-65px)] sm:min-h-[calc(100vh-65px)] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">

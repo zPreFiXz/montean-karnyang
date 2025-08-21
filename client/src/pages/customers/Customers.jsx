@@ -26,7 +26,7 @@ const CustomerHistory = () => {
             bg="in-progress"
             color="#F4B809"
             icon={Car}
-            plateId={"ขก1799 อุบลราชธานี"}
+            licensePlate={"ขก1799 อุบลราชธานี"}
             band={"Honda Jazz"}
             time={"15:23"}
             price={4300}

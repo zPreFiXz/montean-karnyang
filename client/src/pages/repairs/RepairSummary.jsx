@@ -1,9 +1,10 @@
 import { useLocation, useNavigate } from "react-router";
 import { useEffect, useState } from "react";
 import FormButton from "@/components/forms/FormButton";
+import { formatCurrency } from "@/lib/utils";
 import api from "@/lib/api";
 import { toast } from "sonner";
-import { Image, Edit } from "lucide-react";
+import { Image, Edit, ChevronLeft } from "lucide-react";
 
 const RepairSummary = () => {
   const location = useLocation();
@@ -84,7 +85,7 @@ const RepairSummary = () => {
         })),
       });
 
-      toast.success("เริ่มดำเนินการซ่อมเรียบร้อยแล้ว");
+      toast.success("สร้างรายการซ่อมเรียบร้อยแล้ว");
 
       navigate("/repairs/status/in-progress");
     } catch (error) {
@@ -107,9 +108,15 @@ const RepairSummary = () => {
 
   return (
     <div className="w-full h-full bg-gradient-primary shadow-primary">
-      <p className="pt-[16px] pl-[20px] font-semibold text-[22px] text-surface">
-        สรุปรายการซ่อม
-      </p>
+      <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
+        <button
+          onClick={() => handleGoBack()}
+          className="mt-[2px] text-surface"
+        >
+          <ChevronLeft />
+        </button>
+        <p className="font-semibold text-[22px] text-surface">สรุปรายการซ่อม</p>
+      </div>
       <div className="w-full h-full mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         <div className="pt-[16px]">
           {/* ข้อมูลลูกค้า */}
@@ -213,14 +220,13 @@ const RepairSummary = () => {
                         <div className="flex flex-col">
                           {renderProductInfo(item)}
                           <p className="font-semibold text-[14px] text-subtle-dark">
-                            {Number(item.sellingPrice).toLocaleString()} บาท ×{" "}
+                            {formatCurrency(Number(item.sellingPrice))} ×{" "}
                             {item.quantity}
                           </p>
                         </div>
                       </div>
                       <p className="font-semibold text-[18px] text-primary text-nowrap">
-                        {(item.quantity * item.sellingPrice).toLocaleString()}{" "}
-                        บาท
+                        {formatCurrency(item.quantity * item.sellingPrice)}
                       </p>
                     </div>
                   </div>
@@ -230,7 +236,7 @@ const RepairSummary = () => {
           </div>
 
           {/* สรุปยอดรวม */}
-          <div className="p-[16px] mx-[20px] mt-[20px] rounded-[12px] border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5">
+          <div className="p-[16px] mx-[20px] mt-[20px] mb-[16px] rounded-[12px] border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5">
             <div className="flex justify-between items-center">
               <div className="flex flex-col">
                 <p className="font-semibold text-[18px] text-subtle-dark">
@@ -239,21 +245,20 @@ const RepairSummary = () => {
               </div>
               <div className="flex flex-col items-end">
                 <p className="font-semibold text-[22px] text-primary">
-                  {repairItems
-                    .reduce(
+                  {formatCurrency(
+                    repairItems.reduce(
                       (total, item) =>
                         total + item.sellingPrice * item.quantity,
                       0
                     )
-                    .toLocaleString()}{" "}
-                  บาท
+                  )}
                 </p>
               </div>
             </div>
           </div>
           <div className="flex justify-center pb-[88px]">
             <FormButton
-              label="ดำเนินการซ่อม"
+              label="สร้างรายการซ่อม"
               isLoading={isSubmitting}
               onClick={handleConfirmRepair}
             />

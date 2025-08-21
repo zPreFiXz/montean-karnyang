@@ -1,4 +1,5 @@
-import { Image } from "lucide-react";
+import { Image, Wrench } from "lucide-react";
+import { ToolBox } from "@/components/icons/Icon";
 
 const InventoryCard = ({
   brand,
@@ -17,7 +18,7 @@ const InventoryCard = ({
     // แสดงข้อมูลยางที่มีขนาดแก้มยาง
     if (isTire && typeSpecificData && typeSpecificData.aspectRatio) {
       return (
-        <p className="font-semibold text-[14px] text-normal">
+        <p className="overflow-hidden font-semibold text-[14px] text-normal line-clamp-2">
           {brand} {typeSpecificData.width}/{typeSpecificData.aspectRatio}R
           {typeSpecificData.rimDiameter} {name}
         </p>
@@ -25,7 +26,7 @@ const InventoryCard = ({
       // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
     } else if (isTire && typeSpecificData) {
       return (
-        <p className="font-semibold text-[14px] text-normal">
+        <p className="overflow-hidden font-semibold text-[14px] text-normal line-clamp-2">
           {brand} {typeSpecificData.width}R{typeSpecificData.rimDiameter} {name}
         </p>
       );
@@ -33,7 +34,7 @@ const InventoryCard = ({
 
     // แสดงข้อมูลอะไหล่หรือบริการ
     return (
-      <p className="font-semibold text-[14px] text-normal">
+      <p className="overflow-hidden font-semibold text-[14px] text-normal line-clamp-2">
         {brand} {name}
       </p>
     );
@@ -53,7 +54,11 @@ const InventoryCard = ({
               />
             ) : (
               <div className="flex items-center justify-center w-[60px] h-[60px] text-subtle-light">
-                <Image className="w-8 h-8" />
+                {isService ? (
+                  <Wrench className="w-8 h-8" />
+                ) : (
+                  <Image className="w-8 h-8" />
+                )}
               </div>
             )}
           </div>

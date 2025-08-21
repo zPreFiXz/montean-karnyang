@@ -5,6 +5,7 @@ import FormInput from "@/components/forms/FormInput";
 import LicensePlateInput from "@/components/forms/LicensePlateInput";
 import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
 import FormButton from "@/components/forms/FormButton";
+import { formatCurrency } from "@/lib/utils";
 import { Image, Trash, Plus, Minus, AlertCircle } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
@@ -16,6 +17,7 @@ const CreateRepair = () => {
     resolver: zodResolver(repairSchema),
   });
   const [repairItems, setRepairItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { errors } = formState;
 
   const renderProductInfo = (item) => {
@@ -83,24 +85,50 @@ const CreateRepair = () => {
   }, [location.state, setValue]);
 
   const onSubmit = async (data) => {
+    setIsLoading(true);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
     navigate("/repairs/summary", {
       state: {
         repairData: data,
         repairItems: repairItems,
       },
     });
+    setIsLoading(false);
   };
 
   const handleAddItemToRepair = (item) => {
-    setRepairItems((prev) => [
-      ...prev,
-      {
-        ...item,
-        quantity: 1,
-        sellingPrice: item.sellingPrice,
-        stockQuantity: item.stockQuantity,
-      },
-    ]);
+    setRepairItems((prev) => {
+      // หาตำแหน่งรายการที่ซ้ำกัน (เช็คจาก partNumber และ brand ถ้ามี)
+      const index = prev.findIndex(
+        (i) =>
+          i.partNumber === item.partNumber &&
+          i.brand === item.brand &&
+          i.name === item.name
+      );
+      if (index !== -1) {
+        // ถ้าซ้ำ ให้เพิ่ม quantity
+        return prev.map((i, idx) =>
+          idx === index
+            ? {
+                ...i,
+                quantity: i.quantity + 1,
+              }
+            : i
+        );
+      } else {
+        // ถ้าไม่ซ้ำ เพิ่มรายการใหม่
+        return [
+          ...prev,
+          {
+            ...item,
+            quantity: 1,
+            sellingPrice: item.sellingPrice,
+            stockQuantity: item.stockQuantity,
+          },
+        ];
+      }
+    });
 
     setTimeout(() => {
       window.scrollTo({
@@ -275,7 +303,10 @@ const CreateRepair = () => {
         <div className="w-full h-full mt-[30px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
           <div className="flex justify-between items-center px-[20px] pt-[20px]">
             <p className="font-semibold text-[22px]">รายการซ่อม</p>
-            <AddRepairItemDialog onAddItem={handleAddItemToRepair}>
+            <AddRepairItemDialog
+              onAddItem={handleAddItemToRepair}
+              selectedItems={repairItems}
+            >
               <p className="font-semibold text-[18px] text-primary hover:text-primary/80 cursor-pointer">
                 + เพิ่มรายการซ่อม
               </p>
@@ -316,14 +347,11 @@ const CreateRepair = () => {
                         {renderProductInfo(item)}
                         <p className="font-medium text-[12px] text-subtle-dark">
                           ราคาต่อหน่วย:{" "}
-                          {Number(item.sellingPrice).toLocaleString()} บาท
+                          {formatCurrency(Number(item.sellingPrice))}
                         </p>
                         <div className="flex items-center justify-between w-full">
                           <p className="font-semibold text-[16px] text-primary">
-                            {(
-                              item.quantity * item.sellingPrice
-                            ).toLocaleString()}{" "}
-                            บาท
+                            {formatCurrency(item.quantity * item.sellingPrice)}
                           </p>
                           <div className="flex items-center gap-[8px]">
                             <button
@@ -371,7 +399,7 @@ const CreateRepair = () => {
               ))}
 
               {/* สรุปยอดรวม */}
-              <div className="p-[16px] mx-[20px] mt-[20px] rounded-[12px] border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5">
+              <div className="p-[16px] mx-[20px] mt-[20px] mb-[16px] rounded-[12px] border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5">
                 <div className="flex justify-between items-center">
                   <div className="flex flex-col">
                     <p className="font-semibold text-[18px] text-subtle-dark">
@@ -380,20 +408,19 @@ const CreateRepair = () => {
                   </div>
                   <div className="flex flex-col items-end">
                     <p className="font-semibold text-[22px] text-primary">
-                      {repairItems
-                        .reduce(
+                      {formatCurrency(
+                        repairItems.reduce(
                           (total, item) =>
                             total + item.sellingPrice * item.quantity,
                           0
                         )
-                        .toLocaleString()}{" "}
-                      บาท
+                      )}
                     </p>
                   </div>
                 </div>
               </div>
               <div className="flex justify-center pb-[72px]">
-                <FormButton label="ถัดไป" />
+                <FormButton label="ถัดไป" isLoading={isLoading} />
               </div>
             </div>
           )}
