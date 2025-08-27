@@ -61,7 +61,7 @@ const Inventory = () => {
       <div className="w-full min-h-[calc(100vh-65px)] pb-[104px] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         <div className="px-[20px] pt-[16px]">
           {/* แถบค้นหา */}
-          <SearchBar />
+          <SearchBar placeholder="ค้นหารหัส, ยี่ห้อ, ชื่ออะไหล่" />
 
           {/* แถบหมวดหมู่ */}
           <CategoryList
@@ -86,7 +86,9 @@ const Inventory = () => {
             </div>
           ) : inventory.length === 0 ? (
             <div className="flex justify-center items-center h-[346px]">
-              <p className="font-medium text-subtle-light">ไม่พบอะไหล่และบริการ</p>
+              <p className="font-medium text-subtle-light">
+                ไม่พบอะไหล่และบริการ
+              </p>
             </div>
           ) : (
             inventory.map((item) => (

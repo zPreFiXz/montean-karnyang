@@ -13,8 +13,8 @@ import RepairDetail from "@/pages/repairs/RepairDetail";
 import Inventory from "@/pages/inventory/Inventory";
 import CreateItem from "@/pages/inventory/CreateItem";
 import ItemDetail from "@/pages/inventory/ItemDetail";
-import Customers from "@/pages/customers/Customers";
-import CustomerDetail from "@/pages/customers/CustomerDetail";
+import Vehicles from "@/pages/vehicles/Vehicles";
+import VehicleDetail from "@/pages/vehicles/VehicleDetail";
 import ProtectRouteUser from "./ProtectRouteUser";
 import ProtectRouteAdmin from "./ProtectRouteAdmin";
 import ProtectRouteGuest from "./ProtectRouteGuest";
@@ -45,19 +45,19 @@ const AppRoutes = () => {
           <Route path="reports/sales/:period" element={<SalesReport />} />
 
           {/* Repair Routes */}
-          <Route path="repairs/new" element={<CreateRepair />} />
-          <Route path="repairs/summary" element={<RepairSummary />} />
-          <Route path="repairs/status/:status" element={<RepairStatus />} />
-          <Route path="repairs/:id" element={<RepairDetail />} />
+          <Route path="repair/new" element={<CreateRepair />} />
+          <Route path="repair/summary" element={<RepairSummary />} />
+          <Route path="repair/status/:status" element={<RepairStatus />} />
+          <Route path="repair/:id" element={<RepairDetail />} />
 
           {/* Inventory Routes */}
           <Route path="inventory" element={<Inventory />} />
           <Route path="inventory/new" element={<CreateItem />} />
           <Route path="inventory/:id" element={<ItemDetail />} />
 
-          {/* Customer Routes */}
-          <Route path="customers" element={<Customers />} />
-          <Route path="customers/:id" element={<CustomerDetail />} />
+          {/* Vehicle Routes */}
+          <Route path="vehicles" element={<Vehicles />} />
+          <Route path="vehicle/:id" element={<VehicleDetail />} />
         </Route>
 
         {/* Admin Routes */}

@@ -12,14 +12,14 @@ const LeftSidebar = () => {
   const menuItems = [
     { path: "/dashboard", label: "แดชบอร์ด", icon: DashboardBar },
     { path: "/inspections/suspension", label: "เช็คช่วงล่าง", icon: CarRepair },
-    { path: "/customers/history", label: "ประวัติลูกค้า", icon: Document },
-    { path: "/inventory/parts", label: "สต็อกอะไหล่", icon: BoxSearch },
+    { path: "/vehicles", label: "ประวัติลูกค้า", icon: Document },
+    { path: "/inventory", label: "สต็อกอะไหล่", icon: BoxSearch },
   ];
 
   return (
     <div className="hidden lg:flex flex-col items-center w-[269px] min-h-[calc(100vh-73px)] gap-[24px] px-[16px] shadow-primary">
       <Link
-        to="/repairs/new"
+        to="/repair/new"
         className="flex justify-center items-center w-[237px] h-[65px] gap-[8px] mt-[24px] rounded-[10px] bg-gradient-to-r from-[#5b46f4] to-[#8663f8] hover:opacity-90 hover:scale-[1.03] hover:-translate-y-1 ease-out duration-300 cursor-pointer"
       >
         <Plus size="sm" />

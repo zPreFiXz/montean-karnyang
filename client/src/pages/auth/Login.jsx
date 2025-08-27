@@ -18,7 +18,7 @@ const Login = () => {
     if (role === "EMPLOYEE") {
       navigate("/dashboard");
     } else if (role === "ADMIN") {
-      navigate("/admin");
+      navigate("/dashboard");
     }
   };
 
@@ -32,8 +32,7 @@ const Login = () => {
       console.error(error);
 
       const errorMessage =
-        error.res?.data?.message ||
-        error.res?.data?.errors[0]?.message;
+        error.res?.data?.message || error.res?.data?.errors[0]?.message;
       toast.error(errorMessage);
     }
   };

@@ -189,7 +189,7 @@ const CreatePart = () => {
 
           {/* บริการ */}
           {isServiceCategory() && (
-            <div>
+            <div className="mb-[16px]">
               <FormInput
                 register={register}
                 name="name"

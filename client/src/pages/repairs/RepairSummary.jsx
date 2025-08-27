@@ -16,7 +16,7 @@ const RepairSummary = () => {
   // หากไม่มีข้อมูลให้กลับไปหน้าสร้างรายการซ่อมใหม่
   useEffect(() => {
     if (!repairData || !repairItems) {
-      navigate("/repairs/new", { replace: true });
+      navigate("/repair/new", { replace: true });
     }
   }, [repairData, repairItems, navigate]);
 
@@ -87,7 +87,7 @@ const RepairSummary = () => {
 
       toast.success("สร้างรายการซ่อมเรียบร้อยแล้ว");
 
-      navigate("/repairs/status/in-progress");
+      navigate("/repair/status/in-progress");
     } catch (error) {
       console.error(error);
     } finally {
@@ -96,7 +96,7 @@ const RepairSummary = () => {
   };
 
   const handleGoBack = () => {
-    navigate("/repairs/new", {
+    navigate("/repair/new", {
       state: { repairData, repairItems, scrollToBottom: true },
       replace: true,
     });

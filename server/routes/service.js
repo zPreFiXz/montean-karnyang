@@ -7,14 +7,14 @@ const { authCheck } = require("../middlewares/auth");
 
 // Controllers
 const {
-  getService,
+  getServices,
   createService,
   updateService,
   deleteService,
 } = require("../controllers/service");
 
 // @ENDPOINTS http://localhost:3000/api/services
-router.get("/services", authCheck, getService);
+router.get("/services", authCheck, getServices);
 
 // @ENDPOINTS http://localhost:3000/api/service
 router.post(

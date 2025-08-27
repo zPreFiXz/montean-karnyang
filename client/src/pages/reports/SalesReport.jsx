@@ -101,7 +101,7 @@ const SalesReport = () => {
           color="#5B46F4"
           icon={Car}
           licensePlate={"ขก1799 อุบลราชธานี"}
-          band={"Honda Jazz"}
+          brand={"Honda Jazz"}
           time={"15:23"}
           price={4300}
         />

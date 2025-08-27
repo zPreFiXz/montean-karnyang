@@ -29,6 +29,7 @@ const RepairDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
+
   const fetchRepairDetail = async () => {
     try {
       const res = await getRepairById(id);
@@ -174,7 +175,7 @@ const RepairDetail = () => {
       setRepair(res.data);
 
       if (skipToCompleted) {
-        toast.success("ซ่อมเสร็จสิ้นและชำระเงินแล้ว!");
+        toast.success("ซ่อมเสร็จสิ้นและชำระเงินแล้ว");
       } else if (nextStatus === "COMPLETED") {
         toast.success("ซ่อมเสร็จสิ้น");
       } else if (nextStatus === "PAID") {
@@ -183,7 +184,7 @@ const RepairDetail = () => {
 
       // แปลงสถานะเป็น slug สำหรับ URL
       const statusSlug = nextStatus.toLowerCase().replace("_", "-");
-      navigate(`/repairs/status/${statusSlug}`);
+      navigate(`/repair/status/${statusSlug}`);
     } catch (error) {
       console.error(error);
     } finally {
@@ -207,7 +208,7 @@ const RepairDetail = () => {
 
       <div className="min-h-[calc(100vh-65px)] pt-[16px] pb-[88px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         {isLoading ? (
-          <div className="flex justify-center items-center h-[628px]">
+          <div className="flex justify-center items-center h-[579px]">
             <LoaderCircle className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : (
@@ -272,7 +273,7 @@ const RepairDetail = () => {
               </div>
             )}
 
-            {repair.repairItems && repair.repairItems.length > 0 && (
+            {repair.repairItems && (
               <div className="px-[20px] mb-[16px]">
                 <div className="flex justify-between items-center mb-[16px]">
                   <p className="font-semibold text-[18px] text-normal">
@@ -359,10 +360,10 @@ const RepairDetail = () => {
                       value={selectedPaymentMethod}
                       onValueChange={(value) => setSelectedPaymentMethod(value)}
                     >
-                      <SelectTrigger className="w-auto min-w-[120px] px-[12px] py-[8px] rounded-[20px] border bg-white text-[14px] text-normal focus:outline-none focus:ring-3 focus:ring-primary/20 focus:border-primary focus:border-2 ease-in-out duration-200">
+                      <SelectTrigger className="w-auto min-w-[120px] px-[12px] py-[8px] rounded-[20px] border font-medium text-[14px] text-normal bg-white focus:outline-none focus:ring-3 focus:ring-primary/20 focus:border-primary focus:border-2 ease-in-out duration-200">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="font-athiti">
+                      <SelectContent className="font-athiti font-medium">
                         <SelectItem className="text-[14px]" value="CASH">
                           เงินสด
                         </SelectItem>
@@ -410,8 +411,8 @@ const RepairDetail = () => {
                     เริ่มซ่อม:
                   </p>
                   <p className="font-medium text-[16px] text-normal">
-                    {formatDate(repair.startedAt)} |{" "}
-                    {formatTime(repair.startedAt)} น.
+                    {formatDate(repair.createdAt)} |{" "}
+                    {formatTime(repair.createdAt)} น.
                   </p>
                 </div>
                 {repair.completedAt && (

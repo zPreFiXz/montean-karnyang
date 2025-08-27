@@ -59,7 +59,7 @@ const RepairStatus = () => {
       case "paid":
         return "รายการชำระเงินแล้ว";
       default:
-        return "รายการซ่อม";
+        return null;
     }
   };
 
@@ -73,7 +73,7 @@ const RepairStatus = () => {
       case "paid":
         return "#1976D2";
       default:
-        return "#F4B809";
+        return null;
     }
   };
 
@@ -87,7 +87,7 @@ const RepairStatus = () => {
       case "paid":
         return "paid";
       default:
-        return "in-progress";
+        return null;
     }
   };
 
@@ -100,7 +100,7 @@ const RepairStatus = () => {
       case "paid":
         return "ไม่มีรายการที่ชำระเงินแล้ว";
       default:
-        return "ไม่มีรายการซ่อม";
+        return null;
     }
   };
 
@@ -112,15 +112,15 @@ const RepairStatus = () => {
       <div className="flex justify-center gap-[16px] mx-[20px] mt-[16px]">
         <div
           className={`flex items-center justify-center w-[106px] h-[45px] rounded-[10px] duration-200 ${
-            location.pathname === "/repairs/status/in-progress"
+            location.pathname === "/repair/status/in-progress"
               ? "bg-in-progress"
               : "bg-surface"
           }`}
         >
           <Link
-            to="/repairs/status/in-progress"
+            to="/repair/status/in-progress"
             className={`font-semibold text-[18px] ${
-              location.pathname === "/repairs/status/in-progress"
+              location.pathname === "/repair/status/in-progress"
                 ? "text-surface"
                 : "text-subtle-light"
             }`}
@@ -130,15 +130,15 @@ const RepairStatus = () => {
         </div>
         <div
           className={`flex items-center justify-center w-[106px] h-[45px] rounded-[10px] duration-200 ${
-            location.pathname === "/repairs/status/completed"
+            location.pathname === "/repair/status/completed"
               ? "bg-[#66BB6A]"
               : "bg-surface"
           }`}
         >
           <Link
-            to="/repairs/status/completed"
+            to="/repair/status/completed"
             className={`font-semibold text-[18px] ${
-              location.pathname === "/repairs/status/completed"
+              location.pathname === "/repair/status/completed"
                 ? "text-surface"
                 : "text-subtle-light"
             }`}
@@ -148,15 +148,15 @@ const RepairStatus = () => {
         </div>
         <div
           className={`flex items-center justify-center w-[106px] h-[45px] rounded-[10px] duration-200 ${
-            location.pathname === "/repairs/status/paid"
+            location.pathname === "/repair/status/paid"
               ? "bg-[#1976D2]"
               : "bg-surface"
           }`}
         >
           <Link
-            to="/repairs/status/paid"
+            to="/repair/status/paid"
             className={`font-semibold text-[18px] ${
-              location.pathname === "/repairs/status/paid"
+              location.pathname === "/repair/status/paid"
                 ? "text-surface"
                 : "text-subtle-light"
             }`}
@@ -178,24 +178,20 @@ const RepairStatus = () => {
             <p className="text-[16px] text-subtle-light">{getEmptyMessage()}</p>
           </div>
         ) : (
-          currentRepairs.map((repair) => (
+          currentRepairs.map((item, index) => (
             <Link
-              key={repair.id}
-              to={`/repairs/${repair.id}`}
+              key={index}
+              to={`/repair/${item.id}`}
               className="block w-full h-[80px] mt-[16px] rounded-[10px] bg-surface shadow-primary"
             >
               <CarCard
-                bg={getStatusBg(repair.status)}
-                color={getStatusColor(repair.status)}
+                bg={getStatusBg(item.status)}
+                color={getStatusColor(item.status)}
                 icon={Car}
-                licensePlate={
-                  repair.vehicle?.licensePlate
-                    ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
-                    : "ไม่มีทะเบียน"
-                }
-                band={`${repair.vehicle.brand} ${repair.vehicle.model}`}
-                time={repair.createdAt ? formatTime(repair.createdAt) : ""}
-                price={Number(repair.totalPrice) || 0}
+                licensePlate={`${item.vehicle.licensePlate.plateNumber} ${item.vehicle.licensePlate.province}`}
+                brand={`${item.vehicle.brand} ${item.vehicle.model}`}
+                time={item.createdAt && formatTime(item.createdAt)}
+                price={Number(item.totalPrice) || 0}
               />
             </Link>
           ))

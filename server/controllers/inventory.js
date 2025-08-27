@@ -4,12 +4,12 @@ exports.getInventory = async (req, res, next) => {
   try {
     const { category, search } = req.query;
 
-    let partWhereCondition = {};
-    let serviceWhereCondition = {};
+    let partFilter = {};
+    let serviceFilter = {};
 
     // ถ้า category และ search ถูกระบุให้ค้นหาเฉพาะในหมวดหมู่และคำค้นหานั้น
     if (category && search) {
-      partWhereCondition = {
+      partFilter = {
         AND: [
           { category: { name: category } },
           {
@@ -21,34 +21,32 @@ exports.getInventory = async (req, res, next) => {
           },
         ],
       };
-      serviceWhereCondition = {
+      serviceFilter = {
         AND: [{ category: { name: category } }, { name: { contains: search } }],
       };
       // ถ้า category ถูกระบุให้ค้นหาเฉพาะในหมวดหมู่นั้น
     } else if (category) {
-      partWhereCondition.category = { name: category };
-      serviceWhereCondition.category = { name: category };
+      partFilter.category = { name: category };
+      serviceFilter.category = { name: category };
       // ถ้า search ถูกระบุให้ค้นหาทั้งในชื่อ, รหัสอะไหล่ และยี่ห้อ
     } else if (search) {
-      partWhereCondition.OR = [
+      partFilter.OR = [
         { name: { contains: search } },
         { brand: { contains: search } },
         { partNumber: { contains: search } },
       ];
-      serviceWhereCondition.name = { contains: search };
+      serviceFilter.name = { contains: search };
     }
 
     // ถ้าไม่มีการระบุ category หรือ search ให้ค้นหาทุกอย่าง
     const [parts, services] = await Promise.all([
       prisma.part.findMany({
-        where: partWhereCondition,
+        where: partFilter,
         include: { category: true },
-        orderBy: { id: "asc" },
       }),
       prisma.service.findMany({
-        where: serviceWhereCondition,
+        where: serviceFilter,
         include: { category: true },
-        orderBy: { id: "asc" },
       }),
     ]);
 

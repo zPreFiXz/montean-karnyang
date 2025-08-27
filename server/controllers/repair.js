@@ -6,15 +6,12 @@ exports.getRepairs = async (req, res, next) => {
       include: {
         vehicle: {
           include: {
-            licensePlate: true,
-          },
-        },
-        customer: true,
-        user: true,
-        repairItems: {
-          include: {
-            part: true,
-            service: true,
+            licensePlate: {
+              select: {
+                plateNumber: true,
+                province: true,
+              },
+            },
           },
         },
       },
@@ -38,16 +35,19 @@ exports.getRepairById = async (req, res, next) => {
       include: {
         vehicle: {
           include: {
-            licensePlate: true,
+            licensePlate: {
+              select: {
+                plateNumber: true,
+                province: true,
+              },
+            },
           },
         },
         customer: true,
         user: {
           select: {
-            id: true,
             fullName: true,
             nickname: true,
-            email: true,
           },
         },
         repairItems: {
@@ -102,36 +102,19 @@ exports.createRepair = async (req, res, next) => {
       },
     });
 
-    // ค้นหารถในฐานข้อมูลตามทะเบียนรถ
+    // ถ้ามีทะเบียนรถในฐานข้อมูล
     if (licensePlate) {
+      // ตรวจสอบว่ามีรถคันนี้ที่ใช้ทะเบียนนี้ มี brand และ model ตรงกันหรือไม่
       vehicle = await prisma.vehicle.findFirst({
-        where: { licensePlateId: licensePlate.id },
+        where: {
+          licensePlateId: licensePlate.id,
+          brand: brand,
+          model: model,
+        },
       });
 
-      // ถ้ามีรถที่ตรงกับทะเบียนรถแล้ว ตรวจสอบว่ารถนั้นมียี่ห้อและรุ่นตรงกับที่ส่งมาหรือไม่
-      if (vehicle) {
-        const isSameVehicle =
-          vehicle.brand === brand && vehicle.model === model;
-
-        // ถ้ายี่ห้อหรือรุ่นไม่ตรงกับทะเบียนรถเดิม จะลบทะเบียนรถเดิมออกจากรถคันนั้น
-        if (!isSameVehicle) {
-          await prisma.vehicle.update({
-            where: { id: vehicle.id },
-            data: {
-              licensePlateId: null,
-            },
-          });
-          // สร้างรถใหม่ที่มีทะเบียนรถเดียวกัน
-          vehicle = await prisma.vehicle.create({
-            data: {
-              brand,
-              model,
-              licensePlateId: licensePlate.id,
-            },
-          });
-        }
-        // ถ้ายี่ห้อและรุ่นตรงกัน จะใช้รถคันเดิมที่มีทะเบียนรถนั้นอยู่
-      } else {
+      if (!vehicle) {
+        // ถ้าไม่เจอ ให้สร้างรถใหม่ที่ใช้ทะเบียนเดิม
         vehicle = await prisma.vehicle.create({
           data: {
             brand,
@@ -140,14 +123,15 @@ exports.createRepair = async (req, res, next) => {
           },
         });
       }
-      // ถ้าไม่มีทะเบียนรถในฐานข้อมูล จะสร้างทะเบียนรถใหม่และรถใหม่
     } else {
+      // ถ้าไม่มีทะเบียนรถในฐานข้อมูล สร้างทะเบียนใหม่และรถใหม่
       licensePlate = await prisma.licensePlate.create({
         data: {
           plateNumber,
           province,
         },
       });
+
       vehicle = await prisma.vehicle.create({
         data: {
           brand,
@@ -214,7 +198,7 @@ exports.createRepair = async (req, res, next) => {
     });
 
     // สร้างรายการซ่อม
-    if (repairItems && repairItems.length > 0) {
+    if (repairItems) {
       const repairItemsData = repairItems.map((item) => ({
         unitPrice: item.unitPrice,
         quantity: item.quantity,
@@ -270,12 +254,27 @@ exports.updateRepairStatus = async (req, res, next) => {
     const { id } = req.params;
     const { status, paymentMethod } = req.body;
 
+    // ดึงข้อมูลการซ่อมปัจจุบันเพื่อเช็คสถานะเดิม
+    const currentRepair = await prisma.repair.findUnique({
+      where: { id: Number(id) },
+      select: { status: true, completedAt: true },
+    });
+
     const updatedData = { status };
 
     if (status === "COMPLETED") {
       updatedData.completedAt = new Date();
     } else if (status === "PAID") {
       updatedData.paidAt = new Date();
+
+      // ถ้าข้ามจาก IN_PROGRESS ไปเป็น PAID โดยตรง ให้เซ็ต completedAt ด้วย
+      if (
+        currentRepair.status === "IN_PROGRESS" &&
+        !currentRepair.completedAt
+      ) {
+        updatedData.completedAt = new Date();
+      }
+
       // ถ้ามี paymentMethod ให้อัปเดตด้วย
       if (paymentMethod) {
         const validPaymentMethods = ["CASH", "CREDIT_CARD", "BANK_TRANSFER"];

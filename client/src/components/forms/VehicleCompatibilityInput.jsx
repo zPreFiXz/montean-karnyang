@@ -128,7 +128,7 @@ const VehicleCompatibilityInput = ({ setValue }) => {
       <button
         type="button"
         onClick={handleAddVehicle}
-        className="w-full py-2  rounded-lg  border-2 border-dashed border-gray-300 hover:border-primary font-medium text-subtle-light hover:text-primary cursor-pointer"
+        className="w-full py-2 mb-[16px]  rounded-lg  border-2 border-dashed border-gray-300 hover:border-primary font-medium text-subtle-light hover:text-primary cursor-pointer"
       >
         + เพิ่มรถรุ่นอื่น
       </button>

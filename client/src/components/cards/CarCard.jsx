@@ -1,11 +1,12 @@
 import { formatCurrency } from "@/lib/utils";
+import { ChevronRight } from "lucide-react";
 
 const CarCard = ({
   bg,
   color,
   icon: Icon,
   licensePlate,
-  band,
+  brand,
   time,
   price,
   amount,
@@ -32,24 +33,32 @@ const CarCard = ({
         >
           <Icon color={color} />
         </div>
-        <div className="flex-1 flex flex-col min-w-0 gap-[4px]">
+        <div className="flex-1 flex flex-col min-w-0">
           <p
             className={`font-semibold text-[18px] truncate ${textColorMap[bg]}`}
           >
-            {licensePlate}
+            {licensePlate ? licensePlate : "ไม่มีทะเบียน"}
           </p>
           <p className="font-medium text-[14px] text-subtle-dark truncate">
-            {[band, time && `${time} น.`].filter(Boolean).join(" | ") || ""}
+            {[brand, time && `${time} น.`].filter(Boolean).join(" | ") || ""}
           </p>
         </div>
       </div>
-      <p
+      <div
         className={`font-semibold ${
           price ? "text-[22px] text-nowrap" : "text-[32px]"
         } ${textColorMap[bg]}`}
       >
-        {price ? formatCurrency(price) : amount ? `${amount} คัน` : ""}
-      </p>
+        {price ? (
+          formatCurrency(price)
+        ) : amount ? (
+          `${amount} คัน`
+        ) : (
+          <div className="flex justify-center items-center w-[32px] h-[32px] rounded-full text-subtle-light bg-[#F6F6F6]">
+            <ChevronRight />
+          </div>
+        )}
+      </div>
     </div>
   );
 };

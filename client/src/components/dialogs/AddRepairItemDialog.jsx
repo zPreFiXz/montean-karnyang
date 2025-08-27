@@ -201,13 +201,13 @@ const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
                     ทั้งหมด
                   </div>
                 </button>
-                {categories.map((category) => {
-                  const IconComponent = category.icon;
-                  const isActive = activeCategory === category.name;
+                {categories.map((item, index) => {
+                  const IconComponent = item.icon;
+                  const isActive = activeCategory === item.name;
                   return (
                     <button
-                      key={category.id}
-                      onClick={() => handleCategoryChange(category.name)}
+                      key={index}
+                      onClick={() => handleCategoryChange(item.name)}
                       tabIndex={-1}
                       className={`flex flex-col justify-center items-center w-[80px] h-[80px] px-[20px] py-[12px] border rounded-[10px] duration-200 ${
                         isActive
@@ -223,7 +223,7 @@ const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
                         <IconComponent />
                       </div>
                       <div className="font-semibold text-[14px] text-nowrap">
-                        {category.name}
+                        {item.name}
                       </div>
                     </button>
                   );
@@ -252,7 +252,7 @@ const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
               </div>
             ) : (
               <div className="flex flex-col">
-                {inventory.map((item) => {
+                {inventory.map((item, index) => {
                   // คำนวณจำนวนที่เหลือจริงหลังจากหักที่เลือกไปแล้ว
                   const selectedQuantity =
                     selectedItems.find(
@@ -270,7 +270,7 @@ const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
 
                   return (
                     <div
-                      key={`${item.category.name}-${item.id}`}
+                      key={index}
                       onClick={() => handleAddItemToRepair(item)}
                       className={`rounded-lg font-athiti ${
                         isDisabled

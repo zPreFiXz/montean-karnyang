@@ -88,7 +88,7 @@ const CreateRepair = () => {
     setIsLoading(true);
     await new Promise((resolve) => setTimeout(resolve, 250));
 
-    navigate("/repairs/summary", {
+    navigate("/repair/summary", {
       state: {
         repairData: data,
         repairItems: repairItems,
@@ -240,7 +240,6 @@ const CreateRepair = () => {
                 register={register}
                 name="plateNumbers"
                 placeholder="9876"
-                pattern="[0-9]*"
                 maxLength={4}
                 errors={errors}
                 onInput={(e) => {

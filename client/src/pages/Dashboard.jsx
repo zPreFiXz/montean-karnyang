@@ -1,6 +1,6 @@
 import CarCard from "@/components/cards/CarCard";
 import StatusCard from "@/components/cards/StatusCard";
-import { Success, Repairing, Paid, Car } from "@/components/icons/Icon";
+import { Success, Wrench, Paid, Car } from "@/components/icons/Icon";
 import { useEffect } from "react";
 import { Link } from "react-router";
 import { formatCurrency, formatTime } from "@/lib/utils";
@@ -84,27 +84,26 @@ const Dashboard = () => {
             <div className="flex-1 flex-col items-center gap-[16px]">
               <StatusCard
                 bg="in-progress"
-                icon={Repairing}
+                icon={Wrench}
                 label={"กำลังซ่อม"}
                 amount={inProgressCount}
               />
               <div className="mt-[16px]">
                 {latestInProgress && (
-                  <Link to="/repairs/status/in-progress">
+                  <Link to="/repair/status/in-progress">
                     <CarCard
                       bg="in-progress"
                       color="#F4B809"
                       icon={Car}
                       licensePlate={`${
                         latestInProgress.vehicle?.licensePlate?.plateNumber ||
-                        "ไม่ระบุ"
-                      } ${
-                        latestInProgress.vehicle?.licensePlate?.province || ""
-                      }`}
-                      band={`${latestInProgress.vehicle?.brand || ""} ${
-                        latestInProgress.vehicle?.model || ""
-                      }`}
-                      time={formatTime(latestInProgress.startedAt)}
+                        "ไม่มีทะเบียน"
+                      } ${latestInProgress.vehicle?.licensePlate?.province}`}
+                      brand={`${latestInProgress.vehicle?.brand} ${latestInProgress.vehicle?.model}`}
+                      time={
+                        latestInProgress.createdAt &&
+                        formatTime(latestInProgress.createdAt)
+                      }
                       price={parseFloat(latestInProgress.totalPrice)}
                     />
                   </Link>
@@ -122,24 +121,19 @@ const Dashboard = () => {
               />
               <div className="mt-[16px]">
                 {latestCompleted && (
-                  <Link to="/repairs/status/completed">
+                  <Link to="/repair/status/completed">
                     <CarCard
                       bg="completed"
                       color="#66BB6A"
                       icon={Car}
                       licensePlate={`${
                         latestCompleted.vehicle?.licensePlate?.plateNumber ||
-                        "ไม่ระบุ"
-                      } ${
-                        latestCompleted.vehicle?.licensePlate?.province || ""
-                      }`}
-                      band={`${latestCompleted.vehicle?.brand || ""} ${
-                        latestCompleted.vehicle?.model || ""
-                      }`}
+                        "ไม่มีป้ายทะเบียน"
+                      } ${latestCompleted.vehicle?.licensePlate?.province}`}
+                      brand={`${latestCompleted.vehicle?.brand} ${latestCompleted.vehicle?.model}`}
                       time={
-                        latestCompleted.completedAt
-                          ? formatTime(latestCompleted.completedAt)
-                          : "-"
+                        latestCompleted.completedAt &&
+                        formatTime(latestCompleted.completedAt)
                       }
                       price={parseFloat(latestCompleted.totalPrice)}
                     />
@@ -158,21 +152,17 @@ const Dashboard = () => {
               />
               <div className="mt-[16px]">
                 {latestPaid && (
-                  <Link to="/repairs/status/paid">
+                  <Link to="/repair/status/paid">
                     <CarCard
                       bg="paid"
                       color="#1976D2"
                       icon={Car}
                       licensePlate={`${
                         latestPaid.vehicle?.licensePlate?.plateNumber ||
-                        "ไม่ระบุ"
-                      } ${latestPaid.vehicle?.licensePlate?.province || ""}`}
-                      band={`${latestPaid.vehicle?.brand || ""} ${
-                        latestPaid.vehicle?.model || ""
-                      }`}
-                      time={
-                        latestPaid.paidAt ? formatTime(latestPaid.paidAt) : "-"
-                      }
+                        "ไม่มีป้ายทะเบียน"
+                      } ${latestPaid.vehicle?.licensePlate?.province}`}
+                      brand={`${latestPaid.vehicle?.brand} ${latestPaid.vehicle?.model}`}
+                      time={latestPaid.paidAt && formatTime(latestPaid.paidAt)}
                       price={parseFloat(latestPaid.totalPrice)}
                     />
                   </Link>
@@ -208,16 +198,16 @@ const Dashboard = () => {
           <p className="pt-[16px] font-semibold text-[22px] text-normal">
             สถานะการซ่อม
           </p>
-          <Link to="/repairs/status/in-progress">
+          <Link to="/repair/status/in-progress">
             <CarCard
               bg="in-progress"
               color="#F4B809"
-              icon={Repairing}
+              icon={Wrench}
               licensePlate={"กำลังซ่อม"}
               amount={inProgressCount > 0 ? inProgressCount : "0"}
             />
           </Link>
-          <Link to="/repairs/status/completed">
+          <Link to="/repair/status/completed">
             <CarCard
               bg="completed"
               color="#66BB6A"
@@ -226,7 +216,7 @@ const Dashboard = () => {
               amount={completedCount > 0 ? completedCount : "0"}
             />
           </Link>
-          <Link to="/repairs/status/paid">
+          <Link to="/repair/status/paid">
             <CarCard
               bg="paid"
               color="#1976D2"

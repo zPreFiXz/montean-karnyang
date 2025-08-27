@@ -49,13 +49,13 @@ const Tab = () => {
 
         {/* ปุ่มสร้างรายการซ่อมใหม่ */}
         <div className="flex justify-center items-center w-[75px] h-[45px] rounded-2xl bg-gradient-primary">
-          <Link to="/repairs/new">
+          <Link to="/repair/new">
             <Plus size="md" />
           </Link>
         </div>
 
         {/* ปุ่มประวัติลูกค้า */}
-        <TabButton icon={Document} label="ประวัติลูกค้า" to="/customers" />
+        <TabButton icon={Document} label="ประวัติลูกค้า" to="/vehicles" />
 
         {/* ปุ่มอะไหล่และบริการ */}
         <TabButton icon={BoxSearch} label="อะไหล่" to="/inventory" />

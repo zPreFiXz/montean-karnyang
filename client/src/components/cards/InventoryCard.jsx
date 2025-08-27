@@ -1,5 +1,4 @@
 import { Image, Wrench } from "lucide-react";
-import { ToolBox } from "@/components/icons/Icon";
 
 const InventoryCard = ({
   brand,

@@ -36,7 +36,6 @@ model Repair {
   id            Int           @id @default(autoincrement())
   description   String?
   totalPrice    Decimal
-  startedAt     DateTime      @default(now())
   completedAt   DateTime?
   status        RepairStatus  @default(IN_PROGRESS)
   paymentMethod PaymentMethod @default(CASH)

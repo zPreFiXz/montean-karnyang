@@ -4,7 +4,7 @@ import { Search, X } from "lucide-react";
 import { useDebouncedCallback } from "use-debounce";
 import { useState, useEffect } from "react";
 
-const SearchBar = () => {
+const SearchBar = ({ placeholder }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [inputValue, setInputValue] = useState("");
 
@@ -45,7 +45,7 @@ const SearchBar = () => {
         type="text"
         value={inputValue}
         onChange={handleSearch}
-        placeholder="ค้นหารหัส, ยี่ห้อ, ชื่ออะไหล่"
+        placeholder={placeholder}
         className="w-full h-[40px] px-[40px] rounded-[20px] bg-surface focus:outline-none"
         style={{
           "--tw-ring-color": "#5b46f4",
