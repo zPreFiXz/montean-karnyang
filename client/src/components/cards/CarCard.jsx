@@ -26,7 +26,7 @@ const CarCard = ({
   };
 
   return (
-    <div className="flex justify-between items-center w-full h-[80px] px-[16px] rounded-[10px] bg-surface shadow-primary">
+    <div className="flex justify-between items-center w-full h-[80px] gap-[8px] px-[16px] rounded-[10px] bg-surface shadow-primary">
       <div className="flex-1 flex items-center min-w-0 gap-[8px]">
         <div
           className={`flex justify-center items-center w-[45px] h-[45px] rounded-full ${bgColorMap[bg]}`}
@@ -37,7 +37,7 @@ const CarCard = ({
           <p
             className={`font-semibold text-[18px] truncate ${textColorMap[bg]}`}
           >
-            {licensePlate ? licensePlate : "ไม่มีทะเบียน"}
+            {licensePlate}
           </p>
           <p className="font-medium text-[14px] text-subtle-dark truncate">
             {[brand, time && `${time} น.`].filter(Boolean).join(" | ") || ""}

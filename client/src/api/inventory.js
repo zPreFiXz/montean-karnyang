@@ -5,3 +5,9 @@ export const getInventory = async (category, search) => {
     params: { category, search },
   });
 };
+
+export const getInventoryById = async (id, type) => {
+  return await api.get(`/api/inventory/${id}`, {
+    params: type ? { type } : {},
+  });
+};

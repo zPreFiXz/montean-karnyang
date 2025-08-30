@@ -24,6 +24,7 @@ const ComboBox = ({
   placeholder,
   errors,
   name,
+  disabled = false,
 }) => {
   const [open, setOpen] = useState(false);
   const [triggerWidth, setTriggerWidth] = useState(0);
@@ -44,23 +45,26 @@ const ComboBox = ({
         {label}
       </Label>
       <div className="relative">
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open && !disabled} onOpenChange={disabled ? undefined : setOpen}>
           <PopoverTrigger asChild>
             <Button
               ref={triggerRef}
               variant="outline"
               role="combobox"
               aria-expanded={open}
+              disabled={disabled}
               className={cn(
                 "justify-between w-full h-[40px] rounded-[20px] border-input font-normal text-[16px] text-foreground",
                 !selectedLabel && "text-muted-foreground",
-                hasError && "border-red-400 focus:border-red-500"
+                hasError && "border-red-400 focus:border-red-500",
+                disabled && "opacity-50 cursor-not-allowed"
               )}
               style={{
                 "--tw-ring-color": hasError ? "#FF4545" : "#5b46f4",
                 "--tw-border-opacity": "1",
               }}
               onFocus={(e) => {
+                if (disabled) return;
                 if (hasError) {
                   e.target.style.borderColor = "#FF4545";
                   e.target.style.borderWidth = "2px";
@@ -72,6 +76,7 @@ const ComboBox = ({
                 }
               }}
               onBlur={(e) => {
+                if (disabled) return;
                 e.target.style.borderColor = "";
                 e.target.style.borderWidth = "";
                 e.target.style.boxShadow = "";

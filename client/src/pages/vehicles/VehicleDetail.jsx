@@ -29,44 +29,6 @@ const VehicleDetail = () => {
     fetchVehicleDetail();
   }, [id]);
 
-  // ฟังก์ชันสำหรับแสดงข้อมูลสินค้า
-  const renderProductInfo = (item) => {
-    const isTire = item.part?.category?.name === "ยาง";
-
-    // แสดงข้อมูลยางที่มีขนาดแก้มยาง
-    if (
-      isTire &&
-      item.part?.typeSpecificData &&
-      item.part.typeSpecificData.aspectRatio
-    ) {
-      return (
-        <p className="font-semibold text-[14px] text-normal">
-          {item.part.brand} {item.part.typeSpecificData.width}/
-          {item.part.typeSpecificData.aspectRatio}R
-          {item.part.typeSpecificData.rimDiameter} {item.part.name}
-        </p>
-      );
-    }
-
-    // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
-    if (isTire && item.part?.typeSpecificData) {
-      return (
-        <p className="font-semibold text-[14px] text-normal">
-          {item.part.brand} {item.part.typeSpecificData.width}R
-          {item.part.typeSpecificData.rimDiameter} {item.part.name}
-        </p>
-      );
-    }
-
-    // แสดงข้อมูลอะไหล่หรือบริการ
-    return (
-      <p className="font-semibold text-[14px] text-normal">
-        {item.part?.brand && `${item.part.brand} `}
-        {item.part?.name || item.service?.name}
-      </p>
-    );
-  };
-
   return (
     <div className="w-full h-[78px] bg-gradient-primary shadow-primary">
       <div className="flex items-center gap-[8px] px-[20px] py-[16px]">
@@ -89,9 +51,8 @@ const VehicleDetail = () => {
               </div>
               <div className="flex flex-col">
                 <p className="font-semibold text-[22px] text-primary leading-tight">
-                  {vehicle?.licensePlate
-                    ? `${vehicle.licensePlate.plateNumber} ${vehicle.licensePlate.province}`
-                    : "ไม่มีทะเบียน"}
+                  {vehicle.licensePlate.plateNumber}{" "}
+                  {vehicle.licensePlate.province}
                 </p>
                 <p className="font-medium text-[18px] text-subtle-dark leading-tight">
                   {vehicle?.brand} {vehicle?.model}
@@ -114,9 +75,9 @@ const VehicleDetail = () => {
                         {formatTime(item.createdAt)} น.
                       </p>
                       <Link to={`/repair/${item.id}`}>
-                        <RepairCard 
-                          icon={Wrench} 
-                          repairId={item.id} 
+                        <RepairCard
+                          icon={Wrench}
+                          repairId={item.id}
                           itemCount={item.repairItems?.length}
                         />
                       </Link>

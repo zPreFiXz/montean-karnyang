@@ -30,25 +30,34 @@ const RepairStatus = () => {
   }, []);
 
   // กรองรายการซ่อมตามสถานะที่เลือก
-  const currentRepairs = repairs.filter((repair) => {
-    const dbStatus = repair.status?.toLowerCase().replace("_", "-");
-    const isStatusMatch = dbStatus === status;
+  const currentRepairs = repairs
+    .filter((repair) => {
+      const dbStatus = repair.status?.toLowerCase().replace("_", "-");
+      const isStatusMatch = dbStatus === status;
 
-    // ถ้าเป็นสถานะ "paid" ให้แสดงแค่ของวันนี้
-    if (status === "paid" && isStatusMatch) {
-      const today = new Date();
-      const paidDate = new Date(repair.paidAt);
+      // ถ้าเป็นสถานะ "paid" ให้แสดงแค่ของวันนี้
+      if (status === "paid" && isStatusMatch) {
+        const today = new Date();
+        const paidDate = new Date(repair.paidAt);
 
-      const isSameDay =
-        today.getFullYear() === paidDate.getFullYear() &&
-        today.getMonth() === paidDate.getMonth() &&
-        today.getDate() === paidDate.getDate();
+        const isSameDay =
+          today.getFullYear() === paidDate.getFullYear() &&
+          today.getMonth() === paidDate.getMonth() &&
+          today.getDate() === paidDate.getDate();
 
-      return isSameDay;
-    }
+        return isSameDay;
+      }
 
-    return isStatusMatch;
-  });
+      return isStatusMatch;
+    })
+    .sort((a, b) => {
+      // ถ้าเป็นสถานะ "paid" ให้เรียงตาม paidAt จากใหม่ไปเก่า
+      if (status === "paid") {
+        return new Date(b.paidAt) - new Date(a.paidAt);
+      }
+      // สถานะอื่นๆ เรียงตาม createdAt จากใหม่ไปเก่า
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
 
   const getStatusTitle = () => {
     switch (status) {

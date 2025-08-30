@@ -68,6 +68,49 @@ exports.updatePart = async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    const {
+      partNumber,
+      brand,
+      name,
+      costPrice,
+      sellingPrice,
+      unit,
+      stockQuantity,
+      minStockLevel,
+      typeSpecificData,
+      compatibleVehicles,
+      image,
+      categoryId,
+    } = req.body;
+
+    // ตรวจสอบว่ารหัสอะไหล่ซ้ำกับรหัสอื่นๆ หรือไม่ (ยกเว้นอะไหล่ปัจจุบัน)
+    const part = await prisma.part.findUnique({
+      where: { partNumber },
+    });
+
+    if (part && part.id !== Number(id)) {
+      createError(400, "รหัสอะไหล่นี้ถูกใช้งานแล้ว");
+    }
+
+    await prisma.part.update({
+      where: { id: Number(id) },
+      data: {
+        partNumber,
+        brand,
+        name,
+        costPrice,
+        sellingPrice,
+        unit,
+        stockQuantity,
+        minStockLevel,
+        typeSpecificData,
+        compatibleVehicles,
+        publicId: image?.publicId,
+        secureUrl: image?.secureUrl,
+        categoryId,
+      },
+    });
+
     res.json({ message: "Part updated successfully" });
   } catch (error) {
     next(error);

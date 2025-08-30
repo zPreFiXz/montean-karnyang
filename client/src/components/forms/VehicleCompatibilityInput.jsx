@@ -1,14 +1,36 @@
 import { Label } from "@radix-ui/react-label";
 import { useState, useEffect } from "react";
 import { Input } from "../ui/input";
-import { Trash } from "lucide-react";
+import { Trash, X } from "lucide-react";
 
-const VehicleCompatibilityInput = ({ setValue }) => {
+const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   const [vehicles, setVehicles] = useState([{ brand: "", model: "" }]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    setValue("compatibleVehicles", null);
-  }, [setValue]);
+    if (initialData && Array.isArray(initialData) && !isInitialized) {
+      // ถ้ามีข้อมูลเริ่มต้น ให้ตั้งค่า
+      setVehicles(initialData);
+      setValue("compatibleVehicles", initialData);
+      setIsInitialized(true);
+    } else if (initialData === null && !isInitialized) {
+      // ถ้าไม่มีข้อมูลเริ่มต้น ให้ reset
+      setVehicles([{ brand: "", model: "" }]);
+      setValue("compatibleVehicles", null);
+      setIsInitialized(true);
+    }
+  }, [setValue, initialData, isInitialized]);
+
+  // Reset เมื่อ initialData เปลี่ยน
+  useEffect(() => {
+    if (initialData && Array.isArray(initialData)) {
+      setVehicles(initialData);
+      setValue("compatibleVehicles", initialData);
+    } else if (initialData === null) {
+      setVehicles([{ brand: "", model: "" }]);
+      setValue("compatibleVehicles", null);
+    }
+  }, [initialData, setValue]);
 
   const updateFormValue = (vehicleList) => {
     const validVehicles = vehicleList
@@ -23,6 +45,14 @@ const VehicleCompatibilityInput = ({ setValue }) => {
 
   const handleAddVehicle = () => {
     setVehicles([...vehicles, { brand: "", model: "" }]);
+  };
+
+  const handleClearVehicle = (index) => {
+    const newVehicles = vehicles.map((vehicle, i) =>
+      i === index ? { brand: "", model: "" } : vehicle
+    );
+    setVehicles(newVehicles);
+    updateFormValue(newVehicles);
   };
 
   const handleRemoveVehicle = (index) => {
@@ -53,16 +83,28 @@ const VehicleCompatibilityInput = ({ setValue }) => {
             <span className="font-medium text-[16px] text-subtle-dark">
               รถคันที่ {index + 1}
             </span>
-            {vehicles.length > 1 && (
-              <button
-                type="button"
-                onClick={() => handleRemoveVehicle(index)}
-                className="flex items-center font-medium text-[16px] text-red-500 hover:text-red-600 cursor-pointer"
-              >
-                <Trash className="w-4 h-4 mr-[4px]" />
-                ลบ
-              </button>
-            )}
+            <div className="flex">
+              {vehicles.length === 1 && (vehicle.brand || vehicle.model) && (
+                <button
+                  type="button"
+                  onClick={() => handleClearVehicle(index)}
+                  className="flex items-center font-medium text-[16px] text-red-500 hover:text-red-600 cursor-pointer"
+                >
+                  <X className="w-4 h-4 mr-[4px]" />
+                  เคลียร์
+                </button>
+              )}
+              {vehicles.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => handleRemoveVehicle(index)}
+                  className="flex items-center font-medium text-[16px] text-red-500 hover:text-red-600 cursor-pointer"
+                >
+                  <Trash className="w-4 h-4 mr-[4px]" />
+                  ลบ
+                </button>
+              )}
+            </div>
           </div>
           <div>
             <div>

@@ -3,8 +3,16 @@ import { Input } from "../ui/input";
 import { useEffect, useState } from "react";
 import { ImageIcon, X } from "lucide-react";
 
-const FormUploadImage = ({ label, setSelectedImage, selectedImage }) => {
+const FormUploadImage = ({
+  label,
+  setSelectedImage,
+  selectedImage,
+  publicId,
+  onMarkForDeletion,
+}) => {
   const [previewImage, setPreviewImage] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isMarkedForDeletion, setIsMarkedForDeletion] = useState(false);
 
   useEffect(() => {
     if (selectedImage === null && previewImage) {
@@ -15,6 +23,12 @@ const FormUploadImage = ({ label, setSelectedImage, selectedImage }) => {
       if (input) {
         input.value = "";
       }
+    } else if (
+      typeof selectedImage === "string" &&
+      selectedImage !== previewImage
+    ) {
+      // ถ้า selectedImage เป็น URL string (รูปที่มีอยู่แล้ว)
+      setPreviewImage(selectedImage);
     }
   }, [selectedImage, previewImage]);
 
@@ -22,10 +36,14 @@ const FormUploadImage = ({ label, setSelectedImage, selectedImage }) => {
     const file = e.target.files[0];
 
     if (file) {
-      if (previewImage) {
+      // ลบ blob URL เก่าก่อน (ถ้ามี) เพื่อป้องกัน memory leak
+      if (previewImage && previewImage.startsWith("blob:")) {
         URL.revokeObjectURL(previewImage);
       }
-      setPreviewImage(URL.createObjectURL(file));
+
+      // สร้าง blob URL ใหม่สำหรับ preview
+      const newBlobUrl = URL.createObjectURL(file);
+      setPreviewImage(newBlobUrl);
 
       if (setSelectedImage) {
         setSelectedImage(file);
@@ -33,11 +51,22 @@ const FormUploadImage = ({ label, setSelectedImage, selectedImage }) => {
     }
   };
 
-  const handleDelete = (e) => {
+  const handleDelete = async (e) => {
     e.preventDefault();
-    if (previewImage) {
+
+    // ถ้า previewImage เป็น blob URL ให้ revoke
+    if (previewImage && previewImage.startsWith("blob:")) {
       URL.revokeObjectURL(previewImage);
     }
+
+    // ถ้าเป็นรูปเดิมที่มี publicId ให้มาร์กว่าจะลบแต่ยังไม่ลบจริง
+    if (publicId && typeof selectedImage === "string") {
+      setIsMarkedForDeletion(true);
+      if (onMarkForDeletion) {
+        onMarkForDeletion(true);
+      }
+    }
+
     setPreviewImage(null);
 
     if (setSelectedImage) {
@@ -52,7 +81,8 @@ const FormUploadImage = ({ label, setSelectedImage, selectedImage }) => {
 
   useEffect(() => {
     return () => {
-      if (previewImage) {
+      // เฉพาะ blob URLs เท่านั้นที่ต้อง revoke
+      if (previewImage && previewImage.startsWith("blob:")) {
         URL.revokeObjectURL(previewImage);
       }
     };
@@ -73,10 +103,13 @@ const FormUploadImage = ({ label, setSelectedImage, selectedImage }) => {
           onChange={handleOnChange}
           className="hidden"
           id="image-upload"
+          disabled={isDeleting}
         />
         <label
-          htmlFor="image-upload"
-          className="group relative flex flex-col justify-center items-center w-[280px] h-[280px] rounded-[20px] border-2 border-dashed border-gray-300 hover:border-primary bg-surface duration-300 cursor-pointer"
+          htmlFor={isDeleting ? undefined : "image-upload"}
+          className={`group relative flex flex-col justify-center items-center w-[280px] h-[280px] rounded-[20px] border-2 border-dashed border-gray-300 hover:border-primary bg-surface duration-300 ${
+            isDeleting ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+          }`}
         >
           {previewImage ? (
             <div className="w-full h-full">
@@ -88,7 +121,8 @@ const FormUploadImage = ({ label, setSelectedImage, selectedImage }) => {
               <button
                 type="button"
                 onClick={handleDelete}
-                className="absolute top-2 right-2 flex justify-center items-center w-8 h-8 rounded-full border border-black/5 hover:border-surface font-medium text-lg text-subtle-dark hover:text-surface bg-surface hover:bg-primary shadow-lg hover:shadow-xl backdrop-blur-sm  duration-300 cursor-pointer"
+                disabled={isDeleting}
+                className="absolute top-2 right-2 flex justify-center items-center w-8 h-8 rounded-full border border-black/5 hover:border-surface font-medium text-lg text-subtle-dark hover:text-surface bg-surface hover:bg-primary shadow-lg hover:shadow-xl backdrop-blur-sm duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <X className="w-4 h-4" />
               </button>

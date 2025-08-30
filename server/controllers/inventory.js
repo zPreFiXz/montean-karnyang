@@ -56,10 +56,12 @@ exports.getInventory = async (req, res, next) => {
     const inventory = [
       ...parts.map((item) => ({
         ...item,
+        type: "part",
         category: { name: item.category.name },
       })),
       ...services.map((item) => ({
         ...item,
+        type: "service",
         partNumber: null,
         brand: null,
         costPrice: 0,
@@ -74,6 +76,58 @@ exports.getInventory = async (req, res, next) => {
         category: { name: item.category.name },
       })),
     ];
+
+    res.json(inventory);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getInventoryById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { type } = req.query;
+
+    let inventory = null;
+
+    if (type === "part") {
+      inventory = await prisma.part.findUnique({
+        where: { id: Number(id) },
+        include: { category: true },
+      });
+
+      if (inventory) {
+        inventory = {
+          ...inventory,
+          type: "part",
+          category: { name: inventory.category.name },
+        };
+      }
+    } else if (type === "service") {
+      const service = await prisma.service.findUnique({
+        where: { id: Number(id) },
+        include: { category: true },
+      });
+
+      if (service) {
+        inventory = {
+          ...service,
+          type: "service",
+          partNumber: null,
+          brand: null,
+          costPrice: 0,
+          sellingPrice: service.price,
+          unit: null,
+          stockQuantity: 0,
+          minStockLevel: 0,
+          typeSpecificData: null,
+          compatibleVehicles: null,
+          publicId: null,
+          secureUrl: null,
+          category: { name: service.category.name },
+        };
+      }
+    }
 
     res.json(inventory);
   } catch (error) {

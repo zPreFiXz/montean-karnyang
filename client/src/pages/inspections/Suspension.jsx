@@ -55,7 +55,7 @@ const SuspensionCheck = () => {
       <form onSubmit={handleSubmit(handleSuspensionCheck)}>
         <FormInput
           register={register}
-          name="customer_name"
+          name="fullName"
           label="ชื่อลูกค้า"
           placeholder="กรอกชื่อลูกค้า"
           color="surface"

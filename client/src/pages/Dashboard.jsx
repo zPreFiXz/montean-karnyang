@@ -95,9 +95,7 @@ const Dashboard = () => {
                       bg="in-progress"
                       color="#F4B809"
                       icon={Car}
-                      licensePlate={`${
-                        latestInProgress.vehicle?.licensePlate?.plateNumber ||
-                        "ไม่มีทะเบียน"
+                      licensePlate={`${latestInProgress.vehicle?.licensePlate?.plateNumber}
                       } ${latestInProgress.vehicle?.licensePlate?.province}`}
                       brand={`${latestInProgress.vehicle?.brand} ${latestInProgress.vehicle?.model}`}
                       time={

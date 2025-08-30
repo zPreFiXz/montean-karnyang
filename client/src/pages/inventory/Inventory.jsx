@@ -93,16 +93,18 @@ const Inventory = () => {
           ) : (
             inventory.map((item) => (
               <div key={`${item.category.name}-${item.id}`}>
-                <InventoryCard
-                  brand={item.brand}
-                  name={item.name}
-                  unit={item.unit}
-                  sellingPrice={item.sellingPrice}
-                  stockQuantity={item.stockQuantity}
-                  typeSpecificData={item.typeSpecificData}
-                  secureUrl={item.secureUrl}
-                  category={item.category.name}
-                />
+                <Link to={`/inventory/${item.id}?type=${item.type}`}>
+                  <InventoryCard
+                    brand={item.brand}
+                    name={item.name}
+                    unit={item.unit}
+                    sellingPrice={item.sellingPrice}
+                    stockQuantity={item.stockQuantity}
+                    typeSpecificData={item.typeSpecificData}
+                    secureUrl={item.secureUrl}
+                    category={item.category.name}
+                  />
+                </Link>
               </div>
             ))
           )}

@@ -34,12 +34,13 @@ export const createPartSchema = z
     unit: z.string().optional(),
     stockQuantity: z.coerce.number().optional(),
     minStockLevel: z.coerce.number().optional(),
-    compatibleVehicles: z.any().optional(),
+    typeSpecificData: z.json().optional(),
+    compatibleVehicles: z.json().optional(),
     image: z.any().optional(),
 
     // ฟิลด์สำหรับ tire เท่านั้น
     width: z.string().optional(),
-    aspectRatio: z.string().optional(),
+    aspectRatio: z.any().optional(),
     rimDiameter: z.string().optional(),
   })
   .superRefine((data, ctx) => {
@@ -141,14 +142,6 @@ export const createPartSchema = z
           code: z.ZodIssueCode.custom,
           message: "กรุณากรอกหน้ายาง",
           path: ["width"],
-        });
-      }
-
-      if (!data.aspectRatio || data.aspectRatio.trim() === "") {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกแก้มยาง",
-          path: ["aspectRatio"],
         });
       }
 

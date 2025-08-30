@@ -28,6 +28,7 @@ const RepairDetail = () => {
   const [repair, setRepair] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isUpdatingSkip, setIsUpdatingSkip] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
 
   const fetchRepairDetail = async () => {
@@ -154,7 +155,7 @@ const RepairDetail = () => {
   };
 
   const handleUpdateStatus = async (skipToCompleted = false) => {
-    if (!repair || isUpdating) return;
+    if (!repair || isUpdating || isUpdatingSkip) return;
 
     const nextStatus = skipToCompleted ? "PAID" : getNextStatus(repair.status);
     if (!nextStatus) return;
@@ -164,12 +165,18 @@ const RepairDetail = () => {
       (repair.status === "COMPLETED" && nextStatus === "PAID");
 
     try {
-      setIsUpdating(true);
+      if (skipToCompleted) {
+        setIsUpdatingSkip(true);
+      } else {
+        setIsUpdating(true);
+      }
 
       const updateData = { status: nextStatus };
       if (needsPaymentMethod) {
         updateData.paymentMethod = selectedPaymentMethod;
       }
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const res = await updateRepairStatus(repair.id, nextStatus, updateData);
       setRepair(res.data);
@@ -189,6 +196,7 @@ const RepairDetail = () => {
       console.error(error);
     } finally {
       setIsUpdating(false);
+      setIsUpdatingSkip(false);
     }
   };
 
@@ -239,9 +247,8 @@ const RepairDetail = () => {
                 <p
                   className={`font-semibold text-[22px] ${statusInfo.color} leading-tight`}
                 >
-                  {repair.vehicle?.licensePlate
-                    ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
-                    : "ไม่มีทะเบียน"}
+                  {repair.vehicle.licensePlate.plateNumber}{" "}
+                  {repair.vehicle.licensePlate.province}
                 </p>
                 <p className="font-medium text-[18px] text-subtle-dark leading-tight">
                   {repair.vehicle?.brand} {repair.vehicle?.model}
@@ -458,6 +465,7 @@ const RepairDetail = () => {
                 <FormButton
                   label={getNextStatusText(repair.status)}
                   isLoading={isUpdating}
+                  disabled={isUpdating || isUpdatingSkip}
                   onClick={() => handleUpdateStatus(false)}
                   className={getNextStatusButtonClass(repair.status)}
                 />
@@ -466,7 +474,8 @@ const RepairDetail = () => {
                 {repair.status === "IN_PROGRESS" && (
                   <FormButton
                     label="เสร็จสิ้นการซ่อม + ยืนยันการชำระเงิน"
-                    isLoading={isUpdating}
+                    isLoading={isUpdatingSkip}
+                    disabled={isUpdating || isUpdatingSkip}
                     onClick={() => handleUpdateStatus(true)}
                     className="bg-paid mt-0"
                   />
