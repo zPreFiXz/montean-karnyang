@@ -168,8 +168,8 @@ const CreatePart = () => {
   };
 
   return (
-    <main className="w-full h-[78px] bg-gradient-primary shadow-primary">
-      <div className="flex items-center gap-[8px] pt-[16px] pl-[20px] font-semibold text-[22px] text-surface">
+    <main className="w-full h-[83px] bg-gradient-primary shadow-primary">
+      <div className="flex items-center gap-[8px] pt-[16px] pl-[20px] font-semibold text-[24px] text-surface">
         <button onClick={() => navigate(-1)} className="mt-[2px] text-surface">
           <ChevronLeft />
         </button>
@@ -363,7 +363,7 @@ const CreatePart = () => {
               />
             </div>
           )}
-          <div className="flex justify-center pb-[88px]">
+          <div className="flex justify-center pb-[96px]">
             <FormButton
               label={isServiceCategory() ? "เพิ่มบริการ" : "เพิ่มอะไหล่"}
               isLoading={isSubmitting}

@@ -54,11 +54,11 @@ const Inventory = () => {
   }, [category, search]);
 
   return (
-    <div className="w-full h-[78px] bg-gradient-primary shadow-primary">
-      <p className="pt-[16px] pl-[20px] font-semibold text-[22px] text-surface">
+    <div className="w-full h-[83px] bg-gradient-primary shadow-primary">
+      <p className="pt-[16px] pl-[20px] font-semibold text-[24px] text-surface">
         อะไหล่และบริการ
       </p>
-      <div className="w-full min-h-[calc(100vh-65px)] pb-[104px] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+      <div className="w-full min-h-[calc(100vh-65px)] pb-[112px] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         <div className="px-[20px] pt-[16px]">
           {/* แถบค้นหา */}
           <SearchBar placeholder="ค้นหารหัส, ยี่ห้อ, ชื่ออะไหล่" />
@@ -70,10 +70,10 @@ const Inventory = () => {
           />
 
           <div className="flex items-center justify-between mt-[16px]">
-            <p className="font-semibold text-[18px]">รายการอะไหล่และบริการ</p>
+            <p className="font-semibold text-[20px]">รายการอะไหล่และบริการ</p>
             <Link
               to="/inventory/new"
-              className="font-semibold text-[18px] text-primary hover:text-primary/80 cursor-pointer"
+              className="font-semibold text-[20px] text-primary hover:text-primary/80 cursor-pointer"
             >
               + เพิ่มรายการ
             </Link>

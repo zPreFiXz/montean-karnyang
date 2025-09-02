@@ -182,8 +182,8 @@ const ItemDetail = () => {
           secureUrl: res.data?.secure_url,
         };
 
-        // ถ้ามีรูปเดิมและถูกมาร์กให้ลบ ให้ลบรูปเดิมออกจาก Cloudinary
-        if (inventory?.publicId && isImageMarkedForDeletion) {
+        // ถ้ามีรูปเดิม ให้ลบรูปเดิมออกจาก Cloudinary
+        if (inventory?.publicId) {
           try {
             await deleteImage(inventory.publicId);
           } catch (error) {
@@ -269,8 +269,8 @@ const ItemDetail = () => {
   };
 
   return (
-    <main className="w-full h-[78px] bg-gradient-primary shadow-primary">
-      <div className="flex items-center gap-[8px] pt-[16px] pl-[20px] font-semibold text-[22px] text-surface">
+    <main className="w-full h-[83px] bg-gradient-primary shadow-primary">
+      <div className="flex items-center gap-[8px] pt-[16px] pl-[20px] font-semibold text-[24px] text-surface">
         <button onClick={() => navigate(-1)} className="mt-[2px] text-surface">
           <ChevronLeft />
         </button>
@@ -467,7 +467,7 @@ const ItemDetail = () => {
               />
             </div>
           )}
-          <div className="flex justify-center pb-[88px]">
+          <div className="flex justify-center pb-[96px]">
             <FormButton
               label={isServiceCategory() ? "แก้ไขบริการ" : "แก้ไขอะไหล่"}
               isLoading={isSubmitting}

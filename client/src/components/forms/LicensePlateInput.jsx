@@ -14,16 +14,17 @@ const LicensePlateInput = ({
     <div className="relative">
       <Input
         {...register(name)}
-        type="text"
+        type={name === "plateNumbers" ? "tel" : "text"}
+        inputMode={name === "plateNumbers" ? "numeric" : undefined}
         placeholder={placeholder}
         pattern={pattern}
         maxLength={maxLength}
         onInput={onInput}
-        className={`h-[40px] rounded-[20px] bg-surface ${
+        className={`h-[41px] rounded-[20px] font-medium text-[20px] bg-surface placeholder:font-light placeholder:text-[18px] ${
           error ? "border-red-400 focus:border-red-500" : ""
         }`}
         style={{
-          "--tw-ring-color": error ? "#FF4545" : "#5b46f4",
+          "--tw-ring-color": error ? "#FF4545" : "#1976d2",
           "--tw-border-opacity": "1",
         }}
         onFocus={(e) => {
@@ -32,9 +33,9 @@ const LicensePlateInput = ({
             e.target.style.borderWidth = "2px";
             e.target.style.boxShadow = "0 0 0 3px rgba(255, 69, 69, 0.3)";
           } else {
-            e.target.style.borderColor = "#5b46f4";
+            e.target.style.borderColor = "#1976d2";
             e.target.style.borderWidth = "2px";
-            e.target.style.boxShadow = "0 0 0 3px rgba(91, 70, 244, 0.3)";
+            e.target.style.boxShadow = "0 0 0 3px rgba(13, 71, 161, 0.3)";
           }
         }}
         onBlur={(e) => {

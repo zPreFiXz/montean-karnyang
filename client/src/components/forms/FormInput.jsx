@@ -22,7 +22,7 @@ const FormInput = ({
     <div className="px-[20px] mt-[16px]">
       <Label
         htmlFor={name}
-        className={`mb-[8px] font-medium text-[18px] ${getTextColor()}`}
+        className={`mb-[8px] font-medium text-[22px] ${getTextColor()}`}
       >
         {label}
       </Label>
@@ -31,11 +31,11 @@ const FormInput = ({
           {...register(name)}
           type={type}
           placeholder={placeholder}
-          className={`w-full h-[40px] px-[12px] rounded-[20px] bg-surface ${
+          className={`w-full h-[41px] px-[12px] rounded-[20px] font-medium text-[20px] bg-surface placeholder:font-light placeholder:text-[18px] ${
             errors[name] && "border-red-400 focus:border-red-500"
           }`}
           style={{
-            "--tw-ring-color": errors[name] ? "#FF4545" : "#5b46f4",
+            "--tw-ring-color": errors[name] ? "#FF4545" : "#1976d2",
             "--tw-border-opacity": "1",
           }}
           onFocus={(e) => {
@@ -44,9 +44,9 @@ const FormInput = ({
               e.target.style.borderWidth = "2px";
               e.target.style.boxShadow = "0 0 0 3px rgba(255, 69, 69, 0.3)";
             } else {
-              e.target.style.borderColor = "#5b46f4";
+              e.target.style.borderColor = "#0d47a1";
               e.target.style.borderWidth = "2px";
-              e.target.style.boxShadow = "0 0 0 3px rgba(91, 70, 244, 0.3)";
+              e.target.style.boxShadow = "0 0 0 3px rgba(13, 71, 161, 0.3)";
             }
           }}
           onBlur={(e) => {
@@ -65,7 +65,7 @@ const FormInput = ({
       {errors[name] && (
         <div className="flex items-center gap-[4px] px-[4px] mt-[6px]">
           <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
-          <p className="font-medium text-delete text-[14px]">
+          <p className="font-medium text-delete text-[16px]">
             {errors[name].message}
           </p>
         </div>

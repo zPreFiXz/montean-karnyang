@@ -41,6 +41,12 @@ const FormUploadImage = ({
         URL.revokeObjectURL(previewImage);
       }
 
+      // รีเซ็ต mark for deletion เมื่อมีการอัพโหลดรูปใหม่
+      setIsMarkedForDeletion(false);
+      if (onMarkForDeletion) {
+        onMarkForDeletion(false);
+      }
+
       // สร้าง blob URL ใหม่สำหรับ preview
       const newBlobUrl = URL.createObjectURL(file);
       setPreviewImage(newBlobUrl);

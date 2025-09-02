@@ -60,7 +60,7 @@ const Login = () => {
         />
         <button
           type="submit"
-          className="w-full h-[40px] mt-[16px] bg-primary text-white rounded-[20px] hover:bg-primary-dark"
+          className="w-full h-[41px] mt-[16px] bg-primary text-white rounded-[20px] hover:bg-primary-dark"
         >
           Login
         </button>

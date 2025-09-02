@@ -80,7 +80,7 @@ const RepairStatus = () => {
       case "completed":
         return "#66BB6A";
       case "paid":
-        return "#1976D2";
+        return "#1976d2";
       default:
         return null;
     }
@@ -114,8 +114,8 @@ const RepairStatus = () => {
   };
 
   return (
-    <div className="w-full h-[137px] bg-gradient-primary shadow-primary">
-      <p className="pt-[16px] pl-[20px] font-semibold text-[22px] text-surface">
+    <div className="w-full h-[142px] bg-gradient-primary shadow-primary">
+      <p className="pt-[16px] pl-[20px] font-semibold text-[24px] text-surface">
         สถานะการซ่อม
       </p>
       <div className="flex justify-center gap-[16px] mx-[20px] mt-[16px]">
@@ -158,7 +158,7 @@ const RepairStatus = () => {
         <div
           className={`flex items-center justify-center w-[106px] h-[45px] rounded-[10px] duration-200 ${
             location.pathname === "/repair/status/paid"
-              ? "bg-[#1976D2]"
+              ? "bg-[#1976d2]"
               : "bg-surface"
           }`}
         >
@@ -174,8 +174,8 @@ const RepairStatus = () => {
           </Link>
         </div>
       </div>
-      <div className="w-full min-h-[calc(100vh-126px)] px-[20px] pb-[104px] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
-        <p className="pt-[16px] font-semibold text-[20px] text-normal">
+      <div className="w-full min-h-[calc(100vh-126px)] px-[20px] pb-[112px] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+        <p className="pt-[16px] font-semibold text-[22px] text-normal">
           {getStatusTitle()}
         </p>
         {isLoading ? (
@@ -184,7 +184,7 @@ const RepairStatus = () => {
           </div>
         ) : currentRepairs.length === 0 ? (
           <div className="flex items-center justify-center h-[435px]">
-            <p className="text-[16px] text-subtle-light">{getEmptyMessage()}</p>
+            <p className="text-[18px] text-subtle-light">{getEmptyMessage()}</p>
           </div>
         ) : (
           currentRepairs.map((item, index) => (

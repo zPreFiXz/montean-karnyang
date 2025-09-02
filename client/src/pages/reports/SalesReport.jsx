@@ -98,7 +98,7 @@ const SalesReport = () => {
         </p>
         <CarCard
           bg="primary"
-          color="#5B46F4"
+          color="#1976d2"
           icon={Car}
           licensePlate={"ขก1799 อุบลราชธานี"}
           brand={"Honda Jazz"}

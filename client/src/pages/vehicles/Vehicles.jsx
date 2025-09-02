@@ -51,11 +51,11 @@ const Vehicles = () => {
   }, [search]);
 
   return (
-    <div className="w-full h-[78px] bg-gradient-primary shadow-primary">
-      <p className="pt-[16px] pl-[20px] font-semibold text-[22px] text-surface">
+    <div className="w-full h-[83px] bg-gradient-primary shadow-primary">
+      <p className="pt-[16px] pl-[20px] font-semibold text-[24px] text-surface">
         ประวัติลูกค้า
       </p>
-      <div className="w-full min-h-[calc(100vh-65px)] pb-[104px] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+      <div className="w-full min-h-[calc(100vh-65px)] pb-[112px] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         <div className="px-[20px] pt-[16px]">
           {/* แถบค้นหา */}
           <SearchBar placeholder="ค้นหาทะเบียน, จังหวัด, ยี่ห้อ, รุ่นรถ" />
@@ -75,7 +75,7 @@ const Vehicles = () => {
                 <Link to={`/vehicle/${item.id}`}>
                   <CarCard
                     bg="primary"
-                    color="#5b46f4"
+                    color="#1976d2"
                     icon={Car}
                     licensePlate={
                       item.licensePlate

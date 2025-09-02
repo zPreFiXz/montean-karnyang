@@ -131,7 +131,7 @@ const SuspensionCheck = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`w-[200px] h-[40px] rounded-[20px] font-semibold text-[18px] shadow-primary transition-all duration-200 transform ${
+            className={`w-[200px] h-[41px] rounded-[20px] font-semibold text-[18px] shadow-primary transition-all duration-200 transform ${
               isSubmitting
                 ? "bg-surface/60 text-primary/60 cursor-not-allowed"
                 : "bg-surface text-primary hover:bg-surface/90 active:bg-surface/80 cursor-pointer hover:scale-105 active:scale-95"
@@ -154,7 +154,7 @@ const SuspensionCheck = () => {
           </div>
         </div>
         <div className="flex items-center gap-[16px] mt-[16px] mx-auto px-[20px]">
-          <Success color="#5B46F4" />
+          <Success color="#1976d2" />
           <div className="flex justify-between items-center w-[313px] h-[80px] px-[8px] rounded-[10px] bg-white shadow-primary">
             <div className="flex items-center gap-[8px]">
               <div className="w-[60px] h-[60px] rounded-[10px] border border-subtle-light bg-white shadow-primary"></div>
@@ -202,7 +202,7 @@ const SuspensionCheck = () => {
           <p className="font-semibold text-[18px] text-primary ">500 บาท</p>
         </div>
         <div className="flex justify-center px-[20px]">
-          <button className="bg-primary text-white font-semibold text-[16px] mt-[16px] w-full h-[40px] rounded-[10px] shadow-primary">
+          <button className="bg-primary text-white font-semibold text-[16px] mt-[16px] w-full h-[41px] rounded-[10px] shadow-primary">
             ถัดไป
           </button>
         </div>

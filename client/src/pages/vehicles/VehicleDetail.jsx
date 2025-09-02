@@ -30,15 +30,15 @@ const VehicleDetail = () => {
   }, [id]);
 
   return (
-    <div className="w-full h-[78px] bg-gradient-primary shadow-primary">
+    <div className="w-full h-[83px] bg-gradient-primary shadow-primary">
       <div className="flex items-center gap-[8px] px-[20px] py-[16px]">
         <button onClick={() => navigate(-1)} className="mt-[2px] text-surface">
           <ChevronLeft />
         </button>
-        <p className="font-semibold text-[22px] text-surface">ประวัติลูกค้า</p>
+        <p className="font-semibold text-[24px] text-surface">ประวัติลูกค้า</p>
       </div>
 
-      <div className="min-h-[calc(100vh-65px)] pt-[16px] pb-[88px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+      <div className="min-h-[calc(100vh-65px)] pt-[16px] pb-[96px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         {isLoading ? (
           <div className="flex justify-center items-center h-[530px]">
             <LoaderCircle className="w-8 h-8 animate-spin text-primary" />
@@ -47,7 +47,7 @@ const VehicleDetail = () => {
           <div>
             <div className="flex items-center gap-[8px] px-[20px] mb-[16px]">
               <div className="flex justify-center items-center w-[45px] h-[45px] rounded-full bg-primary">
-                <Car color="#5b46f4" />
+                <Car color="#1976d2" />
               </div>
               <div className="flex flex-col">
                 <p className="font-semibold text-[22px] text-primary leading-tight">

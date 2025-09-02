@@ -120,13 +120,13 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                 placeholder="เช่น Toyota, Isuzu, Honda"
                 className="w-full mb-[8px] text-[16px] rounded-[20px]"
                 style={{
-                  "--tw-ring-color": "#5b46f4",
+                  "--tw-ring-color": "#1976d2",
                   "--tw-border-opacity": "1",
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = "#5b46f4";
+                  e.target.style.borderColor = "#1976d2";
                   e.target.style.borderWidth = "2px";
-                  e.target.style.boxShadow = "0 0 0 3px rgba(91, 70, 244, 0.3)";
+                  e.target.style.boxShadow = "0 0 0 3px rgba(13, 71, 161, 0.3)";
                 }}
                 onBlur={(e) => {
                   e.target.style.borderColor = "";
@@ -148,13 +148,13 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                 placeholder="เช่น Hilux Revo, D-Max, City"
                 className="w-full mb-[8px] text-[16px] rounded-[20px]"
                 style={{
-                  "--tw-ring-color": "#5b46f4",
+                  "--tw-ring-color": "#1976d2",
                   "--tw-border-opacity": "1",
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = "#5b46f4";
+                  e.target.style.borderColor = "#1976d2";
                   e.target.style.borderWidth = "2px";
-                  e.target.style.boxShadow = "0 0 0 3px rgba(91, 70, 244, 0.3)";
+                  e.target.style.boxShadow = "0 0 0 3px rgba(13, 71, 161, 0.3)";
                 }}
                 onBlur={(e) => {
                   e.target.style.borderColor = "";

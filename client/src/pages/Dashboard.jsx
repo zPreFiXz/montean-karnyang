@@ -153,7 +153,7 @@ const Dashboard = () => {
                   <Link to="/repair/status/paid">
                     <CarCard
                       bg="paid"
-                      color="#1976D2"
+                      color="#1976d2"
                       icon={Car}
                       licensePlate={`${
                         latestPaid.vehicle?.licensePlate?.plateNumber ||
@@ -173,18 +173,18 @@ const Dashboard = () => {
 
       {/* มุมมองมือถือ */}
       <div className="lg:hidden">
-        <div className="w-full h-[217px] pt-[16px] px-[20px] bg-gradient-primary">
-          <p className="font-semibold text-[32px] text-surface">
+        <div className="w-full h-[233px] pt-[16px] px-[20px] bg-gradient-primary">
+          <p className="font-semibold text-[34px] text-surface">
             มณเฑียรการยาง
           </p>
-          <p className="font-medium text-[18px] text-surface">
+          <p className="font-medium text-[20px] text-surface">
             {getCurrentDateThai()}
           </p>
           <Link
             to="/reports/sales/daily"
             className="flex justify-between items-center w-full h-[80px] px-[16px] mx-auto mt-[16px] rounded-[10px] bg-surface shadow-primary cursor-pointer"
           >
-            <p className="font-semibold text-[18px] text-subtle-dark">
+            <p className="font-semibold text-[24px] text-normal">
               ยอดขายวันนี้
             </p>
             <p className="font-semibold text-[32px] text-primary">
@@ -217,7 +217,7 @@ const Dashboard = () => {
           <Link to="/repair/status/paid">
             <CarCard
               bg="paid"
-              color="#1976D2"
+              color="#1976d2"
               icon={Paid}
               licensePlate={"ชำระเงินแล้ว"}
               amount={paidCount > 0 ? paidCount : "0"}

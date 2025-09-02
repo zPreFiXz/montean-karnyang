@@ -5,20 +5,34 @@ import FormInput from "@/components/forms/FormInput";
 import LicensePlateInput from "@/components/forms/LicensePlateInput";
 import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
 import FormButton from "@/components/forms/FormButton";
+import ComboBox from "@/components/ui/ComboBox";
 import { formatCurrency } from "@/lib/utils";
 import { Image, Trash, Plus, Minus, AlertCircle } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
+import {
+  carBrands,
+  carModels,
+  provinces,
+  getAvailableModels,
+} from "@/utils/data";
 
 const CreateRepair = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { register, handleSubmit, reset, formState, setValue } = useForm({
-    resolver: zodResolver(repairSchema),
-  });
+  const { register, handleSubmit, reset, formState, setValue, watch } = useForm(
+    {
+      resolver: zodResolver(repairSchema),
+    }
+  );
   const [repairItems, setRepairItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const { errors } = formState;
+
+  const getAvailableModelsForBrand = () => {
+    const selectedBrand = watch("brand");
+    return getAvailableModels(selectedBrand);
+  };
 
   const renderProductInfo = (item) => {
     const isTire = item.category?.name === "ยาง";
@@ -26,7 +40,7 @@ const CreateRepair = () => {
     // แสดงข้อมูลยางที่มีขนาดแก้มยาง
     if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
       return (
-        <p className="max-w-[180px] font-semibold text-[14px] text-normal truncate">
+        <p className="w-full font-semibold text-[16px] text-normal line-clamp-1">
           {item.brand} {item.typeSpecificData.width}/
           {item.typeSpecificData.aspectRatio}R
           {item.typeSpecificData.rimDiameter} {item.name}
@@ -37,7 +51,7 @@ const CreateRepair = () => {
     // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
     if (isTire && item.typeSpecificData) {
       return (
-        <p className="max-w-[180px] font-semibold text-[14px] text-normal truncate">
+        <p className="w-full font-semibold text-[16px] text-normal line-clamp-1">
           {item.brand} {item.typeSpecificData.width}R
           {item.typeSpecificData.rimDiameter} {item.name}
         </p>
@@ -46,7 +60,7 @@ const CreateRepair = () => {
 
     // แสดงข้อมูลอะไหล่หรือบริการ
     return (
-      <p className="max-w-[180px] font-semibold text-[14px] text-normal truncate">
+      <p className="w-full font-semibold text-[16px] text-normal line-clamp-1">
         {item.brand} {item.name}
       </p>
     );
@@ -158,7 +172,7 @@ const CreateRepair = () => {
 
   return (
     <div className="w-full h-full bg-gradient-primary shadow-primary">
-      <p className="pt-[16px] pl-[20px] font-semibold text-[22px] text-surface">
+      <p className="pt-[16px] pl-[20px] font-semibold text-[24px] text-surface">
         รายการซ่อมใหม่
       </p>
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -176,7 +190,7 @@ const CreateRepair = () => {
           name="address"
           label="ที่อยู่"
           type="text"
-          placeholder="เช่น 123/45 หมู่ 2 ต.บางพลี อ.บางพลี จ.สมุทรปราการ"
+          placeholder="เช่น 543 หมู่ 5 ต.น้ำอ้อม อ.กันทรลักษ์ จ.ศรีสะเกษ 33110"
           color="surface"
           errors={errors}
         />
@@ -193,38 +207,73 @@ const CreateRepair = () => {
             e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 10);
           }}
         />
-        <FormInput
-          register={register}
-          name="brand"
-          label="ยี่ห้อรถ"
-          type="text"
-          placeholder="เช่น Toyota, Isuzu, Honda"
-          color="surface"
-          errors={errors}
-        />
-        <FormInput
-          register={register}
-          name="model"
-          label="รุ่นรถ"
-          type="text"
-          placeholder="เช่น Hilux Revo, D-Max, City"
-          color="surface"
-          errors={errors}
-        />
+
+        <div className="px-[20px] mt-[16px]">
+          <ComboBox
+            label="ยี่ห้อรถ"
+            color="text-surface"
+            options={carBrands}
+            value={watch("brand")}
+            onChange={(value) => {
+              setValue("brand", value, {
+                shouldValidate: true,
+                shouldTouch: true,
+              });
+              setValue("model", "", {
+                shouldValidate: true,
+                shouldTouch: true,
+              }); // รีเซ็ตรุ่นรถเมื่อเปลี่ยนยี่ห้อ
+            }}
+            placeholder="-- เลือกยี่ห้อรถ --"
+            errors={errors}
+            name="brand"
+          />
+          {/* Hidden input สำหรับ register */}
+          <input
+            {...register("brand")}
+            type="hidden"
+            value={watch("brand") || ""}
+          />
+        </div>
+
+        <div className="px-[20px] mt-[16px]">
+          <ComboBox
+            label="รุ่นรถ"
+            color="text-surface"
+            options={getAvailableModelsForBrand()}
+            value={watch("model")}
+            onChange={(value) =>
+              setValue("model", value, {
+                shouldValidate: true,
+                shouldTouch: true,
+              })
+            }
+            placeholder="-- เลือกรุ่นรถ --"
+            errors={errors}
+            name="model"
+            disabled={!watch("brand")}
+          />
+          {/* Hidden input สำหรับ register */}
+          <input
+            {...register("model")}
+            type="hidden"
+            value={watch("model") || ""}
+          />
+        </div>
 
         {/* ป้ายทะเบียนรถ */}
         <div className="px-[20px] pt-[16px]">
-          <p className="mb-[8px] font-medium text-[18px] text-surface">
+          <p className="mb-[8px] font-medium text-[22px] text-surface">
             ทะเบียนรถ
           </p>
-          <div className="flex gap-[12px] items-start">
-            <div className="w-[80px]">
+          <div className="flex gap-[4px] items-start">
+            <div className="w-[70px]">
               <LicensePlateInput
                 register={register}
                 name="plateLetters"
-                placeholder="กค"
+                placeholder="กก"
                 maxLength={3}
-                errosr={errors}
+                error={errors.plateLetters}
                 onInput={(e) => {
                   e.target.value = e.target.value
                     .replace(/[^ก-ฮ0-9]/g, "")
@@ -239,9 +288,9 @@ const CreateRepair = () => {
               <LicensePlateInput
                 register={register}
                 name="plateNumbers"
-                placeholder="9876"
+                placeholder="1234"
                 maxLength={4}
-                errors={errors}
+                error={errors.plateNumbers}
                 onInput={(e) => {
                   e.target.value = e.target.value
                     .replace(/[^0-9]/g, "")
@@ -250,11 +299,26 @@ const CreateRepair = () => {
               />
             </div>
             <div className="flex-1">
-              <LicensePlateInput
-                register={register}
-                name="province"
-                placeholder="สมุทรปราการ"
+              <ComboBox
+                label=""
+                color="text-surface"
+                options={provinces}
+                value={watch("province")}
+                onChange={(value) =>
+                  setValue("province", value, {
+                    shouldValidate: true,
+                    shouldTouch: true,
+                  })
+                }
+                placeholder="-- เลือกจังหวัด --"
                 errors={errors}
+                name="province"
+              />
+              {/* Hidden input สำหรับ register */}
+              <input
+                {...register("province")}
+                type="hidden"
+                value={watch("province") || ""}
               />
             </div>
           </div>
@@ -265,7 +329,7 @@ const CreateRepair = () => {
               {errors.plateLetters && (
                 <div className="flex items-center gap-[4px] px-[4px]">
                   <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
-                  <p className="font-medium text-[14px] text-delete">
+                  <p className="font-medium text-[16px] text-delete">
                     {errors.plateLetters.message}
                   </p>
                 </div>
@@ -273,7 +337,7 @@ const CreateRepair = () => {
               {errors.plateNumbers && (
                 <div className="flex items-center gap-[4px] px-[4px]">
                   <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
-                  <p className="font-medium text-[14px] text-delete">
+                  <p className="font-medium text-[16px] text-delete">
                     {errors.plateNumbers.message}
                   </p>
                 </div>
@@ -281,7 +345,7 @@ const CreateRepair = () => {
               {errors.province && (
                 <div className="flex items-center gap-[4px] px-[4px]">
                   <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
-                  <p className="font-medium text-[14px] text-delete">
+                  <p className="font-medium text-[16px] text-delete">
                     {errors.province.message}
                   </p>
                 </div>
@@ -306,7 +370,7 @@ const CreateRepair = () => {
               onAddItem={handleAddItemToRepair}
               selectedItems={repairItems}
             >
-              <p className="font-semibold text-[18px] text-primary hover:text-primary/80 cursor-pointer">
+              <p className="font-semibold text-[20px] text-primary hover:text-primary/80 cursor-pointer">
                 + เพิ่มรายการซ่อม
               </p>
             </AddRepairItemDialog>
@@ -316,9 +380,11 @@ const CreateRepair = () => {
           {repairItems.length === 0 ? (
             <div>
               <div className="flex justify-center items-center h-[228px]">
-                <p className="text-[18px] text-subtle-light">ไม่มีรายการซ่อม</p>
+                <p className="text-[20px] text-subtle-light">
+                  กรุณาเพิ่มรายการซ่อม
+                </p>
               </div>
-              <div className="h-[88px]"></div>
+              <div className="h-[96px]"></div>
             </div>
           ) : (
             <div className="pb-[20px]">
@@ -329,7 +395,7 @@ const CreateRepair = () => {
                 >
                   <div className="flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] bg-white shadow-primary">
                     <div className="flex-1 flex items-center gap-[8px]">
-                      <div className="flex justify-center items-center w-[60px] h-[60px] rounded-[10px] border border-subtle-light bg-white shadow-primary">
+                      <div className="flex justify-center items-center w-[70px] h-[70px] rounded-[10px] border border-subtle-light bg-white shadow-primary">
                         {item.secureUrl ? (
                           <img
                             src={item.secureUrl}
@@ -337,19 +403,19 @@ const CreateRepair = () => {
                             className="object-cover w-full h-full rounded-[10px]"
                           />
                         ) : (
-                          <div className="flex justify-center items-center w-[60px] h-[60px] text-subtle-light">
+                          <div className="flex justify-center items-center w-[70px] h-[70px] text-subtle-light">
                             <Image className="w-8 h-8" />
                           </div>
                         )}
                       </div>
                       <div className="flex flex-col flex-1">
                         {renderProductInfo(item)}
-                        <p className="font-medium text-[12px] text-subtle-dark">
+                        <p className="font-medium text-[16px] text-subtle-dark">
                           ราคาต่อหน่วย:{" "}
                           {formatCurrency(Number(item.sellingPrice))}
                         </p>
                         <div className="flex items-center justify-between w-full">
-                          <p className="font-semibold text-[16px] text-primary">
+                          <p className="font-semibold text-[20px] text-primary">
                             {formatCurrency(item.quantity * item.sellingPrice)}
                           </p>
                           <div className="flex items-center gap-[8px]">
@@ -357,11 +423,11 @@ const CreateRepair = () => {
                               type="button"
                               onClick={() => handleDecreaseQuantity(index)}
                               disabled={item.quantity <= 1}
-                              className="flex items-center justify-center w-[28px] h-[28px] rounded-[8px] border border-gray-200 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
+                              className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-200 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
                             >
-                              <Minus className="w-[14px] h-[14px]" />
+                              <Minus className="w-[16px] h-[16px]" />
                             </button>
-                            <span className="font-semibold text-[14px] text-primary">
+                            <span className="font-semibold text-[18px] text-primary">
                               {item.quantity}
                             </span>
                             <button
@@ -372,9 +438,9 @@ const CreateRepair = () => {
                                   ? item.quantity >= (item.stockQuantity || 0)
                                   : false
                               }
-                              className="flex items-center justify-center w-[28px] h-[28px] rounded-[8px] border border-primary/30 disabled:border-gray-200 text-primary disabled:text-gray-300 bg-primary/10 hover:bg-primary/20 disabled:bg-gray-50 disabled:hover:bg-gray-50"
+                              className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-primary/30 disabled:border-gray-200 text-primary disabled:text-gray-300 bg-primary/10 hover:bg-primary/20 disabled:bg-gray-50 disabled:hover:bg-gray-50"
                             >
-                              <Plus className="w-[14px] h-[14px]" />
+                              <Plus className="w-[16px] h-[16px]" />
                             </button>
                           </div>
                         </div>
@@ -401,12 +467,12 @@ const CreateRepair = () => {
               <div className="p-[16px] mx-[20px] mt-[20px] mb-[16px] rounded-[12px] border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5">
                 <div className="flex justify-between items-center">
                   <div className="flex flex-col">
-                    <p className="font-semibold text-[18px] text-subtle-dark">
+                    <p className="font-semibold text-[20px] text-subtle-dark">
                       รวม {repairItems.length} รายการ
                     </p>
                   </div>
                   <div className="flex flex-col items-end">
-                    <p className="font-semibold text-[22px] text-primary">
+                    <p className="font-semibold text-[24px] text-primary">
                       {formatCurrency(
                         repairItems.reduce(
                           (total, item) =>
@@ -418,7 +484,7 @@ const CreateRepair = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex justify-center pb-[72px]">
+              <div className="flex justify-center pb-[76px]">
                 <FormButton label="ถัดไป" isLoading={isLoading} />
               </div>
             </div>

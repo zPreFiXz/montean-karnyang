@@ -18,6 +18,7 @@ import { Label } from "@radix-ui/react-label";
 
 const ComboBox = ({
   label,
+  color,
   options = [],
   value,
   onChange,
@@ -29,6 +30,7 @@ const ComboBox = ({
   const [open, setOpen] = useState(false);
   const [triggerWidth, setTriggerWidth] = useState(0);
   const triggerRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     if (triggerRef.current) {
@@ -36,16 +38,27 @@ const ComboBox = ({
     }
   }, [open]);
 
+  useEffect(() => {
+    if (!open && inputRef.current) {
+      inputRef.current.blur();
+    }
+  }, [open]);
+
   const selectedLabel = options.find((item) => item.id === value)?.name;
   const hasError = errors && errors[name];
 
   return (
-    <div className="px-[20px] pt-[16px]">
-      <Label className="block mb-[8px] font-medium text-[18px] text-subtle-dark">
-        {label}
-      </Label>
+    <div>
+      {label && (
+        <Label className={`block mb-[8px] font-medium text-[22px] ${color}`}>
+          {label}
+        </Label>
+      )}
       <div className="relative">
-        <Popover open={open && !disabled} onOpenChange={disabled ? undefined : setOpen}>
+        <Popover
+          open={open && !disabled}
+          onOpenChange={disabled ? undefined : setOpen}
+        >
           <PopoverTrigger asChild>
             <Button
               ref={triggerRef}
@@ -54,13 +67,14 @@ const ComboBox = ({
               aria-expanded={open}
               disabled={disabled}
               className={cn(
-                "justify-between w-full h-[40px] rounded-[20px] border-input font-normal text-[16px] text-foreground",
-                !selectedLabel && "text-muted-foreground",
+                "justify-between w-full h-[41px] rounded-[20px] border-input font-medium text-[20px] text-foreground",
+                !selectedLabel &&
+                  "font-light text-[18px] text-muted-foreground",
                 hasError && "border-red-400 focus:border-red-500",
                 disabled && "opacity-50 cursor-not-allowed"
               )}
               style={{
-                "--tw-ring-color": hasError ? "#FF4545" : "#5b46f4",
+                "--tw-ring-color": hasError ? "#FF4545" : "#1976d2",
                 "--tw-border-opacity": "1",
               }}
               onFocus={(e) => {
@@ -70,9 +84,9 @@ const ComboBox = ({
                   e.target.style.borderWidth = "2px";
                   e.target.style.boxShadow = "0 0 0 3px rgba(255, 69, 69, 0.3)";
                 } else {
-                  e.target.style.borderColor = "#5b46f4";
+                  e.target.style.borderColor = "#1976d2";
                   e.target.style.borderWidth = "2px";
-                  e.target.style.boxShadow = "0 0 0 3px rgba(91, 70, 244, 0.3)";
+                  e.target.style.boxShadow = "0 0 0 3px rgba(13, 71, 161, 0.3)";
                 }
               }}
               onBlur={(e) => {
@@ -88,19 +102,35 @@ const ComboBox = ({
           </PopoverTrigger>
           <PopoverContent
             className="p-0"
-            style={{ width: triggerWidth > 0 ? `${triggerWidth}px` : "auto" }}
+            style={{
+              width: triggerWidth > 0 ? `${triggerWidth}px` : "auto",
+              maxHeight: "450px",
+              overflowY: "auto",
+            }}
+            side="bottom"
+            align="start"
+            sideOffset={4}
+            avoidCollisions={false}
+            sticky="always"
+            onOpenAutoFocus={(e) => e.preventDefault()}
           >
             <Command>
               <CommandInput
+                ref={inputRef}
                 placeholder="ค้นหา..."
-                className="h-9 font-athiti text-subtle-dark"
+                className="h-9 font-athiti font-medium text-[18px] text-subtle-dark"
               />
               <CommandEmpty>
-                <p className="font-athiti text-[16px] text-subtle-dark">
-                  ไม่มีหมวดหมู่ที่ตรงกัน
+                <p className="font-athiti text-[18px] text-subtle-dark">
+                  ไม่พบข้อมูล
                 </p>
               </CommandEmpty>
-              <CommandGroup>
+              <CommandGroup
+                style={{
+                  maxHeight: "400x",
+                  overflowY: "auto",
+                }}
+              >
                 {options
                   .sort((a, b) => a.id - b.id)
                   .map((item) => (
@@ -110,8 +140,12 @@ const ComboBox = ({
                       onSelect={() => {
                         onChange(item.id);
                         setOpen(false);
+                        // Blur input เพื่อปิดแป้นพิมพ์
+                        if (inputRef.current) {
+                          inputRef.current.blur();
+                        }
                       }}
-                      className="font-athiti text-[16px] text-subtle-dark"
+                      className="font-athiti font-medium text-[18px] text-subtle-dark"
                     >
                       <Check
                         className={cn(
@@ -127,10 +161,10 @@ const ComboBox = ({
           </PopoverContent>
         </Popover>
       </div>
-      {hasError && (
+      {hasError && name !== "province" && (
         <div className="flex items-center gap-[4px] px-[4px] mt-[6px]">
           <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
-          <p className="font-medium text-[14px] text-delete">
+          <p className="font-medium text-[16px] text-delete">
             {errors[name].message}
           </p>
         </div>

@@ -152,15 +152,15 @@ const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
                   e.target.inputMode = "text";
                 }}
                 placeholder="ค้นหารหัส, ยี่ห้อ, ชื่ออะไหล่"
-                className="w-full h-[40px] px-[40px] rounded-[20px] font-athiti bg-surface focus:outline-none"
+                className="w-full h-[41px] px-[40px] rounded-[20px] font-athiti bg-surface focus:outline-none"
                 style={{
-                  "--tw-ring-color": "#5b46f4",
+                  "--tw-ring-color": "#1976d2",
                   "--tw-border-opacity": "1",
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = "#5b46f4";
+                  e.target.style.borderColor = "#1976d2";
                   e.target.style.borderWidth = "2px";
-                  e.target.style.boxShadow = "0 0 0 3px rgba(91, 70, 244, 0.3)";
+                  e.target.style.boxShadow = "0 0 0 3px rgba(13, 71, 161, 0.3)";
                 }}
                 onBlur={(e) => {
                   e.target.style.borderColor = "";

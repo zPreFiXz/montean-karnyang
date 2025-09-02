@@ -9,11 +9,11 @@ export const repairSchema = z.object({
   fullName: z.string().optional(),
   address: z.string().optional(),
   phoneNumber: z.string().optional(),
-  brand: z.string().min(1, "กรุณากรอกยี่ห้อรถ"),
-  model: z.string().min(1, "กรุณากรอกรุ่นรถ"),
+  brand: z.string().min(1, "กรุณาเลือกยี่ห้อรถ"),
+  model: z.string().min(1, "กรุณาเลือกรุ่นรถ"),
   plateLetters: z.string().min(1, "กรุณากรอกทะเบียนตัวอักษร"),
   plateNumbers: z.string().min(1, "กรุณากรอกทะเบียนตัวเลข"),
-  province: z.string().min(1, "กรุณากรอกจังหวัด"),
+  province: z.string().min(1, "กรุณาเลือกจังหวัด"),
   description: z.string().optional(),
 });
 

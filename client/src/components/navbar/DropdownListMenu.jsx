@@ -24,7 +24,7 @@ const DropdownListMenu = () => {
       <DropdownMenuTrigger asChild>
         <div className="group flex items-center gap-[12px] px-[12px] py-[8px] rounded-[10px] hover:opacity-90 cursor-pointer">
           <div className="relative">
-            <div className="flex justify-center items-center w-[40px] h-[40px] rounded-full bg-gradient-to-br from-primary to-[#8663f8] shadow-md">
+            <div className="flex justify-center items-center w-[40px] h-[41px] rounded-full bg-gradient-to-br from-primary to-[#8663f8] shadow-md">
               <CircleUserRound className="text-surface" />
             </div>
             <div className="absolute -bottom-0.5 -right-0.5 w-[12px] h-[12px] rounded-full border-2 border-surface bg-green-500 shadow-md"></div>

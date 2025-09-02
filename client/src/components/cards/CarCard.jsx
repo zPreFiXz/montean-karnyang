@@ -35,18 +35,18 @@ const CarCard = ({
         </div>
         <div className="flex-1 flex flex-col min-w-0">
           <p
-            className={`font-semibold text-[18px] truncate ${textColorMap[bg]}`}
+            className={`font-semibold text-[20px] truncate ${textColorMap[bg]}`}
           >
             {licensePlate}
           </p>
-          <p className="font-medium text-[14px] text-subtle-dark truncate">
+          <p className="font-medium text-[16px] text-subtle-dark truncate">
             {[brand, time && `${time} น.`].filter(Boolean).join(" | ") || ""}
           </p>
         </div>
       </div>
       <div
         className={`font-semibold ${
-          price ? "text-[22px] text-nowrap" : "text-[32px]"
+          price ? "text-[24px] text-nowrap" : "text-[32px]"
         } ${textColorMap[bg]}`}
       >
         {price ? (

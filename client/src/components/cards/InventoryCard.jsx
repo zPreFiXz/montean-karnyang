@@ -17,7 +17,7 @@ const InventoryCard = ({
     // แสดงข้อมูลยางที่มีขนาดแก้มยาง
     if (isTire && typeSpecificData && typeSpecificData.aspectRatio) {
       return (
-        <p className="overflow-hidden font-semibold text-[14px] text-normal line-clamp-2">
+        <p className="overflow-hidden font-semibold text-[16px] text-normal line-clamp-2">
           {brand} {typeSpecificData.width}/{typeSpecificData.aspectRatio}R
           {typeSpecificData.rimDiameter} {name}
         </p>
@@ -25,7 +25,7 @@ const InventoryCard = ({
       // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
     } else if (isTire && typeSpecificData) {
       return (
-        <p className="overflow-hidden font-semibold text-[14px] text-normal line-clamp-2">
+        <p className="overflow-hidden font-semibold text-[16px] text-normal line-clamp-2">
           {brand} {typeSpecificData.width}R{typeSpecificData.rimDiameter} {name}
         </p>
       );
@@ -33,7 +33,7 @@ const InventoryCard = ({
 
     // แสดงข้อมูลอะไหล่หรือบริการ
     return (
-      <p className="overflow-hidden font-semibold text-[14px] text-normal line-clamp-2">
+      <p className="overflow-hidden font-semibold text-[16px] text-normal line-clamp-2">
         {brand} {name}
       </p>
     );
@@ -43,14 +43,16 @@ const InventoryCard = ({
     <div className="flex items-center gap-[16px] mt-[16px]">
       <div className="flex justify-between items-center w-full h-[80px] gap-[8px] px-[8px] rounded-[10px] bg-white shadow-primary">
         <div className="flex items-center gap-[8px]">
-          <div className="flex items-center justify-center w-[60px] h-[60px] rounded-[10px] border border-subtle-light bg-white shadow-primary">
+          <div className="flex items-center justify-center rounded-[10px] border border-subtle-light bg-white shadow-primary">
             {/* แสดงรูปภาพถ้ามี ถ้าไม่มีให้แสดงไอคอน Image */}
             {secureUrl ? (
-              <img
-                src={secureUrl}
-                alt={name}
-                className="object-cover w-full h-full rounded-[10px]"
-              />
+              <div className="w-[60px] h-[60px]">
+                <img
+                  src={secureUrl}
+                  alt={name}
+                  className="object-cover rounded-[10px]"
+                />
+              </div>
             ) : (
               <div className="flex items-center justify-center w-[60px] h-[60px] text-subtle-light">
                 {isService ? (
@@ -68,7 +70,7 @@ const InventoryCard = ({
             </p>
           </div>
         </div>
-        <p className="font-semibold text-[18px] text-primary text-nowrap">
+        <p className="font-semibold text-[20px] text-primary text-nowrap">
           {Number(sellingPrice).toLocaleString()} บาท
         </p>
       </div>

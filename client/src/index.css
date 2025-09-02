@@ -6,7 +6,7 @@
 
 @theme {
   --font-athiti: "Athiti", sans-serif;
-  --color-primary: #5b46f4;
+  --color-primary: #1976d2;
   --color-subtle-dark: #61646b;
   --color-subtle-light: #afb1b6;
   --color-normal: #19191b;
@@ -14,7 +14,7 @@
   --color-in-progress: #f4b809;
   --color-completed: #66bb6a;
   --color-paid: #1976d2;
-  --color-delete: #FF4545;
+  --color-delete: #ff4545;
 }
 
 ::-webkit-scrollbar {
@@ -32,7 +32,7 @@
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
-  --color-primary: #5b46f4;
+  --color-primary: #1976d2;
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -139,7 +139,7 @@
 
 @layer utilities {
   .bg-gradient-primary {
-    background: linear-gradient(46.07deg, #5b46f4 2.59%, #8663f8 100.02%);
+    background: linear-gradient(46.07deg, #0d47a1 2.59%, #1976d2 100.02%);
   }
 
   .shadow-primary {
