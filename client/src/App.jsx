@@ -13,7 +13,8 @@ const App = () => {
         toastOptions={{
           style: {
             fontFamily: '"Athiti", sans-serif',
-            fontSize: "18px",
+            fontSize: "20px",
+            fontWeight: "600",
           },
         }}
       />

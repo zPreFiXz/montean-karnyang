@@ -21,7 +21,7 @@ const TabButton = ({ icon: Icon, label, to, iconProps = {} }) => {
         <Icon color={isActive ? "white" : "#afb1b6"} size="sm" {...iconProps} />
       </div>
       <p
-        className={`text-[14px] font-semibold leading-tight ${
+        className={`text-[14px] md:text-[16px] font-semibold leading-tight ${
           isActive ? "text-primary" : "text-subtle-light"
         }`}
       >
@@ -37,8 +37,8 @@ const Tab = () => {
   return (
     <div className="px-[20px] pb-[24px]">
       <div className="flex justify-between md:justify-around items-center w-full h-[72px] pl-[20px] pr-[15px] md:px-auto rounded-2xl bg-surface shadow-tab">
-        {/* ปุ่มภาพรวม */}
-        <TabButton icon={DashboardBar} label="ภาพรวม" to="/dashboard" />
+        {/* ปุ่มหน้าหลัก */}
+        <TabButton icon={DashboardBar} label="หน้าหลัก" to="/dashboard" />
 
         {/* ปุ่มเช็กช่วงล่าง */}
         <TabButton
@@ -48,11 +48,11 @@ const Tab = () => {
         />
 
         {/* ปุ่มสร้างรายการซ่อมใหม่ */}
-        <div className="flex justify-center items-center w-[75px] h-[45px] rounded-2xl bg-gradient-primary">
-          <Link to="/repair/new">
+        <Link to="/repair/new">
+          <div className="flex justify-center items-center w-[75px] h-[45px] rounded-2xl bg-gradient-primary">
             <Plus size="md" />
-          </Link>
-        </div>
+          </div>
+        </Link>
 
         {/* ปุ่มประวัติลูกค้า */}
         <TabButton icon={Document} label="ประวัติลูกค้า" to="/vehicles" />

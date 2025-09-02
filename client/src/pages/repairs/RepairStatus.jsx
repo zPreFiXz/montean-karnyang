@@ -115,12 +115,12 @@ const RepairStatus = () => {
 
   return (
     <div className="w-full h-[142px] bg-gradient-primary shadow-primary">
-      <p className="pt-[16px] pl-[20px] font-semibold text-[24px] text-surface">
+      <p className="pt-[16px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
         สถานะการซ่อม
       </p>
       <div className="flex justify-center gap-[16px] mx-[20px] mt-[16px]">
         <div
-          className={`flex items-center justify-center w-[106px] h-[45px] rounded-[10px] duration-200 ${
+          className={`flex items-center justify-center w-[106px] md:w-[120px] h-[45px] rounded-[10px] duration-200 ${
             location.pathname === "/repair/status/in-progress"
               ? "bg-in-progress"
               : "bg-surface"
@@ -128,7 +128,7 @@ const RepairStatus = () => {
         >
           <Link
             to="/repair/status/in-progress"
-            className={`font-semibold text-[18px] ${
+            className={`font-semibold text-[18px] md:text-[20px] ${
               location.pathname === "/repair/status/in-progress"
                 ? "text-surface"
                 : "text-subtle-light"
@@ -138,7 +138,7 @@ const RepairStatus = () => {
           </Link>
         </div>
         <div
-          className={`flex items-center justify-center w-[106px] h-[45px] rounded-[10px] duration-200 ${
+          className={`flex items-center justify-center w-[106px] md:w-[120px] h-[45px] rounded-[10px] duration-200 ${
             location.pathname === "/repair/status/completed"
               ? "bg-[#66BB6A]"
               : "bg-surface"
@@ -146,7 +146,7 @@ const RepairStatus = () => {
         >
           <Link
             to="/repair/status/completed"
-            className={`font-semibold text-[18px] ${
+            className={`font-semibold text-[18px] md:text-[20px] ${
               location.pathname === "/repair/status/completed"
                 ? "text-surface"
                 : "text-subtle-light"
@@ -156,7 +156,7 @@ const RepairStatus = () => {
           </Link>
         </div>
         <div
-          className={`flex items-center justify-center w-[106px] h-[45px] rounded-[10px] duration-200 ${
+          className={`flex items-center justify-center w-[106px] md:w-[120px] h-[45px] rounded-[10px] duration-200 ${
             location.pathname === "/repair/status/paid"
               ? "bg-[#1976d2]"
               : "bg-surface"
@@ -164,7 +164,7 @@ const RepairStatus = () => {
         >
           <Link
             to="/repair/status/paid"
-            className={`font-semibold text-[18px] ${
+            className={`font-semibold text-[18px] md:text-[20px] ${
               location.pathname === "/repair/status/paid"
                 ? "text-surface"
                 : "text-subtle-light"
@@ -175,7 +175,7 @@ const RepairStatus = () => {
         </div>
       </div>
       <div className="w-full min-h-[calc(100vh-126px)] px-[20px] pb-[112px] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
-        <p className="pt-[16px] font-semibold text-[22px] text-normal">
+        <p className="pt-[16px] font-semibold text-[22px] md:text-[24px] text-normal">
           {getStatusTitle()}
         </p>
         {isLoading ? (
@@ -184,7 +184,7 @@ const RepairStatus = () => {
           </div>
         ) : currentRepairs.length === 0 ? (
           <div className="flex items-center justify-center h-[435px]">
-            <p className="text-[18px] text-subtle-light">{getEmptyMessage()}</p>
+            <p className="text-[20px] md:text-[22px] text-subtle-light">{getEmptyMessage()}</p>
           </div>
         ) : (
           currentRepairs.map((item, index) => (

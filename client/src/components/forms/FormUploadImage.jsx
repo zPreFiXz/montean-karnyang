@@ -98,7 +98,7 @@ const FormUploadImage = ({
     <div className="w-full justify-center px-[20px] pt-[16px]">
       <Label
         htmlFor="image-upload"
-        className="font-medium text-[18px] text-subtle-dark"
+        className="font-medium text-[20px] md:text-[22px] text-subtle-dark"
       >
         {label}
       </Label>
@@ -136,10 +136,10 @@ const FormUploadImage = ({
           ) : (
             <>
               <ImageIcon className="w-[48px] h-[48px] mb-[8px] text-subtle-light group-hover:text-primary group-hover:scale-110 duration-300" />
-              <p className="mb-[4px] font-medium text-[16px] text-subtle-light group-hover:text-primary duration-300">
+              <p className="mb-[4px] font-medium text-[16px] md:text-[18px] text-subtle-light group-hover:text-primary duration-300">
                 เลือกรูปอะไหล่
               </p>
-              <p className="text-[12px] text-subtle-light group-hover:text-subtle-dark duration-300">
+              <p className="text-[14px] md:text-[16px] text-subtle-light group-hover:text-subtle-dark duration-300">
                 PNG, JPG, WEBP ขนาดไม่เกิน 5MB
               </p>
             </>

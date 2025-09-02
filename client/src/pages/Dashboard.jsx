@@ -173,27 +173,27 @@ const Dashboard = () => {
 
       {/* มุมมองมือถือ */}
       <div className="lg:hidden">
-        <div className="w-full h-[233px] pt-[16px] px-[20px] bg-gradient-primary">
-          <p className="font-semibold text-[34px] text-surface">
+        <div className="w-full h-[222px] md:h-[228px] pt-[16px] px-[20px] bg-gradient-primary">
+          <p className="font-semibold text-[32px] md:text-[34px] text-surface">
             มณเฑียรการยาง
           </p>
-          <p className="font-medium text-[20px] text-surface">
+          <p className="font-medium text-[20px] md:text-[22px] text-surface">
             {getCurrentDateThai()}
           </p>
           <Link
             to="/reports/sales/daily"
             className="flex justify-between items-center w-full h-[80px] px-[16px] mx-auto mt-[16px] rounded-[10px] bg-surface shadow-primary cursor-pointer"
           >
-            <p className="font-semibold text-[24px] text-normal">
+            <p className="font-semibold text-[22px] md:text-[24px] text-normal">
               ยอดขายวันนี้
             </p>
-            <p className="font-semibold text-[32px] text-primary">
+            <p className="font-semibold text-[30px] md:text-[32px] text-primary">
               {formatCurrency(todaySales)}
             </p>
           </Link>
         </div>
         <div className="flex flex-col w-full gap-[16px] px-[20px] -mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface">
-          <p className="pt-[16px] font-semibold text-[22px] text-normal">
+          <p className="pt-[16px] font-semibold text-[22px] md:text-[24px] text-normal">
             สถานะการซ่อม
           </p>
           <Link to="/repair/status/in-progress">
@@ -201,7 +201,7 @@ const Dashboard = () => {
               bg="in-progress"
               color="#F4B809"
               icon={Wrench}
-              licensePlate={"กำลังซ่อม"}
+              status={"กำลังซ่อม"}
               amount={inProgressCount > 0 ? inProgressCount : "0"}
             />
           </Link>
@@ -210,7 +210,7 @@ const Dashboard = () => {
               bg="completed"
               color="#66BB6A"
               icon={Success}
-              licensePlate={"ซ่อมเสร็จสิ้น"}
+              status={"ซ่อมเสร็จสิ้น"}
               amount={completedCount > 0 ? completedCount : "0"}
             />
           </Link>
@@ -219,7 +219,7 @@ const Dashboard = () => {
               bg="paid"
               color="#1976d2"
               icon={Paid}
-              licensePlate={"ชำระเงินแล้ว"}
+              status={"ชำระเงินแล้ว"}
               amount={paidCount > 0 ? paidCount : "0"}
             />
           </Link>

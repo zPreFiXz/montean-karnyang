@@ -52,7 +52,7 @@ const Vehicles = () => {
 
   return (
     <div className="w-full h-[83px] bg-gradient-primary shadow-primary">
-      <p className="pt-[16px] pl-[20px] font-semibold text-[24px] text-surface">
+      <p className="pt-[16px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
         ประวัติลูกค้า
       </p>
       <div className="w-full min-h-[calc(100vh-65px)] pb-[112px] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
@@ -67,7 +67,7 @@ const Vehicles = () => {
             </div>
           ) : vehicles.length === 0 ? (
             <div className="flex justify-center items-center h-[490px]">
-              <p className="font-medium text-subtle-light">ไม่พบลูกค้า</p>
+              <p className="font-medium text-[20px] md:text-[22px] text-subtle-light">ไม่พบลูกค้า</p>
             </div>
           ) : (
             vehicles.map((item, index) => (

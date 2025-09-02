@@ -15,7 +15,7 @@ import VehicleCompatibilityInput from "@/components/forms/VehicleCompatibilityIn
 import { useNavigate } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createPartSchema } from "@/utils/schemas";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, LoaderCircle } from "lucide-react";
 import { getInventoryById } from "@/api/inventory";
 import { useParams, useSearchParams } from "react-router";
 
@@ -41,6 +41,7 @@ const ItemDetail = () => {
   const type = searchParams.get("type");
   const [categories, setCategories] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
   const [inventory, setInventory] = useState(null);
   const [isImageMarkedForDeletion, setIsImageMarkedForDeletion] =
@@ -67,6 +68,7 @@ const ItemDetail = () => {
 
   const fetchInventory = async (id, type) => {
     try {
+      setIsLoading(true);
       const res = await getInventoryById(id, type);
       setInventory(res.data);
 
@@ -106,6 +108,8 @@ const ItemDetail = () => {
       }
     } catch (error) {
       console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -270,210 +274,219 @@ const ItemDetail = () => {
 
   return (
     <main className="w-full h-[83px] bg-gradient-primary shadow-primary">
-      <div className="flex items-center gap-[8px] pt-[16px] pl-[20px] font-semibold text-[24px] text-surface">
+      <div className="flex items-center gap-[8px] pt-[16px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
         <button onClick={() => navigate(-1)} className="mt-[2px] text-surface">
           <ChevronLeft />
         </button>
         แก้ไขอะไหล่และบริการ
       </div>
       <section className="w-full min-h-[calc(100svh-65px)] sm:min-h-[calc(100vh-65px)] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <ComboBox
-            label="หมวดหมู่"
-            options={categories}
-            value={watch("categoryId")}
-            onChange={handleCategoryChange}
-            placeholder="-- เลือกหมวดหมู่ --"
-            errors={errors}
-            name="categoryId"
-            disabled={inventory}
-          />
-
-          {/* บริการ */}
-          {isServiceCategory() && (
-            <div className="mb-[16px]">
-              <FormInput
-                register={register}
-                name="name"
-                label="ชื่อบริการ"
-                type="text"
-                placeholder="เช่น ตั้งศูนย์, ถ่วงล้อ, เปลี่ยนน้ำมันเครื่อง"
-                color="subtle-dark"
-                errors={errors}
-              />
-              <FormInput
-                register={register}
-                name="price"
-                label="ราคา (บาท)"
-                type="number"
-                placeholder="เช่น 400"
-                color="subtle-dark"
-                errors={errors}
-              />
-            </div>
-          )}
-
-          {/* อะไหล่ */}
-          {!isServiceCategory() && (
-            <div>
-              <FormUploadImage
-                label="รูปภาพอะไหล่"
-                setSelectedImage={setSelectedImage}
-                selectedImage={selectedImage}
-                publicId={inventory?.publicId}
-                onMarkForDeletion={setIsImageMarkedForDeletion}
-              />
-              <FormInput
-                register={register}
-                name="partNumber"
-                label="รหัสอะไหล่"
-                type="text"
-                placeholder="เช่น SB-3882"
-                color="subtle-dark"
-                errors={errors}
-              />
-              <FormInput
-                register={register}
-                name="brand"
-                label="ยี่ห้อ"
-                type="text"
-                placeholder={
-                  isTireCategory() ? "เช่น LINGLONG, MAXXIS" : "เช่น 333, 555"
-                }
-                color="subtle-dark"
-                errors={errors}
-              />
-              <FormInput
-                register={register}
-                name="name"
-                label={isTireCategory() ? "รุ่น" : "ชื่ออะไหล่"}
-                type="text"
-                placeholder={
-                  isTireCategory()
-                    ? "เช่น CROSSWIND HP010"
-                    : "เช่น ลูกหมากปีกนกบน REVO,VIGO 4x2"
-                }
-                color="subtle-dark"
-                errors={errors}
-              />
-
-              {/* ยาง */}
-              {isTireCategory() && (
-                <div className="space-y-4">
-                  <FormInput
-                    register={register}
-                    name="width"
-                    label="หน้ายาง (มม.)"
-                    type="text"
-                    placeholder="เช่น 195, 205, 215"
-                    color="subtle-dark"
-                    errors={errors}
-                  />
-                  <FormInput
-                    register={register}
-                    name="aspectRatio"
-                    label="แก้มยาง (%)"
-                    type="text"
-                    placeholder="เช่น 55, 60, 65"
-                    color="subtle-dark"
-                    errors={errors}
-                  />
-                  <FormInput
-                    register={register}
-                    name="rimDiameter"
-                    label="ขอบ (นิ้ว)"
-                    type="text"
-                    placeholder="เช่น 15, 16, 17"
-                    color="subtle-dark"
-                    errors={errors}
-                  />
-                </div>
-              )}
-              <FormInput
-                register={register}
-                name="costPrice"
-                label="ราคาต้นทุน (บาท)"
-                type="number"
-                placeholder="เช่น 800"
-                color="subtle-dark"
-                errors={errors}
-                onWheel={(e) => e.target.blur()}
-                onInput={(e) => {
-                  e.target.value = e.target.value.replace(/[^0-9.]/g, "");
-                  // ป้องกันการใส่จุดมากกว่า 1 ตัว
-                  const parts = e.target.value.split(".");
-                  if (parts.length > 2) {
-                    e.target.value = parts[0] + "." + parts.slice(1).join("");
-                  }
-                }}
-              />
-              <FormInput
-                register={register}
-                name="sellingPrice"
-                label="ราคาขาย (บาท)"
-                type="number"
-                placeholder="เช่น 1200"
-                color="subtle-dark"
-                errors={errors}
-                onWheel={(e) => e.target.blur()}
-                onInput={(e) => {
-                  e.target.value = e.target.value.replace(/[^0-9.]/g, "");
-                  // ป้องกันการใส่จุดมากกว่า 1 ตัว
-                  const parts = e.target.value.split(".");
-                  if (parts.length > 2) {
-                    e.target.value = parts[0] + "." + parts.slice(1).join("");
-                  }
-                }}
-              />
-              <FormInput
-                register={register}
-                name="unit"
-                label="หน่วย"
-                type="text"
-                placeholder="เช่น ชิ้น, คู่, ชุด, เส้น"
-                color="subtle-dark"
-                errors={errors}
-              />
-              <FormInput
-                register={register}
-                name="stockQuantity"
-                label="จำนวนสต็อก"
-                type="number"
-                placeholder="เช่น 10"
-                color="subtle-dark"
-                errors={errors}
-                onWheel={(e) => e.target.blur()}
-                onInput={(e) => {
-                  e.target.value = e.target.value.replace(/[^0-9]/g, "");
-                }}
-              />
-              <FormInput
-                register={register}
-                name="minStockLevel"
-                label="สต็อกขั้นต่ำ"
-                type="number"
-                placeholder="เช่น 3"
-                color="subtle-dark"
-                errors={errors}
-                onWheel={(e) => e.target.blur()}
-                onInput={(e) => {
-                  e.target.value = e.target.value.replace(/[^0-9]/g, "");
-                }}
-              />
-              <VehicleCompatibilityInput
-                setValue={setValue}
-                watch={watch}
-                initialData={inventory?.compatibleVehicles}
-              />
-            </div>
-          )}
-          <div className="flex justify-center pb-[96px]">
-            <FormButton
-              label={isServiceCategory() ? "แก้ไขบริการ" : "แก้ไขอะไหล่"}
-              isLoading={isSubmitting}
-            />
+        {isLoading ? (
+          <div className="flex justify-center items-center h-[530px]">
+            <LoaderCircle className="w-8 h-8 animate-spin text-primary" />
           </div>
-        </form>
+        ) : (
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="px-[20px] pt-[16px]">
+              <ComboBox
+                label="หมวดหมู่"
+                color="text-subtle-dark"
+                options={categories}
+                value={watch("categoryId")}
+                onChange={handleCategoryChange}
+                placeholder="-- เลือกหมวดหมู่ --"
+                errors={errors}
+                name="categoryId"
+                disabled={inventory}
+              />
+            </div>
+
+            {/* บริการ */}
+            {isServiceCategory() && (
+              <div className="mb-[16px]">
+                <FormInput
+                  register={register}
+                  name="name"
+                  label="ชื่อบริการ"
+                  type="text"
+                  placeholder="เช่น ตั้งศูนย์, ถ่วงล้อ, เปลี่ยนน้ำมันเครื่อง"
+                  color="subtle-dark"
+                  errors={errors}
+                />
+                <FormInput
+                  register={register}
+                  name="price"
+                  label="ราคา (บาท)"
+                  type="number"
+                  placeholder="เช่น 400"
+                  color="subtle-dark"
+                  errors={errors}
+                />
+              </div>
+            )}
+
+            {/* อะไหล่ */}
+            {!isServiceCategory() && (
+              <div>
+                <FormUploadImage
+                  label="รูปภาพอะไหล่"
+                  setSelectedImage={setSelectedImage}
+                  selectedImage={selectedImage}
+                  publicId={inventory?.publicId}
+                  onMarkForDeletion={setIsImageMarkedForDeletion}
+                />
+                <FormInput
+                  register={register}
+                  name="partNumber"
+                  label="รหัสอะไหล่"
+                  type="text"
+                  placeholder="เช่น SB-3882"
+                  color="subtle-dark"
+                  errors={errors}
+                />
+                <FormInput
+                  register={register}
+                  name="brand"
+                  label="ยี่ห้อ"
+                  type="text"
+                  placeholder={
+                    isTireCategory() ? "เช่น LINGLONG, MAXXIS" : "เช่น 333, 555"
+                  }
+                  color="subtle-dark"
+                  errors={errors}
+                />
+                <FormInput
+                  register={register}
+                  name="name"
+                  label={isTireCategory() ? "รุ่น" : "ชื่ออะไหล่"}
+                  type="text"
+                  placeholder={
+                    isTireCategory()
+                      ? "เช่น CROSSWIND HP010"
+                      : "เช่น ลูกหมากปีกนกบน REVO,VIGO 4x2"
+                  }
+                  color="subtle-dark"
+                  errors={errors}
+                />
+
+                {/* ยาง */}
+                {isTireCategory() && (
+                  <div className="space-y-4">
+                    <FormInput
+                      register={register}
+                      name="width"
+                      label="หน้ายาง (มม.)"
+                      type="text"
+                      placeholder="เช่น 195, 205, 215"
+                      color="subtle-dark"
+                      errors={errors}
+                    />
+                    <FormInput
+                      register={register}
+                      name="aspectRatio"
+                      label="แก้มยาง (%)"
+                      type="text"
+                      placeholder="เช่น 55, 60, 65"
+                      color="subtle-dark"
+                      errors={errors}
+                    />
+                    <FormInput
+                      register={register}
+                      name="rimDiameter"
+                      label="ขอบ (นิ้ว)"
+                      type="text"
+                      placeholder="เช่น 15, 16, 17"
+                      color="subtle-dark"
+                      errors={errors}
+                    />
+                  </div>
+                )}
+                <FormInput
+                  register={register}
+                  name="costPrice"
+                  label="ราคาต้นทุน (บาท)"
+                  type="number"
+                  placeholder="เช่น 800"
+                  color="subtle-dark"
+                  errors={errors}
+                  onWheel={(e) => e.target.blur()}
+                  onInput={(e) => {
+                    e.target.value = e.target.value.replace(/[^0-9.]/g, "");
+                    // ป้องกันการใส่จุดมากกว่า 1 ตัว
+                    const parts = e.target.value.split(".");
+                    if (parts.length > 2) {
+                      e.target.value = parts[0] + "." + parts.slice(1).join("");
+                    }
+                  }}
+                />
+                <FormInput
+                  register={register}
+                  name="sellingPrice"
+                  label="ราคาขาย (บาท)"
+                  type="number"
+                  placeholder="เช่น 1200"
+                  color="subtle-dark"
+                  errors={errors}
+                  onWheel={(e) => e.target.blur()}
+                  onInput={(e) => {
+                    e.target.value = e.target.value.replace(/[^0-9.]/g, "");
+                    // ป้องกันการใส่จุดมากกว่า 1 ตัว
+                    const parts = e.target.value.split(".");
+                    if (parts.length > 2) {
+                      e.target.value = parts[0] + "." + parts.slice(1).join("");
+                    }
+                  }}
+                />
+                <FormInput
+                  register={register}
+                  name="unit"
+                  label="หน่วย"
+                  type="text"
+                  placeholder="เช่น ชิ้น, คู่, ชุด, เส้น"
+                  color="subtle-dark"
+                  errors={errors}
+                />
+                <FormInput
+                  register={register}
+                  name="stockQuantity"
+                  label="จำนวนสต็อก"
+                  type="number"
+                  placeholder="เช่น 10"
+                  color="subtle-dark"
+                  errors={errors}
+                  onWheel={(e) => e.target.blur()}
+                  onInput={(e) => {
+                    e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                  }}
+                />
+                <FormInput
+                  register={register}
+                  name="minStockLevel"
+                  label="สต็อกขั้นต่ำ"
+                  type="number"
+                  placeholder="เช่น 3"
+                  color="subtle-dark"
+                  errors={errors}
+                  onWheel={(e) => e.target.blur()}
+                  onInput={(e) => {
+                    e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                  }}
+                />
+                <VehicleCompatibilityInput
+                  setValue={setValue}
+                  watch={watch}
+                  initialData={inventory?.compatibleVehicles}
+                />
+              </div>
+            )}
+            <div className="flex justify-center pb-[96px]">
+              <FormButton
+                label={isServiceCategory() ? "แก้ไขบริการ" : "แก้ไขอะไหล่"}
+                isLoading={isSubmitting}
+              />
+            </div>
+          </form>
+        )}
       </section>
     </main>
   );

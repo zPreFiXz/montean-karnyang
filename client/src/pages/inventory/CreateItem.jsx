@@ -169,7 +169,7 @@ const CreatePart = () => {
 
   return (
     <main className="w-full h-[83px] bg-gradient-primary shadow-primary">
-      <div className="flex items-center gap-[8px] pt-[16px] pl-[20px] font-semibold text-[24px] text-surface">
+      <div className="flex items-center gap-[8px] pt-[16px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
         <button onClick={() => navigate(-1)} className="mt-[2px] text-surface">
           <ChevronLeft />
         </button>
@@ -177,15 +177,18 @@ const CreatePart = () => {
       </div>
       <section className="w-full min-h-[calc(100svh-65px)] sm:min-h-[calc(100vh-65px)] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         <form onSubmit={handleSubmit(onSubmit)}>
-          <ComboBox
-            label="หมวดหมู่"
-            options={categories}
-            value={watch("categoryId")}
-            onChange={handleCategoryChange}
-            placeholder="-- เลือกหมวดหมู่ --"
-            errors={errors}
-            name="categoryId"
-          />
+          <div className="px-[20px] pt-[16px]">
+            <ComboBox
+              label="หมวดหมู่"
+              color="text-subtle-dark"
+              options={categories}
+              value={watch("categoryId")}
+              onChange={handleCategoryChange}
+              placeholder="-- เลือกหมวดหมู่ --"
+              errors={errors}
+              name="categoryId"
+            />
+          </div>
 
           {/* บริการ */}
           {isServiceCategory() && (

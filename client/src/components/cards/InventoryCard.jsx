@@ -17,7 +17,7 @@ const InventoryCard = ({
     // แสดงข้อมูลยางที่มีขนาดแก้มยาง
     if (isTire && typeSpecificData && typeSpecificData.aspectRatio) {
       return (
-        <p className="overflow-hidden font-semibold text-[16px] text-normal line-clamp-2">
+        <p className="overflow-hidden font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
           {brand} {typeSpecificData.width}/{typeSpecificData.aspectRatio}R
           {typeSpecificData.rimDiameter} {name}
         </p>
@@ -25,7 +25,7 @@ const InventoryCard = ({
       // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
     } else if (isTire && typeSpecificData) {
       return (
-        <p className="overflow-hidden font-semibold text-[16px] text-normal line-clamp-2">
+        <p className="overflow-hidden font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
           {brand} {typeSpecificData.width}R{typeSpecificData.rimDiameter} {name}
         </p>
       );
@@ -33,7 +33,7 @@ const InventoryCard = ({
 
     // แสดงข้อมูลอะไหล่หรือบริการ
     return (
-      <p className="overflow-hidden font-semibold text-[16px] text-normal line-clamp-2">
+      <p className="overflow-hidden font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
         {brand} {name}
       </p>
     );
@@ -50,7 +50,7 @@ const InventoryCard = ({
                 <img
                   src={secureUrl}
                   alt={name}
-                  className="object-cover rounded-[10px]"
+                  className="object-cover w-full h-full rounded-[10px]"
                 />
               </div>
             ) : (
@@ -65,12 +65,12 @@ const InventoryCard = ({
           </div>
           <div className="flex flex-col">
             {renderProductInfo()}
-            <p className="font-semibold text-[14px] text-subtle-dark">
+            <p className="font-semibold text-[16px] md:text-[18px] text-subtle-dark">
               {isService ? "" : `จำนวน: ${stockQuantity} ${unit}`}
             </p>
           </div>
         </div>
-        <p className="font-semibold text-[20px] text-primary text-nowrap">
+        <p className="font-semibold text-[22px] md:text-[24px] text-primary text-nowrap">
           {Number(sellingPrice).toLocaleString()} บาท
         </p>
       </div>

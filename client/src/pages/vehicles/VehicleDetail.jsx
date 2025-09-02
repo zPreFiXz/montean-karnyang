@@ -35,7 +35,7 @@ const VehicleDetail = () => {
         <button onClick={() => navigate(-1)} className="mt-[2px] text-surface">
           <ChevronLeft />
         </button>
-        <p className="font-semibold text-[24px] text-surface">ประวัติลูกค้า</p>
+        <p className="font-semibold text-[24px] md:text-[26px] text-surface">ประวัติลูกค้า</p>
       </div>
 
       <div className="min-h-[calc(100vh-65px)] pt-[16px] pb-[96px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
@@ -50,11 +50,11 @@ const VehicleDetail = () => {
                 <Car color="#1976d2" />
               </div>
               <div className="flex flex-col">
-                <p className="font-semibold text-[22px] text-primary leading-tight">
+                <p className="font-semibold text-[22px] md:text-[24px] text-primary leading-tight">
                   {vehicle.licensePlate.plateNumber}{" "}
                   {vehicle.licensePlate.province}
                 </p>
-                <p className="font-medium text-[18px] text-subtle-dark leading-tight">
+                <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark leading-tight">
                   {vehicle?.brand} {vehicle?.model}
                 </p>
               </div>
@@ -63,14 +63,14 @@ const VehicleDetail = () => {
             {vehicle.repairs && (
               <div className="px-[20px] mb-[16px]">
                 <div className="flex justify-between items-center mb-[16px]">
-                  <p className="font-semibold text-[22px] text-normal">
+                  <p className="font-semibold text-[22px] md:text-[24px] text-normal">
                     ประวัติการซ่อม
                   </p>
                 </div>
                 <div className="space-y-[16px]">
                   {vehicle.repairs.map((item, index) => (
                     <div key={index} className="flex flex-col gap-[8px]">
-                      <p className="font-medium text-[18px] text-subtle-dark">
+                      <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark">
                         {formatDate(item.createdAt)} |{" "}
                         {formatTime(item.createdAt)} น.
                       </p>

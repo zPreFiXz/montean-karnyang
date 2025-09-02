@@ -1,5 +1,6 @@
 import { useState } from "react";
 import InventoryCard from "@/components/cards/InventoryCard";
+import SearchBar from "@/components/forms/SearchBar";
 import {
   Dialog,
   DialogContent,
@@ -8,8 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Search, LoaderCircle, X } from "lucide-react";
+import { LoaderCircle, X } from "lucide-react";
 import { ToolBox, Tire, Shock, Oil } from "@/components/icons/Icon";
 import { useDebouncedCallback } from "use-debounce";
 import { getInventory } from "@/api/inventory";
@@ -63,12 +63,6 @@ const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
     handleFilter(category, value || null);
   }, 500);
 
-  const handleSearch = (e) => {
-    const value = e.target.value;
-    setSearchValue(value);
-    debouncedSearch(value);
-  };
-
   const handleCategoryChange = (category) => {
     setActiveCategory(category);
     const categoryParam = category === "ทั้งหมด" ? null : category;
@@ -115,7 +109,7 @@ const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
         showCloseButton={false}
       >
         <DialogHeader className="relative flex-shrink-0 pt-[16px]">
-          <DialogTitle className="text-center font-athiti font-semibold text-[22px] text-subtle-dark">
+          <DialogTitle className="text-center font-athiti font-semibold text-[22px] md:text-[24px] text-subtle-dark">
             เลือกอะไหล่และบริการ
           </DialogTitle>
           <DialogDescription className="sr-only">
@@ -135,54 +129,16 @@ const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
         <div className="overflow-y-auto flex-1 flex flex-col">
           <div className="flex-shrink-0 flex flex-col px-[20px]">
             {/* แถบค้นหา */}
-            <div className="relative flex items-center mt-[4px]">
-              <div className="absolute left-[16px] flex items-center h-full text-subtle-dark pointer-events-none">
-                <Search size={20} />
-              </div>
-              <Input
-                type="text"
-                value={searchValue}
-                onChange={handleSearch}
-                autoFocus={true}
-                inputMode="none"
-                onTouchStart={(e) => {
-                  e.target.inputMode = "text";
-                }}
-                onClick={(e) => {
-                  e.target.inputMode = "text";
-                }}
+            <div className="mt-[4px]">
+              <SearchBar
                 placeholder="ค้นหารหัส, ยี่ห้อ, ชื่ออะไหล่"
-                className="w-full h-[41px] px-[40px] rounded-[20px] font-athiti bg-surface focus:outline-none"
-                style={{
-                  "--tw-ring-color": "#1976d2",
-                  "--tw-border-opacity": "1",
+                onSearch={(value) => {
+                  setSearchValue(value);
+                  debouncedSearch(value);
                 }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = "#1976d2";
-                  e.target.style.borderWidth = "2px";
-                  e.target.style.boxShadow = "0 0 0 3px rgba(13, 71, 161, 0.3)";
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = "";
-                  e.target.style.borderWidth = "";
-                  e.target.style.boxShadow = "";
-                }}
+                value={searchValue}
+                inputMode="none"
               />
-
-              {/* ปุ่มล้างการค้นหา */}
-              {searchValue && (
-                <button
-                  onClick={() => {
-                    setSearchValue("");
-                    const category =
-                      activeCategory === "ทั้งหมด" ? null : activeCategory;
-                    handleFilter(category, null);
-                  }}
-                  className="absolute right-[16px] flex items-center h-full text-subtle-dark"
-                >
-                  <X size={18} />
-                </button>
-              )}
             </div>
 
             {/* แถบหมวดหมู่ */}
@@ -197,7 +153,7 @@ const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
                       : "border-subtle-light text-subtle-dark bg-surface"
                   }`}
                 >
-                  <div className="font-semibold text-[14px] text-nowrap">
+                  <div className="font-semibold text-[14px] md:text-[16px] text-nowrap">
                     ทั้งหมด
                   </div>
                 </button>
@@ -222,7 +178,7 @@ const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
                       >
                         <IconComponent />
                       </div>
-                      <div className="font-semibold text-[14px] text-nowrap">
+                      <div className="font-semibold text-[14px] md:text-[16px] text-nowrap">
                         {item.name}
                       </div>
                     </button>
@@ -232,7 +188,7 @@ const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
             </div>
 
             <div className="flex items-center justify-between mt-[14px]">
-              <p className="font-athiti font-semibold text-[18px]">
+              <p className="font-athiti font-semibold text-[20px] md:text-[22px]">
                 รายการอะไหล่และบริการ
               </p>
             </div>
@@ -246,7 +202,7 @@ const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
               </div>
             ) : inventory.length === 0 ? (
               <div className="flex items-center justify-center h-full">
-                <p className="font-athiti font-medium text-subtle-light">
+                <p className="font-athiti font-medium text-[20px] md:text-[22px] text-subtle-light">
                   ไม่พบอะไหล่และบริการ
                 </p>
               </div>

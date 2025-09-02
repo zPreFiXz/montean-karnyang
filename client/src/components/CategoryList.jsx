@@ -2,6 +2,7 @@ import { getCategories } from "@/api/category";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { ToolBox, Tire, Shock, Oil } from "@/components/icons/Icon";
+import { LoaderCircle } from "lucide-react";
 
 const iconMap = {
   บริการ: ToolBox,
@@ -13,6 +14,7 @@ const iconMap = {
 const CategoryList = ({ activeCategory, setActiveCategory }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [categories, setCategories] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const handleFilter = (category) => {
     const params = new URLSearchParams(searchParams);
@@ -22,6 +24,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
 
   const fetchCategories = async () => {
     try {
+      setIsLoading(true);
       const res = await getCategories();
       const categoriesWithIcons = res.data
         .map((category) => ({
@@ -32,6 +35,8 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
       setCategories(categoriesWithIcons);
     } catch (error) {
       console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -40,8 +45,13 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
   }, []);
 
   return (
-    <div className="overflow-x-auto scrollbar-hide  px-[20px] -mx-[20px] mt-[16px]">
-      <div className="flex gap-[8px]">
+    <div className="overflow-x-auto scrollbar-hide px-[20px] -mx-[20px] mt-[16px]">
+      {isLoading ? (
+        <div className="flex justify-center items-center h-[80px]">
+          <LoaderCircle className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div className="flex gap-[8px]">
         <button
           onClick={() => {
             const params = new URLSearchParams(searchParams);
@@ -55,7 +65,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
               : "border-subtle-light text-subtle-dark bg-surface"
           }`}
         >
-          <div className="font-semibold text-[14px] text-nowrap">ทั้งหมด</div>
+          <div className="font-semibold text-[14px] md:text-[16px] text-nowrap">ทั้งหมด</div>
         </button>
 
         {/* แถบหมวดหมู่ */}
@@ -82,13 +92,14 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
               >
                 <IconComponent />
               </div>
-              <div className="font-semibold text-[14px] text-nowrap">
+              <div className="font-semibold text-[14px] md:text-[16px] text-nowrap">
                 {item.name}
               </div>
             </button>
           );
         })}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

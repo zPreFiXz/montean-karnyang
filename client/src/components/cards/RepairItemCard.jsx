@@ -14,7 +14,7 @@ const RepairItemCard = ({ item, variant }) => {
         item.part.typeSpecificData.aspectRatio
       ) {
         return (
-          <p className="font-semibold text-[16px] text-normal line-clamp-2">
+          <p className="font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
             {item.part.brand} {item.part.typeSpecificData.width}/
             {item.part.typeSpecificData.aspectRatio}R
             {item.part.typeSpecificData.rimDiameter} {item.part.name}
@@ -25,7 +25,7 @@ const RepairItemCard = ({ item, variant }) => {
       // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
       if (isTire && item.part?.typeSpecificData) {
         return (
-          <p className="font-semibold text-[16px] text-normal line-clamp-2">
+          <p className="font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
             {item.part.brand} {item.part.typeSpecificData.width}R
             {item.part.typeSpecificData.rimDiameter} {item.part.name}
           </p>
@@ -34,7 +34,7 @@ const RepairItemCard = ({ item, variant }) => {
 
       // แสดงข้อมูลอะไหล่หรือบริการ
       return (
-        <p className="font-semibold text-[16px] text-normal line-clamp-2">
+        <p className="font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
           {item.part?.brand && `${item.part.brand} `}
           {item.part?.name || item.service?.name}
         </p>
@@ -47,7 +47,7 @@ const RepairItemCard = ({ item, variant }) => {
     // แสดงข้อมูลยางที่มีขนาดแก้มยาง
     if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
       return (
-        <p className="font-semibold text-[16px] text-normal line-clamp-2">
+        <p className="font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
           {item.brand} {item.typeSpecificData.width}/
           {item.typeSpecificData.aspectRatio}R
           {item.typeSpecificData.rimDiameter} {item.name}
@@ -58,7 +58,7 @@ const RepairItemCard = ({ item, variant }) => {
     // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
     if (isTire && item.typeSpecificData) {
       return (
-        <p className="font-semibold text-[16px] text-normal line-clamp-2">
+        <p className="font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
           {item.brand} {item.typeSpecificData.width}R
           {item.typeSpecificData.rimDiameter} {item.name}
         </p>
@@ -67,7 +67,7 @@ const RepairItemCard = ({ item, variant }) => {
 
     // แสดงข้อมูลอะไหล่หรือบริการ
     return (
-      <p className="font-semibold text-[16px] text-normal line-clamp-2">
+      <p className="font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
         {item.brand} {item.name}
       </p>
     );
@@ -83,13 +83,13 @@ const RepairItemCard = ({ item, variant }) => {
     variant === "detail"
       ? item.part?.unit || item.service?.unit || ""
       : item.unit;
-      
+
   // ตรวจสอบว่าเป็นบริการหรือไม่
   const isService = variant === "detail" ? !!item.service : !item.partNumber;
 
   return (
     <div className="flex items-center gap-[16px]">
-      <div className="flex justify-between items-center w-full h-[80px] px-[8px] rounded-[10px] bg-white shadow-primary">
+      <div className="flex justify-between items-center w-full h-[80px] gap-[8px] px-[8px] rounded-[10px] bg-white shadow-primary">
         <div className="flex items-center gap-[8px]">
           <div className="flex items-center justify-center rounded-[10px] border border-subtle-light bg-white shadow-primary">
             {imageUrl ? (
@@ -112,12 +112,12 @@ const RepairItemCard = ({ item, variant }) => {
           </div>
           <div className="flex flex-col">
             {renderProductInfo(item)}
-            <p className="font-semibold text-[16px] text-subtle-dark">
+            <p className="font-semibold text-[16px] md:text-[18px] text-subtle-dark">
               {formatCurrency(unitPrice)} × {item.quantity} {unit}
             </p>
           </div>
         </div>
-        <p className="font-semibold text-[20px] text-primary text-nowrap">
+        <p className="font-semibold text-[22px] md:text-[24px] text-primary text-nowrap">
           {formatCurrency(unitPrice * item.quantity)}
         </p>
       </div>
