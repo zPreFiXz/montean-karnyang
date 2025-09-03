@@ -35,7 +35,9 @@ const VehicleDetail = () => {
         <button onClick={() => navigate(-1)} className="mt-[2px] text-surface">
           <ChevronLeft />
         </button>
-        <p className="font-semibold text-[24px] md:text-[26px] text-surface">ประวัติลูกค้า</p>
+        <p className="font-semibold text-[24px] md:text-[26px] text-surface">
+          ประวัติลูกค้า
+        </p>
       </div>
 
       <div className="min-h-[calc(100vh-65px)] pt-[16px] pb-[96px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
@@ -55,7 +57,8 @@ const VehicleDetail = () => {
                   {vehicle.licensePlate.province}
                 </p>
                 <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark leading-tight">
-                  {vehicle?.brand} {vehicle?.model}
+                  {vehicle?.vehicleBrandModel.brand}{" "}
+                  {vehicle?.vehicleBrandModel.model}
                 </p>
               </div>
             </div>

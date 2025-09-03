@@ -15,19 +15,19 @@ const RepairStatus = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
 
-    const fetchRepairs = async () => {
-      try {
-        const res = await getRepairs();
-        setRepairs(res.data);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchRepairs();
   }, []);
+
+  const fetchRepairs = async () => {
+    try {
+      const res = await getRepairs();
+      setRepairs(res.data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // กรองรายการซ่อมตามสถานะที่เลือก
   const currentRepairs = repairs
@@ -184,7 +184,9 @@ const RepairStatus = () => {
           </div>
         ) : currentRepairs.length === 0 ? (
           <div className="flex items-center justify-center h-[435px]">
-            <p className="text-[20px] md:text-[22px] text-subtle-light">{getEmptyMessage()}</p>
+            <p className="text-[20px] md:text-[22px] text-subtle-light">
+              {getEmptyMessage()}
+            </p>
           </div>
         ) : (
           currentRepairs.map((item, index) => (
@@ -198,7 +200,7 @@ const RepairStatus = () => {
                 color={getStatusColor(item.status)}
                 icon={Car}
                 licensePlate={`${item.vehicle.licensePlate.plateNumber} ${item.vehicle.licensePlate.province}`}
-                brand={`${item.vehicle.brand} ${item.vehicle.model}`}
+                brand={`${item.vehicle.vehicleBrandModel.brand} ${item.vehicle.vehicleBrandModel.model}`}
                 time={item.createdAt && formatTime(item.createdAt)}
                 price={Number(item.totalPrice) || 0}
               />

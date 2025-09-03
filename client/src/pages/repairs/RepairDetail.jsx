@@ -217,7 +217,8 @@ const RepairDetail = () => {
                   {repair.vehicle.licensePlate.province}
                 </p>
                 <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark leading-tight">
-                  {repair.vehicle?.brand} {repair.vehicle?.model}
+                  {repair.vehicle?.vehicleBrandModel.brand}{" "}
+                  {repair.vehicle?.vehicleBrandModel.model}
                 </p>
               </div>
             </div>

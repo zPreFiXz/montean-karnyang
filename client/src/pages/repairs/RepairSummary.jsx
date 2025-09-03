@@ -6,6 +6,7 @@ import { formatCurrency } from "@/lib/utils";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { Edit, ChevronLeft } from "lucide-react";
+import { provinces } from "@/utils/data";
 
 const RepairSummary = () => {
   const location = useLocation();
@@ -32,6 +33,12 @@ const RepairSummary = () => {
     0
   );
 
+  // หาชื่อจังหวัดจาก ID
+  const getProvinceName = (provinceId) => {
+    const province = provinces.find((p) => p.id === provinceId);
+    return province ? province.name : provinceId;
+  };
+
   const handleConfirmRepair = async () => {
     setIsSubmitting(true);
     try {
@@ -44,7 +51,7 @@ const RepairSummary = () => {
         brand: repairData.brand,
         model: repairData.model,
         plateNumber: `${repairData.plateLetters}-${repairData.plateNumbers}`,
-        province: repairData.province,
+        province: getProvinceName(repairData.province), // แปลง ID เป็นชื่อจังหวัด
         description: repairData.description,
         totalPrice: totalPrice,
         repairItems: repairItems.map((item) => ({
@@ -82,7 +89,9 @@ const RepairSummary = () => {
         >
           <ChevronLeft />
         </button>
-        <p className="font-semibold text-[24px] md:text-[26px] text-surface">สรุปรายการซ่อม</p>
+        <p className="font-semibold text-[24px] md:text-[26px] text-surface">
+          สรุปรายการซ่อม
+        </p>
       </div>
       <div className="w-full h-full md:min-h-[calc(100vh-68px)]  mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         <div className="pt-[16px]">
@@ -140,7 +149,7 @@ const RepairSummary = () => {
                   </p>
                   <p className="font-semibold text-[18px] md:text-[20px] text-normal">
                     {repairData.plateLetters}-{repairData.plateNumbers}{" "}
-                    {repairData.province}
+                    {getProvinceName(repairData.province)}
                   </p>
                 </div>
                 <div className="flex justify-between items-start">
@@ -157,7 +166,9 @@ const RepairSummary = () => {
             {/* รายการซ่อม */}
             <div className="mb-[16px]">
               <div className="flex justify-between items-center mb-[16px]">
-                <p className="font-semibold text-[22px] md:text-[24px]">รายการซ่อม</p>
+                <p className="font-semibold text-[22px] md:text-[24px]">
+                  รายการซ่อม
+                </p>
                 <button
                   onClick={() => handleGoBack()}
                   className="flex items-center gap-[4px] font-semibold text-[20px] md:text-[22px] text-primary hover:text-primary/80 cursor-pointer"

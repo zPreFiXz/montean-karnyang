@@ -10,12 +10,8 @@ import { formatCurrency } from "@/lib/utils";
 import { Image, Trash, Plus, Minus, AlertCircle } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
-import {
-  carBrands,
-  carModels,
-  provinces,
-  getAvailableModels,
-} from "@/utils/data";
+import { provinces } from "@/utils/data";
+import { getVehicleBrandModels } from "@/api/vehicle";
 
 const CreateRepair = () => {
   const navigate = useNavigate();
@@ -27,11 +23,34 @@ const CreateRepair = () => {
   );
   const [repairItems, setRepairItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [vehicleBrandModels, setVehicleBrandModels] = useState([]);
+  const [brands, setBrands] = useState([]);
   const { errors } = formState;
+
+  useEffect(() => {
+    fetchVehicleBrandModels();
+  }, []);
+
+  const fetchVehicleBrandModels = async () => {
+    try {
+      const res = await getVehicleBrandModels();
+      setVehicleBrandModels(res.data);
+
+      // สร้างรายการ brands ที่ไม่ซ้ำกัน
+      const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
+      setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const getAvailableModelsForBrand = () => {
     const selectedBrand = watch("brand");
-    return getAvailableModels(selectedBrand);
+    const modelsForBrand = vehicleBrandModels
+      .filter((item) => item.brand === selectedBrand)
+      .map((item) => ({ id: item.model, name: item.model }));
+
+    return modelsForBrand;
   };
 
   const renderProductInfo = (item) => {
@@ -212,7 +231,7 @@ const CreateRepair = () => {
           <ComboBox
             label="ยี่ห้อรถ"
             color="text-surface"
-            options={carBrands}
+            options={brands}
             value={watch("brand")}
             onChange={(value) => {
               setValue("brand", value, {

@@ -67,7 +67,9 @@ const Vehicles = () => {
             </div>
           ) : vehicles.length === 0 ? (
             <div className="flex justify-center items-center h-[490px]">
-              <p className="font-medium text-[20px] md:text-[22px] text-subtle-light">ไม่พบลูกค้า</p>
+              <p className="font-medium text-[20px] md:text-[22px] text-subtle-light">
+                ไม่พบลูกค้า
+              </p>
             </div>
           ) : (
             vehicles.map((item, index) => (
@@ -82,7 +84,7 @@ const Vehicles = () => {
                         ? `${item.licensePlate.plateNumber} ${item.licensePlate.province}`
                         : ""
                     }
-                    brand={`${item.brand} ${item.model}`}
+                    brand={`${item.vehicleBrandModel.brand} ${item.vehicleBrandModel.model}`}
                   />
                 </Link>
               </div>

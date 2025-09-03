@@ -64,14 +64,23 @@ enum PaymentMethod {
 }
 
 model Vehicle {
-  id             Int           @id @default(autoincrement())
-  brand          String
-  model          String
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  licensePlateId Int?
-  licensePlate   LicensePlate? @relation(fields: [licensePlateId], references: [id], onDelete: Cascade)
-  repairs        Repair[]
+  id                   Int                @id @default(autoincrement())
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  licensePlateId       Int
+  licensePlate         LicensePlate      @relation(fields: [licensePlateId], references: [id], onDelete: Cascade)
+  vehicleBrandModelId  Int
+  vehicleBrandModel    VehicleBrandModel  @relation(fields: [vehicleBrandModelId], references: [id], onDelete: Cascade)
+  repairs              Repair[]
+}
+
+model VehicleBrandModel {
+  id        Int       @id @default(autoincrement())
+  brand     String
+  model     String
+  vehicles  Vehicle[]
+
+  @@unique([brand, model])
 }
 
 model LicensePlate {
@@ -82,7 +91,7 @@ model LicensePlate {
   updatedAt   DateTime  @updatedAt
   vehicles    Vehicle[]
 
-  @@unique([plateNumber, province], name: "plateNumber_province")
+  @@unique([plateNumber, province])
 }
 
 model Customer {

@@ -2,12 +2,18 @@ import { Label } from "@radix-ui/react-label";
 import { useState, useEffect, useRef } from "react";
 import { Trash, X } from "lucide-react";
 import ComboBox from "../ui/ComboBox";
-import { carBrands, carModels } from "../../utils/data";
+import { getVehicleBrandModels } from "../../api/vehicle";
 
 const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   const [vehicles, setVehicles] = useState([{ brand: "", model: "" }]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [vehicleBrandModels, setVehicleBrandModels] = useState([]);
+  const [brands, setBrands] = useState([]);
   const vehicleRefs = useRef([]);
+
+  useEffect(() => {
+    fetchVehicleBrandModels();
+  }, []);
 
   useEffect(() => {
     if (initialData && Array.isArray(initialData) && !isInitialized) {
@@ -34,8 +40,27 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
     }
   }, [initialData, setValue]);
 
-  const getAvailableModels = (brandId) => {
-    return carModels[brandId] || [];
+  const fetchVehicleBrandModels = async () => {
+    try {
+      const res = await getVehicleBrandModels();
+      setVehicleBrandModels(res.data);
+
+      // สร้างรายการ brands ที่ไม่ซ้ำกัน
+      const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
+      setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const getAvailableModels = (brandName) => {
+    if (!brandName || !vehicleBrandModels.length) return [];
+
+    const modelsForBrand = vehicleBrandModels
+      .filter((item) => item.brand === brandName)
+      .map((item) => ({ id: item.model, name: item.model }));
+
+    return modelsForBrand;
   };
 
   const updateFormValue = (vehicleList) => {
@@ -141,7 +166,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
               <ComboBox
                 label="ยี่ห้อ"
                 color="text-subtle-dark"
-                options={carBrands}
+                options={brands}
                 value={vehicle.brand}
                 onChange={(value) => handleUpdateVehicle(index, "brand", value)}
                 placeholder="เลือกยี่ห้อรถ"

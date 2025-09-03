@@ -52,12 +52,16 @@ const ComboBox = ({
     <div>
       {label && (
         <Label
-          className={`block mb-[8px] font-medium ${customClass ? 'text-[16px] md:text-[18px]' : 'text-[20px] md:text-[22px]'} ${color}`}
+          className={`block mb-[8px] font-medium ${
+            customClass
+              ? "text-[16px] md:text-[18px]"
+              : "text-[20px] md:text-[22px]"
+          } ${color}`}
         >
           {label}
         </Label>
       )}
-      <div className="relative">
+      <div className="relative z-10">
         <Popover
           open={open && !disabled}
           onOpenChange={disabled ? undefined : setOpen}
@@ -73,7 +77,9 @@ const ComboBox = ({
                 "justify-between w-full h-[41px] rounded-[20px] border-input font-medium text-foreground",
                 customClass || "text-[20px] md:text-[22px]",
                 !selectedLabel &&
-                  (customClass ? "font-light text-muted-foreground" : "font-light text-[18px] md:text-[20px] text-muted-foreground"),
+                  (customClass
+                    ? "font-light text-muted-foreground"
+                    : "font-light text-[18px] md:text-[20px] text-muted-foreground"),
                 hasError && "border-red-400 focus:border-red-500",
                 disabled && "opacity-50 cursor-not-allowed"
               )}
@@ -105,36 +111,36 @@ const ComboBox = ({
             </Button>
           </PopoverTrigger>
           <PopoverContent
-            className="p-0"
+            className="p-0 z-50"
             style={{
               width: triggerWidth > 0 ? `${triggerWidth}px` : "auto",
-              maxHeight: "450px",
-              overflowY: "auto",
+              maxHeight: "300px",
             }}
             side="bottom"
             align="start"
             sideOffset={4}
             avoidCollisions={false}
-            sticky="always"
+            sticky="partial"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
-            <Command>
+            <Command className="max-h-[300px]">
               <CommandInput
                 ref={inputRef}
                 placeholder="ค้นหา..."
-                className={`h-9 font-athiti font-medium text-subtle-dark ${customClass || 'text-[18px] md:text-[20px]'}`}
+                className={`h-9 font-athiti font-medium text-subtle-dark ${
+                  customClass || "text-[18px] md:text-[20px]"
+                }`}
               />
               <CommandEmpty>
-                <p className={`font-athiti text-subtle-dark ${customClass || 'text-[18px] md:text-[20px]'}`}>
+                <p
+                  className={`font-athiti text-subtle-dark ${
+                    customClass || "text-[18px] md:text-[20px]"
+                  }`}
+                >
                   ไม่พบข้อมูล
                 </p>
               </CommandEmpty>
-              <CommandGroup
-                style={{
-                  maxHeight: "400x",
-                  overflowY: "auto",
-                }}
-              >
+              <CommandGroup className="max-h-[250px] overflow-y-auto">
                 {options
                   .sort((a, b) => a.id - b.id)
                   .map((item) => (
@@ -149,7 +155,9 @@ const ComboBox = ({
                           inputRef.current.blur();
                         }
                       }}
-                      className={`font-athiti font-medium text-subtle-dark ${customClass || 'text-[18px] md:text-[20px]'}`}
+                      className={`font-athiti font-medium text-subtle-dark ${
+                        customClass || "text-[18px] md:text-[20px]"
+                      }`}
                     >
                       <Check
                         className={cn(

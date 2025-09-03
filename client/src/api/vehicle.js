@@ -9,3 +9,7 @@ export const getVehicles = async (search) => {
 export const getVehicleById = async (id) => {
   return await api.get(`/api/vehicle/${id}`);
 };
+
+export const getVehicleBrandModels = async () => {
+  return await api.get("/api/vehicle-brand-models");
+};
