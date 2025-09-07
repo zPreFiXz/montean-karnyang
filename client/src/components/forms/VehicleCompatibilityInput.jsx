@@ -2,7 +2,7 @@ import { Label } from "@radix-ui/react-label";
 import { useState, useEffect, useRef } from "react";
 import { Trash, X } from "lucide-react";
 import ComboBox from "../ui/ComboBox";
-import { getVehicleBrandModels } from "../../api/vehicle";
+import { getVehicleBrandModels } from "@/api/vehicleBrandModel";
 
 const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   const [vehicles, setVehicles] = useState([{ brand: "", model: "" }]);

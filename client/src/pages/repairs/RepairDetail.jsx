@@ -58,7 +58,7 @@ const RepairDetail = () => {
           text: "กำลังซ่อม",
           color: "text-[var(--color-in-progress)]",
           bg: "bg-[var(--color-in-progress)]",
-          iconColor: "#f4b809",
+          iconColor: "#ffb000",
           icon: Clock,
         };
       case "COMPLETED":
@@ -66,7 +66,7 @@ const RepairDetail = () => {
           text: "ซ่อมเสร็จสิ้น",
           color: "text-[var(--color-completed)]",
           bg: "bg-[var(--color-completed)]",
-          iconColor: "#66bb6a",
+          iconColor: "#22c55e",
           icon: CheckCircle2,
         };
       case "PAID":
@@ -119,7 +119,11 @@ const RepairDetail = () => {
   };
 
   const handleUpdateStatus = async (skipToCompleted = false) => {
-    if (!repair || isUpdating || isUpdatingSkip) return;
+    if (!repair) return;
+
+    // ตรวจสอบว่าปุ่มที่กดกำลัง loading อยู่หรือไม่
+    if (skipToCompleted && isUpdatingSkip) return;
+    if (!skipToCompleted && isUpdating) return;
 
     const nextStatus = skipToCompleted ? "PAID" : getNextStatus(repair.status);
     if (!nextStatus) return;
@@ -437,7 +441,7 @@ const RepairDetail = () => {
                 <FormButton
                   label={getNextStatusText(repair.status)}
                   isLoading={isUpdating}
-                  disabled={isUpdating || isUpdatingSkip}
+                  disabled={isUpdating}
                   onClick={() => handleUpdateStatus(false)}
                   className={getNextStatusButtonClass(repair.status)}
                 />
@@ -447,7 +451,7 @@ const RepairDetail = () => {
                   <FormButton
                     label="เสร็จสิ้นการซ่อม + ยืนยันการชำระเงิน"
                     isLoading={isUpdatingSkip}
-                    disabled={isUpdating || isUpdatingSkip}
+                    disabled={isUpdatingSkip}
                     onClick={() => handleUpdateStatus(true)}
                     className="bg-paid mt-0"
                   />

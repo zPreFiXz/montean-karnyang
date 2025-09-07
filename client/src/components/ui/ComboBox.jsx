@@ -127,13 +127,13 @@ const ComboBox = ({
               <CommandInput
                 ref={inputRef}
                 placeholder="ค้นหา..."
-                className={`h-9 font-athiti font-medium text-subtle-dark ${
+                className={`h-9 font-athiti font-medium text-normal ${
                   customClass || "text-[18px] md:text-[20px]"
                 }`}
               />
               <CommandEmpty>
                 <p
-                  className={`font-athiti text-subtle-dark ${
+                  className={`font-athiti font-medium text-normal ${
                     customClass || "text-[18px] md:text-[20px]"
                   }`}
                 >
@@ -155,7 +155,7 @@ const ComboBox = ({
                           inputRef.current.blur();
                         }
                       }}
-                      className={`font-athiti font-medium text-subtle-dark ${
+                      className={`font-athiti font-medium text-normal ${
                         customClass || "text-[18px] md:text-[20px]"
                       }`}
                     >

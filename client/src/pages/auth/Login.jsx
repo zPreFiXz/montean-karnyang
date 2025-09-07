@@ -6,6 +6,20 @@ import { toast } from "sonner";
 import { loginSchema } from "@/utils/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import logo from "@/assets/logo.png";
+import FormButton from "@/components/forms/FormButton";
+import { useEffect } from "react";
+import {
+  Mail,
+  Lock,
+  Wrench,
+  Car,
+  Package,
+  Settings,
+  User,
+  Gauge,
+  Warehouse,
+  Cog,
+} from "lucide-react";
 
 const Login = () => {
   const { register, handleSubmit, formState } = useForm({
@@ -14,6 +28,15 @@ const Login = () => {
   const navigate = useNavigate();
   const actionLogin = useAuthStore((state) => state.actionLogin);
   const { errors } = formState;
+
+  // แสดง toast เมื่อ logout สำเร็จ
+  useEffect(() => {
+    const isLoggedOut = localStorage.getItem("justLoggedOut");
+    if (isLoggedOut) {
+      toast.success("ออกจากระบบเรียบร้อยแล้ว");
+      localStorage.removeItem("justLoggedOut");
+    }
+  }, []);
 
   const roleRedirect = (role) => {
     if (role === "EMPLOYEE") {
@@ -33,52 +56,74 @@ const Login = () => {
       console.error(error);
 
       const errorMessage =
-        error.res?.data?.message || error.res?.data?.errors[0]?.message;
+        error.res?.data?.message ||
+        error.res?.data?.errors[0]?.message ||
+        error.response.data.message;
       toast.error(errorMessage);
     }
   };
 
   return (
-    <main>
-      <div className="font-athiti min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          {/* Header */}
-            <div className="h-20 w-auto mb-10">
-              <img src={logo} alt="มณเฑียรการยาง"/>
-            </div>
-          {/* Login Card */}
-          <div className="bg-white rounded-2xl shadow-xl p-4 backdrop-blur-sm border border-white/20">
-            <div className="flex justify-center text-3xl font-semibold text-gray-900">
-              เข้าสู่ระบบ
-            </div>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <FormInput 
-                register={register}
-                name="email"
-                type="email"
-                label="อีเมล"
-                placeholder="กรุณากรอกอีเมล"
-                color="primary"
-                errors={errors}
-              />
-              <FormInput
-                register={register}
-                name="password"
-                type="password"
-                label="รหัสผ่าน"
-                placeholder="กรุณากรอกรหัสผ่าน"
-                color="primary"
-                errors={errors}
-              />
+    <main className="relative min-h-screen p-[24px] font-athiti bg-surface">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 overflow-hidden"
+      >
+        <Wrench className="absolute w-20 h-20 top-1 left-4 rotate-12 text-primary/15" />
+        <Car className="absolute w-20 h-20 bottom-25 left-4 rotate-3 text-primary/15" />
+        <Settings className="absolute w-22 h-22 bottom-15 right-6 rotate-45 text-primary/15" />
+        <Gauge className="absolute w-16 h-16 top-29 right-10 rotate-6 text-primary/15" />
+        <Package className="absolute w-20 h-20 bottom-55 left-40 -rotate-6 text-primary/15" />
+      </div>
 
-              <button
-                type="submit"
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold"
-              >
-                เข้าสู่ระบบ
-              </button>
-            </form>
-          </div>
+      <div className="relative z-20 flex flex-col items-center w-full mt-[24px]">
+        <div className="flex flex-col items-center mb-12 text-center">
+          <img src={logo} alt="มณเฑียรการยาง" className="w-auto h-19 md:h-26" />
+        </div>
+        <div className="relative z-30 w-full md:w-[500px] p-[24px] rounded-[24px] bg-white shadow-primary">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-[16px]">
+            <p className="flex justify-center items-center gap-[8px] font-semibold text-[30px] md:text-[32px] text-primary">
+              <Warehouse />
+              เข้าสู่ระบบ
+            </p>
+            <FormInput
+              register={register}
+              name="email"
+              type="email"
+              label={
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-primary" />
+                  <p>อีเมล</p>
+                </div>
+              }
+              placeholder="กรุณากรอกอีเมล"
+              color="primary"
+              errors={errors}
+              customClass="px-0"
+            />
+
+            <FormInput
+              register={register}
+              name="password"
+              type="password"
+              label={
+                <div className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-primary" />
+                  <p>รหัสผ่าน</p>
+                </div>
+              }
+              placeholder="กรุณากรอกรหัสผ่าน"
+              color="primary"
+              errors={errors}
+              customClass="px-0"
+            />
+
+            <FormButton
+              label="เข้าสู่ระบบ"
+              isLoading={formState.isSubmitting}
+              className="w-full ml-0 bg-gradient-primary"
+            />
+          </form>
         </div>
       </div>
     </main>

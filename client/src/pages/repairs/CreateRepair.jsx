@@ -11,7 +11,7 @@ import { Image, Trash, Plus, Minus, AlertCircle } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
 import { provinces } from "@/utils/data";
-import { getVehicleBrandModels } from "@/api/vehicle";
+import { getVehicleBrandModels } from "@/api/vehicleBrandModel";
 
 const CreateRepair = () => {
   const navigate = useNavigate();

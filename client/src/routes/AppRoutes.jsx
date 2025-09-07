@@ -3,7 +3,6 @@ import Layout from "../layouts/Layout";
 import Login from "@/pages/auth/Login";
 import Register from "@/pages/auth/Register";
 import Dashboard from "../pages/Dashboard";
-import NotFound from "../pages/NotFound";
 import SalesReport from "@/pages/reports/SalesReport";
 import RepairStatus from "@/pages/repairs/RepairStatus";
 import Suspension from "@/pages/inspections/Suspension";
@@ -15,6 +14,9 @@ import CreateItem from "@/pages/inventory/CreateItem";
 import ItemDetail from "@/pages/inventory/ItemDetail";
 import Vehicles from "@/pages/vehicles/Vehicles";
 import VehicleDetail from "@/pages/vehicles/VehicleDetail";
+import VehicleBrandManagement from "@/pages/admin/VehicleBrandManagement";
+import EmployeeManagement from "@/pages/admin/EmployeeManagement";
+import SystemDataManagement from "@/pages/admin/SystemDataManagement";
 import ProtectRouteUser from "./ProtectRouteUser";
 import ProtectRouteAdmin from "./ProtectRouteAdmin";
 import ProtectRouteGuest from "./ProtectRouteGuest";
@@ -65,14 +67,14 @@ const AppRoutes = () => {
           path="/admin"
           element={<ProtectRouteAdmin element={<Layout />} />}
         >
-          <Route index element={<h1>admin</h1>} />
+          <Route index element={<Navigate to="/dashboard" />} />
+          <Route
+            path="vehicle-brand-models"
+            element={<VehicleBrandManagement />}
+          />
+          <Route path="employees" element={<EmployeeManagement />} />
+          <Route path="system-data" element={<SystemDataManagement />} />
         </Route>
-
-        {/* Not Found Route */}
-        <Route
-          path="*"
-          element={<ProtectRouteGuest element={<NotFound />} />}
-        />
       </Routes>
     </BrowserRouter>
   );

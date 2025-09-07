@@ -77,17 +77,3 @@ exports.getVehicleById = async (req, res, next) => {
     next(error);
   }
 };
-
-exports.getVehicleBrandModel = async (req, res, next) => {
-  try {
-    const vehicleBrandModels = await prisma.vehicleBrandModel.findMany({
-      orderBy: {
-        id: "asc",
-      },
-    });
-
-    res.json(vehicleBrandModels);
-  } catch (error) {
-    next(error);
-  }
-};
