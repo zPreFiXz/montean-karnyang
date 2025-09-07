@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { loginSchema } from "@/utils/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import logo from "@/assets/logo.png";
+import FormButton from "@/components/forms/FormButton";
 
 const Login = () => {
   const { register, handleSubmit, formState } = useForm({
@@ -47,8 +48,8 @@ const Login = () => {
               <img src={logo} alt="มณเฑียรการยาง"/>
             </div>
           {/* Login Card */}
-          <div className="bg-white rounded-2xl shadow-xl p-4 backdrop-blur-sm border border-white/20">
-            <div className="flex justify-center text-3xl font-semibold text-gray-900">
+          <div className="p-4 bg-white rounded-2xl shadow-xl backdrop-blur-sm border border-white/20">
+            <div className="flex justify-center text-3xl font-semibold text-normal">
               เข้าสู่ระบบ
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -71,12 +72,10 @@ const Login = () => {
                 errors={errors}
               />
 
-              <button
-                type="submit"
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold"
-              >
-                เข้าสู่ระบบ
-              </button>
+              <FormButton
+                label="เข้าสู่ระบบ"
+                className="ml-0 bg-gradient-primary"
+              />
             </form>
           </div>
         </div>
