@@ -4,23 +4,41 @@ import { useDebouncedCallback } from "use-debounce";
 import { useState, useEffect } from "react";
 import { Input } from "../ui/input";
 
-const SearchBar = ({ placeholder }) => {
+const SearchBar = ({ 
+  placeholder, 
+  onSearch = null, 
+  value = null, 
+  autoFocus = false,
+  inputMode = "text"
+}) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [inputValue, setInputValue] = useState("");
 
+  // ถ้าเป็น controlled mode ใช้ value จาก props
+  // ถ้าไม่ใช่ ใช้ searchParams
+  const isControlled = onSearch !== null && value !== null;
+
   useEffect(() => {
-    const searchParam = searchParams.get("search") || "";
-    setInputValue(searchParam);
-  }, [searchParams]);
+    if (isControlled) {
+      setInputValue(value);
+    } else {
+      const searchParam = searchParams.get("search") || "";
+      setInputValue(searchParam);
+    }
+  }, [isControlled, value, searchParams]);
 
   const updateSearch = useDebouncedCallback((value) => {
-    const params = new URLSearchParams(searchParams);
-    if (value) {
-      params.set("search", value);
+    if (isControlled) {
+      onSearch(value);
     } else {
-      params.delete("search");
+      const params = new URLSearchParams(searchParams);
+      if (value) {
+        params.set("search", value);
+      } else {
+        params.delete("search");
+      }
+      setSearchParams(params);
     }
-    setSearchParams(params);
   }, 500);
 
   const handleSearch = (e) => {
@@ -31,9 +49,13 @@ const SearchBar = ({ placeholder }) => {
 
   const handleClear = () => {
     setInputValue("");
-    const params = new URLSearchParams(searchParams);
-    params.delete("search");
-    setSearchParams(params);
+    if (isControlled) {
+      onSearch("");
+    } else {
+      const params = new URLSearchParams(searchParams);
+      params.delete("search");
+      setSearchParams(params);
+    }
   };
 
   return (
@@ -46,7 +68,19 @@ const SearchBar = ({ placeholder }) => {
         value={inputValue}
         onChange={handleSearch}
         placeholder={placeholder}
-        className="w-full h-[41px] px-[40px] rounded-[20px] font-athiti font-medium text-[20px] bg-surface placeholder:font-light placeholder:text-[18px] focus:outline-none"
+        autoFocus={autoFocus}
+        inputMode={inputMode}
+        onTouchStart={(e) => {
+          if (inputMode === "none") {
+            e.target.inputMode = "text";
+          }
+        }}
+        onClick={(e) => {
+          if (inputMode === "none") {
+            e.target.inputMode = "text";
+          }
+        }}
+        className="w-full h-[41px] px-[40px] rounded-[20px] font-athiti font-medium text-[20px] md:text-[22px] bg-surface placeholder:font-light placeholder:text-[18px] md:placeholder:text-[20px] focus:outline-none"
         style={{
           "--tw-ring-color": "#1976d2",
           "--tw-border-opacity": "1",

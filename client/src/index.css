@@ -11,8 +11,8 @@
   --color-subtle-light: #afb1b6;
   --color-normal: #19191b;
   --color-surface: #ffffff;
-  --color-in-progress: #f4b809;
-  --color-completed: #66bb6a;
+  --color-in-progress: #ffb000;
+  --color-completed: #22c55e;
   --color-paid: #1976d2;
   --color-delete: #ff4545;
 }

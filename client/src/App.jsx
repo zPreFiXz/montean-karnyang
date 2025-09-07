@@ -8,12 +8,13 @@ const App = () => {
         richColors
         position="top-center"
         expand={false}
-        duration={3000}
+        duration={2000}
         closeButton
         toastOptions={{
           style: {
             fontFamily: '"Athiti", sans-serif',
-            fontSize: "18px",
+            fontSize: "20px",
+            fontWeight: "600",
           },
         }}
       />

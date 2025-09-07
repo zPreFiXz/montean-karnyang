@@ -10,6 +10,7 @@ const FormInput = ({
   placeholder,
   color,
   errors,
+  customClass,
   ...props
 }) => {
   const getTextColor = () => {
@@ -19,10 +20,10 @@ const FormInput = ({
   };
 
   return (
-    <div className="px-[20px] mt-[16px]">
+    <div className={`${customClass || 'px-[20px]'} mt-[16px]`}>
       <Label
         htmlFor={name}
-        className={`mb-[8px] font-medium text-[22px] ${getTextColor()}`}
+        className={`mb-[8px] font-medium text-[20px] md:text-[22px] ${getTextColor()}`}
       >
         {label}
       </Label>
@@ -31,7 +32,7 @@ const FormInput = ({
           {...register(name)}
           type={type}
           placeholder={placeholder}
-          className={`w-full h-[41px] px-[12px] rounded-[20px] font-medium text-[20px] bg-surface placeholder:font-light placeholder:text-[18px] ${
+          className={`w-full h-[41px] px-[12px] rounded-[20px] font-medium text-[20px] md:text-[22px] bg-surface placeholder:font-light placeholder:text-[18px] md:placeholder:text-[20px] ${
             errors[name] && "border-red-400 focus:border-red-500"
           }`}
           style={{

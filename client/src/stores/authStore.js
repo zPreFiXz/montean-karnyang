@@ -13,14 +13,7 @@ const authStore = (set) => ({
     });
     return res;
   },
-  logout: async () => {
-    try {
-      const res = await api.post("/api/logout");
-      toast.success(res.data.message);
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-
+  logout: () => {
     set({ user: null });
   },
 });

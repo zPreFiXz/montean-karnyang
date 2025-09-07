@@ -26,6 +26,7 @@ const ComboBox = ({
   errors,
   name,
   disabled = false,
+  customClass = "",
 }) => {
   const [open, setOpen] = useState(false);
   const [triggerWidth, setTriggerWidth] = useState(0);
@@ -50,11 +51,17 @@ const ComboBox = ({
   return (
     <div>
       {label && (
-        <Label className={`block mb-[8px] font-medium text-[22px] ${color}`}>
+        <Label
+          className={`block mb-[8px] font-medium ${
+            customClass
+              ? "text-[16px] md:text-[18px]"
+              : "text-[20px] md:text-[22px]"
+          } ${color}`}
+        >
           {label}
         </Label>
       )}
-      <div className="relative">
+      <div className="relative z-10">
         <Popover
           open={open && !disabled}
           onOpenChange={disabled ? undefined : setOpen}
@@ -67,9 +74,12 @@ const ComboBox = ({
               aria-expanded={open}
               disabled={disabled}
               className={cn(
-                "justify-between w-full h-[41px] rounded-[20px] border-input font-medium text-[20px] text-foreground",
+                "justify-between w-full h-[41px] rounded-[20px] border-input font-medium text-foreground",
+                customClass || "text-[20px] md:text-[22px]",
                 !selectedLabel &&
-                  "font-light text-[18px] text-muted-foreground",
+                  (customClass
+                    ? "font-light text-muted-foreground"
+                    : "font-light text-[18px] md:text-[20px] text-muted-foreground"),
                 hasError && "border-red-400 focus:border-red-500",
                 disabled && "opacity-50 cursor-not-allowed"
               )}
@@ -101,36 +111,36 @@ const ComboBox = ({
             </Button>
           </PopoverTrigger>
           <PopoverContent
-            className="p-0"
+            className="p-0 z-50"
             style={{
               width: triggerWidth > 0 ? `${triggerWidth}px` : "auto",
-              maxHeight: "450px",
-              overflowY: "auto",
+              maxHeight: "300px",
             }}
             side="bottom"
             align="start"
             sideOffset={4}
             avoidCollisions={false}
-            sticky="always"
+            sticky="partial"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
-            <Command>
+            <Command className="max-h-[300px]">
               <CommandInput
                 ref={inputRef}
                 placeholder="ค้นหา..."
-                className="h-9 font-athiti font-medium text-[18px] text-subtle-dark"
+                className={`h-9 font-athiti font-medium text-normal ${
+                  customClass || "text-[18px] md:text-[20px]"
+                }`}
               />
               <CommandEmpty>
-                <p className="font-athiti text-[18px] text-subtle-dark">
+                <p
+                  className={`font-athiti font-medium text-normal ${
+                    customClass || "text-[18px] md:text-[20px]"
+                  }`}
+                >
                   ไม่พบข้อมูล
                 </p>
               </CommandEmpty>
-              <CommandGroup
-                style={{
-                  maxHeight: "400x",
-                  overflowY: "auto",
-                }}
-              >
+              <CommandGroup className="max-h-[250px] overflow-y-auto">
                 {options
                   .sort((a, b) => a.id - b.id)
                   .map((item) => (
@@ -145,7 +155,9 @@ const ComboBox = ({
                           inputRef.current.blur();
                         }
                       }}
-                      className="font-athiti font-medium text-[18px] text-subtle-dark"
+                      className={`font-athiti font-medium text-normal ${
+                        customClass || "text-[18px] md:text-[20px]"
+                      }`}
                     >
                       <Check
                         className={cn(
@@ -164,7 +176,7 @@ const ComboBox = ({
       {hasError && name !== "province" && (
         <div className="flex items-center gap-[4px] px-[4px] mt-[6px]">
           <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
-          <p className="font-medium text-[16px] text-delete">
+          <p className="font-medium text-[18px] md:text-[20px] text-delete">
             {errors[name].message}
           </p>
         </div>

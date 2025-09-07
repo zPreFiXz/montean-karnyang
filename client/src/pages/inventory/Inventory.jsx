@@ -55,7 +55,7 @@ const Inventory = () => {
 
   return (
     <div className="w-full h-[83px] bg-gradient-primary shadow-primary">
-      <p className="pt-[16px] pl-[20px] font-semibold text-[24px] text-surface">
+      <p className="pt-[16px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
         อะไหล่และบริการ
       </p>
       <div className="w-full min-h-[calc(100vh-65px)] pb-[112px] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
@@ -70,10 +70,10 @@ const Inventory = () => {
           />
 
           <div className="flex items-center justify-between mt-[16px]">
-            <p className="font-semibold text-[20px]">รายการอะไหล่และบริการ</p>
+            <p className="font-semibold text-[20px] md:text-[22px]">รายการอะไหล่และบริการ</p>
             <Link
               to="/inventory/new"
-              className="font-semibold text-[20px] text-primary hover:text-primary/80 cursor-pointer"
+              className="font-semibold text-[20px] md:text-[22px] text-primary hover:text-primary/80 cursor-pointer"
             >
               + เพิ่มรายการ
             </Link>
@@ -86,7 +86,7 @@ const Inventory = () => {
             </div>
           ) : inventory.length === 0 ? (
             <div className="flex justify-center items-center h-[346px]">
-              <p className="font-medium text-subtle-light">
+              <p className="font-medium text-[20px] md:text-[22px] text-subtle-light">
                 ไม่พบอะไหล่และบริการ
               </p>
             </div>

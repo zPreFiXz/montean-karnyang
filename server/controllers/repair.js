@@ -12,6 +12,12 @@ exports.getRepairs = async (req, res, next) => {
                 province: true,
               },
             },
+            vehicleBrandModel: {
+              select: {
+                brand: true,
+                model: true,
+              },
+            },
           },
         },
       },
@@ -39,6 +45,12 @@ exports.getRepairById = async (req, res, next) => {
               select: {
                 plateNumber: true,
                 province: true,
+              },
+            },
+            vehicleBrandModel: {
+              select: {
+                brand: true,
+                model: true,
               },
             },
           },
@@ -91,6 +103,26 @@ exports.createRepair = async (req, res, next) => {
     let vehicle;
     let customer;
     let licensePlate;
+    let vehicleBrandModel;
+
+    // ค้นหาหรือสร้าง VehicleBrandModel
+    vehicleBrandModel = await prisma.vehicleBrandModel.findUnique({
+      where: {
+        brand_model: {
+          brand,
+          model,
+        },
+      },
+    });
+
+    if (!vehicleBrandModel) {
+      vehicleBrandModel = await prisma.vehicleBrandModel.create({
+        data: {
+          brand,
+          model,
+        },
+      });
+    }
 
     // ค้นหาทะเบียนรถในฐานข้อมูล
     licensePlate = await prisma.licensePlate.findUnique({
@@ -104,12 +136,11 @@ exports.createRepair = async (req, res, next) => {
 
     // ถ้ามีทะเบียนรถในฐานข้อมูล
     if (licensePlate) {
-      // ตรวจสอบว่ามีรถคันนี้ที่ใช้ทะเบียนนี้ มี brand และ model ตรงกันหรือไม่
+      // ตรวจสอบว่ามีรถคันนี้ที่ใช้ทะเบียนนี้และ vehicleBrandModel ตรงกันหรือไม่
       vehicle = await prisma.vehicle.findFirst({
         where: {
           licensePlateId: licensePlate.id,
-          brand: brand,
-          model: model,
+          vehicleBrandModelId: vehicleBrandModel.id,
         },
       });
 
@@ -117,8 +148,7 @@ exports.createRepair = async (req, res, next) => {
         // ถ้าไม่เจอ ให้สร้างรถใหม่ที่ใช้ทะเบียนเดิม
         vehicle = await prisma.vehicle.create({
           data: {
-            brand,
-            model,
+            vehicleBrandModelId: vehicleBrandModel.id,
             licensePlateId: licensePlate.id,
           },
         });
@@ -134,8 +164,7 @@ exports.createRepair = async (req, res, next) => {
 
       vehicle = await prisma.vehicle.create({
         data: {
-          brand,
-          model,
+          vehicleBrandModelId: vehicleBrandModel.id,
           licensePlateId: licensePlate.id,
         },
       });
@@ -291,6 +320,12 @@ exports.updateRepairStatus = async (req, res, next) => {
         vehicle: {
           include: {
             licensePlate: true,
+            vehicleBrandModel: {
+              select: {
+                brand: true,
+                model: true,
+              },
+            },
           },
         },
         customer: true,

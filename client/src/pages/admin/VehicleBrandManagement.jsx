@@ -1,0 +1,174 @@
+import { useState, useEffect } from "react";
+import { ChevronLeft, Edit, Trash2, LoaderCircle } from "lucide-react";
+import { Link } from "react-router";
+import { toast } from "sonner";
+import ComboBox from "@/components/ui/ComboBox";
+import VehicleBrandFormDialog from "@/components/dialogs/VehicleBrandFormDialog";
+import {
+  deleteVehicleBrandModel,
+  getVehicleBrandModels,
+} from "@/api/vehicleBrandModel";
+import FormButton from "@/components/forms/FormButton";
+
+const VehicleBrandManagement = () => {
+  const [vehicleBrands, setVehicleBrands] = useState([]);
+  const [selectedBrand, setSelectedBrand] = useState("");
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    fetchVehicleBrandModels();
+  }, []);
+
+  const fetchVehicleBrandModels = async () => {
+    try {
+      const res = await getVehicleBrandModels();
+      setVehicleBrands(res.data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteVehicleBrand = async (id) => {
+    try {
+      await deleteVehicleBrandModel(id);
+      toast.success("ลบยี่ห้อ-รุ่นรถสำเร็จ");
+      fetchVehicleBrandModels();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const startEdit = (item) => {
+    setEditingItem(item);
+    setShowAddForm(true);
+  };
+
+  const handleCloseDialog = () => {
+    setShowAddForm(false);
+    setEditingItem(null);
+  };
+
+  const handleFormSuccess = () => {
+    fetchVehicleBrandModels();
+  };
+
+  // สร้าง options และกรองข้อมูล
+  const uniqueBrands = [...new Set(vehicleBrands.map((item) => item.brand))];
+  const brandOptions = [
+    { id: "", name: "ทั้งหมด" },
+    ...uniqueBrands.map((brand) => ({ id: brand, name: brand })),
+  ];
+
+  const filteredVehicleBrands = selectedBrand
+    ? vehicleBrands.filter((item) => item.brand === selectedBrand)
+    : vehicleBrands;
+
+  const groupedByBrand = {};
+  filteredVehicleBrands.forEach((item) => {
+    if (!groupedByBrand[item.brand]) {
+      groupedByBrand[item.brand] = [];
+    }
+    groupedByBrand[item.brand].push(item);
+  });
+
+  // เรียงลำดับตาม id ในฐานข้อมูล
+  Object.keys(groupedByBrand).forEach((brand) => {
+    groupedByBrand[brand].sort((a, b) => a.id - b.id);
+  });
+
+  return (
+    <div className="w-full h-[84px] bg-gradient-primary shadow-primary">
+      <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
+        <Link to="/dashboard" className="mt-[2px] text-surface">
+          <ChevronLeft />
+        </Link>
+        <p className="font-semibold text-[24px] md:text-[26px] text-surface">
+          จัดการยี่ห้อ-รุ่นรถ
+        </p>
+      </div>
+
+      <div className="w-full h-[calc(100vh-68px)] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+        {isLoading ? (
+          <div className="flex justify-center items-center h-[502px]">
+            <LoaderCircle className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="px-[20px] py-[16px] pb-[112px]">
+            <ComboBox
+              label="ยี่ห้อ"
+              color="text-subtle-dark"
+              options={brandOptions}
+              value={selectedBrand}
+              onChange={setSelectedBrand}
+            />
+            <FormButton
+              label="+ เพิ่มยี่ห้อ-รุ่นรถ"
+              onClick={() => setShowAddForm(true)}
+              className="mt-[16px] ml-0 bg-gradient-primary"
+            />
+
+            {/* Dialog */}
+            <VehicleBrandFormDialog
+              isOpen={showAddForm}
+              onClose={handleCloseDialog}
+              editingItem={editingItem}
+              onSuccess={handleFormSuccess}
+            />
+
+            <div className="space-y-[16px]">
+              {Object.entries(groupedByBrand).map(([brand, models]) => (
+                <div
+                  key={brand}
+                  className="p-[16px] rounded-[10px] bg-surface shadow-primary"
+                >
+                  <div className="flex items-center gap-[8px] pb-[16px] mb-[16px] border-b border-gray-100">
+                    <p className="font-semibold text-[20px] md:text-[22px] text-primary">
+                      {brand}
+                    </p>
+                  </div>
+
+                  {/* Models List */}
+                  <div className="space-y-[8px]">
+                    {models.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between p-[8px] rounded-[8px] bg-gray-50"
+                      >
+                        <span className="font-medium text-[18px] md:text-[20px] text-normal">
+                          {item.model}
+                        </span>
+                        <div className="flex gap-[8px]">
+                          <button
+                            onClick={() => startEdit(item)}
+                            className="flex items-center gap-[4px] px-[12px] py-[6px] rounded-[10px] font-medium text-[14px] text-surface bg-primary"
+                          >
+                            <Edit className="w-[14px] h-[14px]" />
+                            <p className="font-semibold">แก้ไข</p>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteVehicleBrand(item.id)}
+                            className="flex items-center gap-[4px] px-[12px] py-[6px] rounded-[10px] font-medium text-[14px] text-surface bg-delete"
+                          >
+                            <Trash2 className="w-[14px] h-[14px]" />
+                            <p className="font-semibold">ลบ</p>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default VehicleBrandManagement;

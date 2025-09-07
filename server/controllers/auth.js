@@ -25,7 +25,7 @@ exports.register = async (req, res, next) => {
         passwordHash: hashPassword,
         fullName,
         nickname,
-        dateOfBirth,
+        dateOfBirth: new Date(dateOfBirth),
       },
     });
 
@@ -61,6 +61,7 @@ exports.login = async (req, res, next) => {
       id: user.id,
       email: user.email,
       role: user.role,
+      fullName: user.fullName,
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, {

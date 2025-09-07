@@ -20,7 +20,7 @@ const LicensePlateInput = ({
         pattern={pattern}
         maxLength={maxLength}
         onInput={onInput}
-        className={`h-[41px] rounded-[20px] font-medium text-[20px] bg-surface placeholder:font-light placeholder:text-[18px] ${
+        className={`h-[41px] rounded-[20px] font-medium text-[18px] md:text-[20px] bg-surface placeholder:font-light ${
           error ? "border-red-400 focus:border-red-500" : ""
         }`}
         style={{

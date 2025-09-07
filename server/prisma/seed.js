@@ -3,6 +3,7 @@ const { categories } = require("./seeds/categories");
 const { users } = require("./seeds/users");
 const { parts } = require("./seeds/parts");
 const { services } = require("./seeds/services");
+const { VehicleBrandModels } = require("./seeds/vehicles");
 
 const prisma = new PrismaClient();
 
@@ -36,6 +37,19 @@ async function main() {
       where: { name: service.name },
       update: {},
       create: service,
+    });
+  }
+
+  for (const vehicleBrandModel of VehicleBrandModels) {
+    await prisma.vehicleBrandModel.upsert({
+      where: { 
+        brand_model: {
+          brand: vehicleBrandModel.brand,
+          model: vehicleBrandModel.model
+        }
+      },
+      update: {},
+      create: vehicleBrandModel,
     });
   }
 }

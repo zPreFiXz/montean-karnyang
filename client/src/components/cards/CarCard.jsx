@@ -10,6 +10,7 @@ const CarCard = ({
   time,
   price,
   amount,
+  status,
 }) => {
   const bgColorMap = {
     primary: "bg-[var(--color-primary)]",
@@ -26,27 +27,39 @@ const CarCard = ({
   };
 
   return (
-    <div className="flex justify-between items-center w-full h-[80px] gap-[8px] px-[16px] rounded-[10px] bg-surface shadow-primary">
+    <div className="flex justify-between items-center w-full h-[80px] gap-[8px] px-[10px] md:px-[16px] rounded-[10px] bg-surface shadow-primary">
       <div className="flex-1 flex items-center min-w-0 gap-[8px]">
         <div
           className={`flex justify-center items-center w-[45px] h-[45px] rounded-full ${bgColorMap[bg]}`}
         >
           <Icon color={color} />
         </div>
-        <div className="flex-1 flex flex-col min-w-0">
-          <p
-            className={`font-semibold text-[20px] truncate ${textColorMap[bg]}`}
-          >
-            {licensePlate}
-          </p>
-          <p className="font-medium text-[16px] text-subtle-dark truncate">
-            {[brand, time && `${time} น.`].filter(Boolean).join(" | ") || ""}
-          </p>
-        </div>
+        {licensePlate ? (
+          <div className="flex-1 flex flex-col min-w-0">
+            <p
+              className={`font-semibold text-[18px] md:text-[20px] truncate ${textColorMap[bg]}`}
+            >
+              {licensePlate}
+            </p>
+            <p className="font-medium text-[16px] md:text-[18px] text-subtle-dark truncate">
+              {[brand, time && `${time} น.`].filter(Boolean).join(" | ") || ""}
+            </p>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col min-w-0">
+            <p
+              className={`font-semibold text-[20px] md:text-[22px] truncate ${textColorMap[bg]}`}
+            >
+              {status}
+            </p>
+          </div>
+        )}
       </div>
       <div
         className={`font-semibold ${
-          price ? "text-[24px] text-nowrap" : "text-[32px]"
+          price
+            ? "text-[22px] md:text-[24px] text-nowrap"
+            : "text-[32px] md:text-[34px]"
         } ${textColorMap[bg]}`}
       >
         {price ? (

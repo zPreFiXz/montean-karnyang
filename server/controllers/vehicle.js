@@ -9,8 +9,19 @@ exports.getVehicles = async (req, res, next) => {
     if (search) {
       filter = {
         OR: [
+          // ค้นหาใน brand และ model
           { brand: { contains: search } },
           { model: { contains: search } },
+          // ค้นหาใน vehicleBrandModel
+          {
+            vehicleBrandModel: {
+              OR: [
+                { brand: { contains: search } },
+                { model: { contains: search } },
+              ],
+            },
+          },
+          // ค้นหาในทะเบียนรถ
           {
             licensePlate: {
               OR: [
@@ -27,6 +38,7 @@ exports.getVehicles = async (req, res, next) => {
       where: filter,
       include: {
         licensePlate: true,
+        vehicleBrandModel: true,
       },
     });
 
@@ -49,6 +61,7 @@ exports.getVehicleById = async (req, res, next) => {
             province: true,
           },
         },
+        vehicleBrandModel: true,
         repairs: {
           select: {
             id: true,

@@ -13,7 +13,9 @@ export const repairSchema = z.object({
   model: z.string().min(1, "กรุณาเลือกรุ่นรถ"),
   plateLetters: z.string().min(1, "กรุณากรอกทะเบียนตัวอักษร"),
   plateNumbers: z.string().min(1, "กรุณากรอกทะเบียนตัวเลข"),
-  province: z.string().min(1, "กรุณาเลือกจังหวัด"),
+  province: z.union([z.string(), z.number()]).refine(val => val !== "" && val !== null && val !== undefined, {
+    message: "กรุณาเลือกจังหวัด"
+  }),
   description: z.string().optional(),
 });
 

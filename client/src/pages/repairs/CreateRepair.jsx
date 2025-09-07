@@ -10,12 +10,8 @@ import { formatCurrency } from "@/lib/utils";
 import { Image, Trash, Plus, Minus, AlertCircle } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
-import {
-  carBrands,
-  carModels,
-  provinces,
-  getAvailableModels,
-} from "@/utils/data";
+import { provinces } from "@/utils/data";
+import { getVehicleBrandModels } from "@/api/vehicleBrandModel";
 
 const CreateRepair = () => {
   const navigate = useNavigate();
@@ -27,11 +23,34 @@ const CreateRepair = () => {
   );
   const [repairItems, setRepairItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [vehicleBrandModels, setVehicleBrandModels] = useState([]);
+  const [brands, setBrands] = useState([]);
   const { errors } = formState;
+
+  useEffect(() => {
+    fetchVehicleBrandModels();
+  }, []);
+
+  const fetchVehicleBrandModels = async () => {
+    try {
+      const res = await getVehicleBrandModels();
+      setVehicleBrandModels(res.data);
+
+      // สร้างรายการ brands ที่ไม่ซ้ำกัน
+      const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
+      setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const getAvailableModelsForBrand = () => {
     const selectedBrand = watch("brand");
-    return getAvailableModels(selectedBrand);
+    const modelsForBrand = vehicleBrandModels
+      .filter((item) => item.brand === selectedBrand)
+      .map((item) => ({ id: item.model, name: item.model }));
+
+    return modelsForBrand;
   };
 
   const renderProductInfo = (item) => {
@@ -40,7 +59,7 @@ const CreateRepair = () => {
     // แสดงข้อมูลยางที่มีขนาดแก้มยาง
     if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
       return (
-        <p className="w-full font-semibold text-[16px] text-normal line-clamp-1">
+        <p className="w-full font-semibold text-[16px] md:text-[18px] text-normal line-clamp-1 leading-tight">
           {item.brand} {item.typeSpecificData.width}/
           {item.typeSpecificData.aspectRatio}R
           {item.typeSpecificData.rimDiameter} {item.name}
@@ -51,7 +70,7 @@ const CreateRepair = () => {
     // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
     if (isTire && item.typeSpecificData) {
       return (
-        <p className="w-full font-semibold text-[16px] text-normal line-clamp-1">
+        <p className="w-full font-semibold text-[16px] md:text-[18px] text-normal line-clamp-1 leading-tight">
           {item.brand} {item.typeSpecificData.width}R
           {item.typeSpecificData.rimDiameter} {item.name}
         </p>
@@ -60,7 +79,7 @@ const CreateRepair = () => {
 
     // แสดงข้อมูลอะไหล่หรือบริการ
     return (
-      <p className="w-full font-semibold text-[16px] text-normal line-clamp-1">
+      <p className="w-full font-semibold text-[16px] md:text-[18px] text-normal line-clamp-1 leading-tight">
         {item.brand} {item.name}
       </p>
     );
@@ -172,7 +191,7 @@ const CreateRepair = () => {
 
   return (
     <div className="w-full h-full bg-gradient-primary shadow-primary">
-      <p className="pt-[16px] pl-[20px] font-semibold text-[24px] text-surface">
+      <p className="pt-[16px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
         รายการซ่อมใหม่
       </p>
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -212,7 +231,7 @@ const CreateRepair = () => {
           <ComboBox
             label="ยี่ห้อรถ"
             color="text-surface"
-            options={carBrands}
+            options={brands}
             value={watch("brand")}
             onChange={(value) => {
               setValue("brand", value, {
@@ -329,7 +348,7 @@ const CreateRepair = () => {
               {errors.plateLetters && (
                 <div className="flex items-center gap-[4px] px-[4px]">
                   <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
-                  <p className="font-medium text-[16px] text-delete">
+                  <p className="font-medium text-[18px] md:text-[20px] text-delete">
                     {errors.plateLetters.message}
                   </p>
                 </div>
@@ -337,7 +356,7 @@ const CreateRepair = () => {
               {errors.plateNumbers && (
                 <div className="flex items-center gap-[4px] px-[4px]">
                   <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
-                  <p className="font-medium text-[16px] text-delete">
+                  <p className="font-medium text-[18px] md:text-[20px] text-delete">
                     {errors.plateNumbers.message}
                   </p>
                 </div>
@@ -345,7 +364,7 @@ const CreateRepair = () => {
               {errors.province && (
                 <div className="flex items-center gap-[4px] px-[4px]">
                   <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
-                  <p className="font-medium text-[16px] text-delete">
+                  <p className="font-medium text-[18px] md:text-[20px] text-delete">
                     {errors.province.message}
                   </p>
                 </div>
@@ -365,12 +384,14 @@ const CreateRepair = () => {
 
         <div className="w-full h-full mt-[30px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
           <div className="flex justify-between items-center px-[20px] pt-[20px]">
-            <p className="font-semibold text-[22px]">รายการซ่อม</p>
+            <p className="font-semibold text-[22px] md:text-[24px]">
+              รายการซ่อม
+            </p>
             <AddRepairItemDialog
               onAddItem={handleAddItemToRepair}
               selectedItems={repairItems}
             >
-              <p className="font-semibold text-[20px] text-primary hover:text-primary/80 cursor-pointer">
+              <p className="font-semibold text-[20px] md:text-[22px] text-primary hover:text-primary/80 cursor-pointer">
                 + เพิ่มรายการซ่อม
               </p>
             </AddRepairItemDialog>
@@ -380,7 +401,7 @@ const CreateRepair = () => {
           {repairItems.length === 0 ? (
             <div>
               <div className="flex justify-center items-center h-[228px]">
-                <p className="text-[20px] text-subtle-light">
+                <p className="text-[20px] md:text-[22px] text-subtle-light">
                   กรุณาเพิ่มรายการซ่อม
                 </p>
               </div>
@@ -410,12 +431,12 @@ const CreateRepair = () => {
                       </div>
                       <div className="flex flex-col flex-1">
                         {renderProductInfo(item)}
-                        <p className="font-medium text-[16px] text-subtle-dark">
+                        <p className="font-medium text-[16px] md:text-[18px] text-subtle-dark leading-tight">
                           ราคาต่อหน่วย:{" "}
                           {formatCurrency(Number(item.sellingPrice))}
                         </p>
                         <div className="flex items-center justify-between w-full">
-                          <p className="font-semibold text-[20px] text-primary">
+                          <p className="font-semibold text-[20px] md:text-[22px] text-primary leading-tight">
                             {formatCurrency(item.quantity * item.sellingPrice)}
                           </p>
                           <div className="flex items-center gap-[8px]">
@@ -427,7 +448,7 @@ const CreateRepair = () => {
                             >
                               <Minus className="w-[16px] h-[16px]" />
                             </button>
-                            <span className="font-semibold text-[18px] text-primary">
+                            <span className="font-semibold text-[18px] md:text-[20px] text-primary">
                               {item.quantity}
                             </span>
                             <button
@@ -467,12 +488,12 @@ const CreateRepair = () => {
               <div className="p-[16px] mx-[20px] mt-[20px] mb-[16px] rounded-[12px] border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5">
                 <div className="flex justify-between items-center">
                   <div className="flex flex-col">
-                    <p className="font-semibold text-[20px] text-subtle-dark">
+                    <p className="font-semibold text-[20px] md:text-[22px] text-subtle-dark">
                       รวม {repairItems.length} รายการ
                     </p>
                   </div>
                   <div className="flex flex-col items-end">
-                    <p className="font-semibold text-[24px] text-primary">
+                    <p className="font-semibold text-[24px] md:text-[26px] text-primary">
                       {formatCurrency(
                         repairItems.reduce(
                           (total, item) =>
