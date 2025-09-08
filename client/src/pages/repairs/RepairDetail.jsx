@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, useLocation } from "react-router";
 import { getRepairById, updateRepairStatus } from "@/api/repair";
 import { formatDate, formatTime, formatCurrency } from "@/lib/utils";
 import {
@@ -27,11 +27,18 @@ import RepairItemCard from "@/components/cards/RepairItemCard";
 const RepairDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [repair, setRepair] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUpdatingSkip, setIsUpdatingSkip] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+
+    fetchRepairDetail();
+  }, [id]);
 
   const fetchRepairDetail = async () => {
     try {
@@ -44,12 +51,6 @@ const RepairDetail = () => {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-
-    fetchRepairDetail();
-  }, [id]);
 
   const getStatusInfo = (status) => {
     switch (status) {
@@ -171,10 +172,24 @@ const RepairDetail = () => {
   const statusInfo = repair ? getStatusInfo(repair.status) : null;
   const StatusIcon = statusInfo?.icon;
 
+  const handleGoBack = () => {
+    // ถ้ามาจาก SalesReport ให้กลับไปพร้อมข้อมูลวันที่
+    if (
+      location.state?.returnTo &&
+      location.state.returnTo.includes("/reports/sales/")
+    ) {
+      navigate(location.state.returnTo, {
+        state: { currentDate: location.state.currentDate },
+      });
+    } else {
+      navigate(-1);
+    }
+  };
+
   return (
     <div className="w-full h-[83px] bg-gradient-primary shadow-primary">
       <div className="flex items-center gap-[8px] px-[20px] py-[16px]">
-        <button onClick={() => navigate(-1)} className="mt-[2px] text-surface">
+        <button onClick={handleGoBack} className="mt-[2px] text-surface">
           <ChevronLeft />
         </button>
         <p className="font-semibold text-[24px] md:text-[26px] text-surface">

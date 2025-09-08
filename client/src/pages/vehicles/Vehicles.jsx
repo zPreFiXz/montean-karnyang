@@ -14,17 +14,6 @@ const Vehicles = () => {
 
   const search = searchParams.get("search");
 
-  const handleFilter = async (search) => {
-    try {
-      const res = await getVehicles(search);
-      setVehicles(res.data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
     window.scrollTo(0, 0);
 
@@ -49,6 +38,17 @@ const Vehicles = () => {
       handleFilter(null);
     }
   }, [search]);
+
+  const handleFilter = async (search) => {
+    try {
+      const res = await getVehicles(search);
+      setVehicles(res.data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="w-full h-[83px] bg-gradient-primary shadow-primary">

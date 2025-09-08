@@ -25,6 +25,10 @@ const EmployeeManagement = () => {
 
   const watchRole = watch("role");
 
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
   // ดึงข้อมูลพนักงาน
   const fetchEmployees = async () => {
     try {
@@ -159,10 +163,6 @@ const EmployeeManagement = () => {
         return "bg-gray-100 text-gray-800";
     }
   };
-
-  useEffect(() => {
-    fetchEmployees();
-  }, []);
 
   return (
     <div className="w-full h-full bg-gradient-primary shadow-primary">

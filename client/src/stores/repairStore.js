@@ -4,7 +4,6 @@ import { getRepairs } from "@/api/repair";
 const repairStore = (set, get) => ({
   repairs: [],
 
-  // ดึงข้อมูลการซ่อมทั้งหมดจาก API
   fetchRepairs: async () => {
     try {
       const res = await getRepairs();

@@ -29,6 +29,11 @@ const Dashboard = () => {
     getLatestRepairByStatus,
   } = useRepairStore();
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    fetchRepairs();
+  }, [fetchRepairs]);
+
   // ยอดขายวันนี้
   const todaySales = getTodaySales();
 
@@ -81,12 +86,6 @@ const Dashboard = () => {
 
     return `วันที่ ${day} ${month} ${year}`;
   };
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-
-    fetchRepairs();
-  }, [fetchRepairs]);
 
   return (
     <div className="w-full">

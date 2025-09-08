@@ -31,6 +31,39 @@ const CreateRepair = () => {
     fetchVehicleBrandModels();
   }, []);
 
+  // กู้คืนข้อมูลเมื่อกลับมาจากหน้าสรุป
+  useEffect(() => {
+    if (location.state) {
+      const {
+        repairData,
+        repairItems: savedItems,
+        scrollToBottom,
+      } = location.state;
+
+      if (repairData) {
+        Object.keys(repairData).forEach((key) => {
+          setValue(key, repairData[key]);
+        });
+      }
+
+      if (savedItems && savedItems.length > 0) {
+        setRepairItems(savedItems);
+
+        if (scrollToBottom) {
+          setTimeout(() => {
+            window.scrollTo({
+              top: document.body.scrollHeight,
+              behavior: "smooth",
+            });
+          }, 100);
+        }
+      }
+
+      // ลบ state ออกจาก history
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [location.state, setValue]);
+
   const fetchVehicleBrandModels = async () => {
     try {
       const res = await getVehicleBrandModels();
@@ -43,6 +76,39 @@ const CreateRepair = () => {
       console.error(error);
     }
   };
+
+  // กู้คืนข้อมูลเมื่อกลับมาจากหน้าสรุป
+  useEffect(() => {
+    if (location.state) {
+      const {
+        repairData,
+        repairItems: savedItems,
+        scrollToBottom,
+      } = location.state;
+
+      if (repairData) {
+        Object.keys(repairData).forEach((key) => {
+          setValue(key, repairData[key]);
+        });
+      }
+
+      if (savedItems && savedItems.length > 0) {
+        setRepairItems(savedItems);
+
+        if (scrollToBottom) {
+          setTimeout(() => {
+            window.scrollTo({
+              top: document.body.scrollHeight,
+              behavior: "smooth",
+            });
+          }, 100);
+        }
+      }
+
+      // ลบ state ออกจาก history
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [location.state, setValue]);
 
   const getAvailableModelsForBrand = () => {
     const selectedBrand = watch("brand");
@@ -101,16 +167,6 @@ const CreateRepair = () => {
       }
       if (savedItems) {
         setRepairItems(savedItems);
-      }
-
-      // ตรวจสอบว่าต้อง scroll ไปล่างหรือไม่
-      if (scrollToBottom) {
-        setTimeout(() => {
-          window.scrollTo({
-            top: document.documentElement.scrollHeight,
-            behavior: "smooth",
-          });
-        }, 100);
       }
     } else {
       window.scrollTo(0, 0);

@@ -12,6 +12,11 @@ const VehicleDetail = () => {
   const [vehicle, setVehicle] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    fetchVehicleDetail();
+  }, [id]);
+
   const fetchVehicleDetail = async () => {
     try {
       const res = await getVehicleById(id);
@@ -22,12 +27,6 @@ const VehicleDetail = () => {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-
-    fetchVehicleDetail();
-  }, [id]);
 
   return (
     <div className="w-full h-[83px] bg-gradient-primary shadow-primary">

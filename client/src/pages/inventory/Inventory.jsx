@@ -16,17 +16,6 @@ const Inventory = () => {
   const category = searchParams.get("category");
   const search = searchParams.get("search");
 
-  const handleFilter = async (category, search) => {
-    try {
-      const res = await getInventory(category, search);
-      setInventory(res.data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
     window.scrollTo(0, 0);
 
@@ -52,6 +41,17 @@ const Inventory = () => {
       handleFilter(null, null);
     }
   }, [category, search]);
+
+  const handleFilter = async (category, search) => {
+    try {
+      const res = await getInventory(category, search);
+      setInventory(res.data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="w-full h-[83px] bg-gradient-primary shadow-primary">

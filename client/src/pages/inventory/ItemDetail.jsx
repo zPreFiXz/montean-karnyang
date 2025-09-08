@@ -66,6 +66,15 @@ const ItemDetail = () => {
     }
   }, [errors.categoryId]);
 
+  const fetchCategories = async () => {
+    try {
+      const res = await getCategories();
+      setCategories(res.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const fetchInventory = async (id, type) => {
     try {
       setIsLoading(true);
@@ -110,15 +119,6 @@ const ItemDetail = () => {
       console.error(error);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const res = await getCategories();
-      setCategories(res.data);
-    } catch (error) {
-      console.error(error);
     }
   };
 

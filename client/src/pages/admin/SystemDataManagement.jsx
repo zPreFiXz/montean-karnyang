@@ -23,6 +23,10 @@ const SystemDataManagement = () => {
     formState: { errors, isSubmitting },
   } = useForm();
 
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
   // ดึงข้อมูลหมวดหมู่
   const fetchCategories = async () => {
     try {
@@ -153,10 +157,6 @@ const SystemDataManagement = () => {
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
-
-  useEffect(() => {
-    fetchAllData();
-  }, []);
 
   return (
     <div className="w-full h-full bg-gradient-primary shadow-primary">

@@ -16,6 +16,10 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
   const handleFilter = (category) => {
     const params = new URLSearchParams(searchParams);
     params.set("category", category);
@@ -39,10 +43,6 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
 
   return (
     <div className="overflow-x-auto scrollbar-hide px-[20px] -mx-[20px] mt-[16px]">
