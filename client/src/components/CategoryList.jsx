@@ -1,14 +1,28 @@
 import { getCategories } from "@/api/category";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
-import { ToolBox, Tire, Shock, Oil } from "@/components/icons/Icon";
-import { LoaderCircle } from "lucide-react";
+import { ToolBox, Tire, Innertube, Oil, Filter, Battery, Brake, Shock, Belt, Gear, Light, Wiper, LowerBallJoint } from "@/components/icons/Icon";
 
 const iconMap = {
   บริการ: ToolBox,
   ยาง: Tire,
-  ยางใน: Shock,
+  ยางใน: Innertube,
   น้ำมันเครื่อง: Oil,
+  ไส้กรอง: Filter,
+  เบรค: Brake,
+  โช๊คอัพ: Shock,
+  สายพาน: Belt,
+  แบตเตอรี่: Battery,
+  "คลัช-เกียร์": Gear,
+  ใบปัดน้ำฝน: Wiper,
+  ระบบไฟฟ้า: Light,
+  ลูกหมากปีกนกบน: LowerBallJoint,
+  ลูกหมากปีกนกล่าง: LowerBallJoint,
+  ลูกหมากคันชักนอก: LowerBallJoint,
+  ลูกหมากคันชักใน: LowerBallJoint,
+  ลูกหมากแร็ค: LowerBallJoint,
+  ลูกหมากกันโคลง: LowerBallJoint,
+
 };
 
 const CategoryList = ({ activeCategory, setActiveCategory }) => {

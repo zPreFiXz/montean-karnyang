@@ -5,7 +5,7 @@ const FormButton = ({
   isLoading,
   disabled,
   onClick,
-  className = "bg-gradient-primary",
+  className,
 }) => {
   return (
     <button
