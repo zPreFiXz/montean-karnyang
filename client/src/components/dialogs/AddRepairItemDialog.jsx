@@ -110,10 +110,10 @@ const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
       >
         <DialogHeader className="relative flex-shrink-0 pt-[16px]">
           <DialogTitle className="text-center font-athiti font-semibold text-[22px] md:text-[24px] text-subtle-dark">
-            เลือกอะไหล่และบริการ
+            เลือกอะไหล่หรือบริการ
           </DialogTitle>
           <DialogDescription className="sr-only">
-            เลือกอะไหล่และบริการที่ต้องการเพิ่มลงในรายการซ่อม
+            เลือกอะไหล่หรือบริการที่ต้องการเพิ่มลงในรายการซ่อม
           </DialogDescription>
 
           {/* ปุ่มปิด dialog */}

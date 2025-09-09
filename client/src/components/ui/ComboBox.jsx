@@ -54,7 +54,7 @@ const ComboBox = ({
         <Label
           className={`block mb-[8px] font-medium ${
             customClass
-              ? "text-[16px] md:text-[18px]"
+              ? "text-[18px] md:text-[20px]"
               : "text-[20px] md:text-[22px]"
           } ${color}`}
         >
@@ -119,7 +119,7 @@ const ComboBox = ({
             side="bottom"
             align="start"
             sideOffset={4}
-            avoidCollisions={false}
+            avoidCollisions={true}
             sticky="partial"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >

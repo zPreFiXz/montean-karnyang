@@ -92,11 +92,11 @@ const Login = () => {
               type="email"
               label={
                 <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-primary" />
-                  <p>อีเมล</p>
+                  <Mail className="w-5 h-5 text-primary" />
+                  <p className="font-semibold">อีเมล</p>
                 </div>
               }
-              placeholder="กรุณากรอกอีเมล"
+              placeholder="example@gmail.com"
               color="primary"
               errors={errors}
               customClass="px-0"
@@ -108,11 +108,11 @@ const Login = () => {
               type="password"
               label={
                 <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-primary" />
-                  <p>รหัสผ่าน</p>
+                  <Lock className="w-5 h-5 text-primary" />
+                  <p className="font-semibold">รหัสผ่าน</p>
                 </div>
               }
-              placeholder="กรุณากรอกรหัสผ่าน"
+              placeholder="••••••••"
               color="primary"
               errors={errors}
               customClass="px-0"

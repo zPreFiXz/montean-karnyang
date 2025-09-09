@@ -19,7 +19,7 @@ import { ChevronLeft, LoaderCircle } from "lucide-react";
 import { getInventoryById } from "@/api/inventory";
 import { useParams, useSearchParams } from "react-router";
 
-const ItemDetail = () => {
+const EditItem = () => {
   const {
     register,
     handleSubmit,
@@ -278,7 +278,7 @@ const ItemDetail = () => {
         <button onClick={() => navigate(-1)} className="mt-[2px] text-surface">
           <ChevronLeft />
         </button>
-        แก้ไขอะไหล่และบริการ
+        {isServiceCategory() ? "แก้ไขบริการ" : "แก้ไขอะไหล่"}
       </div>
       <section className="w-full min-h-[calc(100svh-65px)] sm:min-h-[calc(100vh-65px)] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         {isLoading ? (
@@ -321,6 +321,7 @@ const ItemDetail = () => {
                   placeholder="เช่น 400"
                   color="subtle-dark"
                   errors={errors}
+                  inputMode="numeric"
                 />
               </div>
             )}
@@ -380,6 +381,7 @@ const ItemDetail = () => {
                       placeholder="เช่น 195, 205, 215"
                       color="subtle-dark"
                       errors={errors}
+                      inputMode="numeric"
                     />
                     <FormInput
                       register={register}
@@ -389,6 +391,7 @@ const ItemDetail = () => {
                       placeholder="เช่น 55, 60, 65"
                       color="subtle-dark"
                       errors={errors}
+                      inputMode="numeric"
                     />
                     <FormInput
                       register={register}
@@ -398,6 +401,7 @@ const ItemDetail = () => {
                       placeholder="เช่น 15, 16, 17"
                       color="subtle-dark"
                       errors={errors}
+                      inputMode="numeric"
                     />
                   </div>
                 )}
@@ -409,6 +413,7 @@ const ItemDetail = () => {
                   placeholder="เช่น 800"
                   color="subtle-dark"
                   errors={errors}
+                  inputMode="numeric"
                   onWheel={(e) => e.target.blur()}
                   onInput={(e) => {
                     e.target.value = e.target.value.replace(/[^0-9.]/g, "");
@@ -427,6 +432,7 @@ const ItemDetail = () => {
                   placeholder="เช่น 1200"
                   color="subtle-dark"
                   errors={errors}
+                  inputMode="numeric"
                   onWheel={(e) => e.target.blur()}
                   onInput={(e) => {
                     e.target.value = e.target.value.replace(/[^0-9.]/g, "");
@@ -454,6 +460,7 @@ const ItemDetail = () => {
                   placeholder="เช่น 10"
                   color="subtle-dark"
                   errors={errors}
+                  inputMode="numeric"
                   onWheel={(e) => e.target.blur()}
                   onInput={(e) => {
                     e.target.value = e.target.value.replace(/[^0-9]/g, "");
@@ -467,6 +474,7 @@ const ItemDetail = () => {
                   placeholder="เช่น 3"
                   color="subtle-dark"
                   errors={errors}
+                  inputMode="numeric"
                   onWheel={(e) => e.target.blur()}
                   onInput={(e) => {
                     e.target.value = e.target.value.replace(/[^0-9]/g, "");
@@ -479,11 +487,8 @@ const ItemDetail = () => {
                 />
               </div>
             )}
-            <div className="flex justify-center pb-[96px]">
-              <FormButton
-                label={isServiceCategory() ? "แก้ไขบริการ" : "แก้ไขอะไหล่"}
-                isLoading={isSubmitting}
-              />
+            <div className="flex justify-center pb-[112px]">
+              <FormButton label="บันทึก" isLoading={isSubmitting} />
             </div>
           </form>
         )}
@@ -492,4 +497,4 @@ const ItemDetail = () => {
   );
 };
 
-export default ItemDetail;
+export default EditItem;

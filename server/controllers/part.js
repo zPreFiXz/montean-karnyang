@@ -130,3 +130,23 @@ exports.deletePart = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.addStock = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { quantity } = req.body;
+
+    await prisma.part.update({
+      where: { id: Number(id) },
+      data: {
+        stockQuantity: {
+          increment: Number(quantity),
+        },
+      },
+    });
+
+    res.json({ message: "Stock added successfully" });
+  } catch (error) {
+    next(error);
+  }
+};

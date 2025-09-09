@@ -11,7 +11,7 @@ import RepairSummary from "@/pages/repairs/RepairSummary";
 import RepairDetail from "@/pages/repairs/RepairDetail";
 import Inventory from "@/pages/inventory/Inventory";
 import CreateItem from "@/pages/inventory/CreateItem";
-import ItemDetail from "@/pages/inventory/ItemDetail";
+import EditItem from "@/pages/inventory/EditItem";
 import Vehicles from "@/pages/vehicles/Vehicles";
 import VehicleDetail from "@/pages/vehicles/VehicleDetail";
 import VehicleBrandManagement from "@/pages/admin/VehicleBrandManagement";
@@ -55,7 +55,7 @@ const AppRoutes = () => {
           {/* Inventory Routes */}
           <Route path="inventory" element={<Inventory />} />
           <Route path="inventory/new" element={<CreateItem />} />
-          <Route path="inventory/:id" element={<ItemDetail />} />
+          <Route path="inventory/:id" element={<EditItem />} />
 
           {/* Vehicle Routes */}
           <Route path="vehicles" element={<Vehicles />} />
