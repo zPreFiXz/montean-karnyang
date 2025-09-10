@@ -82,8 +82,8 @@ const VehicleBrandFormDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[500px] font-athiti">
+        <DialogHeader className="pb-4 border-b border-gray-200">
           <DialogTitle className="text-[24px] font-semibold text-text flex items-center gap-[8px]">
             <div className="w-[4px] h-[24px] bg-primary rounded-full"></div>
             {editingItem ? "แก้ไขยี่ห้อ-รุ่นรถ" : "เพิ่มยี่ห้อ-รุ่นรถใหม่"}
@@ -94,16 +94,17 @@ const VehicleBrandFormDialog = ({
           onSubmit={handleSubmit(
             editingItem ? handleEditVehicleBrand : handleAddVehicleBrand
           )}
-          className="space-y-[20px] py-[16px]"
+          className="space-y-[20px]"
         >
-          <div className="space-y-[16px]">
-            <FormInput
+          <div>
+            <FormInput 
               register={register}
               name="brand"
               label="ยี่ห้อรถ"
               placeholder="เช่น Toyota, Honda"
               errors={errors}
               rules={{ required: "กรุณากรอกยี่ห้อรถ" }}
+              customClass="px-2"
             />
             <FormInput
               register={register}
@@ -112,23 +113,25 @@ const VehicleBrandFormDialog = ({
               placeholder="เช่น Camry, Civic"
               errors={errors}
               rules={{ required: "กรุณากรอกรุ่นรถ" }}
+              customClass="px-2"
             />
           </div>
 
-          <DialogFooter className="gap-[12px] sm:gap-[12px]">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="px-[20px] py-[12px] border border-gray-300 text-text-secondary rounded-[8px] hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium"
-            >
-              ยกเลิก
-            </button>
+          <DialogFooter className="flex flex-col items-center pt-[10px]">
             <FormButton
               label={editingItem ? "บันทึกการแก้ไข" : "เพิ่มยี่ห้อ-รุ่น"}
               isLoading={isSubmitting}
               type="submit"
-              className="px-[20px]"
+              className="bg-completed text-surface rounded-full font-medium text-[18px]"
             />
+            {editingItem && !isSubmitting && (
+              <FormButton
+                label="ยกเลิก"
+                type="button"
+                onClick={handleClose}
+                className="py-[10px] border bg-in-progress text-surface rounded-full font-medium text-[18px]"
+              />
+            )}
           </DialogFooter>
         </form>
       </DialogContent>
