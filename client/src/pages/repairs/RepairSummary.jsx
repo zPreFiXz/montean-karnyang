@@ -98,7 +98,7 @@ const RepairSummary = () => {
           {/* ข้อมูลลูกค้า */}
           <div className="px-[20px]">
             <div className="mb-[16px]">
-              <p className="mb-[16px] font-semibold text-[22px] md:text-[24px] text-normal">
+              <p className="mb-[8px] font-semibold text-[22px] md:text-[24px] text-normal">
                 ข้อมูลลูกค้า
               </p>
               <div className="space-y-[8px] p-[16px] rounded-[10px] bg-gray-50">
@@ -131,7 +131,7 @@ const RepairSummary = () => {
 
             {/* ข้อมูลรถยนต์ */}
             <div className="mb-[16px]">
-              <p className="mb-[12px] font-semibold text-[22px] md:text-[24px] text-normal">
+              <p className="mb-[8px] font-semibold text-[22px] md:text-[24px] text-normal">
                 ข้อมูลรถยนต์
               </p>
               <div className="space-y-[8px] p-[16px] rounded-[10px] bg-gray-50">

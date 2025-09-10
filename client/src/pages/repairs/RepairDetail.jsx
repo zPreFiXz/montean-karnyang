@@ -297,7 +297,7 @@ const RepairDetail = () => {
 
             {repair.repairItems && (
               <div className="px-[20px] mb-[16px]">
-                <div className="flex justify-between items-center mb-[16px]">
+                <div className="flex justify-between items-center mb-[8px]">
                   <p className="font-semibold text-[22px] md:text-[24px] text-normal">
                     รายการซ่อม
                   </p>
@@ -339,7 +339,7 @@ const RepairDetail = () => {
             )}
 
             <div className="px-[20px] mb-[16px]">
-              <p className="mb-[16px] font-semibold text-[22px] md:text-[24px] text-normal">
+              <p className="mb-[8px] font-semibold text-[22px] md:text-[24px] text-normal">
                 การชำระเงิน
               </p>
               <div className="space-y-[8px] p-[16px] rounded-[10px] bg-gray-50">
@@ -400,7 +400,7 @@ const RepairDetail = () => {
             </div>
 
             <div className="px-[20px] mb-[16px]">
-              <p className="mb-[16px] font-semibold text-[22px] md:text-[24px] text-normal">
+              <p className="mb-[8px] font-semibold text-[22px] md:text-[24px] text-normal">
                 เวลาดำเนินการ
               </p>
               <div className="space-y-[8px] p-[16px] rounded-[10px] bg-gray-50">
@@ -440,7 +440,7 @@ const RepairDetail = () => {
 
             {repair.user && (
               <div className="px-[20px] mb-[16px]">
-                <p className="mb-[16px] font-semibold text-[22px] md:text-[24px] text-normal">
+                <p className="mb-[8px] font-semibold text-[22px] md:text-[24px] text-normal">
                   ผู้รับงานซ่อม
                 </p>
                 <div className="p-[16px] rounded-[10px] bg-gray-50">

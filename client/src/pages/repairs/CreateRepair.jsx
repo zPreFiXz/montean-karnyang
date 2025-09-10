@@ -16,11 +16,10 @@ import { getVehicleBrandModels } from "@/api/vehicleBrandModel";
 const CreateRepair = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { register, handleSubmit, reset, formState, setValue, watch } = useForm(
-    {
+  const { register, handleSubmit, formState, setValue, watch, setFocus } =
+    useForm({
       resolver: zodResolver(repairSchema),
-    }
-  );
+    });
   const [repairItems, setRepairItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [vehicleBrandModels, setVehicleBrandModels] = useState([]);
@@ -28,6 +27,7 @@ const CreateRepair = () => {
   const { errors } = formState;
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     fetchVehicleBrandModels();
   }, []);
 
@@ -186,6 +186,30 @@ const CreateRepair = () => {
     setIsLoading(false);
   };
 
+  const onInvalid = (errs) => {
+    const firstErrorField = Object.keys(errs || {})[0];
+    if (!firstErrorField) return;
+
+    try {
+      setFocus(firstErrorField, { shouldSelect: true });
+    } catch (_) {}
+
+    setTimeout(() => {
+      let el = document.querySelector(`[name="${firstErrorField}"]`);
+      let target = el;
+      if (!el || el.type === "hidden" || el.offsetParent === null) {
+        target = el?.parentElement || null;
+      }
+      if (target && typeof target.scrollIntoView === "function") {
+        target.scrollIntoView({
+          behavior: "auto",
+          block: "nearest",
+          inline: "nearest",
+        });
+      }
+    }, 50);
+  };
+
   const handleAddItemToRepair = (item) => {
     setRepairItems((prev) => {
       // หาตำแหน่งรายการที่ซ้ำกัน (เช็คจาก partNumber และ brand ถ้ามี)
@@ -250,7 +274,7 @@ const CreateRepair = () => {
       <p className="pt-[16px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
         รายการซ่อมใหม่
       </p>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
         <FormInput
           register={register}
           name="fullName"
@@ -338,7 +362,7 @@ const CreateRepair = () => {
 
         {/* ป้ายทะเบียนรถ */}
         <div className="px-[20px] pt-[16px]">
-          <p className="mb-[8px] font-medium text-[22px] text-surface">
+          <p className="mb-[8px] font-medium text-[22px] md:text-[24px] text-surface">
             ทะเบียนรถ
           </p>
           <div className="flex gap-[4px] items-start">

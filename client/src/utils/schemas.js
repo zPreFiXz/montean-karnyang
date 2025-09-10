@@ -222,3 +222,7 @@ export const createPartSchema = z
       }
     }
   });
+
+export const addStockSchema = z.object({
+  addQuantity: z.coerce.number().min(1, "กรุณากรอกจำนวน"),
+});

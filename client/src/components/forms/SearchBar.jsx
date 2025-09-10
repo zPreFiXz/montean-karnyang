@@ -88,7 +88,7 @@ const SearchBar = ({
         onFocus={(e) => {
           e.target.style.borderColor = "#1976d2";
           e.target.style.borderWidth = "2px";
-          e.target.style.boxShadow = "0 0 0 3px rgba(13, 71, 161, 0.3)";
+          e.target.style.boxShadow = "0 0 0 3px rgba(25, 118, 210, 0.35)";
         }}
         onBlur={(e) => {
           e.target.style.borderColor = "";

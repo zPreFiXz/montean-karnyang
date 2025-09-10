@@ -81,7 +81,7 @@ const Login = () => {
           <img src={logo} alt="มณเฑียรการยาง" className="w-auto h-19 md:h-26" />
         </div>
         <div className="relative z-30 w-full md:w-[500px] p-[24px] rounded-[24px] bg-white shadow-primary">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-[16px]">
+          <form noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-[16px]">
             <p className="flex justify-center items-center gap-[8px] font-semibold text-[30px] md:text-[32px] text-primary">
               <Warehouse />
               เข้าสู่ระบบ

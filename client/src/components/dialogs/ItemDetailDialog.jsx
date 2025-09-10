@@ -10,14 +10,10 @@ import FormInput from "@/components/forms/FormInput";
 import FormButton from "@/components/forms/FormButton";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { toast } from "sonner";
 import { addStock } from "@/api/part";
 import { useNavigate } from "react-router";
-
-const addStockSchema = z.object({
-  addQuantity: z.coerce.number().min(1, "กรุณากรอกจำนวน"),
-});
+import { addStockSchema } from "@/utils/schemas";
 
 const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
   const [showAddStock, setShowAddStock] = useState(false);
@@ -149,7 +145,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
           className={`flex flex-col w-full ${
-            !isService ? "max-h-[650px]" : "max-h-[350px]"
+            !isService ? "max-h-[650px]" : "max-h-[337px]"
           } p-0`}
           style={{ height: !isService ? "650px" : "350px" }}
           showCloseButton={false}
@@ -213,7 +209,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
               )}
 
               {/* ข้อมูลทั่วไป */}
-              <div className="space-y-[16px] mt-[16px]">
+              <div className="space-y-[8px] mt-[16px]">
                 {!isService && (
                   <p className="font-athiti font-semibold text-[22px] md:text-[24px] text-normal">
                     ข้อมูลทั่วไป
@@ -311,8 +307,8 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
               {!isService &&
                 currentItem.compatibleVehicles &&
                 currentItem.compatibleVehicles.length > 0 && (
-                  <div className="mt-[16px] mb-[16px]">
-                    <p className="mb-[16px] font-athiti font-semibold text-[22px] md:text-[24px] text-normal">
+                  <div className="mt-[16px]">
+                    <p className="mb-[8px] font-athiti font-semibold text-[22px] md:text-[24px] text-normal">
                       รถที่รองรับ
                     </p>
                     <div className="flex flex-wrap gap-[6px]">
@@ -331,7 +327,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
               {/* Form เพิ่มสต็อก */}
               {!isService && showAddStock && (
                 <div>
-                  <p className="font-athiti font-semibold text-[20px] text-normal my-[16px]">
+                  <p className="mt-[16px] mb-[8px] font-athiti font-semibold text-[22px] md:text-[24px] text-normal">
                     เพิ่มสต็อก
                   </p>
                   <div className="px-[16px] pb-[16px] rounded-[10px] bg-gray-50">
@@ -344,7 +340,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                         name="addQuantity"
                         label={`จำนวน (${currentItem.unit})`}
                         type="number"
-                        placeholder="เช่น 5"
+                        placeholder="เช่น 2"
                         textSize="text-[18px] md:text-[20px]"
                         color="subtle-dark"
                         errors={errors}

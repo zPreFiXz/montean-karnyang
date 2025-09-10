@@ -21,11 +21,11 @@ const FormInput = ({
   };
 
   return (
-    <div className={`${customClass || "px-[20px]"} mt-[16px]`}>
+    <div className={`${customClass || "px-[20px] mt-[16px]"} `}>
       <Label
         htmlFor={name}
         className={`mb-[8px] font-medium ${
-          textSize ? textSize : "text-[20px] md:text-[22px]"
+          textSize ? textSize : "text-[22px] md:text-[24px]"
         } ${getTextColor()}`}
       >
         {label}
@@ -35,28 +35,15 @@ const FormInput = ({
           {...register(name)}
           type={type}
           placeholder={placeholder}
+          aria-invalid={errors[name] ? "true" : "false"}
           className={`w-full h-[41px] px-[12px] rounded-[20px] font-medium text-[20px] md:text-[22px] bg-surface placeholder:font-light placeholder:text-[18px] md:placeholder:text-[20px] ${
-            errors[name] && "border-red-400 focus:border-red-500"
+            errors[name]
+              ? "border-red-400 focus:border-red-500 focus-visible:!border-[#FF4545] focus-visible:!ring-[rgba(255,69,69,0.3)] focus-visible:!border-2"
+              : "focus-visible:!border-[#1976d2] focus-visible:!ring-[rgba(25,118,210,0.35)] focus-visible:!border-2"
           }`}
           style={{
             "--tw-ring-color": errors[name] ? "#FF4545" : "#1976d2",
             "--tw-border-opacity": "1",
-          }}
-          onFocus={(e) => {
-            if (errors[name]) {
-              e.target.style.borderColor = "#FF4545";
-              e.target.style.borderWidth = "2px";
-              e.target.style.boxShadow = "0 0 0 3px rgba(255, 69, 69, 0.3)";
-            } else {
-              e.target.style.borderColor = "#0d47a1";
-              e.target.style.borderWidth = "2px";
-              e.target.style.boxShadow = "0 0 0 3px rgba(13, 71, 161, 0.3)";
-            }
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = "";
-            e.target.style.borderWidth = "";
-            e.target.style.boxShadow = "";
           }}
           {...props}
         />

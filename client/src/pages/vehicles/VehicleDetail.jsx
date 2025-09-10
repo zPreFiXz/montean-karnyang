@@ -64,7 +64,7 @@ const VehicleDetail = () => {
 
             {vehicle.repairs && (
               <div className="px-[20px] mb-[16px]">
-                <div className="flex justify-between items-center mb-[16px]">
+                <div className="flex justify-between items-center mb-[8px]">
                   <p className="font-semibold text-[22px] md:text-[24px] text-normal">
                     ประวัติการซ่อม
                   </p>

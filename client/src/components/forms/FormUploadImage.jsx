@@ -98,7 +98,7 @@ const FormUploadImage = ({
     <div className="w-full justify-center px-[20px] pt-[16px]">
       <Label
         htmlFor="image-upload"
-        className="font-medium text-[20px] md:text-[22px] text-subtle-dark"
+        className="font-medium text-[22px] md:text-[24px] text-subtle-dark"
       >
         {label}
       </Label>
