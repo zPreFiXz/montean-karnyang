@@ -9,9 +9,6 @@ exports.getVehicles = async (req, res, next) => {
     if (search) {
       filter = {
         OR: [
-          // ค้นหาใน brand และ model
-          { brand: { contains: search } },
-          { model: { contains: search } },
           // ค้นหาใน vehicleBrandModel
           {
             vehicleBrandModel: {

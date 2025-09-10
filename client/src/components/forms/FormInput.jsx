@@ -8,6 +8,7 @@ const FormInput = ({
   label,
   type,
   placeholder,
+  textSize,
   color,
   errors,
   customClass,
@@ -20,10 +21,12 @@ const FormInput = ({
   };
 
   return (
-    <div className={`${customClass || 'px-[20px]'} mt-[16px]`}>
+    <div className={`${customClass || "px-[20px]"} mt-[16px]`}>
       <Label
         htmlFor={name}
-        className={`mb-[8px] font-medium text-[20px] md:text-[22px] ${getTextColor()}`}
+        className={`mb-[8px] font-medium ${
+          textSize ? textSize : "text-[20px] md:text-[22px]"
+        } ${getTextColor()}`}
       >
         {label}
       </Label>

@@ -135,7 +135,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
           className="p-[16px] mt-[8px] rounded-[10px] border"
         >
           <div className="flex justify-between items-center mb-[8px]">
-            <span className="font-medium text-[18px] md:text-[20px] text-subtle-dark">
+            <span className="font-medium text-[20px] md:text-[22px] text-subtle-dark">
               รถคันที่ {index + 1}
             </span>
             <div className="flex">
@@ -143,7 +143,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                 <button
                   type="button"
                   onClick={() => handleClearVehicle(index)}
-                  className="flex items-center font-medium text-[18px] md:text-[20px] text-red-500 hover:text-red-600 cursor-pointer"
+                  className="flex items-center font-medium text-[18px] md:text-[20px] text-delete cursor-pointer"
                 >
                   <X className="w-4 h-4 mr-[4px]" />
                   ล้างข้อมูล
@@ -153,7 +153,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                 <button
                   type="button"
                   onClick={() => handleRemoveVehicle(index)}
-                  className="flex items-center font-medium text-[18px] md:text-[20px] text-red-500 hover:text-red-600 cursor-pointer"
+                  className="flex items-center font-medium text-[18px] md:text-[20px] text-delete cursor-pointer"
                 >
                   <Trash className="w-4 h-4 mr-[4px]" />
                   ลบ
@@ -169,9 +169,9 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                 options={brands}
                 value={vehicle.brand}
                 onChange={(value) => handleUpdateVehicle(index, "brand", value)}
-                placeholder="เลือกยี่ห้อรถ"
+                placeholder="-- เลือกยี่ห้อรถ --"
                 name="brand"
-                customClass="text-[16px] md:text-[18px]"
+                customClass="text-[18px] md:text-[20px]"
               />
             </div>
             <div className="mt-[12px]">
@@ -181,10 +181,10 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                 options={getAvailableModels(vehicle.brand)}
                 value={vehicle.model}
                 onChange={(value) => handleUpdateVehicle(index, "model", value)}
-                placeholder="เลือกรุ่นรถ"
+                placeholder="-- เลือกรุ่นรถ --"
                 name="model"
                 disabled={!vehicle.brand}
-                customClass="text-[16px] md:text-[18px]"
+                customClass="text-[18px] md:text-[20px]"
               />
             </div>
           </div>

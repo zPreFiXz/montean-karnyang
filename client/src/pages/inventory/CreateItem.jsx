@@ -210,6 +210,7 @@ const CreatePart = () => {
                 placeholder="เช่น 400"
                 color="subtle-dark"
                 errors={errors}
+                inputMode="numeric"
               />
             </div>
           )}
@@ -227,7 +228,7 @@ const CreatePart = () => {
                 name="partNumber"
                 label="รหัสอะไหล่"
                 type="text"
-                placeholder="เช่น SB-3882"
+                placeholder="เช่น BS19514LEO677"
                 color="subtle-dark"
                 errors={errors}
               />
@@ -237,7 +238,9 @@ const CreatePart = () => {
                 label="ยี่ห้อ"
                 type="text"
                 placeholder={
-                  isTireCategory() ? "เช่น LINGLONG, MAXXIS" : "เช่น 333, 555"
+                  isTireCategory()
+                    ? "เช่น LINGLONG, MAXXIS, BRIDGESTONE"
+                    : "เช่น 333, 555, VALVOLINE"
                 }
                 color="subtle-dark"
                 errors={errors}
@@ -249,7 +252,7 @@ const CreatePart = () => {
                 type="text"
                 placeholder={
                   isTireCategory()
-                    ? "เช่น CROSSWIND HP010"
+                    ? "เช่น CROSSWIND HP010, DURAVIS R624"
                     : "เช่น ลูกหมากปีกนกบน REVO,VIGO 4x2"
                 }
                 color="subtle-dark"
@@ -267,6 +270,7 @@ const CreatePart = () => {
                     placeholder="เช่น 195, 205, 215"
                     color="subtle-dark"
                     errors={errors}
+                    inputMode="numeric"
                   />
                   <FormInput
                     register={register}
@@ -276,6 +280,7 @@ const CreatePart = () => {
                     placeholder="เช่น 55, 60, 65"
                     color="subtle-dark"
                     errors={errors}
+                    inputMode="numeric"
                   />
                   <FormInput
                     register={register}
@@ -285,6 +290,7 @@ const CreatePart = () => {
                     placeholder="เช่น 15, 16, 17"
                     color="subtle-dark"
                     errors={errors}
+                    inputMode="numeric"
                   />
                 </div>
               )}
@@ -293,9 +299,10 @@ const CreatePart = () => {
                 name="costPrice"
                 label="ราคาต้นทุน (บาท)"
                 type="number"
-                placeholder="เช่น 800"
+                placeholder="เช่น 2500"
                 color="subtle-dark"
                 errors={errors}
+                inputMode="numeric"
                 onWheel={(e) => e.target.blur()}
                 onInput={(e) => {
                   e.target.value = e.target.value.replace(/[^0-9.]/g, "");
@@ -311,9 +318,10 @@ const CreatePart = () => {
                 name="sellingPrice"
                 label="ราคาขาย (บาท)"
                 type="number"
-                placeholder="เช่น 1200"
+                placeholder="เช่น 2850"
                 color="subtle-dark"
                 errors={errors}
+                inputMode="numeric"
                 onWheel={(e) => e.target.blur()}
                 onInput={(e) => {
                   e.target.value = e.target.value.replace(/[^0-9.]/g, "");
@@ -338,9 +346,10 @@ const CreatePart = () => {
                 name="stockQuantity"
                 label="จำนวนสต็อก"
                 type="number"
-                placeholder="เช่น 10"
+                placeholder="เช่น 4"
                 color="subtle-dark"
                 errors={errors}
+                inputMode="numeric"
                 onWheel={(e) => e.target.blur()}
                 onInput={(e) => {
                   e.target.value = e.target.value.replace(/[^0-9]/g, "");
@@ -351,9 +360,10 @@ const CreatePart = () => {
                 name="minStockLevel"
                 label="สต็อกขั้นต่ำ"
                 type="number"
-                placeholder="เช่น 3"
+                placeholder="เช่น 2"
                 color="subtle-dark"
                 errors={errors}
+                inputMode="numeric"
                 onWheel={(e) => e.target.blur()}
                 onInput={(e) => {
                   e.target.value = e.target.value.replace(/[^0-9]/g, "");
@@ -366,7 +376,7 @@ const CreatePart = () => {
               />
             </div>
           )}
-          <div className="flex justify-center pb-[96px]">
+          <div className="flex justify-center pb-[112px]">
             <FormButton
               label={isServiceCategory() ? "เพิ่มบริการ" : "เพิ่มอะไหล่"}
               isLoading={isSubmitting}

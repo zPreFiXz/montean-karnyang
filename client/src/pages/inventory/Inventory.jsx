@@ -1,8 +1,9 @@
-import { Link, useSearchParams } from "react-router";
+import { useSearchParams, Link } from "react-router";
 import { useEffect, useState, useRef } from "react";
 import InventoryCard from "@/components/cards/InventoryCard";
 import SearchBar from "@/components/forms/SearchBar";
 import CategoryList from "@/components/CategoryList";
+import ItemDetailDialog from "@/components/dialogs/ItemDetailDialog";
 import { getInventory } from "@/api/inventory";
 import { LoaderCircle } from "lucide-react";
 
@@ -11,6 +12,8 @@ const Inventory = () => {
   const [inventory, setInventory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [showItemDetail, setShowItemDetail] = useState(false);
   const isInitializing = useRef(false);
 
   const category = searchParams.get("category");
@@ -53,6 +56,16 @@ const Inventory = () => {
     }
   };
 
+  const handleStockUpdate = () => {
+    // รีเฟรชข้อมูลหลังจากเพิ่มสต็อก
+    handleFilter(category, search);
+  };
+
+  const handleItemClick = (item) => {
+    setSelectedItem(item);
+    setShowItemDetail(true);
+  };
+
   return (
     <div className="w-full h-[83px] bg-gradient-primary shadow-primary">
       <p className="pt-[16px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
@@ -70,7 +83,9 @@ const Inventory = () => {
           />
 
           <div className="flex items-center justify-between mt-[16px]">
-            <p className="font-semibold text-[20px] md:text-[22px]">รายการอะไหล่และบริการ</p>
+            <p className="font-semibold text-[20px] md:text-[22px]">
+              รายการอะไหล่และบริการ
+            </p>
             <Link
               to="/inventory/new"
               className="font-semibold text-[20px] md:text-[22px] text-primary hover:text-primary/80 cursor-pointer"
@@ -92,24 +107,35 @@ const Inventory = () => {
             </div>
           ) : (
             inventory.map((item) => (
-              <div key={`${item.category.name}-${item.id}`}>
-                <Link to={`/inventory/${item.id}?type=${item.type}`}>
-                  <InventoryCard
-                    brand={item.brand}
-                    name={item.name}
-                    unit={item.unit}
-                    sellingPrice={item.sellingPrice}
-                    stockQuantity={item.stockQuantity}
-                    typeSpecificData={item.typeSpecificData}
-                    secureUrl={item.secureUrl}
-                    category={item.category.name}
-                  />
-                </Link>
+              <div
+                key={`${item.category.name}-${item.id}`}
+                onClick={() => handleItemClick(item)}
+              >
+                <InventoryCard
+                  item={item}
+                  brand={item.brand}
+                  name={item.name}
+                  unit={item.unit}
+                  sellingPrice={item.sellingPrice}
+                  stockQuantity={item.stockQuantity}
+                  typeSpecificData={item.typeSpecificData}
+                  secureUrl={item.secureUrl}
+                  category={item.category.name}
+                  onStockUpdate={handleStockUpdate}
+                />
               </div>
             ))
           )}
         </div>
       </div>
+
+      {/* Modal แสดงรายละเอียดสินค้า */}
+      <ItemDetailDialog
+        item={selectedItem}
+        open={showItemDetail}
+        onOpenChange={setShowItemDetail}
+        onStockUpdate={handleStockUpdate}
+      />
     </div>
   );
 };

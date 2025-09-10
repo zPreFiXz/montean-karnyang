@@ -7,3 +7,7 @@ export const createPart = async (data) => {
 export const updatePart = async (id, data) => {
   return await api.put(`/api/part/${id}`, data);
 };
+
+export const addStock = async (id, quantity) => {
+  return await api.patch(`/api/part/${id}/add-stock`, { quantity });
+};

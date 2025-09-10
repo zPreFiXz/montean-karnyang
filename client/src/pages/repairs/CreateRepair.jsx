@@ -349,6 +349,7 @@ const CreateRepair = () => {
                 placeholder="กก"
                 maxLength={3}
                 error={errors.plateLetters}
+                inputMode="numeric"
                 onInput={(e) => {
                   e.target.value = e.target.value
                     .replace(/[^ก-ฮ0-9]/g, "")
@@ -561,7 +562,7 @@ const CreateRepair = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex justify-center pb-[76px]">
+              <div className="flex justify-center pb-[92px]">
                 <FormButton label="ถัดไป" isLoading={isLoading} />
               </div>
             </div>

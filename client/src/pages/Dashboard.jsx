@@ -241,7 +241,7 @@ const Dashboard = () => {
                         <p className="font-semibold text-[20px] md:text-[22px] text-surface">
                           {user?.fullName}
                         </p>
-                        <p className="text-surface text-[16px] md:text-[18px]">
+                        <p className="text-surface text-[18px] md:text-[20px]">
                           {user?.role === "ADMIN" ? "แอดมิน" : "พนักงาน"}
                         </p>
                       </div>

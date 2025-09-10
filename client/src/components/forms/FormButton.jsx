@@ -5,14 +5,14 @@ const FormButton = ({
   isLoading,
   disabled,
   onClick,
-  className,
+  className = "bg-gradient-primary",
 }) => {
   return (
     <button
       type={onClick ? "button" : "submit"}
       disabled={isLoading || disabled}
       onClick={onClick}
-      className={`flex items-center justify-center w-full h-[41px] mx-[20px] mb-[16px] rounded-[20px] font-semibold text-[18px] md:text-[20px] text-surface shadow-primary disabled:opacity-70 disabled:cursor-not-allowed duration-200 ${className}`}
+      className={`flex items-center justify-center w-full h-[41px] mx-[20px] rounded-[20px] font-semibold text-[18px] md:text-[20px] text-surface shadow-primary disabled:opacity-70 disabled:cursor-not-allowed duration-200 ${className}`}
     >
       {isLoading ? (
         <>

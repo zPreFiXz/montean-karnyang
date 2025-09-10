@@ -131,9 +131,9 @@ const RepairSummary = () => {
 
             {/* ข้อมูลรถยนต์ */}
             <div className="mb-[16px]">
-              <h3 className="mb-[12px] font-semibold text-[22px] md:text-[24px] text-normal">
+              <p className="mb-[12px] font-semibold text-[22px] md:text-[24px] text-normal">
                 ข้อมูลรถยนต์
-              </h3>
+              </p>
               <div className="space-y-[8px] p-[16px] rounded-[10px] bg-gray-50">
                 <div className="flex justify-between">
                   <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark">
@@ -206,7 +206,7 @@ const RepairSummary = () => {
               </div>
             </div>
           </div>
-          <div className="flex justify-center pb-[96px]">
+          <div className="flex justify-center pb-[112px]">
             <FormButton
               label="สร้างรายการซ่อม"
               isLoading={isSubmitting}

@@ -452,7 +452,7 @@ const RepairDetail = () => {
             )}
 
             {getNextStatus(repair.status) && (
-              <div className="flex flex-col pr-[40px]">
+              <div className="flex flex-col gap-[16px] pr-[40px] mb-[16px]">
                 <FormButton
                   label={getNextStatusText(repair.status)}
                   isLoading={isUpdating}
