@@ -77,3 +77,14 @@ export const provinces = [
   { id: 76, name: "อุบลราชธานี" },
   { id: 77, name: "อำนาจเจริญ" },
 ];
+
+export const units = [
+  { id: "ชิ้น", name: "ชิ้น" },
+  { id: "คู่", name: "คู่" },
+  { id: "ชุด", name: "ชุด" },
+  { id: "เส้น", name: "เส้น" },
+  { id: "ลิตร", name: "ลิตร" },
+  { id: "ขวด", name: "ขวด" },
+  { id: "กล่อง", name: "กล่อง" },
+  { id: "หลอด", name: "หลอด" },
+];

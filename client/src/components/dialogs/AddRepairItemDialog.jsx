@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import InventoryCard from "@/components/cards/InventoryCard";
 import SearchBar from "@/components/forms/SearchBar";
 import {
@@ -22,13 +22,24 @@ const iconMap = {
   น้ำมันเครื่อง: Oil,
 };
 
-const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
+const AddRepairItemDialog = ({
+  children,
+  onAddItem,
+  selectedItems = [],
+  restoredStockMap = {},
+}) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [inventory, setInventory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("ทั้งหมด");
   const [categories, setCategories] = useState([]);
   const [searchValue, setSearchValue] = useState("");
+
+  // เก็บค่า stock ที่ถูกคืนในโหมดแก้ไขแบบถาวรระหว่างที่ dialog เปิดอยู่
+  const restoredStockMapRef = useRef({});
+
+  const buildPartKey = (item) =>
+    `${item.partNumber || ""}|${item.brand || ""}|${item.name || ""}`;
 
   const handleFilter = async (category, search) => {
     try {
@@ -72,6 +83,17 @@ const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
 
   const handleOpenDialog = () => {
     setIsDialogOpen(true);
+    // สร้าง baseline stock (ที่คืนในโหมดแก้ไข) จากรายการที่เลือกไว้ตอนเปิด dialog
+    const baseline = { ...restoredStockMap };
+    for (const selected of selectedItems) {
+      if (selected.partNumber && selected.brand) {
+        const key = buildPartKey(selected);
+        if (typeof selected.stockQuantity === "number") {
+          baseline[key] = Math.max(baseline[key] || 0, selected.stockQuantity);
+        }
+      }
+    }
+    restoredStockMapRef.current = baseline;
     if (categories.length === 0) {
       fetchCategories();
     }
@@ -81,21 +103,30 @@ const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
   };
 
   const handleAddItemToRepair = (item) => {
-    // คำนวณจำนวนที่เหลือจริงหลังจากหักที่เลือกไปแล้ว
-    const selectedQuantity =
-      selectedItems.find(
-        (selected) =>
-          selected.partNumber === item.partNumber &&
-          selected.brand === item.brand &&
-          selected.name === item.name
-      )?.quantity || 0;
+    // รวมจำนวนที่เลือกไว้ทั้งหมดสำหรับอะไหล่เดียวกัน (ไม่แยกซ้าย/ขวา)
+    const selectedQuantity = selectedItems.reduce((sum, selected) => {
+      const isSamePart =
+        selected.partNumber === item.partNumber &&
+        selected.brand === item.brand &&
+        selected.name === item.name;
+      return isSamePart ? sum + (selected.quantity || 0) : sum;
+    }, 0);
 
-    const remainingStock = (item.stockQuantity || 0) - selectedQuantity;
+    // ใช้ baseline ที่บันทึกไว้ขณะ dialog เปิด เพื่อให้สต็อกคืนเต็มแม้ลบรายการทั้งหมดแล้ว
+    const key = buildPartKey(item);
+    const displayStock =
+      typeof restoredStockMapRef.current[key] === "number"
+        ? restoredStockMapRef.current[key]
+        : item.stockQuantity || 0;
 
-    if (item.partNumber && item.brand && remainingStock <= 0) {
+    // จำนวนที่ยังสามารถเพิ่มได้ = สต็อกที่แสดงผล - จำนวนที่เลือกไว้แล้ว
+    const remainingAddable = (displayStock || 0) - selectedQuantity;
+
+    if (item.partNumber && item.brand && remainingAddable <= 0) {
       return;
     }
-    onAddItem(item);
+    // ส่ง stockQuantity เป็นค่า baseline (displayStock) เพื่อให้ปุ่ม + จำกัดตามสต็อกที่คืนแล้ว
+    onAddItem({ ...item, stockQuantity: displayStock });
     setIsDialogOpen(false);
   };
 
@@ -209,20 +240,31 @@ const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
             ) : (
               <div className="flex flex-col">
                 {inventory.map((item, index) => {
-                  // คำนวณจำนวนที่เหลือจริงหลังจากหักที่เลือกไปแล้ว
-                  const selectedQuantity =
-                    selectedItems.find(
-                      (selected) =>
+                  // รวมจำนวนที่เลือกไว้ทั้งหมดสำหรับอะไหล่เดียวกัน (ไม่แยกซ้าย/ขวา)
+                  const selectedQuantity = selectedItems.reduce(
+                    (sum, selected) => {
+                      const isSamePart =
                         selected.partNumber === item.partNumber &&
                         selected.brand === item.brand &&
-                        selected.name === item.name
-                    )?.quantity || 0;
+                        selected.name === item.name;
+                      return isSamePart ? sum + (selected.quantity || 0) : sum;
+                    },
+                    0
+                  );
 
-                  const remainingStock =
-                    (item.stockQuantity || 0) - selectedQuantity;
+                  // ใช้ baseline ที่บันทึกไว้ขณะ dialog เปิด เพื่อให้สต็อกคืนเต็มแม้ลบรายการทั้งหมดแล้ว
+                  const key = buildPartKey(item);
+                  const displayStock =
+                    typeof restoredStockMapRef.current[key] === "number"
+                      ? restoredStockMapRef.current[key]
+                      : item.stockQuantity || 0;
+
+                  // จำนวนที่ยังสามารถเพิ่มได้
+                  const remainingAddable =
+                    (displayStock || 0) - selectedQuantity;
 
                   const isDisabled =
-                    item.partNumber && item.brand && remainingStock <= 0;
+                    item.partNumber && item.brand && remainingAddable <= 0;
 
                   return (
                     <div
@@ -239,7 +281,7 @@ const AddRepairItemDialog = ({ children, onAddItem, selectedItems = [] }) => {
                         name={item.name}
                         unit={item.unit}
                         sellingPrice={item.sellingPrice}
-                        stockQuantity={remainingStock}
+                        stockQuantity={Math.max(remainingAddable, 0)}
                         typeSpecificData={item.typeSpecificData}
                         secureUrl={item.secureUrl}
                         category={item.category.name}

@@ -14,7 +14,13 @@ import VehicleCompatibilityInput from "@/components/forms/VehicleCompatibilityIn
 import { useNavigate } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createPartSchema } from "@/utils/schemas";
+import { units } from "@/utils/data";
 import { ChevronLeft } from "lucide-react";
+
+const suspensionTypes = [
+  { id: "left-right", name: "ซ้าย-ขวา" },
+  { id: "other", name: "อื่นๆ" },
+];
 
 const CreatePart = () => {
   const {
@@ -26,6 +32,7 @@ const CreatePart = () => {
     formState,
     trigger,
     clearErrors,
+    setFocus,
   } = useForm({
     resolver: zodResolver(createPartSchema),
     mode: "onChange",
@@ -76,6 +83,14 @@ const CreatePart = () => {
     return selectedCategory?.name === "ยาง";
   };
 
+  const isSuspensionCategory = () => {
+    const selectedCategoryId = watch("categoryId");
+    const selectedCategory = categories.find(
+      (cat) => cat.id === selectedCategoryId
+    );
+    return selectedCategory?.name === "ช่วงล่าง";
+  };
+
   const handleCategoryChange = (value) => {
     setValue("categoryId", value);
     clearErrors([
@@ -91,8 +106,33 @@ const CreatePart = () => {
       "width",
       "aspectRatio",
       "rimDiameter",
+      "suspensionType",
     ]);
     trigger("categoryId");
+  };
+
+  const onInvalid = (errs) => {
+    const firstErrorField = Object.keys(errs || {})[0];
+    if (!firstErrorField) return;
+
+    try {
+      setFocus(firstErrorField, { shouldSelect: true });
+    } catch (_) {}
+
+    setTimeout(() => {
+      let el = document.querySelector(`[name="${firstErrorField}"]`);
+      let target = el;
+      if (!el || el.type === "hidden" || el.offsetParent === null) {
+        target = el?.parentElement || null;
+      }
+      if (target && typeof target.scrollIntoView === "function") {
+        target.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+          inline: "nearest",
+        });
+      }
+    }, 50);
   };
 
   const onSubmit = async (data) => {
@@ -131,6 +171,10 @@ const CreatePart = () => {
                 aspectRatio: data.aspectRatio,
                 rimDiameter: data.rimDiameter,
               }
+            : isSuspensionCategory()
+            ? {
+                suspensionType: data.suspensionType,
+              }
             : undefined,
           compatibleVehicles: watch("compatibleVehicles") || undefined,
           image,
@@ -168,15 +212,16 @@ const CreatePart = () => {
   };
 
   return (
-    <main className="w-full h-[83px] bg-gradient-primary shadow-primary">
-      <div className="flex items-center gap-[8px] pt-[16px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
+    <main className="w-full h-[87px] bg-gradient-primary shadow-primary">
+      <div className="flex items-center gap-[8px] py-[18px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
         <button onClick={() => navigate(-1)} className="mt-[2px] text-surface">
           <ChevronLeft />
         </button>
         เพิ่มรายการ
       </div>
-      <section className="w-full min-h-[calc(100svh-65px)] sm:min-h-[calc(100vh-65px)] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
-        <form onSubmit={handleSubmit(onSubmit)}>
+
+      <section className="w-full min-h-[calc(100svh-65px)] sm:min-h-[calc(100vh-65px)] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
           <div className="px-[20px] pt-[16px]">
             <ComboBox
               label="หมวดหมู่"
@@ -294,6 +339,34 @@ const CreatePart = () => {
                   />
                 </div>
               )}
+
+              {/* ช่วงล่าง */}
+              {isSuspensionCategory() && (
+                <div className="px-[20px] my-[16px]">
+                  <ComboBox
+                    label="ประเภทช่วงล่าง"
+                    color="text-subtle-dark"
+                    options={suspensionTypes}
+                    value={watch("suspensionType")}
+                    onChange={(value) =>
+                      setValue("suspensionType", value, {
+                        shouldValidate: true,
+                        shouldTouch: true,
+                      })
+                    }
+                    placeholder="-- เลือกประเภท --"
+                    errors={errors}
+                    name="suspensionType"
+                  />
+                  {/* Hidden input สำหรับ register */}
+                  <input
+                    {...register("suspensionType")}
+                    type="hidden"
+                    value={watch("suspensionType") || ""}
+                  />
+                </div>
+              )}
+
               <FormInput
                 register={register}
                 name="costPrice"
@@ -332,15 +405,29 @@ const CreatePart = () => {
                   }
                 }}
               />
-              <FormInput
-                register={register}
-                name="unit"
-                label="หน่วย"
-                type="text"
-                placeholder="เช่น ชิ้น, คู่, ชุด, เส้น"
-                color="subtle-dark"
-                errors={errors}
-              />
+              <div className="px-[20px] my-[16px]">
+                <ComboBox
+                  label="หน่วย"
+                  color="text-subtle-dark"
+                  options={units}
+                  value={watch("unit")}
+                  onChange={(value) =>
+                    setValue("unit", value, {
+                      shouldValidate: true,
+                      shouldTouch: true,
+                    })
+                  }
+                  placeholder="-- เลือกหน่วย --"
+                  errors={errors}
+                  name="unit"
+                />
+                {/* Hidden input สำหรับ register */}
+                <input
+                  {...register("unit")}
+                  type="hidden"
+                  value={watch("unit") || ""}
+                />
+              </div>
               <FormInput
                 register={register}
                 name="stockQuantity"

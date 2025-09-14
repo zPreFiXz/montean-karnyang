@@ -1,5 +1,9 @@
 import api from "@/lib/api";
 
+export const getParts = async () => {
+  return await api.get("/api/parts");
+};
+
 export const createPart = async (data) => {
   return await api.post("/api/part", data);
 };

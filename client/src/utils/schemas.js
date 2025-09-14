@@ -11,13 +11,9 @@ export const repairSchema = z.object({
   phoneNumber: z.string().optional(),
   brand: z.string().min(1, "กรุณาเลือกยี่ห้อรถ"),
   model: z.string().min(1, "กรุณาเลือกรุ่นรถ"),
-  plateLetters: z.string().min(1, "กรุณากรอกทะเบียนตัวอักษร"),
-  plateNumbers: z.string().min(1, "กรุณากรอกทะเบียนตัวเลข"),
-  province: z
-    .union([z.string(), z.number()])
-    .refine((val) => val !== "" && val !== null && val !== undefined, {
-      message: "กรุณาเลือกจังหวัด",
-    }),
+  plateLetters: z.string().optional(),
+  plateNumbers: z.string().optional(),
+  province: z.any().optional(),
   description: z.string().optional(),
 });
 
@@ -46,6 +42,9 @@ export const createPartSchema = z
     width: z.string().optional(),
     aspectRatio: z.any().optional(),
     rimDiameter: z.string().optional(),
+
+    // ฟิลด์สำหรับ suspension เท่านั้น
+    suspensionType: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (!data.categoryId) {
@@ -58,7 +57,8 @@ export const createPartSchema = z
     }
 
     const isServiceCategory = data.categoryId === 1;
-    const isTireCategory = data.categoryId === 2;
+    const isSuspensionCategory = data.categoryId === 2;
+    const isTireCategory = data.categoryId === 3;
 
     if (isServiceCategory) {
       if (!data.name || data.name.trim() === "") {
@@ -101,6 +101,22 @@ export const createPartSchema = z
         });
       }
 
+      if (!data.width || data.width.trim() === "") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "กรุณากรอกหน้ายาง",
+          path: ["width"],
+        });
+      }
+
+      if (!data.rimDiameter || data.rimDiameter.trim() === "") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "กรุณากรอกขอบ",
+          path: ["rimDiameter"],
+        });
+      }
+
       if (data.costPrice == null || data.costPrice < 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -140,20 +156,76 @@ export const createPartSchema = z
           path: ["minStockLevel"],
         });
       }
-
-      if (!data.width || data.width.trim() === "") {
+    } else if (isSuspensionCategory) {
+      if (!data.partNumber || data.partNumber.trim() === "") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกหน้ายาง",
-          path: ["width"],
+          message: "กรุณากรอกรหัสอะไหล่",
+          path: ["partNumber"],
         });
       }
 
-      if (!data.rimDiameter || data.rimDiameter.trim() === "") {
+      if (!data.brand || data.brand.trim() === "") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกขอบยาง",
-          path: ["rimDiameter"],
+          message: "กรุณากรอกยี่ห้อ",
+          path: ["brand"],
+        });
+      }
+
+      if (!data.name || data.name.trim() === "") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "กรุณากรอกชื่ออะไหล่",
+          path: ["name"],
+        });
+      }
+
+      if (!data.suspensionType || data.suspensionType.trim() === "") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "กรุณาเลือกประเภทช่วงล่าง",
+          path: ["suspensionType"],
+        });
+      }
+
+      if (data.costPrice == null || data.costPrice < 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "กรุณากรอกราคาต้นทุน",
+          path: ["costPrice"],
+        });
+      }
+
+      if (data.sellingPrice == null || data.sellingPrice < 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "กรุณากรอกราคาขาย",
+          path: ["sellingPrice"],
+        });
+      }
+
+      if (!data.unit || data.unit.trim() === "") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "กรุณาเลือกหน่วย",
+          path: ["unit"],
+        });
+      }
+
+      if (data.stockQuantity == null || data.stockQuantity < 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "กรุณากรอกจำนวนสต็อก",
+          path: ["stockQuantity"],
+        });
+      }
+
+      if (data.minStockLevel == null || data.minStockLevel < 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "กรุณากรอกสต็อกขั้นต่ำ",
+          path: ["minStockLevel"],
         });
       }
     } else {

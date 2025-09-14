@@ -15,9 +15,15 @@ import VehicleCompatibilityInput from "@/components/forms/VehicleCompatibilityIn
 import { useNavigate } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createPartSchema } from "@/utils/schemas";
+import { units } from "@/utils/data";
 import { ChevronLeft, LoaderCircle } from "lucide-react";
 import { getInventoryById } from "@/api/inventory";
 import { useParams, useSearchParams } from "react-router";
+
+const suspensionTypes = [
+  { id: "left-right", name: "ซ้าย-ขวา" },
+  { id: "other", name: "อื่นๆ" },
+];
 
 const EditItem = () => {
   const {
@@ -108,6 +114,14 @@ const EditItem = () => {
             setValue("width", item.typeSpecificData.width);
             setValue("aspectRatio", item.typeSpecificData.aspectRatio);
             setValue("rimDiameter", item.typeSpecificData.rimDiameter);
+            setValue("suspensionType", item.typeSpecificData.suspensionType, {
+              shouldValidate: true,
+              shouldTouch: true,
+            });
+          }
+
+          if (item.compatibleVehicles) {
+            setValue("compatibleVehicles", item.compatibleVehicles);
           }
 
           if (item.secureUrl) {
@@ -150,6 +164,20 @@ const EditItem = () => {
     return selectedCategory?.name === "ยาง";
   };
 
+  const isSuspensionCategory = () => {
+    // ถ้ามี inventory แล้วให้ตรวจสอบจาก category name
+    if (inventory && inventory.category) {
+      return inventory.category.name === "ช่วงล่าง";
+    }
+
+    // ถ้ายังไม่มี inventory ให้ใช้ category ที่เลือก
+    const selectedCategoryId = watch("categoryId");
+    const selectedCategory = categories.find(
+      (cat) => cat.id === selectedCategoryId
+    );
+    return selectedCategory?.name === "ช่วงล่าง";
+  };
+
   const handleCategoryChange = (value) => {
     setValue("categoryId", value);
     clearErrors([
@@ -165,6 +193,7 @@ const EditItem = () => {
       "width",
       "aspectRatio",
       "rimDiameter",
+      "suspensionType",
     ]);
     trigger("categoryId");
   };
@@ -234,6 +263,10 @@ const EditItem = () => {
                 aspectRatio: data.aspectRatio,
                 rimDiameter: data.rimDiameter,
               }
+            : isSuspensionCategory()
+            ? {
+                suspensionType: data.suspensionType,
+              }
             : undefined,
           compatibleVehicles: watch("compatibleVehicles"),
           image,
@@ -273,14 +306,14 @@ const EditItem = () => {
   };
 
   return (
-    <main className="w-full h-[83px] bg-gradient-primary shadow-primary">
-      <div className="flex items-center gap-[8px] pt-[16px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
+    <main className="w-full h-[87px] bg-gradient-primary shadow-primary">
+      <div className="flex items-center gap-[8px] py-[18px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
         <button onClick={() => navigate(-1)} className="mt-[2px] text-surface">
           <ChevronLeft />
         </button>
         {isServiceCategory() ? "แก้ไขบริการ" : "แก้ไขอะไหล่"}
       </div>
-      <section className="w-full min-h-[calc(100svh-65px)] sm:min-h-[calc(100vh-65px)] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+      <section className="w-full min-h-[calc(100svh-65px)] sm:min-h-[calc(100vh-65px) rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         {isLoading ? (
           <div className="flex justify-center items-center h-[530px]">
             <LoaderCircle className="w-8 h-8 animate-spin text-primary" />
@@ -405,6 +438,32 @@ const EditItem = () => {
                     />
                   </div>
                 )}
+
+                {/* ช่วงล่าง */}
+                {isSuspensionCategory() && (
+                  <div className="px-[20px] my-[16px]">
+                    <ComboBox
+                      label="ประเภทช่วงล่าง"
+                      color="text-subtle-dark"
+                      options={suspensionTypes}
+                      value={watch("suspensionType")}
+                      onChange={(value) => setValue("suspensionType", value, {
+                        shouldValidate: true,
+                        shouldTouch: true,
+                      })}
+                      placeholder="-- เลือกประเภท --"
+                      errors={errors}
+                      name="suspensionType"
+                    />
+                    {/* Hidden input สำหรับ register */}
+                    <input
+                      {...register("suspensionType")}
+                      type="hidden"
+                      value={watch("suspensionType") || ""}
+                    />
+                  </div>
+                )}
+
                 <FormInput
                   register={register}
                   name="costPrice"
@@ -443,15 +502,18 @@ const EditItem = () => {
                     }
                   }}
                 />
-                <FormInput
-                  register={register}
-                  name="unit"
-                  label="หน่วย"
-                  type="text"
-                  placeholder="เช่น ชิ้น, คู่, ชุด, เส้น"
-                  color="subtle-dark"
-                  errors={errors}
-                />
+                <div className="px-[20px] my-[16px]">
+                  <ComboBox
+                    label="หน่วย"
+                    color="text-subtle-dark"
+                    options={units}
+                    value={watch("unit")}
+                    onChange={(value) => setValue("unit", value)}
+                    placeholder="-- เลือกหน่วย --"
+                    errors={errors}
+                    name="unit"
+                  />
+                </div>
                 <FormInput
                   register={register}
                   name="stockQuantity"

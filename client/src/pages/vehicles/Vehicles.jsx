@@ -4,7 +4,7 @@ import SearchBar from "@/components/forms/SearchBar";
 import { LoaderCircle } from "lucide-react";
 import { getVehicles } from "@/api/vehicle";
 import CarCard from "@/components/cards/CarCard";
-import { Car } from "@/components/icons/Icon";
+import { Car, Document } from "@/components/icons/Icon";
 
 const Vehicles = () => {
   const [vehicles, setVehicles] = useState([]);
@@ -51,10 +51,18 @@ const Vehicles = () => {
   };
 
   return (
-    <div className="w-full h-[83px] bg-gradient-primary shadow-primary">
-      <p className="pt-[16px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
-        ประวัติลูกค้า
-      </p>
+    <div className="w-full h-[87px] bg-gradient-primary shadow-primary">
+      <div className="flex items-center gap-[8px] pt-[16px] pl-[20px]">
+        <div className="flex items-center justify-center w-[40px] h-[40px] rounded-full bg-surface/20">
+          <Document color="#ffffff" />
+        </div>
+        <div>
+          <p className="font-semibold text-[24px] md:text-[26px] text-surface">
+            ประวัติลูกค้า
+          </p>
+        </div>
+      </div>
+
       <div className="w-full min-h-[calc(100vh-65px)] pb-[112px] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         <div className="px-[20px] pt-[16px]">
           {/* แถบค้นหา */}
@@ -82,7 +90,7 @@ const Vehicles = () => {
                     licensePlate={
                       item.licensePlate
                         ? `${item.licensePlate.plateNumber} ${item.licensePlate.province}`
-                        : ""
+                        : "ไม่ระบุ"
                     }
                     brand={`${item.vehicleBrandModel.brand} ${item.vehicleBrandModel.model}`}
                   />
