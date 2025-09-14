@@ -210,7 +210,7 @@ const RepairSummary = () => {
                       ? `${repairData.plateLetters}-${
                           repairData.plateNumbers
                         } ${getProvinceName(repairData.province)}`
-                      : "ไม่ระบุทะเบียนรถ"}
+                      : "ไม่ระบุ"}
                   </p>
                 </div>
                 <div className="flex justify-between items-start">

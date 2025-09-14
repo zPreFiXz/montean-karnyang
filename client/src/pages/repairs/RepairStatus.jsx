@@ -188,7 +188,7 @@ const RepairStatus = () => {
                   item.vehicle.licensePlate?.plateNumber &&
                   item.vehicle.licensePlate?.province
                     ? `${item.vehicle.licensePlate.plateNumber} ${item.vehicle.licensePlate.province}`
-                    : "ไม่ระบุทะเบียนรถ"
+                    : "ไม่ระบุ"
                 }
                 brand={`${item.vehicle.vehicleBrandModel.brand} ${item.vehicle.vehicleBrandModel.model}`}
                 time={item.createdAt && formatTime(item.createdAt)}

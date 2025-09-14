@@ -403,7 +403,7 @@ const RepairDetail = () => {
                   {repair?.vehicle?.licensePlate?.plateNumber &&
                   repair?.vehicle?.licensePlate?.province
                     ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
-                    : "ไม่ระบุทะเบียนรถ"}
+                    : "ไม่ระบุ"}
                 </p>
                 <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark leading-tight">
                   {repair.vehicle?.vehicleBrandModel.brand}{" "}
