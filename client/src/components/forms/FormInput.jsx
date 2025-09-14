@@ -56,7 +56,7 @@ const FormInput = ({
       {errors[name] && (
         <div className="flex items-center gap-[4px] px-[4px] mt-[6px]">
           <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
-          <p className="font-medium text-delete text-[16px]">
+          <p className="font-medium text-delete text-[18px] md:text-[20px]">
             {errors[name].message}
           </p>
         </div>

@@ -1,92 +1,532 @@
 import FormInput from "@/components/forms/FormInput";
-import { Success } from "@/components/icons/Icon";
+import ComboBox from "@/components/ui/ComboBox";
+import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router";
+import { provinces } from "@/utils/data";
+import { getVehicleBrandModels } from "@/api/vehicleBrandModel";
+import { getParts } from "@/api/part";
 import LicensePlateInput from "@/components/forms/LicensePlateInput";
+import { formatCurrency } from "@/lib/utils";
+import { Image, Trash, Plus, Minus, Check, Wrench } from "lucide-react";
+import FormButton from "@/components/forms/FormButton";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { repairSchema } from "@/utils/schemas";
+import { CarRepair } from "@/components/icons/Icon";
 
-const SuspensionCheck = () => {
-  const { register, handleSubmit, reset } = useForm();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-  const [savedData, setSavedData] = useState(null);
+const Suspension = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    setFocus,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(repairSchema),
+  });
+  const [vehicleBrandModels, setVehicleBrandModels] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [repairItems, setRepairItems] = useState([]);
+  const [compatibleParts, setCompatibleParts] = useState([]);
+  const [selectedLeftParts, setSelectedLeftParts] = useState(new Set());
+  const [selectedRightParts, setSelectedRightParts] = useState(new Set());
+  const [selectedOtherParts, setSelectedOtherParts] = useState(new Set());
+  const [activeTab, setActiveTab] = useState("left");
+  const [isLoading, setIsLoading] = useState(false);
+  const [restoredStockMap, setRestoredStockMap] = useState({});
 
-  const handleSuspensionCheck = async (data) => {
-    setIsSubmitting(true);
-    console.log("Suspension check data:", data);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    fetchVehicleBrandModels();
+  }, []);
 
-    // จำลองการบันทึกข้อมูล
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+  // ดึงข้อมูลอะไหล่ที่เข้ากันได้เมื่อเลือกรุ่นรถ
+  useEffect(() => {
+    const brand = watch("brand");
+    const model = watch("model");
 
-    // เก็บข้อมูลที่บันทึก
-    setSavedData({
-      ...data,
-      licensePlate:
-        data.plate_letters +
-        "-" +
-        data.plate_numbers +
-        " " +
-        data.plate_province,
+    if (brand && model) {
+      fetchCompatibleParts(brand, model);
+    } else {
+      setCompatibleParts([]);
+    }
+  }, [watch("brand"), watch("model")]);
+
+  // กู้คืนข้อมูลเมื่อกลับมาจากหน้าสรุป
+  useEffect(() => {
+    if (!location.state) return;
+
+    const {
+      repairData,
+      repairItems: savedItems,
+      scrollToBottom,
+      editRepairId,
+    } = location.state;
+
+    if (repairData) {
+      Object.keys(repairData).forEach((key) => {
+        setValue(key, repairData[key]);
+      });
+    }
+
+    if (savedItems && Array.isArray(savedItems)) {
+      // แยกอะไหล่ที่เลือกซ้าย/ขวาออกจากรายการซ่อมที่ผู้ใช้เพิ่มเอง
+      const manualItems = savedItems.filter((i) => !i.side);
+      const leftIds = savedItems
+        .filter((i) => i.side === "left")
+        .map((i) => i.id);
+      const rightIds = savedItems
+        .filter((i) => i.side === "right")
+        .map((i) => i.id);
+      const otherIds = savedItems
+        .filter((i) => i.side === "other")
+        .map((i) => i.id);
+
+      setRepairItems(manualItems);
+      setSelectedLeftParts(new Set(leftIds));
+      setSelectedRightParts(new Set(rightIds));
+      setSelectedOtherParts(new Set(otherIds));
+
+      // สร้าง baseline stock ที่คืนมาในโหมดแก้ไข เพื่อนำไปใช้ใน dialog
+      const map = {};
+      for (const it of savedItems) {
+        if (
+          it?.partNumber &&
+          it?.brand &&
+          typeof it.stockQuantity === "number"
+        ) {
+          const key = `${it.partNumber}|${it.brand}|${it.name || ""}`;
+          map[key] = Math.max(map[key] || 0, it.stockQuantity);
+        }
+      }
+      setRestoredStockMap(map);
+    }
+
+    if (scrollToBottom) {
+      setTimeout(() => {
+        window.scrollTo({
+          top: document.body.scrollHeight,
+          behavior: "smooth",
+        });
+      }, 500);
+    }
+
+    // ลบ state ออกจาก history แต่คงค่า editRepairId และแหล่งที่มาไว้
+    const preserved = {
+      ...(editRepairId ? { editRepairId } : {}),
+      ...(location.state?.from ? { from: location.state.from } : {}),
+      ...(location.state?.origin ? { origin: location.state.origin } : {}),
+      ...(location.state?.statusSlug
+        ? { statusSlug: location.state.statusSlug }
+        : {}),
+      ...(location.state?.vehicleId
+        ? { vehicleId: location.state.vehicleId }
+        : {}),
+    };
+    window.history.replaceState(
+      preserved,
+      document.title,
+      window.location.pathname
+    );
+  }, [location.state, setValue]);
+
+  const fetchVehicleBrandModels = async () => {
+    try {
+      const res = await getVehicleBrandModels();
+      setVehicleBrandModels(res.data);
+
+      // สร้างรายการ brands ที่ไม่ซ้ำกัน
+      const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
+      setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchCompatibleParts = async (brand, model) => {
+    try {
+      const res = await getParts();
+      const allParts = res.data;
+
+      // กรองอะไหล่ที่เข้ากันได้กับรถรุ่นนี้
+      const compatible = allParts.filter((part) => {
+        if (!part.compatibleVehicles) return false;
+
+        // ตรวจสอบว่า compatibleVehicles มี brand และ model ที่ตรงกัน
+        return part.compatibleVehicles.some(
+          (vehicle) => vehicle.brand === brand && vehicle.model === model
+        );
+      });
+
+      setCompatibleParts(compatible);
+    } catch (error) {
+      console.error(error);
+      setCompatibleParts([]);
+    }
+  };
+
+  // ฟังก์ชันสำหรับกรองอะไหล่ตาม suspensionType
+  const getPartsForSide = (side) => {
+    return compatibleParts.filter((part) => {
+      // ถ้าไม่มี typeSpecificData หรือไม่มี suspensionType แสดงในทุกแท็บ
+      if (!part.typeSpecificData || !part.typeSpecificData.suspensionType) {
+        return true;
+      }
+
+      const suspensionType = part.typeSpecificData.suspensionType;
+
+      // ถ้าเป็น left-right ให้แสดงในแท็บซ้ายและขวา
+      if (suspensionType === "left-right") {
+        return side === "left" || side === "right";
+      }
+
+      // ถ้าเป็น other ให้แสดงเฉพาะในแท็บอื่นๆ
+      if (suspensionType === "other") {
+        return side === "other";
+      }
+
+      return true;
+    });
+  };
+
+  const getAvailableModelsForBrand = () => {
+    const selectedBrand = watch("brand");
+    const modelsForBrand = vehicleBrandModels
+      .filter((item) => item.brand === selectedBrand)
+      .map((item) => ({ id: item.model, name: item.model }));
+
+    return modelsForBrand;
+  };
+
+  const renderProductInfo = (item) => {
+    const isTire = item.category?.name === "ยาง";
+
+    // แสดงข้อมูลยางที่มีขนาดแก้มยาง
+    if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
+      return (
+        <p className="w-full font-semibold text-[16px] md:text-[18px] text-normal line-clamp-1 leading-tight">
+          {item.brand} {item.typeSpecificData.width}/
+          {item.typeSpecificData.aspectRatio}R
+          {item.typeSpecificData.rimDiameter} {item.name}
+        </p>
+      );
+    }
+
+    // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
+    if (isTire && item.typeSpecificData) {
+      return (
+        <p className="w-full font-semibold text-[16px] md:text-[18px] text-normal line-clamp-1 leading-tight">
+          {item.brand} {item.typeSpecificData.width}R
+          {item.typeSpecificData.rimDiameter} {item.name}
+        </p>
+      );
+    }
+
+    // แสดงข้อมูลอะไหล่หรือบริการ
+    return (
+      <p className="w-full font-semibold text-[16px] md:text-[18px] text-normal line-clamp-1 leading-tight">
+        {item.brand} {item.name}
+      </p>
+    );
+  };
+
+  const handleAddItemToRepair = (item) => {
+    setRepairItems((prev) => {
+      // รายการซ่อมเพิ่มเติมไม่ต้องมี side (เป็น null)
+      const itemWithSide = {
+        ...item,
+        side: null, // รายการซ่อมเพิ่มเติมไม่มี side
+      };
+
+      // หาตำแหน่งรายการที่ซ้ำกัน (เช็คจาก partNumber, brand โดยไม่สนใจ side)
+      const index = prev.findIndex(
+        (i) =>
+          i.partNumber === itemWithSide.partNumber &&
+          i.brand === itemWithSide.brand &&
+          i.name === itemWithSide.name
+      );
+      if (index !== -1) {
+        // ถ้าซ้ำ ให้เพิ่ม quantity
+        return prev.map((i, idx) =>
+          idx === index
+            ? {
+                ...i,
+                quantity: i.quantity + 1,
+              }
+            : i
+        );
+      } else {
+        // ถ้าไม่ซ้ำ เพิ่มรายการใหม่
+        return [
+          ...prev,
+          {
+            ...itemWithSide,
+            quantity: 1,
+            sellingPrice: itemWithSide.sellingPrice,
+            stockQuantity: itemWithSide.stockQuantity,
+          },
+        ];
+      }
     });
 
-    setIsSubmitting(false);
-    setShowSuccessMessage(true);
-    // ไม่ล้างฟอร์ม เพื่อให้ข้อมูลยังแสดงอยู่
-
-    // ซ่อนข้อความสำเร็จหลัง 3 วินาที
     setTimeout(() => {
-      setShowSuccessMessage(false);
-    }, 3000);
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: "smooth",
+      });
+    }, 100);
+  };
+
+  const handleIncreaseQuantity = (index) => {
+    setRepairItems((prev) =>
+      prev.map((item, i) =>
+        i === index ? { ...item, quantity: item.quantity + 1 } : item
+      )
+    );
+  };
+
+  const handleDecreaseQuantity = (index) => {
+    setRepairItems((prev) =>
+      prev.map((item, i) =>
+        i === index && item.quantity > 1
+          ? { ...item, quantity: item.quantity - 1 }
+          : item
+      )
+    );
+  };
+
+  const handlePartSelection = (part, isSelected, side) => {
+    const suspensionType = part?.typeSpecificData?.suspensionType;
+    const stockQty =
+      typeof part?.stockQuantity === "number" ? part.stockQuantity : Infinity;
+    const isLeftRight = suspensionType === "left-right";
+
+    if (side === "left") {
+      setSelectedLeftParts((prev) => {
+        const next = new Set(prev);
+        if (isSelected) next.add(part.id);
+        else next.delete(part.id);
+        return next;
+      });
+      // ถ้าอะไหล่แบบซ้าย-ขวา และสต็อกเหลือ 1 ให้เลือกได้เพียง 1 ฝั่ง: ตัดฝั่งขวาออก
+      if (isSelected && isLeftRight && stockQty === 1) {
+        setSelectedRightParts((prev) => {
+          const next = new Set(prev);
+          next.delete(part.id);
+          return next;
+        });
+      }
+    } else if (side === "right") {
+      setSelectedRightParts((prev) => {
+        const next = new Set(prev);
+        if (isSelected) next.add(part.id);
+        else next.delete(part.id);
+        return next;
+      });
+      // ถ้าอะไหล่แบบซ้าย-ขวา และสต็อกเหลือ 1 ให้เลือกได้เพียง 1 ฝั่ง: ตัดฝั่งซ้ายออก
+      if (isSelected && isLeftRight && stockQty === 1) {
+        setSelectedLeftParts((prev) => {
+          const next = new Set(prev);
+          next.delete(part.id);
+          return next;
+        });
+      }
+    } else if (side === "other") {
+      setSelectedOtherParts((prev) => {
+        const next = new Set(prev);
+        if (isSelected) next.add(part.id);
+        else next.delete(part.id);
+        return next;
+      });
+    }
+  };
+
+  const isPartSelected = (partId, side) => {
+    if (side === "left") return selectedLeftParts.has(partId);
+    else if (side === "right") return selectedRightParts.has(partId);
+    else if (side === "other") return selectedOtherParts.has(partId);
+    return false;
+  };
+
+  const onInvalid = (errs) => {
+    const firstErrorField = Object.keys(errs || {})[0];
+    if (!firstErrorField) return;
+
+    try {
+      setFocus(firstErrorField, { shouldSelect: true });
+    } catch (_) {}
+
+    setTimeout(() => {
+      let el = document.querySelector(`[name="${firstErrorField}"]`);
+      let target = el;
+      if (!el || el.type === "hidden" || el.offsetParent === null) {
+        target = el?.parentElement || null;
+      }
+      if (target && typeof target.scrollIntoView === "function") {
+        target.scrollIntoView({
+          behavior: "auto",
+          block: "nearest",
+          inline: "nearest",
+        });
+      }
+    }, 50);
+  };
+
+  const onSubmit = async (data) => {
+    setIsLoading(true);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
+    // รวมรายการอะไหล่ที่เลือกจาก compatibleParts กับ repairItems
+    const allRepairItems = [
+      // อะไหล่ฝั่งซ้ายที่เลือก (กรองตาม suspensionType)
+      ...Array.from(selectedLeftParts)
+        .map((id) => getPartsForSide("left").find((p) => p.id === id))
+        .filter(Boolean)
+        .map((part) => ({ ...part, quantity: 1, side: "left" })),
+      // อะไหล่ฝั่งขวาที่เลือก (กรองตาม suspensionType)
+      ...Array.from(selectedRightParts)
+        .map((id) => getPartsForSide("right").find((p) => p.id === id))
+        .filter(Boolean)
+        .map((part) => ({ ...part, quantity: 1, side: "right" })),
+      // อะไหล่ช่วงล่างอื่นๆ ที่เลือก (กรองตาม suspensionType)
+      ...Array.from(selectedOtherParts)
+        .map((id) => getPartsForSide("other").find((p) => p.id === id))
+        .filter(Boolean)
+        .map((part) => ({ ...part, quantity: 1, side: "other" })),
+      // รายการซ่อมที่เพิ่มเข้ามา
+      ...repairItems,
+    ];
+
+    navigate("/repair/summary", {
+      state: {
+        repairData: { ...data, source: "SUSPENSION" },
+        repairItems: allRepairItems,
+        from: "suspension",
+        editRepairId: location.state?.editRepairId,
+        origin: location.state?.from,
+        statusSlug: location.state?.statusSlug,
+        vehicleId: location.state?.vehicleId,
+      },
+    });
+
+    setIsLoading(false);
   };
 
   return (
-    <div className="w-full min-h-[calc(100vh-30px)] bg-gradient-primary shadow-primary">
-      <p className="pt-[16px] pl-[20px] font-semibold text-[22px] text-surface">
-        เช็คช่วงล่าง
-      </p>
-
-      {/* Success Message */}
-      {showSuccessMessage && (
-        <div className="mx-[20px] mt-[16px] p-[12px] bg-green-500 text-white rounded-[10px] flex items-center gap-[8px]">
-          <span className="text-[16px]">✓</span>
-          <span className="font-medium">บันทึกข้อมูลเรียบร้อยแล้ว!</span>
+    <div className="w-full h-full bg-gradient-primary shadow-primary">
+      <div className="flex items-center gap-[8px] pt-[16px] pl-[20px]">
+        <div className="flex items-center justify-center w-[40px] h-[40px] rounded-full bg-surface/20">
+          <CarRepair color="#ffffff" />
         </div>
-      )}
+        <div>
+          <p className="font-semibold text-[24px] md:text-[26px] text-surface">
+            เช็กช่วงล่าง
+          </p>
+        </div>
+      </div>
 
-      <form onSubmit={handleSubmit(handleSuspensionCheck)}>
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
         <FormInput
           register={register}
           name="fullName"
           label="ชื่อลูกค้า"
-          placeholder="กรอกชื่อลูกค้า"
+          type="text"
+          placeholder="เช่น สมชาย ใจดี"
           color="surface"
+          errors={errors}
         />
         <FormInput
           register={register}
-          name="brand"
-          label="ยี่ห้อรถ"
-          placeholder="กรอกยี่ห้อรถ เช่น Toyota"
+          name="address"
+          label="ที่อยู่"
+          type="text"
+          placeholder="เช่น 543 หมู่ 5 ต.น้ำอ้อม อ.กันทรลักษ์ จ.ศรีสะเกษ 33110"
           color="surface"
+          errors={errors}
         />
         <FormInput
           register={register}
-          name="model"
-          label="รุ่นรถ"
-          placeholder="กรอกรุ่นรถ เช่น Revo"
+          name="phoneNumber"
+          label="หมายเลขโทรศัพท์"
+          type="text"
+          placeholder="เช่น 0812345678"
           color="surface"
+          maxLength={10}
+          errors={errors}
+          inputMode="numeric"
+          onInput={(e) => {
+            e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 10);
+          }}
         />
-        {/* ทะเบียนรถ 3 ช่องในแถวเดียว */}
+        <div className="px-[20px] mt-[16px]">
+          <ComboBox
+            label="ยี่ห้อรถ"
+            color="text-surface"
+            options={brands}
+            value={watch("brand")}
+            onChange={(value) => {
+              setValue("brand", value, {
+                shouldValidate: true,
+                shouldTouch: true,
+              });
+              setValue("model", "", {
+                shouldValidate: true,
+                shouldTouch: true,
+              }); // รีเซ็ตรุ่นรถเมื่อเปลี่ยนยี่ห้อ
+            }}
+            placeholder="-- เลือกยี่ห้อรถ --"
+            errors={errors}
+            name="brand"
+          />
+          {/* Hidden input สำหรับ register */}
+          <input
+            {...register("brand")}
+            type="hidden"
+            value={watch("brand") || ""}
+          />
+        </div>
+        <div className="px-[20px] mt-[16px]">
+          <ComboBox
+            label="รุ่นรถ"
+            color="text-surface"
+            options={getAvailableModelsForBrand()}
+            value={watch("model")}
+            onChange={(value) =>
+              setValue("model", value, {
+                shouldValidate: true,
+                shouldTouch: true,
+              })
+            }
+            placeholder="-- เลือกรุ่นรถ --"
+            errors={errors}
+            name="model"
+            disabled={!watch("brand")}
+          />
+          {/* Hidden input สำหรับ register */}
+          <input
+            {...register("model")}
+            type="hidden"
+            value={watch("model") || ""}
+          />
+        </div>
+
+        {/* ป้ายทะเบียนรถ */}
         <div className="px-[20px] pt-[16px]">
-          <p className="font-medium text-[18px] text-surface mb-[8px]">
+          <p className="mb-[8px] font-medium text-[22px] md:text-[24px] text-surface">
             ทะเบียนรถ
           </p>
-          <div className="flex gap-[12px] items-center">
-            <div className="flex-1">
+          <div className="flex gap-[4px] items-start">
+            <div className="w-[70px]">
               <LicensePlateInput
                 register={register}
-                name="plate_letters"
-                placeholder="กข"
-                type="text"
+                name="plateLetters"
+                placeholder="กก"
                 maxLength={3}
+                error={errors.plateLetters}
                 onInput={(e) => {
                   e.target.value = e.target.value
                     .replace(/[^ก-ฮ0-9]/g, "")
@@ -94,15 +534,16 @@ const SuspensionCheck = () => {
                 }}
               />
             </div>
-            <span className="text-surface font-medium text-[18px]">-</span>
-            <div className="flex-1">
+            <span className="pt-[8px] font-medium text-[18px] text-surface">
+              -
+            </span>
+            <div className="w-[80px]">
               <LicensePlateInput
                 register={register}
-                name="plate_numbers"
+                name="plateNumbers"
                 placeholder="1234"
-                type="text"
-                pattern="[0-9]*"
                 maxLength={4}
+                error={errors.plateNumbers}
                 onInput={(e) => {
                   e.target.value = e.target.value
                     .replace(/[^0-9]/g, "")
@@ -111,103 +552,665 @@ const SuspensionCheck = () => {
               />
             </div>
             <div className="flex-1">
-              <LicensePlateInput
-                register={register}
-                name="plate_province"
-                placeholder="อุบลราชธานี"
-                type="text"
+              <ComboBox
+                label=""
+                color="text-surface"
+                options={provinces}
+                value={watch("province")}
+                onChange={(value) =>
+                  setValue("province", value, {
+                    shouldValidate: true,
+                    shouldTouch: true,
+                  })
+                }
+                placeholder="-- เลือกจังหวัด --"
+                errors={errors}
+                name="province"
               />
             </div>
           </div>
         </div>
+
         <FormInput
           register={register}
           name="description"
           label="รายละเอียดการซ่อม"
-          placeholder="กรอกรายละเอียดการซ่อม"
+          type="text"
+          placeholder="เช่น เบรคติด, สตาร์ทไม่ติด, มีเสียงดังจากล้อหน้า"
           color="surface"
+          errors={errors}
         />
-        <div className="flex justify-center px-[20px] mt-[16px]">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className={`w-[200px] h-[41px] rounded-[20px] font-semibold text-[18px] shadow-primary transition-all duration-200 transform ${
-              isSubmitting
-                ? "bg-surface/60 text-primary/60 cursor-not-allowed"
-                : "bg-surface text-primary hover:bg-surface/90 active:bg-surface/80 cursor-pointer hover:scale-105 active:scale-95"
-            }`}
-          >
-            {isSubmitting ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
-          </button>
+
+        <div className="overflow-hidden w-full h-full mt-[30px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+          <div className="flex justify-between items-center px-[20px] pt-[16px]">
+            <p className="font-semibold text-[22px] md:text-[24px]">
+              รายการซ่อมช่วงล่าง
+            </p>
+          </div>
+
+          <div className="flex justify-center mx-[20px] mt-[16px]">
+            <div className="relative flex w-[308px] bg-gray-100 p-[4px] rounded-[10px]">
+              <button
+                type="button"
+                onClick={() => setActiveTab("left")}
+                className={`relative z-10 flex items-center justify-center w-[100px] h-[40px] rounded-[10px] font-semibold text-[18px] md:text-[20px] duration-300 ease-out ${
+                  activeTab === "left"
+                    ? "text-white transform scale-105"
+                    : "text-subtle-dark"
+                }`}
+              >
+                <span className="relative z-10">ซ้าย</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("right")}
+                className={`relative z-10 flex items-center justify-center w-[100px] h-[40px] rounded-[10px] font-semibold text-[18px] md:text-[20px] duration-300 ease-out ${
+                  activeTab === "right"
+                    ? "text-white transform scale-105"
+                    : "text-subtle-dark"
+                }`}
+              >
+                <span className="relative z-10">ขวา</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("other")}
+                className={`relative z-10 flex items-center justify-center w-[100px] h-[40px] rounded-[10px] font-semibold text-[18px] md:text-[20px] duration-300 ease-out ${
+                  activeTab === "other"
+                    ? "text-white transform scale-105"
+                    : "text-subtle-dark"
+                }`}
+              >
+                <span className="relative z-10">อื่นๆ</span>
+              </button>
+
+              {/* Sliding background */}
+              <div
+                className={`absolute flex justify-center h-[40px] rounded-[10px] bg-gradient-primary shadow-lg duration-300 ease-out ${
+                  activeTab === "left"
+                    ? "left-[4px] w-[100px]"
+                    : activeTab === "right"
+                    ? "left-[104px] w-[100px]"
+                    : "left-[204px] w-[100px]"
+                }`}
+              />
+            </div>
+          </div>
+
+          {/* รายการอะไหล่ที่เข้ากันได้ */}
+          {compatibleParts.length > 0 && (
+            <div>
+              <div
+                className={`flex w-[300%] transition-transform duration-300 ease-in-out will-change-transform ${
+                  activeTab === "left"
+                    ? "translate-x-0"
+                    : activeTab === "right"
+                    ? "-translate-x-1/3"
+                    : "-translate-x-2/3"
+                }`}
+              >
+                {/* Panel ซ้าย */}
+                <div className="shrink-0 w-1/3">
+                  {getPartsForSide("left").length === 0 ? (
+                    <div className="flex justify-center items-center h-full">
+                      <p className="text-[18px] md:text-[20px] text-subtle-light">
+                        ไม่มีอะไหล่ที่รองรับ
+                      </p>
+                    </div>
+                  ) : (
+                    getPartsForSide("left").map((part) => {
+                      const stockQty =
+                        typeof part.stockQuantity === "number"
+                          ? part.stockQuantity
+                          : Infinity;
+                      const isLeftRight =
+                        part?.typeSpecificData?.suspensionType === "left-right";
+                      const oppositeSelected = selectedRightParts.has(part.id);
+                      const isOutOfStock =
+                        stockQty <= 0 ||
+                        (isLeftRight && stockQty === 1 && oppositeSelected);
+                      return (
+                        <div
+                          key={`left-${part.id}`}
+                          className={`flex items-center gap-[16px] px-[20px] mt-[16px] ${
+                            isOutOfStock ? "opacity-50 cursor-not-allowed" : ""
+                          }`}
+                        >
+                          <div
+                            className={`flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] border-2 bg-white shadow-primary cursor-pointer ${
+                              isPartSelected(part.id, "left")
+                                ? "border-primary"
+                                : "border-transparent"
+                            }`}
+                            onClick={() => {
+                              if (isOutOfStock) return;
+                              handlePartSelection(
+                                part,
+                                !isPartSelected(part.id, "left"),
+                                "left"
+                              );
+                            }}
+                          >
+                            <div className="flex-1 flex items-center gap-[8px]">
+                              <div className="flex justify-center items-center w-[70px] h-[70px] rounded-[10px] border border-subtle-light bg-white shadow-primary">
+                                {part.secureUrl ? (
+                                  <img
+                                    src={part.secureUrl}
+                                    alt={part.name}
+                                    className="object-cover w-full h-full rounded-[10px]"
+                                  />
+                                ) : (
+                                  <div className="flex justify-center items-center w-[70px] h-[70px] text-subtle-light">
+                                    <Image className="w-8 h-8" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex flex-col flex-1">
+                                {renderProductInfo(part)}
+                                <p
+                                  className={`font-semibold text-[20px] md:text-[22px] ${
+                                    isPartSelected(part.id, "left")
+                                      ? "text-primary"
+                                      : "text-subtle-dark"
+                                  } leading-tight`}
+                                >
+                                  {formatCurrency(Number(part.sellingPrice))}
+                                </p>
+                                {isOutOfStock && (
+                                  <p className="font-medium text-[14px] md:text-[16px] text-red-500 leading-tight">
+                                    หมดสต็อก
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div
+                            className={`flex items-center justify-center min-w-[32px] w-[32px] h-[32px] rounded-full cursor-pointer ${
+                              isPartSelected(part.id, "left")
+                                ? "bg-primary text-surface"
+                                : "bg-subtle-light text-surface"
+                            }`}
+                            onClick={() => {
+                              if (isOutOfStock) return;
+                              handlePartSelection(
+                                part,
+                                !isPartSelected(part.id, "left"),
+                                "left"
+                              );
+                            }}
+                          >
+                            <Check className="w-[18px] h-[18px]" />
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Panel ขวา */}
+                <div className="shrink-0 w-1/3">
+                  {getPartsForSide("right").length === 0 ? (
+                    <div className="flex justify-center items-center h-full">
+                      <p className="text-[18px] md:text-[20px] text-subtle-light">
+                        ไม่มีอะไหล่ที่รองรับ
+                      </p>
+                    </div>
+                  ) : (
+                    getPartsForSide("right").map((part) => {
+                      const stockQty =
+                        typeof part.stockQuantity === "number"
+                          ? part.stockQuantity
+                          : Infinity;
+                      const isLeftRight =
+                        part?.typeSpecificData?.suspensionType === "left-right";
+                      const oppositeSelected = selectedLeftParts.has(part.id);
+                      const isOutOfStock =
+                        stockQty <= 0 ||
+                        (isLeftRight && stockQty === 1 && oppositeSelected);
+                      return (
+                        <div
+                          key={`right-${part.id}`}
+                          className={`flex items-center gap-[16px] px-[20px] mt-[16px] ${
+                            isOutOfStock ? "opacity-50 cursor-not-allowed" : ""
+                          }`}
+                        >
+                          <div
+                            className={`flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] border-2 bg-white shadow-primary cursor-pointer ${
+                              isPartSelected(part.id, "right")
+                                ? "border-primary"
+                                : "border-transparent"
+                            }`}
+                            onClick={() => {
+                              if (isOutOfStock) return;
+                              handlePartSelection(
+                                part,
+                                !isPartSelected(part.id, "right"),
+                                "right"
+                              );
+                            }}
+                          >
+                            <div className="flex-1 flex items-center gap-[8px]">
+                              <div className="flex justify-center items-center w-[70px] h-[70px] rounded-[10px] border border-subtle-light bg-white shadow-primary">
+                                {part.secureUrl ? (
+                                  <img
+                                    src={part.secureUrl}
+                                    alt={part.name}
+                                    className="object-cover w-full h-full rounded-[10px]"
+                                  />
+                                ) : (
+                                  <div className="flex justify-center items-center w-[70px] h-[70px] text-subtle-light">
+                                    <Image className="w-8 h-8" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex flex-col flex-1">
+                                {renderProductInfo(part)}
+                                <p
+                                  className={`font-semibold text-[20px] md:text-[22px] ${
+                                    isPartSelected(part.id, "right")
+                                      ? "text-primary"
+                                      : "text-subtle-dark"
+                                  } leading-tight`}
+                                >
+                                  {formatCurrency(Number(part.sellingPrice))}
+                                </p>
+                                {isOutOfStock && (
+                                  <p className="font-medium text-[14px] md:text-[16px] text-red-500 leading-tight">
+                                    หมดสต็อก
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div
+                            className={`flex items-center justify-center min-w-[32px] w-[32px] h-[32px] rounded-full cursor-pointer ${
+                              isPartSelected(part.id, "right")
+                                ? "bg-primary text-surface"
+                                : "bg-subtle-light text-surface"
+                            }`}
+                            onClick={() => {
+                              if (isOutOfStock) return;
+                              handlePartSelection(
+                                part,
+                                !isPartSelected(part.id, "right"),
+                                "right"
+                              );
+                            }}
+                          >
+                            <Check className="w-[18px] h-[18px]" />
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Panel อื่นๆ */}
+                <div className="shrink-0 w-1/3">
+                  {getPartsForSide("other").length === 0 ? (
+                    <div className="flex justify-center items-center h-full">
+                      <p className="text-[20px] md:text-[22px] text-subtle-light">
+                        ไม่มีอะไหล่ที่รองรับ
+                      </p>
+                    </div>
+                  ) : (
+                    getPartsForSide("other").map((part) => {
+                      const stockQty =
+                        typeof part.stockQuantity === "number"
+                          ? part.stockQuantity
+                          : Infinity;
+                      const isOutOfStock = stockQty <= 0;
+                      return (
+                        <div
+                          key={`other-${part.id}`}
+                          className={`flex items-center gap-[16px] px-[20px] mt-[16px] ${
+                            isOutOfStock ? "opacity-50 cursor-not-allowed" : ""
+                          }`}
+                        >
+                          <div
+                            className={`flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] border-2 bg-white shadow-primary cursor-pointer ${
+                              isPartSelected(part.id, "other")
+                                ? "border-primary"
+                                : "border-transparent"
+                            }`}
+                            onClick={() => {
+                              if (isOutOfStock) return;
+                              handlePartSelection(
+                                part,
+                                !isPartSelected(part.id, "other"),
+                                "other"
+                              );
+                            }}
+                          >
+                            <div className="flex-1 flex items-center gap-[8px]">
+                              <div className="flex justify-center items-center w-[70px] h-[70px] rounded-[10px] border border-subtle-light bg-white shadow-primary">
+                                {part.secureUrl ? (
+                                  <img
+                                    src={part.secureUrl}
+                                    alt={part.name}
+                                    className="object-cover w-full h-full rounded-[10px]"
+                                  />
+                                ) : (
+                                  <div className="flex justify-center items-center w-[70px] h-[70px] text-subtle-light">
+                                    <Image className="w-8 h-8" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex flex-col flex-1">
+                                {renderProductInfo(part)}
+                                <p
+                                  className={`font-semibold text-[20px] md:text-[22px] ${
+                                    isPartSelected(part.id, "other")
+                                      ? "text-primary"
+                                      : "text-subtle-dark"
+                                  } leading-tight`}
+                                >
+                                  {formatCurrency(Number(part.sellingPrice))}
+                                </p>
+                                {isOutOfStock && (
+                                  <p className="font-medium text-[14px] md:text-[16px] text-red-500 leading-tight">
+                                    หมดสต็อก
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div
+                            className={`flex items-center justify-center min-w-[32px] w-[32px] h-[32px] rounded-full cursor-pointer ${
+                              isPartSelected(part.id, "other")
+                                ? "bg-primary text-surface"
+                                : "bg-subtle-light text-surface"
+                            }`}
+                            onClick={() => {
+                              if (isOutOfStock) return;
+                              handlePartSelection(
+                                part,
+                                !isPartSelected(part.id, "other"),
+                                "other"
+                              );
+                            }}
+                          >
+                            <Check className="w-[18px] h-[18px]" />
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-between items-center px-[20px] pt-[16px]">
+                <p className="font-semibold text-[22px] md:text-[24px]">
+                  รายการซ่อมเพิ่มเติม
+                </p>
+                <AddRepairItemDialog
+                  onAddItem={handleAddItemToRepair}
+                  selectedItems={repairItems}
+                  restoredStockMap={restoredStockMap}
+                >
+                  <p className="font-semibold text-[20px] md:text-[22px] text-primary hover:text-primary/80 cursor-pointer">
+                    + เพิ่มรายการซ่อม
+                  </p>
+                </AddRepairItemDialog>
+              </div>
+            </div>
+          )}
+
+          {/* รายการซ่อมที่เลือก */}
+          {repairItems.length === 0 && compatibleParts.length === 0 ? (
+            <div>
+              <div className="flex justify-center items-center h-[228px]">
+                <p className="text-[20px] md:text-[22px] text-subtle-light">
+                  กรุณาเพิ่มรายการซ่อม
+                </p>
+              </div>
+              <div className="h-[96px]"></div>
+            </div>
+          ) : repairItems.length > 0 ? (
+            <div className="pb-[96px]">
+              {repairItems.map((item, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-[16px] px-[20px] mt-[16px]"
+                >
+                  <div className="flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] bg-white shadow-primary">
+                    <div className="flex-1 flex items-center gap-[8px]">
+                      <div className="flex justify-center items-center w-[70px] h-[70px] rounded-[10px] border border-subtle-light bg-white shadow-primary">
+                        {item.secureUrl ? (
+                          <img
+                            src={item.secureUrl}
+                            alt={item.name}
+                            className="object-cover w-full h-full rounded-[10px]"
+                          />
+                        ) : (
+                          <div className="flex justify-center items-center w-[70px] h-[70px] text-subtle-light">
+                            {item.partNumber && item.brand ? (
+                              <Image className="w-8 h-8" />
+                            ) : (
+                              <Wrench className="w-8 h-8" />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col flex-1">
+                        {renderProductInfo(item)}
+                        <p className="font-medium text-[16px] md:text-[18px] text-subtle-dark leading-tight">
+                          ราคาต่อหน่วย:{" "}
+                          {formatCurrency(Number(item.sellingPrice))}
+                        </p>
+                        <div className="flex items-center justify-between w-full">
+                          <p className="font-semibold text-[20px] md:text-[22px] text-primary leading-tight">
+                            {formatCurrency(item.quantity * item.sellingPrice)}
+                          </p>
+                          <div className="flex items-center gap-[8px]">
+                            <button
+                              type="button"
+                              onClick={() => handleDecreaseQuantity(index)}
+                              disabled={item.quantity <= 1}
+                              className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-200 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
+                            >
+                              <Minus className="w-[16px] h-[16px]" />
+                            </button>
+                            <span className="font-semibold text-[18px] md:text-[20px] text-primary">
+                              {item.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleIncreaseQuantity(index)}
+                              disabled={
+                                item.partNumber && item.brand
+                                  ? item.quantity >= (item.stockQuantity || 0)
+                                  : false
+                              }
+                              className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-primary/30 disabled:border-gray-200 text-primary disabled:text-gray-300 bg-primary/10 hover:bg-primary/20 disabled:bg-gray-50 disabled:hover:bg-gray-50"
+                            >
+                              <Plus className="w-[16px] h-[16px]" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRepairItems((prev) =>
+                        prev.filter((_, i) => i !== index)
+                      )
+                    }
+                    className="text-surface"
+                  >
+                    <div className="flex items-center justify-center w-[32px] h-[32px] rounded-full bg-delete">
+                      <Trash className="w-[18px] h-[18px]" />
+                    </div>
+                  </button>
+                </div>
+              ))}
+
+              {/* สรุปยอดรวมทั้งหมด */}
+              <div className="p-[16px] mx-[20px] mt-[16px] mb-[16px] rounded-[12px] border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5">
+                <div className="flex justify-between items-center">
+                  <div className="flex flex-col">
+                    <p className="font-semibold text-[20px] md:text-[22px] text-subtle-dark">
+                      รวม{" "}
+                      {Array.from(selectedLeftParts).filter((id) =>
+                        getPartsForSide("left").some((part) => part.id === id)
+                      ).length +
+                        Array.from(selectedRightParts).filter((id) =>
+                          getPartsForSide("right").some(
+                            (part) => part.id === id
+                          )
+                        ).length +
+                        Array.from(selectedOtherParts).filter((id) =>
+                          getPartsForSide("other").some(
+                            (part) => part.id === id
+                          )
+                        ).length +
+                        repairItems.length}{" "}
+                      รายการ
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <p className="font-semibold text-[24px] md:text-[26px] text-primary">
+                      {formatCurrency(
+                        // รวมราคาจากอะไหล่ที่เลือกจาก compatibleParts (กรองตาม suspensionType)
+                        getPartsForSide("left").reduce((total, part) => {
+                          return (
+                            total +
+                            (selectedLeftParts.has(part.id)
+                              ? Number(part.sellingPrice) || 0
+                              : 0)
+                          );
+                        }, 0) +
+                          getPartsForSide("right").reduce((total, part) => {
+                            return (
+                              total +
+                              (selectedRightParts.has(part.id)
+                                ? Number(part.sellingPrice) || 0
+                                : 0)
+                            );
+                          }, 0) +
+                          getPartsForSide("other").reduce((total, part) => {
+                            return (
+                              total +
+                              (selectedOtherParts.has(part.id)
+                                ? Number(part.sellingPrice) || 0
+                                : 0)
+                            );
+                          }, 0) +
+                          // บวกกับรายการซ่อมที่เพิ่มเอง
+                          repairItems.reduce(
+                            (total, item) =>
+                              total + item.sellingPrice * item.quantity,
+                            0
+                          )
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-center pb-[16px]">
+                <FormButton
+                  label="ถัดไป"
+                  isLoading={isLoading}
+                  disabled={
+                    Array.from(selectedLeftParts).filter((id) =>
+                      getPartsForSide("left").some((part) => part.id === id)
+                    ).length +
+                      Array.from(selectedRightParts).filter((id) =>
+                        getPartsForSide("right").some((part) => part.id === id)
+                      ).length +
+                      Array.from(selectedOtherParts).filter((id) =>
+                        getPartsForSide("other").some((part) => part.id === id)
+                      ).length +
+                      repairItems.length ===
+                    0
+                  }
+                />
+              </div>
+            </div>
+          ) : (
+            <div>
+              {/* สรุปยอดรวมทั้งหมด - แสดงเสมอแม้ไม่มีการเลือก */}
+              <div className="p-[16px] mx-[20px] mt-[16px] mb-[16px] rounded-[12px] border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5">
+                <div className="flex justify-between items-center">
+                  <div className="flex flex-col">
+                    <p className="font-semibold text-[20px] md:text-[22px] text-subtle-dark">
+                      รวม{" "}
+                      {Array.from(selectedLeftParts).filter((id) =>
+                        getPartsForSide("left").some((part) => part.id === id)
+                      ).length +
+                        Array.from(selectedRightParts).filter((id) =>
+                          getPartsForSide("right").some(
+                            (part) => part.id === id
+                          )
+                        ).length +
+                        Array.from(selectedOtherParts).filter((id) =>
+                          getPartsForSide("other").some(
+                            (part) => part.id === id
+                          )
+                        ).length}{" "}
+                      รายการ
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <p className="font-semibold text-[24px] md:text-[26px] text-primary">
+                      {formatCurrency(
+                        getPartsForSide("left").reduce((total, part) => {
+                          return (
+                            total +
+                            (selectedLeftParts.has(part.id)
+                              ? Number(part.sellingPrice) || 0
+                              : 0)
+                          );
+                        }, 0) +
+                          getPartsForSide("right").reduce((total, part) => {
+                            return (
+                              total +
+                              (selectedRightParts.has(part.id)
+                                ? Number(part.sellingPrice) || 0
+                                : 0)
+                            );
+                          }, 0) +
+                          getPartsForSide("other").reduce((total, part) => {
+                            return (
+                              total +
+                              (selectedOtherParts.has(part.id)
+                                ? Number(part.sellingPrice) || 0
+                                : 0)
+                            );
+                          }, 0)
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-center pb-[112px]">
+                <FormButton
+                  label="ถัดไป"
+                  isLoading={isLoading}
+                  disabled={
+                    Array.from(selectedLeftParts).filter((id) =>
+                      getPartsForSide("left").some((part) => part.id === id)
+                    ).length +
+                      Array.from(selectedRightParts).filter((id) =>
+                        getPartsForSide("right").some((part) => part.id === id)
+                      ).length +
+                      Array.from(selectedOtherParts).filter((id) =>
+                        getPartsForSide("other").some((part) => part.id === id)
+                      ).length +
+                      repairItems.length ===
+                    0
+                  }
+                />
+              </div>
+            </div>
+          )}
         </div>
       </form>
-      <div className="w-full min-h-[calc(100vh-30px)] mt-[30px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
-        <div className="px-[20px] pt-[20px]">
-          <p className="font-semibold text-[22px] text-normal">รายการซ่อม</p>
-        </div>
-        <div className="flex justify-center gap-[16px] mx-[20px] mt-[16px] ]">
-          <div className="flex items-center justify-center w-[78px] h-[30px] rounded-[10px] bg-primary shadow-primary">
-            <p className="font-medium text-[18px] text-surface">ซ้าย</p>
-          </div>
-          <div className="flex items-center justify-center w-[78px] h-[30px] rounded-[10px] bg-surface shadow-primary">
-            <p className="font-medium text-[18px] text-subtle-light">ขวา</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-[16px] mt-[16px] mx-auto px-[20px]">
-          <Success color="#1976d2" />
-          <div className="flex justify-between items-center w-[313px] h-[80px] px-[8px] rounded-[10px] bg-white shadow-primary">
-            <div className="flex items-center gap-[8px]">
-              <div className="w-[60px] h-[60px] rounded-[10px] border border-subtle-light bg-white shadow-primary"></div>
-              <p className="font-semibold text-[14px] text-subtle-dark">
-                ลูกหมากปีกนกบน
-              </p>
-            </div>
-            <p className="font-semibold text-[18px] ml-[8px] text-primary">
-              500 บาท
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-[16px] mt-[16px] mx-auto px-[20px]">
-          <Success color="#AFB1B6" />
-          <div className="flex justify-between items-center w-[313px] h-[80px] px-[8px] rounded-[10px] bg-white shadow-primary">
-            <div className="flex items-center gap-[8px]">
-              <div className="w-[60px] h-[60px] rounded-[10px] border border-subtle-light bg-white shadow-primary"></div>
-              <p className="font-semibold text-[14px] text-subtle-dark">
-                ลูกหมากปีกนกล่าง
-              </p>
-            </div>
-            <p className="font-semibold text-[18px] ml-[8px] text-primary">
-              0 บาท
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-[16px] mt-[16px] mx-auto px-[20px]">
-          <Success color="#AFB1B6" />
-          <div className="flex justify-between items-center w-[313px] h-[80px] px-[8px] rounded-[10px] bg-white shadow-primary">
-            <div className="flex items-center gap-[8px]">
-              <div className="w-[60px] h-[60px] rounded-[10px] border border-subtle-light bg-white shadow-primary"></div>
-              <p className="font-semibold text-[14px] text-subtle-dark">
-                ลูกหมากคันชัก
-              </p>
-            </div>
-            <p className="font-semibold text-[18px] ml-[8px] text-primary">
-              0 บาท
-            </p>
-          </div>
-        </div>
-        <div className="flex justify-between items-center px-[20px] pt-[20px]">
-          <p className="font-semibold text-[18px] text-subtle-dark">
-            รวม 1 รายการ
-          </p>
-          <p className="font-semibold text-[18px] text-primary ">500 บาท</p>
-        </div>
-        <div className="flex justify-center px-[20px]">
-          <button className="bg-primary text-white font-semibold text-[16px] mt-[16px] w-full h-[41px] rounded-[10px] shadow-primary">
-            ถัดไป
-          </button>
-        </div>
-      </div>
     </div>
   );
 };
-export default SuspensionCheck;
+
+export default Suspension;

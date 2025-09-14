@@ -177,13 +177,19 @@ const RepairStatus = () => {
             <Link
               key={index}
               to={`/repair/${item.id}`}
+              state={{ from: "repair-status", statusSlug: status }}
               className="block w-full h-[80px] mt-[16px] rounded-[10px] bg-surface shadow-primary"
             >
               <CarCard
                 bg={getStatusBg(item.status)}
                 color={getStatusColor(item.status)}
                 icon={Car}
-                licensePlate={`${item.vehicle.licensePlate.plateNumber} ${item.vehicle.licensePlate.province}`}
+                licensePlate={
+                  item.vehicle.licensePlate?.plateNumber &&
+                  item.vehicle.licensePlate?.province
+                    ? `${item.vehicle.licensePlate.plateNumber} ${item.vehicle.licensePlate.province}`
+                    : "ไม่ระบุทะเบียนรถ"
+                }
                 brand={`${item.vehicle.vehicleBrandModel.brand} ${item.vehicle.vehicleBrandModel.model}`}
                 time={item.createdAt && formatTime(item.createdAt)}
                 price={Number(item.totalPrice) || 0}

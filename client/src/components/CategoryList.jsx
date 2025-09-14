@@ -73,7 +73,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
   };
 
   return (
-    <div className="overflow-x-auto overflow-y-hidden scrollbar-hide px-[20px] -mx-[20px] mt-[16px]">
+    <div className="overflow-x-auto overflow-y-hidden scrollbar-hide pl-[20px] -mx-[20px] mt-[16px]">
       {isLoading ? (
         <div className="flex justify-center items-center h-[80px]">
           <LoaderCircle className="w-8 h-8 animate-spin text-primary" />
@@ -128,6 +128,8 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
               </button>
             );
           })}
+
+          <div className="flex-shrink-0 w-[12px]"></div>
         </div>
       )}
     </div>

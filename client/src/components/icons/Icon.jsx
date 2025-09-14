@@ -416,6 +416,7 @@ export const Shock = () => {
     </svg>
   );
 };
+
 export const Battery = () => {
   return (
     <svg
@@ -435,6 +436,7 @@ export const Battery = () => {
     </svg>
   );
 };
+
 export const Belt = () => {
   return (
     <svg
@@ -456,6 +458,7 @@ export const Belt = () => {
     </svg>
   );
 };
+
 export const Gear = () => {
   return (
     <svg
@@ -490,6 +493,7 @@ export const Light = () => {
     </svg>
   );
 };
+
 export const Wiper = () => {
   return (
     <svg
@@ -505,6 +509,7 @@ export const Wiper = () => {
     </svg>
   );
 };
+
 export const LowerBallJoint = () => {
   return (
     <svg

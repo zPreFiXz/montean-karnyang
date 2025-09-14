@@ -234,6 +234,20 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                       {currentItem.category?.name}
                     </p>
                   </div>
+                  {currentItem.category?.name === "ช่วงล่าง" &&
+                    currentItem.typeSpecificData?.suspensionType && (
+                      <div className="flex justify-between">
+                        <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark">
+                          ประเภทช่วงล่าง:
+                        </p>
+                        <p className="font-semibold text-[18px] md:text-[20px] text-normal">
+                          {currentItem.typeSpecificData.suspensionType ===
+                          "left-right"
+                            ? "ซ้าย-ขวา"
+                            : "อื่นๆ"}
+                        </p>
+                      </div>
+                    )}
                 </div>
 
                 {/* ข้อมูลราคา */}

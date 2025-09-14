@@ -107,11 +107,11 @@ const ComboBox = ({
               }}
             >
               {selectedLabel || placeholder}
-              <ChevronsUpDown className="shrink-0  h-4 w-4 ml-2 opacity-50" />
+              <ChevronsUpDown className="shrink-0 h-4 w-4 ml-2 opacity-50" />
             </Button>
           </PopoverTrigger>
           <PopoverContent
-            className="p-0 z-50"
+            className="z-50 p-0 my-[4px]"
             style={{
               width: triggerWidth > 0 ? `${triggerWidth}px` : "auto",
               maxHeight: "300px",
@@ -133,7 +133,7 @@ const ComboBox = ({
               />
               <CommandEmpty>
                 <p
-                  className={`font-athiti font-medium text-normal ${
+                  className={`font-athiti font-medium text-subtle-dark ${
                     customClass || "text-[18px] md:text-[20px]"
                   }`}
                 >

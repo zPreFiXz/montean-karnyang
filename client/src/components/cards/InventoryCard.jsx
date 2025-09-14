@@ -65,9 +65,16 @@ const InventoryCard = ({
           </div>
           <div className="flex flex-col">
             {renderProductInfo()}
-            <p className="font-semibold text-[16px] md:text-[18px] text-subtle-dark">
-              {isService ? "" : `จำนวน: ${stockQuantity} ${unit}`}
-            </p>
+            {!isService &&
+              (stockQuantity > 0 ? (
+                <p className="font-semibold text-[16px] md:text-[18px] text-subtle-dark">
+                  {`จำนวน: ${stockQuantity} ${unit}`}
+                </p>
+              ) : (
+                <p className="font-semibold text-[16px] md:text-[18px] text-red-500">
+                  สต็อกหมด
+                </p>
+              ))}
           </div>
         </div>
         <p className="font-semibold text-[22px] md:text-[24px] text-primary text-nowrap">

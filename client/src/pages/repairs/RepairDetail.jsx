@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
 import { getRepairById, updateRepairStatus } from "@/api/repair";
 import { formatDate, formatTime, formatCurrency } from "@/lib/utils";
@@ -11,6 +11,11 @@ import {
   CircleUserRound,
   MapPin,
   Phone,
+  Edit,
+  SquareArrowLeft,
+  SquareArrowRight,
+  CircleEllipsis,
+  Wrench,
 } from "lucide-react";
 import { Car } from "@/components/icons/Icon";
 import FormButton from "@/components/forms/FormButton";
@@ -23,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import RepairItemCard from "@/components/cards/RepairItemCard";
+import { provinces } from "@/utils/data";
 
 const RepairDetail = () => {
   const { id } = useParams();
@@ -172,6 +178,168 @@ const RepairDetail = () => {
   const statusInfo = repair ? getStatusInfo(repair.status) : null;
   const StatusIcon = statusInfo?.icon;
 
+  const getProvinceIdByName = (name) => {
+    const found = provinces.find((p) => p.name === name);
+    return found ? found.id : "";
+  };
+
+  const handleEditRepair = () => {
+    if (!repair) return;
+
+    // เตรียมข้อมูลฟอร์ม
+    const plate = repair?.vehicle?.licensePlate?.plateNumber || ""; // รูปแบบเช่น กก-1234
+    const [plateLetters = "", plateNumbers = ""] = plate.split("-");
+    const provinceName = repair?.vehicle?.licensePlate?.province || "";
+
+    const repairData = {
+      fullName: repair?.customer?.fullName || "",
+      address: repair?.customer?.address || "",
+      phoneNumber: repair?.customer?.phoneNumber || "",
+      brand: repair?.vehicle?.vehicleBrandModel?.brand || "",
+      model: repair?.vehicle?.vehicleBrandModel?.model || "",
+      plateLetters,
+      plateNumbers,
+      province: getProvinceIdByName(provinceName),
+      description: repair?.description || "",
+    };
+
+    // รวมจำนวนที่ถูกใช้ต่ออะไหล่ เพื่อคืนสต็อกในโหมดแก้ไข (ฝั่ง UI เท่านั้น)
+    const usedQtyByPartId = (repair?.repairItems || []).reduce((acc, ri) => {
+      if (ri.part?.id) {
+        acc[ri.part.id] = (acc[ri.part.id] || 0) + (ri.quantity || 1);
+      }
+      return acc;
+    }, {});
+
+    // แปลงรายการซ่อมจากรูปแบบ DB -> รูปแบบหน้าสร้าง/ช่วงล่าง
+    const normalizedItems = (repair?.repairItems || []).map((ri) => {
+      if (ri.part) {
+        const baseStock = ri.part.stockQuantity ?? 0;
+        const restoredStock = baseStock + (usedQtyByPartId[ri.part.id] || 0);
+        return {
+          id: ri.part.id,
+          partNumber: ri.part.partNumber,
+          brand: ri.part.brand || "",
+          name: ri.part.name || "",
+          sellingPrice: Number(ri.unitPrice),
+          stockQuantity: restoredStock,
+          unit: ri.part.unit,
+          category: ri.part.category,
+          secureUrl: ri.part.secureUrl || null,
+          typeSpecificData: ri.part.typeSpecificData || null,
+          quantity: ri.quantity || 1,
+          side: ri.side, // เพิ่ม side จาก database
+        };
+      }
+      // เป็นบริการ
+      return {
+        id: ri.service?.id,
+        brand: "",
+        name: ri.service?.name || "",
+        sellingPrice: Number(ri.unitPrice),
+        category: ri.service?.category,
+        secureUrl: null,
+        quantity: ri.quantity || 1,
+        side: ri.side, // เพิ่ม side จาก database
+      };
+    });
+
+    if (repair.source === "SUSPENSION") {
+      const savedItems = [];
+
+      // แยกชิ้นส่วนช่วงล่าง และทำ grouping สำหรับชิ้นส่วนที่เป็น left-right (อาจถูกบันทึกเป็นหลายแถว qty=1)
+      const lrGroups = {};
+
+      normalizedItems.forEach((item) => {
+        const st = item?.typeSpecificData?.suspensionType;
+        const itemSide = item.side;
+
+        // ถ้าไม่มี typeSpecificData หรือมี side เป็น null -> รายการซ่อมเพิ่มเติม
+        if (!st || itemSide === null) {
+          savedItems.push({ ...item });
+          return;
+        }
+
+        // ถ้ามี side ชัดเจนจาก database ให้ใช้ตามนั้น
+        if (
+          itemSide === "left" ||
+          itemSide === "right" ||
+          itemSide === "other"
+        ) {
+          savedItems.push({ ...item, side: itemSide });
+          return;
+        }
+
+        if (st === "left-right") {
+          // group โดยใช้ part.id และ unitPrice เพื่อรวมจำนวนทั้งหมดเข้าด้วยกัน
+          const key = `${item.id}-${item.sellingPrice}`;
+          if (!lrGroups[key]) {
+            lrGroups[key] = { base: item, count: 0 };
+          }
+          lrGroups[key].count += item.quantity || 1;
+          return;
+        }
+
+        if (["left", "right", "other"].includes(st)) {
+          // ให้แต่ละแถวเป็น qty=1 และระบุด้านชัดเจน
+          const count = item.quantity || 1;
+          for (let i = 0; i < count; i++) {
+            savedItems.push({ ...item, quantity: 1, side: st });
+          }
+          return;
+        }
+
+        // กรณีอื่นๆ ใส่เป็นรายการทั่วไป
+        savedItems.push({ ...item });
+      });
+
+      // กระจายซ้าย-ขวาสำหรับกลุ่ม left-right ตามจำนวนรวม
+      let assignLeftoverToLeft = true;
+      Object.values(lrGroups).forEach(({ base, count }) => {
+        const pairs = Math.floor(count / 2);
+        const remainder = count % 2;
+        for (let i = 0; i < pairs; i++) {
+          savedItems.push({ ...base, quantity: 1, side: "left" });
+          savedItems.push({ ...base, quantity: 1, side: "right" });
+        }
+        if (remainder === 1) {
+          savedItems.push({
+            ...base,
+            quantity: 1,
+            side: assignLeftoverToLeft ? "left" : "right",
+          });
+          assignLeftoverToLeft = !assignLeftoverToLeft;
+        }
+      });
+
+      navigate("/inspections/suspension", {
+        state: {
+          repairData: { ...repairData },
+          repairItems: savedItems,
+          scrollToBottom: true,
+          editRepairId: repair.id,
+          from: location.state?.from,
+          statusSlug: location.state?.statusSlug,
+          vehicleId: location.state?.vehicleId,
+        },
+      });
+      return;
+    }
+
+    // กรณีทั่วไป กลับไปหน้า "รายการซ่อมใหม่"
+    navigate("/repair/new", {
+      state: {
+        repairData: { ...repairData },
+        repairItems: normalizedItems,
+        scrollToBottom: true,
+        editRepairId: repair.id,
+        from: location.state?.from,
+        statusSlug: location.state?.statusSlug,
+        vehicleId: location.state?.vehicleId,
+      },
+    });
+  };
+
   const handleGoBack = () => {
     // ถ้ามาจาก SalesReport ให้กลับไปพร้อมข้อมูลวันที่
     if (
@@ -187,8 +355,8 @@ const RepairDetail = () => {
   };
 
   return (
-    <div className="w-full h-[83px] bg-gradient-primary shadow-primary">
-      <div className="flex items-center gap-[8px] px-[20px] py-[16px]">
+    <div className="w-full h-[87px] bg-gradient-primary shadow-primary">
+      <div className="flex items-center gap-[8px] px-[20px] py-[18px]">
         <button onClick={handleGoBack} className="mt-[2px] text-surface">
           <ChevronLeft />
         </button>
@@ -232,8 +400,10 @@ const RepairDetail = () => {
                 <p
                   className={`font-semibold text-[22px] md:text-[24px] ${statusInfo.color} leading-tight`}
                 >
-                  {repair.vehicle.licensePlate.plateNumber}{" "}
-                  {repair.vehicle.licensePlate.province}
+                  {repair?.vehicle?.licensePlate?.plateNumber &&
+                  repair?.vehicle?.licensePlate?.province
+                    ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
+                    : "ไม่ระบุทะเบียนรถ"}
                 </p>
                 <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark leading-tight">
                   {repair.vehicle?.vehicleBrandModel.brand}{" "}
@@ -301,12 +471,181 @@ const RepairDetail = () => {
                   <p className="font-semibold text-[22px] md:text-[24px] text-normal">
                     รายการซ่อม
                   </p>
+                  <button
+                    onClick={handleEditRepair}
+                    className="flex items-center gap-[4px] font-semibold text-[20px] md:text-[22px] text-primary hover:text-primary/80 cursor-pointer"
+                  >
+                    <Edit className="w-5 h-5" />
+                    แก้ไขรายการซ่อม
+                  </button>
                 </div>
-                <div className="space-y-[16px]">
-                  {repair.repairItems.map((item, index) => (
-                    <RepairItemCard key={index} item={item} variant="detail" />
-                  ))}
-                </div>
+
+                {repair.source === "SUSPENSION" ? (
+                  <div className="space-y-[16px]">
+                    {(() => {
+                      const suspensionItems = (repair.repairItems || []).filter(
+                        (ri) =>
+                          ri.part?.typeSpecificData?.suspensionType || ri.side
+                      );
+                      const generalItems = (repair.repairItems || []).filter(
+                        (ri) =>
+                          !ri.part?.typeSpecificData?.suspensionType && !ri.side
+                      );
+
+                      const leftItems = [];
+                      const rightItems = [];
+                      const otherItems = [];
+
+                      // กลุ่มชิ้นส่วนที่เป็น left-right เพื่อจับคู่ซ้าย-ขวา (เมื่อไม่มี side ใน DB)
+                      const lrGroups = {};
+
+                      suspensionItems.forEach((ri) => {
+                        // ถ้ามี side ใน DB ให้ใช้เลย
+                        if (ri.side === "left") {
+                          leftItems.push(ri);
+                          return;
+                        }
+                        if (ri.side === "right") {
+                          rightItems.push(ri);
+                          return;
+                        }
+                        if (ri.side === "other") {
+                          otherItems.push(ri);
+                          return;
+                        }
+
+                        const st = ri.part.typeSpecificData.suspensionType;
+                        const qty = ri.quantity || 1;
+                        if (st === "left-right") {
+                          const key = `${ri.part.id}-${ri.unitPrice}`;
+                          if (!lrGroups[key]) {
+                            lrGroups[key] = { base: ri, count: 0 };
+                          }
+                          lrGroups[key].count += qty;
+                          return;
+                        }
+                        if (st === "left") {
+                          leftItems.push(ri);
+                          return;
+                        }
+                        if (st === "right") {
+                          rightItems.push(ri);
+                          return;
+                        }
+                        if (st === "other") {
+                          otherItems.push(ri);
+                          return;
+                        }
+                        otherItems.push(ri);
+                      });
+
+                      // จับคู่ซ้าย-ขวาสำหรับชิ้นส่วนที่เป็น left-right
+                      let assignLeftoverToLeft = true;
+                      Object.values(lrGroups).forEach(({ base, count }) => {
+                        const pairs = Math.floor(count / 2);
+                        const remainder = count % 2;
+                        for (let i = 0; i < pairs; i++) {
+                          leftItems.push({ ...base, quantity: 1 });
+                          rightItems.push({ ...base, quantity: 1 });
+                        }
+                        if (remainder === 1) {
+                          if (assignLeftoverToLeft) {
+                            leftItems.push({ ...base, quantity: 1 });
+                          } else {
+                            rightItems.push({ ...base, quantity: 1 });
+                          }
+                          assignLeftoverToLeft = !assignLeftoverToLeft;
+                        }
+                      });
+
+                      return (
+                        <>
+                          {leftItems.length > 0 && (
+                            <div className="mb-[8px]">
+                              <p className="flex items-center gap-[4px] mb-[8px] font-semibold text-[20px] md:text-[22px] text-primary">
+                                <SquareArrowLeft className="mt-[2px]" />
+                                รายการฝั่งซ้าย
+                              </p>
+                              <div className="space-y-[12px]">
+                                {leftItems.map((item, idx) => (
+                                  <RepairItemCard
+                                    key={`left-${idx}`}
+                                    item={item}
+                                    variant="detail"
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {rightItems.length > 0 && (
+                            <div className="mb-[8px]">
+                              <p className="flex items-center gap-[4px] mb-[8px] font-semibold text-[20px] md:text-[22px] text-primary">
+                                <SquareArrowRight className="mt-[2px]" />
+                                รายการฝั่งขวา
+                              </p>
+                              <div className="space-y-[12px]">
+                                {rightItems.map((item, idx) => (
+                                  <RepairItemCard
+                                    key={`right-${idx}`}
+                                    item={item}
+                                    variant="detail"
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {otherItems.length > 0 && (
+                            <div className="mb-[8px]">
+                              <p className="flex items-center gap-[4px] mb-[8px] font-semibold text-[20px] md:text-[22px] text-primary">
+                                <CircleEllipsis className="mt-[2px]" />
+                                รายการอื่นๆ
+                              </p>
+                              <div className="space-y-[12px]">
+                                {otherItems.map((item, idx) => (
+                                  <RepairItemCard
+                                    key={`other-${idx}`}
+                                    item={item}
+                                    variant="detail"
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {generalItems.length > 0 && (
+                            <div className="mb-[8px]">
+                              <p className="flex items-center gap-[4px] mb-[8px] font-semibold text-[20px] md:text-[22px] text-primary">
+                                <Wrench className="mt-[2px]" />
+                                รายการซ่อมเพิ่มเติม
+                              </p>
+                              <div className="space-y-[12px]">
+                                {generalItems.map((item, idx) => (
+                                  <RepairItemCard
+                                    key={`general-${idx}`}
+                                    item={item}
+                                    variant="detail"
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <div className="space-y-[16px]">
+                    {repair.repairItems.map((item, index) => (
+                      <RepairItemCard
+                        key={index}
+                        item={item}
+                        variant="detail"
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

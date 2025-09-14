@@ -7,7 +7,7 @@ import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
 import FormButton from "@/components/forms/FormButton";
 import ComboBox from "@/components/ui/ComboBox";
 import { formatCurrency } from "@/lib/utils";
-import { Image, Trash, Plus, Minus, AlertCircle } from "lucide-react";
+import { Image, Trash, Plus, Minus } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
 import { provinces } from "@/utils/data";
@@ -24,6 +24,7 @@ const CreateRepair = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [vehicleBrandModels, setVehicleBrandModels] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [restoredStockMap, setRestoredStockMap] = useState({});
   const { errors } = formState;
 
   useEffect(() => {
@@ -49,6 +50,16 @@ const CreateRepair = () => {
       if (savedItems && savedItems.length > 0) {
         setRepairItems(savedItems);
 
+        // สร้าง baseline stock ที่คืนมาในโหมดแก้ไข เพื่อนำไปใช้ใน dialog
+        const map = {};
+        for (const it of savedItems) {
+          if (it?.partNumber && it?.brand && typeof it.stockQuantity === "number") {
+            const key = `${it.partNumber}|${it.brand}|${it.name || ""}`;
+            map[key] = Math.max(map[key] || 0, it.stockQuantity);
+          }
+        }
+        setRestoredStockMap(map);
+
         if (scrollToBottom) {
           setTimeout(() => {
             window.scrollTo({
@@ -59,8 +70,15 @@ const CreateRepair = () => {
         }
       }
 
-      // ลบ state ออกจาก history
-      window.history.replaceState({}, document.title, window.location.pathname);
+      // ลบ state ออกจาก history แต่คงข้อมูล edit และแหล่งที่มาไว้
+      const preserved = {
+        ...(location.state?.editRepairId ? { editRepairId: location.state.editRepairId } : {}),
+        ...(location.state?.origin ? { origin: location.state.origin } : {}),
+        ...(location.state?.from ? { from: location.state.from } : {}),
+        ...(location.state?.statusSlug ? { statusSlug: location.state.statusSlug } : {}),
+        ...(location.state?.vehicleId ? { vehicleId: location.state.vehicleId } : {}),
+      };
+      window.history.replaceState(preserved, document.title, window.location.pathname);
     }
   }, [location.state, setValue]);
 
@@ -105,8 +123,15 @@ const CreateRepair = () => {
         }
       }
 
-      // ลบ state ออกจาก history
-      window.history.replaceState({}, document.title, window.location.pathname);
+      // ลบ state ออกจาก history แต่คงข้อมูล edit และแหล่งที่มาไว้
+      const preserved2 = {
+        ...(location.state?.editRepairId ? { editRepairId: location.state.editRepairId } : {}),
+        ...(location.state?.origin ? { origin: location.state.origin } : {}),
+        ...(location.state?.from ? { from: location.state.from } : {}),
+        ...(location.state?.statusSlug ? { statusSlug: location.state.statusSlug } : {}),
+        ...(location.state?.vehicleId ? { vehicleId: location.state.vehicleId } : {}),
+      };
+      window.history.replaceState(preserved2, document.title, window.location.pathname);
     }
   }, [location.state, setValue]);
 
@@ -179,8 +204,13 @@ const CreateRepair = () => {
 
     navigate("/repair/summary", {
       state: {
-        repairData: data,
+        repairData: { ...data, source: "GENERAL" },
         repairItems: repairItems,
+        editRepairId: location.state?.editRepairId,
+        origin: location.state?.origin || location.state?.from,
+        statusSlug: location.state?.statusSlug,
+        vehicleId: location.state?.vehicleId,
+        from: "create",
       },
     });
     setIsLoading(false);
@@ -271,9 +301,17 @@ const CreateRepair = () => {
 
   return (
     <div className="w-full h-full bg-gradient-primary shadow-primary">
-      <p className="pt-[16px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
-        รายการซ่อมใหม่
-      </p>
+      <div className="flex items-center gap-[8px] pt-[16px] pl-[20px]">
+        <div className="flex items-center justify-center w-[40px] h-[40px] rounded-full bg-surface/20">
+          <Plus color="#ffffff" />
+        </div>
+        <div>
+          <p className="font-semibold text-[24px] md:text-[26px] text-surface">
+            รายการซ่อมใหม่
+          </p>
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
         <FormInput
           register={register}
@@ -302,6 +340,7 @@ const CreateRepair = () => {
           color="surface"
           maxLength={10}
           errors={errors}
+          inputMode="numeric"
           onInput={(e) => {
             e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 10);
           }}
@@ -414,44 +453,8 @@ const CreateRepair = () => {
                 errors={errors}
                 name="province"
               />
-              {/* Hidden input สำหรับ register */}
-              <input
-                {...register("province")}
-                type="hidden"
-                value={watch("province") || ""}
-              />
             </div>
           </div>
-
-          {/* ข้อความ error ของป้ายทะเบียนรถ */}
-          {(errors.plateLetters || errors.plateNumbers || errors.province) && (
-            <div className="space-y-[4px] mt-[6px]">
-              {errors.plateLetters && (
-                <div className="flex items-center gap-[4px] px-[4px]">
-                  <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
-                  <p className="font-medium text-[18px] md:text-[20px] text-delete">
-                    {errors.plateLetters.message}
-                  </p>
-                </div>
-              )}
-              {errors.plateNumbers && (
-                <div className="flex items-center gap-[4px] px-[4px]">
-                  <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
-                  <p className="font-medium text-[18px] md:text-[20px] text-delete">
-                    {errors.plateNumbers.message}
-                  </p>
-                </div>
-              )}
-              {errors.province && (
-                <div className="flex items-center gap-[4px] px-[4px]">
-                  <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
-                  <p className="font-medium text-[18px] md:text-[20px] text-delete">
-                    {errors.province.message}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
         <FormInput
           register={register}
@@ -464,13 +467,14 @@ const CreateRepair = () => {
         />
 
         <div className="w-full h-full mt-[30px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
-          <div className="flex justify-between items-center px-[20px] pt-[20px]">
+          <div className="flex justify-between items-center px-[20px] pt-[16px]">
             <p className="font-semibold text-[22px] md:text-[24px]">
               รายการซ่อม
             </p>
             <AddRepairItemDialog
               onAddItem={handleAddItemToRepair}
               selectedItems={repairItems}
+              restoredStockMap={restoredStockMap}
             >
               <p className="font-semibold text-[20px] md:text-[22px] text-primary hover:text-primary/80 cursor-pointer">
                 + เพิ่มรายการซ่อม
@@ -566,7 +570,7 @@ const CreateRepair = () => {
               ))}
 
               {/* สรุปยอดรวม */}
-              <div className="p-[16px] mx-[20px] mt-[20px] mb-[16px] rounded-[12px] border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5">
+              <div className="p-[16px] mx-[20px] my-[16px] rounded-[12px] border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5">
                 <div className="flex justify-between items-center">
                   <div className="flex flex-col">
                     <p className="font-semibold text-[20px] md:text-[22px] text-subtle-dark">

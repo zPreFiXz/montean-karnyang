@@ -29,9 +29,12 @@ const VehicleDetail = () => {
   };
 
   return (
-    <div className="w-full h-[83px] bg-gradient-primary shadow-primary">
-      <div className="flex items-center gap-[8px] px-[20px] py-[16px]">
-        <button onClick={() => navigate(-1)} className="mt-[2px] text-surface">
+    <div className="w-full h-[87px] bg-gradient-primary shadow-primary">
+      <div className="flex items-center gap-[8px] px-[20px] py-[18px]">
+        <button
+          onClick={() => navigate("/vehicles")}
+          className="mt-[2px] text-surface"
+        >
           <ChevronLeft />
         </button>
         <p className="font-semibold text-[24px] md:text-[26px] text-surface">
@@ -52,8 +55,10 @@ const VehicleDetail = () => {
               </div>
               <div className="flex flex-col">
                 <p className="font-semibold text-[22px] md:text-[24px] text-primary leading-tight">
-                  {vehicle.licensePlate.plateNumber}{" "}
-                  {vehicle.licensePlate.province}
+                  {vehicle?.licensePlate?.plateNumber &&
+                  vehicle?.licensePlate?.province
+                    ? `${vehicle.licensePlate.plateNumber} ${vehicle.licensePlate.province}`
+                    : "ไม่ระบุทะเบียนรถ"}
                 </p>
                 <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark leading-tight">
                   {vehicle?.vehicleBrandModel.brand}{" "}
@@ -76,7 +81,10 @@ const VehicleDetail = () => {
                         {formatDate(item.createdAt)} |{" "}
                         {formatTime(item.createdAt)} น.
                       </p>
-                      <Link to={`/repair/${item.id}`}>
+                      <Link
+                        to={`/repair/${item.id}`}
+                        state={{ from: "vehicle-detail", vehicleId: id }}
+                      >
                         <RepairCard
                           icon={Wrench}
                           repairId={item.id}

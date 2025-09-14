@@ -40,6 +40,7 @@ model Repair {
   status        RepairStatus  @default(IN_PROGRESS)
   paymentMethod PaymentMethod @default(CASH)
   paidAt        DateTime?
+  source        RepairSource  @default(GENERAL)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   userId        Int
@@ -57,6 +58,11 @@ enum RepairStatus {
   PAID
 }
 
+enum RepairSource {
+  GENERAL
+  SUSPENSION
+}
+
 enum PaymentMethod {
   CASH
   CREDIT_CARD
@@ -64,21 +70,21 @@ enum PaymentMethod {
 }
 
 model Vehicle {
-  id                   Int                @id @default(autoincrement())
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
-  licensePlateId       Int
-  licensePlate         LicensePlate      @relation(fields: [licensePlateId], references: [id], onDelete: Cascade)
-  vehicleBrandModelId  Int
-  vehicleBrandModel    VehicleBrandModel  @relation(fields: [vehicleBrandModelId], references: [id], onDelete: Cascade)
-  repairs              Repair[]
+  id                  Int               @id @default(autoincrement())
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  licensePlateId      Int?
+  licensePlate        LicensePlate?     @relation(fields: [licensePlateId], references: [id], onDelete: Cascade)
+  vehicleBrandModelId Int
+  vehicleBrandModel   VehicleBrandModel @relation(fields: [vehicleBrandModelId], references: [id], onDelete: Cascade)
+  repairs             Repair[]
 }
 
 model VehicleBrandModel {
-  id        Int       @id @default(autoincrement())
-  brand     String
-  model     String
-  vehicles  Vehicle[]
+  id       Int       @id @default(autoincrement())
+  brand    String
+  model    String
+  vehicles Vehicle[]
 
   @@unique([brand, model])
 }
@@ -108,6 +114,7 @@ model RepairItem {
   id        Int      @id @default(autoincrement())
   unitPrice Decimal
   quantity  Int      @default(1)
+  side      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   repairId  Int

@@ -1,15 +1,18 @@
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
 
-exports.getPartById = async (req, res, next) => {
+exports.getParts = async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    const part = await prisma.part.findFirst({
-      where: { id: Number(id) },
+    const parts = await prisma.part.findMany({
+      include: {
+        category: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
 
-    res.json(part);
+    res.json(parts);
   } catch (error) {
     next(error);
   }
