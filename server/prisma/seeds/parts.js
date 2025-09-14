@@ -966,7 +966,7 @@ exports.parts = [
     compatibleVehicles: undefined,
     publicId: null,
     secureUrl: null,
-    categoryId: 2,
+    categoryId: 3,
   },
   {
     partNumber: "MX1955516PROR1",
@@ -985,7 +985,7 @@ exports.parts = [
     compatibleVehicles: undefined,
     publicId: null,
     secureUrl: null,
-    categoryId: 2,
+    categoryId: 3,
   },
   {
     partNumber: "MX2055516MAP5",
@@ -1004,7 +1004,7 @@ exports.parts = [
     compatibleVehicles: undefined,
     publicId: null,
     secureUrl: null,
-    categoryId: 2,
+    categoryId: 3,
   },
   {
     partNumber: "MX2156516MA579",
@@ -1023,7 +1023,7 @@ exports.parts = [
     compatibleVehicles: undefined,
     publicId: null,
     secureUrl: null,
-    categoryId: 2,
+    categoryId: 3,
   },
   {
     partNumber: "MX2157016HPM3",
@@ -1042,7 +1042,7 @@ exports.parts = [
     compatibleVehicles: undefined,
     publicId: null,
     secureUrl: null,
-    categoryId: 2,
+    categoryId: 3,
   },
   {
     partNumber: "MX2457016AT700",
@@ -1061,7 +1061,7 @@ exports.parts = [
     compatibleVehicles: undefined,
     publicId: null,
     secureUrl: null,
-    categoryId: 2,
+    categoryId: 3,
   },
   {
     partNumber: "MX2657016AT700",
@@ -1080,7 +1080,7 @@ exports.parts = [
     compatibleVehicles: undefined,
     publicId: null,
     secureUrl: null,
-    categoryId: 2,
+    categoryId: 3,
   },
   {
     partNumber: "MX2054517HP5",
@@ -1099,7 +1099,7 @@ exports.parts = [
     compatibleVehicles: undefined,
     publicId: null,
     secureUrl: null,
-    categoryId: 2,
+    categoryId: 3,
   },
   {
     partNumber: "MX2155517IPRO",
@@ -1118,7 +1118,7 @@ exports.parts = [
     compatibleVehicles: undefined,
     publicId: null,
     secureUrl: null,
-    categoryId: 2,
+    categoryId: 3,
   },
   {
     partNumber: "MX2656517HPM3",
@@ -1137,7 +1137,7 @@ exports.parts = [
     compatibleVehicles: undefined,
     publicId: null,
     secureUrl: null,
-    categoryId: 2,
+    categoryId: 3,
   },
   {
     partNumber: "MX2656018HPM3",
@@ -1156,7 +1156,7 @@ exports.parts = [
     compatibleVehicles: undefined,
     publicId: null,
     secureUrl: null,
-    categoryId: 2,
+    categoryId: 3,
   },
   {
     partNumber: "MX2656018AT700",
@@ -1175,7 +1175,7 @@ exports.parts = [
     compatibleVehicles: undefined,
     publicId: null,
     secureUrl: null,
-    categoryId: 2,
+    categoryId: 3,
   },
   {
     partNumber: "MX2655020AT700",
@@ -1194,7 +1194,7 @@ exports.parts = [
     compatibleVehicles: undefined,
     publicId: null,
     secureUrl: null,
-    categoryId: 2,
+    categoryId: 3,
   },
   {
     partNumber: "MX2655020AT700",
@@ -1213,6 +1213,6 @@ exports.parts = [
     compatibleVehicles: undefined,
     publicId: null,
     secureUrl: null,
-    categoryId: 2,
+    categoryId: 3,
   },
 ];

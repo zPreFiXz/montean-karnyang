@@ -14,29 +14,24 @@ import {
   Gear,
   Light,
   Wiper,
-  LowerBallJoint,
+  Suspension,
 } from "@/components/icons/Icon";
 import { LoaderCircle } from "lucide-react";
 
 const iconMap = {
   บริการ: ToolBox,
+  ช่วงล่าง: Suspension,
   ยาง: Tire,
   ยางใน: Innertube,
   น้ำมันเครื่อง: Oil,
-  ไส้กรอง: Filter,
   เบรค: Brake,
   โช๊คอัพ: Shock,
-  สายพาน: Belt,
-  แบตเตอรี่: Battery,
   "คลัช-เกียร์": Gear,
-  ใบปัดน้ำฝน: Wiper,
+  แบตเตอรี่: Battery,
   ระบบไฟฟ้า: Light,
-  ลูกหมากปีกนกบน: LowerBallJoint,
-  ลูกหมากปีกนกล่าง: LowerBallJoint,
-  ลูกหมากคันชักนอก: LowerBallJoint,
-  ลูกหมากคันชักใน: LowerBallJoint,
-  ลูกหมากแร็ค: LowerBallJoint,
-  ลูกหมากกันโคลง: LowerBallJoint,
+  สายพาน: Belt,
+  ใบปัดน้ำฝน: Wiper,
+  ไส้กรอง: Filter,
 };
 
 const CategoryList = ({ activeCategory, setActiveCategory }) => {

@@ -79,12 +79,13 @@ export const provinces = [
 ];
 
 export const units = [
-  { id: "ชิ้น", name: "ชิ้น" },
-  { id: "คู่", name: "คู่" },
-  { id: "ชุด", name: "ชุด" },
-  { id: "เส้น", name: "เส้น" },
-  { id: "ลิตร", name: "ลิตร" },
-  { id: "ขวด", name: "ขวด" },
-  { id: "กล่อง", name: "กล่อง" },
-  { id: "หลอด", name: "หลอด" },
+  { name: "ตัว" },
+  { name: "เส้น" },
+  { name: "ลิตร" },
+  { name: "ลูก" },
+  { name: "ชุด" },
+  { name: "คู่" },
+  { name: "แผ่น" },
+  { name: "ขวด" },
+  { name: "หลอด" },
 ];
