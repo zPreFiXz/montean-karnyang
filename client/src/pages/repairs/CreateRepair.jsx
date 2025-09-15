@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router";
 import FormInput from "@/components/forms/FormInput";
 import LicensePlateInput from "@/components/forms/LicensePlateInput";
 import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
+import EditPriceDialog from "@/components/dialogs/EditPriceDialog";
 import FormButton from "@/components/forms/FormButton";
 import ComboBox from "@/components/ui/ComboBox";
 import { formatCurrency } from "@/lib/utils";
@@ -25,6 +26,8 @@ const CreateRepair = () => {
   const [vehicleBrandModels, setVehicleBrandModels] = useState([]);
   const [brands, setBrands] = useState([]);
   const [restoredStockMap, setRestoredStockMap] = useState({});
+  const [priceDialogOpen, setPriceDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const { errors } = formState;
 
   useEffect(() => {
@@ -53,7 +56,11 @@ const CreateRepair = () => {
         // สร้าง baseline stock ที่คืนมาในโหมดแก้ไข เพื่อนำไปใช้ใน dialog
         const map = {};
         for (const it of savedItems) {
-          if (it?.partNumber && it?.brand && typeof it.stockQuantity === "number") {
+          if (
+            it?.partNumber &&
+            it?.brand &&
+            typeof it.stockQuantity === "number"
+          ) {
             const key = `${it.partNumber}|${it.brand}|${it.name || ""}`;
             map[key] = Math.max(map[key] || 0, it.stockQuantity);
           }
@@ -72,13 +79,23 @@ const CreateRepair = () => {
 
       // ลบ state ออกจาก history แต่คงข้อมูล edit และแหล่งที่มาไว้
       const preserved = {
-        ...(location.state?.editRepairId ? { editRepairId: location.state.editRepairId } : {}),
+        ...(location.state?.editRepairId
+          ? { editRepairId: location.state.editRepairId }
+          : {}),
         ...(location.state?.origin ? { origin: location.state.origin } : {}),
         ...(location.state?.from ? { from: location.state.from } : {}),
-        ...(location.state?.statusSlug ? { statusSlug: location.state.statusSlug } : {}),
-        ...(location.state?.vehicleId ? { vehicleId: location.state.vehicleId } : {}),
+        ...(location.state?.statusSlug
+          ? { statusSlug: location.state.statusSlug }
+          : {}),
+        ...(location.state?.vehicleId
+          ? { vehicleId: location.state.vehicleId }
+          : {}),
       };
-      window.history.replaceState(preserved, document.title, window.location.pathname);
+      window.history.replaceState(
+        preserved,
+        document.title,
+        window.location.pathname
+      );
     }
   }, [location.state, setValue]);
 
@@ -125,13 +142,23 @@ const CreateRepair = () => {
 
       // ลบ state ออกจาก history แต่คงข้อมูล edit และแหล่งที่มาไว้
       const preserved2 = {
-        ...(location.state?.editRepairId ? { editRepairId: location.state.editRepairId } : {}),
+        ...(location.state?.editRepairId
+          ? { editRepairId: location.state.editRepairId }
+          : {}),
         ...(location.state?.origin ? { origin: location.state.origin } : {}),
         ...(location.state?.from ? { from: location.state.from } : {}),
-        ...(location.state?.statusSlug ? { statusSlug: location.state.statusSlug } : {}),
-        ...(location.state?.vehicleId ? { vehicleId: location.state.vehicleId } : {}),
+        ...(location.state?.statusSlug
+          ? { statusSlug: location.state.statusSlug }
+          : {}),
+        ...(location.state?.vehicleId
+          ? { vehicleId: location.state.vehicleId }
+          : {}),
       };
-      window.history.replaceState(preserved2, document.title, window.location.pathname);
+      window.history.replaceState(
+        preserved2,
+        document.title,
+        window.location.pathname
+      );
     }
   }, [location.state, setValue]);
 
@@ -232,7 +259,6 @@ const CreateRepair = () => {
       }
       if (target && typeof target.scrollIntoView === "function") {
         target.scrollIntoView({
-          behavior: "auto",
           block: "nearest",
           inline: "nearest",
         });
@@ -297,6 +323,44 @@ const CreateRepair = () => {
           : item
       )
     );
+  };
+
+  const handlePriceClick = (index, item) => {
+    setEditingItem({ index, ...item });
+    setPriceDialogOpen(true);
+  };
+
+  const handlePriceConfirm = (payload) => {
+    const newPrice = typeof payload === "number" ? payload : payload?.price;
+    const newName = typeof payload === "object" ? payload?.name : undefined;
+
+    if (editingItem && newPrice != null) {
+      setRepairItems((prev) =>
+        prev.map((item, i) =>
+          i === editingItem.index
+            ? {
+                ...item,
+                sellingPrice: newPrice,
+                ...(newName ? { name: newName } : {}),
+              }
+            : item
+        )
+      );
+    }
+  };
+
+  const getProductName = (item) => {
+    const isTire = item.category?.name === "ยาง";
+
+    if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
+      return `${item.brand} ${item.typeSpecificData.width}/${item.typeSpecificData.aspectRatio}R${item.typeSpecificData.rimDiameter} ${item.name}`;
+    }
+
+    if (isTire && item.typeSpecificData) {
+      return `${item.brand} ${item.typeSpecificData.width}R${item.typeSpecificData.rimDiameter} ${item.name}`;
+    }
+
+    return `${item.brand} ${item.name}`;
   };
 
   return (
@@ -499,7 +563,11 @@ const CreateRepair = () => {
                   key={index}
                   className="flex items-center gap-[16px] px-[20px] mt-[16px]"
                 >
-                  <div className="flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] bg-white shadow-primary">
+                  <div
+                    role="button"
+                    onClick={() => handlePriceClick(index, item)}
+                    className="flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] bg-white shadow-primary hover:shadow-lg hover:bg-gray-50 cursor-pointer"
+                  >
                     <div className="flex-1 flex items-center gap-[8px]">
                       <div className="flex justify-center items-center w-[70px] h-[70px] rounded-[10px] border border-subtle-light bg-white shadow-primary">
                         {item.secureUrl ? (
@@ -516,18 +584,28 @@ const CreateRepair = () => {
                       </div>
                       <div className="flex flex-col flex-1">
                         {renderProductInfo(item)}
-                        <p className="font-medium text-[16px] md:text-[18px] text-subtle-dark leading-tight">
-                          ราคาต่อหน่วย:{" "}
-                          {formatCurrency(Number(item.sellingPrice))}
-                        </p>
+                        <div className="flex items-center gap-[4px]">
+                          <span className="font-medium text-[16px] md:text-[18px] text-subtle-dark leading-tight">
+                            ราคาต่อหน่วย:
+                          </span>
+                          <span className="font-medium text-[16px] md:text-[18px] text-primary">
+                            {formatCurrency(Number(item.sellingPrice))}
+                          </span>
+                        </div>
                         <div className="flex items-center justify-between w-full">
                           <p className="font-semibold text-[20px] md:text-[22px] text-primary leading-tight">
                             {formatCurrency(item.quantity * item.sellingPrice)}
                           </p>
-                          <div className="flex items-center gap-[8px]">
+                          <div
+                            className="flex items-center gap-[8px]"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <button
                               type="button"
-                              onClick={() => handleDecreaseQuantity(index)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDecreaseQuantity(index);
+                              }}
                               disabled={item.quantity <= 1}
                               className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-200 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
                             >
@@ -538,7 +616,10 @@ const CreateRepair = () => {
                             </span>
                             <button
                               type="button"
-                              onClick={() => handleIncreaseQuantity(index)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleIncreaseQuantity(index);
+                              }}
                               disabled={
                                 item.partNumber && item.brand
                                   ? item.quantity >= (item.stockQuantity || 0)
@@ -597,6 +678,21 @@ const CreateRepair = () => {
           )}
         </div>
       </form>
+
+      <EditPriceDialog
+        isOpen={priceDialogOpen}
+        onClose={() => setPriceDialogOpen(false)}
+        onConfirm={handlePriceConfirm}
+        currentPrice={editingItem?.sellingPrice || 0}
+        productName={editingItem ? getProductName(editingItem) : ""}
+        productImage={editingItem?.secureUrl}
+        isService={editingItem?.category?.name === "บริการ"}
+        currentName={editingItem?.name || ""}
+        canEditName={
+          editingItem?.category?.name === "บริการ" &&
+          (editingItem?.id === 1 || editingItem?.service?.id === 1)
+        }
+      />
     </div>
   );
 };

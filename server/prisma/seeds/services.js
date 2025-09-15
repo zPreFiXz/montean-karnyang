@@ -1,5 +1,10 @@
 exports.services = [
   {
+    name: "ค่าแรง",
+    price: 0,
+    categoryId: 1,
+  },
+  {
     name: "ตั้งศูนย์",
     price: 400,
     categoryId: 1,

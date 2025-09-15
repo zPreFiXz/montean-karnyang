@@ -36,7 +36,7 @@ const RepairItemCard = ({ item, variant }) => {
       return (
         <p className="font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
           {item.part?.brand && `${item.part.brand} `}
-          {item.part?.name || item.service?.name}
+          {item.part?.name || item.customName || item.service?.name}
         </p>
       );
     }

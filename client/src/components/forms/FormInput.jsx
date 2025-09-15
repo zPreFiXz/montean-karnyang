@@ -10,7 +10,7 @@ const FormInput = ({
   placeholder,
   textSize,
   color,
-  errors,
+  errors = {},
   customClass,
   ...props
 }) => {

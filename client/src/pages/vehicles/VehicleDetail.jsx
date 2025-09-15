@@ -58,7 +58,7 @@ const VehicleDetail = () => {
                   {vehicle?.licensePlate?.plateNumber &&
                   vehicle?.licensePlate?.province
                     ? `${vehicle.licensePlate.plateNumber} ${vehicle.licensePlate.province}`
-                    : "ไม่ระบุ"}
+                    : "ไม่ระบุทะเบียนรถ"}
                 </p>
                 <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark leading-tight">
                   {vehicle?.vehicleBrandModel.brand}{" "}

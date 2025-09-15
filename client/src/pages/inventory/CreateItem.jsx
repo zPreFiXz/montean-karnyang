@@ -127,7 +127,6 @@ const CreatePart = () => {
       }
       if (target && typeof target.scrollIntoView === "function") {
         target.scrollIntoView({
-          behavior: "smooth",
           block: "center",
           inline: "nearest",
         });

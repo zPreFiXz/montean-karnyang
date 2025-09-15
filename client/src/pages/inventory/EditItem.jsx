@@ -508,10 +508,21 @@ const EditItem = () => {
                     color="text-subtle-dark"
                     options={units}
                     value={watch("unit")}
-                    onChange={(value) => setValue("unit", value)}
+                    onChange={(value) =>
+                      setValue("unit", value, {
+                        shouldValidate: true,
+                        shouldTouch: true,
+                      })
+                    }
                     placeholder="-- เลือกหน่วย --"
                     errors={errors}
                     name="unit"
+                  />
+                  {/* Hidden input สำหรับ register */}
+                  <input
+                    {...register("unit")}
+                    type="hidden"
+                    value={watch("unit") || ""}
                   />
                 </div>
                 <FormInput

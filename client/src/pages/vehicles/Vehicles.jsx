@@ -90,7 +90,7 @@ const Vehicles = () => {
                     licensePlate={
                       item.licensePlate
                         ? `${item.licensePlate.plateNumber} ${item.licensePlate.province}`
-                        : "ไม่ระบุ"
+                        : "ไม่ระบุทะเบียนรถ"
                     }
                     brand={`${item.vehicleBrandModel.brand} ${item.vehicleBrandModel.model}`}
                   />

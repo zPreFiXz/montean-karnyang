@@ -127,9 +127,12 @@ const SalesReport = () => {
   // แปลงข้อมูลรถสำหรับ CarCard
   const getCarCardData = (repair) => {
     const vehicle = repair.vehicle;
-    const licensePlate = `${vehicle.licensePlate.plateNumber} ${getProvinceName(
-      vehicle.licensePlate.province
-    )}`;
+    const licensePlate =
+      vehicle?.licensePlate?.plateNumber && vehicle?.licensePlate?.province
+        ? `${vehicle.licensePlate.plateNumber} ${getProvinceName(
+            vehicle.licensePlate.province
+          )}`
+        : "ไม่ระบุทะเบียนรถ";
 
     const brand = `${vehicle.vehicleBrandModel.brand} ${vehicle.vehicleBrandModel.model}`;
 
@@ -378,7 +381,7 @@ const SalesReport = () => {
         ) : (
           <div className="flex flex-col items-center justify-center h-[256px] text-center">
             <p className="text-[20px] md:text-[22px] text-subtle-light">
-              ไม่มีรายการซ่อมในช่วงเวลานี้
+              ไม่มีรายการซ่อม
             </p>
           </div>
         )}

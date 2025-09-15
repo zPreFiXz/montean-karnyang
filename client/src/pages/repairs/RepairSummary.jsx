@@ -77,14 +77,17 @@ const RepairSummary = () => {
         description: repairData.description,
         totalPrice: totalPrice,
         source: repairData.source,
-        repairItems: repairItems.map((item) => ({
-          ...(item.partNumber && item.brand
-            ? { partId: item.id }
-            : { serviceId: item.id }),
-          unitPrice: Number(item.sellingPrice),
-          quantity: item.quantity,
-          ...(item.side ? { side: item.side } : {}),
-        })),
+        repairItems: repairItems.map((item) => {
+          const isPart = !!(item.partNumber && item.brand);
+          return {
+            ...(isPart ? { partId: item.id } : { serviceId: item.id }),
+            unitPrice: Number(item.sellingPrice),
+            quantity: item.quantity,
+            ...(item.side ? { side: item.side } : {}),
+            // เก็บชื่อบริการที่แก้ชั่วคราวลง customName (เฉพาะค่าแรง)
+            ...(!isPart && item.name ? { customName: item.name } : {}),
+          };
+        }),
       };
 
       if (editRepairId) {
@@ -244,7 +247,7 @@ const RepairSummary = () => {
                 <div className="mb-[16px]">
                   <p className="flex items-center gap-[4px] mb-[8px] font-semibold text-[20px] md:text-[22px] text-primary">
                     <SquareArrowLeft className="mt-[2px]" />
-                    รายการฝั่งซ้าย
+                    รายการซ่อมฝั่งซ้าย
                   </p>
                   <div className="space-y-[12px]">
                     {leftItems.map((item, index) => (
@@ -263,7 +266,7 @@ const RepairSummary = () => {
                 <div className="mb-[16px]">
                   <p className="flex items-center gap-[4px] mb-[8px] font-semibold text-[20px] md:text-[22px] text-primary">
                     <SquareArrowRight className="mt-[2px]" />
-                    รายการฝั่งขวา
+                    รายการซ่อมฝั่งขวา
                   </p>
                   <div className="space-y-[12px]">
                     {rightItems.map((item, index) => (
@@ -282,7 +285,7 @@ const RepairSummary = () => {
                 <div className="mb-[16px]">
                   <p className="flex items-center gap-[4px] mb-[8px] font-semibold text-[20px] md:text-[22px] text-primary">
                     <CircleEllipsis className="mt-[2px]" />
-                    รายการอื่นๆ
+                    รายการซ่อมอื่นๆ
                   </p>
                   <div className="space-y-[12px]">
                     {otherItems.map((item, index) => (

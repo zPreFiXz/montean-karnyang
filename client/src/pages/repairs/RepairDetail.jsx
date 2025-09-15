@@ -235,7 +235,7 @@ const RepairDetail = () => {
       return {
         id: ri.service?.id,
         brand: "",
-        name: ri.service?.name || "",
+        name: ri.customName || ri.service?.name || "",
         sellingPrice: Number(ri.unitPrice),
         category: ri.service?.category,
         secureUrl: null,
@@ -403,7 +403,7 @@ const RepairDetail = () => {
                   {repair?.vehicle?.licensePlate?.plateNumber &&
                   repair?.vehicle?.licensePlate?.province
                     ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
-                    : "ไม่ระบุ"}
+                    : "ไม่ระบุทะเบียนรถ"}
                 </p>
                 <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark leading-tight">
                   {repair.vehicle?.vehicleBrandModel.brand}{" "}
@@ -564,7 +564,7 @@ const RepairDetail = () => {
                             <div className="mb-[8px]">
                               <p className="flex items-center gap-[4px] mb-[8px] font-semibold text-[20px] md:text-[22px] text-primary">
                                 <SquareArrowLeft className="mt-[2px]" />
-                                รายการฝั่งซ้าย
+                                รายการซ่อมฝั่งซ้าย
                               </p>
                               <div className="space-y-[12px]">
                                 {leftItems.map((item, idx) => (
@@ -582,7 +582,7 @@ const RepairDetail = () => {
                             <div className="mb-[8px]">
                               <p className="flex items-center gap-[4px] mb-[8px] font-semibold text-[20px] md:text-[22px] text-primary">
                                 <SquareArrowRight className="mt-[2px]" />
-                                รายการฝั่งขวา
+                                รายการซ่อมฝั่งขวา
                               </p>
                               <div className="space-y-[12px]">
                                 {rightItems.map((item, idx) => (
@@ -600,7 +600,7 @@ const RepairDetail = () => {
                             <div className="mb-[8px]">
                               <p className="flex items-center gap-[4px] mb-[8px] font-semibold text-[20px] md:text-[22px] text-primary">
                                 <CircleEllipsis className="mt-[2px]" />
-                                รายการอื่นๆ
+                                รายการซ่อมอื่นๆ
                               </p>
                               <div className="space-y-[12px]">
                                 {otherItems.map((item, idx) => (

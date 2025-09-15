@@ -1,15 +1,24 @@
 import FormInput from "@/components/forms/FormInput";
 import ComboBox from "@/components/ui/ComboBox";
 import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
+import EditPriceDialog from "@/components/dialogs/EditPriceDialog";
 import { useForm } from "react-hook-form";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { provinces } from "@/utils/data";
 import { getVehicleBrandModels } from "@/api/vehicleBrandModel";
 import { getParts } from "@/api/part";
 import LicensePlateInput from "@/components/forms/LicensePlateInput";
 import { formatCurrency } from "@/lib/utils";
-import { Image, Trash, Plus, Minus, Check, Wrench } from "lucide-react";
+import {
+  Image,
+  Trash,
+  Plus,
+  Minus,
+  Check,
+  Wrench,
+  SquarePen,
+} from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
@@ -38,11 +47,53 @@ const Suspension = () => {
   const [activeTab, setActiveTab] = useState("left");
   const [isLoading, setIsLoading] = useState(false);
   const [restoredStockMap, setRestoredStockMap] = useState({});
+  const [priceDialogOpen, setPriceDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [priceOverrides, setPriceOverrides] = useState({});
+  const restoredRef = useRef(false);
+  const isEditing = Boolean(location.state?.editRepairId);
+  const initialSelectedRef = useRef({
+    left: new Set(),
+    right: new Set(),
+    other: new Set(),
+  });
 
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchVehicleBrandModels();
   }, []);
+
+  // เพิ่มบริการ "ค่าแรง" อัตโนมัติ เมื่อผู้ใช้เลือกยี่ห้อและรุ่นแล้ว
+  useEffect(() => {
+    const brand = watch("brand");
+    const model = watch("model");
+    if (!brand || !model) return;
+
+    setRepairItems((prev) => {
+      if (restoredRef.current) {
+        // ข้ามการเพิ่มค่าแรงครั้งแรกหลังการกู้คืน แล้วรีเซ็ต
+        restoredRef.current = false;
+        return prev;
+      }
+
+      // ตรวจสอบโดยใช้ id=1 แทนการเช็คชื่อ เพื่อป้องกันการเพิ่มซ้ำเมื่อผู้ใช้แก้ชื่อค่าแรง
+      const exists = prev.some(
+        (i) => i?.category?.name === "บริการ" && i?.id === 1
+      );
+      if (exists) return prev;
+      return [
+        ...prev,
+        {
+          id: 1,
+          name: "ค่าแรง",
+          quantity: 1,
+          sellingPrice: 0,
+          category: { name: "บริการ" },
+          side: null,
+        },
+      ];
+    });
+  }, [watch("brand"), watch("model")]);
 
   // ดึงข้อมูลอะไหล่ที่เข้ากันได้เมื่อเลือกรุ่นรถ
   useEffect(() => {
@@ -87,9 +138,18 @@ const Suspension = () => {
         .map((i) => i.id);
 
       setRepairItems(manualItems);
-      setSelectedLeftParts(new Set(leftIds));
-      setSelectedRightParts(new Set(rightIds));
-      setSelectedOtherParts(new Set(otherIds));
+      const leftSet = new Set(leftIds);
+      const rightSet = new Set(rightIds);
+      const otherSet = new Set(otherIds);
+      setSelectedLeftParts(leftSet);
+      setSelectedRightParts(rightSet);
+      setSelectedOtherParts(otherSet);
+      // เก็บรายการที่ถูกเลือกมาตั้งแต่แรก เพื่ออนุญาตติ๊กกลับได้แม้สต็อกไม่พอ
+      initialSelectedRef.current = {
+        left: leftSet,
+        right: rightSet,
+        other: otherSet,
+      };
 
       // สร้าง baseline stock ที่คืนมาในโหมดแก้ไข เพื่อนำไปใช้ใน dialog
       const map = {};
@@ -104,6 +164,8 @@ const Suspension = () => {
         }
       }
       setRestoredStockMap(map);
+      // ตั้งค่าว่าเพิ่งกู้คืนข้อมูล เพื่อกันการเพิ่มค่าแรงซ้ำอัตโนมัติในรอบถัดไป
+      restoredRef.current = true;
     }
 
     if (scrollToBottom) {
@@ -204,6 +266,15 @@ const Suspension = () => {
 
   const renderProductInfo = (item) => {
     const isTire = item.category?.name === "ยาง";
+    const isService = item.category?.name === "บริการ";
+
+    if (isService) {
+      return (
+        <p className="w-full font-semibold text-[16px] md:text-[18px] text-normal line-clamp-1 leading-tight">
+          {item.name}
+        </p>
+      );
+    }
 
     // แสดงข้อมูลยางที่มีขนาดแก้มยาง
     if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
@@ -299,11 +370,120 @@ const Suspension = () => {
     );
   };
 
+  const handlePriceClick = (index, item) => {
+    // ป้องกันโฟกัสค้างอยู่บน element ที่จะถูกซ่อนไว้ด้วย aria-hidden โดย dialog
+    try {
+      const ae = document.activeElement;
+      if (ae && ae instanceof HTMLElement) ae.blur();
+    } catch (_) {}
+    setEditingItem({ source: "manual", index, ...item });
+    setPriceDialogOpen(true);
+  };
+
+  const handlePriceConfirm = (payload) => {
+    const newPrice = typeof payload === "number" ? payload : payload?.price;
+    const newName = typeof payload === "object" ? payload?.name : undefined;
+
+    if (!editingItem || newPrice == null) return;
+
+    if (editingItem.source === "manual") {
+      setRepairItems((prev) =>
+        prev.map((item, i) =>
+          i === editingItem.index
+            ? {
+                ...item,
+                sellingPrice: newPrice,
+                ...(newName ? { name: newName } : {}),
+              }
+            : item
+        )
+      );
+    } else if (editingItem.source === "compatible" && editingItem.partId) {
+      setPriceOverrides((prev) => ({
+        ...prev,
+        [editingItem.partId]: newPrice,
+      }));
+    }
+  };
+
+  const getProductName = (item) => {
+    if (!item) return "";
+    const isTire = item.category?.name === "ยาง";
+    if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
+      return `${item.brand} ${item.typeSpecificData.width}/${item.typeSpecificData.aspectRatio}R${item.typeSpecificData.rimDiameter} ${item.name}`;
+    }
+    if (isTire && item.typeSpecificData) {
+      return `${item.brand} ${item.typeSpecificData.width}R${item.typeSpecificData.rimDiameter} ${item.name}`;
+    }
+    return `${item.brand} ${item.name}`;
+  };
+
+  const getPriceForPart = (part) => {
+    if (!part) return 0;
+    const override = priceOverrides?.[part.id];
+    return Number(override != null ? override : part.sellingPrice) || 0;
+  };
+
+  const handleEditCompatiblePrice = (part) => {
+    // ป้องกันโฟกัสค้างอยู่บน element ที่จะถูกซ่อนไว้ด้วย aria-hidden โดย dialog
+    try {
+      const ae = document.activeElement;
+      if (ae && ae instanceof HTMLElement) ae.blur();
+    } catch (_) {}
+    setEditingItem({
+      source: "compatible",
+      partId: part.id,
+      sellingPrice: getPriceForPart(part),
+      name: part.name,
+      brand: part.brand,
+      secureUrl: part.secureUrl,
+      category: part.category,
+      typeSpecificData: part.typeSpecificData,
+    });
+    setPriceDialogOpen(true);
+  };
+
+  const isLaborItem = (item) => {
+    // มองว่าเป็นค่าแรงถ้าเป็นบริการและ id=1
+    return item?.category?.name === "บริการ" && item?.id === 1;
+  };
+
+  const getRepairItemsCountExcludingLabor = () => {
+    return repairItems.length;
+  };
+
+  // คำนวณจำนวนชิ้นที่เลือกได้จริง (สต็อกปัจจุบัน + จำนวนที่ถูกเลือกไว้ตั้งแต่แรก)
+  const getAllowedUnitsForPart = (part) => {
+    const stockQty =
+      typeof part?.stockQuantity === "number"
+        ? Math.max(part.stockQuantity, 0)
+        : Infinity;
+    // นับ initial selections เฉพาะถ้าเป็นอะไหล่ช่วงล่าง (มี suspensionType)
+    const isSuspensionPart = Boolean(part?.typeSpecificData?.suspensionType);
+    const initialCount = isSuspensionPart
+      ? Number(initialSelectedRef.current.left.has(part.id)) +
+        Number(initialSelectedRef.current.right.has(part.id)) +
+        Number(initialSelectedRef.current.other.has(part.id))
+      : 0;
+    if (stockQty === Infinity) return Infinity;
+    return Math.max(stockQty, initialCount);
+  };
+
+  // จำนวนที่เลือกอยู่ตอนนี้ (รวมทุกฝั่งของอะไหล่ชิ้นเดียวกัน)
+  const getCurrentSelectedCountForPart = (part) => {
+    return (
+      Number(selectedLeftParts.has(part.id)) +
+      Number(selectedRightParts.has(part.id)) +
+      Number(selectedOtherParts.has(part.id))
+    );
+  };
+
   const handlePartSelection = (part, isSelected, side) => {
     const suspensionType = part?.typeSpecificData?.suspensionType;
     const stockQty =
       typeof part?.stockQuantity === "number" ? part.stockQuantity : Infinity;
     const isLeftRight = suspensionType === "left-right";
+    const allowedUnits = getAllowedUnitsForPart(part);
 
     if (side === "left") {
       setSelectedLeftParts((prev) => {
@@ -312,8 +492,8 @@ const Suspension = () => {
         else next.delete(part.id);
         return next;
       });
-      // ถ้าอะไหล่แบบซ้าย-ขวา และสต็อกเหลือ 1 ให้เลือกได้เพียง 1 ฝั่ง: ตัดฝั่งขวาออก
-      if (isSelected && isLeftRight && stockQty === 1) {
+      // ถ้าอะไหล่แบบซ้าย-ขวา และอนุญาตเลือกได้เพียง 1 ชิ้นรวม ให้เลือกได้เพียง 1 ฝั่ง: ตัดฝั่งขวาออก
+      if (isSelected && isLeftRight && allowedUnits === 1) {
         setSelectedRightParts((prev) => {
           const next = new Set(prev);
           next.delete(part.id);
@@ -327,8 +507,8 @@ const Suspension = () => {
         else next.delete(part.id);
         return next;
       });
-      // ถ้าอะไหล่แบบซ้าย-ขวา และสต็อกเหลือ 1 ให้เลือกได้เพียง 1 ฝั่ง: ตัดฝั่งซ้ายออก
-      if (isSelected && isLeftRight && stockQty === 1) {
+      // ถ้าอะไหล่แบบซ้าย-ขวา และอนุญาตเลือกได้เพียง 1 ชิ้นรวม ให้เลือกได้เพียง 1 ฝั่ง: ตัดฝั่งซ้ายออก
+      if (isSelected && isLeftRight && allowedUnits === 1) {
         setSelectedLeftParts((prev) => {
           const next = new Set(prev);
           next.delete(part.id);
@@ -368,7 +548,6 @@ const Suspension = () => {
       }
       if (target && typeof target.scrollIntoView === "function") {
         target.scrollIntoView({
-          behavior: "auto",
           block: "nearest",
           inline: "nearest",
         });
@@ -386,17 +565,32 @@ const Suspension = () => {
       ...Array.from(selectedLeftParts)
         .map((id) => getPartsForSide("left").find((p) => p.id === id))
         .filter(Boolean)
-        .map((part) => ({ ...part, quantity: 1, side: "left" })),
+        .map((part) => ({
+          ...part,
+          sellingPrice: getPriceForPart(part),
+          quantity: 1,
+          side: "left",
+        })),
       // อะไหล่ฝั่งขวาที่เลือก (กรองตาม suspensionType)
       ...Array.from(selectedRightParts)
         .map((id) => getPartsForSide("right").find((p) => p.id === id))
         .filter(Boolean)
-        .map((part) => ({ ...part, quantity: 1, side: "right" })),
+        .map((part) => ({
+          ...part,
+          sellingPrice: getPriceForPart(part),
+          quantity: 1,
+          side: "right",
+        })),
       // อะไหล่ช่วงล่างอื่นๆ ที่เลือก (กรองตาม suspensionType)
       ...Array.from(selectedOtherParts)
         .map((id) => getPartsForSide("other").find((p) => p.id === id))
         .filter(Boolean)
-        .map((part) => ({ ...part, quantity: 1, side: "other" })),
+        .map((part) => ({
+          ...part,
+          sellingPrice: getPriceForPart(part),
+          quantity: 1,
+          side: "other",
+        })),
       // รายการซ่อมที่เพิ่มเข้ามา
       ...repairItems,
     ];
@@ -659,31 +853,27 @@ const Suspension = () => {
                     </div>
                   ) : (
                     getPartsForSide("left").map((part) => {
-                      const stockQty =
-                        typeof part.stockQuantity === "number"
-                          ? part.stockQuantity
-                          : Infinity;
-                      const isLeftRight =
-                        part?.typeSpecificData?.suspensionType === "left-right";
-                      const oppositeSelected = selectedRightParts.has(part.id);
-                      const isOutOfStock =
-                        stockQty <= 0 ||
-                        (isLeftRight && stockQty === 1 && oppositeSelected);
+                      const selectedThis = isPartSelected(part.id, "left");
+                      const allowedUnits = getAllowedUnitsForPart(part);
+                      const currentSelectedAll =
+                        getCurrentSelectedCountForPart(part);
+                      const isDisabled =
+                        !selectedThis && currentSelectedAll >= allowedUnits;
                       return (
                         <div
                           key={`left-${part.id}`}
                           className={`flex items-center gap-[16px] px-[20px] mt-[16px] ${
-                            isOutOfStock ? "opacity-50 cursor-not-allowed" : ""
+                            isDisabled ? "opacity-50 cursor-not-allowed" : ""
                           }`}
                         >
                           <div
-                            className={`flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] border-2 bg-white shadow-primary cursor-pointer ${
+                            className={`flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] border-2 shadow-primary cursor-pointer duration-300 ${
                               isPartSelected(part.id, "left")
-                                ? "border-primary"
-                                : "border-transparent"
+                                ? "bg-primary/5 border-primary scale-[1.02]"
+                                : "bg-white border-transparent hover:shadow-lg hover:scale-[1.01]"
                             }`}
                             onClick={() => {
-                              if (isOutOfStock) return;
+                              if (isDisabled) return;
                               handlePartSelection(
                                 part,
                                 !isPartSelected(part.id, "left"),
@@ -707,31 +897,43 @@ const Suspension = () => {
                               </div>
                               <div className="flex flex-col flex-1">
                                 {renderProductInfo(part)}
-                                <p
-                                  className={`font-semibold text-[20px] md:text-[22px] ${
-                                    isPartSelected(part.id, "left")
-                                      ? "text-primary"
-                                      : "text-subtle-dark"
-                                  } leading-tight`}
-                                >
-                                  {formatCurrency(Number(part.sellingPrice))}
-                                </p>
-                                {isOutOfStock && (
+                                <div className="flex items-center gap-2">
+                                  <p
+                                    className={`font-semibold text-[20px] md:text-[22px] leading-tight duration-300 ${
+                                      isPartSelected(part.id, "left")
+                                        ? "text-primary"
+                                        : "text-subtle-dark"
+                                    }`}
+                                  >
+                                    {formatCurrency(getPriceForPart(part))}
+                                  </p>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditCompatiblePrice(part);
+                                    }}
+                                    className="flex items-center justify-center mt-[2px] text-primary"
+                                  >
+                                    <SquarePen className="w-5 h-5" />
+                                  </button>
+                                </div>
+                                {isDisabled && (
                                   <p className="font-medium text-[14px] md:text-[16px] text-red-500 leading-tight">
-                                    หมดสต็อก
+                                    สต็อกหมด
                                   </p>
                                 )}
                               </div>
                             </div>
                           </div>
                           <div
-                            className={`flex items-center justify-center min-w-[32px] w-[32px] h-[32px] rounded-full cursor-pointer ${
+                            className={`flex items-center justify-center min-w-[32px] w-[32px] h-[32px] rounded-full cursor-pointer duration-300 ${
                               isPartSelected(part.id, "left")
-                                ? "bg-primary text-surface"
-                                : "bg-subtle-light text-surface"
+                                ? "bg-gradient-primary text-surface shadow-lg scale-110"
+                                : "bg-subtle-light text-surface hover:bg-gray-300 hover:scale-105"
                             }`}
                             onClick={() => {
-                              if (isOutOfStock) return;
+                              if (isDisabled) return;
                               handlePartSelection(
                                 part,
                                 !isPartSelected(part.id, "left"),
@@ -757,31 +959,27 @@ const Suspension = () => {
                     </div>
                   ) : (
                     getPartsForSide("right").map((part) => {
-                      const stockQty =
-                        typeof part.stockQuantity === "number"
-                          ? part.stockQuantity
-                          : Infinity;
-                      const isLeftRight =
-                        part?.typeSpecificData?.suspensionType === "left-right";
-                      const oppositeSelected = selectedLeftParts.has(part.id);
-                      const isOutOfStock =
-                        stockQty <= 0 ||
-                        (isLeftRight && stockQty === 1 && oppositeSelected);
+                      const selectedThis = isPartSelected(part.id, "right");
+                      const allowedUnits = getAllowedUnitsForPart(part);
+                      const currentSelectedAll =
+                        getCurrentSelectedCountForPart(part);
+                      const isDisabled =
+                        !selectedThis && currentSelectedAll >= allowedUnits;
                       return (
                         <div
                           key={`right-${part.id}`}
                           className={`flex items-center gap-[16px] px-[20px] mt-[16px] ${
-                            isOutOfStock ? "opacity-50 cursor-not-allowed" : ""
+                            isDisabled ? "opacity-50 cursor-not-allowed" : ""
                           }`}
                         >
                           <div
-                            className={`flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] border-2 bg-white shadow-primary cursor-pointer ${
+                            className={`flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] border-2 shadow-primary cursor-pointer duration-300 ${
                               isPartSelected(part.id, "right")
-                                ? "border-primary"
-                                : "border-transparent"
+                                ? "bg-primary/5 border-primary scale-[1.02]"
+                                : "bg-white border-transparent hover:shadow-lg hover:scale-[1.01]"
                             }`}
                             onClick={() => {
-                              if (isOutOfStock) return;
+                              if (isDisabled) return;
                               handlePartSelection(
                                 part,
                                 !isPartSelected(part.id, "right"),
@@ -805,31 +1003,43 @@ const Suspension = () => {
                               </div>
                               <div className="flex flex-col flex-1">
                                 {renderProductInfo(part)}
-                                <p
-                                  className={`font-semibold text-[20px] md:text-[22px] ${
-                                    isPartSelected(part.id, "right")
-                                      ? "text-primary"
-                                      : "text-subtle-dark"
-                                  } leading-tight`}
-                                >
-                                  {formatCurrency(Number(part.sellingPrice))}
-                                </p>
-                                {isOutOfStock && (
+                                <div className="flex items-center gap-2">
+                                  <p
+                                    className={`font-semibold text-[20px] md:text-[22px] leading-tight duration-300 ${
+                                      isPartSelected(part.id, "right")
+                                        ? "text-primary"
+                                        : "text-subtle-dark"
+                                    }`}
+                                  >
+                                    {formatCurrency(getPriceForPart(part))}
+                                  </p>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditCompatiblePrice(part);
+                                    }}
+                                    className="flex items-center justify-center text-primary"
+                                  >
+                                    <SquarePen className="w-5 h-5" />
+                                  </button>
+                                </div>
+                                {isDisabled && (
                                   <p className="font-medium text-[14px] md:text-[16px] text-red-500 leading-tight">
-                                    หมดสต็อก
+                                    สต็อกหมด
                                   </p>
                                 )}
                               </div>
                             </div>
                           </div>
                           <div
-                            className={`flex items-center justify-center min-w-[32px] w-[32px] h-[32px] rounded-full cursor-pointer ${
+                            className={`flex items-center justify-center min-w-[32px] w-[32px] h-[32px] rounded-full cursor-pointer duration-300 ${
                               isPartSelected(part.id, "right")
-                                ? "bg-primary text-surface"
-                                : "bg-subtle-light text-surface"
+                                ? "bg-gradient-primary text-surface shadow-lg scale-110"
+                                : "bg-subtle-light text-surface hover:bg-gray-300 hover:scale-105"
                             }`}
                             onClick={() => {
-                              if (isOutOfStock) return;
+                              if (isDisabled) return;
                               handlePartSelection(
                                 part,
                                 !isPartSelected(part.id, "right"),
@@ -855,26 +1065,27 @@ const Suspension = () => {
                     </div>
                   ) : (
                     getPartsForSide("other").map((part) => {
-                      const stockQty =
-                        typeof part.stockQuantity === "number"
-                          ? part.stockQuantity
-                          : Infinity;
-                      const isOutOfStock = stockQty <= 0;
+                      const selectedThis = isPartSelected(part.id, "other");
+                      const allowedUnits = getAllowedUnitsForPart(part);
+                      const currentSelectedAll =
+                        getCurrentSelectedCountForPart(part);
+                      const isDisabled =
+                        !selectedThis && currentSelectedAll >= allowedUnits;
                       return (
                         <div
                           key={`other-${part.id}`}
                           className={`flex items-center gap-[16px] px-[20px] mt-[16px] ${
-                            isOutOfStock ? "opacity-50 cursor-not-allowed" : ""
+                            isDisabled ? "opacity-50 cursor-not-allowed" : ""
                           }`}
                         >
                           <div
-                            className={`flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] border-2 bg-white shadow-primary cursor-pointer ${
+                            className={`flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] border-2 shadow-primary cursor-pointer duration-300 ${
                               isPartSelected(part.id, "other")
-                                ? "border-primary"
-                                : "border-transparent"
+                                ? "bg-primary/5 border-primary scale-[1.02]"
+                                : "bg-white border-transparent hover:shadow-lg hover:scale-[1.01]"
                             }`}
                             onClick={() => {
-                              if (isOutOfStock) return;
+                              if (isDisabled) return;
                               handlePartSelection(
                                 part,
                                 !isPartSelected(part.id, "other"),
@@ -898,31 +1109,43 @@ const Suspension = () => {
                               </div>
                               <div className="flex flex-col flex-1">
                                 {renderProductInfo(part)}
-                                <p
-                                  className={`font-semibold text-[20px] md:text-[22px] ${
-                                    isPartSelected(part.id, "other")
-                                      ? "text-primary"
-                                      : "text-subtle-dark"
-                                  } leading-tight`}
-                                >
-                                  {formatCurrency(Number(part.sellingPrice))}
-                                </p>
-                                {isOutOfStock && (
+                                <div className="flex items-center gap-2">
+                                  <p
+                                    className={`font-semibold text-[20px] md:text-[22px] leading-tight duration-300 ${
+                                      isPartSelected(part.id, "other")
+                                        ? "text-primary"
+                                        : "text-subtle-dark"
+                                    }`}
+                                  >
+                                    {formatCurrency(getPriceForPart(part))}
+                                  </p>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditCompatiblePrice(part);
+                                    }}
+                                    className="flex items-center justify-center text-primary"
+                                  >
+                                    <SquarePen className="w-5 h-5" />
+                                  </button>
+                                </div>
+                                {isDisabled && (
                                   <p className="font-medium text-[14px] md:text-[16px] text-red-500 leading-tight">
-                                    หมดสต็อก
+                                    สต็อกหมด
                                   </p>
                                 )}
                               </div>
                             </div>
                           </div>
                           <div
-                            className={`flex items-center justify-center min-w-[32px] w-[32px] h-[32px] rounded-full cursor-pointer ${
+                            className={`flex items-center justify-center min-w-[32px] w-[32px] h-[32px] rounded-full cursor-pointer duration-300 ${
                               isPartSelected(part.id, "other")
-                                ? "bg-primary text-surface"
-                                : "bg-subtle-light text-surface"
+                                ? "bg-gradient-primary text-surface shadow-lg scale-110"
+                                : "bg-subtle-light text-surface hover:bg-gray-300 hover:scale-105"
                             }`}
                             onClick={() => {
-                              if (isOutOfStock) return;
+                              if (isDisabled) return;
                               handlePartSelection(
                                 part,
                                 !isPartSelected(part.id, "other"),
@@ -938,31 +1161,58 @@ const Suspension = () => {
                   )}
                 </div>
               </div>
-              <div className="flex justify-between items-center px-[20px] pt-[16px]">
-                <p className="font-semibold text-[22px] md:text-[24px]">
-                  รายการซ่อมเพิ่มเติม
+            </div>
+          )}
+
+          {/* ถ้าเลือกยี่ห้อและรุ่นแล้วแต่ไม่มีอะไหล่รองรับ ให้แสดงข้อความ */}
+          {watch("brand") && watch("model") && compatibleParts.length === 0 && (
+            <div className="flex justify-center items-center h-[228px]">
+              <p className="text-[20px] md:text-[22px] text-subtle-light">
+                ไม่มีอะไหล่รองรับ
+              </p>
+            </div>
+          )}
+
+          {/* รายการซ่อมเพิ่มเติม */}
+          {watch("brand") && watch("model") && (
+            <div className="flex justify-between items-center px-[20px] pt-[16px]">
+              <p className="font-semibold text-[22px] md:text-[24px]">
+                รายการซ่อมเพิ่มเติม
+              </p>
+              <AddRepairItemDialog
+                onAddItem={handleAddItemToRepair}
+                selectedItems={repairItems}
+                restoredStockMap={restoredStockMap}
+              >
+                <p className="font-semibold text-[20px] md:text-[22px] text-primary hover:text-primary/80 cursor-pointer">
+                  + เพิ่มรายการซ่อม
                 </p>
-                <AddRepairItemDialog
-                  onAddItem={handleAddItemToRepair}
-                  selectedItems={repairItems}
-                  restoredStockMap={restoredStockMap}
-                >
-                  <p className="font-semibold text-[20px] md:text-[22px] text-primary hover:text-primary/80 cursor-pointer">
-                    + เพิ่มรายการซ่อม
-                  </p>
-                </AddRepairItemDialog>
-              </div>
+              </AddRepairItemDialog>
             </div>
           )}
 
           {/* รายการซ่อมที่เลือก */}
           {repairItems.length === 0 && compatibleParts.length === 0 ? (
             <div>
-              <div className="flex justify-center items-center h-[228px]">
-                <p className="text-[20px] md:text-[22px] text-subtle-light">
-                  กรุณาเพิ่มรายการซ่อม
-                </p>
-              </div>
+              {/* แสดงเมื่อเลือกยี่ห้อและรุ่นแล้วแต่ไม่มีอะไหล่รองรับ */}
+              {watch("brand") &&
+                watch("model") &&
+                compatibleParts.length === 0 && (
+                  <div className="flex justify-center items-center h-[228px]">
+                    <p className="text-[20px] md:text-[22px] text-subtle-light">
+                      ไม่มีอะไหล่รองรับ
+                    </p>
+                  </div>
+                )}
+
+              {/* แสดงเมื่อยังไม่เลือกยี่ห้อหรือรุ่น */}
+              {(!watch("brand") || !watch("model")) && (
+                <div className="flex justify-center items-center h-[228px]">
+                  <p className="text-[20px] md:text-[22px] text-subtle-light">
+                    กรุณาเลือกยี่ห้อและรุ่นรถ
+                  </p>
+                </div>
+              )}
               <div className="h-[96px]"></div>
             </div>
           ) : repairItems.length > 0 ? (
@@ -972,7 +1222,11 @@ const Suspension = () => {
                   key={index}
                   className="flex items-center gap-[16px] px-[20px] mt-[16px]"
                 >
-                  <div className="flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] bg-white shadow-primary">
+                  <div
+                    role="button"
+                    onClick={() => handlePriceClick(index, item)}
+                    className="flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] bg-white shadow-primary cursor-pointer"
+                  >
                     <div className="flex-1 flex items-center gap-[8px]">
                       <div className="flex justify-center items-center w-[70px] h-[70px] rounded-[10px] border border-subtle-light bg-white shadow-primary">
                         {item.secureUrl ? (
@@ -1001,7 +1255,10 @@ const Suspension = () => {
                           <p className="font-semibold text-[20px] md:text-[22px] text-primary leading-tight">
                             {formatCurrency(item.quantity * item.sellingPrice)}
                           </p>
-                          <div className="flex items-center gap-[8px]">
+                          <div
+                            className="flex items-center gap-[8px]"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <button
                               type="button"
                               onClick={() => handleDecreaseQuantity(index)}
@@ -1065,7 +1322,7 @@ const Suspension = () => {
                             (part) => part.id === id
                           )
                         ).length +
-                        repairItems.length}{" "}
+                        getRepairItemsCountExcludingLabor()}{" "}
                       รายการ
                     </p>
                   </div>
@@ -1077,7 +1334,7 @@ const Suspension = () => {
                           return (
                             total +
                             (selectedLeftParts.has(part.id)
-                              ? Number(part.sellingPrice) || 0
+                              ? getPriceForPart(part)
                               : 0)
                           );
                         }, 0) +
@@ -1085,7 +1342,7 @@ const Suspension = () => {
                             return (
                               total +
                               (selectedRightParts.has(part.id)
-                                ? Number(part.sellingPrice) || 0
+                                ? getPriceForPart(part)
                                 : 0)
                             );
                           }, 0) +
@@ -1093,7 +1350,7 @@ const Suspension = () => {
                             return (
                               total +
                               (selectedOtherParts.has(part.id)
-                                ? Number(part.sellingPrice) || 0
+                                ? getPriceForPart(part)
                                 : 0)
                             );
                           }, 0) +
@@ -1122,8 +1379,7 @@ const Suspension = () => {
                       ).length +
                       Array.from(selectedOtherParts).filter((id) =>
                         getPartsForSide("other").some((part) => part.id === id)
-                      ).length +
-                      repairItems.length ===
+                      ).length ===
                     0
                   }
                 />
@@ -1160,7 +1416,7 @@ const Suspension = () => {
                           return (
                             total +
                             (selectedLeftParts.has(part.id)
-                              ? Number(part.sellingPrice) || 0
+                              ? getPriceForPart(part)
                               : 0)
                           );
                         }, 0) +
@@ -1168,7 +1424,7 @@ const Suspension = () => {
                             return (
                               total +
                               (selectedRightParts.has(part.id)
-                                ? Number(part.sellingPrice) || 0
+                                ? getPriceForPart(part)
                                 : 0)
                             );
                           }, 0) +
@@ -1176,7 +1432,7 @@ const Suspension = () => {
                             return (
                               total +
                               (selectedOtherParts.has(part.id)
-                                ? Number(part.sellingPrice) || 0
+                                ? getPriceForPart(part)
                                 : 0)
                             );
                           }, 0)
@@ -1200,7 +1456,7 @@ const Suspension = () => {
                       Array.from(selectedOtherParts).filter((id) =>
                         getPartsForSide("other").some((part) => part.id === id)
                       ).length +
-                      repairItems.length ===
+                      getRepairItemsCountExcludingLabor() ===
                     0
                   }
                 />
@@ -1209,6 +1465,20 @@ const Suspension = () => {
           )}
         </div>
       </form>
+      <EditPriceDialog
+        isOpen={priceDialogOpen}
+        onClose={() => setPriceDialogOpen(false)}
+        onConfirm={handlePriceConfirm}
+        currentPrice={editingItem?.sellingPrice || 0}
+        productName={editingItem ? getProductName(editingItem) : ""}
+        productImage={editingItem?.secureUrl}
+        isService={editingItem?.category?.name === "บริการ"}
+        currentName={editingItem?.name || ""}
+        canEditName={
+          editingItem?.category?.name === "บริการ" &&
+          (editingItem?.id === 1 || editingItem?.service?.id === 1)
+        }
+      />
     </div>
   );
 };

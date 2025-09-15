@@ -298,3 +298,8 @@ export const createPartSchema = z
 export const addStockSchema = z.object({
   addQuantity: z.coerce.number().min(1, "กรุณากรอกจำนวน"),
 });
+
+export const editNamePriceSchema = z.object({
+  name: z.string().min(1, "กรุณากรอกชื่อบริการ"),
+  price: z.coerce.number().min(1, "กรุณากรอกราคาต่อหน่วย"),
+});

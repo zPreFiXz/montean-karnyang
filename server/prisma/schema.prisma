@@ -111,18 +111,19 @@ model Customer {
 }
 
 model RepairItem {
-  id        Int      @id @default(autoincrement())
-  unitPrice Decimal
-  quantity  Int      @default(1)
-  side      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  repairId  Int
-  repair    Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
-  partId    Int?
-  part      Part?    @relation(fields: [partId], references: [id], onDelete: Cascade)
-  serviceId Int?
-  service   Service? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  id         Int      @id @default(autoincrement())
+  customName String?
+  side       String?
+  unitPrice  Decimal
+  quantity   Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  repairId   Int
+  repair     Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
+  partId     Int?
+  part       Part?    @relation(fields: [partId], references: [id], onDelete: Cascade)
+  serviceId  Int?
+  service    Service? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 }
 
 model Part {

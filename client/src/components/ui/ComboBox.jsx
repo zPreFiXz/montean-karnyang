@@ -45,7 +45,12 @@ const ComboBox = ({
     }
   }, [open]);
 
-  const selectedLabel = options.find((item) => item.id === value)?.name;
+  const getIdentifier = (item) =>
+    item && (item.id !== undefined && item.id !== null ? item.id : item.name);
+
+  const selectedLabel = options.find(
+    (item) => getIdentifier(item) === value
+  )?.name;
   const hasError = errors && errors[name];
 
   return (
@@ -141,14 +146,14 @@ const ComboBox = ({
                 </p>
               </CommandEmpty>
               <CommandGroup className="max-h-[250px] overflow-y-auto">
-                {options
-                  .sort((a, b) => a.id - b.id)
-                  .map((item) => (
+                {options.map((item) => {
+                  const identifier = getIdentifier(item);
+                  return (
                     <CommandItem
-                      key={item.id}
+                      key={identifier}
                       value={item.name}
                       onSelect={() => {
-                        onChange(item.id);
+                        onChange(identifier);
                         setOpen(false);
                         // Blur input เพื่อปิดแป้นพิมพ์
                         if (inputRef.current) {
@@ -162,12 +167,13 @@ const ComboBox = ({
                       <Check
                         className={cn(
                           "h-4 w-4 mr-2",
-                          value === item.id ? "opacity-100" : "opacity-0"
+                          value === identifier ? "opacity-100" : "opacity-0"
                         )}
                       />
                       {item.name}
                     </CommandItem>
-                  ))}
+                  );
+                })}
               </CommandGroup>
             </Command>
           </PopoverContent>

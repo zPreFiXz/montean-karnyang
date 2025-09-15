@@ -172,13 +172,23 @@ exports.createRepair = async (req, res, next) => {
         });
       }
     } else {
-      // ถ้าไม่มีข้อมูลทะเบียน ให้สร้างรถโดยไม่มีทะเบียน
-      vehicle = await prisma.vehicle.create({
-        data: {
+      // ถ้าไม่มีข้อมูลทะเบียน ให้ค้นหารถที่มียี่ห้อและรุ่นเดียวกันแต่ไม่มีทะเบียนก่อน
+      vehicle = await prisma.vehicle.findFirst({
+        where: {
           vehicleBrandModelId: vehicleBrandModel.id,
           licensePlateId: null,
         },
       });
+
+      // ถ้าไม่เจอให้สร้างใหม่
+      if (!vehicle) {
+        vehicle = await prisma.vehicle.create({
+          data: {
+            vehicleBrandModelId: vehicleBrandModel.id,
+            licensePlateId: null,
+          },
+        });
+      }
     }
 
     // ค้นหาลูกค้าในฐานข้อมูลตามหมายเลขโทรศัพท์
@@ -241,9 +251,10 @@ exports.createRepair = async (req, res, next) => {
     // สร้างรายการซ่อม
     if (repairItems) {
       const repairItemsData = repairItems.map((item) => ({
+        customName: item.customName || null,
+        side: item.side || null,
         unitPrice: item.unitPrice,
         quantity: item.quantity,
-        side: item.side || null,
         repairId: repair.id,
         partId: item.partId,
         serviceId: item.serviceId,
@@ -332,17 +343,32 @@ exports.updateRepair = async (req, res, next) => {
         },
       });
     } else {
-      const currentRepair = await prisma.repair.findUnique({
-        where: { id: Number(id) },
-        select: { vehicleId: true },
-      });
-      vehicle = await prisma.vehicle.update({
-        where: { id: currentRepair.vehicleId },
-        data: {
+      // ถ้าไม่มีข้อมูลทะเบียน ให้ค้นหารถที่มียี่ห้อและรุ่นเดียวกันแต่ไม่มีทะเบียนก่อน
+      let existingVehicle = await prisma.vehicle.findFirst({
+        where: {
           vehicleBrandModelId: vehicleBrandModel.id,
           licensePlateId: null,
         },
       });
+
+      const currentRepair = await prisma.repair.findUnique({
+        where: { id: Number(id) },
+        select: { vehicleId: true },
+      });
+
+      // ถ้าเจอรถที่ใช้ยี่ห้อและรุ่นเดียวกันแต่ไม่มีทะเบียน และไม่ใช่รถคันเดิมของ repair นี้
+      if (existingVehicle && existingVehicle.id !== currentRepair.vehicleId) {
+        vehicle = existingVehicle;
+      } else {
+        // อัปเดตรถปัจจุบันให้ไม่มีทะเบียน
+        vehicle = await prisma.vehicle.update({
+          where: { id: currentRepair.vehicleId },
+          data: {
+            vehicleBrandModelId: vehicleBrandModel.id,
+            licensePlateId: null,
+          },
+        });
+      }
     }
 
     // จัดการลูกค้า
@@ -399,9 +425,10 @@ exports.updateRepair = async (req, res, next) => {
     // เพิ่มรายการใหม่ และตัดสต็อกใหม่
     if (Array.isArray(repairItems)) {
       const dataItems = repairItems.map((item) => ({
+        customName: item.customName || null,
+        side: item.side || null,
         unitPrice: item.unitPrice,
         quantity: item.quantity,
-        side: item.side || null,
         repairId: Number(id),
         partId: item.partId,
         serviceId: item.serviceId,
