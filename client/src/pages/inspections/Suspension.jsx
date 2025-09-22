@@ -1,7 +1,7 @@
 import FormInput from "@/components/forms/FormInput";
 import ComboBox from "@/components/ui/ComboBox";
 import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
-import EditPriceDialog from "@/components/dialogs/EditPriceDialog";
+import EditPriceDialog from "@/components/dialogs/EditNamePriceDialog";
 import { useForm } from "react-hook-form";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router";
@@ -174,7 +174,7 @@ const Suspension = () => {
           top: document.body.scrollHeight,
           behavior: "smooth",
         });
-      }, 500);
+      }, 100);
     }
 
     // ลบ state ออกจาก history แต่คงค่า editRepairId และแหล่งที่มาไว้
@@ -552,12 +552,12 @@ const Suspension = () => {
           inline: "nearest",
         });
       }
-    }, 50);
+    }, 100);
   };
 
   const onSubmit = async (data) => {
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // รวมรายการอะไหล่ที่เลือกจาก compatibleParts กับ repairItems
     const allRepairItems = [
@@ -728,9 +728,9 @@ const Suspension = () => {
                 }}
               />
             </div>
-            <span className="pt-[8px] font-medium text-[18px] text-surface">
+            <p className="pt-[8px] font-medium text-[18px] text-surface">
               -
-            </span>
+            </p>
             <div className="w-[80px]">
               <LicensePlateInput
                 register={register}
@@ -793,7 +793,7 @@ const Suspension = () => {
                     : "text-subtle-dark"
                 }`}
               >
-                <span className="relative z-10">ซ้าย</span>
+                <p className="relative z-10">ซ้าย</p>
               </button>
               <button
                 type="button"
@@ -804,7 +804,7 @@ const Suspension = () => {
                     : "text-subtle-dark"
                 }`}
               >
-                <span className="relative z-10">ขวา</span>
+                <p className="relative z-10">ขวา</p>
               </button>
               <button
                 type="button"
@@ -815,7 +815,7 @@ const Suspension = () => {
                     : "text-subtle-dark"
                 }`}
               >
-                <span className="relative z-10">อื่นๆ</span>
+                <p className="relative z-10">อื่นๆ</p>
               </button>
 
               {/* Sliding background */}
@@ -1267,9 +1267,9 @@ const Suspension = () => {
                             >
                               <Minus className="w-[16px] h-[16px]" />
                             </button>
-                            <span className="font-semibold text-[18px] md:text-[20px] text-primary">
+                            <p className="font-semibold text-[18px] md:text-[20px] text-primary">
                               {item.quantity}
-                            </span>
+                            </p>
                             <button
                               type="button"
                               onClick={() => handleIncreaseQuantity(index)}

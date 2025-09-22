@@ -85,6 +85,7 @@ exports.VehicleBrandModels = [
   { brand: "Mitsubishi", model: "Triton" },
   { brand: "Mitsubishi", model: "Mirage" },
   { brand: "Mitsubishi", model: "Attrage" },
+  { brand: "Mitsubishi", model: "Lancer" },
   { brand: "Mitsubishi", model: "Xpander" },
   { brand: "Mitsubishi", model: "XFORCE" },
   { brand: "Mitsubishi", model: "Pajero" },

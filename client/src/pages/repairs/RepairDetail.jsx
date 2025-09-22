@@ -559,7 +559,7 @@ const RepairDetail = () => {
                       });
 
                       return (
-                        <>
+                        <div>
                           {leftItems.length > 0 && (
                             <div className="mb-[8px]">
                               <p className="flex items-center gap-[4px] mb-[8px] font-semibold text-[20px] md:text-[22px] text-primary">
@@ -631,7 +631,7 @@ const RepairDetail = () => {
                               </div>
                             </div>
                           )}
-                        </>
+                        </div>
                       );
                     })()}
                   </div>

@@ -14,7 +14,7 @@ exports.register = async (req, res, next) => {
     });
 
     if (user) {
-      createError(400, "อีเมลนี้ถูกใช้งานแล้ว");
+      createError(400, "อีเมลนี้มีผู้ใช้งานแล้ว");
     }
 
     const hashPassword = await bcrypt.hash(password, 12);
@@ -25,12 +25,13 @@ exports.register = async (req, res, next) => {
         passwordHash: hashPassword,
         fullName,
         nickname,
+        phoneNumber,
         dateOfBirth: new Date(dateOfBirth),
       },
     });
 
     res.json({
-      message: "สร้างบัญชีพนักงานสำเร็จ",
+      message: "สร้างบัญชีพนักงานเรียบร้อยแล้ว",
     });
   } catch (error) {
     next(error);
@@ -76,7 +77,7 @@ exports.login = async (req, res, next) => {
     });
 
     res.json({
-      message: "เข้าสู่ระบบสำเร็จ",
+      message: "เข้าสู่ระบบเรียบร้อยแล้ว",
       payload,
     });
   } catch (error) {
@@ -92,7 +93,7 @@ exports.logout = (req, res, next) => {
       sameSite: "strict",
     });
 
-    res.json({ message: "ออกจากระบบสำเร็จ" });
+    res.json({ message: "Logout successfully" });
   } catch (error) {
     next(error);
   }

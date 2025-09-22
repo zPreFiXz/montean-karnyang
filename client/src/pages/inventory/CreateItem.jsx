@@ -13,7 +13,7 @@ import { uploadImage } from "@/api/uploadImage";
 import VehicleCompatibilityInput from "@/components/forms/VehicleCompatibilityInput";
 import { useNavigate } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createPartSchema } from "@/utils/schemas";
+import { partServiceSchema } from "@/utils/schemas";
 import { units } from "@/utils/data";
 import { ChevronLeft } from "lucide-react";
 
@@ -32,9 +32,8 @@ const CreatePart = () => {
     formState,
     trigger,
     clearErrors,
-    setFocus,
   } = useForm({
-    resolver: zodResolver(createPartSchema),
+    resolver: zodResolver(partServiceSchema),
     mode: "onChange",
     defaultValues: {
       categoryId: undefined,
@@ -112,26 +111,32 @@ const CreatePart = () => {
   };
 
   const onInvalid = (errs) => {
-    const firstErrorField = Object.keys(errs || {})[0];
-    if (!firstErrorField) return;
+    if (!errs) return;
 
-    try {
-      setFocus(firstErrorField, { shouldSelect: true });
-    } catch (_) {}
+    // หาชื่อ field ที่มี error
+    const fields = Object.keys(errs);
 
-    setTimeout(() => {
-      let el = document.querySelector(`[name="${firstErrorField}"]`);
-      let target = el;
-      if (!el || el.type === "hidden" || el.offsetParent === null) {
-        target = el?.parentElement || null;
-      }
-      if (target && typeof target.scrollIntoView === "function") {
-        target.scrollIntoView({
-          block: "center",
-          inline: "nearest",
-        });
-      }
-    }, 50);
+    // หา element ของทุก field ที่มี error
+    const errorElements = fields
+      .map((field) => document.querySelector(`[name="${field}"]`))
+      .filter((el) => el && el.offsetParent !== null);
+
+    if (errorElements.length === 0) return;
+
+    // หา element ที่อยู่บนสุด
+    const firstErrorEl = errorElements.reduce((prev, curr) =>
+      prev.getBoundingClientRect().top < curr.getBoundingClientRect().top
+        ? prev
+        : curr
+    );
+
+    // focus + scroll ไปที่ element นั้น
+    firstErrorEl.focus?.();
+    firstErrorEl.scrollIntoView({
+      block: "center",
+      inline: "nearest",
+      behavior: "smooth",
+    });
   };
 
   const onSubmit = async (data) => {
@@ -189,11 +194,11 @@ const CreatePart = () => {
 
       if (isServiceCategory()) {
         await createService(serviceData);
-        toast.success("เพิ่มบริการสำเร็จ");
+        toast.success("เพิ่มบริการเรียบร้อยแล้ว");
         navigate("/inventory");
       } else {
         await createPart(partData);
-        toast.success("เพิ่มอะไหล่สำเร็จ");
+        toast.success("เพิ่มอะไหล่เรียบร้อยแล้ว");
         navigate("/inventory");
       }
 
@@ -211,7 +216,7 @@ const CreatePart = () => {
   };
 
   return (
-    <main className="w-full h-[87px] bg-gradient-primary shadow-primary">
+    <div className="w-full h-[87px] bg-gradient-primary shadow-primary">
       <div className="flex items-center gap-[8px] py-[18px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
         <button onClick={() => navigate(-1)} className="mt-[2px] text-surface">
           <ChevronLeft />
@@ -219,7 +224,7 @@ const CreatePart = () => {
         เพิ่มรายการ
       </div>
 
-      <section className="w-full min-h-[calc(100svh-65px)] sm:min-h-[calc(100vh-65px)] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+      <div className="w-full min-h-[calc(100svh-65px)] sm:min-h-[calc(100vh-65px)] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
           <div className="px-[20px] pt-[16px]">
             <ComboBox
@@ -297,7 +302,7 @@ const CreatePart = () => {
                 placeholder={
                   isTireCategory()
                     ? "เช่น CROSSWIND HP010, DURAVIS R624"
-                    : "เช่น ลูกหมากปีกนกบน REVO,VIGO 4x2"
+                    : "เช่น ลูกหมากปีกนกบน Revo"
                 }
                 color="subtle-dark"
                 errors={errors}
@@ -315,6 +320,12 @@ const CreatePart = () => {
                     color="subtle-dark"
                     errors={errors}
                     inputMode="numeric"
+                    onWheel={(e) => e.target.blur()}
+                    onInput={(e) => {
+                      e.target.value = e.target.value
+                        .replace(/[^0-9]/g, "")
+                        .slice(0, 3);
+                    }}
                   />
                   <FormInput
                     register={register}
@@ -325,6 +336,12 @@ const CreatePart = () => {
                     color="subtle-dark"
                     errors={errors}
                     inputMode="numeric"
+                    onWheel={(e) => e.target.blur()}
+                    onInput={(e) => {
+                      e.target.value = e.target.value
+                        .replace(/[^0-9]/g, "")
+                        .slice(0, 2);
+                    }}
                   />
                   <FormInput
                     register={register}
@@ -335,6 +352,12 @@ const CreatePart = () => {
                     color="subtle-dark"
                     errors={errors}
                     inputMode="numeric"
+                    onWheel={(e) => e.target.blur()}
+                    onInput={(e) => {
+                      e.target.value = e.target.value
+                        .replace(/[^0-9]/g, "")
+                        .slice(0, 2);
+                    }}
                   />
                 </div>
               )}
@@ -357,7 +380,6 @@ const CreatePart = () => {
                     errors={errors}
                     name="suspensionType"
                   />
-                  {/* Hidden input สำหรับ register */}
                   <input
                     {...register("suspensionType")}
                     type="hidden"
@@ -378,11 +400,6 @@ const CreatePart = () => {
                 onWheel={(e) => e.target.blur()}
                 onInput={(e) => {
                   e.target.value = e.target.value.replace(/[^0-9.]/g, "");
-                  // ป้องกันการใส่จุดมากกว่า 1 ตัว
-                  const parts = e.target.value.split(".");
-                  if (parts.length > 2) {
-                    e.target.value = parts[0] + "." + parts.slice(1).join("");
-                  }
                 }}
               />
               <FormInput
@@ -397,11 +414,6 @@ const CreatePart = () => {
                 onWheel={(e) => e.target.blur()}
                 onInput={(e) => {
                   e.target.value = e.target.value.replace(/[^0-9.]/g, "");
-                  // ป้องกันการใส่จุดมากกว่า 1 ตัว
-                  const parts = e.target.value.split(".");
-                  if (parts.length > 2) {
-                    e.target.value = parts[0] + "." + parts.slice(1).join("");
-                  }
                 }}
               />
               <div className="px-[20px] my-[16px]">
@@ -420,7 +432,6 @@ const CreatePart = () => {
                   errors={errors}
                   name="unit"
                 />
-                {/* Hidden input สำหรับ register */}
                 <input
                   {...register("unit")}
                   type="hidden"
@@ -469,8 +480,8 @@ const CreatePart = () => {
             />
           </div>
         </form>
-      </section>
-    </main>
+      </div>
+    </div>
   );
 };
 

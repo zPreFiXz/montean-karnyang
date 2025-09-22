@@ -1,11 +1,24 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, Plus, Edit, Trash2, Search, Eye, EyeOff } from "lucide-react";
+import {
+  ChevronLeft,
+  Plus,
+  Edit,
+  Trash2,
+  Search,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import FormButton from "@/components/forms/FormButton";
 import FormInput from "@/components/forms/FormInput";
 import { useForm } from "react-hook-form";
-import api from "@/lib/api";
+import {
+  getEmployees,
+  createEmployee,
+  updateEmployee,
+  deleteEmployee,
+} from "@/api/employee";
 
 const EmployeeManagement = () => {
   const [employees, setEmployees] = useState([]);
@@ -32,8 +45,8 @@ const EmployeeManagement = () => {
   // ดึงข้อมูลพนักงาน
   const fetchEmployees = async () => {
     try {
-      const response = await api.get("/api/auth/employees");
-      setEmployees(response.data);
+      const response = await getEmployees();
+      setEmployees(response.data.data);
     } catch (error) {
       console.error("Error fetching employees:", error);
       toast.error("ไม่สามารถดึงข้อมูลพนักงานได้");
@@ -45,14 +58,14 @@ const EmployeeManagement = () => {
   // เพิ่มพนักงานใหม่
   const handleAddEmployee = async (data) => {
     try {
-      await api.post("/api/auth/register", {
-        username: data.username,
+      await createEmployee({
         email: data.email,
         password: data.password,
+        fullName: `${data.firstName} ${data.lastName}`,
+        nickname: data.username,
         role: data.role,
-        firstName: data.firstName,
-        lastName: data.lastName,
         phoneNumber: data.phoneNumber,
+        dateOfBirth: data.dateOfBirth || "1990-01-01", // Default date if not provided
       });
       toast.success("เพิ่มพนักงานสำเร็จ");
       reset();
@@ -68,20 +81,20 @@ const EmployeeManagement = () => {
   const handleEditEmployee = async (data) => {
     try {
       const updateData = {
-        username: data.username,
         email: data.email,
+        fullName: `${data.firstName} ${data.lastName}`,
+        nickname: data.username,
         role: data.role,
-        firstName: data.firstName,
-        lastName: data.lastName,
         phoneNumber: data.phoneNumber,
+        dateOfBirth: data.dateOfBirth,
       };
-      
+
       // เพิ่มรหัสผ่านใหม่ถ้ามีการกรอก
       if (data.password && data.password.trim() !== "") {
         updateData.password = data.password;
       }
 
-      await api.put(`/api/auth/employees/${editingEmployee.id}`, updateData);
+      await updateEmployee(editingEmployee.id, updateData);
       toast.success("แก้ไขข้อมูลพนักงานสำเร็จ");
       reset();
       setEditingEmployee(null);
@@ -89,7 +102,9 @@ const EmployeeManagement = () => {
       fetchEmployees();
     } catch (error) {
       console.error("Error editing employee:", error);
-      toast.error(error.response?.data?.message || "ไม่สามารถแก้ไขข้อมูลพนักงานได้");
+      toast.error(
+        error.response?.data?.message || "ไม่สามารถแก้ไขข้อมูลพนักงานได้"
+      );
     }
   };
 
@@ -98,7 +113,7 @@ const EmployeeManagement = () => {
     if (!confirm("คุณแน่ใจหรือไม่ที่จะลบพนักงานคนนี้?")) return;
 
     try {
-      await api.delete(`/api/auth/employees/${id}`);
+      await deleteEmployee(id);
       toast.success("ลบพนักงานสำเร็จ");
       fetchEmployees();
     } catch (error) {
@@ -110,13 +125,19 @@ const EmployeeManagement = () => {
   // เริ่มแก้ไข
   const startEdit = (employee) => {
     setEditingEmployee(employee);
+    // Parse fullName back to firstName and lastName for form
+    const nameParts = employee.fullName?.split(" ") || ["", ""];
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
+
     reset({
-      username: employee.username,
+      username: employee.nickname,
       email: employee.email,
       role: employee.role,
-      firstName: employee.firstName,
-      lastName: employee.lastName,
+      firstName: firstName,
+      lastName: lastName,
       phoneNumber: employee.phoneNumber,
+      dateOfBirth: employee.dateOfBirth?.split("T")[0] || "", // Format date for input
     });
     setShowAddForm(true);
   };
@@ -131,10 +152,9 @@ const EmployeeManagement = () => {
   // กรองข้อมูลตามการค้นหา
   const filteredEmployees = employees.filter(
     (employee) =>
-      employee.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchTerm.toLowerCase())
+      employee.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.nickname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // แปลงตำแหน่งงาน
@@ -205,7 +225,7 @@ const EmployeeManagement = () => {
               <h3 className="font-semibold text-[18px] mb-[16px]">
                 {editingEmployee ? "แก้ไขข้อมูลพนักงาน" : "เพิ่มพนักงานใหม่"}
               </h3>
-              
+
               <form
                 onSubmit={handleSubmit(
                   editingEmployee ? handleEditEmployee : handleAddEmployee
@@ -262,7 +282,11 @@ const EmployeeManagement = () => {
                     <FormInput
                       register={register}
                       name="password"
-                      label={editingEmployee ? "รหัสผ่านใหม่ (เว้นว่างไว้หากไม่ต้องการเปลี่ยน)" : "รหัสผ่าน"}
+                      label={
+                        editingEmployee
+                          ? "รหัสผ่านใหม่ (เว้นว่างไว้หากไม่ต้องการเปลี่ยน)"
+                          : "รหัสผ่าน"
+                      }
                       type={showPassword ? "text" : "password"}
                       placeholder="กรอกรหัสผ่าน"
                       errors={errors}
@@ -288,10 +312,25 @@ const EmployeeManagement = () => {
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-[38px] text-gray-400 hover:text-gray-600"
                     >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
                     </button>
                   </div>
 
+                  <FormInput
+                    register={register}
+                    name="dateOfBirth"
+                    label="วันเกิด"
+                    type="date"
+                    errors={errors}
+                    rules={{ required: "กรุณาเลือกวันเกิด" }}
+                  />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-[16px]">
                   <FormInput
                     register={register}
                     name="phoneNumber"
@@ -322,13 +361,15 @@ const EmployeeManagement = () => {
                     <option value="ADMIN">ผู้ดูแลระบบ</option>
                   </select>
                   {errors.role && (
-                    <p className="mt-1 text-sm text-red-600">{errors.role.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.role.message}
+                    </p>
                   )}
                 </div>
-                
+
                 <div className="flex gap-[12px]">
                   <FormButton
-                    label={editingEmployee ? "บันทึกการแก้ไข" : "เพิ่มพนักงาน"}
+                    label={editingEmployee ? "บันทึก" : "เพิ่มพนักงาน"}
                     isLoading={isSubmitting}
                     type="submit"
                   />
@@ -379,26 +420,32 @@ const EmployeeManagement = () => {
                     <tr key={employee.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          {employee.firstName} {employee.lastName}
+                          {employee.fullName}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{employee.username}</div>
+                        <div className="text-sm text-gray-900">
+                          {employee.nickname}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{employee.email}</div>
+                        <div className="text-sm text-gray-900">
+                          {employee.email}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{employee.phoneNumber}</div>
+                        <div className="text-sm text-gray-900">
+                          {employee.phoneNumber}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span
+                        <p
                           className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(
                             employee.role
                           )}`}
                         >
                           {getRoleLabel(employee.role)}
-                        </span>
+                        </p>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-[8px]">
@@ -420,7 +467,7 @@ const EmployeeManagement = () => {
                   ))}
                 </tbody>
               </table>
-              
+
               {filteredEmployees.length === 0 && (
                 <div className="text-center py-[40px]">
                   <p className="text-gray-500">ไม่พบข้อมูลพนักงาน</p>

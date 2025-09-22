@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { toast } from "sonner";
 import ComboBox from "@/components/ui/ComboBox";
 import VehicleBrandFormDialog from "@/components/dialogs/VehicleBrandFormDialog";
+import DeleteConfirmDialog from "@/components/dialogs/DeleteConfirmDialog";
 import {
   deleteVehicleBrandModel,
   getVehicleBrandModels,
@@ -16,6 +17,8 @@ const VehicleBrandManagement = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletingItem, setDeletingItem] = useState(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -36,11 +39,33 @@ const VehicleBrandManagement = () => {
   const handleDeleteVehicleBrand = async (id) => {
     try {
       await deleteVehicleBrandModel(id);
-      toast.success("ลบยี่ห้อ-รุ่นรถสำเร็จ");
+
       fetchVehicleBrandModels();
+      setShowDeleteDialog(false);
+      setDeletingItem(null);
+      toast.success("ลบยี่ห้อและรุ่นรถเรียบร้อยแล้ว");
     } catch (error) {
       console.error(error);
+
+      const errorMessage = error.response?.data?.message;
+      toast.error(errorMessage);
     }
+  };
+
+  const confirmDelete = (item) => {
+    setDeletingItem(item);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deletingItem) {
+      return handleDeleteVehicleBrand(deletingItem.id);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteDialog(false);
+    setDeletingItem(null);
   };
 
   const startEdit = (item) => {
@@ -109,7 +134,7 @@ const VehicleBrandManagement = () => {
             <FormButton
               label="+ เพิ่มยี่ห้อ-รุ่นรถ"
               onClick={() => setShowAddForm(true)}
-              className="mt-[16px] ml-0 bg-gradient-primary"
+              className="my-[16px] ml-0 bg-gradient-primary"
             />
 
             {/* Dialog */}
@@ -118,6 +143,22 @@ const VehicleBrandManagement = () => {
               onClose={handleCloseDialog}
               editingItem={editingItem}
               onSuccess={handleFormSuccess}
+            />
+
+            {/* Delete Confirmation Dialog */}
+            <DeleteConfirmDialog
+              isOpen={showDeleteDialog}
+              onClose={handleDeleteCancel}
+              onConfirm={handleDeleteConfirm}
+              title="ยืนยันการลบ"
+              message="คุณแน่ใจหรือไม่ว่าต้องการลบยี่ห้อและรุ่นรถนี้?"
+              itemName={
+                deletingItem && deletingItem.brand !== "อื่นๆ"
+                  ? `${deletingItem.brand} ${deletingItem.model}`
+                  : deletingItem
+                  ? deletingItem.model
+                  : ""
+              }
             />
 
             <div className="space-y-[16px]">
@@ -132,26 +173,26 @@ const VehicleBrandManagement = () => {
                     </p>
                   </div>
 
-                  {/* Models List */}
+                  {/* รายการยี่ห้อ-รุ่นรถ */}
                   <div className="space-y-[8px]">
                     {models.map((item) => (
                       <div
                         key={item.id}
                         className="flex items-center justify-between p-[8px] rounded-[8px] bg-gray-50"
                       >
-                        <span className="font-medium text-[18px] md:text-[20px] text-normal">
+                        <p className="font-medium text-[18px] md:text-[20px] text-normal">
                           {item.model}
-                        </span>
+                        </p>
                         <div className="flex gap-[8px]">
                           <button
                             onClick={() => startEdit(item)}
-                            className="flex items-center gap-[4px] px-[12px] py-[6px] rounded-[10px] font-medium text-[14px] text-surface bg-primary"
+                            className="flex items-center gap-[4px] px-[12px] py-[6px] rounded-[10px] font-medium text-[14px] text-surface bg-gradient-primary"
                           >
                             <Edit className="w-[14px] h-[14px]" />
                             <p className="font-semibold">แก้ไข</p>
                           </button>
                           <button
-                            onClick={() => handleDeleteVehicleBrand(item.id)}
+                            onClick={() => confirmDelete(item)}
                             className="flex items-center gap-[4px] px-[12px] py-[6px] rounded-[10px] font-medium text-[14px] text-surface bg-delete"
                           >
                             <Trash2 className="w-[14px] h-[14px]" />

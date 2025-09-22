@@ -65,7 +65,7 @@ const RepairSummary = () => {
   const handleConfirmRepair = async () => {
     setIsSubmitting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       const repair = {
         fullName: repairData.fullName,
         address: repairData.address,
@@ -92,7 +92,7 @@ const RepairSummary = () => {
 
       if (editRepairId) {
         await updateRepair(editRepairId, repair);
-        toast.success("บันทึกรายการซ่อมเรียบร้อยแล้ว");
+        toast.success("แก้ไขรายการซ่อมเรียบร้อยแล้ว");
         // หลังบันทึกในโหมดแก้ไข: ถ้ามี statusSlug ให้กลับหน้า RepairStatus
         if (statusSlug) {
           navigate(`/repair/status/${statusSlug}`);
@@ -345,7 +345,7 @@ const RepairSummary = () => {
           </div>
           <div className="flex justify-center pb-[112px]">
             <FormButton
-              label={editRepairId ? "บันทึกรายการซ่อม" : "สร้างรายการซ่อม"}
+              label={editRepairId ? "บันทึก" : "สร้างรายการซ่อม"}
               isLoading={isSubmitting}
               onClick={handleConfirmRepair}
             />

@@ -17,34 +17,32 @@ export const repairSchema = z.object({
   description: z.string().optional(),
 });
 
-export const createPartSchema = z
+export const partServiceSchema = z
   .object({
-    // ฟิลด์ทั่วไป
-    name: z.string().optional(),
-    categoryId: z.number().optional(),
-
-    // ฟิลด์สำหรับ service
-    price: z.coerce.number().optional(),
-
-    // ฟิลด์สำหรับ part (tire และ part อื่นๆ)
+    // อะไหล่
     partNumber: z.string().optional(),
     brand: z.string().optional(),
-    costPrice: z.coerce.number().min(0).optional(),
-    sellingPrice: z.coerce.number().min(0).optional(),
+    name: z.string().optional(),
+    costPrice: z.coerce.number().default(0),
+    sellingPrice: z.coerce.number().default(0),
     unit: z.string().optional(),
-    stockQuantity: z.coerce.number().min(0).optional(),
-    minStockLevel: z.coerce.number().min(0).optional(),
+    stockQuantity: z.coerce.number().default(0),
+    minStockLevel: z.coerce.number().default(0),
     typeSpecificData: z.json().optional(),
     compatibleVehicles: z.json().optional(),
     image: z.any().optional(),
+    categoryId: z.number().optional(),
 
-    // ฟิลด์สำหรับ tire เท่านั้น
+    // ยาง
     width: z.string().optional(),
-    aspectRatio: z.any().optional(),
+    aspectRatio: z.string().optional(),
     rimDiameter: z.string().optional(),
 
-    // ฟิลด์สำหรับ suspension เท่านั้น
+    // ช่วงล่าง
     suspensionType: z.string().optional(),
+
+    // บริการ
+    price: z.coerce.number().default(0),
   })
   .superRefine((data, ctx) => {
     if (!data.categoryId) {
@@ -59,21 +57,13 @@ export const createPartSchema = z
     const isServiceCategory = data.categoryId === 1;
     const isSuspensionCategory = data.categoryId === 2;
     const isTireCategory = data.categoryId === 3;
-
+    
     if (isServiceCategory) {
       if (!data.name || data.name.trim() === "") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "กรุณากรอกชื่อบริการ",
           path: ["name"],
-        });
-      }
-
-      if (!data.price || data.price <= 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกราคา",
-          path: ["price"],
         });
       }
     } else if (isTireCategory) {
@@ -117,43 +107,11 @@ export const createPartSchema = z
         });
       }
 
-      if (data.costPrice == null || data.costPrice < 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกราคาต้นทุน",
-          path: ["costPrice"],
-        });
-      }
-
-      if (data.sellingPrice == null || data.sellingPrice < 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกราคาขาย",
-          path: ["sellingPrice"],
-        });
-      }
-
       if (!data.unit || data.unit.trim() === "") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "กรุณาเลือกหน่วย",
           path: ["unit"],
-        });
-      }
-
-      if (data.stockQuantity == null || data.stockQuantity < 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกจำนวนสต็อก",
-          path: ["stockQuantity"],
-        });
-      }
-
-      if (data.minStockLevel == null || data.minStockLevel < 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกสต็อกขั้นต่ำ",
-          path: ["minStockLevel"],
         });
       }
     } else if (isSuspensionCategory) {
@@ -180,7 +138,6 @@ export const createPartSchema = z
           path: ["name"],
         });
       }
-
       if (!data.suspensionType || data.suspensionType.trim() === "") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -189,43 +146,11 @@ export const createPartSchema = z
         });
       }
 
-      if (data.costPrice == null || data.costPrice < 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกราคาต้นทุน",
-          path: ["costPrice"],
-        });
-      }
-
-      if (data.sellingPrice == null || data.sellingPrice < 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกราคาขาย",
-          path: ["sellingPrice"],
-        });
-      }
-
       if (!data.unit || data.unit.trim() === "") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "กรุณาเลือกหน่วย",
           path: ["unit"],
-        });
-      }
-
-      if (data.stockQuantity == null || data.stockQuantity < 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกจำนวนสต็อก",
-          path: ["stockQuantity"],
-        });
-      }
-
-      if (data.minStockLevel == null || data.minStockLevel < 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกสต็อกขั้นต่ำ",
-          path: ["minStockLevel"],
         });
       }
     } else {
@@ -253,22 +178,6 @@ export const createPartSchema = z
         });
       }
 
-      if (data.costPrice == null || data.costPrice < 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกต้นทุน",
-          path: ["costPrice"],
-        });
-      }
-
-      if (data.sellingPrice == null || data.sellingPrice < 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกราคาขาย",
-          path: ["sellingPrice"],
-        });
-      }
-
       if (!data.unit || data.unit.trim() === "") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -276,30 +185,19 @@ export const createPartSchema = z
           path: ["unit"],
         });
       }
-
-      if (data.stockQuantity == null || data.stockQuantity < 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกจำนวนสต็อก",
-          path: ["stockQuantity"],
-        });
-      }
-
-      if (data.minStockLevel == null || data.minStockLevel < 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกสต็อกขั้นต่ำ",
-          path: ["minStockLevel"],
-        });
-      }
     }
   });
 
 export const addStockSchema = z.object({
-  addQuantity: z.coerce.number().min(1, "กรุณากรอกจำนวน"),
+  quantity: z.coerce.number().min(1, "กรุณากรอกจำนวน"),
 });
 
 export const editNamePriceSchema = z.object({
   name: z.string().min(1, "กรุณากรอกชื่อบริการ"),
   price: z.coerce.number().min(1, "กรุณากรอกราคาต่อหน่วย"),
+});
+
+export const vehicleBrandModelSchema = z.object({
+  brand: z.string().min(1, "กรุณากรอกยี่ห้อรถ"),
+  model: z.string().min(1, "กรุณากรอกรุ่นรถ"),
 });

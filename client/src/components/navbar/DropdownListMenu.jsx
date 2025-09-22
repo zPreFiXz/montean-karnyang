@@ -61,11 +61,11 @@ const DropdownListMenu = () => {
         <DropdownMenuSeparator className="my-[4px]" />
         <DropdownMenuItem className="flex items-center gap-[12px] px-[12px] py-[8px] rounded-[8px] font-medium text-[14px] hover:bg-surface/50 focus:bg-surface/50 duration-200 cursor-pointer">
           <CircleUserRound className="w-[16px] h-[16px]" />
-          <span>โปรไฟล์</span>
+          <p>โปรไฟล์</p>
         </DropdownMenuItem>
         <DropdownMenuItem className="flex items-center gap-[12px] px-[12px] py-[8px] rounded-[8px] font-medium text-[14px] hover:bg-surface/50 focus:bg-surface/50 duration-200 cursor-pointer">
           <Settings className="w-[16px] h-[16px]" />
-          <span>การตั้งค่า</span>
+          <p>การตั้งค่า</p>
         </DropdownMenuItem>
         <DropdownMenuSeparator className="my-[4px]" />
         <DropdownMenuItem
@@ -75,7 +75,7 @@ const DropdownListMenu = () => {
           className="flex items-center gap-[12px] px-[12px] py-[8px] rounded-[8px] font-medium text-[14px] hover:text-red-600 focus:text-red-600 hover:bg-red-50 focus:bg-red-50 duration-200 cursor-pointer"
         >
           <LogOut className="w-[16px] h-[16px]" />
-          <span>ออกจากระบบ</span>
+          <p>ออกจากระบบ</p>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

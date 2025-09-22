@@ -53,7 +53,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
           behavior: "smooth",
         });
       }
-    }, 150);
+    }, 100);
   };
 
   if (!currentItem) return null;
@@ -62,7 +62,6 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
   const isTire = currentItem.category?.name === "ยาง";
 
   const renderProductInfo = () => {
-    // แสดงข้อมูลยางที่มีขนาดแก้มยาง
     if (
       isTire &&
       currentItem.typeSpecificData &&
@@ -99,20 +98,18 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      await addStock(currentItem.id, Number(data.addQuantity));
+      await addStock(currentItem.id, Number(data.quantity));
 
-      toast.success(
-        `เพิ่มสต็อกสำเร็จ! เพิ่ม ${data.addQuantity} ${currentItem.unit}`
-      );
+      toast.success("เพิ่มสต็อกเรียบร้อยแล้ว");
       setShowAddStock(false);
       reset();
 
       // อัพเดทข้อมูลใน currentItem
       const updatedItem = {
         ...currentItem,
-        stockQuantity: currentItem.stockQuantity + Number(data.addQuantity),
+        stockQuantity: currentItem.stockQuantity + Number(data.quantity),
       };
       setCurrentItem(updatedItem);
 
@@ -141,7 +138,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
   };
 
   return (
-    <>
+    <div>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
           className={`flex flex-col w-full ${
@@ -149,6 +146,10 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
           } p-0`}
           style={{ height: !isService ? "650px" : "350px" }}
           showCloseButton={false}
+          onOpenAutoFocus={(e) => {
+            // ป้องกันการโฟกัสอัตโนมัติที่ input เมื่อเปิด dialog เพื่อลดการเด้งแป้นพิมพ์ในมือถือ
+            e.preventDefault();
+          }}
         >
           <div className="relative flex-shrink-0 pt-[16px]">
             <DialogTitle className="font-athiti font-semibold text-center text-[22px] md:text-[24px] text-subtle-dark">
@@ -170,7 +171,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
             </button>
           </div>
 
-          {/* Content */}
+          {/* เนื้อหา */}
           <div className="overflow-y-auto flex-1 flex flex-col font-athiti">
             <div className="flex-1 px-[20px]">
               <div className="mb-[16px]">
@@ -283,7 +284,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
 
                 {/* ข้อมูลสต็อก */}
                 {!isService && (
-                  <>
+                  <div>
                     <p className="mt-[16px] font-athiti font-semibold text-[22px] md:text-[24px] text-normal">
                       ข้อมูลสต็อก
                     </p>
@@ -313,7 +314,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                         </p>
                       </div>
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
 
@@ -327,18 +328,18 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                     </p>
                     <div className="flex flex-wrap gap-[6px]">
                       {currentItem.compatibleVehicles.map((vehicle, index) => (
-                        <span
+                        <p
                           key={index}
                           className="px-[10px] py-[4px] rounded-[10px] font-medium text-[18px] text-subtle-dark bg-gray-100"
                         >
                           {vehicle.brand} {vehicle.model}
-                        </span>
+                        </p>
                       ))}
                     </div>
                   </div>
                 )}
 
-              {/* Form เพิ่มสต็อก */}
+              {/* ฟอร์มเพิ่มสต็อก */}
               {!isService && showAddStock && (
                 <div>
                   <p className="mt-[16px] mb-[8px] font-athiti font-semibold text-[22px] md:text-[24px] text-normal">
@@ -351,7 +352,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                     >
                       <FormInput
                         register={register}
-                        name="addQuantity"
+                        name="quantity"
                         label={`จำนวน (${currentItem.unit})`}
                         type="number"
                         placeholder="เช่น 2"
@@ -390,7 +391,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
             </div>
           </div>
 
-          {/* Footer */}
+          {/* ส่วนท้าย */}
           <div className="flex-shrink-0 px-[16px] pb-[16px]">
             <div className="flex gap-[16px]">
               {!isService && !showAddStock && (
@@ -417,7 +418,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 };
 

@@ -13,7 +13,7 @@ const ProtectRouteGuest = ({ element }) => {
       if (role === "EMPLOYEE") {
         navigate("/dashboard", { replace: true });
       } else if (role === "ADMIN") {
-        navigate("/admin", { replace: true });
+        navigate("/dashboard", { replace: true });
       }
     }
   }, []);

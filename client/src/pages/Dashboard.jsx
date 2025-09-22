@@ -13,7 +13,6 @@ import {
   X,
   CarFront,
   Users,
-  Database,
   LoaderCircle,
 } from "lucide-react";
 
@@ -283,20 +282,6 @@ const Dashboard = () => {
                       </div>
                       <p className="font-semibold text-[18px] md:text-[20px] text-normal">
                         จัดการบัญชีพนักงาน
-                      </p>
-                    </Link>
-
-                    {/* จัดการข้อมูลระบบ */}
-                    <Link
-                      to="/admin/system-data"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center w-full gap-[16px] p-[16px] mb-[16px] rounded-[12px] bg-surface shadow-primary hover:shadow-lg duration-200"
-                    >
-                      <div className="flex items-center justify-center w-[48px] h-[48px] rounded-[10px] bg-in-progress">
-                        <Database className="w-[24px] h-[24px] text-surface" />
-                      </div>
-                      <p className="font-semibold text-[18px] md:text-[20px] text-normal">
-                        จัดการข้อมูลระบบ
                       </p>
                     </Link>
                   </div>

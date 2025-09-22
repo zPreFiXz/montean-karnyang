@@ -7,9 +7,6 @@ exports.getParts = async (req, res, next) => {
       include: {
         category: true,
       },
-      orderBy: {
-        createdAt: "desc",
-      },
     });
 
     res.json(parts);
@@ -40,7 +37,7 @@ exports.createPart = async (req, res, next) => {
     });
 
     if (part) {
-      createError(400, "รหัสอะไหล่นี้ถูกใช้งานแล้ว");
+      createError(400, "รหัสอะไหล่นี้มีการใช้งานแล้ว");
     }
 
     await prisma.part.create({
@@ -92,7 +89,7 @@ exports.updatePart = async (req, res, next) => {
     });
 
     if (part && part.id !== Number(id)) {
-      createError(400, "รหัสอะไหล่นี้ถูกใช้งานแล้ว");
+      createError(400, "รหัสอะไหล่นี้มีการใช้งานแล้ว");
     }
 
     await prisma.part.update({
@@ -120,20 +117,6 @@ exports.updatePart = async (req, res, next) => {
   }
 };
 
-exports.deletePart = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    await prisma.part.delete({
-      where: { id: Number(id) },
-    });
-
-    res.json({ message: "Part deleted successfully" });
-  } catch (error) {
-    next(error);
-  }
-};
-
 exports.addStock = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -149,6 +132,20 @@ exports.addStock = async (req, res, next) => {
     });
 
     res.json({ message: "Stock added successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.deletePart = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.part.delete({
+      where: { id: Number(id) },
+    });
+
+    res.json({ message: "Part deleted successfully" });
   } catch (error) {
     next(error);
   }

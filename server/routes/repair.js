@@ -39,7 +39,4 @@ router.put(
 // @ENDPOINTS http://localhost:3000/api/repair/1/status
 router.patch("/repair/:id/status", authCheck, updateRepairStatus);
 
-// @ENDPOINTS http://localhost:3000/api/repair/1
-router.delete("/repair/id", authCheck, deleteRepair);
-
 module.exports = router;

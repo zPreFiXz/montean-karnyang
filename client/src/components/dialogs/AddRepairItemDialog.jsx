@@ -136,8 +136,12 @@ const AddRepairItemDialog = ({
         {children}
       </DialogTrigger>
       <DialogContent
-        className="flex flex-col w-full h-[90vh] max-h-[650px] p-0"
+        className="flex flex-col w-full h-[90vh] max-h-[650px] p-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
         showCloseButton={false}
+        onOpenAutoFocus={(e) => {
+          // ป้องกันการโฟกัสอัตโนมัติที่ input เมื่อเปิด dialog เพื่อลดการเด้งแป้นพิมพ์ในมือถือ
+          e.preventDefault();
+        }}
       >
         <DialogHeader className="relative flex-shrink-0 pt-[16px]">
           <DialogTitle className="text-center font-athiti font-semibold text-[22px] md:text-[24px] text-subtle-dark">
@@ -151,7 +155,6 @@ const AddRepairItemDialog = ({
           <button
             onClick={() => setIsDialogOpen(false)}
             autoFocus={false}
-            tabIndex={-1}
             className="absolute top-[16px] right-[20px] flex items-center justify-center w-[32px] h-[32px] rounded-full bg-black/5"
           >
             <X size={18} className="text-subtle-dark" />
@@ -178,7 +181,7 @@ const AddRepairItemDialog = ({
                 <button
                   onClick={() => handleCategoryChange("ทั้งหมด")}
                   tabIndex={-1}
-                  className={`flex flex-col items-center justify-center w-[80px] h-[80px] px-[20px] py-[12px] rounded-[10px] border duration-200 ${
+                  className={`flex flex-col items-center justify-center w-[80px] h-[80px] px-[20px] py-[12px] rounded-[10px] border duration-300 ${
                     activeCategory === "ทั้งหมด"
                       ? "border-transparent text-surface bg-gradient-primary "
                       : "border-subtle-light text-subtle-dark bg-surface"
@@ -196,7 +199,7 @@ const AddRepairItemDialog = ({
                       key={index}
                       onClick={() => handleCategoryChange(item.name)}
                       tabIndex={-1}
-                      className={`flex flex-col justify-center items-center w-[80px] h-[80px] px-[20px] py-[12px] border rounded-[10px] duration-200 ${
+                      className={`flex flex-col justify-center items-center w-[80px] h-[80px] px-[20px] py-[12px] border rounded-[10px] duration-300 ${
                         isActive
                           ? "border-transparent text-surface bg-gradient-primary"
                           : "border-subtle-light text-subtle-dark bg-surface"

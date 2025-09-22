@@ -561,17 +561,3 @@ exports.updateRepairStatus = async (req, res, next) => {
     next(error);
   }
 };
-
-exports.deleteRepair = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    await prisma.repair.delete({
-      where: { id: Number(id) },
-    });
-
-    res.json({ message: "Repair deleted successfully" });
-  } catch (error) {
-    next(error);
-  }
-};

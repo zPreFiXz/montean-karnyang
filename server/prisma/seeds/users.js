@@ -7,6 +7,7 @@ exports.users = [
     role: "ADMIN",
     fullName: "มณเฑียรการยาง",
     nickname: "แอดมิน",
+    phoneNumber: process.env.ADMIN_PHONE_NUMBER,
     dateOfBirth: new Date("1990-01-01"),
   },
 ];

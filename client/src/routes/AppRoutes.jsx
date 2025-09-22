@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import Layout from "../layouts/Layout";
 import Login from "@/pages/auth/Login";
-import Register from "@/pages/auth/Register";
 import Dashboard from "../pages/Dashboard";
 import SalesReport from "@/pages/reports/SalesReport";
 import RepairStatus from "@/pages/repairs/RepairStatus";
@@ -16,7 +15,6 @@ import Vehicles from "@/pages/vehicles/Vehicles";
 import VehicleDetail from "@/pages/vehicles/VehicleDetail";
 import VehicleBrandManagement from "@/pages/admin/VehicleBrandManagement";
 import EmployeeManagement from "@/pages/admin/EmployeeManagement";
-import SystemDataManagement from "@/pages/admin/SystemDataManagement";
 import ProtectRouteUser from "./ProtectRouteUser";
 import ProtectRouteAdmin from "./ProtectRouteAdmin";
 import ProtectRouteGuest from "./ProtectRouteGuest";
@@ -30,10 +28,6 @@ const AppRoutes = () => {
         <Route
           path="login"
           element={<ProtectRouteGuest element={<Login />} />}
-        />
-        <Route
-          path="register"
-          element={<ProtectRouteGuest element={<Register />} />}
         />
 
         {/* User Routes */}
@@ -67,14 +61,15 @@ const AppRoutes = () => {
           path="/admin"
           element={<ProtectRouteAdmin element={<Layout />} />}
         >
-          <Route index element={<Navigate to="/dashboard" />} />
+          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route
             path="vehicle-brand-models"
             element={<VehicleBrandManagement />}
           />
           <Route path="employees" element={<EmployeeManagement />} />
-          <Route path="system-data" element={<SystemDataManagement />} />
         </Route>
+
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   );

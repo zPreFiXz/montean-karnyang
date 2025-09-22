@@ -81,12 +81,12 @@ function DropdownMenuCheckboxItem({
       )}
       checked={checked}
       {...props}>
-      <span
+      <p
         className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
           <CheckIcon className="size-4" />
         </DropdownMenuPrimitive.ItemIndicator>
-      </span>
+      </p>
       {children}
     </DropdownMenuPrimitive.CheckboxItem>
   );
@@ -111,12 +111,12 @@ function DropdownMenuRadioItem({
         className
       )}
       {...props}>
-      <span
+      <p
         className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
           <CircleIcon className="size-2 fill-current" />
         </DropdownMenuPrimitive.ItemIndicator>
-      </span>
+      </p>
       {children}
     </DropdownMenuPrimitive.RadioItem>
   );
@@ -153,7 +153,7 @@ function DropdownMenuShortcut({
   ...props
 }) {
   return (
-    <span
+    <p
       data-slot="dropdown-menu-shortcut"
       className={cn("text-muted-foreground ml-auto text-xs tracking-widest", className)}
       {...props} />

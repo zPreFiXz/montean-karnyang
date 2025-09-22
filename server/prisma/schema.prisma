@@ -21,6 +21,7 @@ model User {
   role         Role     @default(EMPLOYEE)
   fullName     String
   nickname     String
+  phoneNumber  String
   dateOfBirth  DateTime
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -35,7 +36,7 @@ enum Role {
 model Repair {
   id            Int           @id @default(autoincrement())
   description   String?
-  totalPrice    Decimal
+  totalPrice    Int
   completedAt   DateTime?
   status        RepairStatus  @default(IN_PROGRESS)
   paymentMethod PaymentMethod @default(CASH)
@@ -65,8 +66,8 @@ enum RepairSource {
 
 enum PaymentMethod {
   CASH
-  CREDIT_CARD
   BANK_TRANSFER
+  CREDIT_CARD
 }
 
 model Vehicle {
@@ -114,7 +115,7 @@ model RepairItem {
   id         Int      @id @default(autoincrement())
   customName String?
   side       String?
-  unitPrice  Decimal
+  unitPrice  Int
   quantity   Int      @default(1)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -129,13 +130,13 @@ model RepairItem {
 model Part {
   id                 Int          @id @default(autoincrement())
   partNumber         String       @unique
-  brand              String?
-  name               String?
-  costPrice          Decimal?
-  sellingPrice       Decimal
+  brand              String
+  name               String
+  costPrice          Int
+  sellingPrice       Int
   unit               String
-  stockQuantity      Int          @default(0)
-  minStockLevel      Int          @default(0)
+  stockQuantity      Int
+  minStockLevel      Int
   typeSpecificData   Json?
   compatibleVehicles Json?
   publicId           String?
@@ -150,7 +151,7 @@ model Part {
 model Service {
   id          Int          @id @default(autoincrement())
   name        String       @unique
-  price       Decimal
+  price       Int
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   categoryId  Int

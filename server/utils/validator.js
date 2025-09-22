@@ -41,7 +41,7 @@ exports.updateRepairSchema = z.object({
   repairItems: z.any(),
 });
 
-exports.createPartSchema = z.object({
+exports.partSchema = z.object({
   partNumber: z.string().min(1),
   brand: z.string().min(1),
   name: z.string().min(1),
@@ -50,16 +50,25 @@ exports.createPartSchema = z.object({
   unit: z.string().min(1),
   stockQuantity: z.coerce.number(),
   minStockLevel: z.coerce.number(),
-  typeSpecificData: z.any().optional(),
-  compatibleVehicles: z.any().optional(),
+  typeSpecificData: z.json().optional(),
+  compatibleVehicles: z.json().optional(),
   image: z.any().optional(),
   categoryId: z.coerce.number(),
 });
 
-exports.createServiceSchema = z.object({
+exports.serviceSchema = z.object({
   name: z.string().min(1),
   price: z.coerce.number(),
   categoryId: z.coerce.number(),
+});
+
+exports.addStockSchema = z.object({
+  quantity: z.coerce.number().min(1),
+});
+
+exports.vehicleBrandModelSchema = z.object({
+  brand: z.string().min(1),
+  model: z.string().min(1),
 });
 
 exports.validate = (schema) => (req, res, next) => {

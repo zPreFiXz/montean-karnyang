@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { validate, createServiceSchema } = require("../utils/validator");
+const { validate, serviceSchema } = require("../utils/validator");
 
 // Middlewares
 const { authCheck } = require("../middlewares/auth");
@@ -20,12 +20,17 @@ router.get("/services", authCheck, getServices);
 router.post(
   "/service",
   authCheck,
-  validate(createServiceSchema),
+  validate(serviceSchema),
   createService
 );
 
 // @ENDPOINTS http://localhost:3000/api/service/1
-router.put("/service/:id", authCheck, updateService);
+router.put(
+  "/service/:id",
+  authCheck,
+  validate(serviceSchema),
+  updateService
+);
 
 // @ENDPOINTS http://localhost:3000/api/service/1
 router.delete("/service/:id", authCheck, deleteService);

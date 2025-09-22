@@ -135,9 +135,9 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
           className="p-[16px] mt-[8px] rounded-[10px] border"
         >
           <div className="flex justify-between items-center mb-[8px]">
-            <span className="font-medium text-[20px] md:text-[22px] text-subtle-dark">
+            <p className="font-medium text-[20px] md:text-[22px] text-subtle-dark">
               รถคันที่ {index + 1}
-            </span>
+            </p>
             <div className="flex">
               {vehicles.length === 1 && (vehicle.brand || vehicle.model) && (
                 <button

@@ -80,6 +80,7 @@ export const provinces = [
 
 export const units = [
   { name: "ตัว" },
+  { name: "อัน" },
   { name: "เส้น" },
   { name: "ลิตร" },
   { name: "ลูก" },

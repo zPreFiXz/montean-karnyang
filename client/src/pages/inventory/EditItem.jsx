@@ -14,7 +14,7 @@ import { deleteImage } from "@/api/uploadImage";
 import VehicleCompatibilityInput from "@/components/forms/VehicleCompatibilityInput";
 import { useNavigate } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createPartSchema } from "@/utils/schemas";
+import { partServiceSchema } from "@/utils/schemas";
 import { units } from "@/utils/data";
 import { ChevronLeft, LoaderCircle } from "lucide-react";
 import { getInventoryById } from "@/api/inventory";
@@ -36,7 +36,7 @@ const EditItem = () => {
     trigger,
     clearErrors,
   } = useForm({
-    resolver: zodResolver(createPartSchema),
+    resolver: zodResolver(partServiceSchema),
     mode: "onChange",
     defaultValues: {
       categoryId: undefined,
@@ -60,6 +60,7 @@ const EditItem = () => {
     fetchCategories();
   }, []);
 
+  // Fetch inventory details เมื่อ categories ถูกโหลดแล้ว
   useEffect(() => {
     if (categories.length > 0 && id && type) {
       fetchInventory(id, type);
@@ -112,7 +113,7 @@ const EditItem = () => {
 
           if (item.typeSpecificData) {
             setValue("width", item.typeSpecificData.width);
-            setValue("aspectRatio", item.typeSpecificData.aspectRatio);
+            setValue("aspectRatio", item.typeSpecificData.aspectRatio || "");
             setValue("rimDiameter", item.typeSpecificData.rimDiameter);
             setValue("suspensionType", item.typeSpecificData.suspensionType, {
               shouldValidate: true,
@@ -206,7 +207,7 @@ const EditItem = () => {
       let image = null;
 
       if (selectedImage && typeof selectedImage !== "string") {
-        // ถ้าเป็นไฟล์ใหม่ (File object)
+        // ถ้าเป็นไฟล์ใหม่ ให้ทำการอัปโหลด
         const resizedImage = await resizeImage(selectedImage);
         const res = await uploadImage(resizedImage);
 
@@ -224,15 +225,14 @@ const EditItem = () => {
           }
         }
       } else if (selectedImage && typeof selectedImage === "string") {
-        // ถ้าเป็นรูปเดิม (URL string) ให้ใช้ข้อมูลเดิม
+        // ถ้าเป็นรูปเดิมให้ใช้ข้อมูลเดิม
         image = {
           publicId: inventory?.publicId,
           secureUrl: inventory?.secureUrl,
         };
       } else if (selectedImage === null) {
-        // ถ้าลบรูปแล้ว
+        // ถ้าลบรูปออก และมีรูปเดิมอยู่ ให้ลบรูปเดิมออกจาก Cloudinary
         if (inventory?.publicId && isImageMarkedForDeletion) {
-          // ลบรูปจาก Cloudinary
           try {
             await deleteImage(inventory.publicId);
           } catch (error) {
@@ -284,11 +284,11 @@ const EditItem = () => {
 
       if (isServiceCategory()) {
         await updateService(id, serviceData);
-        toast.success("แก้ไขบริการสำเร็จ");
+        toast.success("แก้ไขบริการเรียบร้อยแล้ว");
         navigate("/inventory");
       } else {
         await updatePart(id, partData);
-        toast.success("แก้ไขอะไหล่สำเร็จ");
+        toast.success("แก้ไขอะไหล่เรียบร้อยแล้ว");
         navigate("/inventory");
       }
 
@@ -306,14 +306,14 @@ const EditItem = () => {
   };
 
   return (
-    <main className="w-full h-[87px] bg-gradient-primary shadow-primary">
+    <div className="w-full h-[87px] bg-gradient-primary shadow-primary">
       <div className="flex items-center gap-[8px] py-[18px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
         <button onClick={() => navigate(-1)} className="mt-[2px] text-surface">
           <ChevronLeft />
         </button>
         {isServiceCategory() ? "แก้ไขบริการ" : "แก้ไขอะไหล่"}
       </div>
-      <section className="w-full min-h-[calc(100svh-65px)] sm:min-h-[calc(100vh-65px) rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+      <div className="w-full min-h-[calc(100svh-65px)] sm:min-h-[calc(100vh-65px) rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         {isLoading ? (
           <div className="flex justify-center items-center h-[530px]">
             <LoaderCircle className="w-8 h-8 animate-spin text-primary" />
@@ -374,7 +374,7 @@ const EditItem = () => {
                   name="partNumber"
                   label="รหัสอะไหล่"
                   type="text"
-                  placeholder="เช่น SB-3882"
+                  placeholder="เช่น BS19514LEO677"
                   color="subtle-dark"
                   errors={errors}
                 />
@@ -384,7 +384,9 @@ const EditItem = () => {
                   label="ยี่ห้อ"
                   type="text"
                   placeholder={
-                    isTireCategory() ? "เช่น LINGLONG, MAXXIS" : "เช่น 333, 555"
+                    isTireCategory()
+                      ? "เช่น LINGLONG, MAXXIS, BRIDGESTONE"
+                      : "เช่น 333, 555, VALVOLINE"
                   }
                   color="subtle-dark"
                   errors={errors}
@@ -396,8 +398,8 @@ const EditItem = () => {
                   type="text"
                   placeholder={
                     isTireCategory()
-                      ? "เช่น CROSSWIND HP010"
-                      : "เช่น ลูกหมากปีกนกบน REVO,VIGO 4x2"
+                      ? "เช่น CROSSWIND HP010, DURAVIS R624"
+                      : "เช่น ลูกหมากปีกนกบน Revo"
                   }
                   color="subtle-dark"
                   errors={errors}
@@ -415,6 +417,12 @@ const EditItem = () => {
                       color="subtle-dark"
                       errors={errors}
                       inputMode="numeric"
+                      onWheel={(e) => e.target.blur()}
+                      onInput={(e) => {
+                        e.target.value = e.target.value
+                          .replace(/[^0-9]/g, "")
+                          .slice(0, 3);
+                      }}
                     />
                     <FormInput
                       register={register}
@@ -425,6 +433,12 @@ const EditItem = () => {
                       color="subtle-dark"
                       errors={errors}
                       inputMode="numeric"
+                      onWheel={(e) => e.target.blur()}
+                      onInput={(e) => {
+                        e.target.value = e.target.value
+                          .replace(/[^0-9]/g, "")
+                          .slice(0, 2);
+                      }}
                     />
                     <FormInput
                       register={register}
@@ -435,6 +449,12 @@ const EditItem = () => {
                       color="subtle-dark"
                       errors={errors}
                       inputMode="numeric"
+                      onWheel={(e) => e.target.blur()}
+                      onInput={(e) => {
+                        e.target.value = e.target.value
+                          .replace(/[^0-9]/g, "")
+                          .slice(0, 2);
+                      }}
                     />
                   </div>
                 )}
@@ -447,15 +467,16 @@ const EditItem = () => {
                       color="text-subtle-dark"
                       options={suspensionTypes}
                       value={watch("suspensionType")}
-                      onChange={(value) => setValue("suspensionType", value, {
-                        shouldValidate: true,
-                        shouldTouch: true,
-                      })}
+                      onChange={(value) =>
+                        setValue("suspensionType", value, {
+                          shouldValidate: true,
+                          shouldTouch: true,
+                        })
+                      }
                       placeholder="-- เลือกประเภท --"
                       errors={errors}
                       name="suspensionType"
                     />
-                    {/* Hidden input สำหรับ register */}
                     <input
                       {...register("suspensionType")}
                       type="hidden"
@@ -469,18 +490,13 @@ const EditItem = () => {
                   name="costPrice"
                   label="ราคาต้นทุน (บาท)"
                   type="number"
-                  placeholder="เช่น 800"
+                  placeholder="เช่น 2500"
                   color="subtle-dark"
                   errors={errors}
                   inputMode="numeric"
                   onWheel={(e) => e.target.blur()}
                   onInput={(e) => {
                     e.target.value = e.target.value.replace(/[^0-9.]/g, "");
-                    // ป้องกันการใส่จุดมากกว่า 1 ตัว
-                    const parts = e.target.value.split(".");
-                    if (parts.length > 2) {
-                      e.target.value = parts[0] + "." + parts.slice(1).join("");
-                    }
                   }}
                 />
                 <FormInput
@@ -488,18 +504,13 @@ const EditItem = () => {
                   name="sellingPrice"
                   label="ราคาขาย (บาท)"
                   type="number"
-                  placeholder="เช่น 1200"
+                  placeholder="เช่น 2850"
                   color="subtle-dark"
                   errors={errors}
                   inputMode="numeric"
                   onWheel={(e) => e.target.blur()}
                   onInput={(e) => {
                     e.target.value = e.target.value.replace(/[^0-9.]/g, "");
-                    // ป้องกันการใส่จุดมากกว่า 1 ตัว
-                    const parts = e.target.value.split(".");
-                    if (parts.length > 2) {
-                      e.target.value = parts[0] + "." + parts.slice(1).join("");
-                    }
                   }}
                 />
                 <div className="px-[20px] my-[16px]">
@@ -518,7 +529,6 @@ const EditItem = () => {
                     errors={errors}
                     name="unit"
                   />
-                  {/* Hidden input สำหรับ register */}
                   <input
                     {...register("unit")}
                     type="hidden"
@@ -565,8 +575,8 @@ const EditItem = () => {
             </div>
           </form>
         )}
-      </section>
-    </main>
+      </div>
+    </div>
   );
 };
 

@@ -15,10 +15,8 @@ import {
   Car,
   Package,
   Settings,
-  User,
   Gauge,
   Warehouse,
-  Cog,
 } from "lucide-react";
 
 const Login = () => {
@@ -29,7 +27,6 @@ const Login = () => {
   const actionLogin = useAuthStore((state) => state.actionLogin);
   const { errors } = formState;
 
-  // แสดง toast เมื่อ logout สำเร็จ
   useEffect(() => {
     const isLoggedOut = localStorage.getItem("justLoggedOut");
     if (isLoggedOut) {
@@ -64,7 +61,7 @@ const Login = () => {
   };
 
   return (
-    <main className="relative min-h-screen p-[24px] font-athiti bg-surface">
+    <div className="relative min-h-screen p-[24px] font-athiti bg-surface">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 overflow-hidden"
@@ -80,8 +77,12 @@ const Login = () => {
         <div className="flex flex-col items-center mb-12 text-center">
           <img src={logo} alt="มณเฑียรการยาง" className="w-auto h-19 md:h-26" />
         </div>
-        <div className="relative z-30 w-full md:w-[500px] p-[24px] rounded-[24px] bg-white shadow-primary">
-          <form noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-[16px]">
+        <div className="relative z-30 w-full md:w-[500px] p-[24px] rounded-[24px] bg-surface shadow-primary">
+          <form
+            noValidate
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-[16px]"
+          >
             <p className="flex justify-center items-center gap-[8px] font-semibold text-[30px] md:text-[32px] text-primary">
               <Warehouse />
               เข้าสู่ระบบ
@@ -126,7 +127,7 @@ const Login = () => {
           </form>
         </div>
       </div>
-    </main>
+    </div>
   );
 };
 export default Login;

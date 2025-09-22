@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router";
 import FormInput from "@/components/forms/FormInput";
 import LicensePlateInput from "@/components/forms/LicensePlateInput";
 import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
-import EditPriceDialog from "@/components/dialogs/EditPriceDialog";
+import EditPriceDialog from "@/components/dialogs/EditNamePriceDialog";
 import FormButton from "@/components/forms/FormButton";
 import ComboBox from "@/components/ui/ComboBox";
 import { formatCurrency } from "@/lib/utils";
@@ -227,7 +227,7 @@ const CreateRepair = () => {
 
   const onSubmit = async (data) => {
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     navigate("/repair/summary", {
       state: {
@@ -263,7 +263,7 @@ const CreateRepair = () => {
           inline: "nearest",
         });
       }
-    }, 50);
+    }, 100);
   };
 
   const handleAddItemToRepair = (item) => {
@@ -484,9 +484,9 @@ const CreateRepair = () => {
                 }}
               />
             </div>
-            <span className="pt-[8px] font-medium text-[18px] text-surface">
+            <p className="pt-[8px] font-medium text-[18px] text-surface">
               -
-            </span>
+            </p>
             <div className="w-[80px]">
               <LicensePlateInput
                 register={register}
@@ -585,12 +585,12 @@ const CreateRepair = () => {
                       <div className="flex flex-col flex-1">
                         {renderProductInfo(item)}
                         <div className="flex items-center gap-[4px]">
-                          <span className="font-medium text-[16px] md:text-[18px] text-subtle-dark leading-tight">
+                          <p className="font-medium text-[16px] md:text-[18px] text-subtle-dark leading-tight">
                             ราคาต่อหน่วย:
-                          </span>
-                          <span className="font-medium text-[16px] md:text-[18px] text-primary">
+                          </p>
+                          <p className="font-medium text-[16px] md:text-[18px] text-primary">
                             {formatCurrency(Number(item.sellingPrice))}
-                          </span>
+                          </p>
                         </div>
                         <div className="flex items-center justify-between w-full">
                           <p className="font-semibold text-[20px] md:text-[22px] text-primary leading-tight">
@@ -611,9 +611,9 @@ const CreateRepair = () => {
                             >
                               <Minus className="w-[16px] h-[16px]" />
                             </button>
-                            <span className="font-semibold text-[18px] md:text-[20px] text-primary">
+                            <p className="font-semibold text-[18px] md:text-[20px] text-primary">
                               {item.quantity}
-                            </span>
+                            </p>
                             <button
                               type="button"
                               onClick={(e) => {

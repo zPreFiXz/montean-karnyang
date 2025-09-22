@@ -11,7 +11,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { editNamePriceSchema } from "@/utils/schemas";
 
-const EditPriceDialog = ({
+const EditNamePriceDialog = ({
   isOpen,
   onClose,
   onConfirm,
@@ -45,8 +45,6 @@ const EditPriceDialog = ({
   // ควบคุมการแก้ไขชื่อผ่าน prop ถ้ามี; ถ้าไม่ส่งมา ให้ใช้กฎทั่วไป
   const isNameEditable =
     typeof canEditName === "boolean" ? canEditName : isService;
-  const hasImage = !isService && !!productImage;
-  const dialogHeight = isNameEditable ? 450 : hasImage ? 620 : 355;
 
   // Reset form เมื่อ currentPrice เปลี่ยนหรือ dialog เปิด
   useEffect(() => {
@@ -85,7 +83,6 @@ const EditPriceDialog = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
         className="flex flex-col w-full p-0"
-        style={{ height: `${dialogHeight}px`, maxHeight: `${dialogHeight}px` }}
         showCloseButton={false}
         onOpenAutoFocus={(e) => {
           // ป้องกันการโฟกัสอัตโนมัติที่ input เมื่อเปิด dialog เพื่อลดการเด้งแป้นพิมพ์ในมือถือ
@@ -113,7 +110,7 @@ const EditPriceDialog = ({
           </button>
         </div>
 
-        {/* Content */}
+        {/* เนื้อหา */}
         <div className="overflow-y-auto flex-1 flex flex-col font-athiti">
           <div className="flex-1 px-[20px]">
             {/* ชื่อสินค้า/บริการ */}
@@ -136,7 +133,7 @@ const EditPriceDialog = ({
               </div>
             )}
 
-            {/* Form แก้ไขราคา */}
+            {/* ฟอร์มแก้ไขราคา */}
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-[8px]">
                 <div className="space-y-[16px] p-[16px] rounded-[10px] bg-gray-50">
@@ -178,7 +175,7 @@ const EditPriceDialog = ({
           </div>
         </div>
 
-        {/* Footer */}
+        {/* ส่วนท้าย */}
         <div className="flex-shrink-0 px-[16px] pb-[16px]">
           <div className="flex gap-[16px]">
             <button
@@ -202,4 +199,4 @@ const EditPriceDialog = ({
   );
 };
 
-export default EditPriceDialog;
+export default EditNamePriceDialog;
