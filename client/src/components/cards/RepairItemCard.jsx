@@ -112,7 +112,7 @@ const RepairItemCard = ({ item, variant }) => {
           </div>
           <div className="flex flex-col">
             {renderProductInfo(item)}
-            <p className="font-semibold text-[16px] md:text-[18px] text-subtle-dark">
+            <p className="font-semibold text-[16px] md:text-[18px] text-subtle-dark line-clamp-1">
               {formatCurrency(unitPrice)} × {item.quantity} {unit}
             </p>
           </div>

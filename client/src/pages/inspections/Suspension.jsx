@@ -19,6 +19,7 @@ import {
   Wrench,
   SquarePen,
   ChevronDown,
+  AlertTriangle,
 } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,6 +39,7 @@ const Suspension = () => {
   } = useForm({
     resolver: zodResolver(repairSchema),
   });
+  const isFullNameFilled = Boolean(watch("fullName")?.trim());
   const [vehicleBrandModels, setVehicleBrandModels] = useState([]);
   const [brands, setBrands] = useState([]);
   const [repairItems, setRepairItems] = useState([]);
@@ -794,6 +796,7 @@ const Suspension = () => {
               placeholder="เช่น 543 หมู่ 5 ต.น้ำอ้อม อ.กันทรลักษ์ จ.ศรีสะเกษ 33110"
               color="surface"
               errors={errors}
+              disabled={!isFullNameFilled}
             />
             <FormInput
               register={register}
@@ -810,6 +813,7 @@ const Suspension = () => {
                   .replace(/[^0-9]/g, "")
                   .slice(0, 10);
               }}
+              disabled={!isFullNameFilled}
             />
           </div>
         )}
@@ -957,8 +961,9 @@ const Suspension = () => {
                                   </button>
                                 </div>
                                 {isDisabled && (
-                                  <p className="font-medium text-[14px] md:text-[16px] text-red-500 leading-tight">
-                                    สต็อกหมด
+                                  <p className="flex items-center gap-[4px] font-semibold text-[16px] md:text-[18px] text-delete leading-tight">
+                                    <AlertTriangle className="w-5 h-5 text-delete" />
+                                    <p>สต็อกหมด</p>
                                   </p>
                                 )}
                               </div>
@@ -1063,8 +1068,9 @@ const Suspension = () => {
                                   </button>
                                 </div>
                                 {isDisabled && (
-                                  <p className="font-medium text-[14px] md:text-[16px] text-red-500 leading-tight">
-                                    สต็อกหมด
+                                  <p className="flex items-center gap-[4px] font-semibold text-[16px] md:text-[18px] text-delete leading-tight">
+                                    <AlertTriangle className="w-5 h-5 text-delete" />
+                                    <p>สต็อกหมด</p>
                                   </p>
                                 )}
                               </div>
@@ -1169,8 +1175,9 @@ const Suspension = () => {
                                   </button>
                                 </div>
                                 {isDisabled && (
-                                  <p className="font-medium text-[14px] md:text-[16px] text-red-500 leading-tight">
-                                    สต็อกหมด
+                                  <p className="flex items-center gap-[4px] font-semibold text-[16px] md:text-[18px] text-delete leading-tight">
+                                    <AlertTriangle className="w-5 h-5 text-delete" />
+                                    <p>สต็อกหมด</p>
                                   </p>
                                 )}
                               </div>

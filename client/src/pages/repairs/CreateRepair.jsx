@@ -21,6 +21,7 @@ const CreateRepair = () => {
     useForm({
       resolver: zodResolver(repairSchema),
     });
+  const isFullNameFilled = Boolean(watch("fullName")?.trim());
   const [repairItems, setRepairItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [vehicleBrandModels, setVehicleBrandModels] = useState([]);
@@ -390,6 +391,7 @@ const CreateRepair = () => {
           placeholder="เช่น 543 หมู่ 5 ต.น้ำอ้อม อ.กันทรลักษ์ จ.ศรีสะเกษ 33110"
           color="surface"
           errors={errors}
+          disabled={!isFullNameFilled}
         />
         <FormInput
           register={register}
@@ -404,6 +406,7 @@ const CreateRepair = () => {
           onInput={(e) => {
             e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 10);
           }}
+          disabled={!isFullNameFilled}
         />
 
         <div className="px-[20px] mt-[16px]">
@@ -585,7 +588,7 @@ const CreateRepair = () => {
                           </p>
                         </div>
                         <div className="flex items-center justify-between w-full">
-                          <p className="font-semibold text-[20px] md:text-[22px] text-primary leading-tight">
+                          <p className="font-semibold text-[20px] md:text-[22px] text-primary leading-tight line-clamp-1">
                             {formatCurrency(item.quantity * item.sellingPrice)}
                           </p>
                           <div

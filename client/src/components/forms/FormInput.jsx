@@ -38,7 +38,7 @@ const FormInput = ({
           aria-invalid={errors[name] ? "true" : "false"}
           className={`w-full h-[41px] px-[12px] rounded-[20px] font-medium text-[20px] md:text-[22px] bg-surface placeholder:font-light placeholder:text-[18px] md:placeholder:text-[20px] ${
             errors[name]
-              ? "border-red-400 focus:border-red-500 focus-visible:!border-[#FF4545] focus-visible:!ring-[rgba(255,69,69,0.3)] focus-visible:!border-2"
+              ? "border-red-400 focus:border-delete focus-visible:!border-[#FF4545] focus-visible:!ring-[rgba(255,69,69,0.3)] focus-visible:!border-2"
               : "focus-visible:!border-[#1976d2] focus-visible:!ring-[rgba(25,118,210,0.35)] focus-visible:!border-2"
           }`}
           style={{

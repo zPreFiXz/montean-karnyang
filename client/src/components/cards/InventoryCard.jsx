@@ -1,4 +1,4 @@
-import { Image, Wrench } from "lucide-react";
+import { Image, Wrench, AlertTriangle } from "lucide-react";
 
 const InventoryCard = ({
   brand,
@@ -71,8 +71,9 @@ const InventoryCard = ({
                   {`จำนวน: ${stockQuantity} ${unit}`}
                 </p>
               ) : (
-                <p className="font-semibold text-[16px] md:text-[18px] text-red-500">
-                  สต็อกหมด
+                <p className="flex items-center gap-[4px] font-semibold text-[16px] md:text-[18px] text-delete">
+                  <AlertTriangle className="w-5 h-5 text-delete" />
+                  <p>สต็อกหมด</p>
                 </p>
               ))}
           </div>

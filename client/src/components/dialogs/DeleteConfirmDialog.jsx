@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ const DeleteConfirmDialog = ({
   itemName = "",
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const cancelButtonRef = useRef(null);
 
   const handleConfirm = async () => {
     setIsLoading(true);
@@ -37,8 +38,14 @@ const DeleteConfirmDialog = ({
         className="flex flex-col w-full p-0"
         showCloseButton={false}
         onOpenAutoFocus={(e) => {
-          // ป้องกันการโฟกัสอัตโนมัติที่ input เมื่อเปิด dialog เพื่อลดการเด้งแป้นพิมพ์ในมือถือ
+          // ป้องกันโฟกัสอัตโนมัติ แต่ย้ายโฟกัสเข้า dialog เพื่อหลีกเลี่ยง aria-hidden warning
           e.preventDefault();
+          if (cancelButtonRef.current && typeof cancelButtonRef.current.focus === "function") {
+            cancelButtonRef.current.focus();
+          } else if (e?.target && typeof e.target.focus === "function") {
+            // สำรอง: โฟกัสที่ตัว dialog เอง (ต้องสามารถ focus ได้)
+            e.target.focus();
+          }
         }}
       >
         <div className="relative flex-shrink-0 pt-[16px]">
@@ -84,6 +91,7 @@ const DeleteConfirmDialog = ({
               disabled={isLoading}
               onClick={onClose}
               className="flex-1 flex items-center justify-center h-[41px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-subtle-dark bg-gray-100 hover:bg-gray-200"
+              ref={cancelButtonRef}
             >
               ยกเลิก
             </button>

@@ -85,7 +85,7 @@ const ComboBox = ({
                   (customClass
                     ? "font-light text-muted-foreground"
                     : "font-light text-[18px] md:text-[20px] text-muted-foreground"),
-                hasError && "border-red-400 focus:border-red-500",
+                hasError && "border-red-400 focus:border-delete",
                 disabled && "opacity-50 cursor-not-allowed"
               )}
               style={{
