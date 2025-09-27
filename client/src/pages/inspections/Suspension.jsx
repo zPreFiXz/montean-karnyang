@@ -18,6 +18,7 @@ import {
   Check,
   Wrench,
   SquarePen,
+  ChevronDown,
 } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -51,7 +52,7 @@ const Suspension = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [priceOverrides, setPriceOverrides] = useState({});
   const restoredRef = useRef(false);
-  const isEditing = Boolean(location.state?.editRepairId);
+  const [showMoreFields, setShowMoreFields] = useState(false);
   const initialSelectedRef = useRef({
     left: new Set(),
     right: new Set(),
@@ -106,6 +107,21 @@ const Suspension = () => {
       setCompatibleParts([]);
     }
   }, [watch("brand"), watch("model")]);
+
+  // ถ้าไม่มีอะไหล่ที่รองรับ ให้เอารายการ "ค่าแรง" ออกจากรายการซ่อม
+  useEffect(() => {
+    if (compatibleParts.length === 0) {
+      setRepairItems((prev) =>
+        prev.filter(
+          (item) =>
+            !(
+              item?.category?.name === "บริการ" &&
+              (item?.id === 1 || item?.name === "ค่าแรง")
+            )
+        )
+      );
+    }
+  }, [compatibleParts]);
 
   // กู้คืนข้อมูลเมื่อกลับมาจากหน้าสรุป
   useEffect(() => {
@@ -176,6 +192,17 @@ const Suspension = () => {
         });
       }, 100);
     }
+
+    // ถ้ามาในโหมดแก้ไข และมีอย่างน้อย 1 input ที่ถูกซ่อนไว้ (type=hidden) มีค่า ให้แสดงทุก input (เปิดส่วนข้อมูลลูกค้า)
+    try {
+      const hiddenInputs = Array.from(
+        document.querySelectorAll('form input[type="hidden"]')
+      );
+      const hasHiddenValue = hiddenInputs.some(
+        (el) => el && el.value != null && String(el.value).trim() !== ""
+      );
+      if (hasHiddenValue) setShowMoreFields(true);
+    } catch (_) {}
 
     // ลบ state ออกจาก history แต่คงค่า editRepairId และแหล่งที่มาไว้
     const preserved = {
@@ -443,11 +470,6 @@ const Suspension = () => {
     setPriceDialogOpen(true);
   };
 
-  const isLaborItem = (item) => {
-    // มองว่าเป็นค่าแรงถ้าเป็นบริการและ id=1
-    return item?.category?.name === "บริการ" && item?.id === 1;
-  };
-
   const getRepairItemsCountExcludingLabor = () => {
     return repairItems.length;
   };
@@ -624,38 +646,6 @@ const Suspension = () => {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
-        <FormInput
-          register={register}
-          name="fullName"
-          label="ชื่อลูกค้า"
-          type="text"
-          placeholder="เช่น สมชาย ใจดี"
-          color="surface"
-          errors={errors}
-        />
-        <FormInput
-          register={register}
-          name="address"
-          label="ที่อยู่"
-          type="text"
-          placeholder="เช่น 543 หมู่ 5 ต.น้ำอ้อม อ.กันทรลักษ์ จ.ศรีสะเกษ 33110"
-          color="surface"
-          errors={errors}
-        />
-        <FormInput
-          register={register}
-          name="phoneNumber"
-          label="หมายเลขโทรศัพท์"
-          type="text"
-          placeholder="เช่น 0812345678"
-          color="surface"
-          maxLength={10}
-          errors={errors}
-          inputMode="numeric"
-          onInput={(e) => {
-            e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 10);
-          }}
-        />
         <div className="px-[20px] mt-[16px]">
           <ComboBox
             label="ยี่ห้อรถ"
@@ -676,7 +666,6 @@ const Suspension = () => {
             errors={errors}
             name="brand"
           />
-          {/* Hidden input สำหรับ register */}
           <input
             {...register("brand")}
             type="hidden"
@@ -700,7 +689,6 @@ const Suspension = () => {
             name="model"
             disabled={!watch("brand")}
           />
-          {/* Hidden input สำหรับ register */}
           <input
             {...register("model")}
             type="hidden"
@@ -728,9 +716,7 @@ const Suspension = () => {
                 }}
               />
             </div>
-            <p className="pt-[8px] font-medium text-[18px] text-surface">
-              -
-            </p>
+            <p className="pt-[8px] font-medium text-[18px] text-surface">-</p>
             <div className="w-[80px]">
               <LicensePlateInput
                 register={register}
@@ -775,7 +761,59 @@ const Suspension = () => {
           errors={errors}
         />
 
-        <div className="overflow-hidden w-full h-full mt-[30px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+        {!showMoreFields && (
+          <div className="flex justify-center mt-[16px]">
+            <button
+              type="button"
+              onClick={() => setShowMoreFields(true)}
+              className="flex items-center gap-[2px] p-2 rounded-[10px] text-primary bg-surface"
+            >
+              <ChevronDown className="w-6 h-6 mt-[2px]" />
+              <p className="font-semibold text-[18px] md:text-[20px]">
+                กรอกข้อมูลลูกค้า
+              </p>
+            </button>
+          </div>
+        )}
+        {showMoreFields && (
+          <div className="mt-[20px]">
+            <FormInput
+              register={register}
+              name="fullName"
+              label="ชื่อลูกค้า"
+              type="text"
+              placeholder="เช่น สมชาย ใจดี"
+              color="surface"
+              errors={errors}
+            />
+            <FormInput
+              register={register}
+              name="address"
+              label="ที่อยู่"
+              type="text"
+              placeholder="เช่น 543 หมู่ 5 ต.น้ำอ้อม อ.กันทรลักษ์ จ.ศรีสะเกษ 33110"
+              color="surface"
+              errors={errors}
+            />
+            <FormInput
+              register={register}
+              name="phoneNumber"
+              label="หมายเลขโทรศัพท์"
+              type="text"
+              placeholder="เช่น 0812345678"
+              color="surface"
+              maxLength={10}
+              errors={errors}
+              inputMode="numeric"
+              onInput={(e) => {
+                e.target.value = e.target.value
+                  .replace(/[^0-9]/g, "")
+                  .slice(0, 10);
+              }}
+            />
+          </div>
+        )}
+        <div className="overflow-hidden w-full h-full mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
           <div className="flex justify-between items-center px-[20px] pt-[16px]">
             <p className="font-semibold text-[22px] md:text-[24px]">
               รายการซ่อมช่วงล่าง
@@ -1168,13 +1206,13 @@ const Suspension = () => {
           {watch("brand") && watch("model") && compatibleParts.length === 0 && (
             <div className="flex justify-center items-center h-[228px]">
               <p className="text-[20px] md:text-[22px] text-subtle-light">
-                ไม่มีอะไหล่รองรับ
+                ไม่พบอะไหล่ที่รองรับ
               </p>
             </div>
           )}
 
           {/* รายการซ่อมเพิ่มเติม */}
-          {watch("brand") && watch("model") && (
+          {watch("brand") && watch("model") && compatibleParts.length > 0 && (
             <div className="flex justify-between items-center px-[20px] pt-[16px]">
               <p className="font-semibold text-[22px] md:text-[24px]">
                 รายการซ่อมเพิ่มเติม
@@ -1194,17 +1232,6 @@ const Suspension = () => {
           {/* รายการซ่อมที่เลือก */}
           {repairItems.length === 0 && compatibleParts.length === 0 ? (
             <div>
-              {/* แสดงเมื่อเลือกยี่ห้อและรุ่นแล้วแต่ไม่มีอะไหล่รองรับ */}
-              {watch("brand") &&
-                watch("model") &&
-                compatibleParts.length === 0 && (
-                  <div className="flex justify-center items-center h-[228px]">
-                    <p className="text-[20px] md:text-[22px] text-subtle-light">
-                      ไม่มีอะไหล่รองรับ
-                    </p>
-                  </div>
-                )}
-
               {/* แสดงเมื่อยังไม่เลือกยี่ห้อหรือรุ่น */}
               {(!watch("brand") || !watch("model")) && (
                 <div className="flex justify-center items-center h-[228px]">
@@ -1304,12 +1331,77 @@ const Suspension = () => {
               ))}
 
               {/* สรุปยอดรวมทั้งหมด */}
-              <div className="p-[16px] mx-[20px] mt-[16px] mb-[16px] rounded-[12px] border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5">
-                <div className="flex justify-between items-center">
-                  <div className="flex flex-col">
-                    <p className="font-semibold text-[20px] md:text-[22px] text-subtle-dark">
-                      รวม{" "}
-                      {Array.from(selectedLeftParts).filter((id) =>
+              {compatibleParts.length > 0 && (
+                <div className="p-[16px] mx-[20px] mt-[16px] mb-[16px] rounded-[12px] border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5">
+                  <div className="flex justify-between items-center">
+                    <div className="flex flex-col">
+                      <p className="font-semibold text-[20px] md:text-[22px] text-subtle-dark">
+                        รวม{" "}
+                        {Array.from(selectedLeftParts).filter((id) =>
+                          getPartsForSide("left").some((part) => part.id === id)
+                        ).length +
+                          Array.from(selectedRightParts).filter((id) =>
+                            getPartsForSide("right").some(
+                              (part) => part.id === id
+                            )
+                          ).length +
+                          Array.from(selectedOtherParts).filter((id) =>
+                            getPartsForSide("other").some(
+                              (part) => part.id === id
+                            )
+                          ).length +
+                          getRepairItemsCountExcludingLabor()}{" "}
+                        รายการ
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <p className="font-semibold text-[24px] md:text-[26px] text-primary">
+                        {formatCurrency(
+                          // รวมราคาจากอะไหล่ที่เลือกจาก compatibleParts (กรองตาม suspensionType)
+                          getPartsForSide("left").reduce((total, part) => {
+                            return (
+                              total +
+                              (selectedLeftParts.has(part.id)
+                                ? getPriceForPart(part)
+                                : 0)
+                            );
+                          }, 0) +
+                            getPartsForSide("right").reduce((total, part) => {
+                              return (
+                                total +
+                                (selectedRightParts.has(part.id)
+                                  ? getPriceForPart(part)
+                                  : 0)
+                              );
+                            }, 0) +
+                            getPartsForSide("other").reduce((total, part) => {
+                              return (
+                                total +
+                                (selectedOtherParts.has(part.id)
+                                  ? getPriceForPart(part)
+                                  : 0)
+                              );
+                            }, 0) +
+                            // บวกกับรายการซ่อมที่เพิ่มเอง
+                            repairItems.reduce(
+                              (total, item) =>
+                                total + item.sellingPrice * item.quantity,
+                              0
+                            )
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {compatibleParts.length > 0 && (
+                <div className="flex justify-center pb-[16px]">
+                  <FormButton
+                    label="ถัดไป"
+                    isLoading={isLoading}
+                    disabled={
+                      Array.from(selectedLeftParts).filter((id) =>
                         getPartsForSide("left").some((part) => part.id === id)
                       ).length +
                         Array.from(selectedRightParts).filter((id) =>
@@ -1321,69 +1413,12 @@ const Suspension = () => {
                           getPartsForSide("other").some(
                             (part) => part.id === id
                           )
-                        ).length +
-                        getRepairItemsCountExcludingLabor()}{" "}
-                      รายการ
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <p className="font-semibold text-[24px] md:text-[26px] text-primary">
-                      {formatCurrency(
-                        // รวมราคาจากอะไหล่ที่เลือกจาก compatibleParts (กรองตาม suspensionType)
-                        getPartsForSide("left").reduce((total, part) => {
-                          return (
-                            total +
-                            (selectedLeftParts.has(part.id)
-                              ? getPriceForPart(part)
-                              : 0)
-                          );
-                        }, 0) +
-                          getPartsForSide("right").reduce((total, part) => {
-                            return (
-                              total +
-                              (selectedRightParts.has(part.id)
-                                ? getPriceForPart(part)
-                                : 0)
-                            );
-                          }, 0) +
-                          getPartsForSide("other").reduce((total, part) => {
-                            return (
-                              total +
-                              (selectedOtherParts.has(part.id)
-                                ? getPriceForPart(part)
-                                : 0)
-                            );
-                          }, 0) +
-                          // บวกกับรายการซ่อมที่เพิ่มเอง
-                          repairItems.reduce(
-                            (total, item) =>
-                              total + item.sellingPrice * item.quantity,
-                            0
-                          )
-                      )}
-                    </p>
-                  </div>
+                        ).length ===
+                      0
+                    }
+                  />
                 </div>
-              </div>
-
-              <div className="flex justify-center pb-[16px]">
-                <FormButton
-                  label="ถัดไป"
-                  isLoading={isLoading}
-                  disabled={
-                    Array.from(selectedLeftParts).filter((id) =>
-                      getPartsForSide("left").some((part) => part.id === id)
-                    ).length +
-                      Array.from(selectedRightParts).filter((id) =>
-                        getPartsForSide("right").some((part) => part.id === id)
-                      ).length +
-                      Array.from(selectedOtherParts).filter((id) =>
-                        getPartsForSide("other").some((part) => part.id === id)
-                      ).length ===
-                    0
-                  }
-                />
-              </div>
+              )}
             </div>
           ) : (
             <div>

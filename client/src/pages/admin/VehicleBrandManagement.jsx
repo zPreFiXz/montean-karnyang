@@ -150,7 +150,7 @@ const VehicleBrandManagement = () => {
               isOpen={showDeleteDialog}
               onClose={handleDeleteCancel}
               onConfirm={handleDeleteConfirm}
-              title="ยืนยันการลบ"
+              title="ยืนยันการลบยี่ห้อและรุ่นรถ"
               message="คุณแน่ใจหรือไม่ว่าต้องการลบยี่ห้อและรุ่นรถนี้?"
               itemName={
                 deletingItem && deletingItem.brand !== "อื่นๆ"

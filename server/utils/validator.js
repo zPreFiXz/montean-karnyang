@@ -13,21 +13,7 @@ exports.loginSchema = z.object({
   password: z.string().min(8),
 });
 
-exports.createRepairSchema = z.object({
-  fullName: z.string().optional(),
-  address: z.string().optional(),
-  phoneNumber: z.string().optional(),
-  brand: z.string().min(1),
-  model: z.string().min(1),
-  plateNumber: z.string().nullable().optional(),
-  province: z.string().nullable().optional(),
-  description: z.string().optional(),
-  source: z.enum(["GENERAL", "SUSPENSION"]),
-  totalPrice: z.coerce.number(),
-  repairItems: z.any(),
-});
-
-exports.updateRepairSchema = z.object({
+exports.repairSchema = z.object({
   fullName: z.string().optional(),
   address: z.string().optional(),
   phoneNumber: z.string().optional(),

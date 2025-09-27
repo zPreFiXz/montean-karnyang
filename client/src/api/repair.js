@@ -16,9 +16,6 @@ export const updateRepair = async (id, data) => {
   return await api.put(`/api/repair/${id}`, data);
 };
 
-export const updateRepairStatus = async (id, status, additionalData = {}) => {
-  return await api.patch(`/api/repair/${id}/status`, {
-    status,
-    ...additionalData,
-  });
+export const updateRepairStatus = async (id, data) => {
+  return await api.patch(`/api/repair/${id}/status`, data);
 };

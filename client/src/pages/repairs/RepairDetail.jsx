@@ -58,6 +58,14 @@ const RepairDetail = () => {
     }
   };
 
+  const defaultStatusInfo = {
+    text: "ไม่ทราบสถานะ",
+    color: "text-subtle-dark",
+    bg: "bg-gray-200",
+    iconColor: "#6b7280",
+    icon: CircleEllipsis,
+  };
+
   const getStatusInfo = (status) => {
     switch (status) {
       case "IN_PROGRESS":
@@ -85,6 +93,7 @@ const RepairDetail = () => {
           icon: CreditCard,
         };
     }
+    return defaultStatusInfo;
   };
 
   const getPaymentMethodText = (method) => {
@@ -146,22 +155,23 @@ const RepairDetail = () => {
         setIsUpdating(true);
       }
 
-      const updateData = { status: nextStatus };
+      const updateData = { nextStatus: nextStatus };
+
       if (needsPaymentMethod) {
         updateData.paymentMethod = selectedPaymentMethod;
       }
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      const res = await updateRepairStatus(repair.id, nextStatus, updateData);
+      const res = await updateRepairStatus(repair.id, updateData);
       setRepair(res.data);
 
       if (skipToCompleted) {
-        toast.success("ซ่อมเสร็จสิ้นและชำระเงินแล้ว");
+        toast.success("ซ่อมเสร็จสิ้นและชำระเงินเรียบร้อยแล้ว");
       } else if (nextStatus === "COMPLETED") {
-        toast.success("ซ่อมเสร็จสิ้น");
+        toast.success("ซ่อมเสร็จเรียบร้อยแล้ว");
       } else if (nextStatus === "PAID") {
-        toast.success("ยืนยันการชำระเงินสำเร็จ");
+        toast.success("ชำระเงินเรียบร้อยแล้ว");
       }
 
       // แปลงสถานะเป็น slug สำหรับ URL
@@ -175,7 +185,7 @@ const RepairDetail = () => {
     }
   };
 
-  const statusInfo = repair ? getStatusInfo(repair.status) : null;
+  const statusInfo = getStatusInfo(repair?.status) ?? defaultStatusInfo;
   const StatusIcon = statusInfo?.icon;
 
   const getProvinceIdByName = (name) => {
@@ -420,47 +430,51 @@ const RepairDetail = () => {
                   >
                     <CircleUserRound color="#ffffff" />
                   </div>
-                  <div className="flex flex-col">
-                    {repair.customer.fullName && (
+                  {repair.customer.fullName &&
+                  !repair.customer.phoneNumber &&
+                  !repair.customer.address ? (
+                    <div className="flex items-center justify-center h-[45px] mt-[4px]">
                       <p
                         className={`font-semibold text-[22px] md:text-[24px] ${statusInfo.color} leading-tight`}
                       >
                         {repair.customer.fullName}
                       </p>
-                    )}
-                    <div className="flex flex-wrap items-start gap-[8px] mt-[4px]">
-                      {repair.customer.phoneNumber && (
-                        <div className="flex-shrink-0 flex items-center gap-[4px]">
-                          <Phone size={16} className="text-subtle-dark" />
-                          <a
-                            href={`tel:${repair.customer.phoneNumber}`}
-                            className="font-medium text-[18px] md:text-[20px] text-subtle-dark leading-tight underline decoration-dashed"
-                          >
-                            {repair.customer.phoneNumber}
-                          </a>
-                        </div>
-                      )}
-                      {repair.customer.address && (
-                        <div className="flex items-start gap-[4px]">
-                          <MapPin
-                            size={16}
-                            className="flex-shrink-0 text-subtle-dark mt-[2px]"
-                          />
-                          <p
-                            className="font-medium text-[18px] md:text-[20px] text-subtle-dark leading-tight"
-                            style={{
-                              textIndent: repair.customer.phoneNumber
-                                ? 0
-                                : "20px",
-                              hangingPunctuation: "first",
-                            }}
-                          >
-                            {repair.customer.address}
-                          </p>
-                        </div>
-                      )}
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex flex-col">
+                      {repair.customer.fullName && (
+                        <p
+                          className={`font-semibold text-[22px] md:text-[24px] ${statusInfo.color} leading-tight`}
+                        >
+                          {repair.customer.fullName}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap items-start gap-[8px] mt-[4px]">
+                        {repair.customer.phoneNumber && (
+                          <div className="flex-shrink-0 flex items-center gap-[4px]">
+                            <Phone size={16} className="text-subtle-dark" />
+                            <a
+                              href={`tel:${repair.customer.phoneNumber}`}
+                              className="font-medium text-[18px] md:text-[20px] text-subtle-dark leading-tight underline decoration-dashed"
+                            >
+                              {repair.customer.phoneNumber}
+                            </a>
+                          </div>
+                        )}
+                        {repair.customer.address && (
+                          <div className="flex items-start gap-[4px]">
+                            <MapPin
+                              size={16}
+                              className="flex-shrink-0 text-subtle-dark mt-[2px]"
+                            />
+                            <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark leading-tight">
+                              {repair.customer.address}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

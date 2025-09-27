@@ -327,12 +327,12 @@ exports.updateRepair = async (req, res, next) => {
       }
 
       // อัปเดตรถของงานซ่อมนี้ให้ชี้ไปยังรุ่นและทะเบียนที่ระบุ
-      const currentRepair = await prisma.repair.findUnique({
+      const repair = await prisma.repair.findUnique({
         where: { id: Number(id) },
         select: { vehicleId: true },
       });
       vehicle = await prisma.vehicle.upsert({
-        where: { id: currentRepair.vehicleId },
+        where: { id: repair.vehicleId },
         update: {
           vehicleBrandModelId: vehicleBrandModel.id,
           licensePlateId: licensePlate.id,
@@ -351,18 +351,18 @@ exports.updateRepair = async (req, res, next) => {
         },
       });
 
-      const currentRepair = await prisma.repair.findUnique({
+      const repair = await prisma.repair.findUnique({
         where: { id: Number(id) },
         select: { vehicleId: true },
       });
 
       // ถ้าเจอรถที่ใช้ยี่ห้อและรุ่นเดียวกันแต่ไม่มีทะเบียน และไม่ใช่รถคันเดิมของ repair นี้
-      if (existingVehicle && existingVehicle.id !== currentRepair.vehicleId) {
+      if (existingVehicle && existingVehicle.id !== repair.vehicleId) {
         vehicle = existingVehicle;
       } else {
         // อัปเดตรถปัจจุบันให้ไม่มีทะเบียน
         vehicle = await prisma.vehicle.update({
-          where: { id: currentRepair.vehicleId },
+          where: { id: repair.vehicleId },
           data: {
             vehicleBrandModelId: vehicleBrandModel.id,
             licensePlateId: null,
@@ -447,7 +447,7 @@ exports.updateRepair = async (req, res, next) => {
     }
 
     // อัปเดตหัวตารางซ่อม
-    const updatedRepair = await prisma.repair.update({
+    await prisma.repair.update({
       where: { id: Number(id) },
       data: {
         description: description || null,
@@ -487,76 +487,42 @@ exports.updateRepair = async (req, res, next) => {
 exports.updateRepairStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { status, paymentMethod } = req.body;
+    const { nextStatus, paymentMethod } = req.body;
 
     // ดึงข้อมูลการซ่อมปัจจุบันเพื่อเช็คสถานะเดิม
-    const currentRepair = await prisma.repair.findUnique({
+    const repair = await prisma.repair.findUnique({
       where: { id: Number(id) },
-      select: { status: true, completedAt: true },
     });
 
-    const updatedData = { status };
+    const data = {};
 
-    if (status === "COMPLETED") {
-      updatedData.completedAt = new Date();
-    } else if (status === "PAID") {
-      updatedData.paidAt = new Date();
+    if (nextStatus === "COMPLETED") {
+      data.status = "COMPLETED";
+      data.completedAt = new Date();
+    } else if (nextStatus === "PAID") {
+      data.status = "PAID";
+      data.paidAt = new Date();
 
       // ถ้าข้ามจาก IN_PROGRESS ไปเป็น PAID โดยตรง ให้เซ็ต completedAt ด้วย
-      if (
-        currentRepair.status === "IN_PROGRESS" &&
-        !currentRepair.completedAt
-      ) {
-        updatedData.completedAt = new Date();
+      if (repair.status === "IN_PROGRESS" && !repair.completedAt) {
+        data.completedAt = new Date();
       }
 
-      // ถ้ามี paymentMethod ให้อัปเดตด้วย
-      if (paymentMethod) {
-        const validPaymentMethods = ["CASH", "CREDIT_CARD", "BANK_TRANSFER"];
-        if (validPaymentMethods.includes(paymentMethod)) {
-          updatedData.paymentMethod = paymentMethod;
-        }
+      // ถ้ามี paymentMethod ให้อัปเดตด้วย (และตรวจสอบค่า)
+      const validPaymentMethods = ["CASH", "CREDIT_CARD", "BANK_TRANSFER"];
+      if (paymentMethod && validPaymentMethods.includes(paymentMethod)) {
+        data.paymentMethod = paymentMethod;
       }
     }
 
-    const updatedRepair = await prisma.repair.update({
+    await prisma.repair.update({
       where: { id: Number(id) },
-      data: updatedData,
-      include: {
-        vehicle: {
-          include: {
-            licensePlate: true,
-            vehicleBrandModel: {
-              select: {
-                brand: true,
-                model: true,
-              },
-            },
-          },
-        },
-        customer: true,
-        user: {
-          select: {
-            id: true,
-            fullName: true,
-            nickname: true,
-            email: true,
-          },
-        },
-        repairItems: {
-          include: {
-            part: {
-              include: {
-                category: true,
-              },
-            },
-            service: true,
-          },
-        },
-      },
+      data,
     });
 
-    res.json(updatedRepair);
+    res.json({
+      message: "Repair status updated successfully",
+    });
   } catch (error) {
     next(error);
   }

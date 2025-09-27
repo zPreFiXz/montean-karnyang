@@ -206,11 +206,7 @@ const CreateRepair = () => {
   // กู้คืนข้อมูลเมื่อกลับมาจากหน้าสรุป
   useEffect(() => {
     if (location.state) {
-      const {
-        repairData,
-        repairItems: savedItems,
-        scrollToBottom,
-      } = location.state;
+      const { repairData, repairItems: savedItems } = location.state;
 
       if (repairData) {
         Object.keys(repairData).forEach((key) => {
@@ -430,7 +426,6 @@ const CreateRepair = () => {
             errors={errors}
             name="brand"
           />
-          {/* Hidden input สำหรับ register */}
           <input
             {...register("brand")}
             type="hidden"
@@ -455,7 +450,6 @@ const CreateRepair = () => {
             name="model"
             disabled={!watch("brand")}
           />
-          {/* Hidden input สำหรับ register */}
           <input
             {...register("model")}
             type="hidden"
@@ -484,9 +478,7 @@ const CreateRepair = () => {
                 }}
               />
             </div>
-            <p className="pt-[8px] font-medium text-[18px] text-surface">
-              -
-            </p>
+            <p className="pt-[8px] font-medium text-[18px] text-surface">-</p>
             <div className="w-[80px]">
               <LicensePlateInput
                 register={register}
@@ -530,7 +522,7 @@ const CreateRepair = () => {
           errors={errors}
         />
 
-        <div className="w-full h-full mt-[30px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+        <div className="w-full h-full mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
           <div className="flex justify-between items-center px-[20px] pt-[16px]">
             <p className="font-semibold text-[22px] md:text-[24px]">
               รายการซ่อม

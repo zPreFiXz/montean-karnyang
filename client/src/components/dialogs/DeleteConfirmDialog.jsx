@@ -36,6 +36,10 @@ const DeleteConfirmDialog = ({
       <DialogContent
         className="flex flex-col w-full p-0"
         showCloseButton={false}
+        onOpenAutoFocus={(e) => {
+          // ป้องกันการโฟกัสอัตโนมัติที่ input เมื่อเปิด dialog เพื่อลดการเด้งแป้นพิมพ์ในมือถือ
+          e.preventDefault();
+        }}
       >
         <div className="relative flex-shrink-0 pt-[16px]">
           <DialogTitle className="font-athiti font-semibold text-center text-[22px] md:text-[24px] text-subtle-dark">
@@ -64,7 +68,7 @@ const DeleteConfirmDialog = ({
 
             {itemName && (
               <div className="mt-4 flex items-center justify-center">
-                <span className="inline-block px-4 py-2 rounded-full font-semibold text-[18px] md:text-[20px] text-primary bg-primary/10">
+                <span className="inline-block px-4 py-2 rounded-[10px] font-semibold text-[18px] md:text-[20px] text-primary bg-primary/10">
                   {itemName}
                 </span>
               </div>

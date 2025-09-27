@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Edit, Plus, X, AlertTriangle, Check } from "lucide-react";
+import { Edit, Plus, X, AlertTriangle, Check, Trash } from "lucide-react";
+import DeleteConfirmDialog from "@/components/dialogs/DeleteConfirmDialog";
 import {
   Dialog,
   DialogContent,
@@ -11,13 +12,15 @@ import FormButton from "@/components/forms/FormButton";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { addStock } from "@/api/part";
+import { addStock, deletePart } from "@/api/part";
+import { deleteService } from "@/api/service";
 import { useNavigate } from "react-router";
 import { addStockSchema } from "@/utils/schemas";
 
 const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
   const [showAddStock, setShowAddStock] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(item);
   const navigate = useNavigate();
 
@@ -60,6 +63,18 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
 
   const isService = currentItem.type === "service";
   const isTire = currentItem.category?.name === "ยาง";
+
+  const itemDisplayName = (() => {
+    if (isService) return `${currentItem.name}`;
+    if (isTire && currentItem.typeSpecificData) {
+      const t = currentItem.typeSpecificData;
+      if (t.aspectRatio) {
+        return `${currentItem.brand} ${t.width}/${t.aspectRatio}R${t.rimDiameter} ${currentItem.name}`;
+      }
+      return `${currentItem.brand} ${t.width}R${t.rimDiameter} ${currentItem.name}`;
+    }
+    return `${currentItem.brand} ${currentItem.name}`;
+  })();
 
   const renderProductInfo = () => {
     if (
@@ -393,11 +408,11 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
 
           {/* ส่วนท้าย */}
           <div className="flex-shrink-0 px-[16px] pb-[16px]">
-            <div className="flex gap-[16px]">
+            <div className="flex gap-[16px] items-center">
               {!isService && !showAddStock && (
                 <button
                   onClick={handleShowAddStock}
-                  className="flex-1 flex items-center justify-center h-[41px] gap-[8px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-surface bg-gradient-primary"
+                  className="flex-1 flex items-center justify-center h-[41px] gap-[4px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-surface bg-gradient-primary"
                 >
                   <Plus className="w-4 h-4" />
                   เพิ่มสต็อก
@@ -407,13 +422,53 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
               <button
                 onClick={handleEdit}
                 autoFocus={false}
-                className={`${
-                  showAddStock && !isService ? "flex-1" : "flex-1"
-                } flex items-center justify-center h-[41px] gap-[8px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-surface bg-in-progress`}
+                className={`flex-1 flex items-center justify-center h-[41px] gap-[4px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-surface bg-in-progress`}
               >
                 <Edit className="w-4 h-4" />
                 แก้ไข
               </button>
+
+              <div>
+                <DeleteConfirmDialog
+                  isOpen={confirmOpen}
+                  onClose={() => setConfirmOpen(false)}
+                  itemName={itemDisplayName}
+                  title={isService ? "ยืนยันการลบบริการ" : "ยืนยันการลบอะไหล่"}
+                  message={
+                    isService
+                      ? "คุณแน่ใจหรือไม่ว่าต้องการลบบริการนี้?"
+                      : "คุณแน่ใจหรือไม่ว่าต้องการลบอะไหล่นี้?"
+                  }
+                  onConfirm={async () => {
+                    try {
+                      if (isService) {
+                        await deleteService(currentItem.id);
+                      } else {
+                        await deletePart(currentItem.id);
+                      }
+                      toast.success(
+                        isService
+                          ? "ลบบริการเรียบร้อยแล้ว"
+                          : "ลบอะไหล่เรียบร้อยแล้ว"
+                      );
+                      onOpenChange(false);
+                      if (onStockUpdate) onStockUpdate();
+                    } catch (error) {
+                      console.error(error);
+                    } finally {
+                      setConfirmOpen(false);
+                    }
+                  }}
+                />
+
+                <button
+                  onClick={() => setConfirmOpen(true)}
+                  className="flex items-center justify-center w-[44px] h-[41px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-surface bg-delete"
+                  aria-label="ลบ"
+                >
+                  <Trash className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         </DialogContent>

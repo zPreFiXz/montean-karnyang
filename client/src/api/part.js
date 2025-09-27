@@ -15,3 +15,7 @@ export const updatePart = async (id, data) => {
 export const addStock = async (id, quantity) => {
   return await api.patch(`/api/part/${id}/add-stock`, { quantity });
 };
+
+export const deletePart = async (id) => {
+  return await api.delete(`/api/part/${id}`);
+};
