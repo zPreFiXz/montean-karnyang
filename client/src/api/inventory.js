@@ -1,8 +1,8 @@
 import api from "@/lib/api";
 
-export const getInventory = async (category, search) => {
+export const getInventory = async (category, search, filterParams = {}) => {
   return await api.get("/api/inventory", {
-    params: { category, search },
+    params: { category, search, ...filterParams },
   });
 };
 

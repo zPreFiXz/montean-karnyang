@@ -2,7 +2,8 @@ const prisma = require("../config/prisma");
 
 exports.getInventory = async (req, res, next) => {
   try {
-    const { category, search } = req.query;
+    const { category, search, width, aspectRatio, rimDiameter, brand } =
+      req.query;
 
     let partFilter = {};
     let serviceFilter = {};
@@ -37,6 +38,9 @@ exports.getInventory = async (req, res, next) => {
       ];
       serviceFilter.name = { contains: search };
     }
+    if (brand) {
+      partFilter.brand = { contains: brand };
+    }
 
     // ถ้าไม่มีการระบุ category หรือ search ให้ค้นหาทุกอย่าง
     const [parts, services] = await Promise.all([
@@ -50,11 +54,26 @@ exports.getInventory = async (req, res, next) => {
       }),
     ]);
 
+    const matches = (value, q) => {
+      if (q === undefined || q === null || q === "") return true;
+      if (value === undefined || value === null) return false;
+      return String(value).toLowerCase() === String(q).toLowerCase();
+    };
+
+    const filteredParts = parts.filter((p) => {
+      const ts = p.typeSpecificData || {};
+      return (
+        matches(ts.width, width) &&
+        matches(ts.aspectRatio, aspectRatio) &&
+        matches(ts.rimDiameter, rimDiameter)
+      );
+    });
+
     // รวมรายการอะไหล่และบริการในรูปแบบเดียวกัน
     // อะไหล่จะมีข้อมูลเพิ่มเติมเช่น partNumber, brand, costPrice, sellingPrice, unit, stockQuantity, minStockLevel
     // บริการจะไม่มีข้อมูลเหล่านี้ แต่จะมี price แทน
     const inventory = [
-      ...parts.map((item) => ({
+      ...filteredParts.map((item) => ({
         ...item,
         type: "part",
         category: { name: item.category.name },

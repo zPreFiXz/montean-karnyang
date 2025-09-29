@@ -18,6 +18,7 @@ import { Label } from "@radix-ui/react-label";
 
 const ComboBox = ({
   label,
+  labelClass = "",
   color,
   options = [],
   value,
@@ -57,11 +58,9 @@ const ComboBox = ({
     <div>
       {label && (
         <Label
-          className={`block mb-[8px] font-medium ${
-            customClass
-              ? "text-[18px] md:text-[20px]"
-              : "text-[22px] md:text-[24px]"
-          } ${color}`}
+          className={`block mb-[8px] font-medium ${labelClass || (customClass
+            ? "text-[18px] md:text-[20px]"
+            : "text-[22px] md:text-[24px]") } ${color}`}
         >
           {label}
         </Label>
