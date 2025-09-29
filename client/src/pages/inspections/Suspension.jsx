@@ -770,7 +770,7 @@ const Suspension = () => {
               onClick={() => setShowMoreFields(true)}
               className="flex items-center gap-[2px] p-2 rounded-[10px] text-primary bg-surface"
             >
-              <ChevronDown className="w-6 h-6 mt-[2px]" />
+              <ChevronDown className="w-6 h-6 mt-[2px]" strokeWidth={2.5} />
               <p className="font-semibold text-[18px] md:text-[20px]">
                 กรอกข้อมูลลูกค้า
               </p>

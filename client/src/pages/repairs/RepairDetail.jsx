@@ -817,7 +817,7 @@ const RepairDetail = () => {
                 {/* ปุ่มข้ามขั้นตอนสำหรับสถานะ IN_PROGRESS */}
                 {repair.status === "IN_PROGRESS" && (
                   <FormButton
-                    label="เสร็จสิ้นการซ่อม + ยืนยันการชำระเงิน"
+                    label="เสร็จสิ้นการซ่อมและชำระเงิน"
                     isLoading={isUpdatingSkip}
                     disabled={isUpdatingSkip}
                     onClick={() => handleUpdateStatus(true)}

@@ -12,6 +12,8 @@ import useRepairStore from "@/stores/repairStore";
 import { formatCurrency } from "@/lib/utils";
 import { provinces } from "@/utils/data";
 import { Calendar } from "@/components/ui/calendar";
+import { CalendarMonth } from "@/components/ui/CalendarMonth";
+import { CalendarYear } from "@/components/ui/CalendarYear";
 import {
   Popover,
   PopoverContent,
@@ -36,6 +38,15 @@ const SalesReport = () => {
     loadRepairs();
   }, [fetchRepairs]);
 
+  // ถ้ามี currentDate ถูกส่งมาจากการนำทาง ให้ตั้งค่าแล้วลบ state ออกจาก history
+  useEffect(() => {
+    const navDate = location.state?.currentDate;
+    if (navDate) {
+      setCurrentDate(new Date(navDate));
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state?.currentDate]);
+
   const loadRepairs = async () => {
     setIsLoading(true);
     try {
@@ -59,36 +70,49 @@ const SalesReport = () => {
   // คำนวณช่วงเวลาและรายได้
   const getDateRange = (date, type) => {
     const startDate = new Date(date);
-    const endDate = new Date(date);
+    let endDate = new Date(date);
 
     switch (type) {
       // วัน - เริ่มต้น 00:00:00 ถึง 23:59:59
       case "daily":
         startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(startDate);
         endDate.setHours(23, 59, 59, 999);
         break;
       // สัปดาห์ - เริ่มต้นจากวันจันทร์
-      case "weekly":
+      case "weekly": {
         const dayOfWeek = startDate.getDay();
         const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+
         startDate.setDate(startDate.getDate() - daysFromMonday);
         startDate.setHours(0, 0, 0, 0);
+
+        endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + 6);
         endDate.setHours(23, 59, 59, 999);
         break;
+      }
       // เดือน
       case "monthly":
         startDate.setDate(1);
         startDate.setHours(0, 0, 0, 0);
-        endDate.setMonth(endDate.getMonth() + 1);
-        endDate.setDate(0);
+        endDate = new Date(startDate);
+
+        endDate.setMonth(endDate.getMonth() + 1, 1);
+        endDate.setDate(endDate.getDate() - 1);
         endDate.setHours(23, 59, 59, 999);
         break;
       // ปี
       case "yearly":
         startDate.setMonth(0, 1);
         startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(startDate);
         endDate.setMonth(11, 31);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      default:
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(startDate);
         endDate.setHours(23, 59, 59, 999);
         break;
     }
@@ -165,9 +189,9 @@ const SalesReport = () => {
     switch (periodType) {
       case "daily":
         return currentDate.toLocaleDateString("th-TH", {
-          year: "numeric",
-          month: "long",
           day: "numeric",
+          month: "long",
+          year: "numeric",
         });
       case "weekly":
         return `${startDate.toLocaleDateString("th-TH", {
@@ -225,7 +249,22 @@ const SalesReport = () => {
     }
   };
 
+  const periodType = getPeriodType();
   const { totalRevenue, repairs: periodRepairs } = getReportsData();
+
+  const groupRepairsByDay = (repairsList) => {
+    return repairsList.reduce((acc, r) => {
+      const d = new Date(r.paidAt || r.createdAt || Date.now());
+      const key = d.toLocaleDateString("th-TH", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(r);
+      return acc;
+    }, {});
+  };
 
   return (
     <div className="lg:hidden">
@@ -247,29 +286,71 @@ const SalesReport = () => {
               <button className="flex items-center gap-[8px] text-surface">
                 <CalendarIcon className="w-5 h-5" />
                 <p className="font-semibold text-[20px] md:text-[22px]">
-                  เลือกวันที่
+                  {periodType === "yearly"
+                    ? "เลือกปี"
+                    : periodType === "monthly"
+                    ? "เลือกเดือน"
+                    : periodType === "weekly"
+                    ? "เลือกสัปดาห์"
+                    : "เลือกวัน"}
                 </p>
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                defaultMonth={currentDate}
-                selected={currentDate}
-                onSelect={handleDateSelect}
-                initialFocus
-                captionLayout="dropdown"
-                fromYear={2025}
-                toYear={2035}
-                className="rounded-md border shadow-sm"
-                autoFocus={false}
-              />
+            <PopoverContent
+              className="w-auto p-0"
+              align="end"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+              onCloseAutoFocus={(e) => e.preventDefault()}
+            >
+              {periodType === "monthly" ? (
+                <CalendarMonth
+                  mode="single"
+                  defaultMonth={currentDate}
+                  selected={currentDate}
+                  onSelect={handleDateSelect}
+                  initialFocus
+                  captionLayout="dropdown"
+                  monthFormat="long"
+                  fromYear={2025}
+                  toYear={2035}
+                  className="rounded-md shadow-sm"
+                  autoFocus={false}
+                />
+              ) : periodType === "yearly" ? (
+                <CalendarYear
+                  mode="single"
+                  defaultMonth={currentDate}
+                  selected={currentDate}
+                  onSelect={handleDateSelect}
+                  initialFocus
+                  captionLayout="dropdown"
+                  fromYear={2025}
+                  toYear={2035}
+                  className="rounded-md shadow-sm"
+                  autoFocus={false}
+                />
+              ) : (
+                <Calendar
+                  mode="single"
+                  defaultMonth={currentDate}
+                  selected={currentDate}
+                  onSelect={handleDateSelect}
+                  initialFocus
+                  captionLayout="dropdown"
+                  monthFormat="long"
+                  fromYear={2025}
+                  toYear={2035}
+                  className="rounded-md shadow-sm"
+                  autoFocus={false}
+                />
+              )}
             </PopoverContent>
           </Popover>
         </div>
         <div className="flex justify-center gap-[16px] mt-[16px]">
           <Link
             to="/reports/sales/daily"
+            state={{ currentDate: new Date().toISOString() }}
             className={`flex items-center justify-center w-[78px] md:w-[95px] h-[35px] md:h-[40px] rounded-[10px] border-2 font-semibold text-[18px] md:text-[20px] ${
               location.pathname === "/reports/sales/daily"
                 ? "border-white text-surface bg-primary"
@@ -280,6 +361,7 @@ const SalesReport = () => {
           </Link>
           <Link
             to="/reports/sales/weekly"
+            state={{ currentDate: new Date().toISOString() }}
             className={`flex items-center justify-center w-[78px] md:w-[95px] h-[35px] md:h-[40px] rounded-[10px] border-2 font-semibold text-[18px] md:text-[20px] ${
               location.pathname === "/reports/sales/weekly"
                 ? "border-white text-surface bg-primary"
@@ -290,6 +372,7 @@ const SalesReport = () => {
           </Link>
           <Link
             to="/reports/sales/monthly"
+            state={{ currentDate: new Date().toISOString() }}
             className={`flex items-center justify-center w-[78px] md:w-[95px] h-[35px] md:h-[40px] rounded-[10px] border-2 font-semibold text-[18px] md:text-[20px] ${
               location.pathname === "/reports/sales/monthly"
                 ? "border-white text-surface bg-primary"
@@ -300,6 +383,7 @@ const SalesReport = () => {
           </Link>
           <Link
             to="/reports/sales/yearly"
+            state={{ currentDate: new Date().toISOString() }}
             className={`flex items-center justify-center w-[78px] md:w-[95px] h-[35px] md:h-[40px] rounded-[10px] border-2 font-semibold text-[18px] md:text-[20px] ${
               location.pathname === "/reports/sales/yearly"
                 ? "border-white text-surface bg-primary"
@@ -341,42 +425,82 @@ const SalesReport = () => {
         </div>
       </div>
       <div className="flex flex-col w-full min-h-[calc(100vh-249px)] md:min-h-[calc(100vh-269px)] px-[20px] -mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface">
-        <p className="py-[16px] font-semibold text-[22px] md:text-[24px] text-normal">
-          {periodRepairs.length > 0
-            ? `รายการซ่อม (${periodRepairs.length} รายการ)`
-            : "รายการซ่อม"}
-        </p>
+        <div className="pt-[16px]">
+          <p className="font-semibold text-[22px] md:text-[24px] text-normal">
+            {periodRepairs.length > 0
+              ? `รายการซ่อม (${periodRepairs.length} รายการ)`
+              : "รายการซ่อม"}
+          </p>
+        </div>
 
         {isLoading ? (
           <div className="flex justify-center items-center h-[256px]">
             <LoaderCircle className="w-8 h-8 text-primary animate-spin" />
           </div>
         ) : periodRepairs.length > 0 ? (
-          <div className="pb-[112px]">
-            {periodRepairs.map((repair, index) => {
-              const carData = getCarCardData(repair);
-              return (
-                <Link
-                  to={`/repair/${repair.id}`}
-                  key={index}
-                  className={index > 0 ? "block mt-[16px]" : "block"}
-                  state={{
-                    returnTo: location.pathname,
-                    currentDate: currentDate.toISOString(),
-                  }}
-                >
-                  <CarCard
-                    bg="primary"
-                    color="#1976d2"
-                    icon={Car}
-                    licensePlate={carData.licensePlate}
-                    brand={carData.brand}
-                    time={carData.time}
-                    price={carData.price}
-                  />
-                </Link>
-              );
-            })}
+          <div
+            className={`${
+              periodType === "daily" ? "pt-[16px]" : "pt-[8px]"
+            }  pb-[96px]`}
+          >
+            {periodType === "daily"
+              ? periodRepairs.map((repair, index) => {
+                  const carData = getCarCardData(repair);
+                  return (
+                    <Link
+                      to={`/repair/${repair.id}`}
+                      key={index}
+                      className={index > 0 ? "block mt-[16px]" : "block"}
+                      state={{
+                        returnTo: location.pathname,
+                        currentDate: currentDate.toISOString(),
+                      }}
+                    >
+                      <CarCard
+                        bg="primary"
+                        color="#1976d2"
+                        icon={Car}
+                        licensePlate={carData.licensePlate}
+                        brand={carData.brand}
+                        time={carData.time}
+                        price={carData.price}
+                      />
+                    </Link>
+                  );
+                })
+              : Object.entries(groupRepairsByDay(periodRepairs)).map(
+                  ([day, repairsForDay]) => (
+                    <div key={day} className="mb-4">
+                      <p className="mb-[8px] font-medium text-[18px] md:text-[20px] text-subtle-dark">
+                        {day}
+                      </p>
+                      {repairsForDay.map((repair, i) => {
+                        const carData = getCarCardData(repair);
+                        return (
+                          <Link
+                            to={`/repair/${repair.id}`}
+                            key={i}
+                            className={i > 0 ? "block mt-[12px]" : "block"}
+                            state={{
+                              returnTo: location.pathname,
+                              currentDate: currentDate.toISOString(),
+                            }}
+                          >
+                            <CarCard
+                              bg="primary"
+                              color="#1976d2"
+                              icon={Car}
+                              licensePlate={carData.licensePlate}
+                              brand={carData.brand}
+                              time={carData.time}
+                              price={carData.price}
+                            />
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )
+                )}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-[256px] text-center">
