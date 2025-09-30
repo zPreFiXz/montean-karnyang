@@ -25,6 +25,7 @@ import FormButton from "@/components/forms/FormButton";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
 import { CarRepair } from "@/components/icons/Icon";
+import { scrollMainToBottom, scrollMainToTop } from "@/lib/utils";
 
 const Suspension = () => {
   const navigate = useNavigate();
@@ -62,7 +63,7 @@ const Suspension = () => {
   });
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    scrollMainToTop();
     fetchVehicleBrandModels();
   }, []);
 
@@ -188,11 +189,8 @@ const Suspension = () => {
 
     if (scrollToBottom) {
       setTimeout(() => {
-        window.scrollTo({
-          top: document.body.scrollHeight,
-          behavior: "smooth",
-        });
-      }, 100);
+        scrollMainToBottom();
+      }, 200);
     }
 
     // ถ้ามาในโหมดแก้ไข และมีอย่างน้อย 1 input ที่ถูกซ่อนไว้ (type=hidden) มีค่า ให้แสดงทุก input (เปิดส่วนข้อมูลลูกค้า)
@@ -374,11 +372,8 @@ const Suspension = () => {
     });
 
     setTimeout(() => {
-      window.scrollTo({
-        top: document.documentElement.scrollHeight,
-        behavior: "smooth",
-      });
-    }, 100);
+      scrollMainToBottom();
+    }, 200);
   };
 
   const handleIncreaseQuantity = (index) => {
@@ -576,7 +571,7 @@ const Suspension = () => {
           inline: "nearest",
         });
       }
-    }, 100);
+    }, 200);
   };
 
   const onSubmit = async (data) => {
@@ -635,7 +630,7 @@ const Suspension = () => {
   };
 
   return (
-    <div className="w-full h-full bg-gradient-primary shadow-primary">
+    <div className="w-full min-h-dvh bg-gradient-primary shadow-primary flex flex-col">
       <div className="flex items-center gap-[8px] pt-[16px] pl-[20px]">
         <div className="flex items-center justify-center w-[40px] h-[40px] rounded-full bg-surface/20">
           <CarRepair color="#ffffff" />
@@ -647,7 +642,10 @@ const Suspension = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
+      <form
+        className="flex-1 min-h-0 flex flex-col"
+        onSubmit={handleSubmit(onSubmit, onInvalid)}
+      >
         <div className="px-[20px] mt-[16px]">
           <ComboBox
             label="ยี่ห้อรถ"
@@ -768,7 +766,7 @@ const Suspension = () => {
             <button
               type="button"
               onClick={() => setShowMoreFields(true)}
-              className="flex items-center gap-[2px] p-2 rounded-[10px] text-primary bg-surface"
+              className="flex items-center gap-[2px] p-2 rounded-[10px] text-primary bg-surface cursor-pointer"
             >
               <ChevronDown className="w-6 h-6 mt-[2px]" strokeWidth={2.5} />
               <p className="font-semibold text-[18px] md:text-[20px]">
@@ -817,7 +815,7 @@ const Suspension = () => {
             />
           </div>
         )}
-        <div className="overflow-hidden w-full h-full mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+        <div className="overflow-hidden flex-1  w-full min-h-0 mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
           <div className="flex justify-between items-center px-[20px] pt-[16px]">
             <p className="font-semibold text-[22px] md:text-[24px]">
               รายการซ่อมช่วงล่าง
@@ -829,7 +827,7 @@ const Suspension = () => {
               <button
                 type="button"
                 onClick={() => setActiveTab("left")}
-                className={`relative z-10 flex items-center justify-center w-[100px] h-[40px] rounded-[10px] font-semibold text-[18px] md:text-[20px] duration-300 ease-out ${
+                className={`relative z-10 flex items-center justify-center w-[100px] h-[40px] rounded-[10px] font-semibold text-[18px] md:text-[20px] duration-300 ease-out cursor-pointer ${
                   activeTab === "left"
                     ? "text-white transform scale-105"
                     : "text-subtle-dark"
@@ -840,7 +838,7 @@ const Suspension = () => {
               <button
                 type="button"
                 onClick={() => setActiveTab("right")}
-                className={`relative z-10 flex items-center justify-center w-[100px] h-[40px] rounded-[10px] font-semibold text-[18px] md:text-[20px] duration-300 ease-out ${
+                className={`relative z-10 flex items-center justify-center w-[100px] h-[40px] rounded-[10px] font-semibold text-[18px] md:text-[20px] duration-300 ease-out cursor-pointer ${
                   activeTab === "right"
                     ? "text-white transform scale-105"
                     : "text-subtle-dark"
@@ -851,7 +849,7 @@ const Suspension = () => {
               <button
                 type="button"
                 onClick={() => setActiveTab("other")}
-                className={`relative z-10 flex items-center justify-center w-[100px] h-[40px] rounded-[10px] font-semibold text-[18px] md:text-[20px] duration-300 ease-out ${
+                className={`relative z-10 flex items-center justify-center w-[100px] h-[40px] rounded-[10px] font-semibold text-[18px] md:text-[20px] duration-300 ease-out cursor-pointer ${
                   activeTab === "other"
                     ? "text-white transform scale-105"
                     : "text-subtle-dark"
@@ -912,7 +910,7 @@ const Suspension = () => {
                             className={`flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] border-2 shadow-primary cursor-pointer duration-300 ${
                               isPartSelected(part.id, "left")
                                 ? "bg-primary/5 border-primary scale-[1.02]"
-                                : "bg-white border-transparent hover:shadow-lg hover:scale-[1.01]"
+                                : "bg-white border-transparent"
                             }`}
                             onClick={() => {
                               if (isDisabled) return;
@@ -973,7 +971,7 @@ const Suspension = () => {
                             className={`flex items-center justify-center min-w-[32px] w-[32px] h-[32px] rounded-full cursor-pointer duration-300 ${
                               isPartSelected(part.id, "left")
                                 ? "bg-gradient-primary text-surface shadow-lg scale-110"
-                                : "bg-subtle-light text-surface hover:bg-gray-300 hover:scale-105"
+                                : "bg-subtle-light text-surface"
                             }`}
                             onClick={() => {
                               if (isDisabled) return;
@@ -1019,7 +1017,7 @@ const Suspension = () => {
                             className={`flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] border-2 shadow-primary cursor-pointer duration-300 ${
                               isPartSelected(part.id, "right")
                                 ? "bg-primary/5 border-primary scale-[1.02]"
-                                : "bg-white border-transparent hover:shadow-lg hover:scale-[1.01]"
+                                : "bg-white border-transparent"
                             }`}
                             onClick={() => {
                               if (isDisabled) return;
@@ -1080,7 +1078,7 @@ const Suspension = () => {
                             className={`flex items-center justify-center min-w-[32px] w-[32px] h-[32px] rounded-full cursor-pointer duration-300 ${
                               isPartSelected(part.id, "right")
                                 ? "bg-gradient-primary text-surface shadow-lg scale-110"
-                                : "bg-subtle-light text-surface hover:bg-gray-300 hover:scale-105"
+                                : "bg-subtle-light text-surface"
                             }`}
                             onClick={() => {
                               if (isDisabled) return;
@@ -1126,7 +1124,7 @@ const Suspension = () => {
                             className={`flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] border-2 shadow-primary cursor-pointer duration-300 ${
                               isPartSelected(part.id, "other")
                                 ? "bg-primary/5 border-primary scale-[1.02]"
-                                : "bg-white border-transparent hover:shadow-lg hover:scale-[1.01]"
+                                : "bg-white border-transparent"
                             }`}
                             onClick={() => {
                               if (isDisabled) return;
@@ -1187,7 +1185,7 @@ const Suspension = () => {
                             className={`flex items-center justify-center min-w-[32px] w-[32px] h-[32px] rounded-full cursor-pointer duration-300 ${
                               isPartSelected(part.id, "other")
                                 ? "bg-gradient-primary text-surface shadow-lg scale-110"
-                                : "bg-subtle-light text-surface hover:bg-gray-300 hover:scale-105"
+                                : "bg-subtle-light text-surface"
                             }`}
                             onClick={() => {
                               if (isDisabled) return;
@@ -1229,7 +1227,7 @@ const Suspension = () => {
                 selectedItems={repairItems}
                 restoredStockMap={restoredStockMap}
               >
-                <p className="font-semibold text-[20px] md:text-[22px] text-primary hover:text-primary/80 cursor-pointer">
+                <p className="font-semibold text-[20px] md:text-[22px] text-primary cursor-pointer">
                   + เพิ่มรายการซ่อม
                 </p>
               </AddRepairItemDialog>
@@ -1247,10 +1245,10 @@ const Suspension = () => {
                   </p>
                 </div>
               )}
-              <div className="h-[96px]"></div>
+              <div className="h-[96px] lg:h-0"></div>
             </div>
           ) : repairItems.length > 0 ? (
-            <div className="pb-[96px]">
+            <div className="pb-[96px] xl:pb-0">
               {repairItems.map((item, index) => (
                 <div
                   key={index}
@@ -1297,7 +1295,7 @@ const Suspension = () => {
                               type="button"
                               onClick={() => handleDecreaseQuantity(index)}
                               disabled={item.quantity <= 1}
-                              className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-200 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
+                              className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300 cursor-pointer"
                             >
                               <Minus className="w-[16px] h-[16px]" />
                             </button>
@@ -1312,7 +1310,7 @@ const Suspension = () => {
                                   ? item.quantity >= (item.stockQuantity || 0)
                                   : false
                               }
-                              className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-primary/30 disabled:border-gray-200 text-primary disabled:text-gray-300 bg-primary/10 hover:bg-primary/20 disabled:bg-gray-50 disabled:hover:bg-gray-50"
+                              className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-primary/30 disabled:border-gray-200 text-primary disabled:text-gray-300 bg-primary/10 disabled:bg-gray-50 cursor-pointer"
                             >
                               <Plus className="w-[16px] h-[16px]" />
                             </button>
@@ -1328,7 +1326,7 @@ const Suspension = () => {
                         prev.filter((_, i) => i !== index)
                       )
                     }
-                    className="text-surface"
+                    className="text-surface cursor-pointer"
                   >
                     <div className="flex items-center justify-center w-[32px] h-[32px] rounded-full bg-delete">
                       <Trash className="w-[18px] h-[18px]" />

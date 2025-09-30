@@ -3,7 +3,7 @@ import StatusCard from "@/components/cards/StatusCard";
 import { Success, Wrench, Paid, Car } from "@/components/icons/Icon";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { formatCurrency, formatTime } from "@/lib/utils";
+import { formatCurrency, formatTime, scrollMainToTop } from "@/lib/utils";
 import useRepairStore from "@/stores/repairStore";
 import useAuthStore from "@/stores/authStore";
 import {
@@ -29,7 +29,7 @@ const Dashboard = () => {
   } = useRepairStore();
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    scrollMainToTop();
     fetchRepairs();
   }, [fetchRepairs]);
 
@@ -89,44 +89,54 @@ const Dashboard = () => {
   return (
     <div className="w-full">
       {/* มุมมองเดสก์ท็อป */}
-      <div className="hidden lg:block w-full px-[24px]">
-        {/* ยอดขาย */}
-        <div className="w-fit h-[157px] p-[16px] mt-[24px] rounded-[10px] shadow-primary">
-          <p className="font-medium text-[22px] text-subtle-dark">
-            {getCurrentDateThai()}
-          </p>
-          <div className="flex justify-between items-center w-[353px] h-[80px] px-[16px] mt-[12px] rounded-[10px] bg-primary shadow-primary cursor-pointer">
-            <p className="font-medium text-[22px] text-surface">ยอดขายวันนี้</p>
-            <p className="font-medium text-[32px] text-surface">
-              {formatCurrency(todaySales)}
+      <div className="hidden xl:block w-full px-[24px]">
+        {/* ยอดขาย (เฉพาะแอดมิน) */}
+        {user?.role === "ADMIN" && (
+          <div className="w-fit h-[157px] p-[16px] mt-[24px] rounded-[10px] shadow-primary">
+            <p className="font-medium text-[22px] text-subtle-dark">
+              {getCurrentDateThai()}
             </p>
+            <Link to="/admin/reports/sales/daily">
+              <div className="flex justify-between items-center w-[353px] h-[80px] px-[16px] mt-[12px] rounded-[10px] bg-gradient-primary shadow-primary">
+                <p className="font-medium text-[22px] text-surface">
+                  ยอดขายวันนี้
+                </p>
+                <p className="font-medium text-[32px] text-surface">
+                  {formatCurrency(todaySales)}
+                </p>
+              </div>
+            </Link>
           </div>
-        </div>
+        )}
 
         {/* สถานะการซ่อม */}
         <div className="w-full p-[16px] mt-[24px] mb-[24px] rounded-[10px] shadow-primary">
           <p className="font-medium text-[22px] text-subtle-dark">
             สถานะการซ่อม
           </p>
-          <div className="flex justify-start items-start gap-[16px] mt-[16px]">
+          <div className="grid grid-cols-3 gap-[16px] mt-[16px]">
             {/* กำลังซ่อม */}
-            <div className="flex-1 flex-col items-center gap-[16px]">
+            <div className="w-full flex flex-col">
               <StatusCard
                 bg="in-progress"
                 icon={Wrench}
                 label={"กำลังซ่อม"}
                 amount={inProgressCount}
               />
-              <div className="mt-[16px]">
+              <div className="mt-[16px] w-full">
                 {latestInProgress && (
-                  <Link to="/repair/status/in-progress">
+                  <Link to={`/repair/${latestInProgress.id}`}>
                     <CarCard
                       bg="in-progress"
                       color="#ffb000"
                       icon={Car}
-                      licensePlate={`${latestInProgress.vehicle?.licensePlate?.plateNumber}
-                      } ${latestInProgress.vehicle?.licensePlate?.province}`}
-                      brand={`${latestInProgress.vehicle?.brand} ${latestInProgress.vehicle?.model}`}
+                      licensePlate={
+                        latestInProgress.vehicle?.licensePlate?.plateNumber &&
+                        latestInProgress.vehicle?.licensePlate?.province
+                          ? `${latestInProgress.vehicle.licensePlate.plateNumber} ${latestInProgress.vehicle.licensePlate.province}`
+                          : "ไม่ระบุทะเบียนรถ"
+                      }
+                      brand={`${latestInProgress.vehicle?.vehicleBrandModel?.brand} ${latestInProgress.vehicle?.vehicleBrandModel?.model}`}
                       time={
                         latestInProgress.createdAt &&
                         formatTime(latestInProgress.createdAt)
@@ -139,25 +149,27 @@ const Dashboard = () => {
             </div>
 
             {/* ซ่อมเสร็จสิ้น */}
-            <div className="flex-1 flex-col items-center gap-[16px]">
+            <div className="w-full flex flex-col">
               <StatusCard
                 bg="completed"
                 icon={Success}
                 label={"ซ่อมเสร็จสิ้น"}
                 amount={completedCount}
               />
-              <div className="mt-[16px]">
+              <div className="mt-[16px] w-full">
                 {latestCompleted && (
-                  <Link to="/repair/status/completed">
+                  <Link to={`/repair/${latestCompleted.id}`}>
                     <CarCard
                       bg="completed"
                       color="#22c55e"
                       icon={Car}
-                      licensePlate={`${
-                        latestCompleted.vehicle?.licensePlate?.plateNumber ||
-                        "ไม่มีป้ายทะเบียน"
-                      } ${latestCompleted.vehicle?.licensePlate?.province}`}
-                      brand={`${latestCompleted.vehicle?.brand} ${latestCompleted.vehicle?.model}`}
+                      licensePlate={
+                        latestCompleted.vehicle?.licensePlate?.plateNumber &&
+                        latestCompleted.vehicle?.licensePlate?.province
+                          ? `${latestCompleted.vehicle.licensePlate.plateNumber} ${latestCompleted.vehicle.licensePlate.province}`
+                          : "ไม่ระบุทะเบียนรถ"
+                      }
+                      brand={`${latestCompleted.vehicle?.vehicleBrandModel?.brand} ${latestCompleted.vehicle?.vehicleBrandModel?.model}`}
                       time={
                         latestCompleted.completedAt &&
                         formatTime(latestCompleted.completedAt)
@@ -170,25 +182,27 @@ const Dashboard = () => {
             </div>
 
             {/* ชำระเงินแล้ว */}
-            <div className="flex-1 flex-col items-center gap-[16px]">
+            <div className="w-full flex flex-col">
               <StatusCard
                 bg="paid"
                 icon={Paid}
                 label={"ชำระเงินแล้ว"}
                 amount={paidCount}
               />
-              <div className="mt-[16px]">
+              <div className="mt-[16px] w-full">
                 {latestPaid && (
-                  <Link to="/repair/status/paid">
+                  <Link to={`/repair/${latestPaid.id}`}>
                     <CarCard
                       bg="paid"
                       color="#1976d2"
                       icon={Car}
-                      licensePlate={`${
-                        latestPaid.vehicle?.licensePlate?.plateNumber ||
-                        "ไม่มีป้ายทะเบียน"
-                      } ${latestPaid.vehicle?.licensePlate?.province}`}
-                      brand={`${latestPaid.vehicle?.brand} ${latestPaid.vehicle?.model}`}
+                      licensePlate={
+                        latestPaid.vehicle?.licensePlate?.plateNumber &&
+                        latestPaid.vehicle?.licensePlate?.province
+                          ? `${latestPaid.vehicle.licensePlate.plateNumber} ${latestPaid.vehicle.licensePlate.province}`
+                          : "ไม่ระบุทะเบียนรถ"
+                      }
+                      brand={`${latestPaid.vehicle?.vehicleBrandModel?.brand} ${latestPaid.vehicle?.vehicleBrandModel?.model}`}
                       time={latestPaid.paidAt && formatTime(latestPaid.paidAt)}
                       price={parseFloat(latestPaid.totalPrice)}
                     />
@@ -201,8 +215,12 @@ const Dashboard = () => {
       </div>
 
       {/* มุมมองมือถือ */}
-      <div className="lg:hidden">
-        <div className="w-full h-[222px] md:h-[228px] pt-[16px] px-[20px] bg-gradient-primary">
+      <div className="xl:hidden">
+        <div
+          className={`w-full ${
+            user?.role === "ADMIN" ? "h-[222px] md:h-[228px]" : "h-[134px]"
+          } pt-[16px] px-[20px] bg-gradient-primary`}
+        >
           <div className="flex justify-between items-start">
             <div className="flex-1">
               <p className="font-semibold text-[32px] md:text-[34px] text-surface">
@@ -217,7 +235,7 @@ const Dashboard = () => {
             <div>
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className={`flex items-center justify-center w-12 h-12 mt-2 rounded-xl bg-surface backdrop-blur-sm duration-500 hover:bg-surface/30 ${
+                className={`flex items-center justify-center w-12 h-12 mt-2 rounded-xl bg-surface backdrop-blur-sm duration-500 ${
                   isMenuOpen ? "bg-surface" : "bg-surface"
                 }`}
               >
@@ -259,9 +277,9 @@ const Dashboard = () => {
                   <div>
                     {/* จัดการยี่ห้อ-รุ่นรถ */}
                     <Link
-                      to="/admin/vehicle-brand-models"
+                      to="/vehicle-brand-models"
                       onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center w-full gap-[16px] p-[16px] mb-[16px] rounded-[12px] bg-surface shadow-primary hover:shadow-lg duration-200"
+                      className="flex items-center w-full gap-[16px] p-[16px] mb-[16px] rounded-[12px] bg-surface shadow-primary duration-300"
                     >
                       <div className="flex items-center justify-center w-[48px] h-[48px] rounded-[10px] bg-primary">
                         <CarFront className="w-[24px] h-[24px] text-surface" />
@@ -272,25 +290,27 @@ const Dashboard = () => {
                     </Link>
 
                     {/* จัดการบัญชีพนักงาน */}
-                    <Link
-                      to="/admin/employees"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center w-full gap-[16px] p-[16px] mb-[16px] rounded-[12px] bg-surface shadow-primary hover:shadow-lg duration-200"
-                    >
-                      <div className="flex items-center justify-center w-[48px] h-[48px] rounded-[10px] bg-completed">
-                        <Users className="w-[24px] h-[24px] text-surface" />
-                      </div>
-                      <p className="font-semibold text-[18px] md:text-[20px] text-normal">
-                        จัดการบัญชีพนักงาน
-                      </p>
-                    </Link>
+                    {user?.role === "ADMIN" && (
+                      <Link
+                        to="/admin/employees"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex items-center w-full gap-[16px] p-[16px] mb-[16px] rounded-[12px] bg-surface shadow-primary duration-300"
+                      >
+                        <div className="flex items-center justify-center w-[48px] h-[48px] rounded-[10px] bg-completed">
+                          <Users className="w-[24px] h-[24px] text-surface" />
+                        </div>
+                        <p className="font-semibold text-[18px] md:text-[20px] text-normal">
+                          จัดการบัญชีพนักงาน
+                        </p>
+                      </Link>
+                    )}
                   </div>
 
                   {/* ออกจากระบบ */}
                   <button
                     onClick={handleLogout}
                     disabled={isLoggingOut}
-                    className={`flex items-center gap-[16px] w-full p-[16px] rounded-[12px] bg-surface shadow-primary hover:shadow-lg hover:bg-red-50 duration-200 ${
+                    className={`flex items-center gap-[16px] w-full p-[16px] rounded-[12px] bg-surface shadow-primary duration-300 ${
                       isLoggingOut ? "opacity-50 cursor-not-allowed" : ""
                     }`}
                   >
@@ -310,17 +330,19 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <Link
-            to="/reports/sales/daily"
-            className="flex justify-between items-center w-full h-[80px] px-[16px] mx-auto mt-[16px] rounded-[10px] bg-surface shadow-primary cursor-pointer"
-          >
-            <p className="font-semibold text-[22px] md:text-[24px] text-normal">
-              ยอดขายวันนี้
-            </p>
-            <p className="font-semibold text-[30px] md:text-[32px] text-primary">
-              {formatCurrency(todaySales)}
-            </p>
-          </Link>
+          {user?.role === "ADMIN" && (
+            <Link
+              to="/admin/reports/sales/daily"
+              className="flex justify-between items-center w-full h-[80px] px-[16px] mx-auto mt-[16px] rounded-[10px] bg-surface shadow-primary"
+            >
+              <p className="font-semibold text-[22px] md:text-[24px] text-normal">
+                ยอดขายวันนี้
+              </p>
+              <p className="font-semibold text-[30px] md:text-[32px] text-primary">
+                {formatCurrency(todaySales)}
+              </p>
+            </Link>
+          )}
         </div>
         <div className="flex flex-col w-full gap-[16px] px-[20px] -mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface">
           <p className="pt-[16px] font-semibold text-[22px] md:text-[24px] text-normal">

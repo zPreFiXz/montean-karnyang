@@ -113,7 +113,7 @@ const FormUploadImage = ({
         />
         <label
           htmlFor={isDeleting ? undefined : "image-upload"}
-          className={`group relative flex flex-col justify-center items-center w-[280px] h-[280px] rounded-[20px] border-2 border-dashed border-gray-300 hover:border-primary bg-surface ${
+          className={`group relative flex flex-col justify-center items-center w-[280px] h-[280px] rounded-[20px] border-2 border-dashed border-gray-300 bg-surface ${
             isDeleting ? "cursor-not-allowed opacity-50" : "cursor-pointer"
           }`}
         >
@@ -128,18 +128,18 @@ const FormUploadImage = ({
                 type="button"
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="absolute top-2 right-2 flex justify-center items-center w-8 h-8 rounded-full border border-black/5 hover:border-surface font-medium text-lg text-subtle-dark hover:text-surface bg-surface hover:bg-primary shadow-lg hover:shadow-xl backdrop-blur-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed "
+                className="absolute top-2 right-2 flex justify-center items-center w-8 h-8 rounded-full border border-black/5 font-medium text-lg text-subtle-dark bg-surface shadow-lg backdrop-blur-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed "
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
           ) : (
-            <div>
-              <ImageIcon className="w-[48px] h-[48px] mb-[8px] text-subtle-light group-hover:text-primary group-hover:scale-110" />
-              <p className="mb-[4px] font-medium text-[16px] md:text-[18px] text-subtle-light group-hover:text-primary">
+            <div className="flex flex-col justify-center items-center">
+              <ImageIcon className="w-[48px] h-[48px] mb-[8px] text-subtle-light" />
+              <p className="mb-[4px] font-medium text-[16px] md:text-[18px] text-subtle-light">
                 เลือกรูปอะไหล่
               </p>
-              <p className="text-[14px] md:text-[16px] text-subtle-light group-hover:text-subtle-dark">
+              <p className="text-[14px] md:text-[16px] text-subtle-light">
                 PNG, JPG, WEBP ขนาดไม่เกิน 5MB
               </p>
             </div>

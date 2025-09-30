@@ -65,7 +65,7 @@ function CalendarYear({
                     commit(y);
                   }}
                   ref={yearSelectRef}
-                  className="appearance-none h-(--cell-size) pl-3 pr-6 rounded-md font-athiti font-medium text-[16px] bg-transparent focus:outline-none"
+                  className="appearance-none h-(--cell-size) pl-3 pr-6 rounded-md font-athiti font-medium text-[16px] bg-transparent focus:outline-none cursor-pointer"
                 >
                   {Array.from({ length: maxYear - minYear + 1 }).map(
                     (_, idx) => {

@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from "react-router";
 import { ChevronLeft, LoaderCircle, Wrench } from "lucide-react";
 import { Car } from "@/components/icons/Icon";
 import { getVehicleById } from "@/api/vehicle";
-import { formatDate, formatTime } from "@/lib/utils";
+import { formatDate, formatTime, scrollMainToTop } from "@/lib/utils";
 import RepairCard from "@/components/cards/RepairCard";
 
 const VehicleDetail = () => {
@@ -13,7 +13,7 @@ const VehicleDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    scrollMainToTop();
     fetchVehicleDetail();
   }, [id]);
 
@@ -33,7 +33,7 @@ const VehicleDetail = () => {
       <div className="flex items-center gap-[8px] px-[20px] py-[18px]">
         <button
           onClick={() => navigate("/vehicles")}
-          className="mt-[2px] text-surface"
+          className="mt-[2px] text-surface cursor-pointer"
         >
           <ChevronLeft />
         </button>

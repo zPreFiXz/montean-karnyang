@@ -155,7 +155,7 @@ const AddRepairItemDialog = ({
           <button
             onClick={() => setIsDialogOpen(false)}
             autoFocus={false}
-            className="absolute top-[16px] right-[20px] flex items-center justify-center w-[32px] h-[32px] rounded-full bg-black/5"
+            className="absolute top-[16px] right-[20px] flex items-center justify-center w-[32px] h-[32px] rounded-full bg-black/5 cursor-pointer"
           >
             <X size={18} className="text-subtle-dark" />
           </button>
@@ -181,7 +181,7 @@ const AddRepairItemDialog = ({
                 <button
                   onClick={() => handleCategoryChange("ทั้งหมด")}
                   tabIndex={-1}
-                  className={`flex flex-col items-center justify-center w-[80px] h-[80px] px-[20px] py-[12px] rounded-[10px] border duration-300 ${
+                  className={`flex flex-col items-center justify-center w-[80px] h-[80px] px-[20px] py-[12px] rounded-[10px] border duration-300 cursor-pointer ${
                     activeCategory === "ทั้งหมด"
                       ? "border-transparent text-surface bg-gradient-primary "
                       : "border-subtle-light text-subtle-dark bg-surface"
@@ -199,7 +199,7 @@ const AddRepairItemDialog = ({
                       key={index}
                       onClick={() => handleCategoryChange(item.name)}
                       tabIndex={-1}
-                      className={`flex flex-col justify-center items-center w-[80px] h-[80px] px-[20px] py-[12px] border rounded-[10px] duration-300 ${
+                      className={`flex flex-col justify-center items-center w-[80px] h-[80px] px-[20px] py-[12px] border rounded-[10px] duration-300 cursor-pointer ${
                         isActive
                           ? "border-transparent text-surface bg-gradient-primary"
                           : "border-subtle-light text-subtle-dark bg-surface"
@@ -285,6 +285,7 @@ const AddRepairItemDialog = ({
                         unit={item.unit}
                         sellingPrice={item.sellingPrice}
                         stockQuantity={Math.max(remainingAddable, 0)}
+                        minStockLevel={item.minStockLevel}
                         typeSpecificData={item.typeSpecificData}
                         secureUrl={item.secureUrl}
                         category={item.category.name}

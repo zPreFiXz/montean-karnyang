@@ -13,6 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
 import { provinces } from "@/utils/data";
 import { getVehicleBrandModels } from "@/api/vehicleBrandModel";
+import { scrollMainToBottom, scrollMainToTop } from "@/lib/utils";
 
 const CreateRepair = () => {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ const CreateRepair = () => {
   const { errors } = formState;
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    scrollMainToTop();
     fetchVehicleBrandModels();
   }, []);
 
@@ -70,11 +71,8 @@ const CreateRepair = () => {
 
         if (scrollToBottom) {
           setTimeout(() => {
-            window.scrollTo({
-              top: document.body.scrollHeight,
-              behavior: "smooth",
-            });
-          }, 100);
+            scrollMainToBottom();
+          }, 200);
         }
       }
 
@@ -133,11 +131,8 @@ const CreateRepair = () => {
 
         if (scrollToBottom) {
           setTimeout(() => {
-            window.scrollTo({
-              top: document.body.scrollHeight,
-              behavior: "smooth",
-            });
-          }, 100);
+            scrollMainToBottom();
+          }, 200);
         }
       }
 
@@ -218,7 +213,7 @@ const CreateRepair = () => {
         setRepairItems(savedItems);
       }
     } else {
-      window.scrollTo(0, 0);
+      scrollMainToTop();
     }
   }, [location.state, setValue]);
 
@@ -260,7 +255,7 @@ const CreateRepair = () => {
           inline: "nearest",
         });
       }
-    }, 100);
+    }, 200);
   };
 
   const handleAddItemToRepair = (item) => {
@@ -297,11 +292,8 @@ const CreateRepair = () => {
     });
 
     setTimeout(() => {
-      window.scrollTo({
-        top: document.documentElement.scrollHeight,
-        behavior: "smooth",
-      });
-    }, 100);
+      scrollMainToBottom();
+    }, 200);
   };
 
   const handleIncreaseQuantity = (index) => {
@@ -361,7 +353,7 @@ const CreateRepair = () => {
   };
 
   return (
-    <div className="w-full h-full bg-gradient-primary shadow-primary">
+    <div className="w-full min-h-dvh flex flex-col bg-gradient-primary shadow-primary">
       <div className="flex items-center gap-[8px] pt-[16px] pl-[20px]">
         <div className="flex items-center justify-center w-[40px] h-[40px] rounded-full bg-surface/20">
           <Plus color="#ffffff" />
@@ -373,7 +365,10 @@ const CreateRepair = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
+      <form
+        className="flex-1 flex flex-col"
+        onSubmit={handleSubmit(onSubmit, onInvalid)}
+      >
         <FormInput
           register={register}
           name="fullName"
@@ -525,7 +520,7 @@ const CreateRepair = () => {
           errors={errors}
         />
 
-        <div className="w-full h-full mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+        <div className="flex-1 xl:flex-none w-full mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
           <div className="flex justify-between items-center px-[20px] pt-[16px]">
             <p className="font-semibold text-[22px] md:text-[24px]">
               รายการซ่อม
@@ -535,7 +530,7 @@ const CreateRepair = () => {
               selectedItems={repairItems}
               restoredStockMap={restoredStockMap}
             >
-              <p className="font-semibold text-[20px] md:text-[22px] text-primary hover:text-primary/80 cursor-pointer">
+              <p className="font-semibold text-[20px] md:text-[22px] text-primary cursor-pointer">
                 + เพิ่มรายการซ่อม
               </p>
             </AddRepairItemDialog>
@@ -549,7 +544,7 @@ const CreateRepair = () => {
                   กรุณาเพิ่มรายการซ่อม
                 </p>
               </div>
-              <div className="h-[96px]"></div>
+              <div className="h-[96px] lg:h-0"></div>
             </div>
           ) : (
             <div className="pb-[20px]">
@@ -561,7 +556,7 @@ const CreateRepair = () => {
                   <div
                     role="button"
                     onClick={() => handlePriceClick(index, item)}
-                    className="flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] bg-white shadow-primary hover:shadow-lg hover:bg-gray-50 cursor-pointer"
+                    className="flex justify-between items-center w-full h-[92px] px-[8px] rounded-[10px] bg-white shadow-primary cursor-pointer"
                   >
                     <div className="flex-1 flex items-center gap-[8px]">
                       <div className="flex justify-center items-center w-[70px] h-[70px] rounded-[10px] border border-subtle-light bg-white shadow-primary">
@@ -602,7 +597,7 @@ const CreateRepair = () => {
                                 handleDecreaseQuantity(index);
                               }}
                               disabled={item.quantity <= 1}
-                              className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-200 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
+                              className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300 cursor-pointer"
                             >
                               <Minus className="w-[16px] h-[16px]" />
                             </button>
@@ -620,7 +615,7 @@ const CreateRepair = () => {
                                   ? item.quantity >= (item.stockQuantity || 0)
                                   : false
                               }
-                              className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-primary/30 disabled:border-gray-200 text-primary disabled:text-gray-300 bg-primary/10 hover:bg-primary/20 disabled:bg-gray-50 disabled:hover:bg-gray-50"
+                              className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-primary/30 disabled:border-gray-200 text-primary disabled:text-gray-300 bg-primary/10 disabled:bg-gray-50 cursor-pointer"
                             >
                               <Plus className="w-[16px] h-[16px]" />
                             </button>
@@ -636,7 +631,7 @@ const CreateRepair = () => {
                         prev.filter((_, i) => i !== index)
                       )
                     }
-                    className="text-surface"
+                    className="text-surface cursor-pointer"
                   >
                     <div className="flex items-center justify-center w-[32px] h-[32px] rounded-full bg-delete">
                       <Trash className="w-[18px] h-[18px]" />
@@ -666,7 +661,7 @@ const CreateRepair = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex justify-center pb-[92px]">
+              <div className="flex justify-center pb-[92px] xl:pb-0">
                 <FormButton label="ถัดไป" isLoading={isLoading} />
               </div>
             </div>

@@ -75,7 +75,7 @@ exports.services = [
     categoryId: 1,
   },
   {
-    name: "เช็คเดินทางไกล",
+    name: "เช็กเดินทางไกล",
     price: 50,
     categoryId: 1,
   },

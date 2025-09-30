@@ -13,12 +13,14 @@ import { uploadImage } from "@/api/uploadImage";
 import { deleteImage } from "@/api/uploadImage";
 import VehicleCompatibilityInput from "@/components/forms/VehicleCompatibilityInput";
 import { useNavigate } from "react-router";
+import { scrollMainToTop } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { partServiceSchema } from "@/utils/schemas";
 import { units } from "@/utils/data";
 import { ChevronLeft, LoaderCircle } from "lucide-react";
 import { getInventoryById } from "@/api/inventory";
 import { useParams, useSearchParams } from "react-router";
+import useAuthStore from "@/stores/authStore";
 
 const suspensionTypes = [
   { id: "left-right", name: "ซ้าย-ขวา" },
@@ -54,9 +56,10 @@ const EditItem = () => {
     useState(false);
   const navigate = useNavigate();
   const { errors } = formState;
+  const { user } = useAuthStore();
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    scrollMainToTop();
     fetchCategories();
   }, []);
 
@@ -69,7 +72,7 @@ const EditItem = () => {
 
   useEffect(() => {
     if (errors.categoryId) {
-      window.scrollTo(0, 0);
+      scrollMainToTop();
     }
   }, [errors.categoryId]);
 
@@ -308,7 +311,10 @@ const EditItem = () => {
   return (
     <div className="w-full h-[87px] bg-gradient-primary shadow-primary">
       <div className="flex items-center gap-[8px] py-[18px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
-        <button onClick={() => navigate(-1)} className="mt-[2px] text-surface">
+        <button
+          onClick={() => navigate(-1)}
+          className="mt-[2px] text-surface cursor-pointer"
+        >
           <ChevronLeft />
         </button>
         {isServiceCategory() ? "แก้ไขบริการ" : "แก้ไขอะไหล่"}
@@ -485,20 +491,23 @@ const EditItem = () => {
                   </div>
                 )}
 
-                <FormInput
-                  register={register}
-                  name="costPrice"
-                  label="ราคาต้นทุน (บาท)"
-                  type="number"
-                  placeholder="เช่น 2500"
-                  color="subtle-dark"
-                  errors={errors}
-                  inputMode="numeric"
-                  onWheel={(e) => e.target.blur()}
-                  onInput={(e) => {
-                    e.target.value = e.target.value.replace(/[^0-9.]/g, "");
-                  }}
-                />
+                {user?.role === "ADMIN" && (
+                  <FormInput
+                    register={register}
+                    name="costPrice"
+                    label="ราคาต้นทุน (บาท)"
+                    type="number"
+                    placeholder="เช่น 2500"
+                    color="subtle-dark"
+                    errors={errors}
+                    inputMode="numeric"
+                    onWheel={(e) => e.target.blur()}
+                    onInput={(e) => {
+                      e.target.value = e.target.value.replace(/[^0-9.]/g, "");
+                    }}
+                  />
+                )}
+
                 <FormInput
                   register={register}
                   name="sellingPrice"
@@ -570,7 +579,7 @@ const EditItem = () => {
                 />
               </div>
             )}
-            <div className="flex justify-center pb-[112px]">
+            <div className="flex justify-center pb-[112px] xl:pb-[16px]">
               <FormButton label="บันทึก" isLoading={isSubmitting} />
             </div>
           </form>

@@ -6,13 +6,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "../ui/button";
-import { CircleUserRound, LogOut, Settings, ChevronDown } from "lucide-react";
+import {
+  CircleUserRound,
+  LogOut,
+  CarFront,
+  Users,
+  ChevronDown,
+} from "lucide-react";
 import useAuthStore from "@/stores/authStore";
 import { useNavigate } from "react-router";
 
 const DropdownListMenu = () => {
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
+  const { user } = useAuthStore();
 
   const handleLogout = async () => {
     await logout();
@@ -22,19 +29,18 @@ const DropdownListMenu = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <div className="group flex items-center gap-[12px] px-[12px] py-[8px] rounded-[10px] hover:opacity-90 cursor-pointer">
+        <div className="group flex items-center gap-[12px] px-[12px] py-[8px] rounded-[10px] cursor-pointer">
           <div className="relative">
-            <div className="flex justify-center items-center w-[40px] h-[41px] rounded-full bg-gradient-to-br from-primary to-[#8663f8] shadow-md">
+            <div className="flex justify-center items-center w-[40px] h-[41px] rounded-full bg-gradient-primary shadow-md">
               <CircleUserRound className="text-surface" />
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-[12px] h-[12px] rounded-full border-2 border-surface bg-green-500 shadow-md"></div>
           </div>
           <div className="flex flex-col">
-            <p className="font-semibold text-[16px] text-primary leading-tight">
-              ภาคภูมิ สุขชาติ
+            <p className="font-semibold text-[18px] text-primary leading-tight">
+              {user?.fullName}
             </p>
-            <p className="font-medium text-[12px] text-subtle-light leading-tight">
-              ผู้ดูแลระบบ
+            <p className="font-medium text-[14px] text-subtle-dark leading-tight">
+              {user?.role === "ADMIN" ? "แอดมิน" : user?.role ? "พนักงาน" : ""}
             </p>
           </div>
           <Button
@@ -50,29 +56,26 @@ const DropdownListMenu = () => {
         align="end"
         sideOffset={8}
       >
-        <div className="px-[12px] py-[8px] mb-[4px]">
-          <p className="font-semibold text-[14px] text-subtle-dark">
-            ภาคภูมิ สุขชาติ
-          </p>
-          <p className="font-medium text-[12px] text-subtle-light">
-            admin@montean.com
-          </p>
-        </div>
-        <DropdownMenuSeparator className="my-[4px]" />
-        <DropdownMenuItem className="flex items-center gap-[12px] px-[12px] py-[8px] rounded-[8px] font-medium text-[14px] hover:bg-surface/50 focus:bg-surface/50 duration-200 cursor-pointer">
-          <CircleUserRound className="w-[16px] h-[16px]" />
-          <p>โปรไฟล์</p>
+        <DropdownMenuItem
+          onClick={() => navigate("/vehicle-brand-models")}
+          className="flex items-center gap-[12px] px-[12px] py-[8px] rounded-[8px] font-medium text-[16px] focus:bg-surface/50 duration-300 cursor-pointer"
+        >
+          <CarFront className="w-[16px] h-[16px]" />
+          <p>ยี่ห้อและรุ่นรถ</p>
         </DropdownMenuItem>
-        <DropdownMenuItem className="flex items-center gap-[12px] px-[12px] py-[8px] rounded-[8px] font-medium text-[14px] hover:bg-surface/50 focus:bg-surface/50 duration-200 cursor-pointer">
-          <Settings className="w-[16px] h-[16px]" />
-          <p>การตั้งค่า</p>
+        <DropdownMenuItem
+          onClick={() => navigate("/admin/employees")}
+          className="flex items-center gap-[12px] px-[12px] py-[8px] rounded-[8px] font-medium text-[16px] focus:bg-surface/50 duration-300 cursor-pointer"
+        >
+          <Users className="w-[16px] h-[16px]" />
+          <p>บัญชีพนักงาน</p>
         </DropdownMenuItem>
         <DropdownMenuSeparator className="my-[4px]" />
         <DropdownMenuItem
           onClick={() => {
             handleLogout();
           }}
-          className="flex items-center gap-[12px] px-[12px] py-[8px] rounded-[8px] font-medium text-[14px] hover:text-red-600 focus:text-red-600 hover:bg-red-50 focus:bg-red-50 duration-200 cursor-pointer"
+          className="flex items-center gap-[12px] px-[12px] py-[8px] rounded-[8px] font-medium text-[16px] duration-300 cursor-pointer"
         >
           <LogOut className="w-[16px] h-[16px]" />
           <p>ออกจากระบบ</p>

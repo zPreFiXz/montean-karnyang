@@ -82,7 +82,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
               setActiveCategory("ทั้งหมด");
               setSearchParams(params);
             }}
-            className={`flex flex-col justify-center items-center w-[80px] h-[80px] px-[20px] py-[12px] rounded-[10px] border duration-300 ${
+            className={`flex flex-col justify-center items-center w-[80px] h-[80px] px-[20px] py-[12px] rounded-[10px] border duration-300 cursor-pointer ${
               activeCategory === "ทั้งหมด"
                 ? "border-transparent text-surface bg-gradient-primary"
                 : "border-subtle-light text-subtle-dark bg-surface"
@@ -104,7 +104,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
                   setActiveCategory(item.name);
                   handleFilter(item.name);
                 }}
-                className={`flex flex-col justify-center items-center w-[80px] h-[80px] px-[20px] py-[12px] border rounded-[10px] duration-300 ${
+                className={`flex flex-col justify-center items-center w-[80px] h-[80px] px-[20px] py-[12px] border rounded-[10px] duration-300 cursor-pointer ${
                   isActive
                     ? "border-transparent text-surface bg-gradient-primary"
                     : "border-subtle-light text-subtle-dark bg-surface"

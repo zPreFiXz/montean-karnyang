@@ -27,15 +27,15 @@ const CarCard = ({
   };
 
   return (
-    <div className="flex justify-between items-center w-full h-[80px] gap-[8px] px-[10px] md:px-[16px] rounded-[10px] bg-surface shadow-primary">
-      <div className="flex-1 flex items-center min-w-0 gap-[8px]">
+    <div className="flex justify-between items-center w-full h-[80px] gap-[8px] px-[10px] rounded-[10px] bg-surface shadow-primary">
+      <div className="flex-1 flex items-center gap-[8px]">
         <div
           className={`flex justify-center items-center w-[45px] h-[45px] rounded-full ${bgColorMap[bg]}`}
         >
           <Icon color={color} />
         </div>
         {licensePlate ? (
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col">
             <p
               className={`font-semibold text-[18px] md:text-[20px] truncate ${textColorMap[bg]}`}
             >
@@ -46,7 +46,7 @@ const CarCard = ({
             </p>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col">
             <p
               className={`font-semibold text-[20px] md:text-[22px] truncate ${textColorMap[bg]}`}
             >

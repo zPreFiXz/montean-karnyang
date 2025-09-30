@@ -5,6 +5,7 @@ import { LoaderCircle } from "lucide-react";
 import { getVehicles } from "@/api/vehicle";
 import CarCard from "@/components/cards/CarCard";
 import { Car, Document } from "@/components/icons/Icon";
+import { scrollMainToTop } from "@/lib/utils";
 
 const Vehicles = () => {
   const [vehicles, setVehicles] = useState([]);
@@ -15,7 +16,7 @@ const Vehicles = () => {
   const search = searchParams.get("search");
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    scrollMainToTop();
 
     if (isInitializing.current) return;
     isInitializing.current = true;
@@ -26,7 +27,7 @@ const Vehicles = () => {
 
     setTimeout(() => {
       isInitializing.current = false;
-    }, 100);
+    }, 200);
   }, []);
 
   useEffect(() => {
@@ -63,7 +64,7 @@ const Vehicles = () => {
         </div>
       </div>
 
-      <div className="w-full min-h-[calc(100vh-65px)] pb-[112px] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+      <div className="w-full min-h-[calc(100vh-65px)] pb-[112px] xl:pb-[16px] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         <div className="px-[20px] pt-[16px]">
           {/* แถบค้นหา */}
           <SearchBar placeholder="ค้นหาทะเบียน, จังหวัด, ยี่ห้อ, รุ่นรถ" />

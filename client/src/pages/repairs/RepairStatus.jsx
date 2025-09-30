@@ -3,7 +3,7 @@ import { Car } from "@/components/icons/Icon";
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useParams, useNavigate } from "react-router";
 import { getRepairs } from "@/api/repair";
-import { formatTime } from "@/lib/utils";
+import { formatTime, scrollMainToTop } from "@/lib/utils";
 import { LoaderCircle, ChevronLeft } from "lucide-react";
 
 const RepairStatus = () => {
@@ -14,7 +14,7 @@ const RepairStatus = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    scrollMainToTop();
     fetchRepairs();
   }, []);
 
@@ -129,7 +129,7 @@ const RepairStatus = () => {
       <div className="flex justify-center gap-[16px] mx-[20px] mt-[16px]">
         <Link
           to="/repair/status/in-progress"
-          className={`flex items-center justify-center w-[106px] md:w-[120px] h-[45px] rounded-[10px] duration-200 border-2 font-semibold text-[18px] md:text-[20px] ${
+          className={`flex items-center justify-center w-[106px] md:w-[120px] h-[45px] rounded-[10px] duration-300 border-2 font-semibold text-[18px] md:text-[20px] ${
             location.pathname === "/repair/status/in-progress"
               ? "border-white text-surface bg-in-progress"
               : "border-subtle-light  text-subtle-light bg-surface"
@@ -139,7 +139,7 @@ const RepairStatus = () => {
         </Link>
         <Link
           to="/repair/status/completed"
-          className={`flex items-center justify-center w-[106px] md:w-[120px] h-[45px] rounded-[10px] duration-200 border-2 font-semibold text-[18px] md:text-[20px] ${
+          className={`flex items-center justify-center w-[106px] md:w-[120px] h-[45px] rounded-[10px] duration-300 border-2 font-semibold text-[18px] md:text-[20px] ${
             location.pathname === "/repair/status/completed"
               ? "border-white text-surface bg-completed"
               : "border-subtle-light text-subtle-light bg-surface"
@@ -149,7 +149,7 @@ const RepairStatus = () => {
         </Link>
         <Link
           to="/repair/status/paid"
-          className={`flex items-center justify-center w-[106px] md:w-[120px] h-[45px] rounded-[10px] duration-200 border-2 font-semibold text-[18px] md:text-[20px] ${
+          className={`flex items-center justify-center w-[106px] md:w-[120px] h-[45px] rounded-[10px] duration-300 border-2 font-semibold text-[18px] md:text-[20px] ${
             location.pathname === "/repair/status/paid"
               ? "border-white text-surface bg-paid"
               : "border-subtle-light text-subtle-light bg-surface"

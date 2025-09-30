@@ -80,7 +80,7 @@ function CalendarMonth({
                     commit(viewYear, m);
                   }}
                   ref={monthSelectRef}
-                  className="appearance-none h-(--cell-size) pl-3 pr-6 rounded-md font-athiti font-medium text-[16px] bg-transparent focus:outline-none"
+                  className="appearance-none h-(--cell-size) pl-3 pr-6 rounded-md font-athiti font-medium text-[16px] bg-transparent focus:outline-none cursor-pointer"
                 >
                   {months.map((m) => (
                     <option key={m} value={String(m)}>
@@ -99,7 +99,7 @@ function CalendarMonth({
                     setViewYear(y);
                     commit(y, viewMonth);
                   }}
-                  className="appearance-none h-(--cell-size) px-3 pr-8 rounded-md font-athiti font-medium text-[16px] bg-transparent focus:outline-none"
+                  className="appearance-none h-(--cell-size) px-3 pr-8 rounded-md font-athiti font-medium text-[16px] bg-transparent focus:outline-none cursor-pointer"
                 >
                   {Array.from({ length: maxYear - minYear + 1 }).map(
                     (_, idx) => {

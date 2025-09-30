@@ -34,11 +34,14 @@ const AppRoutes = () => {
         <Route element={<ProtectRouteUser element={<Layout />} />}>
           <Route path="dashboard" element={<Dashboard />} />
 
+          {/* Vehicle Brand and Model Management */}
+          <Route
+            path="vehicle-brand-models"
+            element={<VehicleBrandManagement />}
+          />
+
           {/* Inspection Routes */}
           <Route path="inspections/suspension" element={<Suspension />} />
-
-          {/* Report Routes */}
-          <Route path="reports/sales/:period" element={<SalesReport />} />
 
           {/* Repair Routes */}
           <Route path="repair/new" element={<CreateRepair />} />
@@ -62,11 +65,12 @@ const AppRoutes = () => {
           element={<ProtectRouteAdmin element={<Layout />} />}
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route
-            path="vehicle-brand-models"
-            element={<VehicleBrandManagement />}
-          />
+
+          {/* Employee Management */}
           <Route path="employees" element={<EmployeeManagement />} />
+
+          {/* Report Routes */}
+          <Route path="reports/sales/:period" element={<SalesReport />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

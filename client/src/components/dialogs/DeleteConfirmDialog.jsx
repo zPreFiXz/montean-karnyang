@@ -40,7 +40,10 @@ const DeleteConfirmDialog = ({
         onOpenAutoFocus={(e) => {
           // ป้องกันโฟกัสอัตโนมัติ แต่ย้ายโฟกัสเข้า dialog เพื่อหลีกเลี่ยง aria-hidden warning
           e.preventDefault();
-          if (cancelButtonRef.current && typeof cancelButtonRef.current.focus === "function") {
+          if (
+            cancelButtonRef.current &&
+            typeof cancelButtonRef.current.focus === "function"
+          ) {
             cancelButtonRef.current.focus();
           } else if (e?.target && typeof e.target.focus === "function") {
             // สำรอง: โฟกัสที่ตัว dialog เอง (ต้องสามารถ focus ได้)
@@ -61,7 +64,7 @@ const DeleteConfirmDialog = ({
             autoFocus={false}
             tabIndex={-1}
             aria-label="ปิดหน้าต่าง"
-            className="absolute top-[16px] right-[20px] flex items-center justify-center w-[32px] h-[32px] rounded-full bg-black/5"
+            className="absolute top-[16px] right-[20px] flex items-center justify-center w-[32px] h-[32px] rounded-full bg-black/5 cursor-pointer"
           >
             <X size={18} className="text-subtle-dark" />
           </button>
@@ -90,7 +93,7 @@ const DeleteConfirmDialog = ({
               type="button"
               disabled={isLoading}
               onClick={onClose}
-              className="flex-1 flex items-center justify-center h-[41px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-subtle-dark bg-gray-100 hover:bg-gray-200"
+              className="flex-1 flex items-center justify-center h-[41px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-subtle-dark bg-gray-100 cursor-pointer"
               ref={cancelButtonRef}
             >
               ยกเลิก

@@ -267,13 +267,13 @@ const SalesReport = () => {
   };
 
   return (
-    <div className="lg:hidden">
-      <div className="w-full h-[265px] md:h-[285px] py-[16px] px-[20px] bg-gradient-primary">
+    <div>
+      <div className="w-full h-full md:h-[285px] py-[16px] px-[20px] bg-gradient-primary">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-[8px]">
             <button
               onClick={() => navigate("/dashboard")}
-              className="mt-[2px] text-surface"
+              className="mt-[2px] text-surface cursor-pointer"
             >
               <ChevronLeft />
             </button>
@@ -283,7 +283,7 @@ const SalesReport = () => {
           </div>
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-              <button className="flex items-center gap-[8px] text-surface">
+              <button className="flex items-center gap-[8px] text-surface cursor-pointer">
                 <CalendarIcon className="w-5 h-5" />
                 <p className="font-semibold text-[20px] md:text-[22px]">
                   {periodType === "yearly"
@@ -349,10 +349,10 @@ const SalesReport = () => {
         </div>
         <div className="flex justify-center gap-[16px] mt-[16px]">
           <Link
-            to="/reports/sales/daily"
+            to="/admin/reports/sales/daily"
             state={{ currentDate: new Date().toISOString() }}
             className={`flex items-center justify-center w-[78px] md:w-[95px] h-[35px] md:h-[40px] rounded-[10px] border-2 font-semibold text-[18px] md:text-[20px] ${
-              location.pathname === "/reports/sales/daily"
+              location.pathname === "/admin/reports/sales/daily"
                 ? "border-white text-surface bg-primary"
                 : "border-subtle-light text-subtle-light bg-surface"
             }`}
@@ -360,10 +360,10 @@ const SalesReport = () => {
             วัน
           </Link>
           <Link
-            to="/reports/sales/weekly"
+            to="/admin/reports/sales/weekly"
             state={{ currentDate: new Date().toISOString() }}
             className={`flex items-center justify-center w-[78px] md:w-[95px] h-[35px] md:h-[40px] rounded-[10px] border-2 font-semibold text-[18px] md:text-[20px] ${
-              location.pathname === "/reports/sales/weekly"
+              location.pathname === "/admin/reports/sales/weekly"
                 ? "border-white text-surface bg-primary"
                 : "border-subtle-light text-subtle-light bg-surface"
             }`}
@@ -371,10 +371,10 @@ const SalesReport = () => {
             สัปดาห์
           </Link>
           <Link
-            to="/reports/sales/monthly"
+            to="/admin/reports/sales/monthly"
             state={{ currentDate: new Date().toISOString() }}
             className={`flex items-center justify-center w-[78px] md:w-[95px] h-[35px] md:h-[40px] rounded-[10px] border-2 font-semibold text-[18px] md:text-[20px] ${
-              location.pathname === "/reports/sales/monthly"
+              location.pathname === "/admin/reports/sales/monthly"
                 ? "border-white text-surface bg-primary"
                 : "border-subtle-light text-subtle-light bg-surface"
             }`}
@@ -382,10 +382,10 @@ const SalesReport = () => {
             เดือน
           </Link>
           <Link
-            to="/reports/sales/yearly"
+            to="/admin/reports/sales/yearly"
             state={{ currentDate: new Date().toISOString() }}
             className={`flex items-center justify-center w-[78px] md:w-[95px] h-[35px] md:h-[40px] rounded-[10px] border-2 font-semibold text-[18px] md:text-[20px] ${
-              location.pathname === "/reports/sales/yearly"
+              location.pathname === "/admin/reports/sales/yearly"
                 ? "border-white text-surface bg-primary"
                 : "border-subtle-light text-subtle-light bg-surface"
             }`}
@@ -401,7 +401,7 @@ const SalesReport = () => {
         <div className="flex items-center justify-between w-full px-[20px] mt-[16px]">
           <button
             onClick={() => changeDate("prev")}
-            className="flex items-center justify-center w-[44px] md:w-[48px] h-[44px] md:h-[48px] rounded-full bg-surface"
+            className="flex items-center justify-center w-[44px] md:w-[48px] h-[44px] md:h-[48px] rounded-full bg-surface cursor-pointer"
           >
             <ChevronLeft
               className="w-[24px] md:w-[26px] h-[24px] md:h-[26px] mr-[2px] text-primary"
@@ -415,7 +415,7 @@ const SalesReport = () => {
           </div>
           <button
             onClick={() => changeDate("next")}
-            className="flex items-center justify-center w-[44px] md:w-[48px] h-[44px] md:h-[48px] rounded-full bg-surface"
+            className="flex items-center justify-center w-[44px] md:w-[48px] h-[44px] md:h-[48px] rounded-full bg-surface cursor-pointer"
           >
             <ChevronRight
               className="w-[24px] md:w-[26px] h-[24px] md:h-[26px] ml-[2px] text-primary"
