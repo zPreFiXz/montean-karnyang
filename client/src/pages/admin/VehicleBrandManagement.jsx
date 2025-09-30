@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, Edit, Trash2, LoaderCircle } from "lucide-react";
 import { Link } from "react-router";
+import { scrollMainToTop } from "@/lib/utils";
 import { toast } from "sonner";
 import ComboBox from "@/components/ui/ComboBox";
 import VehicleBrandFormDialog from "@/components/dialogs/VehicleBrandFormDialog";
@@ -21,7 +22,7 @@ const VehicleBrandManagement = () => {
   const [deletingItem, setDeletingItem] = useState(null);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    scrollMainToTop();
     fetchVehicleBrandModels();
   }, []);
 
@@ -186,14 +187,14 @@ const VehicleBrandManagement = () => {
                         <div className="flex gap-[8px]">
                           <button
                             onClick={() => startEdit(item)}
-                            className="flex items-center gap-[4px] px-[12px] py-[6px] rounded-[10px] font-medium text-[14px] text-surface bg-gradient-primary"
+                            className="flex items-center gap-[4px] px-[12px] py-[6px] rounded-[10px] font-medium text-[14px] text-surface bg-gradient-primary cursor-pointer"
                           >
                             <Edit className="w-[14px] h-[14px]" />
                             <p className="font-semibold">แก้ไข</p>
                           </button>
                           <button
                             onClick={() => confirmDelete(item)}
-                            className="flex items-center gap-[4px] px-[12px] py-[6px] rounded-[10px] font-medium text-[14px] text-surface bg-delete"
+                            className="flex items-center gap-[4px] px-[12px] py-[6px] rounded-[10px] font-medium text-[14px] text-surface bg-delete cursor-pointer"
                           >
                             <Trash2 className="w-[14px] h-[14px]" />
                             <p className="font-semibold">ลบ</p>

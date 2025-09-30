@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
 import { getRepairById, updateRepairStatus } from "@/api/repair";
-import { formatDate, formatTime, formatCurrency } from "@/lib/utils";
+import {
+  formatDate,
+  formatTime,
+  formatCurrency,
+  scrollMainToTop,
+} from "@/lib/utils";
 import {
   ChevronLeft,
   CreditCard,
@@ -41,7 +46,7 @@ const RepairDetail = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    scrollMainToTop();
 
     fetchRepairDetail();
   }, [id]);
@@ -354,7 +359,7 @@ const RepairDetail = () => {
     // ถ้ามาจาก SalesReport ให้กลับไปพร้อมข้อมูลวันที่
     if (
       location.state?.returnTo &&
-      location.state.returnTo.includes("/reports/sales/")
+      location.state.returnTo.includes("/admin/reports/sales/")
     ) {
       navigate(location.state.returnTo, {
         state: { currentDate: location.state.currentDate },
@@ -367,7 +372,10 @@ const RepairDetail = () => {
   return (
     <div className="w-full h-[87px] bg-gradient-primary shadow-primary">
       <div className="flex items-center gap-[8px] px-[20px] py-[18px]">
-        <button onClick={handleGoBack} className="mt-[2px] text-surface">
+        <button
+          onClick={handleGoBack}
+          className="mt-[2px] text-surface cursor-pointer"
+        >
           <ChevronLeft />
         </button>
         <p className="font-semibold text-[24px] md:text-[26px] text-surface">
@@ -375,7 +383,7 @@ const RepairDetail = () => {
         </p>
       </div>
 
-      <div className="min-h-[calc(100vh-65px)] pt-[16px] pb-[96px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+      <div className="min-h-[calc(100vh-73px)] pt-[16px] pb-[112px] xl:pb-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         {isLoading ? (
           <div className="flex justify-center items-center h-[579px]">
             <LoaderCircle className="w-8 h-8 animate-spin text-primary" />
@@ -487,7 +495,7 @@ const RepairDetail = () => {
                   </p>
                   <button
                     onClick={handleEditRepair}
-                    className="flex items-center gap-[4px] font-semibold text-[20px] md:text-[22px] text-primary hover:text-primary/80 cursor-pointer"
+                    className="flex items-center gap-[4px] font-semibold text-[20px] md:text-[22px] text-primary cursor-pointer"
                   >
                     <Edit className="w-5 h-5" />
                     แก้ไขรายการซ่อม
@@ -705,24 +713,24 @@ const RepairDetail = () => {
                       value={selectedPaymentMethod}
                       onValueChange={(value) => setSelectedPaymentMethod(value)}
                     >
-                      <SelectTrigger className="w-auto min-w-[140px] px-[12px] py-[8px] rounded-[20px] border font-medium text-[18px] text-normal bg-white focus:outline-none focus:ring-3 focus:ring-primary/20 focus:border-primary focus:border-2 ease-in-out duration-200">
+                      <SelectTrigger className="w-auto min-w-[140px] px-[12px] py-[8px] rounded-[20px] border font-medium text-[18px] text-normal bg-white focus:outline-none focus:ring-3 focus:ring-primary/20 focus:border-primary focus:border-2 ease-in-out duration-300 cursor-pointer">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="font-athiti font-medium">
                         <SelectItem
-                          className="text-[18px] md:text-[20px]"
+                          className="text-[18px] md:text-[20px] cursor-pointer"
                           value="CASH"
                         >
                           เงินสด
                         </SelectItem>
                         <SelectItem
-                          className="text-[18px] md:text-[20px]"
+                          className="text-[18px] md:text-[20px] cursor-pointer"
                           value="BANK_TRANSFER"
                         >
                           โอนเงิน
                         </SelectItem>
                         <SelectItem
-                          className="text-[18px] md:text-[20px]"
+                          className="text-[18px] md:text-[20px] cursor-pointer"
                           value="CREDIT_CARD"
                         >
                           บัตรเครดิต
@@ -792,7 +800,7 @@ const RepairDetail = () => {
             </div>
 
             {repair.user && (
-              <div className="px-[20px] mb-[16px]">
+              <div className="px-[20px]">
                 <p className="mb-[8px] font-semibold text-[22px] md:text-[24px] text-normal">
                   ผู้รับงานซ่อม
                 </p>
@@ -805,7 +813,7 @@ const RepairDetail = () => {
             )}
 
             {getNextStatus(repair.status) && (
-              <div className="flex flex-col gap-[16px] pr-[40px] mb-[16px]">
+              <div className="flex flex-col gap-[16px] pr-[40px] mt-[16px]">
                 <FormButton
                   label={getNextStatusText(repair.status)}
                   isLoading={isUpdating}

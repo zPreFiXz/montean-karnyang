@@ -6,6 +6,7 @@ const InventoryCard = ({
   unit,
   sellingPrice,
   stockQuantity,
+  minStockLevel,
   typeSpecificData,
   secureUrl,
   category,
@@ -40,7 +41,7 @@ const InventoryCard = ({
   };
 
   return (
-    <div className="flex items-center gap-[16px] mt-[16px]">
+    <div className="flex items-center gap-[16px] mt-[16px] cursor-pointer">
       <div className="flex justify-between items-center w-full h-[80px] gap-[8px] px-[8px] rounded-[10px] bg-white shadow-primary">
         <div className="flex items-center gap-[8px]">
           <div className="flex items-center justify-center rounded-[10px] border border-subtle-light bg-white shadow-primary">
@@ -66,15 +67,22 @@ const InventoryCard = ({
           <div className="flex flex-col">
             {renderProductInfo()}
             {!isService &&
-              (stockQuantity > 0 ? (
-                <p className="font-semibold text-[16px] md:text-[18px] text-subtle-dark">
-                  {`จำนวน: ${stockQuantity} ${unit}`}
-                </p>
-              ) : (
+              (stockQuantity === 0 ? (
                 <div className="flex items-center gap-[4px] font-semibold text-[16px] md:text-[18px] text-delete">
                   <AlertTriangle className="w-5 h-5 text-delete" />
                   <p>สต็อกหมด</p>
                 </div>
+              ) : minStockLevel !== undefined &&
+                minStockLevel !== null &&
+                Number(stockQuantity) <= Number(minStockLevel) ? (
+                <div className="flex items-center gap-[4px] font-semibold text-[16px] md:text-[18px] text-in-progress">
+                  <AlertTriangle className="w-5 h-5 text-in-progress" />
+                  <p>{`จำนวน: ${Number(stockQuantity)} ${unit || ""}`}</p>
+                </div>
+              ) : (
+                <p className="font-semibold text-[16px] md:text-[18px] text-subtle-dark">
+                  {`จำนวน: ${stockQuantity} ${unit}`}
+                </p>
               ))}
           </div>
         </div>

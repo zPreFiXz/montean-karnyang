@@ -9,7 +9,13 @@ const { authCheck, adminCheck } = require("../middlewares/auth");
 const { register, login, logout, currentUser } = require("../controllers/auth");
 
 // @ENDPOINTS http://localhost:3000/api/register
-router.post("/register", authCheck, validate(registerSchema), register);
+router.post(
+  "/register",
+  authCheck,
+  adminCheck,
+  validate(registerSchema),
+  register
+);
 
 // @ENDPOINTS http://localhost:3000/api/login
 router.post("/login", validate(loginSchema), login);

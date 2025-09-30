@@ -9,6 +9,7 @@ import { getInventory } from "@/api/inventory";
 import { getParts } from "@/api/part";
 import { LoaderCircle } from "lucide-react";
 import { BoxSearch } from "@/components/icons/Icon";
+import { scrollMainToTop } from "@/lib/utils";
 import ComboBox from "@/components/ui/ComboBox";
 
 const Inventory = () => {
@@ -102,7 +103,7 @@ const Inventory = () => {
   }, [partsList, width, aspectRatio, rimDiameter]);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    scrollMainToTop();
 
     if (isInitializing.current) return;
     isInitializing.current = true;
@@ -114,7 +115,7 @@ const Inventory = () => {
 
     setTimeout(() => {
       isInitializing.current = false;
-    }, 100);
+    }, 200);
   }, []);
 
   useEffect(() => {
@@ -191,7 +192,7 @@ const Inventory = () => {
         </div>
       </div>
 
-      <div className="w-full min-h-[calc(100vh-65px)] pb-[112px] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+      <div className="w-full min-h-[calc(100vh-65px)] pb-[112px] xl:pb-[16px] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         <div className="px-[20px] pt-[16px]">
           {/* แถบค้นหา */}
           <SearchBar placeholder="ค้นหารหัส, ยี่ห้อ, ชื่ออะไหล่" />
@@ -275,7 +276,7 @@ const Inventory = () => {
             </p>
             <Link
               to="/inventory/new"
-              className="font-semibold text-[20px] md:text-[22px] text-primary hover:text-primary/80 cursor-pointer"
+              className="font-semibold text-[20px] md:text-[22px] text-primary cursor-pointer"
             >
               + เพิ่มรายการ
             </Link>
@@ -305,6 +306,7 @@ const Inventory = () => {
                   unit={item.unit}
                   sellingPrice={item.sellingPrice}
                   stockQuantity={item.stockQuantity}
+                  minStockLevel={item.minStockLevel}
                   typeSpecificData={item.typeSpecificData}
                   secureUrl={item.secureUrl}
                   category={item.category.name}

@@ -16,6 +16,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { partServiceSchema } from "@/utils/schemas";
 import { units } from "@/utils/data";
 import { ChevronLeft } from "lucide-react";
+import { scrollMainToTop } from "@/lib/utils";
 
 const suspensionTypes = [
   { id: "left-right", name: "ซ้าย-ขวา" },
@@ -47,13 +48,13 @@ const CreatePart = () => {
   const { errors } = formState;
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    scrollMainToTop();
     fetchCategories();
   }, []);
 
   useEffect(() => {
     if (errors.categoryId) {
-      window.scrollTo(0, 0);
+      scrollMainToTop();
     }
   }, [errors.categoryId]);
 

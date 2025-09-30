@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 // Middlewares
-const { authCheck } = require("../middlewares/auth");
+const { authCheck, adminCheck } = require("../middlewares/auth");
 
 // Controllers
 const {
@@ -13,15 +13,15 @@ const {
 } = require("../controllers/employee");
 
 // @ENDPOINTS http://localhost:3000/api/employees
-router.get("/employees", authCheck, getEmployees);
+router.get("/employees", authCheck, adminCheck, getEmployees);
 
 // @ENDPOINTS http://localhost:3000/api/employee
-router.post("/employee", authCheck, createEmployee);
+router.post("/employee", authCheck, adminCheck, createEmployee);
 
 // @ENDPOINTS http://localhost:3000/api/employee/1
-router.put("/employee/:id", authCheck, updateEmployee);
+router.put("/employee/:id", authCheck, adminCheck, updateEmployee);
 
 // @ENDPOINTS http://localhost:3000/api/employee/1
-router.delete("/employee/:id", authCheck, deleteEmployee);
+router.delete("/employee/:id", authCheck, adminCheck, deleteEmployee);
 
 module.exports = router;

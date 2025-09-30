@@ -58,9 +58,12 @@ const ComboBox = ({
     <div>
       {label && (
         <Label
-          className={`block mb-[8px] font-medium ${labelClass || (customClass
-            ? "text-[18px] md:text-[20px]"
-            : "text-[22px] md:text-[24px]") } ${color}`}
+          className={`block mb-[8px] font-medium ${
+            labelClass ||
+            (customClass
+              ? "text-[18px] md:text-[20px]"
+              : "text-[22px] md:text-[24px]")
+          } ${color}`}
         >
           {label}
         </Label>
@@ -78,7 +81,7 @@ const ComboBox = ({
               aria-expanded={open}
               disabled={disabled}
               className={cn(
-                "justify-between w-full h-[41px] rounded-[20px] border-input font-medium text-foreground",
+                "justify-between w-full h-[41px] rounded-[20px] border-input font-medium text-foreground cursor-pointer",
                 customClass || "text-[20px] md:text-[22px]",
                 !selectedLabel &&
                   (customClass
@@ -159,7 +162,7 @@ const ComboBox = ({
                           inputRef.current.blur();
                         }
                       }}
-                      className={`font-athiti font-medium text-normal ${
+                      className={`font-athiti font-medium text-normal cursor-pointer ${
                         customClass || "text-[18px] md:text-[20px]"
                       }`}
                     >

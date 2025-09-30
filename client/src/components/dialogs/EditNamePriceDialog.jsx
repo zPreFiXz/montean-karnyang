@@ -104,7 +104,7 @@ const EditNamePriceDialog = ({
             onClick={handleCancel}
             autoFocus={false}
             tabIndex={-1}
-            className="absolute top-[16px] right-[20px] flex items-center justify-center w-[32px] h-[32px] rounded-full bg-black/5"
+            className="absolute top-[16px] right-[20px] flex items-center justify-center w-[32px] h-[32px] rounded-full bg-black/5 cursor-pointer"
           >
             <X size={18} className="text-subtle-dark" />
           </button>
@@ -181,14 +181,14 @@ const EditNamePriceDialog = ({
             <button
               type="button"
               onClick={handleCancel}
-              className="flex-1 flex items-center justify-center h-[41px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-subtle-dark bg-gray-100 hover:bg-gray-200"
+              className="flex-1 flex items-center justify-center h-[41px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-subtle-dark bg-gray-100 cursor-pointer"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
               onClick={handleSubmit(onSubmit)}
-              className="flex-1 flex items-center justify-center h-[41px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-surface bg-gradient-primary hover:bg-gradient-primary/90"
+              className="flex-1 flex items-center justify-center h-[41px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-surface bg-gradient-primary cursor-pointer"
             >
               ยืนยัน
             </button>

@@ -15,6 +15,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { provinces } from "@/utils/data";
+import { scrollMainToTop } from "@/lib/utils";
 
 const RepairSummary = () => {
   const location = useLocation();
@@ -28,7 +29,7 @@ const RepairSummary = () => {
 
   // หากไม่มีข้อมูลให้กลับไปหน้าสร้างรายการซ่อมใหม่
   useEffect(() => {
-    window.scrollTo(0, 0);
+    scrollMainToTop();
 
     if (!repairData || !repairItems) {
       navigate("/repair/new", { replace: true });
@@ -143,7 +144,7 @@ const RepairSummary = () => {
       <div className="flex items-center gap-[8px] px-[20px] py-[18px]">
         <button
           onClick={() => handleGoBack()}
-          className="mt-[2px] text-surface"
+          className="mt-[2px] text-surface cursor-pointer"
         >
           <ChevronLeft />
         </button>
@@ -152,7 +153,7 @@ const RepairSummary = () => {
         </p>
       </div>
 
-      <div className="w-full h-full md:min-h-[calc(100vh-68px)] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+      <div className="w-full h-full rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
         <div className="pt-[16px]">
           {/* ข้อมูลลูกค้า */}
           <div className="px-[20px]">
@@ -235,7 +236,7 @@ const RepairSummary = () => {
                 </p>
                 <button
                   onClick={() => handleGoBack()}
-                  className="flex items-center gap-[4px] font-semibold text-[20px] md:text-[22px] text-primary hover:text-primary/80 cursor-pointer"
+                  className="flex items-center gap-[4px] font-semibold text-[20px] md:text-[22px] text-primary cursor-pointer"
                 >
                   <Edit className="w-5 h-5" />
                   แก้ไขรายการซ่อม
@@ -343,7 +344,7 @@ const RepairSummary = () => {
               </div>
             </div>
           </div>
-          <div className="flex justify-center pb-[112px]">
+          <div className="flex justify-center pb-[112px] xl:pb-[16px]">
             <FormButton
               label={editRepairId ? "บันทึก" : "สร้างรายการซ่อม"}
               isLoading={isSubmitting}

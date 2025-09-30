@@ -16,6 +16,7 @@ import { addStock, deletePart } from "@/api/part";
 import { deleteService } from "@/api/service";
 import { useNavigate } from "react-router";
 import { addStockSchema } from "@/utils/schemas";
+import useAuthStore from "@/stores/authStore";
 
 const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
   const [showAddStock, setShowAddStock] = useState(false);
@@ -23,6 +24,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(item);
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   const {
     register,
@@ -56,7 +58,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
           behavior: "smooth",
         });
       }
-    }, 100);
+    }, 200);
   };
 
   if (!currentItem) return null;
@@ -139,7 +141,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
             behavior: "smooth",
           });
         }
-      }, 100);
+      }, 200);
 
       // อัพเดทข้อมูลในหน้าหลัก
       if (onStockUpdate) {
@@ -180,7 +182,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
               onClick={() => onOpenChange(false)}
               autoFocus={false}
               tabIndex={-1}
-              className="absolute top-[16px] right-[20px] flex items-center justify-center w-[32px] h-[32px] rounded-full bg-black/5"
+              className="absolute top-[16px] right-[20px] flex items-center justify-center w-[32px] h-[32px] rounded-full bg-black/5 cursor-pointer"
             >
               <X size={18} className="text-subtle-dark" />
             </button>
@@ -194,16 +196,23 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                 {!isService && currentItem.partNumber && (
                   <div className="flex justify-center mt-[16px]">
                     {/* สถานะสต็อก */}
-                    {currentItem.stockQuantity <= currentItem.minStockLevel ? (
+                    {currentItem.stockQuantity === 0 ? (
                       <div className="flex items-center w-fit h-[41px] gap-2 px-7 pr-8 rounded-[20px] font-semibold text-[16px] md:text-[18px] text-surface bg-delete">
                         <AlertTriangle className="w-4 h-4" />
-                        สต็อกต่ำ - เหลือ {currentItem.stockQuantity}{" "}
+                        สต็อกหมด - จำนวน {currentItem.stockQuantity}{" "}
+                        {currentItem.unit}
+                      </div>
+                    ) : currentItem.stockQuantity <=
+                      currentItem.minStockLevel ? (
+                      <div className="flex items-center w-fit h-[41px] gap-2 px-7 pr-8 rounded-[20px] font-semibold text-[16px] md:text-[18px] text-surface bg-in-progress">
+                        <AlertTriangle className="w-4 h-4" />
+                        สต็อกต่ำ - จำนวน {currentItem.stockQuantity}{" "}
                         {currentItem.unit}
                       </div>
                     ) : (
                       <div className="flex items-center w-fit h-[41px] gap-2 px-7 pr-8 rounded-[20px] font-semibold text-[16px] md:text-[18px] text-surface bg-completed">
                         <Check className="w-4 h-4" />
-                        สต็อกปกติ - เหลือ {currentItem.stockQuantity}{" "}
+                        สต็อกปกติ - จำนวน {currentItem.stockQuantity}{" "}
                         {currentItem.unit}
                       </div>
                     )}
@@ -273,16 +282,18 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                   </p>
                 )}
                 <div className="space-y-[8px] p-[16px] rounded-[10px] bg-gray-50">
-                  {!isService && currentItem.costPrice && (
-                    <div className="flex justify-between">
-                      <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark">
-                        ราคาต้นทุน:
-                      </p>
-                      <p className="font-semibold text-[18px] md:text-[20px] text-normal">
-                        {Number(currentItem.costPrice).toLocaleString()} บาท
-                      </p>
-                    </div>
-                  )}
+                  {user?.role === "ADMIN" &&
+                    !isService &&
+                    currentItem.costPrice && (
+                      <div className="flex justify-between">
+                        <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark">
+                          ราคาต้นทุน:
+                        </p>
+                        <p className="font-semibold text-[18px] md:text-[20px] text-normal">
+                          {Number(currentItem.costPrice).toLocaleString()} บาท
+                        </p>
+                      </div>
+                    )}
 
                   <div className="flex justify-between">
                     <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark">
@@ -310,9 +321,11 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                         </p>
                         <p
                           className={`font-semibold text-[18px] md:text-[20px] ${
-                            currentItem.stockQuantity <=
-                            currentItem.minStockLevel
+                            currentItem.stockQuantity === 0
                               ? "text-delete"
+                              : currentItem.stockQuantity <=
+                                currentItem.minStockLevel
+                              ? "text-in-progress"
                               : "text-completed"
                           }`}
                         >
@@ -390,7 +403,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                           isSubmitting ? (
                             "เพิ่มสต็อก"
                           ) : (
-                            <div className="flex items-center justify-center gap-[8px]">
+                            <div className="flex items-center justify-center gap-[8px] cursor-pointer">
                               <Plus className="w-4 h-4" />
                               เพิ่มสต็อก
                             </div>
@@ -412,7 +425,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
               {!isService && !showAddStock && (
                 <button
                   onClick={handleShowAddStock}
-                  className="flex-1 flex items-center justify-center h-[41px] gap-[4px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-surface bg-gradient-primary"
+                  className="flex-1 flex items-center justify-center h-[41px] gap-[4px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-surface bg-gradient-primary cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   เพิ่มสต็อก
@@ -422,7 +435,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
               <button
                 onClick={handleEdit}
                 autoFocus={false}
-                className={`flex-1 flex items-center justify-center h-[41px] gap-[4px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-surface bg-in-progress`}
+                className={`flex-1 flex items-center justify-center h-[41px] gap-[4px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-surface bg-in-progress cursor-pointer`}
               >
                 <Edit className="w-4 h-4" />
                 แก้ไข
@@ -463,7 +476,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
 
                 <button
                   onClick={() => setConfirmOpen(true)}
-                  className="flex items-center justify-center w-[44px] h-[41px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-surface bg-delete"
+                  className="flex items-center justify-center w-[44px] h-[41px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-surface bg-delete cursor-pointer"
                   aria-label="ลบ"
                 >
                   <Trash className="w-4 h-4" />
