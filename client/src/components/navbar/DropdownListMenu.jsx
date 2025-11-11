@@ -60,16 +60,18 @@ const DropdownListMenu = () => {
           onClick={() => navigate("/vehicle-brand-models")}
           className="flex items-center gap-[12px] px-[12px] py-[8px] rounded-[8px] font-medium text-[16px] focus:bg-surface/50 duration-300 cursor-pointer"
         >
-          <CarFront className="w-[16px] h-[16px]" />
-          <p>ยี่ห้อและรุ่นรถ</p>
+          <CarFront className="w-[16px] h-[16px] text-primary" />
+          <p>จัดการยี่ห้อและรุ่นรถ</p>
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => navigate("/admin/employees")}
-          className="flex items-center gap-[12px] px-[12px] py-[8px] rounded-[8px] font-medium text-[16px] focus:bg-surface/50 duration-300 cursor-pointer"
-        >
-          <Users className="w-[16px] h-[16px]" />
-          <p>บัญชีพนักงาน</p>
-        </DropdownMenuItem>
+        {user?.role === "ADMIN" && (
+          <DropdownMenuItem
+            onClick={() => navigate("/admin/employees")}
+            className="flex items-center gap-[12px] px-[12px] py-[8px] rounded-[8px] font-medium text-[16px] focus:bg-surface/50 duration-300 cursor-pointer"
+          >
+            <Users className="w-[16px] h-[16px] text-completed" />
+            <p>จัดการบัญชีพนักงาน</p>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator className="my-[4px]" />
         <DropdownMenuItem
           onClick={() => {
@@ -77,7 +79,7 @@ const DropdownListMenu = () => {
           }}
           className="flex items-center gap-[12px] px-[12px] py-[8px] rounded-[8px] font-medium text-[16px] duration-300 cursor-pointer"
         >
-          <LogOut className="w-[16px] h-[16px]" />
+          <LogOut className="w-[16px] h-[16px] text-delete" />
           <p>ออกจากระบบ</p>
         </DropdownMenuItem>
       </DropdownMenuContent>

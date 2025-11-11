@@ -37,18 +37,18 @@ const CarCard = ({
         {licensePlate ? (
           <div className="flex-1 flex flex-col">
             <p
-              className={`font-semibold text-[18px] md:text-[20px] truncate ${textColorMap[bg]}`}
+              className={`font-semibold text-[18px] md:text-[20px] ${textColorMap[bg]} line-clamp-1`}
             >
               {licensePlate}
             </p>
-            <p className="font-medium text-[16px] md:text-[18px] text-subtle-dark truncate">
+            <p className="font-medium text-[16px] md:text-[18px] text-subtle-dark line-clamp-1">
               {[brand, time && `${time} น.`].filter(Boolean).join(" | ") || ""}
             </p>
           </div>
         ) : (
           <div className="flex-1 flex flex-col">
             <p
-              className={`font-semibold text-[20px] md:text-[22px] truncate ${textColorMap[bg]}`}
+              className={`font-semibold text-[20px] md:text-[22px] ${textColorMap[bg]} line-clamp-1`}
             >
               {status}
             </p>

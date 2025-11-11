@@ -76,8 +76,8 @@ const InventoryCard = ({
                 minStockLevel !== null &&
                 Number(stockQuantity) <= Number(minStockLevel) ? (
                 <div className="flex items-center gap-[4px] font-semibold text-[16px] md:text-[18px] text-in-progress">
-                  <AlertTriangle className="w-5 h-5 text-in-progress" />
-                  <p>{`จำนวน: ${Number(stockQuantity)} ${unit || ""}`}</p>
+                  <AlertTriangle className="w-5 h-5" />
+                  <p className="line-clamp-1">{`จำนวน: ${Number(stockQuantity)} ${unit || ""}`}</p>
                 </div>
               ) : (
                 <p className="font-semibold text-[16px] md:text-[18px] text-subtle-dark">

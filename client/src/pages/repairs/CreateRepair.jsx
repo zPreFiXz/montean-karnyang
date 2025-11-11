@@ -13,7 +13,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
 import { provinces } from "@/utils/data";
 import { getVehicleBrandModels } from "@/api/vehicleBrandModel";
-import { scrollMainToBottom, scrollMainToTop } from "@/lib/utils";
 
 const CreateRepair = () => {
   const navigate = useNavigate();
@@ -33,18 +32,14 @@ const CreateRepair = () => {
   const { errors } = formState;
 
   useEffect(() => {
-    scrollMainToTop();
+    window.scrollTo(0, 0);
     fetchVehicleBrandModels();
   }, []);
 
   // กู้คืนข้อมูลเมื่อกลับมาจากหน้าสรุป
   useEffect(() => {
     if (location.state) {
-      const {
-        repairData,
-        repairItems: savedItems,
-        scrollToBottom,
-      } = location.state;
+      const { repairData, repairItems: savedItems } = location.state;
 
       if (repairData) {
         Object.keys(repairData).forEach((key) => {
@@ -68,12 +63,16 @@ const CreateRepair = () => {
           }
         }
         setRestoredStockMap(map);
+      }
 
-        if (scrollToBottom) {
-          setTimeout(() => {
-            scrollMainToBottom();
-          }, 200);
-        }
+      // เลื่อนลงด้านล่างถ้ามาจากหน้าสรุป
+      if (location.state.scrollToBottom) {
+        setTimeout(() => {
+          window.scrollTo({
+            top: document.body.scrollHeight,
+            behavior: "smooth",
+          });
+        }, 200);
       }
 
       // ลบ state ออกจาก history แต่คงข้อมูล edit และแหล่งที่มาไว้
@@ -110,53 +109,6 @@ const CreateRepair = () => {
       console.error(error);
     }
   };
-
-  // กู้คืนข้อมูลเมื่อกลับมาจากหน้าสรุป
-  useEffect(() => {
-    if (location.state) {
-      const {
-        repairData,
-        repairItems: savedItems,
-        scrollToBottom,
-      } = location.state;
-
-      if (repairData) {
-        Object.keys(repairData).forEach((key) => {
-          setValue(key, repairData[key]);
-        });
-      }
-
-      if (savedItems && savedItems.length > 0) {
-        setRepairItems(savedItems);
-
-        if (scrollToBottom) {
-          setTimeout(() => {
-            scrollMainToBottom();
-          }, 200);
-        }
-      }
-
-      // ลบ state ออกจาก history แต่คงข้อมูล edit และแหล่งที่มาไว้
-      const preserved2 = {
-        ...(location.state?.editRepairId
-          ? { editRepairId: location.state.editRepairId }
-          : {}),
-        ...(location.state?.origin ? { origin: location.state.origin } : {}),
-        ...(location.state?.from ? { from: location.state.from } : {}),
-        ...(location.state?.statusSlug
-          ? { statusSlug: location.state.statusSlug }
-          : {}),
-        ...(location.state?.vehicleId
-          ? { vehicleId: location.state.vehicleId }
-          : {}),
-      };
-      window.history.replaceState(
-        preserved2,
-        document.title,
-        window.location.pathname
-      );
-    }
-  }, [location.state, setValue]);
 
   const getAvailableModelsForBrand = () => {
     const selectedBrand = watch("brand");
@@ -198,24 +150,6 @@ const CreateRepair = () => {
       </p>
     );
   };
-
-  // กู้คืนข้อมูลเมื่อกลับมาจากหน้าสรุป
-  useEffect(() => {
-    if (location.state) {
-      const { repairData, repairItems: savedItems } = location.state;
-
-      if (repairData) {
-        Object.keys(repairData).forEach((key) => {
-          setValue(key, repairData[key]);
-        });
-      }
-      if (savedItems) {
-        setRepairItems(savedItems);
-      }
-    } else {
-      scrollMainToTop();
-    }
-  }, [location.state, setValue]);
 
   const onSubmit = async (data) => {
     setIsLoading(true);
@@ -291,8 +225,12 @@ const CreateRepair = () => {
       }
     });
 
+    // เลื่อนลงไปด้านล่างหลังจากเพิ่มรายการ
     setTimeout(() => {
-      scrollMainToBottom();
+      window.scrollTo({
+        top: document.body.scrollHeight,
+        behavior: "smooth",
+      });
     }, 200);
   };
 

@@ -52,11 +52,7 @@ const Login = () => {
     } catch (error) {
       console.error(error);
 
-      const errorMessage =
-        error.res?.data?.message ||
-        error.res?.data?.errors[0]?.message ||
-        error.response.data.message;
-      toast.error(errorMessage);
+      toast.error(error.response?.data?.message);
     }
   };
 

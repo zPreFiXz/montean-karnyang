@@ -47,7 +47,7 @@ const VehicleBrandFormDialog = ({
     }
   }, [isOpen, editingItem, reset]);
 
-  // เพิ่มยี่ห้อ-รุ่น
+  // เพิ่มยี่ห้อและรุ่น
   const handleAddVehicleBrand = async (data) => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -61,13 +61,11 @@ const VehicleBrandFormDialog = ({
       onSuccess?.();
     } catch (error) {
       console.error(error);
-
-      const errorMessage = error.response?.data?.message;
-      toast.error(errorMessage);
+      toast.error(error.response?.data?.message);
     }
   };
 
-  // แก้ไขยี่ห้อ-รุ่น
+  // แก้ไขยี่ห้อและรุ่น
   const handleEditVehicleBrand = async (data) => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -81,9 +79,7 @@ const VehicleBrandFormDialog = ({
       onSuccess?.();
     } catch (error) {
       console.error(error);
-
-      const errorMessage = error.response?.data?.message;
-      toast.error(errorMessage);
+      toast.error(error.response?.data?.message);
     }
   };
 
@@ -105,12 +101,12 @@ const VehicleBrandFormDialog = ({
       >
         <div className="relative flex-shrink-0 pt-[16px]">
           <DialogTitle className="font-athiti font-semibold text-center text-[22px] md:text-[24px] text-subtle-dark">
-            {editingItem ? "แก้ไขยี่ห้อ-รุ่นรถ" : "เพิ่มยี่ห้อ-รุ่นรถ"}
+            {editingItem ? "แก้ไขยี่ห้อและรุ่นรถ" : "เพิ่มยี่ห้อและรุ่นรถ"}
           </DialogTitle>
           <DialogDescription className="sr-only">
             {editingItem
-              ? `แก้ไขยี่ห้อ-รุ่นรถ ${editingItem.brand} ${editingItem.model}`
-              : "เพิ่มยี่ห้อ-รุ่นรถใหม่"}
+              ? `แก้ไขยี่ห้อและรุ่นรถ ${editingItem.brand} ${editingItem.model}`
+              : "เพิ่มยี่ห้อและรุ่นรถใหม่"}
           </DialogDescription>
 
           <button
@@ -160,7 +156,7 @@ const VehicleBrandFormDialog = ({
         <div className="flex-shrink-0 px-[16px] pb-[16px]">
           <div className="flex gap-[16px]">
             <FormButton
-              label={editingItem ? "บันทึก" : "เพิ่มยี่ห้อ-รุ่นรถ"}
+              label={editingItem ? "บันทึก" : "เพิ่มยี่ห้อและรุ่นรถ"}
               isLoading={isSubmitting}
               onClick={handleSubmit(
                 editingItem ? handleEditVehicleBrand : handleAddVehicleBrand

@@ -28,31 +28,3 @@ export function formatCurrency(amount) {
   if (typeof amount !== "number") return "0 บาท";
   return `${amount.toLocaleString()} บาท`;
 }
-
-export const scrollMainToBottom = () => {
-  try {
-    const main =
-      document.querySelector("main[role='main']") ||
-      document.querySelector("main") ||
-      document.querySelector(".lg\\:overflow-y-auto");
-    if (main && main.scrollHeight > main.clientHeight) {
-      main.scrollTo({ top: main.scrollHeight, behavior: "smooth" });
-      return;
-    }
-  } catch (_) {}
-  window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-};
-
-export const scrollMainToTop = () => {
-  try {
-    const main =
-      document.querySelector("main[role='main']") ||
-      document.querySelector("main") ||
-      document.querySelector(".lg\\:overflow-y-auto");
-    if (main) {
-      main.scrollTo({ top: 0, behavior: "instant" });
-      return;
-    }
-  } catch (_) {}
-  window.scrollTo(0, 0);
-};

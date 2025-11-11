@@ -15,7 +15,6 @@ import {
   Wrench,
 } from "lucide-react";
 import { provinces } from "@/utils/data";
-import { scrollMainToTop } from "@/lib/utils";
 
 const RepairSummary = () => {
   const location = useLocation();
@@ -29,7 +28,7 @@ const RepairSummary = () => {
 
   // หากไม่มีข้อมูลให้กลับไปหน้าสร้างรายการซ่อมใหม่
   useEffect(() => {
-    scrollMainToTop();
+    window.scrollTo(0, 0);
 
     if (!repairData || !repairItems) {
       navigate("/repair/new", { replace: true });
@@ -130,6 +129,10 @@ const RepairSummary = () => {
       origin,
       statusSlug,
       vehicleId,
+      // ถ้าไม่มีชื่อลูกค้าให้ซ่อน showMoreFields
+      ...(!repairData.fullName || !repairData.fullName.trim()
+        ? { hideMoreFields: true }
+        : {}),
     };
 
     if (from === "suspension") {

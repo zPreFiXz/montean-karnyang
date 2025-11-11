@@ -268,7 +268,7 @@ const SalesReport = () => {
 
   return (
     <div>
-      <div className="w-full h-full md:h-[285px] py-[16px] px-[20px] bg-gradient-primary">
+      <div className="w-full h-[265px] md:h-[285px] py-[16px] px-[20px] bg-gradient-primary">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-[8px]">
             <button

@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from "react-router";
 import { ChevronLeft, LoaderCircle, Wrench } from "lucide-react";
 import { Car } from "@/components/icons/Icon";
 import { getVehicleById } from "@/api/vehicle";
-import { formatDate, formatTime, scrollMainToTop } from "@/lib/utils";
+import { formatDate, formatTime } from "@/lib/utils";
 import RepairCard from "@/components/cards/RepairCard";
 
 const VehicleDetail = () => {
@@ -13,7 +13,7 @@ const VehicleDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    scrollMainToTop();
+    window.scrollTo(0, 0);
     fetchVehicleDetail();
   }, [id]);
 

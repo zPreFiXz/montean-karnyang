@@ -9,7 +9,7 @@ import { getInventory } from "@/api/inventory";
 import { getParts } from "@/api/part";
 import { LoaderCircle } from "lucide-react";
 import { BoxSearch } from "@/components/icons/Icon";
-import { scrollMainToTop } from "@/lib/utils";
+
 import ComboBox from "@/components/ui/ComboBox";
 
 const Inventory = () => {
@@ -44,15 +44,14 @@ const Inventory = () => {
   const uniqSorted = (arr = []) =>
     Array.from(new Set(arr)).sort((a, b) => a.localeCompare(b));
 
-  const isTirePart = (p) =>
-    p?.category?.name === "ยาง" || String(p?.categoryId || "").trim() !== "";
+  const isTirePart = (p) => p?.category?.name === "ยาง";
 
   const widthOptions = useMemo(() => {
     return uniqSorted(
       partsList
         .filter(isTirePart)
-        .map((p) => String(p.typeSpecificData?.width))
-        .filter(Boolean)
+        .map((p) => (p.typeSpecificData?.width ?? "").toString().trim())
+        .filter((v) => v !== "")
     );
   }, [partsList]);
 
@@ -64,8 +63,8 @@ const Inventory = () => {
             isTirePart(p) &&
             (!width || String(p.typeSpecificData?.width) === String(width))
         )
-        .map((p) => String(p.typeSpecificData?.aspectRatio))
-        .filter(Boolean)
+        .map((p) => (p.typeSpecificData?.aspectRatio ?? "").toString().trim())
+        .filter((v) => v !== "")
     );
   }, [partsList, width]);
 
@@ -79,31 +78,30 @@ const Inventory = () => {
             (!aspectRatio ||
               String(p.typeSpecificData?.aspectRatio) === String(aspectRatio))
         )
-        .map((p) => String(p.typeSpecificData?.rimDiameter))
-        .filter(Boolean)
+        .map((p) => (p.typeSpecificData?.rimDiameter ?? "").toString().trim())
+        .filter((v) => v !== "")
     );
   }, [partsList, width, aspectRatio]);
 
   const availableTireBrands = useMemo(() => {
-    return uniqSorted(
-      partsList
-        .filter(
-          (p) =>
-            isTirePart(p) &&
-            (!width || String(p.typeSpecificData?.width) === String(width)) &&
-            (!aspectRatio ||
-              String(p.typeSpecificData?.aspectRatio) ===
-                String(aspectRatio)) &&
-            (!rimDiameter ||
-              String(p.typeSpecificData?.rimDiameter) === String(rimDiameter))
-        )
-        .map((p) => String(p.brand || ""))
-        .filter(Boolean)
-    );
+    const brands = partsList
+      .filter(
+        (p) =>
+          isTirePart(p) &&
+          (!width || String(p.typeSpecificData?.width) === String(width)) &&
+          (!aspectRatio ||
+            String(p.typeSpecificData?.aspectRatio) === String(aspectRatio)) &&
+          (!rimDiameter ||
+            String(p.typeSpecificData?.rimDiameter) === String(rimDiameter))
+      )
+      .map((p) => (p.brand || "").toString().trim())
+      .filter((b) => !!b);
+
+    return uniqSorted(brands);
   }, [partsList, width, aspectRatio, rimDiameter]);
 
   useEffect(() => {
-    scrollMainToTop();
+    window.scrollTo(0, 0);
 
     if (isInitializing.current) return;
     isInitializing.current = true;

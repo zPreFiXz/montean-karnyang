@@ -57,7 +57,7 @@ export const partServiceSchema = z
     const isServiceCategory = data.categoryId === 1;
     const isSuspensionCategory = data.categoryId === 2;
     const isTireCategory = data.categoryId === 3;
-    
+
     if (isServiceCategory) {
       if (!data.name || data.name.trim() === "") {
         ctx.addIssue({
@@ -201,3 +201,55 @@ export const vehicleBrandModelSchema = z.object({
   brand: z.string().min(1, "กรุณากรอกยี่ห้อรถ"),
   model: z.string().min(1, "กรุณากรอกรุ่นรถ"),
 });
+
+export const employeeCreateSchema = z
+  .object({
+    firstName: z.string().min(1, "กรุณากรอกชื่อ"),
+    lastName: z.string().min(1, "กรุณากรอกนามสกุล"),
+    nickname: z.string().min(1, "กรุณากรอกชื่อเล่น"),
+    email: z.string().email("รูปแบบอีเมลไม่ถูกต้อง"),
+    password: z.string().min(6, "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร"),
+    confirmPassword: z.string().min(1, "กรุณายืนยันรหัสผ่าน"),
+    dateOfBirth: z.string().min(1, "กรุณาเลือกวันเกิด"),
+    phoneNumber: z
+      .string()
+      .regex(/^[0-9]{10}$/, "เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก"),
+    role: z.enum(["ADMIN", "EMPLOYEE"], { required_error: "กรุณาเลือกบทบาท" }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "รหัสผ่านไม่ตรงกัน",
+    path: ["confirmPassword"],
+  });
+
+export const employeeEditSchema = z
+  .object({
+    firstName: z.string().min(1, "กรุณากรอกชื่อ"),
+    lastName: z.string().min(1, "กรุณากรอกนามสกุล"),
+    nickname: z.string().min(1, "กรุณากรอกชื่อเล่น"),
+    email: z.string().email("รูปแบบอีเมลไม่ถูกต้อง"),
+    password: z
+      .string()
+      .optional()
+      .refine((val) => !val || val.length >= 6, {
+        message: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร",
+      }),
+    confirmPassword: z.string().optional(),
+    dateOfBirth: z.string().min(1, "กรุณาเลือกวันเกิด"),
+    phoneNumber: z
+      .string()
+      .regex(/^[0-9]{10}$/, "เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก"),
+    role: z.enum(["ADMIN", "EMPLOYEE"], { required_error: "กรุณาเลือกบทบาท" }),
+  })
+  .refine(
+    (data) => {
+      // ถ้ามีรหัสผ่านใหม่ ต้องมีการยืนยันรหัสผ่านด้วย
+      if (data.password && data.password.length > 0) {
+        return data.password === data.confirmPassword;
+      }
+      return true;
+    },
+    {
+      message: "รหัสผ่านไม่ตรงกัน",
+      path: ["confirmPassword"],
+    }
+  );

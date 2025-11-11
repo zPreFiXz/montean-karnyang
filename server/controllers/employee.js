@@ -11,26 +11,12 @@ exports.getEmployees = async (req, res, next) => {
           in: ["EMPLOYEE", "ADMIN"],
         },
       },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        nickname: true,
-        role: true,
-        // phoneNumber: true,
-        dateOfBirth: true,
-        createdAt: true,
-        updatedAt: true,
-      },
       orderBy: {
         createdAt: "desc",
       },
     });
 
-    res.status(200).json({
-      success: true,
-      data: employees,
-    });
+    res.json(employees);
   } catch (error) {
     next(error);
   }
@@ -47,67 +33,34 @@ exports.createEmployee = async (req, res, next) => {
       phoneNumber,
       dateOfBirth,
     } = req.body;
+    console.log(req.body);
 
-    // Validate required fields
-    if (
-      !email ||
-      !password ||
-      !fullName ||
-      !nickname ||
-      !role ||
-      !dateOfBirth
-    ) {
-      return next(createError(400, "กรุณากรอกข้อมูลให้ครบถ้วน"));
-    }
-
-    // Check if email already exists
-    const existingUser = await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { email },
     });
 
-    if (existingUser) {
-      return next(createError(400, "อีเมลนี้ถูกใช้แล้ว"));
-    }
-
-    // Validate role
-    const validRoles = ["EMPLOYEE", "MANAGER", "ADMIN"];
-    if (!validRoles.includes(role)) {
-      return next(createError(400, "บทบาทไม่ถูกต้อง"));
+    if (user) {
+      createError(400, "อีเมลนี้ถูกใช้งานแล้ว");
     }
 
     // Hash password
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create new employee
-    const newEmployee = await prisma.user.create({
+    // สร้างพนักงานใหม่
+    await prisma.user.create({
       data: {
         email,
         passwordHash: hashedPassword,
         fullName,
         nickname,
         role,
-        phoneNumber: phoneNumber || null,
+        phoneNumber,
         dateOfBirth: new Date(dateOfBirth),
-      },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        nickname: true,
-        role: true,
-        phoneNumber: true,
-        dateOfBirth: true,
-        createdAt: true,
-        updatedAt: true,
       },
     });
 
-    res.status(201).json({
-      success: true,
-      message: "เพิ่มพนักงานสำเร็จ",
-      data: newEmployee,
-    });
+    res.json({ message: "Employee created successfully" });
   } catch (error) {
     next(error);
   }
@@ -126,7 +79,7 @@ exports.updateEmployee = async (req, res, next) => {
       password,
     } = req.body;
 
-    // Check if employee exists
+    // ตรวจสอบว่าพนักงานมีอยู่จริงหรือไม่
     const existingEmployee = await prisma.user.findUnique({
       where: { id: parseInt(id) },
     });
@@ -135,18 +88,19 @@ exports.updateEmployee = async (req, res, next) => {
       return next(createError(404, "ไม่พบพนักงาน"));
     }
 
-    // Check if email is being changed and if new email already exists
+    // ตรวจสอบความซ้ำซ้อนของอีเมลถ้ามีการเปลี่ยนแปลง
     if (email && email !== existingEmployee.email) {
       const emailExists = await prisma.user.findUnique({
         where: { email },
       });
 
+      // ถ้าอีเมลนี้ถูกใช้แล้ว
       if (emailExists) {
         return next(createError(400, "อีเมลนี้ถูกใช้แล้ว"));
       }
     }
 
-    // Validate role if provided
+    // ตรวจสอบความถูกต้องของบทบาท
     if (role) {
       const validRoles = ["EMPLOYEE", "MANAGER", "ADMIN"];
       if (!validRoles.includes(role)) {
@@ -154,7 +108,6 @@ exports.updateEmployee = async (req, res, next) => {
       }
     }
 
-    // Prepare update data
     const updateData = {};
     if (email) updateData.email = email;
     if (fullName) updateData.fullName = fullName;
@@ -163,34 +116,17 @@ exports.updateEmployee = async (req, res, next) => {
     if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber || null;
     if (dateOfBirth) updateData.dateOfBirth = new Date(dateOfBirth);
 
-    // Hash new password if provided
     if (password) {
       const saltRounds = 12;
       updateData.passwordHash = await bcrypt.hash(password, saltRounds);
     }
 
-    // Update employee
-    const updatedEmployee = await prisma.user.update({
+    await prisma.user.update({
       where: { id: parseInt(id) },
       data: updateData,
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        nickname: true,
-        role: true,
-        phoneNumber: true,
-        dateOfBirth: true,
-        createdAt: true,
-        updatedAt: true,
-      },
     });
 
-    res.status(200).json({
-      success: true,
-      message: "แก้ไขข้อมูลพนักงานสำเร็จ",
-      data: updatedEmployee,
-    });
+    res.json({ message: "Employee updated successfully" });
   } catch (error) {
     next(error);
   }
@@ -200,29 +136,11 @@ exports.deleteEmployee = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // Check if employee exists
-    const existingEmployee = await prisma.user.findUnique({
-      where: { id: parseInt(id) },
-    });
-
-    if (!existingEmployee) {
-      return next(createError(404, "ไม่พบพนักงาน"));
-    }
-
-    // Prevent deleting yourself (optional - you might want to add this check)
-    // if (req.user && req.user.id === parseInt(id)) {
-    //   return next(createError(400, "ไม่สามารถลบบัญชีของตนเองได้"));
-    // }
-
-    // Delete employee
     await prisma.user.delete({
       where: { id: parseInt(id) },
     });
 
-    res.status(200).json({
-      success: true,
-      message: "ลบพนักงานสำเร็จ",
-    });
+    res.json({ message: "Employee deleted successfully" });
   } catch (error) {
     next(error);
   }

@@ -12,6 +12,8 @@ const FormInput = ({
   color,
   errors = {},
   customClass,
+  rightSlot,
+  rules,
   ...props
 }) => {
   const getTextColor = () => {
@@ -32,11 +34,13 @@ const FormInput = ({
       </Label>
       <div className="relative">
         <Input
-          {...register(name)}
+          {...(register ? register(name, rules) : {})}
           type={type}
           placeholder={placeholder}
           aria-invalid={errors[name] ? "true" : "false"}
-          className={`w-full h-[41px] px-[12px] rounded-[20px] font-medium text-[20px] md:text-[22px] bg-surface placeholder:font-light placeholder:text-[18px] md:placeholder:text-[20px] ${
+          className={`w-full h-[41px] px-[12px] ${
+            type === "date" ? "pr-[44px]" : ""
+          } rounded-[20px] font-medium text-[20px] md:text-[22px] bg-surface placeholder:font-light placeholder:text-[18px] md:placeholder:text-[20px] ${
             errors[name]
               ? "border-red-400 focus:border-delete focus-visible:!border-[#FF4545] focus-visible:!ring-[rgba(255,69,69,0.3)] focus-visible:!border-2"
               : "focus-visible:!border-[#1976d2] focus-visible:!ring-[rgba(25,118,210,0.35)] focus-visible:!border-2"
@@ -47,6 +51,15 @@ const FormInput = ({
           }}
           {...props}
         />
+        {rightSlot && (
+          <div
+            className={`${
+              errors[name] ? "right-[40px]" : "right-[12px]"
+            } absolute top-1/2 -translate-y-1/2`}
+          >
+            {rightSlot}
+          </div>
+        )}
         {errors[name] && (
           <div className="absolute top-1/2 right-[12px] transform -translate-y-1/2">
             <AlertCircle className="w-5 h-5 text-delete" />

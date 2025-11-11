@@ -1,24 +1,12 @@
 import { useState, useEffect } from "react";
-import {
-  ChevronLeft,
-  Plus,
-  Edit,
-  Trash2,
-  Search,
-  Eye,
-  EyeOff,
-} from "lucide-react";
+import { ChevronLeft, Edit, Trash2, LoaderCircle } from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import FormButton from "@/components/forms/FormButton";
-import FormInput from "@/components/forms/FormInput";
-import { useForm } from "react-hook-form";
-import {
-  getEmployees,
-  createEmployee,
-  updateEmployee,
-  deleteEmployee,
-} from "@/api/employee";
+import SearchBar from "@/components/forms/SearchBar";
+import EmployeeFormDialog from "@/components/dialogs/EmployeeFormDialog";
+import DeleteConfirmDialog from "@/components/dialogs/DeleteConfirmDialog";
+import { getEmployees, deleteEmployee } from "@/api/employee";
 
 const EmployeeManagement = () => {
   const [employees, setEmployees] = useState([]);
@@ -26,19 +14,11 @@ const EmployeeManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
-  const [showPassword, setShowPassword] = useState(false);
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm();
-
-  const watchRole = watch("role");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletingEmployee, setDeletingEmployee] = useState(null);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     fetchEmployees();
   }, []);
 
@@ -46,107 +26,45 @@ const EmployeeManagement = () => {
   const fetchEmployees = async () => {
     try {
       const response = await getEmployees();
-      setEmployees(response.data.data);
+      setEmployees(response.data);
     } catch (error) {
-      console.error("Error fetching employees:", error);
-      toast.error("ไม่สามารถดึงข้อมูลพนักงานได้");
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // เพิ่มพนักงานใหม่
-  const handleAddEmployee = async (data) => {
-    try {
-      await createEmployee({
-        email: data.email,
-        password: data.password,
-        fullName: `${data.firstName} ${data.lastName}`,
-        nickname: data.username,
-        role: data.role,
-        phoneNumber: data.phoneNumber,
-        dateOfBirth: data.dateOfBirth || "1990-01-01", // Default date if not provided
-      });
-      toast.success("เพิ่มพนักงานสำเร็จ");
-      reset();
-      setShowAddForm(false);
-      fetchEmployees();
-    } catch (error) {
-      console.error("Error adding employee:", error);
-      toast.error(error.response?.data?.message || "ไม่สามารถเพิ่มพนักงานได้");
-    }
+  // ฟอร์มย้ายไปที่ EmployeeFormDialog
+
+  // ลบพนักงานด้วย DeleteConfirmDialog
+  const confirmDelete = (employee) => {
+    setDeletingEmployee(employee);
+    setShowDeleteDialog(true);
   };
 
-  // แก้ไขพนักงาน
-  const handleEditEmployee = async (data) => {
+  const handleDeleteConfirm = async () => {
+    if (!deletingEmployee) return;
     try {
-      const updateData = {
-        email: data.email,
-        fullName: `${data.firstName} ${data.lastName}`,
-        nickname: data.username,
-        role: data.role,
-        phoneNumber: data.phoneNumber,
-        dateOfBirth: data.dateOfBirth,
-      };
-
-      // เพิ่มรหัสผ่านใหม่ถ้ามีการกรอก
-      if (data.password && data.password.trim() !== "") {
-        updateData.password = data.password;
-      }
-
-      await updateEmployee(editingEmployee.id, updateData);
-      toast.success("แก้ไขข้อมูลพนักงานสำเร็จ");
-      reset();
-      setEditingEmployee(null);
-      setShowAddForm(false);
-      fetchEmployees();
-    } catch (error) {
-      console.error("Error editing employee:", error);
-      toast.error(
-        error.response?.data?.message || "ไม่สามารถแก้ไขข้อมูลพนักงานได้"
-      );
-    }
-  };
-
-  // ลบพนักงาน
-  const handleDeleteEmployee = async (id) => {
-    if (!confirm("คุณแน่ใจหรือไม่ที่จะลบพนักงานคนนี้?")) return;
-
-    try {
-      await deleteEmployee(id);
+      await deleteEmployee(deletingEmployee.id);
       toast.success("ลบพนักงานสำเร็จ");
+      setShowDeleteDialog(false);
+      setDeletingEmployee(null);
       fetchEmployees();
     } catch (error) {
       console.error("Error deleting employee:", error);
-      toast.error("ไม่สามารถลบพนักงานได้");
+      toast.error(error.response?.data?.message);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteDialog(false);
+    setDeletingEmployee(null);
   };
 
   // เริ่มแก้ไข
   const startEdit = (employee) => {
     setEditingEmployee(employee);
-    // Parse fullName back to firstName and lastName for form
-    const nameParts = employee.fullName?.split(" ") || ["", ""];
-    const firstName = nameParts[0] || "";
-    const lastName = nameParts.slice(1).join(" ") || "";
-
-    reset({
-      username: employee.nickname,
-      email: employee.email,
-      role: employee.role,
-      firstName: firstName,
-      lastName: lastName,
-      phoneNumber: employee.phoneNumber,
-      dateOfBirth: employee.dateOfBirth?.split("T")[0] || "", // Format date for input
-    });
     setShowAddForm(true);
-  };
-
-  // ยกเลิกการแก้ไข
-  const cancelEdit = () => {
-    setEditingEmployee(null);
-    setShowAddForm(false);
-    reset();
   };
 
   // กรองข้อมูลตามการค้นหา
@@ -157,13 +75,32 @@ const EmployeeManagement = () => {
       employee.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // จัดกลุ่มตามตำแหน่ง
+  const groupedByRole = {};
+  filteredEmployees.forEach((employee) => {
+    if (!groupedByRole[employee.role]) {
+      groupedByRole[employee.role] = [];
+    }
+    groupedByRole[employee.role].push(employee);
+  });
+
+  // เรียงลำดับตาม id ภายในแต่ละกลุ่ม
+  Object.keys(groupedByRole).forEach((role) => {
+    groupedByRole[role].sort((a, b) => a.id - b.id);
+  });
+
+  // เรียงลำดับกลุ่มให้แอดมินแสดงก่อน
+  const sortedRoles = Object.keys(groupedByRole).sort((a, b) => {
+    if (a === "ADMIN") return -1;
+    if (b === "ADMIN") return 1;
+    return 0;
+  });
+
   // แปลงตำแหน่งงาน
   const getRoleLabel = (role) => {
     switch (role) {
       case "ADMIN":
-        return "ผู้ดูแลระบบ";
-      case "MANAGER":
-        return "ผู้จัดการ";
+        return "แอดมิน";
       case "EMPLOYEE":
         return "พนักงาน";
       default:
@@ -185,298 +122,118 @@ const EmployeeManagement = () => {
   };
 
   return (
-    <div className="w-full h-full bg-gradient-primary shadow-primary">
+    <div className="w-full h-[84px] bg-gradient-primary shadow-primary">
       <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
         <Link to="/admin/management" className="mt-[2px] text-surface">
           <ChevronLeft />
         </Link>
         <p className="font-semibold text-[24px] md:text-[26px] text-surface">
-          จัดการพนักงาน
+          จัดการบัญชีพนักงาน
         </p>
       </div>
 
-      <div className="w-full h-full md:min-h-[calc(100vh-68px)] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
-        <div className="px-[20px] py-[24px]">
-          {/* ปุ่มเพิ่มและการค้นหา */}
-          <div className="flex flex-col md:flex-row gap-[16px] mb-[24px]">
-            <button
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="flex items-center gap-[8px] px-[16px] py-[12px] bg-primary text-white rounded-[8px] hover:bg-primary/90 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              เพิ่มพนักงานใหม่
-            </button>
-
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="ค้นหาชื่อ, นามสกุล, ชื่อผู้ใช้..."
+      <div className="w-full h-[calc(100vh-68px)] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+        {isLoading ? (
+          <div className="flex justify-center items-center h-[502px]">
+            <LoaderCircle className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="px-[20px] py-[16px] pb-[112px]">
+            <div className="w-full">
+              <SearchBar
+                placeholder="ค้นหาชื่อ-นามสกุล, อีเมล"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-[8px] focus:ring-2 focus:ring-primary focus:border-primary"
+                onSearch={setSearchTerm}
               />
             </div>
-          </div>
 
-          {/* ฟอร์มเพิ่ม/แก้ไข */}
-          {showAddForm && (
-            <div className="mb-[24px] p-[20px] bg-gray-50 rounded-[12px] border">
-              <h3 className="font-semibold text-[18px] mb-[16px]">
-                {editingEmployee ? "แก้ไขข้อมูลพนักงาน" : "เพิ่มพนักงานใหม่"}
-              </h3>
+            <FormButton
+              label="+ เพิ่มบัญชีพนักงาน"
+              onClick={() => {
+                setEditingEmployee(null);
+                setShowAddForm(true);
+              }}
+              className="my-[16px] ml-0 bg-gradient-primary"
+            />
 
-              <form
-                onSubmit={handleSubmit(
-                  editingEmployee ? handleEditEmployee : handleAddEmployee
-                )}
-                className="space-y-[16px]"
-              >
-                <div className="grid md:grid-cols-2 gap-[16px]">
-                  <FormInput
-                    register={register}
-                    name="firstName"
-                    label="ชื่อ"
-                    placeholder="กรอกชื่อ"
-                    errors={errors}
-                    rules={{ required: "กรุณากรอกชื่อ" }}
-                  />
-                  <FormInput
-                    register={register}
-                    name="lastName"
-                    label="นามสกุล"
-                    placeholder="กรอกนามสกุล"
-                    errors={errors}
-                    rules={{ required: "กรุณากรอกนามสกุล" }}
-                  />
-                </div>
+            {/* ฟอร์มเพิ่ม/แก้ไข */}
+            <EmployeeFormDialog
+              isOpen={showAddForm}
+              onClose={() => {
+                setShowAddForm(false);
+                setEditingEmployee(null);
+              }}
+              editingItem={editingEmployee}
+              onSuccess={fetchEmployees}
+            />
 
-                <div className="grid md:grid-cols-2 gap-[16px]">
-                  <FormInput
-                    register={register}
-                    name="username"
-                    label="ชื่อผู้ใช้"
-                    placeholder="กรอกชื่อผู้ใช้"
-                    errors={errors}
-                    rules={{ required: "กรุณากรอกชื่อผู้ใช้" }}
-                  />
-                  <FormInput
-                    register={register}
-                    name="email"
-                    label="อีเมล"
-                    type="email"
-                    placeholder="กรอกอีเมล"
-                    errors={errors}
-                    rules={{
-                      required: "กรุณากรอกอีเมล",
-                      pattern: {
-                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                        message: "รูปแบบอีเมลไม่ถูกต้อง",
-                      },
-                    }}
-                  />
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-[16px]">
-                  <div className="relative">
-                    <FormInput
-                      register={register}
-                      name="password"
-                      label={
-                        editingEmployee
-                          ? "รหัสผ่านใหม่ (เว้นว่างไว้หากไม่ต้องการเปลี่ยน)"
-                          : "รหัสผ่าน"
-                      }
-                      type={showPassword ? "text" : "password"}
-                      placeholder="กรอกรหัสผ่าน"
-                      errors={errors}
-                      rules={
-                        editingEmployee
-                          ? {
-                              minLength: {
-                                value: 6,
-                                message: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร",
-                              },
-                            }
-                          : {
-                              required: "กรุณากรอกรหัสผ่าน",
-                              minLength: {
-                                value: 6,
-                                message: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร",
-                              },
-                            }
-                      }
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-[38px] text-gray-400 hover:text-gray-600"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="w-5 h-5" />
-                      ) : (
-                        <Eye className="w-5 h-5" />
-                      )}
-                    </button>
+            <div className="space-y-[16px]">
+              {sortedRoles.map((role) => (
+                <div
+                  key={role}
+                  className="p-[16px] rounded-[10px] bg-surface shadow-primary"
+                >
+                  <div className="flex items-center gap-[8px] pb-[16px] mb-[16px] border-b border-gray-100">
+                    <p className="font-semibold text-[20px] md:text-[22px] text-primary">
+                      {getRoleLabel(role)}
+                    </p>
                   </div>
 
-                  <FormInput
-                    register={register}
-                    name="dateOfBirth"
-                    label="วันเกิด"
-                    type="date"
-                    errors={errors}
-                    rules={{ required: "กรุณาเลือกวันเกิด" }}
-                  />
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-[16px]">
-                  <FormInput
-                    register={register}
-                    name="phoneNumber"
-                    label="เบอร์โทรศัพท์"
-                    placeholder="กรอกเบอร์โทรศัพท์"
-                    errors={errors}
-                    rules={{
-                      required: "กรุณากรอกเบอร์โทรศัพท์",
-                      pattern: {
-                        value: /^[0-9]{10}$/,
-                        message: "เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก",
-                      },
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ตำแหน่งงาน
-                  </label>
-                  <select
-                    {...register("role", { required: "กรุณาเลือกตำแหน่งงาน" })}
-                    className="w-full px-3 py-3 border border-gray-300 rounded-[8px] focus:ring-2 focus:ring-primary focus:border-primary"
-                  >
-                    <option value="">เลือกตำแหน่งงาน</option>
-                    <option value="EMPLOYEE">พนักงาน</option>
-                    <option value="MANAGER">ผู้จัดการ</option>
-                    <option value="ADMIN">ผู้ดูแลระบบ</option>
-                  </select>
-                  {errors.role && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {errors.role.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex gap-[12px]">
-                  <FormButton
-                    label={editingEmployee ? "บันทึก" : "เพิ่มพนักงาน"}
-                    isLoading={isSubmitting}
-                    type="submit"
-                  />
-                  <button
-                    type="button"
-                    onClick={cancelEdit}
-                    className="px-[16px] py-[12px] border border-gray-300 text-gray-700 rounded-[8px] hover:bg-gray-50 transition-colors"
-                  >
-                    ยกเลิก
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {/* รายการพนักงาน */}
-          {isLoading ? (
-            <div className="text-center py-[40px]">
-              <p className="text-gray-500">กำลังโหลดข้อมูล...</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full bg-white rounded-[12px] border overflow-hidden">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ชื่อ-นามสกุล
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ชื่อผู้ใช้
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      อีเมล
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      เบอร์โทร
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ตำแหน่ง
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      การจัดการ
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredEmployees.map((employee) => (
-                    <tr key={employee.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {employee.fullName}
+                  {/* รายการพนักงาน */}
+                  <div className="space-y-[8px]">
+                    {groupedByRole[role].map((employee) => (
+                      <div
+                        key={employee.id}
+                        className="flex items-center justify-between gap-[8px] p-[8px] rounded-[8px] bg-gray-50"
+                      >
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <p className="font-medium text-[18px] md:text-[20px] text-normal truncate">
+                            {employee.fullName}
+                          </p>
+                          <p className="text-[14px] md:text-[16px] text-subtle-dark truncate">
+                            {employee.email}
+                          </p>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {employee.nickname}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {employee.email}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {employee.phoneNumber}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <p
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(
-                            employee.role
-                          )}`}
-                        >
-                          {getRoleLabel(employee.role)}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex gap-[8px]">
+                        <div className="flex gap-[8px] flex-shrink-0">
                           <button
                             onClick={() => startEdit(employee)}
-                            className="p-[6px] text-blue-600 hover:bg-blue-100 rounded-[4px] transition-colors"
+                            className="flex items-center gap-[4px] px-[12px] py-[6px] rounded-[10px] font-medium text-[14px] text-surface bg-gradient-primary cursor-pointer"
                           >
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-[14px] h-[14px]" />
+                            <p className="font-semibold">แก้ไข</p>
                           </button>
                           <button
-                            onClick={() => handleDeleteEmployee(employee.id)}
-                            className="p-[6px] text-red-600 hover:bg-red-100 rounded-[4px] transition-colors"
+                            onClick={() => confirmDelete(employee)}
+                            className="flex items-center gap-[4px] px-[12px] py-[6px] rounded-[10px] font-medium text-[14px] text-surface bg-delete cursor-pointer"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-[14px] h-[14px]" />
+                            <p className="font-semibold">ลบ</p>
                           </button>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
 
               {filteredEmployees.length === 0 && (
-                <div className="text-center py-[40px]">
-                  <p className="text-gray-500">ไม่พบข้อมูลพนักงาน</p>
+                <div className="text-center py-[24px]">
+                  <p className="text-subtle-light">ไม่พบข้อมูลพนักงาน</p>
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="ยืนยันการลบพนักงาน"
+        message="คุณแน่ใจหรือไม่ว่าต้องการลบพนักงานนี้?"
+        itemName={deletingEmployee?.fullName || deletingEmployee?.email || ""}
+      />
     </div>
   );
 };

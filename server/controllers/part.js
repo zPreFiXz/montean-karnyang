@@ -37,7 +37,7 @@ exports.createPart = async (req, res, next) => {
     });
 
     if (part) {
-      createError(400, "รหัสอะไหล่นี้มีการใช้งานแล้ว");
+      createError(400, "รหัสอะไหล่นี้ถูกใช้งานแล้ว");
     }
 
     await prisma.part.create({
@@ -89,7 +89,7 @@ exports.updatePart = async (req, res, next) => {
     });
 
     if (part && part.id !== Number(id)) {
-      createError(400, "รหัสอะไหล่นี้มีการใช้งานแล้ว");
+      createError(400, "รหัสอะไหล่นี้ถูกใช้งานแล้ว");
     }
 
     await prisma.part.update({

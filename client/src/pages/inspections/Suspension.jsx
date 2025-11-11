@@ -25,7 +25,6 @@ import FormButton from "@/components/forms/FormButton";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
 import { CarRepair } from "@/components/icons/Icon";
-import { scrollMainToBottom, scrollMainToTop } from "@/lib/utils";
 
 const Suspension = () => {
   const navigate = useNavigate();
@@ -45,6 +44,7 @@ const Suspension = () => {
   const [brands, setBrands] = useState([]);
   const [repairItems, setRepairItems] = useState([]);
   const [compatibleParts, setCompatibleParts] = useState([]);
+  const [partsLoaded, setPartsLoaded] = useState(false);
   const [selectedLeftParts, setSelectedLeftParts] = useState(new Set());
   const [selectedRightParts, setSelectedRightParts] = useState(new Set());
   const [selectedOtherParts, setSelectedOtherParts] = useState(new Set());
@@ -63,7 +63,7 @@ const Suspension = () => {
   });
 
   useEffect(() => {
-    scrollMainToTop();
+    window.scrollTo(0, 0);
     fetchVehicleBrandModels();
   }, []);
 
@@ -104,15 +104,20 @@ const Suspension = () => {
     const brand = watch("brand");
     const model = watch("model");
 
+    setPartsLoaded(false);
+
     if (brand && model) {
       fetchCompatibleParts(brand, model);
     } else {
       setCompatibleParts([]);
+      setPartsLoaded(false);
     }
   }, [watch("brand"), watch("model")]);
 
   // ถ้าไม่มีอะไหล่ที่รองรับ ให้เอารายการ "ค่าแรง" ออกจากรายการซ่อม
   useEffect(() => {
+    if (!partsLoaded) return;
+
     if (compatibleParts.length === 0) {
       setRepairItems((prev) =>
         prev.filter(
@@ -124,7 +129,7 @@ const Suspension = () => {
         )
       );
     }
-  }, [compatibleParts]);
+  }, [compatibleParts, partsLoaded]);
 
   // กู้คืนข้อมูลเมื่อกลับมาจากหน้าสรุป
   useEffect(() => {
@@ -133,8 +138,8 @@ const Suspension = () => {
     const {
       repairData,
       repairItems: savedItems,
-      scrollToBottom,
       editRepairId,
+      hideMoreFields,
     } = location.state;
 
     if (repairData) {
@@ -187,22 +192,22 @@ const Suspension = () => {
       restoredRef.current = true;
     }
 
-    if (scrollToBottom) {
-      setTimeout(() => {
-        scrollMainToBottom();
-      }, 200);
+    // จัดการการแสดง/ซ่อน showMoreFields
+    if (hideMoreFields) {
+      // ถ้าได้รับ hideMoreFields จาก RepairSummary ให้ซ่อนส่วนข้อมูลลูกค้า
+      setShowMoreFields(false);
+    } else {
+      // ถ้ามาในโหมดแก้ไข และมีอย่างน้อย 1 input ที่ถูกซ่อนไว้ (type=hidden) มีค่า ให้แสดงทุก input (เปิดส่วนข้อมูลลูกค้า)
+      try {
+        const hiddenInputs = Array.from(
+          document.querySelectorAll('form input[type="hidden"]')
+        );
+        const hasHiddenValue = hiddenInputs.some(
+          (el) => el && el.value != null && String(el.value).trim() !== ""
+        );
+        if (hasHiddenValue) setShowMoreFields(true);
+      } catch (_) {}
     }
-
-    // ถ้ามาในโหมดแก้ไข และมีอย่างน้อย 1 input ที่ถูกซ่อนไว้ (type=hidden) มีค่า ให้แสดงทุก input (เปิดส่วนข้อมูลลูกค้า)
-    try {
-      const hiddenInputs = Array.from(
-        document.querySelectorAll('form input[type="hidden"]')
-      );
-      const hasHiddenValue = hiddenInputs.some(
-        (el) => el && el.value != null && String(el.value).trim() !== ""
-      );
-      if (hasHiddenValue) setShowMoreFields(true);
-    } catch (_) {}
 
     // ลบ state ออกจาก history แต่คงค่า editRepairId และแหล่งที่มาไว้
     const preserved = {
@@ -252,9 +257,11 @@ const Suspension = () => {
       });
 
       setCompatibleParts(compatible);
+      setPartsLoaded(true);
     } catch (error) {
       console.error(error);
       setCompatibleParts([]);
+      setPartsLoaded(true);
     }
   };
 
@@ -372,7 +379,10 @@ const Suspension = () => {
     });
 
     setTimeout(() => {
-      scrollMainToBottom();
+      window.scrollTo({
+        top: document.body.scrollHeight,
+        behavior: "smooth",
+      });
     }, 200);
   };
 
@@ -776,7 +786,7 @@ const Suspension = () => {
           </div>
         )}
         {showMoreFields && (
-          <div className="mt-[20px]">
+          <div>
             <FormInput
               register={register}
               name="fullName"

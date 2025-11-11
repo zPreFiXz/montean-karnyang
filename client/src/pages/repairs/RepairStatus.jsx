@@ -3,7 +3,7 @@ import { Car } from "@/components/icons/Icon";
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useParams, useNavigate } from "react-router";
 import { getRepairs } from "@/api/repair";
-import { formatTime, scrollMainToTop } from "@/lib/utils";
+import { formatTime } from "@/lib/utils";
 import { LoaderCircle, ChevronLeft } from "lucide-react";
 
 const RepairStatus = () => {
@@ -14,7 +14,7 @@ const RepairStatus = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    scrollMainToTop();
+    window.scrollTo(0, 0);
     fetchRepairs();
   }, []);
 
@@ -118,7 +118,7 @@ const RepairStatus = () => {
       <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
         <button
           onClick={() => navigate("/dashboard")}
-          className="mt-[2px] text-surface"
+          className="mt-[2px] text-surface cursor-pointer"
         >
           <ChevronLeft />
         </button>

@@ -1,11 +1,14 @@
 import CarCard from "@/components/cards/CarCard";
+import InventoryCard from "@/components/cards/InventoryCard";
+import ItemDetailDialog from "@/components/dialogs/ItemDetailDialog";
 import StatusCard from "@/components/cards/StatusCard";
 import { Success, Wrench, Paid, Car } from "@/components/icons/Icon";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { formatCurrency, formatTime, scrollMainToTop } from "@/lib/utils";
+import { formatCurrency, formatTime } from "@/lib/utils";
 import useRepairStore from "@/stores/repairStore";
 import useAuthStore from "@/stores/authStore";
+import { getInventory } from "@/api/inventory";
 import {
   Menu,
   CircleUserRound,
@@ -19,6 +22,10 @@ import {
 const Dashboard = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [inventory, setInventory] = useState([]);
+  const [isLoadingInventory, setIsLoadingInventory] = useState(true);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [showItemDetail, setShowItemDetail] = useState(false);
   const navigate = useNavigate();
   const { logout, user } = useAuthStore();
   const {
@@ -29,9 +36,22 @@ const Dashboard = () => {
   } = useRepairStore();
 
   useEffect(() => {
-    scrollMainToTop();
+    window.scrollTo(0, 0);
     fetchRepairs();
+    loadInventory();
   }, [fetchRepairs]);
+
+  const loadInventory = async () => {
+    try {
+      setIsLoadingInventory(true);
+      const res = await getInventory(null, null);
+      setInventory(res.data || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoadingInventory(false);
+    }
+  };
 
   // ยอดขายวันนี้
   const todaySales = getTodaySales();
@@ -45,6 +65,24 @@ const Dashboard = () => {
   const latestInProgress = getLatestRepairByStatus("IN_PROGRESS");
   const latestCompleted = getLatestRepairByStatus("COMPLETED");
   const latestPaid = getLatestRepairByStatus("PAID");
+
+  // สรุปสต็อก
+  const stockItems = inventory.filter((i) => i?.category?.name !== "บริการ");
+  const outOfStockItems = stockItems.filter(
+    (i) => Number(i?.stockQuantity || 0) <= 0
+  );
+  const lowStockItems = stockItems.filter((i) => {
+    const qty = Number(i?.stockQuantity || 0);
+    const min = Number(i?.minStockLevel || 0);
+    return qty > 0 && min > 0 && qty <= min;
+  });
+
+  const topNames = (arr) =>
+    arr
+      .slice(0, 3)
+      .map((i) =>
+        i?.brand ? `${i.brand} ${i.name || ""}` : i?.name || "รายการไม่ระบุ"
+      );
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -117,12 +155,14 @@ const Dashboard = () => {
           <div className="grid grid-cols-3 gap-[16px] mt-[16px]">
             {/* กำลังซ่อม */}
             <div className="w-full flex flex-col">
-              <StatusCard
-                bg="in-progress"
-                icon={Wrench}
-                label={"กำลังซ่อม"}
-                amount={inProgressCount}
-              />
+              <Link to="/repair/status/in-progress">
+                <StatusCard
+                  bg="in-progress"
+                  icon={Wrench}
+                  label={"กำลังซ่อม"}
+                  amount={inProgressCount}
+                />
+              </Link>
               <div className="mt-[16px] w-full">
                 {latestInProgress && (
                   <Link to={`/repair/${latestInProgress.id}`}>
@@ -150,12 +190,14 @@ const Dashboard = () => {
 
             {/* ซ่อมเสร็จสิ้น */}
             <div className="w-full flex flex-col">
-              <StatusCard
-                bg="completed"
-                icon={Success}
-                label={"ซ่อมเสร็จสิ้น"}
-                amount={completedCount}
-              />
+              <Link to="/repair/status/completed">
+                <StatusCard
+                  bg="completed"
+                  icon={Success}
+                  label={"ซ่อมเสร็จสิ้น"}
+                  amount={completedCount}
+                />
+              </Link>
               <div className="mt-[16px] w-full">
                 {latestCompleted && (
                   <Link to={`/repair/${latestCompleted.id}`}>
@@ -183,12 +225,14 @@ const Dashboard = () => {
 
             {/* ชำระเงินแล้ว */}
             <div className="w-full flex flex-col">
-              <StatusCard
-                bg="paid"
-                icon={Paid}
-                label={"ชำระเงินแล้ว"}
-                amount={paidCount}
-              />
+              <Link to="/repair/status/paid">
+                <StatusCard
+                  bg="paid"
+                  icon={Paid}
+                  label={"ชำระเงินแล้ว"}
+                  amount={paidCount}
+                />
+              </Link>
               <div className="mt-[16px] w-full">
                 {latestPaid && (
                   <Link to={`/repair/${latestPaid.id}`}>
@@ -212,6 +256,63 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* แจ้งเตือนสต็อก */}
+        {(outOfStockItems.length > 0 || lowStockItems.length > 0) && (
+          <div className="w-full p-[16px] mb-[16px] rounded-[10px] bg-surface shadow-primary">
+            <p className="font-medium text-[22px] text-subtle-dark flex items-center gap-2">
+              แจ้งเตือนสต็อก
+            </p>
+            <div className="mt-[16px]">
+              <div>
+                {outOfStockItems.slice(0, 5).map((item) => (
+                  <div
+                    key={`desk-out-${item.id}`}
+                    onClick={() => {
+                      setSelectedItem(item);
+                      setShowItemDetail(true);
+                    }}
+                  >
+                    <InventoryCard
+                      item={item}
+                      brand={item.brand}
+                      name={item.name}
+                      unit={item.unit}
+                      sellingPrice={item.sellingPrice}
+                      stockQuantity={item.stockQuantity}
+                      minStockLevel={item.minStockLevel}
+                      typeSpecificData={item.typeSpecificData}
+                      secureUrl={item.secureUrl}
+                      category={item.category?.name}
+                    />
+                  </div>
+                ))}
+                {lowStockItems.slice(0, 5).map((item) => (
+                  <div
+                    key={`desk-low-${item.id}`}
+                    onClick={() => {
+                      setSelectedItem(item);
+                      setShowItemDetail(true);
+                    }}
+                  >
+                    <InventoryCard
+                      item={item}
+                      brand={item.brand}
+                      name={item.name}
+                      unit={item.unit}
+                      sellingPrice={item.sellingPrice}
+                      stockQuantity={item.stockQuantity}
+                      minStockLevel={item.minStockLevel}
+                      typeSpecificData={item.typeSpecificData}
+                      secureUrl={item.secureUrl}
+                      category={item.category?.name}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* มุมมองมือถือ */}
@@ -275,7 +376,7 @@ const Dashboard = () => {
                 </div>
                 <div className="px-[20px] py-[16px] -mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface">
                   <div>
-                    {/* จัดการยี่ห้อ-รุ่นรถ */}
+                    {/* จัดการยี่ห้อและรุ่นรถ */}
                     <Link
                       to="/vehicle-brand-models"
                       onClick={() => setIsMenuOpen(false)}
@@ -285,7 +386,7 @@ const Dashboard = () => {
                         <CarFront className="w-[24px] h-[24px] text-surface" />
                       </div>
                       <p className="font-semibold text-[18px] md:text-[20px]text-normal">
-                        จัดการยี่ห้อ-รุ่นรถ
+                        จัดการยี่ห้อและรุ่นรถ
                       </p>
                     </Link>
 
@@ -376,6 +477,69 @@ const Dashboard = () => {
             />
           </Link>
         </div>
+
+        {/* แจ้งเตือนสต็อก */}
+        {(outOfStockItems.length > 0 || lowStockItems.length > 0) && (
+          <div className="flex flex-col w-full px-[20px] pb-[24px] rounded-[12px] bg-surface">
+            <p className="pt-[16px] font-semibold text-[22px] md:text-[24px] text-normal flex items-center gap-2">
+              แจ้งเตือนสต็อก
+            </p>
+            <div className="pb-[88px]">
+              {outOfStockItems.slice(0, 5).map((item) => (
+                <div
+                  key={`m-out-${item.id}`}
+                  onClick={() => {
+                    setSelectedItem(item);
+                    setShowItemDetail(true);
+                  }}
+                >
+                  <InventoryCard
+                    item={item}
+                    brand={item.brand}
+                    name={item.name}
+                    unit={item.unit}
+                    sellingPrice={item.sellingPrice}
+                    stockQuantity={item.stockQuantity}
+                    minStockLevel={item.minStockLevel}
+                    typeSpecificData={item.typeSpecificData}
+                    secureUrl={item.secureUrl}
+                    category={item.category?.name}
+                  />
+                </div>
+              ))}
+              {lowStockItems.slice(0, 5).map((item) => (
+                <div
+                  key={`m-low-${item.id}`}
+                  onClick={() => {
+                    setSelectedItem(item);
+                    setShowItemDetail(true);
+                  }}
+                >
+                  <InventoryCard
+                    item={item}
+                    brand={item.brand}
+                    name={item.name}
+                    unit={item.unit}
+                    sellingPrice={item.sellingPrice}
+                    stockQuantity={item.stockQuantity}
+                    minStockLevel={item.minStockLevel}
+                    typeSpecificData={item.typeSpecificData}
+                    secureUrl={item.secureUrl}
+                    category={item.category?.name}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Dialog รายละเอียดสินค้า */}
+        <ItemDetailDialog
+          item={selectedItem}
+          open={showItemDetail}
+          onOpenChange={setShowItemDetail}
+          onStockUpdate={loadInventory}
+        />
       </div>
     </div>
   );

@@ -13,7 +13,7 @@ import { uploadImage } from "@/api/uploadImage";
 import { deleteImage } from "@/api/uploadImage";
 import VehicleCompatibilityInput from "@/components/forms/VehicleCompatibilityInput";
 import { useNavigate } from "react-router";
-import { scrollMainToTop } from "@/lib/utils";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { partServiceSchema } from "@/utils/schemas";
 import { units } from "@/utils/data";
@@ -59,7 +59,7 @@ const EditItem = () => {
   const { user } = useAuthStore();
 
   useEffect(() => {
-    scrollMainToTop();
+    window.scrollTo(0, 0);
     fetchCategories();
   }, []);
 
@@ -72,7 +72,7 @@ const EditItem = () => {
 
   useEffect(() => {
     if (errors.categoryId) {
-      scrollMainToTop();
+      window.scrollTo(0, 0);
     }
   }, [errors.categoryId]);
 
@@ -300,9 +300,7 @@ const EditItem = () => {
       setIsImageMarkedForDeletion(false);
     } catch (error) {
       console.error(error);
-
-      const errorMessage = error.response?.data?.message;
-      toast.error(errorMessage);
+      toast.error(error.response?.data?.message);
     } finally {
       setIsSubmitting(false);
     }

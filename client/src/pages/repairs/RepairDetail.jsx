@@ -1,12 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
 import { getRepairById, updateRepairStatus } from "@/api/repair";
-import {
-  formatDate,
-  formatTime,
-  formatCurrency,
-  scrollMainToTop,
-} from "@/lib/utils";
+import { formatDate, formatTime, formatCurrency } from "@/lib/utils";
 import {
   ChevronLeft,
   CreditCard,
@@ -46,7 +41,7 @@ const RepairDetail = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
 
   useEffect(() => {
-    scrollMainToTop();
+    window.scrollTo(0, 0);
 
     fetchRepairDetail();
   }, [id]);
@@ -331,11 +326,11 @@ const RepairDetail = () => {
         state: {
           repairData: { ...repairData },
           repairItems: savedItems,
-          scrollToBottom: true,
           editRepairId: repair.id,
           from: location.state?.from,
           statusSlug: location.state?.statusSlug,
           vehicleId: location.state?.vehicleId,
+          hideMoreFields: !repairData.fullName?.trim(),
         },
       });
       return;
@@ -351,6 +346,7 @@ const RepairDetail = () => {
         from: location.state?.from,
         statusSlug: location.state?.statusSlug,
         vehicleId: location.state?.vehicleId,
+        hideMoreFields: !repairData.fullName?.trim(),
       },
     });
   };

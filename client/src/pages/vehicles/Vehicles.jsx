@@ -5,7 +5,7 @@ import { LoaderCircle } from "lucide-react";
 import { getVehicles } from "@/api/vehicle";
 import CarCard from "@/components/cards/CarCard";
 import { Car, Document } from "@/components/icons/Icon";
-import { scrollMainToTop } from "@/lib/utils";
+
 
 const Vehicles = () => {
   const [vehicles, setVehicles] = useState([]);
@@ -16,7 +16,7 @@ const Vehicles = () => {
   const search = searchParams.get("search");
 
   useEffect(() => {
-    scrollMainToTop();
+    window.scrollTo(0, 0);
 
     if (isInitializing.current) return;
     isInitializing.current = true;

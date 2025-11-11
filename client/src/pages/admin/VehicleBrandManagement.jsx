@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, Edit, Trash2, LoaderCircle } from "lucide-react";
 import { Link } from "react-router";
-import { scrollMainToTop } from "@/lib/utils";
+
 import { toast } from "sonner";
 import ComboBox from "@/components/ui/ComboBox";
 import VehicleBrandFormDialog from "@/components/dialogs/VehicleBrandFormDialog";
@@ -22,7 +22,7 @@ const VehicleBrandManagement = () => {
   const [deletingItem, setDeletingItem] = useState(null);
 
   useEffect(() => {
-    scrollMainToTop();
+    window.scrollTo(0, 0);
     fetchVehicleBrandModels();
   }, []);
 
@@ -40,16 +40,13 @@ const VehicleBrandManagement = () => {
   const handleDeleteVehicleBrand = async (id) => {
     try {
       await deleteVehicleBrandModel(id);
-
       fetchVehicleBrandModels();
       setShowDeleteDialog(false);
       setDeletingItem(null);
       toast.success("ลบยี่ห้อและรุ่นรถเรียบร้อยแล้ว");
     } catch (error) {
       console.error(error);
-
-      const errorMessage = error.response?.data?.message;
-      toast.error(errorMessage);
+      toast.error(error.response?.data?.message);
     }
   };
 
@@ -77,10 +74,6 @@ const VehicleBrandManagement = () => {
   const handleCloseDialog = () => {
     setShowAddForm(false);
     setEditingItem(null);
-  };
-
-  const handleFormSuccess = () => {
-    fetchVehicleBrandModels();
   };
 
   // สร้าง options และกรองข้อมูล
@@ -114,7 +107,7 @@ const VehicleBrandManagement = () => {
           <ChevronLeft />
         </Link>
         <p className="font-semibold text-[24px] md:text-[26px] text-surface">
-          จัดการยี่ห้อ-รุ่นรถ
+          จัดการยี่ห้อและรุ่นรถ
         </p>
       </div>
 
@@ -133,7 +126,7 @@ const VehicleBrandManagement = () => {
               onChange={setSelectedBrand}
             />
             <FormButton
-              label="+ เพิ่มยี่ห้อ-รุ่นรถ"
+              label="+ เพิ่มยี่ห้อและรุ่นรถ"
               onClick={() => setShowAddForm(true)}
               className="my-[16px] ml-0 bg-gradient-primary"
             />
@@ -143,7 +136,7 @@ const VehicleBrandManagement = () => {
               isOpen={showAddForm}
               onClose={handleCloseDialog}
               editingItem={editingItem}
-              onSuccess={handleFormSuccess}
+              onSuccess={fetchVehicleBrandModels}
             />
 
             {/* Delete Confirmation Dialog */}
@@ -154,11 +147,9 @@ const VehicleBrandManagement = () => {
               title="ยืนยันการลบยี่ห้อและรุ่นรถ"
               message="คุณแน่ใจหรือไม่ว่าต้องการลบยี่ห้อและรุ่นรถนี้?"
               itemName={
-                deletingItem && deletingItem.brand !== "อื่นๆ"
-                  ? `${deletingItem.brand} ${deletingItem.model}`
-                  : deletingItem
-                  ? deletingItem.model
-                  : ""
+                deletingItem?.brand !== "อื่นๆ"
+                  ? `${deletingItem?.brand} ${deletingItem?.model}`
+                  : deletingItem?.model || ""
               }
             />
 
@@ -174,7 +165,7 @@ const VehicleBrandManagement = () => {
                     </p>
                   </div>
 
-                  {/* รายการยี่ห้อ-รุ่นรถ */}
+                  {/* รายการยี่ห้อและรุ่นรถ */}
                   <div className="space-y-[8px]">
                     {models.map((item) => (
                       <div
