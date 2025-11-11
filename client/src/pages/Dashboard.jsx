@@ -2,7 +2,7 @@ import CarCard from "@/components/cards/CarCard";
 import InventoryCard from "@/components/cards/InventoryCard";
 import ItemDetailDialog from "@/components/dialogs/ItemDetailDialog";
 import StatusCard from "@/components/cards/StatusCard";
-import { Success, Wrench, Paid, Car } from "@/components/icons/Icon";
+import { Success, Wrench, Paid, Car } from "@/components/icons/Icons";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { formatCurrency, formatTime } from "@/lib/utils";

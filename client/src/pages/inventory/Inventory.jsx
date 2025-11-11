@@ -8,7 +8,7 @@ import ItemDetailDialog from "@/components/dialogs/ItemDetailDialog";
 import { getInventory } from "@/api/inventory";
 import { getParts } from "@/api/part";
 import { LoaderCircle } from "lucide-react";
-import { BoxSearch } from "@/components/icons/Icon";
+import { BoxSearch } from "@/components/icons/Icons";
 
 import ComboBox from "@/components/ui/ComboBox";
 

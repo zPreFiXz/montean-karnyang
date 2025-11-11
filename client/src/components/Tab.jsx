@@ -5,7 +5,7 @@ import {
   DashboardBar,
   Document,
   Plus,
-} from "./icons/Icon";
+} from "./icons/Icons";
 
 const TabButton = ({ icon: Icon, label, to, iconProps = {} }) => {
   const location = useLocation();

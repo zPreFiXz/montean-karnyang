@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { Garage } from "../icons/icon";
+import { Garage } from "../icons/Icons";
 
 const Logo = () => {
   return (

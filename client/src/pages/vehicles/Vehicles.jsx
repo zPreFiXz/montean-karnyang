@@ -4,7 +4,7 @@ import SearchBar from "@/components/forms/SearchBar";
 import { LoaderCircle } from "lucide-react";
 import { getVehicles } from "@/api/vehicle";
 import CarCard from "@/components/cards/CarCard";
-import { Car, Document } from "@/components/icons/Icon";
+import { Car, Document } from "@/components/icons/Icons";
 import { getBrandIcon } from "@/components/icons/BrandIcons";
 
 

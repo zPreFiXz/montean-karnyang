@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { LoaderCircle, X } from "lucide-react";
-import { ToolBox, Tire, Shock, Oil } from "@/components/icons/Icon";
+import { ToolBox, Tire, Shock, Oil } from "@/components/icons/Icons";
 import { useDebouncedCallback } from "use-debounce";
 import { getInventory } from "@/api/inventory";
 import { getCategories } from "@/api/category";

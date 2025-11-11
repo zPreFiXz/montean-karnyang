@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Car } from "./Icon";
+import { Car } from "./Icons";
 
 const ICON_SIZE = "w-[45px] h-[45px]";
 const IMAGE_SIZE = "w-[35px] h-[35px]";

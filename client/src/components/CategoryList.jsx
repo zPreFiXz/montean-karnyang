@@ -15,7 +15,7 @@ import {
   Light,
   Wiper,
   Suspension,
-} from "@/components/icons/Icon";
+} from "@/components/icons/Icons";
 import { LoaderCircle } from "lucide-react";
 
 const iconMap = {

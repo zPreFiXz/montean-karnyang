@@ -4,7 +4,7 @@ import {
   DashboardBar,
   Document,
   Plus,
-} from "./icons/Icon";
+} from "./icons/Icons";
 import { useLocation, Link } from "react-router";
 
 const LeftSidebar = () => {

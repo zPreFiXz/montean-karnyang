@@ -24,7 +24,7 @@ import {
 import FormButton from "@/components/forms/FormButton";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
-import { CarRepair } from "@/components/icons/Icon";
+import { CarRepair } from "@/components/icons/Icons";
 
 const Suspension = () => {
   const navigate = useNavigate();
