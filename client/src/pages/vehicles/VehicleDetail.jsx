@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { ChevronLeft, LoaderCircle, Wrench } from "lucide-react";
-import { Car } from "@/components/icons/Icon";
+import { getBrandIcon } from "@/components/icons/BrandIcons";
 import { getVehicleById } from "@/api/vehicle";
 import { formatDate, formatTime } from "@/lib/utils";
 import RepairCard from "@/components/cards/RepairCard";
@@ -51,7 +51,7 @@ const VehicleDetail = () => {
           <div>
             <div className="flex items-center gap-[8px] px-[20px] mb-[16px]">
               <div className="flex justify-center items-center w-[45px] h-[45px] rounded-full bg-primary">
-                <Car color="#1976d2" />
+                {React.createElement(getBrandIcon(vehicle?.vehicleBrandModel.brand, "#1976d2"), { color: "#1976d2" })}
               </div>
               <div className="flex flex-col">
                 <p className="font-semibold text-[22px] md:text-[24px] text-primary leading-tight">

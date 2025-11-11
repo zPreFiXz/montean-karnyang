@@ -6,7 +6,7 @@ import {
   Calendar as CalendarIcon,
 } from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
-import { Car } from "@/components/icons/Icon";
+import { getBrandIcon } from "@/components/icons/BrandIcons";
 import { Link, useLocation, useNavigate } from "react-router";
 import useRepairStore from "@/stores/repairStore";
 import { formatCurrency } from "@/lib/utils";
@@ -459,7 +459,7 @@ const SalesReport = () => {
                       <CarCard
                         bg="primary"
                         color="#1976d2"
-                        icon={Car}
+                        icon={getBrandIcon(repair.vehicle.vehicleBrandModel.brand, "#1976d2")}
                         licensePlate={carData.licensePlate}
                         brand={carData.brand}
                         time={carData.time}
@@ -489,7 +489,7 @@ const SalesReport = () => {
                             <CarCard
                               bg="primary"
                               color="#1976d2"
-                              icon={Car}
+                              icon={getBrandIcon(repair.vehicle.vehicleBrandModel.brand, "#1976d2")}
                               licensePlate={carData.licensePlate}
                               brand={carData.brand}
                               time={carData.time}

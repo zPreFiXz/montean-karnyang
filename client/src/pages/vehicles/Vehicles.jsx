@@ -5,6 +5,7 @@ import { LoaderCircle } from "lucide-react";
 import { getVehicles } from "@/api/vehicle";
 import CarCard from "@/components/cards/CarCard";
 import { Car, Document } from "@/components/icons/Icon";
+import { getBrandIcon } from "@/components/icons/BrandIcons";
 
 
 const Vehicles = () => {
@@ -87,7 +88,7 @@ const Vehicles = () => {
                   <CarCard
                     bg="primary"
                     color="#1976d2"
-                    icon={Car}
+                    icon={getBrandIcon(item.vehicleBrandModel.brand, "#1976d2")}
                     licensePlate={
                       item.licensePlate
                         ? `${item.licensePlate.plateNumber} ${item.licensePlate.province}`

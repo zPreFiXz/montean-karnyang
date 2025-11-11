@@ -1,5 +1,5 @@
 import CarCard from "@/components/cards/CarCard";
-import { Car } from "@/components/icons/Icon";
+import { getBrandIcon } from "@/components/icons/BrandIcons";
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useParams, useNavigate } from "react-router";
 import { getRepairs } from "@/api/repair";
@@ -183,7 +183,7 @@ const RepairStatus = () => {
               <CarCard
                 bg={getStatusBg(item.status)}
                 color={getStatusColor(item.status)}
-                icon={Car}
+                icon={getBrandIcon(item.vehicle.vehicleBrandModel.brand, getStatusColor(item.status))}
                 licensePlate={
                   item.vehicle.licensePlate?.plateNumber &&
                   item.vehicle.licensePlate?.province

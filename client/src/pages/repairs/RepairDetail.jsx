@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
 import { getRepairById, updateRepairStatus } from "@/api/repair";
 import { formatDate, formatTime, formatCurrency } from "@/lib/utils";
@@ -17,7 +17,7 @@ import {
   CircleEllipsis,
   Wrench,
 } from "lucide-react";
-import { Car } from "@/components/icons/Icon";
+import { getBrandIcon } from "@/components/icons/BrandIcons";
 import FormButton from "@/components/forms/FormButton";
 import {
   Select,
@@ -408,7 +408,7 @@ const RepairDetail = () => {
               <div
                 className={`flex justify-center items-center w-[45px] h-[45px] aspect-square rounded-full ${statusInfo.bg}`}
               >
-                <Car color={statusInfo.iconColor} />
+                {React.createElement(getBrandIcon(repair.vehicle?.vehicleBrandModel.brand, statusInfo.iconColor), { color: statusInfo.iconColor })}
               </div>
               <div className="flex flex-col">
                 <p
