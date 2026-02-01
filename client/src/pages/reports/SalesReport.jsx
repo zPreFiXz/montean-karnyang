@@ -1,24 +1,15 @@
-import React, { useState, useEffect } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  LoaderCircle,
-  Calendar as CalendarIcon,
-} from "lucide-react";
-import CarCard from "@/components/cards/CarCard";
-import { getBrandIcon } from "@/components/icons/BrandIcons";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import useRepairStore from "@/stores/repairStore";
-import { formatCurrency } from "@/lib/utils";
-import { provinces } from "@/utils/data";
+import { ChevronLeft, ChevronRight, LoaderCircle, Calendar as CalendarIcon } from "lucide-react";
+import CarCard from "@/components/cards/CarCard";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarMonth } from "@/components/ui/CalendarMonth";
+import { formatCurrency } from "@/lib/utils";
+import { provinces } from "@/utils/data";
+import useRepairStore from "@/stores/repairStore";
+import { getBrandIcon } from "@/components/icons/BrandIcons";
 import { CalendarYear } from "@/components/ui/CalendarYear";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const SalesReport = () => {
   const location = useLocation();
@@ -142,9 +133,7 @@ const SalesReport = () => {
 
     return {
       totalRevenue,
-      repairs: periodPaidRepairs.sort(
-        (a, b) => new Date(b.paidAt) - new Date(a.paidAt)
-      ),
+      repairs: periodPaidRepairs.sort((a, b) => new Date(b.paidAt) - new Date(a.paidAt)),
     };
   };
 
@@ -153,9 +142,7 @@ const SalesReport = () => {
     const vehicle = repair.vehicle;
     const licensePlate =
       vehicle?.licensePlate?.plateNumber && vehicle?.licensePlate?.province
-        ? `${vehicle.licensePlate.plateNumber} ${getProvinceName(
-            vehicle.licensePlate.province
-          )}`
+        ? `${vehicle.licensePlate.plateNumber} ${getProvinceName(vehicle.licensePlate.province)}`
         : "ไม่ระบุทะเบียนรถ";
 
     const brand = `${vehicle.vehicleBrandModel.brand} ${vehicle.vehicleBrandModel.model}`;
@@ -232,9 +219,7 @@ const SalesReport = () => {
         newDate.setMonth(newDate.getMonth() + (direction === "next" ? 1 : -1));
         break;
       case "yearly":
-        newDate.setFullYear(
-          newDate.getFullYear() + (direction === "next" ? 1 : -1)
-        );
+        newDate.setFullYear(newDate.getFullYear() + (direction === "next" ? 1 : -1));
         break;
     }
 
@@ -268,31 +253,29 @@ const SalesReport = () => {
 
   return (
     <div>
-      <div className="w-full h-[265px] md:h-[285px] py-[16px] px-[20px] bg-gradient-primary">
+      <div className="bg-gradient-primary h-[265px] w-full px-[20px] py-[16px] md:h-[285px]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-[8px]">
             <button
               onClick={() => navigate("/dashboard")}
-              className="mt-[2px] text-surface cursor-pointer"
+              className="text-surface mt-[2px] cursor-pointer"
             >
               <ChevronLeft />
             </button>
-            <p className="font-semibold text-[24px] md:text-[26px] text-surface">
-              รายงานยอดขาย
-            </p>
+            <p className="text-surface text-[24px] font-semibold md:text-[26px]">รายงานยอดขาย</p>
           </div>
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-              <button className="flex items-center gap-[8px] text-surface cursor-pointer">
-                <CalendarIcon className="w-5 h-5" />
-                <p className="font-semibold text-[20px] md:text-[22px]">
+              <button className="text-surface flex cursor-pointer items-center gap-[8px]">
+                <CalendarIcon className="h-5 w-5" />
+                <p className="text-[20px] font-semibold md:text-[22px]">
                   {periodType === "yearly"
                     ? "เลือกปี"
                     : periodType === "monthly"
-                    ? "เลือกเดือน"
-                    : periodType === "weekly"
-                    ? "เลือกสัปดาห์"
-                    : "เลือกวัน"}
+                      ? "เลือกเดือน"
+                      : periodType === "weekly"
+                        ? "เลือกสัปดาห์"
+                        : "เลือกวัน"}
                 </p>
               </button>
             </PopoverTrigger>
@@ -347,13 +330,13 @@ const SalesReport = () => {
             </PopoverContent>
           </Popover>
         </div>
-        <div className="flex justify-center gap-[16px] mt-[16px]">
+        <div className="mt-[16px] flex justify-center gap-[16px]">
           <Link
             to="/admin/reports/sales/daily"
             state={{ currentDate: new Date().toISOString() }}
-            className={`flex items-center justify-center w-[78px] md:w-[95px] h-[35px] md:h-[40px] rounded-[10px] border-2 font-semibold text-[18px] md:text-[20px] ${
+            className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold md:h-[40px] md:w-[95px] md:text-[20px] ${
               location.pathname === "/admin/reports/sales/daily"
-                ? "border-white text-surface bg-primary"
+                ? "text-surface bg-primary border-white"
                 : "border-subtle-light text-subtle-light bg-surface"
             }`}
           >
@@ -362,9 +345,9 @@ const SalesReport = () => {
           <Link
             to="/admin/reports/sales/weekly"
             state={{ currentDate: new Date().toISOString() }}
-            className={`flex items-center justify-center w-[78px] md:w-[95px] h-[35px] md:h-[40px] rounded-[10px] border-2 font-semibold text-[18px] md:text-[20px] ${
+            className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold md:h-[40px] md:w-[95px] md:text-[20px] ${
               location.pathname === "/admin/reports/sales/weekly"
-                ? "border-white text-surface bg-primary"
+                ? "text-surface bg-primary border-white"
                 : "border-subtle-light text-subtle-light bg-surface"
             }`}
           >
@@ -373,9 +356,9 @@ const SalesReport = () => {
           <Link
             to="/admin/reports/sales/monthly"
             state={{ currentDate: new Date().toISOString() }}
-            className={`flex items-center justify-center w-[78px] md:w-[95px] h-[35px] md:h-[40px] rounded-[10px] border-2 font-semibold text-[18px] md:text-[20px] ${
+            className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold md:h-[40px] md:w-[95px] md:text-[20px] ${
               location.pathname === "/admin/reports/sales/monthly"
-                ? "border-white text-surface bg-primary"
+                ? "text-surface bg-primary border-white"
                 : "border-subtle-light text-subtle-light bg-surface"
             }`}
           >
@@ -384,9 +367,9 @@ const SalesReport = () => {
           <Link
             to="/admin/reports/sales/yearly"
             state={{ currentDate: new Date().toISOString() }}
-            className={`flex items-center justify-center w-[78px] md:w-[95px] h-[35px] md:h-[40px] rounded-[10px] border-2 font-semibold text-[18px] md:text-[20px] ${
+            className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold md:h-[40px] md:w-[95px] md:text-[20px] ${
               location.pathname === "/admin/reports/sales/yearly"
-                ? "border-white text-surface bg-primary"
+                ? "text-surface bg-primary border-white"
                 : "border-subtle-light text-subtle-light bg-surface"
             }`}
           >
@@ -394,39 +377,39 @@ const SalesReport = () => {
           </Link>
         </div>
         <div className="flex items-center justify-center pt-[16px]">
-          <div className="font-semibold text-[22px] md:text-[24px] text-surface">
+          <div className="text-surface text-[22px] font-semibold md:text-[24px]">
             {getDisplayDate()}
           </div>
         </div>
-        <div className="flex items-center justify-between w-full px-[20px] mt-[16px]">
+        <div className="mt-[16px] flex w-full items-center justify-between px-[20px]">
           <button
             onClick={() => changeDate("prev")}
-            className="flex items-center justify-center w-[44px] md:w-[48px] h-[44px] md:h-[48px] rounded-full bg-surface cursor-pointer"
+            className="bg-surface flex h-[44px] w-[44px] cursor-pointer items-center justify-center rounded-full md:h-[48px] md:w-[48px]"
           >
             <ChevronLeft
-              className="w-[24px] md:w-[26px] h-[24px] md:h-[26px] mr-[2px] text-primary"
+              className="text-primary mr-[2px] h-[24px] w-[24px] md:h-[26px] md:w-[26px]"
               strokeWidth={2.5}
             />
           </button>
           <div className="flex flex-col items-center">
-            <p className="font-semibold text-[32px] md:text-[34px] text-surface">
+            <p className="text-surface text-[32px] font-semibold md:text-[34px]">
               {formatCurrency(totalRevenue)}
             </p>
           </div>
           <button
             onClick={() => changeDate("next")}
-            className="flex items-center justify-center w-[44px] md:w-[48px] h-[44px] md:h-[48px] rounded-full bg-surface cursor-pointer"
+            className="bg-surface flex h-[44px] w-[44px] cursor-pointer items-center justify-center rounded-full md:h-[48px] md:w-[48px]"
           >
             <ChevronRight
-              className="w-[24px] md:w-[26px] h-[24px] md:h-[26px] ml-[2px] text-primary"
+              className="text-primary ml-[2px] h-[24px] w-[24px] md:h-[26px] md:w-[26px]"
               strokeWidth={2.5}
             />
           </button>
         </div>
       </div>
-      <div className="flex flex-col w-full min-h-[calc(100vh-249px)] md:min-h-[calc(100vh-269px)] px-[20px] -mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface">
+      <div className="bg-surface -mt-[16px] flex min-h-[calc(100vh-249px)] w-full flex-col rounded-tl-2xl rounded-tr-2xl px-[20px] md:min-h-[calc(100vh-269px)]">
         <div className="pt-[16px]">
-          <p className="font-semibold text-[22px] md:text-[24px] text-normal">
+          <p className="text-normal text-[22px] font-semibold md:text-[24px]">
             {periodRepairs.length > 0
               ? `รายการซ่อม (${periodRepairs.length} รายการ)`
               : "รายการซ่อม"}
@@ -434,23 +417,19 @@ const SalesReport = () => {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center items-center h-[256px]">
-            <LoaderCircle className="w-8 h-8 text-primary animate-spin" />
+          <div className="flex h-[256px] items-center justify-center">
+            <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : periodRepairs.length > 0 ? (
-          <div
-            className={`${
-              periodType === "daily" ? "pt-[16px]" : "pt-[8px]"
-            }  pb-[96px]`}
-          >
+          <div className={`${periodType === "daily" ? "pt-[16px]" : "pt-[8px]"} pb-[96px]`}>
             {periodType === "daily"
               ? periodRepairs.map((repair, index) => {
                   const carData = getCarCardData(repair);
                   return (
                     <Link
-                      to={`/repair/${repair.id}`}
+                      to={`/repairs/${repair.id}`}
                       key={index}
-                      className={index > 0 ? "block mt-[16px]" : "block"}
+                      className={index > 0 ? "mt-[16px] block" : "block"}
                       state={{
                         returnTo: location.pathname,
                         currentDate: currentDate.toISOString(),
@@ -468,45 +447,41 @@ const SalesReport = () => {
                     </Link>
                   );
                 })
-              : Object.entries(groupRepairsByDay(periodRepairs)).map(
-                  ([day, repairsForDay]) => (
-                    <div key={day} className="mb-4">
-                      <p className="mb-[8px] font-medium text-[18px] md:text-[20px] text-subtle-dark">
-                        {day}
-                      </p>
-                      {repairsForDay.map((repair, i) => {
-                        const carData = getCarCardData(repair);
-                        return (
-                          <Link
-                            to={`/repair/${repair.id}`}
-                            key={i}
-                            className={i > 0 ? "block mt-[12px]" : "block"}
-                            state={{
-                              returnTo: location.pathname,
-                              currentDate: currentDate.toISOString(),
-                            }}
-                          >
-                            <CarCard
-                              bg="primary"
-                              color="#1976d2"
-                              icon={getBrandIcon(repair.vehicle.vehicleBrandModel.brand, "#1976d2")}
-                              licensePlate={carData.licensePlate}
-                              brand={carData.brand}
-                              time={carData.time}
-                              price={carData.price}
-                            />
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )
-                )}
+              : Object.entries(groupRepairsByDay(periodRepairs)).map(([day, repairsForDay]) => (
+                  <div key={day} className="mb-4">
+                    <p className="text-subtle-dark mb-[8px] text-[18px] font-medium md:text-[20px]">
+                      {day}
+                    </p>
+                    {repairsForDay.map((repair, i) => {
+                      const carData = getCarCardData(repair);
+                      return (
+                        <Link
+                          to={`/repairs/${repair.id}`}
+                          key={i}
+                          className={i > 0 ? "mt-[12px] block" : "block"}
+                          state={{
+                            returnTo: location.pathname,
+                            currentDate: currentDate.toISOString(),
+                          }}
+                        >
+                          <CarCard
+                            bg="primary"
+                            color="#1976d2"
+                            icon={getBrandIcon(repair.vehicle.vehicleBrandModel.brand, "#1976d2")}
+                            licensePlate={carData.licensePlate}
+                            brand={carData.brand}
+                            time={carData.time}
+                            price={carData.price}
+                          />
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-[256px] text-center">
-            <p className="text-[20px] md:text-[22px] text-subtle-light">
-              ไม่มีรายการซ่อม
-            </p>
+          <div className="flex h-[256px] flex-col items-center justify-center text-center">
+            <p className="text-subtle-light text-[20px] md:text-[22px]">ไม่มีรายการซ่อม</p>
           </div>
         )}
       </div>

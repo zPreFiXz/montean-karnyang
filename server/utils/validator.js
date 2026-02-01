@@ -3,8 +3,9 @@ const { z } = require("zod");
 exports.registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
-  name: z.string().min(1),
+  fullName: z.string().min(1),
   nickname: z.string().min(1),
+  phoneNumber: z.string().min(1),
   dateOfBirth: z.coerce.date(),
 });
 

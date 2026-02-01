@@ -29,60 +29,57 @@ const VehicleDetail = () => {
   };
 
   return (
-    <div className="w-full h-[87px] bg-gradient-primary shadow-primary">
+    <div className="bg-gradient-primary shadow-primary h-[87px] w-full">
       <div className="flex items-center gap-[8px] px-[20px] py-[18px]">
         <button
           onClick={() => navigate("/vehicles")}
-          className="mt-[2px] text-surface cursor-pointer"
+          className="text-surface mt-[2px] cursor-pointer"
         >
           <ChevronLeft />
         </button>
-        <p className="font-semibold text-[24px] md:text-[26px] text-surface">
-          ประวัติลูกค้า
-        </p>
+        <p className="text-surface text-[24px] font-semibold md:text-[26px]">ประวัติลูกค้า</p>
       </div>
 
-      <div className="min-h-[calc(100vh-65px)] pt-[16px] pb-[96px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+      <div className="bg-surface shadow-primary min-h-[calc(100vh-65px)] rounded-tl-2xl rounded-tr-2xl pt-[16px] pb-[96px]">
         {isLoading ? (
-          <div className="flex justify-center items-center h-[530px]">
-            <LoaderCircle className="w-8 h-8 animate-spin text-primary" />
+          <div className="flex h-[530px] items-center justify-center">
+            <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : (
           <div>
-            <div className="flex items-center gap-[8px] px-[20px] mb-[16px]">
-              <div className="flex justify-center items-center w-[45px] h-[45px] rounded-full bg-primary">
-                {React.createElement(getBrandIcon(vehicle?.vehicleBrandModel.brand, "#1976d2"), { color: "#1976d2" })}
+            <div className="mb-[16px] flex items-center gap-[8px] px-[20px]">
+              <div className="bg-primary flex h-[45px] w-[45px] items-center justify-center rounded-full">
+                {React.createElement(getBrandIcon(vehicle?.vehicleBrandModel.brand, "#1976d2"), {
+                  color: "#1976d2",
+                })}
               </div>
               <div className="flex flex-col">
-                <p className="font-semibold text-[22px] md:text-[24px] text-primary leading-tight">
-                  {vehicle?.licensePlate?.plateNumber &&
-                  vehicle?.licensePlate?.province
+                <p className="text-primary text-[22px] leading-tight font-semibold md:text-[24px]">
+                  {vehicle?.licensePlate?.plateNumber && vehicle?.licensePlate?.province
                     ? `${vehicle.licensePlate.plateNumber} ${vehicle.licensePlate.province}`
                     : "ไม่ระบุทะเบียนรถ"}
                 </p>
-                <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark leading-tight">
-                  {vehicle?.vehicleBrandModel.brand}{" "}
-                  {vehicle?.vehicleBrandModel.model}
+                <p className="text-subtle-dark text-[18px] leading-tight font-medium md:text-[20px]">
+                  {vehicle?.vehicleBrandModel.brand} {vehicle?.vehicleBrandModel.model}
                 </p>
               </div>
             </div>
 
             {vehicle.repairs && (
-              <div className="px-[20px] mb-[16px]">
-                <div className="flex justify-between items-center mb-[8px]">
-                  <p className="font-semibold text-[22px] md:text-[24px] text-normal">
+              <div className="mb-[16px] px-[20px]">
+                <div className="mb-[8px] flex items-center justify-between">
+                  <p className="text-normal text-[22px] font-semibold md:text-[24px]">
                     ประวัติการซ่อม
                   </p>
                 </div>
                 <div className="space-y-[16px]">
                   {vehicle.repairs.map((item, index) => (
                     <div key={index} className="flex flex-col gap-[8px]">
-                      <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark">
-                        {formatDate(item.createdAt)} |{" "}
-                        {formatTime(item.createdAt)} น.
+                      <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                        {formatDate(item.createdAt)} | {formatTime(item.createdAt)} น.
                       </p>
                       <Link
-                        to={`/repair/${item.id}`}
+                        to={`/repairs/${item.id}`}
                         state={{ from: "vehicle-detail", vehicleId: id }}
                       >
                         <RepairCard

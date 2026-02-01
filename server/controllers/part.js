@@ -37,7 +37,7 @@ exports.createPart = async (req, res, next) => {
     });
 
     if (part) {
-      createError(400, "รหัสอะไหล่นี้ถูกใช้งานแล้ว");
+      createError(400, "รหัสอะไหล่นี้มีอยู่ในระบบแล้ว");
     }
 
     await prisma.part.create({
@@ -58,7 +58,7 @@ exports.createPart = async (req, res, next) => {
       },
     });
 
-    res.json({ message: "Part created successfully" });
+    res.json({ message: "เพิ่มอะไหล่เรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }
@@ -89,7 +89,7 @@ exports.updatePart = async (req, res, next) => {
     });
 
     if (part && part.id !== Number(id)) {
-      createError(400, "รหัสอะไหล่นี้ถูกใช้งานแล้ว");
+      createError(400, "รหัสอะไหล่นี้มีอยู่ในระบบแล้ว");
     }
 
     await prisma.part.update({
@@ -111,7 +111,7 @@ exports.updatePart = async (req, res, next) => {
       },
     });
 
-    res.json({ message: "Part updated successfully" });
+    res.json({ message: "แก้ไขอะไหล่เรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }
@@ -131,7 +131,7 @@ exports.addStock = async (req, res, next) => {
       },
     });
 
-    res.json({ message: "Stock added successfully" });
+    res.json({ message: "เพิ่มสต็อกเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }
@@ -145,7 +145,7 @@ exports.deletePart = async (req, res, next) => {
       where: { id: Number(id) },
     });
 
-    res.json({ message: "Part deleted successfully" });
+    res.json({ message: "ลบอะไหล่เรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }

@@ -6,7 +6,7 @@ export const Garage = () => {
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className="w-9 h-9"
+      className="h-9 w-9"
       preserveAspectRatio="none"
     >
       <path
@@ -72,7 +72,7 @@ export const Success = () => {
       viewBox="0 0 28 29"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className="relative w-7 h-7"
+      className="relative h-7 w-7"
       preserveAspectRatio="xMidYMid meet"
     >
       <g clipPath="url(#clip0_232_39)">
@@ -103,7 +103,7 @@ export const Paid = () => {
       viewBox="0 0 28 29"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className="relative w-7 h-7"
+      className="relative h-7 w-7"
       preserveAspectRatio="xMidYMid meet"
     >
       <path
@@ -122,7 +122,7 @@ export const Car = ({ color }) => {
       viewBox="0 0 27 27"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className="flex-grow-0 flex-shrink-0 w-[27px] h-[27px] relative"
+      className="relative h-[27px] w-[27px] flex-shrink-0 flex-grow-0"
       preserveAspectRatio="none"
     >
       <rect width={27} height={27} rx="13.5" fill="white" />
@@ -185,7 +185,12 @@ export const DashboardBar = ({
   );
 };
 
-export const CarRepair = ({ isActive = false, size = "sm", color = null }) => {
+export const CarRepair = ({
+  isActive = false,
+  size = "sm",
+  color = null,
+  className = "",
+}) => {
   const sizeClasses = {
     sm: "w-[26px] h-[26px]",
     md: "w-[32px] h-[32px]",
@@ -203,7 +208,7 @@ export const CarRepair = ({ isActive = false, size = "sm", color = null }) => {
       viewBox="0 0 26 26"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={`${sizeClasses[size]} relative`}
+      className={`${sizeClasses[size]} relative ${className}`}
       preserveAspectRatio="xMidYMid meet"
     >
       <path
@@ -283,7 +288,7 @@ export const ToolBox = () => {
       viewBox="0 0 45 45"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className="w-[45px] h-[45px] relative"
+      className="relative h-[45px] w-[45px]"
       preserveAspectRatio="xMidYMid meet"
     >
       <path

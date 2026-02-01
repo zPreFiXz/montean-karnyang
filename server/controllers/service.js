@@ -20,7 +20,7 @@ exports.createService = async (req, res, next) => {
     });
 
     if (service) {
-      createError(400, "บริการนี้ถูกใช้งานแล้ว");
+      createError(400, "บริการนี้มีอยู่ในระบบแล้ว");
     }
 
     await prisma.service.create({
@@ -31,7 +31,7 @@ exports.createService = async (req, res, next) => {
       },
     });
 
-    res.json({ message: "Service created successfully" });
+    res.json({ message: "เพิ่มบริการเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }
@@ -49,7 +49,7 @@ exports.updateService = async (req, res, next) => {
     });
 
     if (service && service.id !== Number(id)) {
-      createError(400, "บริการนี้ถูกใช้งานแล้ว");
+      createError(400, "บริการนี้มีอยู่ในระบบแล้ว");
     }
 
     await prisma.service.update({
@@ -61,7 +61,7 @@ exports.updateService = async (req, res, next) => {
       },
     });
 
-    res.json({ message: "Service updated successfully" });
+    res.json({ message: "แก้ไขบริการเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }
@@ -75,7 +75,7 @@ exports.deleteService = async (req, res, next) => {
       where: { id: Number(id) },
     });
 
-    res.json({ message: "Service deleted successfully" });
+    res.json({ message: "ลบบริการเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }

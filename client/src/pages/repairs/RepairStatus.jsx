@@ -1,10 +1,21 @@
-import CarCard from "@/components/cards/CarCard";
-import { getBrandIcon } from "@/components/icons/BrandIcons";
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useParams, useNavigate } from "react-router";
+import { LoaderCircle, ChevronLeft } from "lucide-react";
+import CarCard from "@/components/cards/CarCard";
 import { getRepairs } from "@/api/repair";
 import { formatTime } from "@/lib/utils";
-import { LoaderCircle, ChevronLeft } from "lucide-react";
+import { getBrandIcon } from "@/components/icons/BrandIcons";
+
+// แสดงยี่ห้อ+รุ่น หรือแค่รุ่นถ้ายี่ห้อเป็น "อื่นๆ"
+const getDisplayBrand = (vehicleBrandModel) => {
+  const brand = vehicleBrandModel?.brand || "";
+  const model = vehicleBrandModel?.model || "";
+
+  if (brand === "อื่นๆ" || brand === "อื่น ๆ") {
+    return model;
+  }
+  return `${brand} ${model}`.trim();
+};
 
 const RepairStatus = () => {
   const location = useLocation();
@@ -114,83 +125,81 @@ const RepairStatus = () => {
   };
 
   return (
-    <div className="w-full h-[142px] bg-gradient-primary shadow-primary">
+    <div className="bg-gradient-primary shadow-primary h-[142px] w-full">
       <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
         <button
           onClick={() => navigate("/dashboard")}
-          className="mt-[2px] text-surface cursor-pointer"
+          className="text-surface mt-[2px] cursor-pointer"
         >
           <ChevronLeft />
         </button>
-        <p className="font-semibold text-[24px] md:text-[26px] text-surface">
-          สถานะการซ่อม
-        </p>
+        <p className="text-surface text-[24px] font-semibold md:text-[26px]">สถานะการซ่อม</p>
       </div>
-      <div className="flex justify-center gap-[16px] mx-[20px] mt-[16px]">
+      <div className="mx-[20px] mt-[16px] flex justify-center gap-[16px]">
         <Link
-          to="/repair/status/in-progress"
-          className={`flex items-center justify-center w-[106px] md:w-[120px] h-[45px] rounded-[10px] duration-300 border-2 font-semibold text-[18px] md:text-[20px] ${
-            location.pathname === "/repair/status/in-progress"
-              ? "border-white text-surface bg-in-progress"
-              : "border-subtle-light  text-subtle-light bg-surface"
+          to="/repairs/status/in-progress"
+          className={`flex h-[45px] w-[106px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold duration-300 md:w-[120px] md:text-[20px] ${
+            location.pathname === "/repairs/status/in-progress"
+              ? "text-surface bg-in-progress border-white"
+              : "border-subtle-light text-subtle-light bg-surface"
           }`}
         >
           กำลังซ่อม
         </Link>
         <Link
-          to="/repair/status/completed"
-          className={`flex items-center justify-center w-[106px] md:w-[120px] h-[45px] rounded-[10px] duration-300 border-2 font-semibold text-[18px] md:text-[20px] ${
-            location.pathname === "/repair/status/completed"
-              ? "border-white text-surface bg-completed"
+          to="/repairs/status/completed"
+          className={`flex h-[45px] w-[106px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold duration-300 md:w-[120px] md:text-[20px] ${
+            location.pathname === "/repairs/status/completed"
+              ? "text-surface bg-completed border-white"
               : "border-subtle-light text-subtle-light bg-surface"
           }`}
         >
           ซ่อมเสร็จสิ้น
         </Link>
         <Link
-          to="/repair/status/paid"
-          className={`flex items-center justify-center w-[106px] md:w-[120px] h-[45px] rounded-[10px] duration-300 border-2 font-semibold text-[18px] md:text-[20px] ${
-            location.pathname === "/repair/status/paid"
-              ? "border-white text-surface bg-paid"
+          to="/repairs/status/paid"
+          className={`flex h-[45px] w-[106px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold duration-300 md:w-[120px] md:text-[20px] ${
+            location.pathname === "/repairs/status/paid"
+              ? "text-surface bg-paid border-white"
               : "border-subtle-light text-subtle-light bg-surface"
           }`}
         >
           ชำระเงินแล้ว
         </Link>
       </div>
-      <div className="w-full min-h-[calc(100vh-126px)] px-[20px] pb-[112px] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
-        <p className="pt-[16px] font-semibold text-[22px] md:text-[24px] text-normal">
+      <div className="bg-surface shadow-primary mt-[16px] min-h-[calc(100vh-126px)] w-full rounded-tl-2xl rounded-tr-2xl px-[20px] pb-[112px]">
+        <p className="text-normal pt-[16px] text-[22px] font-semibold md:text-[24px]">
           {getStatusTitle()}
         </p>
         {isLoading ? (
-          <div className="flex justify-center items-center h-[435px]">
-            <LoaderCircle className="w-8 h-8 animate-spin text-primary" />
+          <div className="flex h-[435px] items-center justify-center">
+            <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : currentRepairs.length === 0 ? (
-          <div className="flex items-center justify-center h-[435px]">
-            <p className="text-[20px] md:text-[22px] text-subtle-light">
-              {getEmptyMessage()}
-            </p>
+          <div className="flex h-[435px] items-center justify-center">
+            <p className="text-subtle-light text-[20px] md:text-[22px]">{getEmptyMessage()}</p>
           </div>
         ) : (
           currentRepairs.map((item, index) => (
             <Link
               key={index}
-              to={`/repair/${item.id}`}
+              to={`/repairs/${item.id}`}
               state={{ from: "repair-status", statusSlug: status }}
-              className="block w-full h-[80px] mt-[16px] rounded-[10px] bg-surface shadow-primary"
+              className="bg-surface shadow-primary mt-[16px] block h-[80px] w-full rounded-[10px]"
             >
               <CarCard
                 bg={getStatusBg(item.status)}
                 color={getStatusColor(item.status)}
-                icon={getBrandIcon(item.vehicle.vehicleBrandModel.brand, getStatusColor(item.status))}
+                icon={getBrandIcon(
+                  item.vehicle.vehicleBrandModel.brand,
+                  getStatusColor(item.status)
+                )}
                 licensePlate={
-                  item.vehicle.licensePlate?.plateNumber &&
-                  item.vehicle.licensePlate?.province
+                  item.vehicle.licensePlate?.plateNumber && item.vehicle.licensePlate?.province
                     ? `${item.vehicle.licensePlate.plateNumber} ${item.vehicle.licensePlate.province}`
                     : "ไม่ระบุทะเบียนรถ"
                 }
-                brand={`${item.vehicle.vehicleBrandModel.brand} ${item.vehicle.vehicleBrandModel.model}`}
+                brand={getDisplayBrand(item.vehicle.vehicleBrandModel)}
                 time={item.createdAt && formatTime(item.createdAt)}
                 price={Number(item.totalPrice) || 0}
               />

@@ -1,3 +1,16 @@
+export const units = [
+  { name: "ตัว" },
+  { name: "อัน" },
+  { name: "เส้น" },
+  { name: "ลิตร" },
+  { name: "ลูก" },
+  { name: "ชุด" },
+  { name: "คู่" },
+  { name: "แผ่น" },
+  { name: "ขวด" },
+  { name: "หลอด" },
+];
+
 export const provinces = [
   { id: 1, name: "กรุงเทพมหานคร" },
   { id: 2, name: "กระบี่" },
@@ -76,17 +89,4 @@ export const provinces = [
   { id: 75, name: "อุตรดิตถ์" },
   { id: 76, name: "อุบลราชธานี" },
   { id: 77, name: "อำนาจเจริญ" },
-];
-
-export const units = [
-  { name: "ตัว" },
-  { name: "อัน" },
-  { name: "เส้น" },
-  { name: "ลิตร" },
-  { name: "ลูก" },
-  { name: "ชุด" },
-  { name: "คู่" },
-  { name: "แผ่น" },
-  { name: "ขวด" },
-  { name: "หลอด" },
 ];

@@ -5,17 +5,17 @@ export const getParts = async () => {
 };
 
 export const createPart = async (data) => {
-  return await api.post("/api/part", data);
+  return await api.post("/api/parts", data);
 };
 
 export const updatePart = async (id, data) => {
-  return await api.put(`/api/part/${id}`, data);
+  return await api.put(`/api/parts/${id}`, data);
 };
 
-export const addStock = async (id, quantity) => {
-  return await api.patch(`/api/part/${id}/add-stock`, { quantity });
+export const addStock = async (id, data) => {
+  return await api.patch(`/api/parts/${id}/stock`, data);
 };
 
 export const deletePart = async (id) => {
-  return await api.delete(`/api/part/${id}`);
+  return await api.delete(`/api/parts/${id}`);
 };

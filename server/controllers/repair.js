@@ -280,7 +280,7 @@ exports.createRepair = async (req, res, next) => {
       }
     }
 
-    res.json({ message: "Repair created successfully" });
+    res.json({ message: "สร้างรายการซ่อมเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }
@@ -478,7 +478,7 @@ exports.updateRepair = async (req, res, next) => {
       },
     });
 
-    res.json({ message: "Repair updated successfully" });
+    res.json({ message: "แก้ไขรายการซ่อมเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }
@@ -521,7 +521,7 @@ exports.updateRepairStatus = async (req, res, next) => {
     });
 
     res.json({
-      message: "Repair status updated successfully",
+      message: "อัปเดตสถานะการซ่อมเรียบร้อยแล้ว",
     });
   } catch (error) {
     next(error);

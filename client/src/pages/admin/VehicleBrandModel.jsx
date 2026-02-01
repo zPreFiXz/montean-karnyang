@@ -6,13 +6,10 @@ import { toast } from "sonner";
 import ComboBox from "@/components/ui/ComboBox";
 import VehicleBrandFormDialog from "@/components/dialogs/VehicleBrandFormDialog";
 import DeleteConfirmDialog from "@/components/dialogs/DeleteConfirmDialog";
-import {
-  deleteVehicleBrandModel,
-  getVehicleBrandModels,
-} from "@/api/vehicleBrandModel";
+import { deleteVehicleBrandModel, getVehicleBrandModels } from "@/api/vehicleBrandModel";
 import FormButton from "@/components/forms/FormButton";
 
-const VehicleBrandManagement = () => {
+const VehicleBrandModel = () => {
   const [vehicleBrands, setVehicleBrands] = useState([]);
   const [selectedBrand, setSelectedBrand] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
@@ -37,7 +34,7 @@ const VehicleBrandManagement = () => {
     }
   };
 
-  const handleDeleteVehicleBrand = async (id) => {
+  const handledeleteVehicleBrandModel = async (id) => {
     try {
       await deleteVehicleBrandModel(id);
       fetchVehicleBrandModels();
@@ -57,7 +54,7 @@ const VehicleBrandManagement = () => {
 
   const handleDeleteConfirm = () => {
     if (deletingItem) {
-      return handleDeleteVehicleBrand(deletingItem.id);
+      return handledeleteVehicleBrandModel(deletingItem.id);
     }
   };
 
@@ -101,20 +98,20 @@ const VehicleBrandManagement = () => {
   });
 
   return (
-    <div className="w-full h-[84px] bg-gradient-primary shadow-primary">
+    <div className="bg-gradient-primary shadow-primary h-[87px] w-full">
       <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
-        <Link to="/dashboard" className="mt-[2px] text-surface">
+        <Link to="/dashboard" className="text-surface mt-[2px]">
           <ChevronLeft />
         </Link>
-        <p className="font-semibold text-[24px] md:text-[26px] text-surface">
+        <p className="text-surface text-[24px] font-semibold md:text-[26px]">
           จัดการยี่ห้อและรุ่นรถ
         </p>
       </div>
 
-      <div className="w-full h-[calc(100vh-68px)] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+      <div className="bg-surface shadow-primary mt-[16px] min-h-[calc(100vh-65px)] w-full rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
         {isLoading ? (
-          <div className="flex justify-center items-center h-[502px]">
-            <LoaderCircle className="w-8 h-8 animate-spin text-primary" />
+          <div className="flex h-[502px] items-center justify-center">
+            <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : (
           <div className="px-[20px] py-[16px] pb-[112px]">
@@ -128,7 +125,7 @@ const VehicleBrandManagement = () => {
             <FormButton
               label="+ เพิ่มยี่ห้อและรุ่นรถ"
               onClick={() => setShowAddForm(true)}
-              className="my-[16px] ml-0 bg-gradient-primary"
+              className="bg-gradient-primary my-[16px] ml-0"
             />
 
             {/* Dialog */}
@@ -144,8 +141,8 @@ const VehicleBrandManagement = () => {
               isOpen={showDeleteDialog}
               onClose={handleDeleteCancel}
               onConfirm={handleDeleteConfirm}
-              title="ยืนยันการลบยี่ห้อและรุ่นรถ"
-              message="คุณแน่ใจหรือไม่ว่าต้องการลบยี่ห้อและรุ่นรถนี้?"
+              title="ยืนยันการลบ"
+              message="ต้องการลบยี่ห้อและรุ่นรถนี้หรือไม่?"
               itemName={
                 deletingItem?.brand !== "อื่นๆ"
                   ? `${deletingItem?.brand} ${deletingItem?.model}`
@@ -155,14 +152,9 @@ const VehicleBrandManagement = () => {
 
             <div className="space-y-[16px]">
               {Object.entries(groupedByBrand).map(([brand, models]) => (
-                <div
-                  key={brand}
-                  className="p-[16px] rounded-[10px] bg-surface shadow-primary"
-                >
-                  <div className="flex items-center gap-[8px] pb-[16px] mb-[16px] border-b border-gray-100">
-                    <p className="font-semibold text-[20px] md:text-[22px] text-primary">
-                      {brand}
-                    </p>
+                <div key={brand} className="bg-surface shadow-primary rounded-[10px] p-[16px]">
+                  <div className="mb-[16px] flex items-center gap-[8px] border-b border-gray-100 pb-[16px]">
+                    <p className="text-primary text-[20px] font-semibold md:text-[22px]">{brand}</p>
                   </div>
 
                   {/* รายการยี่ห้อและรุ่นรถ */}
@@ -170,24 +162,24 @@ const VehicleBrandManagement = () => {
                     {models.map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between p-[8px] rounded-[8px] bg-gray-50"
+                        className="flex items-center justify-between rounded-[8px] bg-gray-50 p-[8px]"
                       >
-                        <p className="font-medium text-[18px] md:text-[20px] text-normal">
+                        <p className="text-normal text-[18px] font-medium md:text-[20px]">
                           {item.model}
                         </p>
                         <div className="flex gap-[8px]">
                           <button
                             onClick={() => startEdit(item)}
-                            className="flex items-center gap-[4px] px-[12px] py-[6px] rounded-[10px] font-medium text-[14px] text-surface bg-gradient-primary cursor-pointer"
+                            className="text-surface bg-gradient-primary flex cursor-pointer items-center gap-[4px] rounded-[10px] px-[12px] py-[6px] text-[14px] font-medium"
                           >
-                            <Edit className="w-[14px] h-[14px]" />
+                            <Edit className="h-[14px] w-[14px]" />
                             <p className="font-semibold">แก้ไข</p>
                           </button>
                           <button
                             onClick={() => confirmDelete(item)}
-                            className="flex items-center gap-[4px] px-[12px] py-[6px] rounded-[10px] font-medium text-[14px] text-surface bg-delete cursor-pointer"
+                            className="text-surface bg-delete flex cursor-pointer items-center gap-[4px] rounded-[10px] px-[12px] py-[6px] text-[14px] font-medium"
                           >
-                            <Trash2 className="w-[14px] h-[14px]" />
+                            <Trash2 className="h-[14px] w-[14px]" />
                             <p className="font-semibold">ลบ</p>
                           </button>
                         </div>
@@ -204,4 +196,4 @@ const VehicleBrandManagement = () => {
   );
 };
 
-export default VehicleBrandManagement;
+export default VehicleBrandModel;

@@ -34,8 +34,6 @@ const AddRepairItemDialog = ({
   const [activeCategory, setActiveCategory] = useState("ทั้งหมด");
   const [categories, setCategories] = useState([]);
   const [searchValue, setSearchValue] = useState("");
-
-  // เก็บค่า stock ที่ถูกคืนในโหมดแก้ไขแบบถาวรระหว่างที่ dialog เปิดอยู่
   const restoredStockMapRef = useRef({});
 
   const buildPartKey = (item) =>
@@ -53,18 +51,14 @@ const AddRepairItemDialog = ({
   };
 
   const fetchCategories = async () => {
-    try {
-      const res = await getCategories();
-      const categoriesWithIcons = res.data
-        .map((category) => ({
-          ...category,
-          icon: iconMap[category.name] || ToolBox, // ถ้าไม่มี icon ให้ใช้ ToolBox เป็นค่าเริ่มต้น
-        }))
-        .sort((a, b) => a.id - b.id);
-      setCategories(categoriesWithIcons);
-    } catch (error) {
-      console.error(error);
-    }
+    const res = await getCategories();
+    const categoriesWithIcons = res.data
+      .map((category) => ({
+        ...category,
+        icon: iconMap[category.name] || ToolBox, // ถ้าไม่มี icon ให้ใช้ ToolBox เป็นค่าเริ่มต้น
+      }))
+      .sort((a, b) => a.id - b.id);
+    setCategories(categoriesWithIcons);
   };
 
   // ใช้ useDebouncedCallback เพื่อดีเลย์การค้นหา
@@ -83,7 +77,6 @@ const AddRepairItemDialog = ({
 
   const handleOpenDialog = () => {
     setIsDialogOpen(true);
-    // สร้าง baseline stock (ที่คืนในโหมดแก้ไข) จากรายการที่เลือกไว้ตอนเปิด dialog
     const baseline = { ...restoredStockMap };
     for (const selected of selectedItems) {
       if (selected.partNumber && selected.brand) {
@@ -136,15 +129,14 @@ const AddRepairItemDialog = ({
         {children}
       </DialogTrigger>
       <DialogContent
-        className="flex flex-col w-full h-[90vh] max-h-[650px] p-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+        className="flex h-[90vh] max-h-[650px] w-full flex-col p-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
         showCloseButton={false}
         onOpenAutoFocus={(e) => {
-          // ป้องกันการโฟกัสอัตโนมัติที่ input เมื่อเปิด dialog เพื่อลดการเด้งแป้นพิมพ์ในมือถือ
           e.preventDefault();
         }}
       >
         <DialogHeader className="relative flex-shrink-0 pt-[16px]">
-          <DialogTitle className="text-center font-athiti font-semibold text-[22px] md:text-[24px] text-subtle-dark">
+          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-[24px]">
             เลือกอะไหล่หรือบริการ
           </DialogTitle>
           <DialogDescription className="sr-only">
@@ -155,13 +147,15 @@ const AddRepairItemDialog = ({
           <button
             onClick={() => setIsDialogOpen(false)}
             autoFocus={false}
-            className="absolute top-[16px] right-[20px] flex items-center justify-center w-[32px] h-[32px] rounded-full bg-black/5 cursor-pointer"
+            tabIndex={-1}
+            aria-label="ปิดหน้าต่าง"
+            className="absolute top-[16px] right-[20px] flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-full bg-black/5"
           >
             <X size={18} className="text-subtle-dark" />
           </button>
         </DialogHeader>
-        <div className="overflow-y-auto flex-1 flex flex-col">
-          <div className="flex-shrink-0 flex flex-col px-[20px]">
+        <div className="flex flex-1 flex-col overflow-y-auto">
+          <div className="flex flex-shrink-0 flex-col px-[20px]">
             {/* แถบค้นหา */}
             <div className="mt-[4px]">
               <SearchBar
@@ -176,18 +170,18 @@ const AddRepairItemDialog = ({
             </div>
 
             {/* แถบหมวดหมู่ */}
-            <div className="overflow-x-auto px-[20px] mt-[14px] -mx-[20px] font-athiti">
+            <div className="font-athiti -mx-[20px] mt-[14px] overflow-x-auto px-[20px]">
               <div className="flex gap-[8px] py-[2px]">
                 <button
                   onClick={() => handleCategoryChange("ทั้งหมด")}
                   tabIndex={-1}
-                  className={`flex flex-col items-center justify-center w-[80px] h-[80px] px-[20px] py-[12px] rounded-[10px] border duration-300 cursor-pointer ${
+                  className={`flex h-[80px] w-[80px] cursor-pointer flex-col items-center justify-center rounded-[10px] border px-[20px] py-[12px] duration-300 ${
                     activeCategory === "ทั้งหมด"
-                      ? "border-transparent text-surface bg-gradient-primary "
+                      ? "text-surface bg-gradient-primary border-transparent "
                       : "border-subtle-light text-subtle-dark bg-surface"
                   }`}
                 >
-                  <div className="font-semibold text-[14px] md:text-[16px] text-nowrap">
+                  <div className="text-[14px] font-semibold text-nowrap md:text-[16px]">
                     ทั้งหมด
                   </div>
                 </button>
@@ -199,20 +193,20 @@ const AddRepairItemDialog = ({
                       key={index}
                       onClick={() => handleCategoryChange(item.name)}
                       tabIndex={-1}
-                      className={`flex flex-col justify-center items-center w-[80px] h-[80px] px-[20px] py-[12px] border rounded-[10px] duration-300 cursor-pointer ${
+                      className={`flex h-[80px] w-[80px] cursor-pointer flex-col items-center justify-center rounded-[10px] border px-[20px] py-[12px] duration-300 ${
                         isActive
-                          ? "border-transparent text-surface bg-gradient-primary"
+                          ? "text-surface bg-gradient-primary border-transparent"
                           : "border-subtle-light text-subtle-dark bg-surface"
                       }`}
                     >
                       <div
-                        className={`flex justify-center items-center w-[45px] h-[45px] ${
+                        className={`flex h-[45px] w-[45px] items-center justify-center ${
                           isActive ? "text-surface" : "text-subtle-dark"
                         }`}
                       >
                         <IconComponent />
                       </div>
-                      <div className="font-semibold text-[14px] md:text-[16px] text-nowrap">
+                      <div className="text-[14px] font-semibold text-nowrap md:text-[16px]">
                         {item.name}
                       </div>
                     </button>
@@ -221,8 +215,8 @@ const AddRepairItemDialog = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-between mt-[14px]">
-              <p className="font-athiti font-semibold text-[20px] md:text-[22px]">
+            <div className="mt-[14px] flex items-center justify-between">
+              <p className="font-athiti text-[20px] font-semibold md:text-[22px]">
                 รายการอะไหล่และบริการ
               </p>
             </div>
@@ -231,12 +225,12 @@ const AddRepairItemDialog = ({
           {/* รายการอะไหล่และบริการ */}
           <div className="flex-1 px-[20px] pb-[16px]">
             {isLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <LoaderCircle className="w-8 h-8 text-primary animate-spin" />
+              <div className="flex h-full items-center justify-center">
+                <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
               </div>
             ) : inventory.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <p className="font-athiti font-medium text-[20px] md:text-[22px] text-subtle-light">
+              <div className="flex h-full items-center justify-center">
+                <p className="font-athiti text-subtle-light text-[20px] font-medium md:text-[22px]">
                   ไม่พบอะไหล่และบริการ
                 </p>
               </div>
@@ -252,7 +246,7 @@ const AddRepairItemDialog = ({
                         selected.name === item.name;
                       return isSamePart ? sum + (selected.quantity || 0) : sum;
                     },
-                    0
+                    0,
                   );
 
                   // ใช้ baseline ที่บันทึกไว้ขณะ dialog เปิด เพื่อให้สต็อกคืนเต็มแม้ลบรายการทั้งหมดแล้ว
@@ -273,7 +267,7 @@ const AddRepairItemDialog = ({
                     <div
                       key={index}
                       onClick={() => handleAddItemToRepair(item)}
-                      className={`rounded-lg font-athiti ${
+                      className={`font-athiti rounded-lg ${
                         isDisabled
                           ? "cursor-not-allowed opacity-50"
                           : "cursor-pointer"

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { X, Eye, EyeOff, Calendar, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { TIMING } from "@/utils/constants";
 import FormInput from "@/components/forms/FormInput";
 import ComboBox from "@/components/ui/ComboBox";
 import FormButton from "@/components/forms/FormButton";
@@ -27,15 +28,25 @@ import { cn } from "@/lib/utils";
 // ฟังก์ชันจัดรูปแบบวันที่เป็นภาษาไทย
 const formatDateThai = (date) => {
   const thaiMonths = [
-    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+    "มกราคม",
+    "กุมภาพันธ์",
+    "มีนาคม",
+    "เมษายน",
+    "พฤษภาคม",
+    "มิถุนายน",
+    "กรกฎาคม",
+    "สิงหาคม",
+    "กันยายน",
+    "ตุลาคม",
+    "พฤศจิกายน",
+    "ธันวาคม",
   ];
-  
+
   const d = new Date(date);
   const day = d.getDate();
   const month = thaiMonths[d.getMonth()];
   const year = d.getFullYear();
-  
+
   return `${day} ${month} ${year}`;
 };
 
@@ -43,9 +54,9 @@ const formatDateThai = (date) => {
 const formatDateISO = (date) => {
   const d = new Date(date);
   const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+
   return `${year}-${month}-${day}`;
 };
 
@@ -68,7 +79,9 @@ const EmployeeFormDialog = ({
     control,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver: zodResolver(editingItem ? employeeEditSchema : employeeCreateSchema),
+    resolver: zodResolver(
+      editingItem ? employeeEditSchema : employeeCreateSchema,
+    ),
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -121,7 +134,7 @@ const EmployeeFormDialog = ({
 
   const handleAdd = async (data) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, TIMING.LOADING_DELAY));
 
       await createEmployee({
         email: data.email,
@@ -136,14 +149,13 @@ const EmployeeFormDialog = ({
       handleClose();
       onSuccess?.();
     } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.message);
+      toast.error(error.response?.data?.message || "เพิ่มพนักงานไม่สำเร็จ");
     }
   };
 
   const handleEdit = async (data) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, TIMING.LOADING_DELAY));
 
       const updateData = {
         email: data.email,
@@ -163,8 +175,7 @@ const EmployeeFormDialog = ({
       handleClose();
       onSuccess?.();
     } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.message);
+      toast.error(error.response?.data?.message || "แก้ไขข้อมูลพนักงานไม่สำเร็จ");
     }
   };
 
@@ -178,33 +189,34 @@ const EmployeeFormDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent
-        className="flex flex-col w-full h-[90vh] max-h-[650px] p-0"
+        className="flex h-[90vh] max-h-[650px] w-full flex-col p-0"
         showCloseButton={false}
         onOpenAutoFocus={(e) => {
-          // ป้องกันการโฟกัสอัตโนมัติที่ input เมื่อเปิด dialog เพื่อลดการเด้งแป้นพิมพ์ในมือถือ
           e.preventDefault();
         }}
       >
         <div className="relative flex-shrink-0 pt-[16px]">
-          <DialogTitle className="font-athiti font-semibold text-center text-[22px] md:text-[24px] text-subtle-dark">
+          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-[24px]">
             {editingItem ? "แก้ไขบัญชีพนักงาน" : "เพิ่มบัญชีพนักงาน"}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            {editingItem ? `แก้ไข ${editingItem.fullName}` : "เพิ่มบัญชีพนักงาน"}
+            {editingItem
+              ? `แก้ไข ${editingItem.fullName}`
+              : "เพิ่มบัญชีพนักงาน"}
           </DialogDescription>
 
+          {/* ปุ่มปิด dialog */}
           <button
             onClick={handleClose}
-            autoFocus
+            autoFocus={false}
             tabIndex={-1}
             aria-label="ปิดหน้าต่าง"
-            className="absolute top-[16px] right-[20px] flex items-center justify-center w-[32px] h-[32px] rounded-full bg-black/5 cursor-pointer"
+            className="absolute top-[16px] right-[20px] flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-full bg-black/5"
           >
             <X size={18} className="text-subtle-dark" />
           </button>
         </div>
-
-        <div className="overflow-y-auto flex-1 flex flex-col font-athiti px-[20px]">
+        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px]">
           <form
             onSubmit={handleSubmit(editingItem ? handleEdit : handleAdd)}
             className="space-y-[16px]"
@@ -220,6 +232,7 @@ const EmployeeFormDialog = ({
                 color="subtle-dark"
                 autoFocus={false}
               />
+
               <FormInput
                 register={register}
                 name="lastName"
@@ -230,6 +243,7 @@ const EmployeeFormDialog = ({
                 color="subtle-dark"
                 autoFocus={false}
               />
+
               <FormInput
                 register={register}
                 name="nickname"
@@ -240,6 +254,7 @@ const EmployeeFormDialog = ({
                 color="subtle-dark"
                 autoFocus={false}
               />
+
               <FormInput
                 register={register}
                 name="email"
@@ -254,36 +269,33 @@ const EmployeeFormDialog = ({
                 disabled={Boolean(editingItem)}
                 autoFocus={false}
               />
+
               <FormInput
                 register={register}
                 name="password"
-                label={
-                  editingItem
-                    ? "รหัสผ่านใหม่"
-                    : "รหัสผ่าน"
-                }
+                label={editingItem ? "รหัสผ่านใหม่" : "รหัสผ่าน"}
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
                 errors={errors}
                 customClass="px-0 pb-[16px]"
                 color="subtle-dark"
-
                 rightSlot={
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="mt-[8px] text-subtle-light hover:text-gray-600 cursor-pointer"
+                    className="text-subtle-light mt-[8px] cursor-pointer hover:text-gray-600"
                     aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
                   >
                     {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
+                      <EyeOff className="h-5 w-5" />
                     ) : (
-                      <Eye className="w-5 h-5" />
+                      <Eye className="h-5 w-5" />
                     )}
                   </button>
                 }
                 autoFocus={false}
               />
+
               <FormInput
                 register={register}
                 name="confirmPassword"
@@ -297,22 +309,25 @@ const EmployeeFormDialog = ({
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword((v) => !v)}
-                    className="mt-[8px] text-subtle-light hover:text-gray-600 cursor-pointer"
-                    aria-label={showConfirmPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+                    className="text-subtle-light mt-[8px] cursor-pointer hover:text-gray-600"
+                    aria-label={
+                      showConfirmPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"
+                    }
                   >
                     {showConfirmPassword ? (
-                      <EyeOff className="w-5 h-5" />
+                      <EyeOff className="h-5 w-5" />
                     ) : (
-                      <Eye className="w-5 h-5" />
+                      <Eye className="h-5 w-5" />
                     )}
                   </button>
                 }
                 autoFocus={false}
               />
+
               <div className="px-0 pb-[16px]">
                 <Label
                   htmlFor="dateOfBirth"
-                  className="mb-[8px] font-medium text-[22px] md:text-[24px] text-subtle-dark"
+                  className="text-subtle-dark mb-[8px] text-[22px] font-medium md:text-[24px]"
                 >
                   วันเกิด
                 </Label>
@@ -321,30 +336,36 @@ const EmployeeFormDialog = ({
                   control={control}
                   render={({ field }) => (
                     <div className="relative">
-                      <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                      <Popover
+                        open={isCalendarOpen}
+                        onOpenChange={setIsCalendarOpen}
+                      >
                         <PopoverTrigger asChild>
                           <Button
                             variant="outline"
                             className={cn(
-                              "w-full h-[41px] px-[12px] rounded-[20px] font-medium text-[20px] md:text-[22px] bg-surface justify-start text-left border border-input",
-                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                              "bg-surface border-input relative h-[41px] w-full justify-start rounded-[20px] border pl-[12px] text-left text-[20px] font-medium md:text-[22px]",
+                              "focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
                               !field.value &&
-                                "text-subtle-dark font-light text-[18px] md:text-[20px]",
+                                "text-subtle-dark text-[18px] font-light md:text-[20px]",
                               errors.dateOfBirth
-                                ? "border-red-400 focus-visible:border-delete focus-visible:ring-[rgba(255,69,69,0.3)]"
-                                : "focus-visible:border-[#1976d2] focus-visible:ring-[rgba(25,118,210,0.35)]"
+                                ? "focus-visible:border-delete border-red-400 pr-[44px] focus-visible:ring-[rgba(255,69,69,0.3)]"
+                                : "pr-[44px] focus-visible:border-[#1976d2] focus-visible:ring-[rgba(25,118,210,0.35)]",
                             )}
                           >
                             {field.value
                               ? formatDateThai(field.value)
                               : "-- เลือกวันเกิด --"}
+                            <Calendar
+                              className="text-subtle-light pointer-events-none absolute top-1/2 right-[12px] h-5 w-5 -translate-y-1/2"
+                              strokeWidth={2.25}
+                            />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent 
-                          className="w-auto p-0" 
+                        <PopoverContent
+                          className="w-auto p-0"
                           align="start"
                           onPointerDownOutside={(e) => {
-                            // ป้องกันการปิด popup เมื่อคลิกที่ calendar
                             if (e.target.closest('[role="gridcell"]')) {
                               e.preventDefault();
                             }
@@ -373,21 +394,19 @@ const EmployeeFormDialog = ({
                           />
                         </PopoverContent>
                       </Popover>
-                      <div className="absolute right-[12px] top-1/2 transform -translate-y-1/2 pointer-events-none">
-                        <Calendar className="w-5 h-5 text-subtle-light" />
-                      </div>
                       {errors.dateOfBirth && (
-                        <div className="flex items-center mt-[8px] text-red-500">
-                          <AlertCircle className="w-4 h-4 mr-1" />
-                          <span className="text-[14px] font-medium">
+                        <div className="mt-[6px] flex items-center gap-[4px] px-[4px]">
+                          <AlertCircle className="text-delete h-4 w-4 flex-shrink-0" />
+                          <p className="text-delete text-[18px] font-medium md:text-[20px]">
                             {errors.dateOfBirth.message}
-                          </span>
+                          </p>
                         </div>
                       )}
                     </div>
                   )}
                 />
               </div>
+
               <FormInput
                 register={register}
                 name="phoneNumber"
@@ -398,7 +417,8 @@ const EmployeeFormDialog = ({
                 color="subtle-dark"
                 autoFocus={false}
               />
-              <div className="px-0 mb-[4px]">
+
+              <div className="mb-[4px] px-0">
                 <ComboBox
                   label="บทบาท"
                   color="text-subtle-dark"
@@ -424,13 +444,14 @@ const EmployeeFormDialog = ({
           </form>
         </div>
 
+        {/* ปุ่มบันทึกและเพิ่มบัญชีพนักงาน */}
         <div className="flex-shrink-0 px-[16px] pb-[16px]">
           <div className="flex gap-[16px]">
             <FormButton
               label={editingItem ? "บันทึก" : "เพิ่มบัญชีพนักงาน"}
               isLoading={isSubmitting}
               onClick={handleSubmit(editingItem ? handleEdit : handleAdd)}
-              className="ml-0 mr-0 font-athiti bg-gradient-primary"
+              className="font-athiti bg-gradient-primary mr-0 ml-0"
             />
           </div>
         </div>

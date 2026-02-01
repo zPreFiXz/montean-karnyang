@@ -14,7 +14,7 @@ const RepairItemCard = ({ item, variant }) => {
         item.part.typeSpecificData.aspectRatio
       ) {
         return (
-          <p className="font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
+          <p className="text-normal line-clamp-2 text-[16px] font-semibold md:text-[18px]">
             {item.part.brand} {item.part.typeSpecificData.width}/
             {item.part.typeSpecificData.aspectRatio}R
             {item.part.typeSpecificData.rimDiameter} {item.part.name}
@@ -25,7 +25,7 @@ const RepairItemCard = ({ item, variant }) => {
       // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
       if (isTire && item.part?.typeSpecificData) {
         return (
-          <p className="font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
+          <p className="text-normal line-clamp-2 text-[16px] font-semibold md:text-[18px]">
             {item.part.brand} {item.part.typeSpecificData.width}R
             {item.part.typeSpecificData.rimDiameter} {item.part.name}
           </p>
@@ -34,7 +34,7 @@ const RepairItemCard = ({ item, variant }) => {
 
       // แสดงข้อมูลอะไหล่หรือบริการ
       return (
-        <p className="font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
+        <p className="text-normal line-clamp-2 text-[16px] font-semibold md:text-[18px]">
           {item.part?.brand && `${item.part.brand} `}
           {item.part?.name || item.customName || item.service?.name}
         </p>
@@ -47,7 +47,7 @@ const RepairItemCard = ({ item, variant }) => {
     // แสดงข้อมูลยางที่มีขนาดแก้มยาง
     if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
       return (
-        <p className="font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
+        <p className="text-normal line-clamp-2 text-[16px] font-semibold md:text-[18px]">
           {item.brand} {item.typeSpecificData.width}/
           {item.typeSpecificData.aspectRatio}R
           {item.typeSpecificData.rimDiameter} {item.name}
@@ -58,7 +58,7 @@ const RepairItemCard = ({ item, variant }) => {
     // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
     if (isTire && item.typeSpecificData) {
       return (
-        <p className="font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
+        <p className="text-normal line-clamp-2 text-[16px] font-semibold md:text-[18px]">
           {item.brand} {item.typeSpecificData.width}R
           {item.typeSpecificData.rimDiameter} {item.name}
         </p>
@@ -67,13 +67,12 @@ const RepairItemCard = ({ item, variant }) => {
 
     // แสดงข้อมูลอะไหล่หรือบริการ
     return (
-      <p className="font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
+      <p className="text-normal line-clamp-2 text-[16px] font-semibold md:text-[18px]">
         {item.brand} {item.name}
       </p>
     );
   };
 
-  // ข้อมูลสำหรับแสดงผล
   const imageUrl = variant === "detail" ? item.part?.secureUrl : item.secureUrl;
   const itemName =
     variant === "detail" ? item.part?.name || item.service?.name : item.name;
@@ -84,40 +83,40 @@ const RepairItemCard = ({ item, variant }) => {
       ? item.part?.unit || item.service?.unit || ""
       : item.unit;
 
-  // ตรวจสอบว่าเป็นบริการหรือไม่
   const isService = variant === "detail" ? !!item.service : !item.partNumber;
 
   return (
     <div className="flex items-center gap-[16px]">
-      <div className="flex justify-between items-center w-full h-[80px] gap-[8px] px-[8px] rounded-[10px] bg-white shadow-primary">
+      <div className="shadow-primary bg-surface flex h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] px-[8px]">
         <div className="flex items-center gap-[8px]">
-          <div className="flex items-center justify-center rounded-[10px] border border-subtle-light bg-white shadow-primary">
+          <div className="border-subtle-light shadow-primary bg-surface flex items-center justify-center rounded-[10px] border">
+            {/* แสดงรูปภาพถ้ามี ถ้าไม่มีให้แสดงไอคอนตามประเภท */}
             {imageUrl ? (
-              <div className="w-[60px] h-[60px]">
+              <div className="h-[60px] w-[60px]">
                 <img
                   src={imageUrl}
                   alt={itemName}
-                  className="object-cover w-full h-full rounded-[10px]"
+                  className="h-full w-full rounded-[10px] object-cover"
                 />
               </div>
             ) : (
-              <div className="flex items-center justify-center w-[60px] h-[60px] text-subtle-light">
+              <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
                 {isService ? (
-                  <Wrench className="w-8 h-8" />
+                  <Wrench className="h-8 w-8" />
                 ) : (
-                  <Image className="w-8 h-8" />
+                  <Image className="h-8 w-8" />
                 )}
               </div>
             )}
           </div>
           <div className="flex flex-col">
             {renderProductInfo(item)}
-            <p className="font-semibold text-[16px] md:text-[18px] text-subtle-dark line-clamp-1">
+            <p className="text-subtle-dark line-clamp-1 text-[16px] font-semibold md:text-[18px]">
               {formatCurrency(unitPrice)} × {item.quantity} {unit}
             </p>
           </div>
         </div>
-        <p className="font-semibold text-[22px] md:text-[24px] text-primary text-nowrap">
+        <p className="text-primary text-[22px] font-semibold text-nowrap md:text-[24px]">
           {formatCurrency(unitPrice * item.quantity)}
         </p>
       </div>

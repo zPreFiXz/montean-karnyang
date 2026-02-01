@@ -1,90 +1,69 @@
 import { create } from "zustand";
 import { getRepairs } from "@/api/repair";
 
+// กรองรายการซ่อมที่มีสถานะ PAID และชำระเงินวันนี้
+const filterTodayPaid = (repairs) => {
+  const todayStr = new Date().toISOString().split("T")[0];
+  return repairs.filter((repair) => {
+    if (repair.status !== "PAID" || !repair.paidAt) return false;
+    const paidDate = new Date(repair.paidAt).toISOString().split("T")[0];
+    return paidDate === todayStr;
+  });
+};
+
 const repairStore = (set, get) => ({
   repairs: [],
 
+  // ดึงข้อมูลการซ่อมทั้งหมดจาก API
   fetchRepairs: async () => {
-    try {
-      const res = await getRepairs();
-      set({ repairs: res.data });
-      return res.data;
-    } catch (error) {
-      console.error(error);
-    }
+    const res = await getRepairs();
+    set({ repairs: res.data });
+    return res.data;
   },
 
-  // นับจำนวนรถยนต์ตามสถานะการซ่อม
-  // status: 'IN_PROGRESS' | 'COMPLETED' | 'PAID'
+  // นับจำนวนรายการซ่อมตามสถานะ
   getRepairCountByStatus: (status) => {
     const { repairs } = get();
 
+    // กรณีสถานะเป็น PAID ให้กรองเฉพาะรายการที่ชำระเงินวันนี้
     if (status === "PAID") {
-      // สำหรับสถานะ PAID ให้นับเฉพาะของวันนี้
-      const today = new Date();
-      const todayStr = today.toISOString().split("T")[0];
-
-      return repairs.filter((repair) => {
-        if (repair.status !== "PAID" || !repair.paidAt) {
-          return false;
-        }
-
-        const paidDate = new Date(repair.paidAt).toISOString().split("T")[0];
-        return paidDate === todayStr;
-      }).length;
+      return filterTodayPaid(repairs).length;
     }
 
     return repairs.filter((repair) => repair.status === status).length;
   },
 
-  // คำนวณยอดขายของวันนี้ (เฉพาะรายการที่ชำระเงินแล้ว)
+  // คำนวณยอดขายวันนี้
   getTodaySales: () => {
     const { repairs } = get();
+    const todayPaidRepairs = filterTodayPaid(repairs);
 
-    const today = new Date();
-    const todayStr = today.toISOString().split("T")[0];
-
-    // กรองเฉพาะรายการที่ชำระเงินแล้วในวันนี้
-    const todayPaidRepairs = repairs.filter((repair) => {
-      if (repair.status !== "PAID" || !repair.paidAt) {
-        return false;
-      }
-
-      // เช็คว่าชำระเงินในวันนี้หรือไม่
-      const paidDate = new Date(repair.paidAt).toISOString().split("T")[0];
-      return paidDate === todayStr;
-    });
-
-    // รวมยอดเงินทั้งหมด
     return todayPaidRepairs.reduce((total, repair) => {
-      return total + parseFloat(repair.totalPrice);
+      return total + Number(repair.totalPrice);
     }, 0);
   },
 
-  // หาการซ่อมล่าสุดตามสถานะที่ระบุ
+  // ดึงรายการซ่อมล่าสุดตามสถานะ
   getLatestRepairByStatus: (status) => {
     const { repairs } = get();
 
-    let filteredRepairs;
+    const filteredRepairs =
+      status === "PAID"
+        ? filterTodayPaid(repairs)
+        : repairs.filter((repair) => repair.status === status);
+
+    return filteredRepairs[0] ?? null;
+  },
+
+  // ดึงรายการซ่อมทั้งหมดตามสถานะ
+  getRepairsByStatus: (status) => {
+    const { repairs } = get();
 
     if (status === "PAID") {
-      // สำหรับสถานะ PAID ให้แสดงเฉพาะของวันนี้
-      const today = new Date();
-      const todayStr = today.toISOString().split("T")[0];
-
-      filteredRepairs = repairs.filter((repair) => {
-        if (repair.status !== "PAID" || !repair.paidAt) {
-          return false;
-        }
-
-        const paidDate = new Date(repair.paidAt).toISOString().split("T")[0];
-        return paidDate === todayStr;
-      });
-    } else {
-      filteredRepairs = repairs.filter((repair) => repair.status === status);
+      return filterTodayPaid(repairs);
     }
 
-    return filteredRepairs.length > 0 ? filteredRepairs[0] : null;
+    return repairs.filter((repair) => repair.status === status);
   },
 });
 

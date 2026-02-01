@@ -1,16 +1,16 @@
-import { useSearchParams, Link } from "react-router";
 import { useEffect, useState, useRef, useMemo } from "react";
+import { useSearchParams, Link } from "react-router";
+import { TIMING } from "@/utils/constants";
 import { useDebouncedCallback } from "use-debounce";
+import { LoaderCircle } from "lucide-react";
 import InventoryCard from "@/components/cards/InventoryCard";
 import SearchBar from "@/components/forms/SearchBar";
 import CategoryList from "@/components/CategoryList";
 import ItemDetailDialog from "@/components/dialogs/ItemDetailDialog";
+import ComboBox from "@/components/ui/ComboBox";
 import { getInventory } from "@/api/inventory";
 import { getParts } from "@/api/part";
-import { LoaderCircle } from "lucide-react";
 import { BoxSearch } from "@/components/icons/Icons";
-
-import ComboBox from "@/components/ui/ComboBox";
 
 const Inventory = () => {
   const [activeCategory, setActiveCategory] = useState("ทั้งหมด");
@@ -31,9 +31,7 @@ const Inventory = () => {
 
   // สร้างพารามิเตอร์การกรองตามหมวดหมู่และตัวเลือกที่เลือก
   const buildFilterParams = () =>
-    activeCategory === "ยาง"
-      ? { width, aspectRatio, rimDiameter, brand: tireBrand }
-      : {};
+    activeCategory === "ยาง" ? { width, aspectRatio, rimDiameter, brand: tireBrand } : {};
 
   // Debounced การกรองข้อมูลเพื่อป้องกันการเรียก API บ่อยเกินไป
   const debouncedFilter = useDebouncedCallback(() => {
@@ -41,8 +39,7 @@ const Inventory = () => {
     handleFilter(category, search, params);
   }, 300);
 
-  const uniqSorted = (arr = []) =>
-    Array.from(new Set(arr)).sort((a, b) => a.localeCompare(b));
+  const uniqSorted = (arr = []) => Array.from(new Set(arr)).sort((a, b) => a.localeCompare(b));
 
   const isTirePart = (p) => p?.category?.name === "ยาง";
 
@@ -59,9 +56,7 @@ const Inventory = () => {
     return uniqSorted(
       partsList
         .filter(
-          (p) =>
-            isTirePart(p) &&
-            (!width || String(p.typeSpecificData?.width) === String(width))
+          (p) => isTirePart(p) && (!width || String(p.typeSpecificData?.width) === String(width))
         )
         .map((p) => (p.typeSpecificData?.aspectRatio ?? "").toString().trim())
         .filter((v) => v !== "")
@@ -75,8 +70,7 @@ const Inventory = () => {
           (p) =>
             isTirePart(p) &&
             (!width || String(p.typeSpecificData?.width) === String(width)) &&
-            (!aspectRatio ||
-              String(p.typeSpecificData?.aspectRatio) === String(aspectRatio))
+            (!aspectRatio || String(p.typeSpecificData?.aspectRatio) === String(aspectRatio))
         )
         .map((p) => (p.typeSpecificData?.rimDiameter ?? "").toString().trim())
         .filter((v) => v !== "")
@@ -89,10 +83,8 @@ const Inventory = () => {
         (p) =>
           isTirePart(p) &&
           (!width || String(p.typeSpecificData?.width) === String(width)) &&
-          (!aspectRatio ||
-            String(p.typeSpecificData?.aspectRatio) === String(aspectRatio)) &&
-          (!rimDiameter ||
-            String(p.typeSpecificData?.rimDiameter) === String(rimDiameter))
+          (!aspectRatio || String(p.typeSpecificData?.aspectRatio) === String(aspectRatio)) &&
+          (!rimDiameter || String(p.typeSpecificData?.rimDiameter) === String(rimDiameter))
       )
       .map((p) => (p.brand || "").toString().trim())
       .filter((b) => !!b);
@@ -113,7 +105,7 @@ const Inventory = () => {
 
     setTimeout(() => {
       isInitializing.current = false;
-    }, 200);
+    }, TIMING.SCROLL_DELAY);
   }, []);
 
   useEffect(() => {
@@ -166,9 +158,7 @@ const Inventory = () => {
   const handleStockUpdate = () => {
     // รีเฟรชข้อมูลหลังจากเพิ่มสต็อก
     const filterParams =
-      activeCategory === "ยาง"
-        ? { width, aspectRatio, rimDiameter, brand: tireBrand }
-        : {};
+      activeCategory === "ยาง" ? { width, aspectRatio, rimDiameter, brand: tireBrand } : {};
     handleFilter(category, search, filterParams);
   };
 
@@ -178,33 +168,28 @@ const Inventory = () => {
   };
 
   return (
-    <div className="w-full h-[87px] bg-gradient-primary shadow-primary">
+    <div className="bg-gradient-primary shadow-primary h-[87px] w-full">
       <div className="flex items-center gap-[8px] pt-[16px] pl-[20px]">
-        <div className="flex items-center justify-center w-[40px] h-[40px] rounded-full bg-surface/20">
+        <div className="bg-surface/20 flex h-[40px] w-[40px] items-center justify-center rounded-full">
           <BoxSearch color="#ffffff" />
         </div>
         <div>
-          <p className="font-semibold text-[24px] md:text-[26px] text-surface">
-            อะไหล่และบริการ
-          </p>
+          <p className="text-surface text-[24px] font-semibold md:text-[26px]">อะไหล่และบริการ</p>
         </div>
       </div>
 
-      <div className="w-full min-h-[calc(100vh-65px)] pb-[112px] xl:pb-[16px] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+      <div className="bg-surface shadow-primary mt-[16px] min-h-[calc(100vh-65px)] w-full rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
         <div className="px-[20px] pt-[16px]">
           {/* แถบค้นหา */}
           <SearchBar placeholder="ค้นหารหัส, ยี่ห้อ, ชื่ออะไหล่" />
 
           {/* แถบหมวดหมู่ */}
-          <CategoryList
-            activeCategory={activeCategory}
-            setActiveCategory={setActiveCategory}
-          />
+          <CategoryList activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
 
           {/* ตัวเลือกกรองพิเศษสำหรับหมวดยาง */}
           {activeCategory === "ยาง" && (
-            <div className="flex items-center mt-[16px]">
-              <div className="flex flex-col w-full gap-[16px]">
+            <div className="mt-[16px] flex items-center">
+              <div className="flex w-full flex-col gap-[16px]">
                 <div className="w-full">
                   <ComboBox
                     label="หน้ายาง (มม.)"
@@ -268,13 +253,11 @@ const Inventory = () => {
             </div>
           )}
 
-          <div className="flex items-center justify-between mt-[16px]">
-            <p className="font-semibold text-[20px] md:text-[22px]">
-              รายการอะไหล่และบริการ
-            </p>
+          <div className="mt-[16px] flex items-center justify-between">
+            <p className="text-[20px] font-semibold md:text-[22px]">รายการอะไหล่และบริการ</p>
             <Link
-              to="/inventory/new"
-              className="font-semibold text-[20px] md:text-[22px] text-primary cursor-pointer"
+              to="/inventories/new"
+              className="text-primary cursor-pointer text-[20px] font-semibold md:text-[22px]"
             >
               + เพิ่มรายการ
             </Link>
@@ -282,21 +265,18 @@ const Inventory = () => {
 
           {/* รายการอะไหล่และบริการ */}
           {isLoading ? (
-            <div className="flex justify-center items-center h-[346px]">
-              <LoaderCircle className="w-8 h-8 animate-spin text-primary" />
+            <div className="flex h-[346px] items-center justify-center">
+              <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
             </div>
           ) : inventory.length === 0 ? (
-            <div className="flex justify-center items-center h-[346px]">
-              <p className="font-medium text-[20px] md:text-[22px] text-subtle-light">
+            <div className="flex h-[346px] items-center justify-center">
+              <p className="text-subtle-light text-[20px] font-medium md:text-[22px]">
                 ไม่พบอะไหล่และบริการ
               </p>
             </div>
           ) : (
             inventory.map((item) => (
-              <div
-                key={`${item.category.name}-${item.id}`}
-                onClick={() => handleItemClick(item)}
-              >
+              <div key={`${item.category.name}-${item.id}`} onClick={() => handleItemClick(item)}>
                 <InventoryCard
                   item={item}
                   brand={item.brand}

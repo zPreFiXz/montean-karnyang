@@ -1,7 +1,7 @@
-const prisma = require("../config/prisma");
-const createError = require("../utils/createError");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const prisma = require("../config/prisma");
+const createError = require("../utils/createError");
 
 exports.register = async (req, res, next) => {
   try {
@@ -70,10 +70,12 @@ exports.login = async (req, res, next) => {
       expiresIn: "1d",
     });
 
+    const isProduction = process.env.NODE_ENV === "production";
+
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
+      secure: isProduction,
+      sameSite: isProduction ? "strict" : "lax",
       maxAge: 24 * 60 * 60 * 1000,
     });
 
@@ -88,13 +90,15 @@ exports.login = async (req, res, next) => {
 
 exports.logout = (req, res, next) => {
   try {
+    const isProduction = process.env.NODE_ENV === "production";
+
     res.clearCookie("token", {
       httpOnly: true,
-      secure: true,
-      sameSite: "strict",
+      secure: isProduction,
+      sameSite: isProduction ? "strict" : "lax",
     });
 
-    res.json({ message: "Logout successfully" });
+    res.json({ message: "ออกจากระบบเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }

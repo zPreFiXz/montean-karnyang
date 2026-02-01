@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Edit, Plus, X, AlertTriangle, Check, Trash } from "lucide-react";
+import { TIMING } from "@/utils/constants";
 import DeleteConfirmDialog from "@/components/dialogs/DeleteConfirmDialog";
 import {
   Dialog,
@@ -58,7 +59,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
           behavior: "smooth",
         });
       }
-    }, 200);
+    }, TIMING.SCROLL_DELAY);
   };
 
   if (!currentItem) return null;
@@ -79,29 +80,32 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
   })();
 
   const renderProductInfo = () => {
+    // แสดงข้อมูลยางที่มีขนาดแก้มยาง
     if (
       isTire &&
       currentItem.typeSpecificData &&
       currentItem.typeSpecificData.aspectRatio
     ) {
       return (
-        <h2 className="font-athiti font-semibold text-center text-[22px] md:text-[24px] text-normal leading-tight">
+        <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold md:text-[24px]">
           {currentItem.brand} {currentItem.typeSpecificData.width}/
           {currentItem.typeSpecificData.aspectRatio}R
           {currentItem.typeSpecificData.rimDiameter} {currentItem.name}
         </h2>
       );
+      // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
     } else if (isTire && currentItem.typeSpecificData) {
       return (
-        <h2 className="font-athiti font-semibold text-center text-[22px] md:text-[24px] text-normal leading-tight">
+        <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold md:text-[24px]">
           {currentItem.brand} {currentItem.typeSpecificData.width}R
           {currentItem.typeSpecificData.rimDiameter} {currentItem.name}
         </h2>
       );
     }
 
+    // แสดงข้อมูลอะไหล่หรือบริการ
     return (
-      <h2 className="font-athiti font-semibold text-center text-[22px] md:text-[24px] text-normal leading-tight">
+      <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold md:text-[24px]">
         {currentItem.brand} {currentItem.name}
       </h2>
     );
@@ -109,13 +113,13 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
 
   const handleEdit = () => {
     onOpenChange(false);
-    navigate(`/inventory/${currentItem.id}?type=${currentItem.type}`);
+    navigate(`/inventories/${currentItem.id}?type=${currentItem.type}`);
   };
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, TIMING.LOADING_DELAY));
 
       await addStock(currentItem.id, Number(data.quantity));
 
@@ -141,7 +145,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
             behavior: "smooth",
           });
         }
-      }, 200);
+      }, TIMING.SCROLL_DELAY);
 
       // อัพเดทข้อมูลในหน้าหลัก
       if (onStockUpdate) {
@@ -158,18 +162,15 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
     <div>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
-          className={`flex flex-col w-full ${
-            !isService ? "max-h-[650px]" : "max-h-[337px]"
-          } p-0`}
+          className={`flex w-full flex-col ${!isService ? "max-h-[650px]" : "max-h-[337px]"} p-0`}
           style={{ height: !isService ? "650px" : "350px" }}
           showCloseButton={false}
           onOpenAutoFocus={(e) => {
-            // ป้องกันการโฟกัสอัตโนมัติที่ input เมื่อเปิด dialog เพื่อลดการเด้งแป้นพิมพ์ในมือถือ
             e.preventDefault();
           }}
         >
           <div className="relative flex-shrink-0 pt-[16px]">
-            <DialogTitle className="font-athiti font-semibold text-center text-[22px] md:text-[24px] text-subtle-dark">
+            <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-[24px]">
               รายละเอียด{isService ? "บริการ" : "อะไหล่"}
             </DialogTitle>
             <DialogDescription className="sr-only">
@@ -182,36 +183,38 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
               onClick={() => onOpenChange(false)}
               autoFocus={false}
               tabIndex={-1}
-              className="absolute top-[16px] right-[20px] flex items-center justify-center w-[32px] h-[32px] rounded-full bg-black/5 cursor-pointer"
+              aria-label="ปิดหน้าต่าง"
+              className="absolute top-[16px] right-[20px] flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-full bg-black/5"
             >
               <X size={18} className="text-subtle-dark" />
             </button>
           </div>
 
-          {/* เนื้อหา */}
-          <div className="overflow-y-auto flex-1 flex flex-col font-athiti">
+          {/* เนื้อหา dialog */}
+          <div className="font-athiti flex flex-1 flex-col overflow-y-auto">
             <div className="flex-1 px-[20px]">
               <div className="mb-[16px]">
                 {renderProductInfo()}
                 {!isService && currentItem.partNumber && (
-                  <div className="flex justify-center mt-[16px]">
-                    {/* สถานะสต็อก */}
+                  <div className="mt-[16px] flex justify-center">
+                    {/* แสดงสถานะสต็อก */}
                     {currentItem.stockQuantity === 0 ? (
-                      <div className="flex items-center w-fit h-[41px] gap-2 px-7 pr-8 rounded-[20px] font-semibold text-[16px] md:text-[18px] text-surface bg-delete">
-                        <AlertTriangle className="w-4 h-4" />
+                      <div className="text-surface bg-delete flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-[16px] font-semibold md:text-[18px]">
+                        <AlertTriangle className="h-4 w-4" />
                         สต็อกหมด - จำนวน {currentItem.stockQuantity}{" "}
                         {currentItem.unit}
                       </div>
-                    ) : currentItem.stockQuantity <=
-                      currentItem.minStockLevel ? (
-                      <div className="flex items-center w-fit h-[41px] gap-2 px-7 pr-8 rounded-[20px] font-semibold text-[16px] md:text-[18px] text-surface bg-in-progress">
-                        <AlertTriangle className="w-4 h-4" />
+                    ) : // แสดงสถานะสต็อกต่ำ
+                    currentItem.stockQuantity <= currentItem.minStockLevel ? (
+                      <div className="text-surface bg-in-progress flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-[16px] font-semibold md:text-[18px]">
+                        <AlertTriangle className="h-4 w-4" />
                         สต็อกต่ำ - จำนวน {currentItem.stockQuantity}{" "}
                         {currentItem.unit}
                       </div>
                     ) : (
-                      <div className="flex items-center w-fit h-[41px] gap-2 px-7 pr-8 rounded-[20px] font-semibold text-[16px] md:text-[18px] text-surface bg-completed">
-                        <Check className="w-4 h-4" />
+                      // แสดงสถานะสต็อกปกติ
+                      <div className="text-surface bg-completed flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-[16px] font-semibold md:text-[18px]">
+                        <Check className="h-4 w-4" />
                         สต็อกปกติ - จำนวน {currentItem.stockQuantity}{" "}
                         {currentItem.unit}
                       </div>
@@ -220,52 +223,52 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                 )}
               </div>
 
-              {/* รูปภาพ (ถ้ามี) */}
+              {/* แสดงรูปภาพถ้ามี */}
               {currentItem.secureUrl && (
-                <div className="flex justify-center mb-[16px]">
-                  <div className="overflow-hidden flex items-center justify-center w-[250px] h-[250px] rounded-[20px] border-2 border-subtle-light">
+                <div className="mb-[16px] flex justify-center">
+                  <div className="border-subtle-light flex h-[250px] w-[250px] items-center justify-center overflow-hidden rounded-[20px] border-2">
                     <img
                       src={currentItem.secureUrl}
                       alt={currentItem.name}
-                      className="w-full h-full object-cover"
+                      className="h-full w-full object-cover"
                     />
                   </div>
                 </div>
               )}
 
               {/* ข้อมูลทั่วไป */}
-              <div className="space-y-[8px] mt-[16px]">
+              <div className="mt-[16px] space-y-[8px]">
                 {!isService && (
-                  <p className="font-athiti font-semibold text-[22px] md:text-[24px] text-normal">
+                  <p className="font-athiti text-normal text-[22px] font-semibold md:text-[24px]">
                     ข้อมูลทั่วไป
                   </p>
                 )}
-                <div className="space-y-[8px] p-[16px] rounded-[10px] bg-gray-50">
+                <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
                   {!isService && currentItem.partNumber && (
                     <div className="flex justify-between">
-                      <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark">
+                      <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
                         รหัสอะไหล่:
                       </p>
-                      <p className="font-semibold text-[18px] md:text-[20px] text-normal">
+                      <p className="text-normal text-[18px] font-semibold md:text-[20px]">
                         {currentItem.partNumber}
                       </p>
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark">
+                    <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
                       หมวดหมู่:
                     </p>
-                    <p className="font-semibold text-[18px] md:text-[20px] text-normal">
+                    <p className="text-normal text-[18px] font-semibold md:text-[20px]">
                       {currentItem.category?.name}
                     </p>
                   </div>
                   {currentItem.category?.name === "ช่วงล่าง" &&
                     currentItem.typeSpecificData?.suspensionType && (
                       <div className="flex justify-between">
-                        <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark">
+                        <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
                           ประเภทช่วงล่าง:
                         </p>
-                        <p className="font-semibold text-[18px] md:text-[20px] text-normal">
+                        <p className="text-normal text-[18px] font-semibold md:text-[20px]">
                           {currentItem.typeSpecificData.suspensionType ===
                           "left-right"
                             ? "ซ้าย-ขวา"
@@ -277,31 +280,31 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
 
                 {/* ข้อมูลราคา */}
                 {!isService && (
-                  <p className="mt-[16px] font-athiti font-semibold text-[22px] md:text-[24px] text-normal">
+                  <p className="font-athiti text-normal mt-[16px] text-[22px] font-semibold md:text-[24px]">
                     ข้อมูลราคา
                   </p>
                 )}
-                <div className="space-y-[8px] p-[16px] rounded-[10px] bg-gray-50">
+                <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
                   {user?.role === "ADMIN" &&
                     !isService &&
                     currentItem.costPrice && (
                       <div className="flex justify-between">
-                        <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark">
+                        <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
                           ราคาต้นทุน:
                         </p>
-                        <p className="font-semibold text-[18px] md:text-[20px] text-normal">
+                        <p className="text-normal text-[18px] font-semibold md:text-[20px]">
                           {Number(currentItem.costPrice).toLocaleString()} บาท
                         </p>
                       </div>
                     )}
 
                   <div className="flex justify-between">
-                    <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark">
+                    <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
                       {isService ? "ราคา:" : "ราคาขาย:"}
                     </p>
-                    <p className="font-semibold text-[18px] md:text-[20px] text-primary">
+                    <p className="text-primary text-[18px] font-semibold md:text-[20px]">
                       {Number(
-                        currentItem.sellingPrice || currentItem.price || 0
+                        currentItem.sellingPrice || currentItem.price || 0,
                       ).toLocaleString()}{" "}
                       บาท
                     </p>
@@ -311,22 +314,22 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                 {/* ข้อมูลสต็อก */}
                 {!isService && (
                   <div>
-                    <p className="mt-[16px] font-athiti font-semibold text-[22px] md:text-[24px] text-normal">
+                    <p className="font-athiti text-normal mt-[16px] text-[22px] font-semibold md:text-[24px]">
                       ข้อมูลสต็อก
                     </p>
-                    <div className="space-y-[8px] p-[16px] rounded-[10px] bg-gray-50">
+                    <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
                       <div className="flex justify-between">
-                        <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark">
+                        <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
                           จำนวนสต็อก:
                         </p>
                         <p
-                          className={`font-semibold text-[18px] md:text-[20px] ${
+                          className={`text-[18px] font-semibold md:text-[20px] ${
                             currentItem.stockQuantity === 0
                               ? "text-delete"
                               : currentItem.stockQuantity <=
-                                currentItem.minStockLevel
-                              ? "text-in-progress"
-                              : "text-completed"
+                                  currentItem.minStockLevel
+                                ? "text-in-progress"
+                                : "text-completed"
                           }`}
                         >
                           {currentItem.stockQuantity} {currentItem.unit}
@@ -334,10 +337,10 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                       </div>
 
                       <div className="flex justify-between">
-                        <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark">
+                        <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
                           สต็อกขั้นต่ำ:
                         </p>
-                        <p className="font-semibold text-[18px] md:text-[20px] text-normal">
+                        <p className="text-normal text-[18px] font-semibold md:text-[20px]">
                           {currentItem.minStockLevel} {currentItem.unit}
                         </p>
                       </div>
@@ -351,14 +354,14 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                 currentItem.compatibleVehicles &&
                 currentItem.compatibleVehicles.length > 0 && (
                   <div className="mt-[16px]">
-                    <p className="mb-[8px] font-athiti font-semibold text-[22px] md:text-[24px] text-normal">
+                    <p className="font-athiti text-normal mb-[8px] text-[22px] font-semibold md:text-[24px]">
                       รถที่รองรับ
                     </p>
                     <div className="flex flex-wrap gap-[6px]">
                       {currentItem.compatibleVehicles.map((vehicle, index) => (
                         <p
                           key={index}
-                          className="px-[10px] py-[4px] rounded-[10px] font-medium text-[18px] text-subtle-dark bg-gray-100"
+                          className="text-subtle-dark rounded-[10px] bg-gray-100 px-[10px] py-[4px] text-[18px] font-medium"
                         >
                           {vehicle.brand} {vehicle.model}
                         </p>
@@ -367,13 +370,13 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                   </div>
                 )}
 
-              {/* ฟอร์มเพิ่มสต็อก */}
+              {/* ส่วนเพิ่มสต็อก */}
               {!isService && showAddStock && (
                 <div>
-                  <p className="mt-[16px] mb-[8px] font-athiti font-semibold text-[22px] md:text-[24px] text-normal">
+                  <p className="font-athiti text-normal mt-[16px] mb-[8px] text-[22px] font-semibold md:text-[24px]">
                     เพิ่มสต็อก
                   </p>
-                  <div className="px-[16px] pb-[16px] rounded-[10px] bg-gray-50">
+                  <div className="rounded-[10px] bg-gray-50 px-[16px] pb-[16px]">
                     <form
                       onSubmit={handleSubmit(onSubmit)}
                       className="space-y-[16px]"
@@ -392,7 +395,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                         onInput={(e) => {
                           e.target.value = e.target.value.replace(
                             /[^0-9]/g,
-                            ""
+                            "",
                           );
                         }}
                         customClass="px-0 pt-[16px]"
@@ -403,14 +406,14 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                           isSubmitting ? (
                             "เพิ่มสต็อก"
                           ) : (
-                            <div className="flex items-center justify-center gap-[8px] cursor-pointer">
-                              <Plus className="w-4 h-4" />
+                            <div className="flex cursor-pointer items-center justify-center gap-[8px]">
+                              <Plus className="h-4 w-4" />
                               เพิ่มสต็อก
                             </div>
                           )
                         }
                         isLoading={isSubmitting}
-                        className="ml-0 bg-gradient-primary"
+                        className="bg-gradient-primary ml-0"
                       />
                     </form>
                   </div>
@@ -419,15 +422,15 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
             </div>
           </div>
 
-          {/* ส่วนท้าย */}
+          {/* ปุ่มเพิ่มสต็อก แก้ไข ลบ */}
           <div className="flex-shrink-0 px-[16px] pb-[16px]">
-            <div className="flex gap-[16px] items-center">
+            <div className="flex items-center gap-[16px]">
               {!isService && !showAddStock && (
                 <button
                   onClick={handleShowAddStock}
-                  className="flex-1 flex items-center justify-center h-[41px] gap-[4px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-surface bg-gradient-primary cursor-pointer"
+                  className="font-athiti text-surface bg-gradient-primary flex h-[41px] flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] text-[18px] font-semibold md:text-[20px]"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="h-4 w-4" />
                   เพิ่มสต็อก
                 </button>
               )}
@@ -435,57 +438,56 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
               <button
                 onClick={handleEdit}
                 autoFocus={false}
-                className={`flex-1 flex items-center justify-center h-[41px] gap-[4px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-surface bg-in-progress cursor-pointer`}
+                className="font-athiti text-surface bg-in-progress flex h-[41px] flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] text-[18px] font-semibold md:text-[20px]"
               >
-                <Edit className="w-4 h-4" />
+                <Edit className="h-4 w-4" />
                 แก้ไข
               </button>
 
-              <div>
-                <DeleteConfirmDialog
-                  isOpen={confirmOpen}
-                  onClose={() => setConfirmOpen(false)}
-                  itemName={itemDisplayName}
-                  title={isService ? "ยืนยันการลบบริการ" : "ยืนยันการลบอะไหล่"}
-                  message={
-                    isService
-                      ? "คุณแน่ใจหรือไม่ว่าต้องการลบบริการนี้?"
-                      : "คุณแน่ใจหรือไม่ว่าต้องการลบอะไหล่นี้?"
-                  }
-                  onConfirm={async () => {
-                    try {
-                      if (isService) {
-                        await deleteService(currentItem.id);
-                      } else {
-                        await deletePart(currentItem.id);
-                      }
-                      toast.success(
-                        isService
-                          ? "ลบบริการเรียบร้อยแล้ว"
-                          : "ลบอะไหล่เรียบร้อยแล้ว"
-                      );
-                      onOpenChange(false);
-                      if (onStockUpdate) onStockUpdate();
-                    } catch (error) {
-                      console.error(error);
-                    } finally {
-                      setConfirmOpen(false);
-                    }
-                  }}
-                />
-
-                <button
-                  onClick={() => setConfirmOpen(true)}
-                  className="flex items-center justify-center w-[44px] h-[41px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-surface bg-delete cursor-pointer"
-                  aria-label="ลบ"
-                >
-                  <Trash className="w-4 h-4" />
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  onOpenChange(false); // ปิด Dialog หลักก่อน
+                  setTimeout(() => setConfirmOpen(true), TIMING.DIALOG_TRANSITION); // แล้วค่อยเปิด Confirm Dialog
+                }}
+                className="font-athiti text-surface bg-delete flex h-[41px] w-[44px] cursor-pointer items-center justify-center rounded-[20px] text-[18px] font-semibold md:text-[20px]"
+                aria-label="ลบ"
+              >
+                <Trash className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirm Dialog - อยู่นอก Dialog หลัก */}
+      <DeleteConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        itemName={itemDisplayName}
+        title="ยืนยันการลบ"
+        message={
+          isService
+            ? "ต้องการลบบริการนี้หรือไม่?"
+            : "ต้องการลบอะไหล่นี้หรือไม่?"
+        }
+        onConfirm={async () => {
+          try {
+            if (isService) {
+              await deleteService(currentItem.id);
+            } else {
+              await deletePart(currentItem.id);
+            }
+            toast.success(
+              isService ? "ลบบริการเรียบร้อยแล้ว" : "ลบอะไหล่เรียบร้อยแล้ว",
+            );
+            if (onStockUpdate) onStockUpdate();
+          } catch (error) {
+            console.error(error);
+          } finally {
+            setConfirmOpen(false);
+          }
+        }}
+      />
     </div>
   );
 };

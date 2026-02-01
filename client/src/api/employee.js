@@ -5,13 +5,13 @@ export const getEmployees = async () => {
 };
 
 export const createEmployee = async (data) => {
-  return await api.post("/api/employee", data);
+  return await api.post("/api/employees", data);
 };
 
 export const updateEmployee = async (id, data) => {
-  return await api.put(`/api/employee/${id}`, data);
+  return await api.put(`/api/employees/${id}`, data);
 };
 
 export const deleteEmployee = async (id) => {
-  return await api.delete(`/api/employee/${id}`);
+  return await api.delete(`/api/employees/${id}`);
 };

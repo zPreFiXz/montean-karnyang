@@ -5,7 +5,6 @@ import FormInput from "@/components/forms/FormInput";
 import { toast } from "sonner";
 import { loginSchema } from "@/utils/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
-import logo from "@/assets/logo.png";
 import FormButton from "@/components/forms/FormButton";
 import { useEffect } from "react";
 import {
@@ -35,51 +34,45 @@ const Login = () => {
     }
   }, []);
 
-  const roleRedirect = (role) => {
-    if (role === "EMPLOYEE") {
-      navigate("/dashboard");
-    } else if (role === "ADMIN") {
-      navigate("/dashboard");
-    }
-  };
-
   const onSubmit = async (data) => {
     try {
       const res = await actionLogin(data);
-      const role = res.data.payload.role;
-      roleRedirect(role);
+      navigate("/dashboard");
       toast.success(res.data.message);
     } catch (error) {
       console.error(error);
-
       toast.error(error.response?.data?.message);
     }
   };
 
   return (
-    <div className="relative min-h-screen p-[24px] font-athiti bg-surface">
+    <div className="font-athiti bg-surface relative min-h-screen p-[24px]">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 overflow-hidden"
       >
-        <Wrench className="absolute w-20 h-20 top-1 left-4 rotate-12 text-primary/15" />
-        <Car className="absolute w-20 h-20 bottom-25 left-4 rotate-3 text-primary/15" />
-        <Settings className="absolute w-22 h-22 bottom-15 right-6 rotate-45 text-primary/15" />
-        <Gauge className="absolute w-16 h-16 top-29 right-10 rotate-6 text-primary/15" />
-        <Package className="absolute w-20 h-20 bottom-55 left-40 -rotate-6 text-primary/15" />
+        <Wrench className="text-primary/15 absolute top-1 left-4 h-20 w-20 rotate-12" />
+        <Car className="text-primary/15 absolute bottom-25 left-4 h-20 w-20 rotate-3" />
+        <Settings className="text-primary/15 absolute right-6 bottom-15 h-22 w-22 rotate-45" />
+        <Gauge className="text-primary/15 absolute top-29 right-10 h-16 w-16 rotate-6" />
+        <Package className="text-primary/15 absolute bottom-55 left-40 h-20 w-20 -rotate-6" />
       </div>
 
-      <div className="relative z-20 flex flex-col items-center w-full mt-[24px]">
-        <div className="flex flex-col items-center mb-12 text-center">
-          <img src={logo} alt="มณเฑียรการยาง" className="w-auto h-19 md:h-26" />
+      <div className="relative z-20 mt-[24px] flex w-full flex-col items-center">
+        <div className="mb-12 flex flex-col items-center text-center">
+          <img
+            src="/logo.png"
+            alt="มณเฑียรการยาง"
+            className="h-19 w-auto md:h-26"
+          />
         </div>
-        <div className="relative z-30 w-full md:w-[500px] p-[24px] rounded-[24px] bg-surface shadow-primary">
+        <div className="bg-surface shadow-primary relative z-30 w-full rounded-[24px] p-[24px] md:w-[500px]">
           <form
             noValidate
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-[16px]"
           >
-            <p className="flex justify-center items-center gap-[8px] font-semibold text-[30px] md:text-[32px] text-primary">
+            <p className="text-primary flex items-center justify-center gap-[8px] text-[30px] font-semibold md:text-[32px]">
               <Warehouse />
               เข้าสู่ระบบ
             </p>
@@ -89,7 +82,7 @@ const Login = () => {
               type="email"
               label={
                 <div className="flex items-center gap-2">
-                  <Mail className="w-5 h-5 text-primary" />
+                  <Mail className="text-primary h-5 w-5" />
                   <p className="font-semibold">อีเมล</p>
                 </div>
               }
@@ -105,7 +98,7 @@ const Login = () => {
               type="password"
               label={
                 <div className="flex items-center gap-2">
-                  <Lock className="w-5 h-5 text-primary" />
+                  <Lock className="text-primary h-5 w-5" />
                   <p className="font-semibold">รหัสผ่าน</p>
                 </div>
               }
@@ -118,7 +111,7 @@ const Login = () => {
             <FormButton
               label="เข้าสู่ระบบ"
               isLoading={formState.isSubmitting}
-              className="w-full ml-0 bg-gradient-primary"
+              className="bg-gradient-primary ml-0 w-full"
             />
           </form>
         </div>

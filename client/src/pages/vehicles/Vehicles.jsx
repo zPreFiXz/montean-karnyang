@@ -1,12 +1,12 @@
-import { Link, useSearchParams } from "react-router";
 import { useEffect, useState, useRef } from "react";
-import SearchBar from "@/components/forms/SearchBar";
+import { Link, useSearchParams } from "react-router";
 import { LoaderCircle } from "lucide-react";
-import { getVehicles } from "@/api/vehicle";
+import { TIMING } from "@/utils/constants";
+import SearchBar from "@/components/forms/SearchBar";
 import CarCard from "@/components/cards/CarCard";
-import { Car, Document } from "@/components/icons/Icons";
+import { getVehicles } from "@/api/vehicle";
+import { Document } from "@/components/icons/Icons";
 import { getBrandIcon } from "@/components/icons/BrandIcons";
-
 
 const Vehicles = () => {
   const [vehicles, setVehicles] = useState([]);
@@ -28,7 +28,7 @@ const Vehicles = () => {
 
     setTimeout(() => {
       isInitializing.current = false;
-    }, 200);
+    }, TIMING.SCROLL_DELAY);
   }, []);
 
   useEffect(() => {
@@ -53,38 +53,36 @@ const Vehicles = () => {
   };
 
   return (
-    <div className="w-full h-[87px] bg-gradient-primary shadow-primary">
+    <div className="bg-gradient-primary shadow-primary h-[87px] w-full">
       <div className="flex items-center gap-[8px] pt-[16px] pl-[20px]">
-        <div className="flex items-center justify-center w-[40px] h-[40px] rounded-full bg-surface/20">
+        <div className="bg-surface/20 flex h-[40px] w-[40px] items-center justify-center rounded-full">
           <Document color="#ffffff" />
         </div>
         <div>
-          <p className="font-semibold text-[24px] md:text-[26px] text-surface">
-            ประวัติลูกค้า
-          </p>
+          <p className="text-surface text-[24px] font-semibold md:text-[26px]">ประวัติลูกค้า</p>
         </div>
       </div>
 
-      <div className="w-full min-h-[calc(100vh-65px)] pb-[112px] xl:pb-[16px] mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+      <div className="bg-surface shadow-primary mt-[16px] min-h-[calc(100vh-65px)] w-full rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
         <div className="px-[20px] pt-[16px]">
           {/* แถบค้นหา */}
           <SearchBar placeholder="ค้นหาทะเบียน, จังหวัด, ยี่ห้อ, รุ่นรถ" />
 
           {/* รายการรถ */}
           {isLoading ? (
-            <div className="flex justify-center items-center h-[490px]">
-              <LoaderCircle className="w-8 h-8 animate-spin text-primary" />
+            <div className="flex h-[490px] items-center justify-center">
+              <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
             </div>
           ) : vehicles.length === 0 ? (
-            <div className="flex justify-center items-center h-[490px]">
-              <p className="font-medium text-[20px] md:text-[22px] text-subtle-light">
+            <div className="flex h-[490px] items-center justify-center">
+              <p className="text-subtle-light text-[20px] font-medium md:text-[22px]">
                 ไม่พบลูกค้า
               </p>
             </div>
           ) : (
             vehicles.map((item, index) => (
               <div key={index} className="mt-[16px]">
-                <Link to={`/vehicle/${item.id}`}>
+                <Link to={`/vehicles/${item.id}`}>
                   <CarCard
                     bg="primary"
                     color="#1976d2"

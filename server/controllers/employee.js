@@ -1,5 +1,4 @@
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
 
@@ -33,14 +32,13 @@ exports.createEmployee = async (req, res, next) => {
       phoneNumber,
       dateOfBirth,
     } = req.body;
-    console.log(req.body);
 
     const user = await prisma.user.findUnique({
       where: { email },
     });
 
     if (user) {
-      createError(400, "อีเมลนี้ถูกใช้งานแล้ว");
+      createError(400, "อีเมลนี้มีอยู่ในระบบแล้ว");
     }
 
     // Hash password
@@ -60,7 +58,7 @@ exports.createEmployee = async (req, res, next) => {
       },
     });
 
-    res.json({ message: "Employee created successfully" });
+    res.json({ message: "เพิ่มพนักงานเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }
@@ -81,11 +79,11 @@ exports.updateEmployee = async (req, res, next) => {
 
     // ตรวจสอบว่าพนักงานมีอยู่จริงหรือไม่
     const existingEmployee = await prisma.user.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: Number(id) },
     });
 
     if (!existingEmployee) {
-      return next(createError(404, "ไม่พบพนักงาน"));
+      createError(404, "ไม่พบพนักงาน");
     }
 
     // ตรวจสอบความซ้ำซ้อนของอีเมลถ้ามีการเปลี่ยนแปลง
@@ -94,17 +92,17 @@ exports.updateEmployee = async (req, res, next) => {
         where: { email },
       });
 
-      // ถ้าอีเมลนี้ถูกใช้แล้ว
+      // ถ้าอีเมลนี้มีอยู่ในระบบแล้ว
       if (emailExists) {
-        return next(createError(400, "อีเมลนี้ถูกใช้แล้ว"));
+        createError(400, "อีเมลนี้มีอยู่ในระบบแล้ว");
       }
     }
 
     // ตรวจสอบความถูกต้องของบทบาท
     if (role) {
-      const validRoles = ["EMPLOYEE", "MANAGER", "ADMIN"];
+      const validRoles = ["EMPLOYEE", "ADMIN"];
       if (!validRoles.includes(role)) {
-        return next(createError(400, "บทบาทไม่ถูกต้อง"));
+        createError(400, "บทบาทไม่ถูกต้อง");
       }
     }
 
@@ -122,11 +120,11 @@ exports.updateEmployee = async (req, res, next) => {
     }
 
     await prisma.user.update({
-      where: { id: parseInt(id) },
+      where: { id: Number(id) },
       data: updateData,
     });
 
-    res.json({ message: "Employee updated successfully" });
+    res.json({ message: "แก้ไขข้อมูลพนักงานเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }
@@ -137,10 +135,10 @@ exports.deleteEmployee = async (req, res, next) => {
     const { id } = req.params;
 
     await prisma.user.delete({
-      where: { id: parseInt(id) },
+      where: { id: Number(id) },
     });
 
-    res.json({ message: "Employee deleted successfully" });
+    res.json({ message: "ลบพนักงานเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }

@@ -1,5 +1,6 @@
 import FormInput from "@/components/forms/FormInput";
 import { useForm } from "react-hook-form";
+import { TIMING } from "@/utils/constants";
 import FormButton from "@/components/forms/FormButton";
 import { updatePart } from "@/api/part";
 import { updateService } from "@/api/service";
@@ -27,23 +28,15 @@ const suspensionTypes = [
   { id: "other", name: "อื่นๆ" },
 ];
 
-const EditItem = () => {
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    reset,
-    formState,
-    trigger,
-    clearErrors,
-  } = useForm({
-    resolver: zodResolver(partServiceSchema),
-    mode: "onChange",
-    defaultValues: {
-      categoryId: undefined,
-    },
-  });
+const InventoryEdit = () => {
+  const { register, handleSubmit, setValue, watch, reset, formState, trigger, clearErrors } =
+    useForm({
+      resolver: zodResolver(partServiceSchema),
+      mode: "onChange",
+      defaultValues: {
+        categoryId: undefined,
+      },
+    });
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const type = searchParams.get("type");
@@ -52,8 +45,7 @@ const EditItem = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
   const [inventory, setInventory] = useState(null);
-  const [isImageMarkedForDeletion, setIsImageMarkedForDeletion] =
-    useState(false);
+  const [isImageMarkedForDeletion, setIsImageMarkedForDeletion] = useState(false);
   const navigate = useNavigate();
   const { errors } = formState;
   const { user } = useAuthStore();
@@ -94,9 +86,7 @@ const EditItem = () => {
       if (res.data) {
         const item = res.data;
 
-        const category = categories.find(
-          (cat) => cat.name === item.category.name
-        );
+        const category = categories.find((cat) => cat.name === item.category.name);
         if (category) {
           setValue("categoryId", category.id);
         }
@@ -148,9 +138,7 @@ const EditItem = () => {
 
     // ถ้ายังไม่มี inventory ให้ใช้ category ที่เลือก
     const selectedCategoryId = watch("categoryId");
-    const selectedCategory = categories.find(
-      (cat) => cat.id === selectedCategoryId
-    );
+    const selectedCategory = categories.find((cat) => cat.id === selectedCategoryId);
     return selectedCategory?.name === "บริการ";
   };
 
@@ -162,9 +150,7 @@ const EditItem = () => {
 
     // ถ้ายังไม่มี inventory ให้ใช้ category ที่เลือก
     const selectedCategoryId = watch("categoryId");
-    const selectedCategory = categories.find(
-      (cat) => cat.id === selectedCategoryId
-    );
+    const selectedCategory = categories.find((cat) => cat.id === selectedCategoryId);
     return selectedCategory?.name === "ยาง";
   };
 
@@ -176,9 +162,7 @@ const EditItem = () => {
 
     // ถ้ายังไม่มี inventory ให้ใช้ category ที่เลือก
     const selectedCategoryId = watch("categoryId");
-    const selectedCategory = categories.find(
-      (cat) => cat.id === selectedCategoryId
-    );
+    const selectedCategory = categories.find((cat) => cat.id === selectedCategoryId);
     return selectedCategory?.name === "ช่วงล่าง";
   };
 
@@ -267,10 +251,10 @@ const EditItem = () => {
                 rimDiameter: data.rimDiameter,
               }
             : isSuspensionCategory()
-            ? {
-                suspensionType: data.suspensionType,
-              }
-            : undefined,
+              ? {
+                  suspensionType: data.suspensionType,
+                }
+              : undefined,
           compatibleVehicles: watch("compatibleVehicles"),
           image,
           categoryId: data.categoryId,
@@ -283,16 +267,16 @@ const EditItem = () => {
         };
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, TIMING.LOADING_DELAY));
 
       if (isServiceCategory()) {
         await updateService(id, serviceData);
         toast.success("แก้ไขบริการเรียบร้อยแล้ว");
-        navigate("/inventory");
+        navigate("/inventories");
       } else {
         await updatePart(id, partData);
         toast.success("แก้ไขอะไหล่เรียบร้อยแล้ว");
-        navigate("/inventory");
+        navigate("/inventories");
       }
 
       reset();
@@ -307,20 +291,20 @@ const EditItem = () => {
   };
 
   return (
-    <div className="w-full h-[87px] bg-gradient-primary shadow-primary">
-      <div className="flex items-center gap-[8px] py-[18px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
-        <button
-          onClick={() => navigate(-1)}
-          className="mt-[2px] text-surface cursor-pointer"
-        >
+    <div className="bg-gradient-primary shadow-primary h-[87px] w-full">
+      <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
+        <button onClick={() => navigate(-1)} className="text-surface mt-[2px] cursor-pointer">
           <ChevronLeft />
         </button>
-        {isServiceCategory() ? "แก้ไขบริการ" : "แก้ไขอะไหล่"}
+        <p className="text-surface text-[24px] font-semibold md:text-[26px]">
+          {isServiceCategory() ? "แก้ไขบริการ" : "แก้ไขอะไหล่"}
+        </p>
       </div>
-      <div className="w-full min-h-[calc(100svh-65px)] sm:min-h-[calc(100vh-65px) rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+
+      <div className="bg-surface shadow-primary mt-[16px] min-h-[calc(100svh-65px)] w-full rounded-tl-2xl rounded-tr-2xl sm:min-h-[calc(100vh-65px)]">
         {isLoading ? (
-          <div className="flex justify-center items-center h-[530px]">
-            <LoaderCircle className="w-8 h-8 animate-spin text-primary" />
+          <div className="flex h-[530px] items-center justify-center">
+            <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : (
           <form onSubmit={handleSubmit(onSubmit)}>
@@ -423,9 +407,7 @@ const EditItem = () => {
                       inputMode="numeric"
                       onWheel={(e) => e.target.blur()}
                       onInput={(e) => {
-                        e.target.value = e.target.value
-                          .replace(/[^0-9]/g, "")
-                          .slice(0, 3);
+                        e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 3);
                       }}
                     />
                     <FormInput
@@ -439,9 +421,7 @@ const EditItem = () => {
                       inputMode="numeric"
                       onWheel={(e) => e.target.blur()}
                       onInput={(e) => {
-                        e.target.value = e.target.value
-                          .replace(/[^0-9]/g, "")
-                          .slice(0, 2);
+                        e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 2);
                       }}
                     />
                     <FormInput
@@ -455,9 +435,7 @@ const EditItem = () => {
                       inputMode="numeric"
                       onWheel={(e) => e.target.blur()}
                       onInput={(e) => {
-                        e.target.value = e.target.value
-                          .replace(/[^0-9]/g, "")
-                          .slice(0, 2);
+                        e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 2);
                       }}
                     />
                   </div>
@@ -465,7 +443,7 @@ const EditItem = () => {
 
                 {/* ช่วงล่าง */}
                 {isSuspensionCategory() && (
-                  <div className="px-[20px] my-[16px]">
+                  <div className="my-[16px] px-[20px]">
                     <ComboBox
                       label="ประเภทช่วงล่าง"
                       color="text-subtle-dark"
@@ -520,7 +498,7 @@ const EditItem = () => {
                     e.target.value = e.target.value.replace(/[^0-9.]/g, "");
                   }}
                 />
-                <div className="px-[20px] my-[16px]">
+                <div className="my-[16px] px-[20px]">
                   <ComboBox
                     label="หน่วย"
                     color="text-subtle-dark"
@@ -536,11 +514,7 @@ const EditItem = () => {
                     errors={errors}
                     name="unit"
                   />
-                  <input
-                    {...register("unit")}
-                    type="hidden"
-                    value={watch("unit") || ""}
-                  />
+                  <input {...register("unit")} type="hidden" value={watch("unit") || ""} />
                 </div>
                 <FormInput
                   register={register}
@@ -587,4 +561,4 @@ const EditItem = () => {
   );
 };
 
-export default EditItem;
+export default InventoryEdit;

@@ -7,13 +7,13 @@ const StatusCard = ({ bg, icon: Icon, label, amount }) => {
 
   return (
     <div
-      className={`flex justify-between items-center w-full h-[80px] px-[16px] rounded-[10px] ${bgColorMap[bg]} shadow-primary`}
+      className={`shadow-primary flex h-[80px] w-full items-center justify-between rounded-[10px] px-[16px] ${bgColorMap[bg]}`}
     >
       <div className="flex items-center gap-[8px]">
         <Icon />
-        <p className="font-medium text-[22px] text-surface">{label}</p>
+        <p className="text-surface text-[22px] font-medium">{label}</p>
       </div>
-      <p className="font-medium text-[32px] text-surface">{amount} คัน</p>
+      <p className="text-surface text-[32px] font-medium">{amount} คัน</p>
     </div>
   );
 };

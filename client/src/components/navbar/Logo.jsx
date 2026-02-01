@@ -5,7 +5,7 @@ const Logo = () => {
   return (
     <Link to="/dashboard" className="flex items-center gap-[8px]">
       <Garage />
-      <p className="font-semibold text-[22px] text-primary">มณเฑียรการยาง</p>
+      <p className="text-primary text-[22px] font-semibold">มณเฑียรการยาง</p>
     </Link>
   );
 };

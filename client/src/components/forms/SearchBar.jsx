@@ -4,12 +4,12 @@ import { useDebouncedCallback } from "use-debounce";
 import { useState, useEffect } from "react";
 import { Input } from "../ui/input";
 
-const SearchBar = ({ 
-  placeholder, 
-  onSearch = null, 
-  value = null, 
+const SearchBar = ({
+  placeholder,
+  onSearch = null,
+  value = null,
   autoFocus = false,
-  inputMode = "text"
+  inputMode = "text",
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [inputValue, setInputValue] = useState("");
@@ -60,7 +60,7 @@ const SearchBar = ({
 
   return (
     <div className="relative flex items-center">
-      <div className="absolute left-[16px] h-full flex items-center text-subtle-dark pointer-events-none">
+      <div className="text-subtle-dark pointer-events-none absolute left-[16px] flex h-full items-center">
         <Search size={20} />
       </div>
       <Input
@@ -80,7 +80,7 @@ const SearchBar = ({
             e.target.inputMode = "text";
           }
         }}
-        className="w-full h-[41px] px-[40px] rounded-[20px] font-athiti font-medium text-[20px] md:text-[22px] bg-surface placeholder:font-light placeholder:text-[18px] md:placeholder:text-[20px] focus:outline-none"
+        className="font-athiti bg-surface h-[41px] w-full rounded-[20px] px-[40px] text-[20px] font-medium placeholder:text-[18px] placeholder:font-light focus:outline-none md:text-[22px] md:placeholder:text-[20px]"
         style={{
           "--tw-ring-color": "#1976d2",
           "--tw-border-opacity": "1",
@@ -97,11 +97,11 @@ const SearchBar = ({
         }}
       />
 
-      {/* ปุ่มล้างการค้นหา */}
+      {/* แสดงปุ่มล้างข้อความหากมี inputValue */}
       {inputValue && (
         <button
           onClick={handleClear}
-          className="absolute right-[16px] h-full flex items-center text-subtle-dark"
+          className="text-subtle-dark absolute right-[16px] flex h-full items-center"
         >
           <X size={18} />
         </button>

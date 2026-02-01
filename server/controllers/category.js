@@ -3,9 +3,7 @@ const prisma = require("../config/prisma");
 exports.getCategories = async (req, res, next) => {
   try {
     const categories = await prisma.category.findMany({
-      orderBy: {
-        id: "asc"
-      }
+      orderBy: { id: "asc" },
     });
 
     res.json(categories);
@@ -24,7 +22,7 @@ exports.createCategory = async (req, res, next) => {
       },
     });
 
-    res.json({ message: "Category created successfully" });
+    res.json({ message: "เพิ่มหมวดหมู่เรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }
@@ -38,7 +36,7 @@ exports.deleteCategory = async (req, res, next) => {
       where: { id: Number(id) },
     });
 
-    res.json({ message: "Category deleted successfully" });
+    res.json({ message: "ลบหมวดหมู่เรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }

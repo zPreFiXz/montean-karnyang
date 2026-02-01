@@ -68,10 +68,10 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
   };
 
   return (
-    <div className="overflow-x-auto overflow-y-hidden scrollbar-hide pl-[20px] -mx-[20px] mt-[16px]">
+    <div className="scrollbar-hide -mx-[20px] mt-[16px] overflow-x-auto overflow-y-hidden pl-[20px]">
       {isLoading ? (
-        <div className="flex justify-center items-center h-[80px]">
-          <LoaderCircle className="w-8 h-8 animate-spin text-primary" />
+        <div className="flex h-[80px] items-center justify-center">
+          <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
         </div>
       ) : (
         <div className="flex gap-[8px]">
@@ -82,18 +82,18 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
               setActiveCategory("ทั้งหมด");
               setSearchParams(params);
             }}
-            className={`flex flex-col justify-center items-center w-[80px] h-[80px] px-[20px] py-[12px] rounded-[10px] border duration-300 cursor-pointer ${
+            className={`flex h-[80px] w-[80px] cursor-pointer flex-col items-center justify-center rounded-[10px] border px-[20px] py-[12px] duration-300 ${
               activeCategory === "ทั้งหมด"
-                ? "border-transparent text-surface bg-gradient-primary"
+                ? "text-surface bg-gradient-primary border-transparent"
                 : "border-subtle-light text-subtle-dark bg-surface"
             }`}
           >
-            <div className="font-semibold text-[14px] md:text-[16px] text-nowrap">
+            <div className="text-[14px] font-semibold text-nowrap md:text-[16px]">
               ทั้งหมด
             </div>
           </button>
 
-          {/* แถบหมวดหมู่ */}
+          {/* แสดงรายการหมวดหมู่ */}
           {categories.map((item) => {
             const IconComponent = item.icon;
             const isActive = activeCategory === item.name;
@@ -104,27 +104,27 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
                   setActiveCategory(item.name);
                   handleFilter(item.name);
                 }}
-                className={`flex flex-col justify-center items-center w-[80px] h-[80px] px-[20px] py-[12px] border rounded-[10px] duration-300 cursor-pointer ${
+                className={`flex h-[80px] w-[80px] cursor-pointer flex-col items-center justify-center rounded-[10px] border px-[20px] py-[12px] duration-300 ${
                   isActive
-                    ? "border-transparent text-surface bg-gradient-primary"
-                    : "border-subtle-light text-subtle-dark bg-surface"
+                    ? "text-surface bg-gradient-primary border-transparent"
+                    : "bg-surface border-subtle-light text-subtle-dark"
                 }`}
               >
                 <div
-                  className={`flex items-center justify-center w-[45px] h-[45px] ${
+                  className={`flex h-[45px] w-[45px] items-center justify-center ${
                     isActive ? "text-surface" : "text-subtle-dark"
                   }`}
                 >
                   <IconComponent />
                 </div>
-                <div className="font-semibold text-[14px] md:text-[16px] text-nowrap">
+                <div className="text-[14px] font-semibold text-nowrap md:text-[16px]">
                   {item.name}
                 </div>
               </button>
             );
           })}
 
-          <div className="flex-shrink-0 w-[12px]"></div>
+          <div className="w-[12px] flex-shrink-0"></div>
         </div>
       )}
     </div>

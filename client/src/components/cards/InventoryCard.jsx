@@ -18,7 +18,7 @@ const InventoryCard = ({
     // แสดงข้อมูลยางที่มีขนาดแก้มยาง
     if (isTire && typeSpecificData && typeSpecificData.aspectRatio) {
       return (
-        <p className="overflow-hidden font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
+        <p className="text-normal line-clamp-2 overflow-hidden text-[16px] font-semibold md:text-[18px]">
           {brand} {typeSpecificData.width}/{typeSpecificData.aspectRatio}R
           {typeSpecificData.rimDiameter} {name}
         </p>
@@ -26,7 +26,7 @@ const InventoryCard = ({
       // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
     } else if (isTire && typeSpecificData) {
       return (
-        <p className="overflow-hidden font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
+        <p className="text-normal line-clamp-2 overflow-hidden text-[16px] font-semibold md:text-[18px]">
           {brand} {typeSpecificData.width}R{typeSpecificData.rimDiameter} {name}
         </p>
       );
@@ -34,32 +34,32 @@ const InventoryCard = ({
 
     // แสดงข้อมูลอะไหล่หรือบริการ
     return (
-      <p className="overflow-hidden font-semibold text-[16px] md:text-[18px] text-normal line-clamp-2">
+      <p className="text-normal line-clamp-2 overflow-hidden text-[16px] font-semibold md:text-[18px]">
         {brand} {name}
       </p>
     );
   };
 
   return (
-    <div className="flex items-center gap-[16px] mt-[16px] cursor-pointer">
-      <div className="flex justify-between items-center w-full h-[80px] gap-[8px] px-[8px] rounded-[10px] bg-white shadow-primary">
+    <div className="mt-[16px] flex cursor-pointer items-center gap-[16px]">
+      <div className="shadow-primary bg-surface flex h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] px-[8px]">
         <div className="flex items-center gap-[8px]">
-          <div className="flex items-center justify-center rounded-[10px] border border-subtle-light bg-white shadow-primary">
-            {/* แสดงรูปภาพถ้ามี ถ้าไม่มีให้แสดงไอคอน Image */}
+          <div className="border-subtle-light shadow-primary bg-surface flex items-center justify-center rounded-[10px] border">
+            {/* แสดงรูปภาพถ้ามี ถ้าไม่มีให้แสดงไอคอนตามประเภท */}
             {secureUrl ? (
-              <div className="w-[60px] h-[60px]">
+              <div className="h-[60px] w-[60px]">
                 <img
                   src={secureUrl}
                   alt={name}
-                  className="object-cover w-full h-full rounded-[10px]"
+                  className="h-full w-full rounded-[10px] object-cover"
                 />
               </div>
             ) : (
-              <div className="flex items-center justify-center w-[60px] h-[60px] text-subtle-light">
+              <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
                 {isService ? (
-                  <Wrench className="w-8 h-8" />
+                  <Wrench className="h-8 w-8" />
                 ) : (
-                  <Image className="w-8 h-8" />
+                  <Image className="h-8 w-8" />
                 )}
               </div>
             )}
@@ -67,26 +67,29 @@ const InventoryCard = ({
           <div className="flex flex-col">
             {renderProductInfo()}
             {!isService &&
+              // แสดงสถานะสต็อกหมด
               (stockQuantity === 0 ? (
-                <div className="flex items-center gap-[4px] font-semibold text-[16px] md:text-[18px] text-delete">
-                  <AlertTriangle className="w-5 h-5 text-delete" />
+                <div className="text-delete flex items-center gap-[4px] text-[16px] font-semibold md:text-[18px]">
+                  <AlertTriangle className="text-delete h-5 w-5" />
                   <p>สต็อกหมด</p>
                 </div>
-              ) : minStockLevel !== undefined &&
+              ) : // แสดงสถานะสต็อกถ้าน้อยกว่าหรือเท่ากับระดับสต็อกขั้นต่ำ
+              minStockLevel !== undefined &&
                 minStockLevel !== null &&
                 Number(stockQuantity) <= Number(minStockLevel) ? (
-                <div className="flex items-center gap-[4px] font-semibold text-[16px] md:text-[18px] text-in-progress">
-                  <AlertTriangle className="w-5 h-5" />
+                <div className="text-in-progress flex items-center gap-[4px] text-[16px] font-semibold md:text-[18px]">
+                  <AlertTriangle className="h-5 w-5" />
                   <p className="line-clamp-1">{`จำนวน: ${Number(stockQuantity)} ${unit || ""}`}</p>
                 </div>
               ) : (
-                <p className="font-semibold text-[16px] md:text-[18px] text-subtle-dark">
+                // แสดงจำนวนสต็อกปกติ
+                <p className="text-subtle-dark text-[16px] font-semibold md:text-[18px]">
                   {`จำนวน: ${stockQuantity} ${unit}`}
                 </p>
               ))}
           </div>
         </div>
-        <p className="font-semibold text-[22px] md:text-[24px] text-primary text-nowrap">
+        <p className="text-primary text-[22px] font-semibold text-nowrap md:text-[24px]">
           {Number(sellingPrice).toLocaleString()} บาท
         </p>
       </div>

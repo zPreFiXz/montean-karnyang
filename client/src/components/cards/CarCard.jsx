@@ -27,28 +27,35 @@ const CarCard = ({
   };
 
   return (
-    <div className="flex justify-between items-center w-full h-[80px] gap-[8px] px-[10px] rounded-[10px] bg-surface shadow-primary">
-      <div className="flex-1 flex items-center gap-[8px]">
+    <div className="bg-surface shadow-primary flex h-[80px] w-full items-center gap-[8px] rounded-[10px] px-[10px]">
+      <div className="flex min-w-0 flex-1 items-center gap-[8px]">
         <div
-          className={`flex justify-center items-center w-[45px] h-[45px] rounded-full ${bgColorMap[bg]}`}
+          className={`flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-full ${bgColorMap[bg]}`}
         >
           <Icon color={color} />
         </div>
+        {/* แสดงป้ายทะเบียนถ้ามี ถ้าไม่มีให้แสดงสถานะ */}
         {licensePlate ? (
-          <div className="flex-1 flex flex-col">
+          <div className="flex min-w-0 flex-1 flex-col">
             <p
-              className={`font-semibold text-[18px] md:text-[20px] ${textColorMap[bg]} line-clamp-1`}
+              className={`truncate text-[18px] font-semibold md:text-[20px] ${textColorMap[bg]}`}
             >
               {licensePlate}
             </p>
-            <p className="font-medium text-[16px] md:text-[18px] text-subtle-dark line-clamp-1">
-              {[brand, time && `${time} น.`].filter(Boolean).join(" | ") || ""}
+            <p className="text-subtle-dark truncate text-[14px] font-medium md:text-[16px]">
+              {brand}
+              {time && (
+                <span className="text-subtle-dark">
+                  <span className="text-subtle-light"> | </span>
+                  <span>{time} น.</span>
+                </span>
+              )}
             </p>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col">
+          <div className="flex min-w-0 flex-1 flex-col">
             <p
-              className={`font-semibold text-[20px] md:text-[22px] ${textColorMap[bg]} line-clamp-1`}
+              className={`truncate text-[20px] font-semibold md:text-[22px] ${textColorMap[bg]}`}
             >
               {status}
             </p>
@@ -56,18 +63,19 @@ const CarCard = ({
         )}
       </div>
       <div
-        className={`font-semibold ${
+        className={`shrink-0 font-semibold ${
           price
-            ? "text-[22px] md:text-[24px] text-nowrap"
+            ? "text-[22px] md:text-[24px]"
             : "text-[32px] md:text-[34px]"
         } ${textColorMap[bg]}`}
       >
+        {/* แสดงราคาถ้ามี ถ้าไม่มีให้แสดงจำนวนรถยนต์ */}
         {price ? (
           formatCurrency(price)
         ) : amount ? (
           `${amount} คัน`
         ) : (
-          <div className="flex justify-center items-center w-[32px] h-[32px] rounded-full text-subtle-light bg-[#F6F6F6]">
+          <div className="text-subtle-light flex h-[32px] w-[32px] items-center justify-center rounded-full bg-[#F6F6F6]">
             <ChevronRight />
           </div>
         )}

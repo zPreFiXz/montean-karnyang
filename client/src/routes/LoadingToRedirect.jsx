@@ -1,22 +1,16 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router";
+import { TIMING } from "@/utils/constants";
 
 const LoadingToRedirect = () => {
-  const [count, setCount] = useState(2);
   const [redirect, setRedirect] = useState(false);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCount((currentCount) => {
-        if (currentCount === 1) {
-          clearInterval(interval);
-          setRedirect(true);
-        }
-        return currentCount - 1;
-      });
-    }, 1000);
+    const timeout = setTimeout(() => {
+      setRedirect(true);
+    }, TIMING.LOADING_DELAY);
 
-    return () => clearInterval(interval);
+    return () => clearTimeout(timeout);
   }, []);
 
   if (redirect) {
@@ -24,9 +18,10 @@ const LoadingToRedirect = () => {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-108px)]">
-      <div className="w-[32px] h-[32px] rounded-full border-3 border-t-transparent border-primary animate-spin" />
+    <div className="flex min-h-[calc(100vh-108px)] items-center justify-center">
+      <div className="border-primary h-8 w-8 animate-spin rounded-full border-3 border-t-transparent" />
     </div>
   );
 };
+
 export default LoadingToRedirect;

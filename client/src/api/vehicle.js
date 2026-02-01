@@ -7,5 +7,5 @@ export const getVehicles = async (search) => {
 };
 
 export const getVehicleById = async (id) => {
-  return await api.get(`/api/vehicle/${id}`);
+  return await api.get(`/api/vehicles/${id}`);
 };

@@ -1,10 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
   Command,
   CommandInput,
@@ -49,30 +45,23 @@ const ComboBox = ({
   const getIdentifier = (item) =>
     item && (item.id !== undefined && item.id !== null ? item.id : item.name);
 
-  const selectedLabel = options.find(
-    (item) => getIdentifier(item) === value
-  )?.name;
+  const selectedLabel = options.find((item) => getIdentifier(item) === value)?.name;
   const hasError = errors && errors[name];
 
   return (
     <div>
       {label && (
         <Label
-          className={`block mb-[8px] font-medium ${
+          className={`mb-[8px] block font-medium ${
             labelClass ||
-            (customClass
-              ? "text-[18px] md:text-[20px]"
-              : "text-[22px] md:text-[24px]")
+            (customClass ? "text-[18px] md:text-[20px]" : "text-[22px] md:text-[24px]")
           } ${color}`}
         >
           {label}
         </Label>
       )}
       <div className="relative z-10">
-        <Popover
-          open={open && !disabled}
-          onOpenChange={disabled ? undefined : setOpen}
-        >
+        <Popover open={open && !disabled} onOpenChange={disabled ? undefined : setOpen}>
           <PopoverTrigger asChild>
             <Button
               ref={triggerRef}
@@ -81,14 +70,14 @@ const ComboBox = ({
               aria-expanded={open}
               disabled={disabled}
               className={cn(
-                "justify-between w-full h-[41px] rounded-[20px] border-input font-medium text-foreground cursor-pointer",
+                "border-input text-foreground h-[41px] w-full cursor-pointer justify-between rounded-[20px] font-medium",
                 customClass || "text-[20px] md:text-[22px]",
                 !selectedLabel &&
                   (customClass
-                    ? "font-light text-muted-foreground"
-                    : "font-light text-[18px] md:text-[20px] text-muted-foreground"),
-                hasError && "border-red-400 focus:border-delete",
-                disabled && "opacity-50 cursor-not-allowed"
+                    ? "text-muted-foreground font-light"
+                    : "text-muted-foreground text-[18px] font-light md:text-[20px]"),
+                hasError && "focus:border-delete border-red-400",
+                disabled && "cursor-not-allowed opacity-50"
               )}
               style={{
                 "--tw-ring-color": hasError ? "#FF4545" : "#1976d2",
@@ -114,11 +103,11 @@ const ComboBox = ({
               }}
             >
               {selectedLabel || placeholder}
-              <ChevronsUpDown className="shrink-0 h-4 w-4 ml-2 opacity-50" />
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
           <PopoverContent
-            className="z-50 p-0 my-[4px]"
+            className="z-50 my-[4px] p-0"
             style={{
               width: triggerWidth > 0 ? `${triggerWidth}px` : "auto",
               maxHeight: "300px",
@@ -134,13 +123,13 @@ const ComboBox = ({
               <CommandInput
                 ref={inputRef}
                 placeholder="ค้นหา..."
-                className={`h-9 font-athiti font-medium text-normal ${
+                className={`font-athiti text-normal h-9 font-medium ${
                   customClass || "text-[18px] md:text-[20px]"
                 }`}
               />
               <CommandEmpty>
                 <p
-                  className={`font-athiti font-medium text-subtle-dark ${
+                  className={`font-athiti text-subtle-dark font-medium ${
                     customClass || "text-[18px] md:text-[20px]"
                   }`}
                 >
@@ -162,13 +151,13 @@ const ComboBox = ({
                           inputRef.current.blur();
                         }
                       }}
-                      className={`font-athiti font-medium text-normal cursor-pointer ${
+                      className={`font-athiti text-normal cursor-pointer font-medium ${
                         customClass || "text-[18px] md:text-[20px]"
                       }`}
                     >
                       <Check
                         className={cn(
-                          "h-4 w-4 mr-2",
+                          "mr-2 h-4 w-4",
                           value === identifier ? "opacity-100" : "opacity-0"
                         )}
                       />
@@ -182,9 +171,9 @@ const ComboBox = ({
         </Popover>
       </div>
       {hasError && name !== "province" && (
-        <div className="flex items-center gap-[4px] px-[4px] mt-[6px]">
-          <AlertCircle className="flex-shrink-0 w-4 h-4 text-delete" />
-          <p className="font-medium text-[18px] md:text-[20px] text-delete">
+        <div className="mt-[6px] flex items-center gap-[4px] px-[4px]">
+          <AlertCircle className="text-delete h-4 w-4 flex-shrink-0" />
+          <p className="text-delete text-[18px] font-medium md:text-[20px]">
             {errors[name].message}
           </p>
         </div>

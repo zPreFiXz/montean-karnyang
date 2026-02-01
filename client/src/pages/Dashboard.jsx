@@ -1,14 +1,6 @@
-import CarCard from "@/components/cards/CarCard";
-import InventoryCard from "@/components/cards/InventoryCard";
-import ItemDetailDialog from "@/components/dialogs/ItemDetailDialog";
-import StatusCard from "@/components/cards/StatusCard";
-import { Success, Wrench, Paid, Car } from "@/components/icons/Icons";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { formatCurrency, formatTime } from "@/lib/utils";
-import useRepairStore from "@/stores/repairStore";
-import useAuthStore from "@/stores/authStore";
-import { getInventory } from "@/api/inventory";
+import { TIMING } from "@/utils/constants";
 import {
   Menu,
   CircleUserRound,
@@ -18,12 +10,21 @@ import {
   Users,
   LoaderCircle,
 } from "lucide-react";
+import CarCard from "@/components/cards/CarCard";
+import InventoryCard from "@/components/cards/InventoryCard";
+import ItemDetailDialog from "@/components/dialogs/ItemDetailDialog";
+import StatusCard from "@/components/cards/StatusCard";
+import { getInventory } from "@/api/inventory";
+import { formatCurrency, formatTime } from "@/lib/utils";
+import useRepairStore from "@/stores/repairStore";
+import useAuthStore from "@/stores/authStore";
+import { Success, Wrench, Paid } from "@/components/icons/Icons";
+import { getBrandIcon } from "@/components/icons/BrandIcons";
 
 const Dashboard = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [inventory, setInventory] = useState([]);
-  const [isLoadingInventory, setIsLoadingInventory] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
   const [showItemDetail, setShowItemDetail] = useState(false);
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ const Dashboard = () => {
     fetchRepairs,
     getRepairCountByStatus,
     getTodaySales,
-    getLatestRepairByStatus,
+    getRepairsByStatus,
   } = useRepairStore();
 
   useEffect(() => {
@@ -43,33 +44,30 @@ const Dashboard = () => {
 
   const loadInventory = async () => {
     try {
-      setIsLoadingInventory(true);
       const res = await getInventory(null, null);
       setInventory(res.data || []);
     } catch (error) {
       console.error(error);
-    } finally {
-      setIsLoadingInventory(false);
     }
   };
 
   // ยอดขายวันนี้
   const todaySales = getTodaySales();
 
-  // นับจำนวนการซ่อมแต่ละสถานะ
+  // นับการซ่อมตามสถานะ
   const inProgressCount = getRepairCountByStatus("IN_PROGRESS");
   const completedCount = getRepairCountByStatus("COMPLETED");
   const paidCount = getRepairCountByStatus("PAID");
 
-  // การซ่อมล่าสุดของแต่ละสถานะ
-  const latestInProgress = getLatestRepairByStatus("IN_PROGRESS");
-  const latestCompleted = getLatestRepairByStatus("COMPLETED");
-  const latestPaid = getLatestRepairByStatus("PAID");
+  // ดึงรายการซ่อมทั้งหมดตามสถานะ
+  const inProgressRepairs = getRepairsByStatus("IN_PROGRESS");
+  const completedRepairs = getRepairsByStatus("COMPLETED");
+  const paidRepairs = getRepairsByStatus("PAID");
 
-  // สรุปสต็อก
+  // กรองสินค้าที่ไม่ใช่บริการ
   const stockItems = inventory.filter((i) => i?.category?.name !== "บริการ");
   const outOfStockItems = stockItems.filter(
-    (i) => Number(i?.stockQuantity || 0) <= 0
+    (i) => Number(i?.stockQuantity || 0) <= 0,
   );
   const lowStockItems = stockItems.filter((i) => {
     const qty = Number(i?.stockQuantity || 0);
@@ -77,21 +75,25 @@ const Dashboard = () => {
     return qty > 0 && min > 0 && qty <= min;
   });
 
-  const topNames = (arr) =>
-    arr
-      .slice(0, 3)
-      .map((i) =>
-        i?.brand ? `${i.brand} ${i.name || ""}` : i?.name || "รายการไม่ระบุ"
-      );
+  // แสดงยี่ห้อ+รุ่น หรือแค่รุ่นถ้ายี่ห้อเป็น "อื่นๆ"
+  const getDisplayBrand = (vehicleBrandModel) => {
+    const brand = vehicleBrandModel?.brand || "";
+    const model = vehicleBrandModel?.model || "";
+
+    if (brand === "อื่นๆ" || brand === "อื่น ๆ") {
+      return model;
+    }
+    return `${brand} ${model}`.trim();
+  };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, TIMING.LOADING_DELAY));
 
     try {
       localStorage.setItem("justLoggedOut", "true");
-      logout();
+      await logout();
 
       navigate("/login", { replace: true });
     } catch (error) {
@@ -126,141 +128,145 @@ const Dashboard = () => {
 
   return (
     <div className="w-full">
-      {/* มุมมองเดสก์ท็อป */}
-      <div className="hidden xl:block w-full px-[24px]">
-        {/* ยอดขาย (เฉพาะแอดมิน) */}
-        {user?.role === "ADMIN" && (
-          <div className="w-fit h-[157px] p-[16px] mt-[24px] rounded-[10px] shadow-primary">
-            <p className="font-medium text-[22px] text-subtle-dark">
-              {getCurrentDateThai()}
-            </p>
-            <Link to="/admin/reports/sales/daily">
-              <div className="flex justify-between items-center w-[353px] h-[80px] px-[16px] mt-[12px] rounded-[10px] bg-gradient-primary shadow-primary">
-                <p className="font-medium text-[22px] text-surface">
-                  ยอดขายวันนี้
-                </p>
-                <p className="font-medium text-[32px] text-surface">
-                  {formatCurrency(todaySales)}
-                </p>
-              </div>
-            </Link>
-          </div>
-        )}
-
+      {/* Desktop View */}
+      <div className="hidden w-full px-[20px] xl:block">
         {/* สถานะการซ่อม */}
-        <div className="w-full p-[16px] mt-[24px] mb-[24px] rounded-[10px] shadow-primary">
-          <p className="font-medium text-[22px] text-subtle-dark">
+        <div className="bg-surface shadow-primary mt-[24px] mb-[24px] w-full rounded-[10px] p-[16px]">
+          <p className="text-subtle-dark text-[22px] font-medium">
             สถานะการซ่อม
           </p>
-          <div className="grid grid-cols-3 gap-[16px] mt-[16px]">
+
+          {/* การ์ดสถานะ */}
+          <div className="mt-[16px] grid grid-cols-3 gap-[16px]">
+            <Link to="/repairs/status/in-progress">
+              <StatusCard
+                bg="in-progress"
+                icon={Wrench}
+                label={"กำลังซ่อม"}
+                amount={inProgressCount}
+              />
+            </Link>
+            <Link to="/repairs/status/completed">
+              <StatusCard
+                bg="completed"
+                icon={Success}
+                label={"ซ่อมเสร็จสิ้น"}
+                amount={completedCount}
+              />
+            </Link>
+            <Link to="/repairs/status/paid">
+              <StatusCard
+                bg="paid"
+                icon={Paid}
+                label={"ชำระเงินแล้ว"}
+                amount={paidCount}
+              />
+            </Link>
+          </div>
+
+          {/* รายการซ่อมล่าสุด */}
+          <div className="mt-[16px] grid grid-cols-3 gap-[16px]">
             {/* กำลังซ่อม */}
-            <div className="w-full flex flex-col">
-              <Link to="/repair/status/in-progress">
-                <StatusCard
-                  bg="in-progress"
-                  icon={Wrench}
-                  label={"กำลังซ่อม"}
-                  amount={inProgressCount}
-                />
-              </Link>
-              <div className="mt-[16px] w-full">
-                {latestInProgress && (
-                  <Link to={`/repair/${latestInProgress.id}`}>
+            <div className="flex flex-col gap-[12px]">
+              {inProgressRepairs.length > 0 ? (
+                inProgressRepairs.map((repair) => (
+                  <Link key={repair.id} to={`/repairs/${repair.id}`}>
                     <CarCard
                       bg="in-progress"
                       color="#ffb000"
-                      icon={Car}
+                      icon={getBrandIcon(
+                        repair.vehicle?.vehicleBrandModel?.brand,
+                        "#ffb000",
+                      )}
                       licensePlate={
-                        latestInProgress.vehicle?.licensePlate?.plateNumber &&
-                        latestInProgress.vehicle?.licensePlate?.province
-                          ? `${latestInProgress.vehicle.licensePlate.plateNumber} ${latestInProgress.vehicle.licensePlate.province}`
+                        repair.vehicle?.licensePlate?.plateNumber &&
+                        repair.vehicle?.licensePlate?.province
+                          ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
                           : "ไม่ระบุทะเบียนรถ"
                       }
-                      brand={`${latestInProgress.vehicle?.vehicleBrandModel?.brand} ${latestInProgress.vehicle?.vehicleBrandModel?.model}`}
-                      time={
-                        latestInProgress.createdAt &&
-                        formatTime(latestInProgress.createdAt)
-                      }
-                      price={parseFloat(latestInProgress.totalPrice)}
+                      brand={getDisplayBrand(repair.vehicle?.vehicleBrandModel)}
+                      time={repair.createdAt && formatTime(repair.createdAt)}
+                      price={parseFloat(repair.totalPrice)}
                     />
                   </Link>
-                )}
-              </div>
+                ))
+              ) : (
+                <p className="text-subtle-light py-[24px] text-center text-[20px]">
+                  ไม่มีรายการซ่อม
+                </p>
+              )}
             </div>
 
             {/* ซ่อมเสร็จสิ้น */}
-            <div className="w-full flex flex-col">
-              <Link to="/repair/status/completed">
-                <StatusCard
-                  bg="completed"
-                  icon={Success}
-                  label={"ซ่อมเสร็จสิ้น"}
-                  amount={completedCount}
-                />
-              </Link>
-              <div className="mt-[16px] w-full">
-                {latestCompleted && (
-                  <Link to={`/repair/${latestCompleted.id}`}>
+            <div className="flex flex-col gap-[12px]">
+              {completedRepairs.length > 0 ? (
+                completedRepairs.map((repair) => (
+                  <Link key={repair.id} to={`/repairs/${repair.id}`}>
                     <CarCard
                       bg="completed"
                       color="#22c55e"
-                      icon={Car}
+                      icon={getBrandIcon(
+                        repair.vehicle?.vehicleBrandModel?.brand,
+                        "#22c55e",
+                      )}
                       licensePlate={
-                        latestCompleted.vehicle?.licensePlate?.plateNumber &&
-                        latestCompleted.vehicle?.licensePlate?.province
-                          ? `${latestCompleted.vehicle.licensePlate.plateNumber} ${latestCompleted.vehicle.licensePlate.province}`
+                        repair.vehicle?.licensePlate?.plateNumber &&
+                        repair.vehicle?.licensePlate?.province
+                          ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
                           : "ไม่ระบุทะเบียนรถ"
                       }
-                      brand={`${latestCompleted.vehicle?.vehicleBrandModel?.brand} ${latestCompleted.vehicle?.vehicleBrandModel?.model}`}
+                      brand={getDisplayBrand(repair.vehicle?.vehicleBrandModel)}
                       time={
-                        latestCompleted.completedAt &&
-                        formatTime(latestCompleted.completedAt)
+                        repair.completedAt && formatTime(repair.completedAt)
                       }
-                      price={parseFloat(latestCompleted.totalPrice)}
+                      price={parseFloat(repair.totalPrice)}
                     />
                   </Link>
-                )}
-              </div>
+                ))
+              ) : (
+                <p className="text-subtle-light py-[24px] text-center text-[20px]">
+                  ไม่มีรายการซ่อม
+                </p>
+              )}
             </div>
 
             {/* ชำระเงินแล้ว */}
-            <div className="w-full flex flex-col">
-              <Link to="/repair/status/paid">
-                <StatusCard
-                  bg="paid"
-                  icon={Paid}
-                  label={"ชำระเงินแล้ว"}
-                  amount={paidCount}
-                />
-              </Link>
-              <div className="mt-[16px] w-full">
-                {latestPaid && (
-                  <Link to={`/repair/${latestPaid.id}`}>
+            <div className="flex flex-col gap-[12px]">
+              {paidRepairs.length > 0 ? (
+                paidRepairs.map((repair) => (
+                  <Link key={repair.id} to={`/repairs/${repair.id}`}>
                     <CarCard
                       bg="paid"
                       color="#1976d2"
-                      icon={Car}
+                      icon={getBrandIcon(
+                        repair.vehicle?.vehicleBrandModel?.brand,
+                        "#1976d2",
+                      )}
                       licensePlate={
-                        latestPaid.vehicle?.licensePlate?.plateNumber &&
-                        latestPaid.vehicle?.licensePlate?.province
-                          ? `${latestPaid.vehicle.licensePlate.plateNumber} ${latestPaid.vehicle.licensePlate.province}`
+                        repair.vehicle?.licensePlate?.plateNumber &&
+                        repair.vehicle?.licensePlate?.province
+                          ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
                           : "ไม่ระบุทะเบียนรถ"
                       }
-                      brand={`${latestPaid.vehicle?.vehicleBrandModel?.brand} ${latestPaid.vehicle?.vehicleBrandModel?.model}`}
-                      time={latestPaid.paidAt && formatTime(latestPaid.paidAt)}
-                      price={parseFloat(latestPaid.totalPrice)}
+                      brand={getDisplayBrand(repair.vehicle?.vehicleBrandModel)}
+                      time={repair.paidAt && formatTime(repair.paidAt)}
+                      price={parseFloat(repair.totalPrice)}
                     />
                   </Link>
-                )}
-              </div>
+                ))
+              ) : (
+                <p className="text-subtle-light py-[24px] text-center text-[20px]">
+                  ไม่มีรายการซ่อม
+                </p>
+              )}
             </div>
           </div>
         </div>
 
         {/* แจ้งเตือนสต็อก */}
         {(outOfStockItems.length > 0 || lowStockItems.length > 0) && (
-          <div className="w-full p-[16px] mb-[16px] rounded-[10px] bg-surface shadow-primary">
-            <p className="font-medium text-[22px] text-subtle-dark flex items-center gap-2">
+          <div className="bg-surface shadow-primary mb-[16px] w-full rounded-[10px] p-[16px]">
+            <p className="text-subtle-dark flex items-center gap-2 text-[22px] font-medium">
               แจ้งเตือนสต็อก
             </p>
             <div className="mt-[16px]">
@@ -315,48 +321,47 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* มุมมองมือถือ */}
+      {/* Mobile View */}
       <div className="xl:hidden">
         <div
           className={`w-full ${
             user?.role === "ADMIN" ? "h-[222px] md:h-[228px]" : "h-[134px]"
-          } pt-[16px] px-[20px] bg-gradient-primary`}
+          } bg-gradient-primary px-[20px] pt-[16px]`}
         >
-          <div className="flex justify-between items-start">
+          <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className="font-semibold text-[32px] md:text-[34px] text-surface">
+              <p className="text-surface text-[32px] font-semibold md:text-[34px]">
                 มณเฑียรการยาง
               </p>
-              <p className="font-medium text-[20px] md:text-[22px] text-surface">
+              <p className="text-surface text-[20px] font-medium md:text-[22px]">
                 {getCurrentDateThai()}
               </p>
             </div>
 
-            {/* Hamburger Menu */}
+            {/* เมนูแฮมเบอร์เกอร์ */}
             <div>
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className={`flex items-center justify-center w-12 h-12 mt-2 rounded-xl bg-surface backdrop-blur-sm duration-500 ${
-                  isMenuOpen ? "bg-surface" : "bg-surface"
-                }`}
+                aria-label="เปิดเมนู"
+                className="bg-surface mt-2 flex h-12 w-12 items-center justify-center rounded-xl backdrop-blur-sm duration-500"
               >
-                <Menu className="w-6 h-6 text-primary" />
+                <Menu className="text-primary h-6 w-6" />
               </button>
 
-              {/* Menu */}
+              {/* เมนูสไลด์อิน */}
               <div
-                className={`z-50 fixed inset-0 bg-surface transform duration-500 ease-in-out ${
+                className={`bg-surface fixed inset-0 z-50 transform duration-500 ease-in-out ${
                   isMenuOpen ? "translate-x-0" : "translate-x-full"
                 } ${!isMenuOpen ? "pointer-events-none" : ""}`}
               >
-                <div className="h-[104px] px-[20px] py-[16px] bg-gradient-primary">
+                <div className="bg-gradient-primary h-[104px] px-[20px] py-[16px]">
                   <div className="flex items-center justify-between">
-                    <div className="flex justify-center items-center gap-[16px]">
-                      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-surface/20">
-                        <CircleUserRound className="w-7 h-7 text-surface" />
+                    <div className="flex items-center justify-center gap-[16px]">
+                      <div className="bg-surface/20 flex h-12 w-12 items-center justify-center rounded-full">
+                        <CircleUserRound className="text-surface h-7 w-7" />
                       </div>
                       <div>
-                        <p className="font-semibold text-[20px] md:text-[22px] text-surface">
+                        <p className="text-surface text-[20px] font-semibold md:text-[22px]">
                           {user?.fullName}
                         </p>
                         <p className="text-surface text-[18px] md:text-[20px]">
@@ -365,27 +370,28 @@ const Dashboard = () => {
                       </div>
                     </div>
 
-                    {/* Close Button */}
+                    {/* ปิดเมนู */}
                     <button
                       onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center justify-center w-12 h-12 bg-surface rounded-xl"
+                      aria-label="ปิดเมนู"
+                      className="bg-surface flex h-12 w-12 items-center justify-center rounded-xl"
                     >
-                      <X className="w-6 h-6 text-primary" />
+                      <X className="text-primary h-6 w-6" />
                     </button>
                   </div>
                 </div>
-                <div className="px-[20px] py-[16px] -mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface">
+                <div className="bg-surface -mt-[16px] rounded-tl-2xl rounded-tr-2xl px-[20px] py-[16px]">
                   <div>
                     {/* จัดการยี่ห้อและรุ่นรถ */}
                     <Link
-                      to="/vehicle-brand-models"
+                      to="/vehicles/brand-models"
                       onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center w-full gap-[16px] p-[16px] mb-[16px] rounded-[12px] bg-surface shadow-primary duration-300"
+                      className="bg-surface shadow-primary mb-[16px] flex w-full items-center gap-[16px] rounded-[12px] p-[16px] duration-300"
                     >
-                      <div className="flex items-center justify-center w-[48px] h-[48px] rounded-[10px] bg-primary">
-                        <CarFront className="w-[24px] h-[24px] text-surface" />
+                      <div className="bg-primary flex h-[48px] w-[48px] items-center justify-center rounded-[10px]">
+                        <CarFront className="text-surface h-[24px] w-[24px]" />
                       </div>
-                      <p className="font-semibold text-[18px] md:text-[20px]text-normal">
+                      <p className="text-normal text-[18px] font-semibold md:text-[20px]">
                         จัดการยี่ห้อและรุ่นรถ
                       </p>
                     </Link>
@@ -395,12 +401,12 @@ const Dashboard = () => {
                       <Link
                         to="/admin/employees"
                         onClick={() => setIsMenuOpen(false)}
-                        className="flex items-center w-full gap-[16px] p-[16px] mb-[16px] rounded-[12px] bg-surface shadow-primary duration-300"
+                        className="bg-surface shadow-primary mb-[16px] flex w-full items-center gap-[16px] rounded-[12px] p-[16px] duration-300"
                       >
-                        <div className="flex items-center justify-center w-[48px] h-[48px] rounded-[10px] bg-completed">
-                          <Users className="w-[24px] h-[24px] text-surface" />
+                        <div className="bg-completed flex h-[48px] w-[48px] items-center justify-center rounded-[10px]">
+                          <Users className="text-surface h-[24px] w-[24px]" />
                         </div>
-                        <p className="font-semibold text-[18px] md:text-[20px] text-normal">
+                        <p className="text-normal text-[18px] font-semibold md:text-[20px]">
                           จัดการบัญชีพนักงาน
                         </p>
                       </Link>
@@ -411,18 +417,18 @@ const Dashboard = () => {
                   <button
                     onClick={handleLogout}
                     disabled={isLoggingOut}
-                    className={`flex items-center gap-[16px] w-full p-[16px] rounded-[12px] bg-surface shadow-primary duration-300 ${
-                      isLoggingOut ? "opacity-50 cursor-not-allowed" : ""
+                    className={`bg-surface shadow-primary flex w-full items-center gap-[16px] rounded-[12px] p-[16px] duration-300 ${
+                      isLoggingOut ? "cursor-not-allowed opacity-50" : ""
                     }`}
                   >
-                    <div className="flex items-center justify-center w-[48px] h-[48px] rounded-[10px] bg-delete">
+                    <div className="bg-delete flex h-[48px] w-[48px] items-center justify-center rounded-[10px]">
                       {isLoggingOut ? (
-                        <LoaderCircle className="w-[24px] h-[24px] text-surface animate-spin" />
+                        <LoaderCircle className="text-surface h-[24px] w-[24px] animate-spin" />
                       ) : (
-                        <LogOut className="w-[24px] h-[24px] text-surface" />
+                        <LogOut className="text-surface h-[24px] w-[24px]" />
                       )}
                     </div>
-                    <p className="font-semibold text-[18px] md:text-[20px] text-normal">
+                    <p className="text-normal text-[18px] font-semibold md:text-[20px]">
                       {isLoggingOut ? "ออกจากระบบ..." : "ออกจากระบบ"}
                     </p>
                   </button>
@@ -431,25 +437,29 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* ยอดขายวันนี้ */}
           {user?.role === "ADMIN" && (
             <Link
               to="/admin/reports/sales/daily"
-              className="flex justify-between items-center w-full h-[80px] px-[16px] mx-auto mt-[16px] rounded-[10px] bg-surface shadow-primary"
+              className="bg-surface shadow-primary mx-auto mt-[16px] flex h-[80px] w-full items-center justify-between rounded-[10px] px-[16px]"
             >
-              <p className="font-semibold text-[22px] md:text-[24px] text-normal">
+              <p className="text-normal text-[22px] font-semibold md:text-[24px]">
                 ยอดขายวันนี้
               </p>
-              <p className="font-semibold text-[30px] md:text-[32px] text-primary">
+              <p className="text-primary text-[30px] font-semibold md:text-[32px]">
                 {formatCurrency(todaySales)}
               </p>
             </Link>
           )}
         </div>
-        <div className="flex flex-col w-full gap-[16px] px-[20px] -mt-[16px] rounded-tl-2xl rounded-tr-2xl bg-surface">
-          <p className="pt-[16px] font-semibold text-[22px] md:text-[24px] text-normal">
+        {/* สถานะการซ่อม */}
+        <div className="bg-surface -mt-[16px] flex min-h-[calc(100svh-206px)] w-full flex-col gap-[16px] rounded-tl-2xl rounded-tr-2xl px-[20px] pb-[96px] md:min-h-[calc(100svh-212px)]">
+          <p className="text-normal pt-[16px] text-[22px] font-semibold md:text-[24px]">
             สถานะการซ่อม
           </p>
-          <Link to="/repair/status/in-progress">
+
+          {/* กำลังซ่อม */}
+          <Link to="/repairs/status/in-progress">
             <CarCard
               bg="in-progress"
               color="#ffb000"
@@ -458,7 +468,9 @@ const Dashboard = () => {
               amount={inProgressCount > 0 ? inProgressCount : "0"}
             />
           </Link>
-          <Link to="/repair/status/completed">
+
+          {/* ซ่อมเสร็จสิ้น */}
+          <Link to="/repairs/status/completed">
             <CarCard
               bg="completed"
               color="#22c55e"
@@ -467,7 +479,9 @@ const Dashboard = () => {
               amount={completedCount > 0 ? completedCount : "0"}
             />
           </Link>
-          <Link to="/repair/status/paid">
+
+          {/* ชำระเงินแล้ว */}
+          <Link to="/repairs/status/paid">
             <CarCard
               bg="paid"
               color="#1976d2"
@@ -476,15 +490,13 @@ const Dashboard = () => {
               amount={paidCount > 0 ? paidCount : "0"}
             />
           </Link>
-        </div>
 
-        {/* แจ้งเตือนสต็อก */}
-        {(outOfStockItems.length > 0 || lowStockItems.length > 0) && (
-          <div className="flex flex-col w-full px-[20px] pb-[24px] rounded-[12px] bg-surface">
-            <p className="pt-[16px] font-semibold text-[22px] md:text-[24px] text-normal flex items-center gap-2">
-              แจ้งเตือนสต็อก
-            </p>
-            <div className="pb-[88px]">
+          {/* แจ้งเตือนสต็อก */}
+          {(outOfStockItems.length > 0 || lowStockItems.length > 0) && (
+            <div className="pb-[16px]">
+              <p className="text-normal pt-[8px] text-[22px] font-semibold md:text-[24px]">
+                แจ้งเตือนสต็อก
+              </p>
               {outOfStockItems.slice(0, 5).map((item) => (
                 <div
                   key={`m-out-${item.id}`}
@@ -530,10 +542,9 @@ const Dashboard = () => {
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Dialog รายละเอียดสินค้า */}
         <ItemDetailDialog
           item={selectedItem}
           open={showItemDetail}

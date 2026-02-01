@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { useState, useRef } from "react";
+import { TIMING } from "@/utils/constants";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +14,7 @@ const DeleteConfirmDialog = ({
   onClose,
   onConfirm,
   title = "ยืนยันการลบ",
-  message = "คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?",
+  message = "ต้องการลบข้อมูลนี้หรือไม่?",
   itemName = "",
 }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -22,7 +23,7 @@ const DeleteConfirmDialog = ({
   const handleConfirm = async () => {
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, TIMING.LOADING_DELAY));
 
       await onConfirm();
     } catch (error) {
@@ -35,10 +36,9 @@ const DeleteConfirmDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="flex flex-col w-full p-0"
+        className="flex w-full flex-col p-0"
         showCloseButton={false}
         onOpenAutoFocus={(e) => {
-          // ป้องกันโฟกัสอัตโนมัติ แต่ย้ายโฟกัสเข้า dialog เพื่อหลีกเลี่ยง aria-hidden warning
           e.preventDefault();
           if (
             cancelButtonRef.current &&
@@ -46,39 +46,38 @@ const DeleteConfirmDialog = ({
           ) {
             cancelButtonRef.current.focus();
           } else if (e?.target && typeof e.target.focus === "function") {
-            // สำรอง: โฟกัสที่ตัว dialog เอง (ต้องสามารถ focus ได้)
             e.target.focus();
           }
         }}
       >
         <div className="relative flex-shrink-0 pt-[16px]">
-          <DialogTitle className="font-athiti font-semibold text-center text-[22px] md:text-[24px] text-subtle-dark">
+          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-[24px]">
             {title}
           </DialogTitle>
           <DialogDescription className="sr-only">
             {`${title}: ${message} ${itemName}`}
           </DialogDescription>
 
+          {/* ปุ่มปิด dialog */}
           <button
             onClick={onClose}
             autoFocus={false}
             tabIndex={-1}
             aria-label="ปิดหน้าต่าง"
-            className="absolute top-[16px] right-[20px] flex items-center justify-center w-[32px] h-[32px] rounded-full bg-black/5 cursor-pointer"
+            className="absolute top-[16px] right-[20px] flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-full bg-black/5"
           >
             <X size={18} className="text-subtle-dark" />
           </button>
         </div>
-
-        <div className="overflow-y-auto flex-1 flex flex-col font-athiti px-[20px] py-[16px]">
+        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px] py-[16px]">
           <div className="text-center">
-            <p className="font-medium text-[18px] md:text-[20px] text-subtle-dark">
+            <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
               {message}
             </p>
 
             {itemName && (
               <div className="mt-4 flex items-center justify-center">
-                <span className="inline-block px-4 py-2 rounded-[10px] font-semibold text-[18px] md:text-[20px] text-primary bg-primary/10">
+                <span className="text-primary bg-primary/10 inline-block rounded-[10px] px-4 py-2 text-[18px] font-semibold md:text-[20px]">
                   {itemName}
                 </span>
               </div>
@@ -86,14 +85,14 @@ const DeleteConfirmDialog = ({
           </div>
         </div>
 
-        {/* ส่วนท้าย */}
+        {/* ปุ่มลบและยกเลิก */}
         <div className="flex-shrink-0 px-[16px] pb-[16px]">
           <div className="flex gap-[16px]">
             <button
               type="button"
               disabled={isLoading}
               onClick={onClose}
-              className="flex-1 flex items-center justify-center h-[41px] rounded-[20px] font-athiti text-[18px] md:text-[20px] font-semibold text-subtle-dark bg-gray-100 cursor-pointer"
+              className="font-athiti text-subtle-dark flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] bg-gray-100 text-[18px] font-semibold md:text-[20px]"
               ref={cancelButtonRef}
             >
               ยกเลิก
@@ -103,7 +102,7 @@ const DeleteConfirmDialog = ({
               isLoading={isLoading}
               disabled={isLoading}
               onClick={handleConfirm}
-              className="flex-1 ml-0 mr-0 font-athiti bg-delete"
+              className="font-athiti bg-delete mr-0 ml-0 flex-1"
             />
           </div>
         </div>

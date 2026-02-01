@@ -1,6 +1,5 @@
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
-const prisma = new PrismaClient();
 
 exports.getVehicleBrandModels = async (req, res, next) => {
   try {
@@ -39,7 +38,7 @@ exports.createVehicleBrandModel = async (req, res, next) => {
       },
     });
 
-    res.json({ message: "Create vehicle brand model successfully" });
+    res.json({ message: "เพิ่มยี่ห้อและรุ่นรถเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }
@@ -57,7 +56,7 @@ exports.updateVehicleBrandModel = async (req, res, next) => {
       where: {
         brand,
         model,
-        id: { not: parseInt(id) },
+        id: { not: Number(id) },
       },
     });
 
@@ -66,14 +65,14 @@ exports.updateVehicleBrandModel = async (req, res, next) => {
     }
 
     vehicleBrandModel = await prisma.vehicleBrandModel.update({
-      where: { id: parseInt(id) },
+      where: { id: Number(id) },
       data: {
         brand,
         model,
       },
     });
 
-    res.json({ message: "Update vehicle brand model successfully" });
+    res.json({ message: "แก้ไขยี่ห้อและรุ่นรถเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }
@@ -85,7 +84,7 @@ exports.deleteVehicleBrandModel = async (req, res, next) => {
 
     // ตรวจสอบว่ามีการใช้งานยี่ห้อ-รุ่นนี้หรือไม่
     const vehicleBrandModel = await prisma.vehicle.findFirst({
-      where: { vehicleBrandModelId: parseInt(id) },
+      where: { vehicleBrandModelId: Number(id) },
     });
 
     if (vehicleBrandModel) {
@@ -96,10 +95,10 @@ exports.deleteVehicleBrandModel = async (req, res, next) => {
     }
 
     await prisma.vehicleBrandModel.delete({
-      where: { id: parseInt(id) },
+      where: { id: Number(id) },
     });
 
-    res.json({ message: "Delete vehicle brand model successfully" });
+    res.json({ message: "ลบยี่ห้อและรุ่นรถเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }

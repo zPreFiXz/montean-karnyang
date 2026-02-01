@@ -3,8 +3,7 @@ import { Car } from "./Icons";
 
 const ICON_SIZE = "w-[45px] h-[45px]";
 const IMAGE_SIZE = "w-[35px] h-[35px]";
-const ICON_BASE_STYLE =
-  "flex items-center justify-center border-2 rounded-full bg-surface";
+const ICON_BASE_STYLE = "flex items-center justify-center border-2 rounded-full bg-surface";
 
 const BRAND_MAP = {
   toyota: "Toyota",
@@ -41,12 +40,7 @@ const findBrandInfo = (brandText) => {
   return null;
 };
 
-export const BrandImage = ({
-  imagePaths,
-  alt,
-  fallbackIcon,
-  borderColor = "#1976d2",
-}) => {
+export const BrandImage = ({ imagePaths, alt, fallbackIcon, borderColor = "#1976d2" }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [allFailed, setAllFailed] = useState(false);
@@ -64,10 +58,7 @@ export const BrandImage = ({
   const currentSrc = imagePaths[currentIndex];
 
   return (
-    <div
-      className={`${ICON_SIZE} ${ICON_BASE_STYLE}`}
-      style={{ borderColor: borderColor }}
-    >
+    <div className={`${ICON_SIZE} ${ICON_BASE_STYLE}`} style={{ borderColor: borderColor }}>
       {!allFailed && (
         <img
           key={currentSrc}
@@ -79,18 +70,13 @@ export const BrandImage = ({
           style={{ display: imageLoaded ? "block" : "none" }}
         />
       )}
-      {showFallback && (
-        <div className="flex items-center justify-center">{fallbackIcon}</div>
-      )}
+      {showFallback && <div className="flex items-center justify-center">{fallbackIcon}</div>}
     </div>
   );
 };
 
 const DefaultCarIcon = ({ color, borderColor = "#1976d2" }) => (
-  <div
-    className={`${ICON_SIZE} ${ICON_BASE_STYLE}`}
-    style={{ borderColor: borderColor }}
-  >
+  <div className={`${ICON_SIZE} ${ICON_BASE_STYLE}`} style={{ borderColor: borderColor }}>
     <Car color={color} />
   </div>
 );
@@ -101,7 +87,7 @@ export const getBrandIcon = (brand, color = "#1976d2") => {
   const BrandIconComponent = ({ color: iconColor }) => {
     const finalColor = iconColor || color;
 
-    // ถ้ามีข้อมูลแบรนด์ ให้แสดงโลโก้แบรนด์
+    // ถ้ามีข้อมูลแบรนด์ ให้แสดงรูปแบรนด์
     if (brandInfo) {
       return (
         <BrandImage
@@ -113,7 +99,7 @@ export const getBrandIcon = (brand, color = "#1976d2") => {
       );
     }
 
-    // ถ้าไม่มีข้อมูลแบรนด์ ให้แสดงไอคอนรถทั่วไป
+    // ถ้าไม่มีข้อมูลแบรนด์ ให้แสดงไอคอนรถยนต์ดีฟอลต์
     return <DefaultCarIcon color={finalColor} borderColor={finalColor} />;
   };
 

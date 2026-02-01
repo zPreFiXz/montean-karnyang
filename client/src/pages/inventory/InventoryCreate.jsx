@@ -1,5 +1,6 @@
 import FormInput from "@/components/forms/FormInput";
 import { useForm } from "react-hook-form";
+import { TIMING } from "@/utils/constants";
 import FormButton from "@/components/forms/FormButton";
 import { createPart } from "@/api/part";
 import { createService } from "@/api/service";
@@ -17,29 +18,20 @@ import { partServiceSchema } from "@/utils/schemas";
 import { units } from "@/utils/data";
 import { ChevronLeft } from "lucide-react";
 
-
 const suspensionTypes = [
   { id: "left-right", name: "ซ้าย-ขวา" },
   { id: "other", name: "อื่นๆ" },
 ];
 
 const CreatePart = () => {
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    reset,
-    formState,
-    trigger,
-    clearErrors,
-  } = useForm({
-    resolver: zodResolver(partServiceSchema),
-    mode: "onChange",
-    defaultValues: {
-      categoryId: undefined,
-    },
-  });
+  const { register, handleSubmit, setValue, watch, reset, formState, trigger, clearErrors } =
+    useForm({
+      resolver: zodResolver(partServiceSchema),
+      mode: "onChange",
+      defaultValues: {
+        categoryId: undefined,
+      },
+    });
   const [categories, setCategories] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -69,25 +61,19 @@ const CreatePart = () => {
 
   const isServiceCategory = () => {
     const selectedCategoryId = watch("categoryId");
-    const selectedCategory = categories.find(
-      (cat) => cat.id === selectedCategoryId
-    );
+    const selectedCategory = categories.find((cat) => cat.id === selectedCategoryId);
     return selectedCategory?.name === "บริการ";
   };
 
   const isTireCategory = () => {
     const selectedCategoryId = watch("categoryId");
-    const selectedCategory = categories.find(
-      (cat) => cat.id === selectedCategoryId
-    );
+    const selectedCategory = categories.find((cat) => cat.id === selectedCategoryId);
     return selectedCategory?.name === "ยาง";
   };
 
   const isSuspensionCategory = () => {
     const selectedCategoryId = watch("categoryId");
-    const selectedCategory = categories.find(
-      (cat) => cat.id === selectedCategoryId
-    );
+    const selectedCategory = categories.find((cat) => cat.id === selectedCategoryId);
     return selectedCategory?.name === "ช่วงล่าง";
   };
 
@@ -126,9 +112,7 @@ const CreatePart = () => {
 
     // หา element ที่อยู่บนสุด
     const firstErrorEl = errorElements.reduce((prev, curr) =>
-      prev.getBoundingClientRect().top < curr.getBoundingClientRect().top
-        ? prev
-        : curr
+      prev.getBoundingClientRect().top < curr.getBoundingClientRect().top ? prev : curr
     );
 
     // focus + scroll ไปที่ element นั้น
@@ -156,7 +140,7 @@ const CreatePart = () => {
           secureUrl: res.data?.secure_url,
         };
       } else if (!isServiceCategory()) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, TIMING.LOADING_DELAY));
       }
 
       // สร้างข้อมูลอะไหล่หรือบริการตามหมวดหมู่ที่เลือก
@@ -177,10 +161,10 @@ const CreatePart = () => {
                 rimDiameter: data.rimDiameter,
               }
             : isSuspensionCategory()
-            ? {
-                suspensionType: data.suspensionType,
-              }
-            : undefined,
+              ? {
+                  suspensionType: data.suspensionType,
+                }
+              : undefined,
           compatibleVehicles: watch("compatibleVehicles") || undefined,
           image,
           categoryId: data.categoryId,
@@ -196,11 +180,11 @@ const CreatePart = () => {
       if (isServiceCategory()) {
         await createService(serviceData);
         toast.success("เพิ่มบริการเรียบร้อยแล้ว");
-        navigate("/inventory");
+        navigate("/inventories");
       } else {
         await createPart(partData);
         toast.success("เพิ่มอะไหล่เรียบร้อยแล้ว");
-        navigate("/inventory");
+        navigate("/inventories");
       }
 
       reset();
@@ -215,15 +199,15 @@ const CreatePart = () => {
   };
 
   return (
-    <div className="w-full h-[87px] bg-gradient-primary shadow-primary">
-      <div className="flex items-center gap-[8px] py-[18px] pl-[20px] font-semibold text-[24px] md:text-[26px] text-surface">
-        <button onClick={() => navigate(-1)} className="mt-[2px] text-surface">
+    <div className="bg-gradient-primary shadow-primary h-[87px] w-full">
+      <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
+        <button onClick={() => navigate(-1)} className="text-surface mt-[2px]">
           <ChevronLeft />
         </button>
-        เพิ่มรายการ
+        <p className="text-surface text-[24px] font-semibold md:text-[26px]">เพิ่มรายการ</p>
       </div>
 
-      <div className="w-full min-h-[calc(100svh-65px)] sm:min-h-[calc(100vh-65px)] rounded-tl-2xl rounded-tr-2xl bg-surface shadow-primary">
+      <div className="bg-surface shadow-primary mt-[16px] min-h-[calc(100svh-65px)] w-full rounded-tl-2xl rounded-tr-2xl sm:min-h-[calc(100vh-65px)]">
         <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
           <div className="px-[20px] pt-[16px]">
             <ComboBox
@@ -321,9 +305,7 @@ const CreatePart = () => {
                     inputMode="numeric"
                     onWheel={(e) => e.target.blur()}
                     onInput={(e) => {
-                      e.target.value = e.target.value
-                        .replace(/[^0-9]/g, "")
-                        .slice(0, 3);
+                      e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 3);
                     }}
                   />
                   <FormInput
@@ -337,9 +319,7 @@ const CreatePart = () => {
                     inputMode="numeric"
                     onWheel={(e) => e.target.blur()}
                     onInput={(e) => {
-                      e.target.value = e.target.value
-                        .replace(/[^0-9]/g, "")
-                        .slice(0, 2);
+                      e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 2);
                     }}
                   />
                   <FormInput
@@ -353,9 +333,7 @@ const CreatePart = () => {
                     inputMode="numeric"
                     onWheel={(e) => e.target.blur()}
                     onInput={(e) => {
-                      e.target.value = e.target.value
-                        .replace(/[^0-9]/g, "")
-                        .slice(0, 2);
+                      e.target.value = e.target.value.replace(/[^0-9]/g, "").slice(0, 2);
                     }}
                   />
                 </div>
@@ -363,7 +341,7 @@ const CreatePart = () => {
 
               {/* ช่วงล่าง */}
               {isSuspensionCategory() && (
-                <div className="px-[20px] my-[16px]">
+                <div className="my-[16px] px-[20px]">
                   <ComboBox
                     label="ประเภทช่วงล่าง"
                     color="text-subtle-dark"
@@ -415,7 +393,7 @@ const CreatePart = () => {
                   e.target.value = e.target.value.replace(/[^0-9.]/g, "");
                 }}
               />
-              <div className="px-[20px] my-[16px]">
+              <div className="my-[16px] px-[20px]">
                 <ComboBox
                   label="หน่วย"
                   color="text-subtle-dark"
@@ -431,11 +409,7 @@ const CreatePart = () => {
                   errors={errors}
                   name="unit"
                 />
-                <input
-                  {...register("unit")}
-                  type="hidden"
-                  value={watch("unit") || ""}
-                />
+                <input {...register("unit")} type="hidden" value={watch("unit") || ""} />
               </div>
               <FormInput
                 register={register}
@@ -465,11 +439,7 @@ const CreatePart = () => {
                   e.target.value = e.target.value.replace(/[^0-9]/g, "");
                 }}
               />
-              <VehicleCompatibilityInput
-                key={vehicleKey}
-                setValue={setValue}
-                watch={watch}
-              />
+              <VehicleCompatibilityInput key={vehicleKey} setValue={setValue} watch={watch} />
             </div>
           )}
           <div className="flex justify-center pb-[112px]">

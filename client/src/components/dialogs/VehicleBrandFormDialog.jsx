@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { X } from "lucide-react";
 import { toast } from "sonner";
+import { TIMING } from "@/utils/constants";
 import FormInput from "@/components/forms/FormInput";
 import FormButton from "@/components/forms/FormButton";
 import {
@@ -33,7 +34,7 @@ const VehicleBrandFormDialog = ({
     defaultValues: { brand: "", model: "" },
   });
 
-  // Reset form เมื่อเปิด dialog หรือเปลี่ยน editingItem
+  // รีเซ็ตฟอร์มเมื่อเปิด dialog หรือเมื่อ editingItem เปลี่ยน
   useEffect(() => {
     if (isOpen) {
       if (editingItem) {
@@ -50,7 +51,7 @@ const VehicleBrandFormDialog = ({
   // เพิ่มยี่ห้อและรุ่น
   const handleAddVehicleBrand = async (data) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, TIMING.LOADING_DELAY));
 
       await createVehicleBrandModel({
         brand: data.brand,
@@ -60,15 +61,14 @@ const VehicleBrandFormDialog = ({
       handleClose();
       onSuccess?.();
     } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.message);
+      toast.error(error.response?.data?.message || "เพิ่มยี่ห้อและรุ่นรถไม่สำเร็จ");
     }
   };
 
   // แก้ไขยี่ห้อและรุ่น
   const handleEditVehicleBrand = async (data) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, TIMING.LOADING_DELAY));
 
       await updateVehicleBrandModel(editingItem.id, {
         brand: data.brand,
@@ -78,12 +78,11 @@ const VehicleBrandFormDialog = ({
       handleClose();
       onSuccess?.();
     } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.message);
+      toast.error(error.response?.data?.message || "แก้ไขยี่ห้อและรุ่นรถไม่สำเร็จ");
     }
   };
 
-  // ปิด dialog และ reset form
+  // ปิด dialog และรีเซ็ตฟอร์ม
   const handleClose = () => {
     reset();
     onClose();
@@ -92,15 +91,14 @@ const VehicleBrandFormDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent
-        className="flex flex-col w-full p-0"
+        className="flex w-full flex-col p-0"
         showCloseButton={false}
         onOpenAutoFocus={(e) => {
-          // ป้องกันการโฟกัสอัตโนมัติที่ input เมื่อเปิด dialog เพื่อลดการเด้งแป้นพิมพ์ในมือถือ
           e.preventDefault();
         }}
       >
         <div className="relative flex-shrink-0 pt-[16px]">
-          <DialogTitle className="font-athiti font-semibold text-center text-[22px] md:text-[24px] text-subtle-dark">
+          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-[24px]">
             {editingItem ? "แก้ไขยี่ห้อและรุ่นรถ" : "เพิ่มยี่ห้อและรุ่นรถ"}
           </DialogTitle>
           <DialogDescription className="sr-only">
@@ -109,21 +107,22 @@ const VehicleBrandFormDialog = ({
               : "เพิ่มยี่ห้อและรุ่นรถใหม่"}
           </DialogDescription>
 
+          {/* ปุ่มปิด dialog */}
           <button
             onClick={handleClose}
-            autoFocus
+            autoFocus={false}
             tabIndex={-1}
             aria-label="ปิดหน้าต่าง"
-            className="absolute top-[16px] right-[20px] flex items-center justify-center w-[32px] h-[32px] rounded-full bg-black/5"
+            className="absolute top-[16px] right-[20px] flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-full bg-black/5"
           >
             <X size={18} className="text-subtle-dark" />
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1 flex flex-col font-athiti px-[20px]">
+        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px]">
           <form
             onSubmit={handleSubmit(
-              editingItem ? handleEditVehicleBrand : handleAddVehicleBrand
+              editingItem ? handleEditVehicleBrand : handleAddVehicleBrand,
             )}
             className="space-y-[16px]"
           >
@@ -138,6 +137,7 @@ const VehicleBrandFormDialog = ({
                 color="subtle-dark"
                 autoFocus={false}
               />
+
               <FormInput
                 register={register}
                 name="model"
@@ -152,16 +152,16 @@ const VehicleBrandFormDialog = ({
           </form>
         </div>
 
-        {/* ส่วนท้าย */}
+        {/* ปุ่มบันทึกและเพิ่มยี่ห้อและรุ่น */}
         <div className="flex-shrink-0 px-[16px] pb-[16px]">
           <div className="flex gap-[16px]">
             <FormButton
               label={editingItem ? "บันทึก" : "เพิ่มยี่ห้อและรุ่นรถ"}
               isLoading={isSubmitting}
               onClick={handleSubmit(
-                editingItem ? handleEditVehicleBrand : handleAddVehicleBrand
+                editingItem ? handleEditVehicleBrand : handleAddVehicleBrand,
               )}
-              className="ml-0 mr-0 font-athiti bg-gradient-primary"
+              className="font-athiti bg-gradient-primary mr-0 ml-0"
             />
           </div>
         </div>

@@ -7,16 +7,11 @@ const ProtectRouteGuest = ({ element }) => {
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
+    // ถ้า login แล้ว redirect ไป dashboard (ทุก role)
     if (user) {
-      const { role } = user;
-
-      if (role === "EMPLOYEE") {
-        navigate("/dashboard", { replace: true });
-      } else if (role === "ADMIN") {
-        navigate("/dashboard", { replace: true });
-      }
+      navigate("/dashboard", { replace: true });
     }
-  }, []);
+  }, [user, navigate]);
 
   return element;
 };

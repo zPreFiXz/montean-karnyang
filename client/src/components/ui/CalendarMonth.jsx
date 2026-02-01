@@ -19,8 +19,7 @@ function CalendarMonth({
     return typeof year === "number" ? year : new Date().getFullYear();
   }, [selected, year]);
 
-  const initialMonth =
-    selected instanceof Date ? selected.getMonth() : new Date().getMonth();
+  const initialMonth = selected instanceof Date ? selected.getMonth() : new Date().getMonth();
 
   const [viewYear, setViewYear] = React.useState(initialYear);
   const [viewMonth, setViewMonth] = React.useState(initialMonth);
@@ -48,10 +47,7 @@ function CalendarMonth({
     [toYear, initialYear]
   );
 
-  const months = React.useMemo(
-    () => Array.from({ length: 12 }).map((_, i) => i),
-    []
-  );
+  const months = React.useMemo(() => Array.from({ length: 12 }).map((_, i) => i), []);
 
   const commit = (y, m) => {
     if (onSelect) onSelect(new Date(y, m, 1));
@@ -63,15 +59,15 @@ function CalendarMonth({
   return (
     <div
       className={cn(
-        "group/calendar w-fit [--cell-size:--spacing(8)] p-3 rounded-md bg-background shadow-sm",
+        "group/calendar bg-background w-fit rounded-md p-3 shadow-sm [--cell-size:--spacing(8)]",
         className
       )}
     >
-      <div className="relative w-full h-(--cell-size)">
-        <div className="flex items-center justify-center h-(--cell-size)">
+      <div className="relative h-(--cell-size) w-full">
+        <div className="flex h-(--cell-size) items-center justify-center">
           {captionLayout === "dropdown" ? (
             <div className="flex items-center gap-2">
-              <div className="relative rounded-md border border-input shadow-xs focus-within:border-primary focus-within:ring-primary/50 focus-within:ring-[3px]">
+              <div className="border-input focus-within:border-primary focus-within:ring-primary/50 relative rounded-md border shadow-xs focus-within:ring-[3px]">
                 <select
                   value={String(viewMonth)}
                   onChange={(e) => {
@@ -80,7 +76,7 @@ function CalendarMonth({
                     commit(viewYear, m);
                   }}
                   ref={monthSelectRef}
-                  className="appearance-none h-(--cell-size) pl-3 pr-6 rounded-md font-athiti font-medium text-[16px] bg-transparent focus:outline-none cursor-pointer"
+                  className="font-athiti h-(--cell-size) cursor-pointer appearance-none rounded-md bg-transparent pr-6 pl-3 text-[16px] font-medium focus:outline-none"
                 >
                   {months.map((m) => (
                     <option key={m} value={String(m)}>
@@ -88,10 +84,10 @@ function CalendarMonth({
                     </option>
                   ))}
                 </select>
-                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                <ChevronDownIcon className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2" />
               </div>
 
-              <div className="relative rounded-md border border-input shadow-xs focus-within:border-primary focus-within:ring-primary/50 focus-within:ring-[3px]">
+              <div className="border-input focus-within:border-primary focus-within:ring-primary/50 relative rounded-md border shadow-xs focus-within:ring-[3px]">
                 <select
                   value={String(viewYear)}
                   onChange={(e) => {
@@ -99,26 +95,24 @@ function CalendarMonth({
                     setViewYear(y);
                     commit(y, viewMonth);
                   }}
-                  className="appearance-none h-(--cell-size) px-3 pr-8 rounded-md font-athiti font-medium text-[16px] bg-transparent focus:outline-none cursor-pointer"
+                  className="font-athiti h-(--cell-size) cursor-pointer appearance-none rounded-md bg-transparent px-3 pr-8 text-[16px] font-medium focus:outline-none"
                 >
-                  {Array.from({ length: maxYear - minYear + 1 }).map(
-                    (_, idx) => {
-                      const y = minYear + idx;
-                      const be = y + 543;
-                      return (
-                        <option key={y} value={String(y)}>
-                          {be}
-                        </option>
-                      );
-                    }
-                  )}
+                  {Array.from({ length: maxYear - minYear + 1 }).map((_, idx) => {
+                    const y = minYear + idx;
+                    const be = y + 543;
+                    return (
+                      <option key={y} value={String(y)}>
+                        {be}
+                      </option>
+                    );
+                  })}
                 </select>
-                <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                <ChevronDownIcon className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2" />
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-center h-(--cell-size) px-2">
-              <p className="font-medium text-[16px] select-none">{`${formatMonth(
+            <div className="flex h-(--cell-size) items-center justify-center px-2">
+              <p className="text-[16px] font-medium select-none">{`${formatMonth(
                 viewMonth,
                 viewYear
               )} ${viewYear + 543}`}</p>

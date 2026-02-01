@@ -1,7 +1,11 @@
 import { Label } from "@radix-ui/react-label";
 import { Input } from "../ui/input";
-import { useEffect, useState } from "react";
-import { ImageIcon, X } from "lucide-react";
+import { useEffect, useState, useId, useCallback } from "react";
+import { ImageIcon, X, Upload } from "lucide-react";
+import { toast } from "sonner";
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 const FormUploadImage = ({
   label,
@@ -9,17 +13,20 @@ const FormUploadImage = ({
   selectedImage,
   publicId,
   onMarkForDeletion,
+  placeholder = "เลือกรูปภาพ",
 }) => {
   const [previewImage, setPreviewImage] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isMarkedForDeletion, setIsMarkedForDeletion] = useState(false);
+  const [isDeleting] = useState(false);
+  const [, setIsMarkedForDeletion] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const inputId = useId();
 
   useEffect(() => {
     if (selectedImage === null && previewImage) {
       URL.revokeObjectURL(previewImage);
       setPreviewImage(null);
 
-      const input = document.getElementById("image-upload");
+      const input = document.getElementById(inputId);
       if (input) {
         input.value = "";
       }
@@ -30,12 +37,31 @@ const FormUploadImage = ({
       // ถ้า selectedImage เป็น URL string (รูปที่มีอยู่แล้ว)
       setPreviewImage(selectedImage);
     }
-  }, [selectedImage, previewImage]);
+  }, [selectedImage, previewImage, inputId]);
 
-  const handleOnChange = async (e) => {
-    const file = e.target.files[0];
+  const validateFile = (file) => {
+    if (!file) return false;
 
-    if (file) {
+    // เช็คประเภทไฟล์
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      toast.error("รองรับเฉพาะไฟล์ PNG, JPG, WEBP เท่านั้น");
+      return false;
+    }
+
+    // เช็คขนาดไฟล์
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("ไฟล์ใหญ่เกิน 5MB กรุณาเลือกไฟล์ที่เล็กกว่า");
+      return false;
+    }
+
+    return true;
+  };
+
+  // Process file (ใช้ร่วมกันทั้ง input และ drag & drop)
+  const processFile = useCallback(
+    (file) => {
+      if (!validateFile(file)) return;
+
       // ลบ blob URL เก่าก่อน (ถ้ามี) เพื่อป้องกัน memory leak
       if (previewImage && previewImage.startsWith("blob:")) {
         URL.revokeObjectURL(previewImage);
@@ -54,11 +80,53 @@ const FormUploadImage = ({
       if (setSelectedImage) {
         setSelectedImage(file);
       }
+    },
+    [previewImage, onMarkForDeletion, setSelectedImage],
+  );
+
+  const handleOnChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
+  // Drag and Drop handlers
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDeleting) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (isDeleting) return;
+
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      processFile(file);
     }
   };
 
   const handleDelete = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
 
     // ถ้า previewImage เป็น blob URL ให้ revoke
     if (previewImage && previewImage.startsWith("blob:")) {
@@ -79,7 +147,7 @@ const FormUploadImage = ({
       setSelectedImage(null);
     }
 
-    const input = document.getElementById("image-upload");
+    const input = document.getElementById(inputId);
     if (input) {
       input.value = "";
     }
@@ -97,51 +165,72 @@ const FormUploadImage = ({
   return (
     <div className="w-full justify-center px-[20px] pt-[16px]">
       <Label
-        htmlFor="image-upload"
-        className="font-medium text-[22px] md:text-[24px] text-subtle-dark"
+        htmlFor={inputId}
+        className="text-subtle-dark text-[22px] font-medium md:text-[24px]"
       >
         {label}
       </Label>
-      <div className="flex justify-center items-center mt-[8px]">
+      <div className="mt-[8px] flex items-center justify-center">
         <Input
           type="file"
           accept="image/png,image/jpeg,image/webp"
           onChange={handleOnChange}
           className="hidden"
-          id="image-upload"
+          id={inputId}
           disabled={isDeleting}
         />
         <label
-          htmlFor={isDeleting ? undefined : "image-upload"}
-          className={`group relative flex flex-col justify-center items-center w-[280px] h-[280px] rounded-[20px] border-2 border-dashed border-gray-300 bg-surface ${
-            isDeleting ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-          }`}
+          htmlFor={isDeleting ? undefined : inputId}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          className={`group bg-surface relative flex h-[280px] w-[280px] flex-col items-center justify-center rounded-[20px] border-2 border-dashed transition-colors ${
+            isDragging
+              ? "border-primary bg-primary/5"
+              : "border-gray-300 hover:border-gray-400"
+          } ${isDeleting ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
         >
+          {/* แสดง preview image หากมี */}
           {previewImage ? (
-            <div className="w-full h-full">
+            <div className="h-full w-full">
               <img
                 src={previewImage}
                 alt="Preview"
-                className="object-contain  w-full h-full rounded-[20px]"
+                className="h-full w-full rounded-[20px] object-contain"
               />
               <button
                 type="button"
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="absolute top-2 right-2 flex justify-center items-center w-8 h-8 rounded-full border border-black/5 font-medium text-lg text-subtle-dark bg-surface shadow-lg backdrop-blur-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed "
+                className="text-subtle-dark bg-surface absolute top-2 right-2 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-black/5 text-lg font-medium shadow-lg backdrop-blur-sm disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <X className="w-4 h-4" />
+                <X className="h-4 w-4" />
               </button>
             </div>
           ) : (
-            <div className="flex flex-col justify-center items-center">
-              <ImageIcon className="w-[48px] h-[48px] mb-[8px] text-subtle-light" />
-              <p className="mb-[4px] font-medium text-[16px] md:text-[18px] text-subtle-light">
-                เลือกรูปอะไหล่
-              </p>
-              <p className="text-[14px] md:text-[16px] text-subtle-light">
-                PNG, JPG, WEBP ขนาดไม่เกิน 5MB
-              </p>
+            <div className="flex flex-col items-center justify-center">
+              {isDragging ? (
+                <>
+                  <Upload className="text-primary mb-[8px] h-[48px] w-[48px]" />
+                  <p className="text-primary mb-[4px] text-[16px] font-medium md:text-[18px]">
+                    วางรูปภาพที่นี่
+                  </p>
+                </>
+              ) : (
+                <>
+                  <ImageIcon className="text-subtle-light mb-[8px] h-[48px] w-[48px]" />
+                  <p className="text-subtle-light mb-[4px] text-[16px] font-medium md:text-[18px]">
+                    {placeholder}
+                  </p>
+                  <p className="text-subtle-light text-[14px] md:text-[16px]">
+                    PNG, JPG, WEBP ขนาดไม่เกิน 5MB
+                  </p>
+                  <p className="text-subtle-light mt-[4px] text-[14px] md:text-[16px]">
+                    หรือลากวางไฟล์ที่นี่
+                  </p>
+                </>
+              )}
             </div>
           )}
         </label>

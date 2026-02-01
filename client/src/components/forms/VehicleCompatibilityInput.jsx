@@ -1,8 +1,9 @@
 import { Label } from "@radix-ui/react-label";
 import { useState, useEffect, useRef } from "react";
-import { Trash, X } from "lucide-react";
+import { Plus, Trash, X } from "lucide-react";
 import ComboBox from "../ui/ComboBox";
 import { getVehicleBrandModels } from "@/api/vehicleBrandModel";
+import { TIMING } from "@/utils/constants";
 
 const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   const [vehicles, setVehicles] = useState([{ brand: "", model: "" }]);
@@ -16,20 +17,20 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   }, []);
 
   useEffect(() => {
+    // ถ้ามีข้อมูลเริ่มต้น ให้ตั้งค่า
     if (initialData && Array.isArray(initialData) && !isInitialized) {
-      // ถ้ามีข้อมูลเริ่มต้น ให้ตั้งค่า
       setVehicles(initialData);
       setValue("compatibleVehicles", initialData);
       setIsInitialized(true);
+      // ถ้าไม่มีข้อมูลเริ่มต้น ให้ตั้งค่าเป็นรายการว่าง
     } else if (initialData === null && !isInitialized) {
-      // ถ้าไม่มีข้อมูลเริ่มต้น ให้ reset
       setVehicles([{ brand: "", model: "" }]);
       setValue("compatibleVehicles", null);
       setIsInitialized(true);
     }
   }, [setValue, initialData, isInitialized]);
 
-  // Reset เมื่อ initialData เปลี่ยน
+  // อัพเดทเมื่อ initialData เปลี่ยนแปลง
   useEffect(() => {
     if (initialData && Array.isArray(initialData)) {
       setVehicles(initialData);
@@ -45,7 +46,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
       const res = await getVehicleBrandModels();
       setVehicleBrandModels(res.data);
 
-      // สร้างรายการ brands ที่ไม่ซ้ำกัน
+      // ดึงยี่ห้อรถที่ไม่ซ้ำกัน
       const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
       setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
     } catch (error) {
@@ -70,7 +71,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
 
     setValue(
       "compatibleVehicles",
-      validVehicles.length > 0 ? validVehicles : null
+      validVehicles.length > 0 ? validVehicles : null,
     );
   };
 
@@ -87,12 +88,12 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
           block: "center",
         });
       }
-    }, 200);
+    }, TIMING.SCROLL_DELAY);
   };
 
   const handleClearVehicle = (index) => {
     const newVehicles = vehicles.map((vehicle, i) =>
-      i === index ? { brand: "", model: "" } : vehicle
+      i === index ? { brand: "", model: "" } : vehicle,
     );
     setVehicles(newVehicles);
     updateFormValue(newVehicles);
@@ -109,7 +110,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
     const newVehicles = vehicles.map((vehicle, i) => {
       if (i === index) {
         if (field === "brand") {
-          // ถ้าเปลี่ยนยี่ห้อ ให้ลบรุ่นที่เลือกไว้ออก
+          // ถ้าเปลี่ยนยี่ห้อ ให้ล้างรุ่นด้วย
           return { brand: value, model: "" };
         } else {
           return { ...vehicle, [field]: value };
@@ -123,19 +124,19 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
 
   return (
     <div className="space-y-[16px] px-[20px] pt-[16px]">
-      <Label className="font-medium text-[22px] md:text-[24px] text-subtle-dark">
-        รถที่เข้ากันได้
+      <Label className="text-subtle-dark text-[22px] font-medium md:text-[24px]">
+        รถที่รองรับ
       </Label>
 
-      {/* แสดงรายการรถที่เข้ากันได้ */}
+      {/* รายการรถที่รองรับ */}
       {vehicles.map((vehicle, index) => (
         <div
           key={index}
           ref={(el) => (vehicleRefs.current[index] = el)}
-          className="p-[16px] mt-[8px] rounded-[10px] border"
+          className="mt-[8px] rounded-[10px] border p-[16px]"
         >
-          <div className="flex justify-between items-center mb-[8px]">
-            <p className="font-medium text-[20px] md:text-[22px] text-subtle-dark">
+          <div className="mb-[8px] flex items-center justify-between">
+            <p className="text-subtle-dark text-[20px] font-medium md:text-[22px]">
               รถคันที่ {index + 1}
             </p>
             <div className="flex">
@@ -143,9 +144,9 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                 <button
                   type="button"
                   onClick={() => handleClearVehicle(index)}
-                  className="flex items-center font-medium text-[18px] md:text-[20px] text-delete cursor-pointer"
+                  className="text-delete flex cursor-pointer items-center text-[18px] font-medium md:text-[20px]"
                 >
-                  <X className="w-4 h-4 mr-[4px]" />
+                  <X className="mr-[4px] h-4 w-4" />
                   ล้างข้อมูล
                 </button>
               )}
@@ -153,9 +154,9 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                 <button
                   type="button"
                   onClick={() => handleRemoveVehicle(index)}
-                  className="flex items-center font-medium text-[18px] md:text-[20px] text-delete cursor-pointer"
+                  className="text-delete flex cursor-pointer items-center text-[18px] font-medium md:text-[20px]"
                 >
-                  <Trash className="w-4 h-4 mr-[4px]" />
+                  <Trash className="mr-[4px] h-4 w-4" />
                   ลบ
                 </button>
               )}
@@ -194,9 +195,10 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
       <button
         type="button"
         onClick={handleAddVehicle}
-        className="w-full py-2 mb-[16px] rounded-lg border-2 border-dashed border-gray-300 font-medium text-[18px] md:text-[20px] text-subtle-light cursor-pointer"
+        className="text-subtle-light mb-[16px] flex w-full cursor-pointer items-center justify-center gap-[8px] rounded-lg border-2 border-dashed border-gray-300 py-3 text-[18px] font-medium transition-colors hover:border-gray-400 hover:bg-gray-50 md:text-[20px]"
       >
-        + เพิ่มรถรุ่นอื่น
+        <Plus className="h-5 w-5" />
+        เพิ่มรถรุ่นอื่น
       </button>
     </div>
   );

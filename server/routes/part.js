@@ -18,29 +18,29 @@ const {
   addStock,
 } = require("../controllers/part");
 
-// @ENDPOINTS http://localhost:3000/api/part
+// @ENDPOINTS http://localhost:3000/api/parts
 router.get("/parts", authCheck, getParts);
 
-// @ENDPOINTS http://localhost:3000/api/part
-router.post("/part", authCheck, validate(partSchema), createPart);
+// @ENDPOINTS http://localhost:3000/api/parts
+router.post("/parts", authCheck, validate(partSchema), createPart);
 
-// @ENDPOINTS http://localhost:3000/api/part/1
+// @ENDPOINTS http://localhost:3000/api/parts/1
 router.put(
-  "/part/:id",
+  "/parts/:id",
   authCheck,
   validate(partSchema),
   updatePart
 );
 
-// @ENDPOINTS http://localhost:3000/api/part/1/add-stock
+// @ENDPOINTS http://localhost:3000/api/parts/1/stock
 router.patch(
-  "/part/:id/add-stock",
+  "/parts/:id/stock",
   authCheck,
   validate(addStockSchema),
   addStock
 );
 
-// @ENDPOINTS http://localhost:3000/api/part/1
-router.delete("/part/:id", authCheck, deletePart);
+// @ENDPOINTS http://localhost:3000/api/parts/1
+router.delete("/parts/:id", authCheck, deletePart);
 
 module.exports = router;

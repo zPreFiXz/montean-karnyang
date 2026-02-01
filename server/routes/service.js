@@ -16,23 +16,23 @@ const {
 // @ENDPOINTS http://localhost:3000/api/services
 router.get("/services", authCheck, getServices);
 
-// @ENDPOINTS http://localhost:3000/api/service
+// @ENDPOINTS http://localhost:3000/api/services
 router.post(
-  "/service",
+  "/services",
   authCheck,
   validate(serviceSchema),
   createService
 );
 
-// @ENDPOINTS http://localhost:3000/api/service/1
+// @ENDPOINTS http://localhost:3000/api/services/1
 router.put(
-  "/service/:id",
+  "/services/:id",
   authCheck,
   validate(serviceSchema),
   updateService
 );
 
-// @ENDPOINTS http://localhost:3000/api/service/1
-router.delete("/service/:id", authCheck, deleteService);
+// @ENDPOINTS http://localhost:3000/api/services/1
+router.delete("/services/:id", authCheck, deleteService);
 
 module.exports = router;
