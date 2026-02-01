@@ -14,6 +14,7 @@ import InventoryEdit from "@/pages/inventory/InventoryEdit";
 import Vehicles from "@/pages/vehicles/Vehicles";
 import VehicleDetail from "@/pages/vehicles/VehicleDetail";
 import Employees from "@/pages/admin/Employees";
+import PrintStation from "@/pages/admin/PrintStation";
 import SalesReport from "@/pages/reports/SalesReport";
 import ProtectRouteUser from "./ProtectRouteUser";
 import ProtectRouteAdmin from "./ProtectRouteAdmin";
@@ -25,7 +26,10 @@ const AppRoutes = () => {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="login" element={<ProtectRouteGuest element={<Login />} />} />
+        <Route
+          path="login"
+          element={<ProtectRouteGuest element={<Login />} />}
+        />
 
         {/* User Routes */}
         <Route element={<ProtectRouteUser element={<Layout />} />}>
@@ -35,7 +39,10 @@ const AppRoutes = () => {
           <Route path="vehicles/brand-models" element={<VehicleBrandModel />} />
 
           {/* Inspection Routes */}
-          <Route path="inspections/suspension" element={<SuspensionInspection />} />
+          <Route
+            path="inspections/suspension"
+            element={<SuspensionInspection />}
+          />
 
           {/* Repair Routes */}
           <Route path="repairs/new" element={<RepairCreate />} />
@@ -54,7 +61,10 @@ const AppRoutes = () => {
         </Route>
 
         {/* Admin Routes */}
-        <Route path="/admin" element={<ProtectRouteAdmin element={<Layout />} />}>
+        <Route
+          path="/admin"
+          element={<ProtectRouteAdmin element={<Layout />} />}
+        >
           <Route index element={<Navigate to="/dashboard" replace />} />
 
           {/* Employee Management */}
@@ -63,6 +73,12 @@ const AppRoutes = () => {
           {/* Report Routes */}
           <Route path="reports/sales/:period" element={<SalesReport />} />
         </Route>
+
+        {/* Print Station - ไม่ใช้ Layout เพื่อให้เต็มจอ */}
+        <Route
+          path="/print-station"
+          element={<ProtectRouteUser element={<PrintStation />} />}
+        />
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

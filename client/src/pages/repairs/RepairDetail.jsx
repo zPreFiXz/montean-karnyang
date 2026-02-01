@@ -17,6 +17,7 @@ import {
   SquareArrowRight,
   CircleEllipsis,
   Wrench,
+  Printer,
 } from "lucide-react";
 import { getBrandIcon } from "@/components/icons/BrandIcons";
 import FormButton from "@/components/forms/FormButton";
@@ -30,6 +31,8 @@ import {
 import { toast } from "sonner";
 import RepairItemCard from "@/components/cards/RepairItemCard";
 import { provinces } from "@/utils/data";
+import { printReceipt } from "@/utils/printReceipt";
+import { addToPrintQueue } from "@/api/printQueue";
 
 const RepairDetail = () => {
   const { id } = useParams();
@@ -40,6 +43,7 @@ const RepairDetail = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUpdatingSkip, setIsUpdatingSkip] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
+  const [isSendingToPrint, setIsSendingToPrint] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -813,6 +817,45 @@ const RepairDetail = () => {
                     {repair.user.fullName} ({repair.user.nickname})
                   </p>
                 </div>
+              </div>
+            )}
+
+            {/* ปุ่มพิมพ์ใบเสร็จ - แสดงเมื่อชำระเงินแล้ว */}
+            {repair.status === "PAID" && (
+              <div className="mt-[16px] space-y-[12px] px-[20px]">
+                {/* ปุ่มส่งพิมพ์ไปคอมพิวเตอร์ (สำหรับใช้จากมือถือ) */}
+                <button
+                  onClick={async () => {
+                    setIsSendingToPrint(true);
+                    try {
+                      await addToPrintQueue(repair.id);
+                      toast.success("ส่งคำสั่งพิมพ์ไปยังเครื่องพิมพ์แล้ว");
+                    } catch (error) {
+                      console.error(error);
+                      toast.error("เกิดข้อผิดพลาดในการส่งคำสั่งพิมพ์");
+                    } finally {
+                      setIsSendingToPrint(false);
+                    }
+                  }}
+                  disabled={isSendingToPrint}
+                  className="bg-primary hover:bg-primary/90 flex w-full cursor-pointer items-center justify-center gap-[8px] rounded-[10px] py-[12px] text-white duration-300 disabled:opacity-50"
+                >
+                  <Printer className="h-5 w-5" />
+                  <span className="text-[20px] font-semibold md:text-[22px]">
+                    {isSendingToPrint ? "กำลังส่ง..." : "พิมพ์ใบเสร็จ"}
+                  </span>
+                </button>
+
+                {/* ปุ่มพิมพ์จากเครื่องนี้โดยตรง (สำหรับใช้จากคอมพิวเตอร์) */}
+                <button
+                  onClick={() => printReceipt(repair)}
+                  className="border-primary text-primary hover:bg-primary/5 flex w-full cursor-pointer items-center justify-center gap-[8px] rounded-[10px] border-2 py-[10px] duration-300"
+                >
+                  <Printer className="h-5 w-5" />
+                  <span className="text-[18px] font-medium md:text-[20px]">
+                    พิมพ์จากเครื่องนี้
+                  </span>
+                </button>
               </div>
             )}
 

@@ -165,3 +165,16 @@ model Category {
   parts    Part[]
   services Service[]
 }
+
+model PrintQueue {
+  id        Int              @id @default(autoincrement())
+  repairId  Int
+  status    PrintQueueStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+  printedAt DateTime?
+}
+
+enum PrintQueueStatus {
+  PENDING
+  PRINTED
+}
