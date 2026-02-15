@@ -18,15 +18,13 @@ async function main() {
     ),
   );
 
-  await Promise.all(
-    categories.map((category) =>
-      prisma.category.upsert({
-        where: { name: category.name },
-        update: {},
-        create: category,
-      }),
-    ),
-  );
+  for (const category of categories) {
+    await prisma.category.upsert({
+      where: { name: category.name },
+      update: {},
+      create: category,
+    });
+  }
 
   await Promise.all(
     parts.map((part) =>

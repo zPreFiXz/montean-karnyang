@@ -31,7 +31,7 @@ const CarCard = ({
         <div
           className={`flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-full ${bgColorMap[bg]}`}
         >
-          {icon}
+          {typeof icon === "function" ? icon() : icon}
         </div>
         {licensePlate ? (
           <div className="flex min-w-0 flex-1 flex-col">
