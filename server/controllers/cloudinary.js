@@ -9,7 +9,6 @@ cloudinary.config({
 exports.createImage = async (req, res, next) => {
   try {
     const { image } = req.body;
-    // สร้าง public_id โดยใช้ timestamp เพื่อป้องกันการซ้ำซ้อน
     const result = await cloudinary.uploader.upload(image, {
       public_id: `${Date.now()}`,
       resource_type: "auto",

@@ -14,8 +14,6 @@ const SearchBar = ({
   const [searchParams, setSearchParams] = useSearchParams();
   const [inputValue, setInputValue] = useState("");
 
-  // ถ้าเป็น controlled mode ใช้ value จาก props
-  // ถ้าไม่ใช่ ใช้ searchParams
   const isControlled = onSearch !== null && value !== null;
 
   useEffect(() => {
@@ -82,11 +80,11 @@ const SearchBar = ({
         }}
         className="font-athiti bg-surface h-[41px] w-full rounded-[20px] px-[40px] text-[20px] font-medium placeholder:text-[18px] placeholder:font-light focus:outline-none md:text-[22px] md:placeholder:text-[20px]"
         style={{
-          "--tw-ring-color": "#1976d2",
+          "--tw-ring-color": "var(--color-primary)",
           "--tw-border-opacity": "1",
         }}
         onFocus={(e) => {
-          e.target.style.borderColor = "#1976d2";
+          e.target.style.borderColor = "var(--color-primary)";
           e.target.style.borderWidth = "2px";
           e.target.style.boxShadow = "0 0 0 3px rgba(25, 118, 210, 0.35)";
         }}
@@ -96,8 +94,6 @@ const SearchBar = ({
           e.target.style.boxShadow = "";
         }}
       />
-
-      {/* แสดงปุ่มล้างข้อความหากมี inputValue */}
       {inputValue && (
         <button
           onClick={handleClear}

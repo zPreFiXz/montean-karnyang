@@ -126,18 +126,18 @@ exports.VehicleBrandModels = [
   { brand: "Chevrolet", model: "Captiva" },
   { brand: "Chevrolet", model: "Trailblazer" },
 
-  //Hyundai
+  // Hyundai
   { brand: "Hyundai", model: "H-1" },
   { brand: "Hyundai", model: "Staria" },
 
   // Tata
   { brand: "Tata", model: "Super Ace" },
 
-  //Neta
+  // Neta
   { brand: "Neta", model: "V" },
   { brand: "Neta", model: "X" },
 
-  //BYD
+  // BYD
   { brand: "BYD", model: "Dolphin" },
   { brand: "BYD", model: "Atto 3" },
   { brand: "BYD", model: "M6" },
@@ -146,7 +146,7 @@ exports.VehicleBrandModels = [
   { brand: "BYD", model: "Sealion 6" },
   { brand: "BYD", model: "Sealion 7" },
 
-  //อื่นๆ
+  // อื่นๆ
   { brand: "อื่นๆ", model: "รถมอเตอร์ไซค์" },
   { brand: "อื่นๆ", model: "รถไถเดินตาม" },
   { brand: "อื่นๆ", model: "รถไถคูโบต้า" },

@@ -5,6 +5,80 @@ export const loginSchema = z.object({
   password: z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร"),
 });
 
+export const createEmployeeSchema = z
+  .object({
+    firstName: z.string().min(1, "กรุณากรอกชื่อ"),
+    lastName: z.string().min(1, "กรุณากรอกนามสกุล"),
+    nickname: z.string().min(1, "กรุณากรอกชื่อเล่น"),
+    email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
+    password: z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร"),
+    confirmPassword: z.string().min(1, "กรุณายืนยันรหัสผ่าน"),
+    dateOfBirth: z.string().min(1, "กรุณาเลือกวันเกิด"),
+    phoneNumber: z
+      .string()
+      .regex(/^[0-9]{10}$/, "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก"),
+    role: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.role || data.role.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "กรุณาเลือกบทบาท",
+        path: ["role"],
+      });
+    }
+
+    if (data.password !== data.confirmPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "รหัสผ่านไม่ตรงกัน",
+        path: ["confirmPassword"],
+      });
+    }
+  });
+
+export const editEmployeeSchema = z
+  .object({
+    firstName: z.string().min(1, "กรุณากรอกชื่อ"),
+    lastName: z.string().min(1, "กรุณากรอกนามสกุล"),
+    nickname: z.string().min(1, "กรุณากรอกชื่อเล่น"),
+    email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
+    password: z.string().optional(),
+    confirmPassword: z.string().optional(),
+    dateOfBirth: z.string().min(1, "กรุณาเลือกวันเกิด"),
+    phoneNumber: z
+      .string()
+      .regex(/^[0-9]{10}$/, "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก"),
+    role: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.role || data.role.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "กรุณาเลือกบทบาท",
+        path: ["role"],
+      });
+    }
+
+    if (data.password && data.password.trim() !== "") {
+      if (data.password.length < 8) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร",
+          path: ["password"],
+        });
+      }
+
+      if (data.password !== data.confirmPassword) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "รหัสผ่านไม่ตรงกัน",
+          path: ["confirmPassword"],
+        });
+      }
+    }
+  });
+
 export const repairSchema = z.object({
   fullName: z.string().optional(),
   address: z.string().optional(),
@@ -17,8 +91,9 @@ export const repairSchema = z.object({
   model: z.string().min(1, "กรุณาเลือกรุ่นรถ"),
   plateLetters: z.string().optional(),
   plateNumbers: z.string().optional(),
-  province: z.any().optional(),
+  province: z.string().nullable().optional(),
   description: z.string().optional(),
+  source: z.enum(["GENERAL", "SUSPENSION"]).optional(),
 });
 
 export const partServiceSchema = z
@@ -192,91 +267,16 @@ export const partServiceSchema = z
     }
   });
 
-export const addStockSchema = z.object({
-  quantity: z.coerce.number().min(1, "กรุณากรอกจำนวน"),
-});
-
 export const editNamePriceSchema = z.object({
   name: z.string().min(1, "กรุณากรอกชื่อบริการ"),
   price: z.coerce.number().min(1, "กรุณากรอกราคาต่อหน่วย"),
+});
+
+export const updatePartStockSchema = z.object({
+  quantity: z.coerce.number().min(1, "กรุณากรอกจำนวน"),
 });
 
 export const vehicleBrandModelSchema = z.object({
   brand: z.string().min(1, "กรุณากรอกยี่ห้อรถ"),
   model: z.string().min(1, "กรุณากรอกรุ่นรถ"),
 });
-
-export const employeeCreateSchema = z
-  .object({
-    firstName: z.string().min(1, "กรุณากรอกชื่อ"),
-    lastName: z.string().min(1, "กรุณากรอกนามสกุล"),
-    nickname: z.string().min(1, "กรุณากรอกชื่อเล่น"),
-    email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
-    password: z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร"),
-    confirmPassword: z.string().min(1, "กรุณายืนยันรหัสผ่าน"),
-    dateOfBirth: z.string().min(1, "กรุณาเลือกวันเกิด"),
-    phoneNumber: z.string().regex(/^[0-9]{10}$/, "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก"),
-    role: z.string().optional(),
-  })
-  .superRefine((data, ctx) => {
-    // ตรวจสอบบทบาท
-    if (!data.role || data.role.trim() === "") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "กรุณาเลือกบทบาท",
-        path: ["role"],
-      });
-    }
-
-    // ตรวจสอบรหัสผ่านตรงกันหรือไม่
-    if (data.password !== data.confirmPassword) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "รหัสผ่านไม่ตรงกัน",
-        path: ["confirmPassword"],
-      });
-    }
-  });
-
-export const employeeEditSchema = z
-  .object({
-    firstName: z.string().min(1, "กรุณากรอกชื่อ"),
-    lastName: z.string().min(1, "กรุณากรอกนามสกุล"),
-    nickname: z.string().min(1, "กรุณากรอกชื่อเล่น"),
-    email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
-    password: z.string().optional(),
-    confirmPassword: z.string().optional(),
-    dateOfBirth: z.string().min(1, "กรุณาเลือกวันเกิด"),
-    phoneNumber: z.string().regex(/^[0-9]{10}$/, "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก"),
-    role: z.string().optional(),
-  })
-  .superRefine((data, ctx) => {
-    // ตรวจสอบบทบาท
-    if (!data.role || data.role.trim() === "") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "กรุณาเลือกบทบาท",
-        path: ["role"],
-      });
-    }
-
-    // ตรวจสอบรหัสผ่านถ้ามีการกรอก
-    if (data.password && data.password.trim() !== "") {
-      if (data.password.length < 8) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร",
-          path: ["password"],
-        });
-      }
-
-      // ตรวจสอบรหัสผ่านตรงกันหรือไม่
-      if (data.password !== data.confirmPassword) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "รหัสผ่านไม่ตรงกัน",
-          path: ["confirmPassword"],
-        });
-      }
-    }
-  });

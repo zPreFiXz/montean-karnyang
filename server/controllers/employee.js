@@ -33,7 +33,7 @@ exports.createEmployee = async (req, res, next) => {
       dateOfBirth,
     } = req.body;
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
       where: { email },
     });
 
@@ -41,11 +41,8 @@ exports.createEmployee = async (req, res, next) => {
       createError(400, "อีเมลนี้มีอยู่ในระบบแล้ว");
     }
 
-    // Hash password
-    const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hashedPassword = bcrypt.hashSync(password, 10);
 
-    // สร้างพนักงานใหม่
     await prisma.user.create({
       data: {
         email,
@@ -77,8 +74,7 @@ exports.updateEmployee = async (req, res, next) => {
       password,
     } = req.body;
 
-    // ตรวจสอบว่าพนักงานมีอยู่จริงหรือไม่
-    const existingEmployee = await prisma.user.findUnique({
+    const existingEmployee = await prisma.user.findFirst({
       where: { id: Number(id) },
     });
 
@@ -86,19 +82,16 @@ exports.updateEmployee = async (req, res, next) => {
       createError(404, "ไม่พบพนักงาน");
     }
 
-    // ตรวจสอบความซ้ำซ้อนของอีเมลถ้ามีการเปลี่ยนแปลง
     if (email && email !== existingEmployee.email) {
-      const emailExists = await prisma.user.findUnique({
+      const emailExists = await prisma.user.findFirst({
         where: { email },
       });
 
-      // ถ้าอีเมลนี้มีอยู่ในระบบแล้ว
       if (emailExists) {
         createError(400, "อีเมลนี้มีอยู่ในระบบแล้ว");
       }
     }
 
-    // ตรวจสอบความถูกต้องของบทบาท
     if (role) {
       const validRoles = ["EMPLOYEE", "ADMIN"];
       if (!validRoles.includes(role)) {
@@ -115,8 +108,7 @@ exports.updateEmployee = async (req, res, next) => {
     if (dateOfBirth) updateData.dateOfBirth = new Date(dateOfBirth);
 
     if (password) {
-      const saltRounds = 12;
-      updateData.passwordHash = await bcrypt.hash(password, saltRounds);
+      updateData.passwordHash = bcrypt.hashSync(password, 10);
     }
 
     await prisma.user.update({

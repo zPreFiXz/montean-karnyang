@@ -9,7 +9,6 @@ exports.getVehicles = async (req, res, next) => {
     if (search) {
       filter = {
         OR: [
-          // ค้นหาใน vehicleBrandModel
           {
             vehicleBrandModel: {
               OR: [
@@ -18,7 +17,6 @@ exports.getVehicles = async (req, res, next) => {
               ],
             },
           },
-          // ค้นหาในทะเบียนรถ
           {
             licensePlate: {
               OR: [

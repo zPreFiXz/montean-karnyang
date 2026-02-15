@@ -1,24 +1,37 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router";
-import { ChevronLeft, ChevronRight, LoaderCircle, Calendar as CalendarIcon } from "lucide-react";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
+import {
+  ChevronLeft,
+  ChevronRight,
+  LoaderCircle,
+  Calendar as CalendarIcon,
+} from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarMonth } from "@/components/ui/CalendarMonth";
-import { formatCurrency } from "@/lib/utils";
-import { provinces } from "@/utils/data";
-import useRepairStore from "@/stores/repairStore";
-import { getBrandIcon } from "@/components/icons/BrandIcons";
+import {
+  formatCurrency,
+  formatDate,
+  formatTime,
+  getProvinceName,
+} from "@/utils/formats";
+import useRepairStore from "@/stores/useRepairStore";
+import BrandIcons from "@/components/icons/BrandIcons";
 import { CalendarYear } from "@/components/ui/CalendarYear";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const SalesReport = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { repairs, fetchRepairs } = useRepairStore();
   const [isLoading, setIsLoading] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(() => {
-    // ดึงวันที่จาก state ที่ส่งมา หรือใช้วันที่ปัจจุบัน
     if (location.state?.currentDate) {
       return new Date(location.state.currentDate);
     }
@@ -26,19 +39,21 @@ const SalesReport = () => {
   });
 
   useEffect(() => {
-    loadRepairs();
+    fetchRepairsData();
   }, [fetchRepairs]);
 
-  // ถ้ามี currentDate ถูกส่งมาจากการนำทาง ให้ตั้งค่าแล้วลบ state ออกจาก history
   useEffect(() => {
     const navDate = location.state?.currentDate;
     if (navDate) {
       setCurrentDate(new Date(navDate));
-      navigate(location.pathname, { replace: true, state: {} });
+      navigate(location.pathname + location.search, {
+        replace: true,
+        state: {},
+      });
     }
   }, [location.state?.currentDate]);
 
-  const loadRepairs = async () => {
+  const fetchRepairsData = async () => {
     setIsLoading(true);
     try {
       await fetchRepairs();
@@ -49,16 +64,14 @@ const SalesReport = () => {
     }
   };
 
-  // หา period type จาก pathname
   const getPeriodType = () => {
-    if (location.pathname.includes("daily")) return "daily";
-    if (location.pathname.includes("weekly")) return "weekly";
-    if (location.pathname.includes("monthly")) return "monthly";
-    if (location.pathname.includes("yearly")) return "yearly";
+    const period = searchParams.get("period");
+    if (period === "weekly") return "weekly";
+    if (period === "monthly") return "monthly";
+    if (period === "yearly") return "yearly";
     return "daily";
   };
 
-  // คำนวณช่วงเวลาและรายได้
   const getDateRange = (date, type) => {
     const startDate = new Date(date);
     let endDate = new Date(date);
@@ -111,12 +124,10 @@ const SalesReport = () => {
     return { startDate, endDate };
   };
 
-  // กรองข้อมูลรายได้และรถที่มาใช้บริการ
   const getReportsData = () => {
     const periodType = getPeriodType();
     const { startDate, endDate } = getDateRange(currentDate, periodType);
 
-    // กรองเฉพาะรายการที่ชำระเงินแล้วในช่วงเวลาที่กำหนด
     const periodPaidRepairs = repairs.filter((repair) => {
       if (repair.status !== "PAID" || !repair.paidAt) {
         return false;
@@ -126,18 +137,18 @@ const SalesReport = () => {
       return paidDate >= startDate && paidDate <= endDate;
     });
 
-    // คำนวณรายได้รวม
     const totalRevenue = periodPaidRepairs.reduce((total, repair) => {
       return total + parseFloat(repair.totalPrice || 0);
     }, 0);
 
     return {
       totalRevenue,
-      repairs: periodPaidRepairs.sort((a, b) => new Date(b.paidAt) - new Date(a.paidAt)),
+      repairs: periodPaidRepairs.sort(
+        (a, b) => new Date(b.paidAt) - new Date(a.paidAt),
+      ),
     };
   };
 
-  // แปลงข้อมูลรถสำหรับ CarCard
   const getCarCardData = (repair) => {
     const vehicle = repair.vehicle;
     const licensePlate =
@@ -147,12 +158,7 @@ const SalesReport = () => {
 
     const brand = `${vehicle.vehicleBrandModel.brand} ${vehicle.vehicleBrandModel.model}`;
 
-    const paidTime = repair.paidAt
-      ? new Date(repair.paidAt).toLocaleTimeString("th-TH", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "";
+    const paidTime = repair.paidAt ? formatTime(repair.paidAt) : "";
 
     return {
       licensePlate,
@@ -162,24 +168,13 @@ const SalesReport = () => {
     };
   };
 
-  // หาชื่อจังหวัดจาก ID
-  const getProvinceName = (provinceId) => {
-    const province = provinces.find((p) => p.id === provinceId);
-    return province ? province.name : provinceId;
-  };
-
-  // แสดงชื่อวันที่
   const getDisplayDate = () => {
     const periodType = getPeriodType();
     const { startDate, endDate } = getDateRange(currentDate, periodType);
 
     switch (periodType) {
       case "daily":
-        return currentDate.toLocaleDateString("th-TH", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        });
+        return formatDate(currentDate);
       case "weekly":
         return `${startDate.toLocaleDateString("th-TH", {
           day: "numeric",
@@ -203,7 +198,6 @@ const SalesReport = () => {
     }
   };
 
-  // เปลี่ยนวันที่
   const changeDate = (direction) => {
     const periodType = getPeriodType();
     const newDate = new Date(currentDate);
@@ -219,18 +213,19 @@ const SalesReport = () => {
         newDate.setMonth(newDate.getMonth() + (direction === "next" ? 1 : -1));
         break;
       case "yearly":
-        newDate.setFullYear(newDate.getFullYear() + (direction === "next" ? 1 : -1));
+        newDate.setFullYear(
+          newDate.getFullYear() + (direction === "next" ? 1 : -1),
+        );
         break;
     }
 
     setCurrentDate(newDate);
   };
 
-  // จัดการเลือกวันที่จาก Calendar
   const handleDateSelect = (date) => {
     if (date) {
       setCurrentDate(date);
-      setOpen(false);
+      setIsCalendarOpen(false);
     }
   };
 
@@ -239,12 +234,7 @@ const SalesReport = () => {
 
   const groupRepairsByDay = (repairsList) => {
     return repairsList.reduce((acc, r) => {
-      const d = new Date(r.paidAt || r.createdAt || Date.now());
-      const key = d.toLocaleDateString("th-TH", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      });
+      const key = formatDate(r.paidAt || r.createdAt || new Date());
       if (!acc[key]) acc[key] = [];
       acc[key].push(r);
       return acc;
@@ -262,9 +252,11 @@ const SalesReport = () => {
             >
               <ChevronLeft />
             </button>
-            <p className="text-surface text-[24px] font-semibold md:text-[26px]">รายงานยอดขาย</p>
+            <p className="text-surface text-[24px] font-semibold md:text-[26px]">
+              รายงานยอดขาย
+            </p>
           </div>
-          <Popover open={open} onOpenChange={setOpen}>
+          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger asChild>
               <button className="text-surface flex cursor-pointer items-center gap-[8px]">
                 <CalendarIcon className="h-5 w-5" />
@@ -332,10 +324,10 @@ const SalesReport = () => {
         </div>
         <div className="mt-[16px] flex justify-center gap-[16px]">
           <Link
-            to="/admin/reports/sales/daily"
+            to="/admin/reports/sales?period=daily"
             state={{ currentDate: new Date().toISOString() }}
             className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold md:h-[40px] md:w-[95px] md:text-[20px] ${
-              location.pathname === "/admin/reports/sales/daily"
+              getPeriodType() === "daily"
                 ? "text-surface bg-primary border-white"
                 : "border-subtle-light text-subtle-light bg-surface"
             }`}
@@ -343,10 +335,10 @@ const SalesReport = () => {
             วัน
           </Link>
           <Link
-            to="/admin/reports/sales/weekly"
+            to="/admin/reports/sales?period=weekly"
             state={{ currentDate: new Date().toISOString() }}
             className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold md:h-[40px] md:w-[95px] md:text-[20px] ${
-              location.pathname === "/admin/reports/sales/weekly"
+              getPeriodType() === "weekly"
                 ? "text-surface bg-primary border-white"
                 : "border-subtle-light text-subtle-light bg-surface"
             }`}
@@ -354,10 +346,10 @@ const SalesReport = () => {
             สัปดาห์
           </Link>
           <Link
-            to="/admin/reports/sales/monthly"
+            to="/admin/reports/sales?period=monthly"
             state={{ currentDate: new Date().toISOString() }}
             className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold md:h-[40px] md:w-[95px] md:text-[20px] ${
-              location.pathname === "/admin/reports/sales/monthly"
+              getPeriodType() === "monthly"
                 ? "text-surface bg-primary border-white"
                 : "border-subtle-light text-subtle-light bg-surface"
             }`}
@@ -365,10 +357,10 @@ const SalesReport = () => {
             เดือน
           </Link>
           <Link
-            to="/admin/reports/sales/yearly"
+            to="/admin/reports/sales?period=yearly"
             state={{ currentDate: new Date().toISOString() }}
             className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold md:h-[40px] md:w-[95px] md:text-[20px] ${
-              location.pathname === "/admin/reports/sales/yearly"
+              getPeriodType() === "yearly"
                 ? "text-surface bg-primary border-white"
                 : "border-subtle-light text-subtle-light bg-surface"
             }`}
@@ -387,7 +379,7 @@ const SalesReport = () => {
             className="bg-surface flex h-[44px] w-[44px] cursor-pointer items-center justify-center rounded-full md:h-[48px] md:w-[48px]"
           >
             <ChevronLeft
-              className="text-primary mr-[2px] h-[24px] w-[24px] md:h-[26px] md:w-[26px]"
+              className="text-primary mr-[2px] h-6 w-6 md:h-[26px] md:w-[26px]"
               strokeWidth={2.5}
             />
           </button>
@@ -401,7 +393,7 @@ const SalesReport = () => {
             className="bg-surface flex h-[44px] w-[44px] cursor-pointer items-center justify-center rounded-full md:h-[48px] md:w-[48px]"
           >
             <ChevronRight
-              className="text-primary ml-[2px] h-[24px] w-[24px] md:h-[26px] md:w-[26px]"
+              className="text-primary ml-[2px] h-6 w-6 md:h-[26px] md:w-[26px]"
               strokeWidth={2.5}
             />
           </button>
@@ -415,13 +407,14 @@ const SalesReport = () => {
               : "รายการซ่อม"}
           </p>
         </div>
-
         {isLoading ? (
           <div className="flex h-[256px] items-center justify-center">
             <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : periodRepairs.length > 0 ? (
-          <div className={`${periodType === "daily" ? "pt-[16px]" : "pt-[8px]"} pb-[96px]`}>
+          <div
+            className={`${periodType === "daily" ? "pt-[16px]" : "pt-[8px]"} pb-[96px]`}
+          >
             {periodType === "daily"
               ? periodRepairs.map((repair, index) => {
                   const carData = getCarCardData(repair);
@@ -437,8 +430,11 @@ const SalesReport = () => {
                     >
                       <CarCard
                         bg="primary"
-                        color="#1976d2"
-                        icon={getBrandIcon(repair.vehicle.vehicleBrandModel.brand, "#1976d2")}
+                        icon={
+                          <BrandIcons
+                            brand={repair.vehicle.vehicleBrandModel.brand}
+                          />
+                        }
                         licensePlate={carData.licensePlate}
                         brand={carData.brand}
                         time={carData.time}
@@ -447,41 +443,48 @@ const SalesReport = () => {
                     </Link>
                   );
                 })
-              : Object.entries(groupRepairsByDay(periodRepairs)).map(([day, repairsForDay]) => (
-                  <div key={day} className="mb-4">
-                    <p className="text-subtle-dark mb-[8px] text-[18px] font-medium md:text-[20px]">
-                      {day}
-                    </p>
-                    {repairsForDay.map((repair, i) => {
-                      const carData = getCarCardData(repair);
-                      return (
-                        <Link
-                          to={`/repairs/${repair.id}`}
-                          key={i}
-                          className={i > 0 ? "mt-[12px] block" : "block"}
-                          state={{
-                            returnTo: location.pathname,
-                            currentDate: currentDate.toISOString(),
-                          }}
-                        >
-                          <CarCard
-                            bg="primary"
-                            color="#1976d2"
-                            icon={getBrandIcon(repair.vehicle.vehicleBrandModel.brand, "#1976d2")}
-                            licensePlate={carData.licensePlate}
-                            brand={carData.brand}
-                            time={carData.time}
-                            price={carData.price}
-                          />
-                        </Link>
-                      );
-                    })}
-                  </div>
-                ))}
+              : Object.entries(groupRepairsByDay(periodRepairs)).map(
+                  ([day, repairsForDay]) => (
+                    <div key={day} className="mb-4">
+                      <p className="text-subtle-dark mb-[8px] text-[18px] font-medium md:text-[20px]">
+                        {day}
+                      </p>
+                      {repairsForDay.map((repair, i) => {
+                        const carData = getCarCardData(repair);
+                        return (
+                          <Link
+                            to={`/repairs/${repair.id}`}
+                            key={i}
+                            className={i > 0 ? "mt-[12px] block" : "block"}
+                            state={{
+                              returnTo: location.pathname,
+                              currentDate: currentDate.toISOString(),
+                            }}
+                          >
+                            <CarCard
+                              bg="primary"
+                              icon={
+                                <BrandIcons
+                                  brand={repair.vehicle.vehicleBrandModel.brand}
+                                />
+                              }
+                              licensePlate={carData.licensePlate}
+                              brand={carData.brand}
+                              time={carData.time}
+                              price={carData.price}
+                            />
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ),
+                )}
           </div>
         ) : (
           <div className="flex h-[256px] flex-col items-center justify-center text-center">
-            <p className="text-subtle-light text-[20px] md:text-[22px]">ไม่มีรายการซ่อม</p>
+            <p className="text-subtle-light text-[20px] md:text-[22px]">
+              ไม่มีรายการซ่อม
+            </p>
           </div>
         )}
       </div>

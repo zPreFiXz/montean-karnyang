@@ -1,26 +1,21 @@
 import { currentUser } from "@/api/auth";
-import useAuthStore from "@/stores/authStore";
+import useAuthStore from "@/stores/useAuthStore";
 import { useState, useEffect } from "react";
 import LoadingToRedirect from "./LoadingToRedirect";
 
 const ProtectRouteUser = ({ element }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(null);
+  const [ok, setOk] = useState(false);
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     if (user) {
       currentUser()
-        .then(() => setIsAuthenticated(true))
-        .catch(() => setIsAuthenticated(false));
-    } else {
-      setIsAuthenticated(false);
+        .then(() => setOk(true))
+        .catch(() => setOk(false));
     }
-  }, [user]);
+  }, []);
 
-  // null = กำลัง check auth
-  if (isAuthenticated === null) return null;
-
-  return isAuthenticated ? element : <LoadingToRedirect />;
+  return ok ? element : <LoadingToRedirect />;
 };
 
 export default ProtectRouteUser;

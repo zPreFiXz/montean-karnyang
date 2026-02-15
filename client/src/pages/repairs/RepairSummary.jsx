@@ -1,9 +1,8 @@
 import { useLocation, useNavigate } from "react-router";
 import { useEffect, useState } from "react";
-import { TIMING } from "@/utils/constants";
 import FormButton from "@/components/forms/FormButton";
 import RepairItemCard from "@/components/cards/RepairItemCard";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, getProvinceName } from "@/utils/formats";
 import { createRepair, updateRepair } from "@/api/repair";
 import { toast } from "sonner";
 import {
@@ -15,7 +14,6 @@ import {
   Wrench,
   ClipboardList,
 } from "lucide-react";
-import { provinces } from "@/utils/data";
 
 const RepairSummary = () => {
   const location = useLocation();
@@ -27,7 +25,6 @@ const RepairSummary = () => {
   const statusSlug = location.state?.statusSlug;
   const vehicleId = location.state?.vehicleId;
 
-  // หากไม่มีข้อมูลให้กลับไปหน้าสร้างรายการซ่อมใหม่
   useEffect(() => {
     window.scrollTo(0, 0);
 
@@ -45,13 +42,6 @@ const RepairSummary = () => {
     0,
   );
 
-  // หาชื่อจังหวัดจาก ID
-  const getProvinceName = (provinceId) => {
-    const province = provinces.find((p) => p.id === provinceId);
-    return province ? province.name : provinceId;
-  };
-
-  // แยกรายการซ่อมตามตำแหน่ง
   const getItemsBySide = (side) => {
     return repairItems.filter((item) => item.side === side);
   };
@@ -66,7 +56,7 @@ const RepairSummary = () => {
   const handleConfirmRepair = async () => {
     setIsSubmitting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, TIMING.LOADING_DELAY));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       const repair = {
         fullName: repairData.fullName,
         address: repairData.address,
@@ -74,7 +64,7 @@ const RepairSummary = () => {
         brand: repairData.brand,
         model: repairData.model,
         plateNumber: `${repairData.plateLetters}-${repairData.plateNumbers}`,
-        province: getProvinceName(repairData.province), // แปลง ID เป็นชื่อจังหวัด
+        province: getProvinceName(repairData.province),
         description: repairData.description,
         totalPrice: totalPrice,
         source: repairData.source,
@@ -85,7 +75,6 @@ const RepairSummary = () => {
             unitPrice: Number(item.sellingPrice),
             quantity: item.quantity,
             ...(item.side ? { side: item.side } : {}),
-            // เก็บชื่อบริการที่แก้ชั่วคราวลง customName (เฉพาะค่าแรง)
             ...(!isPart && item.name ? { customName: item.name } : {}),
           };
         }),
@@ -94,25 +83,20 @@ const RepairSummary = () => {
       if (editRepairId) {
         await updateRepair(editRepairId, repair);
         toast.success("แก้ไขรายการซ่อมเรียบร้อยแล้ว");
-        // หลังบันทึกในโหมดแก้ไข: ถ้ามี statusSlug ให้กลับหน้า RepairStatus
         if (statusSlug) {
-          navigate(`/repairs/status/${statusSlug}`);
+          navigate(`/repairs?status=${statusSlug}`);
         } else if (vehicleId) {
-          // ถ้าไม่มี statusSlug แต่มี vehicleId แปลว่ามาจาก VehicleDetail
           navigate(`/vehicles/${vehicleId}`);
         } else if (origin === "repair-status") {
-          // เผื่อกรณีมี origin แต่หลุด statusSlug
-          navigate(`/repairs/status/in-progress`);
+          navigate(`/repairs?status=progress`);
         } else {
-          // ดีฟอลต์ กลับไปหน้ารายละเอียดของงานซ่อมนี้
           navigate(`/repairs/${editRepairId}`);
         }
       } else {
         await createRepair(repair);
         toast.success("สร้างรายการซ่อมเรียบร้อยแล้ว");
-        // โหมดสร้างใหม่: Desktop ไป Dashboard, Mobile ไปหน้าสถานะงานซ่อม
         const isDesktop = window.innerWidth >= 1280;
-        navigate(isDesktop ? "/" : "/repairs/status/in-progress");
+        navigate(isDesktop ? "/" : "/repairs?status=progress");
       }
     } catch (error) {
       console.error(error);
@@ -131,7 +115,6 @@ const RepairSummary = () => {
       origin,
       statusSlug,
       vehicleId,
-      // ถ้าไม่มีชื่อลูกค้าให้ซ่อน showMoreFields
       ...(!repairData.fullName || !repairData.fullName.trim()
         ? { hideMoreFields: true }
         : {}),
@@ -358,7 +341,6 @@ const RepairSummary = () => {
             </div>
           </div>
 
-          {/* Desktop: Padding Bottom */}
           <div className="hidden pb-[24px] xl:block" />
         </div>
       </div>
@@ -369,7 +351,7 @@ const RepairSummary = () => {
           <div className="flex items-center justify-between px-[20px] pt-[16px]">
             <div className="flex items-center gap-[8px]">
               <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
-                <ClipboardList className="text-primary h-[20px] w-[20px]" />
+                <ClipboardList className="text-primary h-5 w-5" />
               </div>
               <p className="text-[22px] font-semibold md:text-[24px]">
                 รายการซ่อม
@@ -383,7 +365,6 @@ const RepairSummary = () => {
               แก้ไขรายการซ่อม
             </button>
           </div>
-
           <div className="px-[20px] pt-[16px]">
             {/* รายการฝั่งซ้าย */}
             {leftItems.length > 0 && (

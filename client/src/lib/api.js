@@ -1,4 +1,4 @@
-import useAuthStore from "@/stores/authStore";
+import useAuthStore from "@/stores/useAuthStore";
 import axios from "axios";
 import { toast } from "sonner";
 
@@ -7,16 +7,21 @@ const api = axios.create({
   withCredentials: true,
 });
 
+let isRedirecting = false;
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // ไม่ redirect ถ้าอยู่หน้า login อยู่แล้ว
-      if (window.location.pathname !== "/login") {
-        // ใช้ clearAuth (sync) แทน logout เพราะ cookie ที่ server ก็ invalid อยู่แล้ว
+      if (window.location.pathname !== "/login" && !isRedirecting) {
+        isRedirecting = true;
         useAuthStore.getState().clearAuth();
-        toast.error("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่");
-        window.location.href = "/login";
+        toast.error("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่", {
+          duration: 2000,
+        });
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 2000);
       }
     }
     return Promise.reject(error);

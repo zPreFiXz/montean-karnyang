@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation, useParams, useNavigate } from "react-router";
+import { Link, useSearchParams, useNavigate } from "react-router";
 import { LoaderCircle, ChevronLeft } from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
 import { getRepairs } from "@/api/repair";
-import { formatTime } from "@/lib/utils";
-import { getBrandIcon } from "@/components/icons/BrandIcons";
+import { formatTime } from "@/utils/formats";
+import BrandIcons from "@/components/icons/BrandIcons";
 
-// แสดงยี่ห้อ+รุ่น หรือแค่รุ่นถ้ายี่ห้อเป็น "อื่นๆ"
 const getDisplayBrand = (vehicleBrandModel) => {
   const brand = vehicleBrandModel?.brand || "";
   const model = vehicleBrandModel?.model || "";
@@ -18,9 +17,9 @@ const getDisplayBrand = (vehicleBrandModel) => {
 };
 
 const RepairStatus = () => {
-  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { status } = useParams();
+  const status = searchParams.get("status") || "progress";
   const [repairs, setRepairs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -40,13 +39,11 @@ const RepairStatus = () => {
     }
   };
 
-  // กรองรายการซ่อมตามสถานะที่เลือก
   const currentRepairs = repairs
     .filter((repair) => {
       const dbStatus = repair.status?.toLowerCase().replace("_", "-");
       const isStatusMatch = dbStatus === status;
 
-      // ถ้าเป็นสถานะ "paid" ให้แสดงแค่ของวันนี้
       if (status === "paid" && isStatusMatch) {
         const today = new Date();
         const paidDate = new Date(repair.paidAt);
@@ -62,17 +59,15 @@ const RepairStatus = () => {
       return isStatusMatch;
     })
     .sort((a, b) => {
-      // ถ้าเป็นสถานะ "paid" ให้เรียงตาม paidAt จากใหม่ไปเก่า
       if (status === "paid") {
         return new Date(b.paidAt) - new Date(a.paidAt);
       }
-      // สถานะอื่นๆ เรียงตาม createdAt จากใหม่ไปเก่า
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
   const getStatusTitle = () => {
     switch (status) {
-      case "in-progress":
+      case "progress":
         return "รายการกำลังซ่อม";
       case "completed":
         return "รายการซ่อมเสร็จสิ้น";
@@ -86,7 +81,7 @@ const RepairStatus = () => {
   const getStatusColor = (repairStatus) => {
     const status = repairStatus?.toLowerCase().replace("_", "-");
     switch (status) {
-      case "in-progress":
+      case "progress":
         return "#ffb000";
       case "completed":
         return "#22c55e";
@@ -100,8 +95,8 @@ const RepairStatus = () => {
   const getStatusBg = (repairStatus) => {
     const status = repairStatus?.toLowerCase().replace("_", "-");
     switch (status) {
-      case "in-progress":
-        return "in-progress";
+      case "progress":
+        return "progress";
       case "completed":
         return "completed";
       case "paid":
@@ -113,7 +108,7 @@ const RepairStatus = () => {
 
   const getEmptyMessage = () => {
     switch (status) {
-      case "in-progress":
+      case "progress":
         return "ไม่มีรายการที่กำลังซ่อม";
       case "completed":
         return "ไม่มีรายการที่ซ่อมเสร็จสิ้น";
@@ -133,34 +128,36 @@ const RepairStatus = () => {
         >
           <ChevronLeft />
         </button>
-        <p className="text-surface text-[24px] font-semibold md:text-[26px]">สถานะการซ่อม</p>
+        <p className="text-surface text-[24px] font-semibold md:text-[26px]">
+          สถานะการซ่อม
+        </p>
       </div>
       <div className="mx-[20px] mt-[16px] flex justify-center gap-[16px]">
         <Link
-          to="/repairs/status/in-progress"
+          to="/repairs?status=progress"
           className={`flex h-[45px] w-[106px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold duration-300 md:w-[120px] md:text-[20px] ${
-            location.pathname === "/repairs/status/in-progress"
-              ? "text-surface bg-in-progress border-white"
+            status === "progress"
+              ? "text-surface bg-status-progress border-white"
               : "border-subtle-light text-subtle-light bg-surface"
           }`}
         >
           กำลังซ่อม
         </Link>
         <Link
-          to="/repairs/status/completed"
+          to="/repairs?status=completed"
           className={`flex h-[45px] w-[106px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold duration-300 md:w-[120px] md:text-[20px] ${
-            location.pathname === "/repairs/status/completed"
-              ? "text-surface bg-completed border-white"
+            status === "completed"
+              ? "text-surface bg-status-completed border-white"
               : "border-subtle-light text-subtle-light bg-surface"
           }`}
         >
           ซ่อมเสร็จสิ้น
         </Link>
         <Link
-          to="/repairs/status/paid"
+          to="/repairs?status=paid"
           className={`flex h-[45px] w-[106px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold duration-300 md:w-[120px] md:text-[20px] ${
-            location.pathname === "/repairs/status/paid"
-              ? "text-surface bg-paid border-white"
+            status === "paid"
+              ? "text-surface bg-status-paid border-white"
               : "border-subtle-light text-subtle-light bg-surface"
           }`}
         >
@@ -177,7 +174,9 @@ const RepairStatus = () => {
           </div>
         ) : currentRepairs.length === 0 ? (
           <div className="flex h-[435px] items-center justify-center">
-            <p className="text-subtle-light text-[20px] md:text-[22px]">{getEmptyMessage()}</p>
+            <p className="text-subtle-light text-[20px] md:text-[22px]">
+              {getEmptyMessage()}
+            </p>
           </div>
         ) : (
           currentRepairs.map((item, index) => (
@@ -189,13 +188,15 @@ const RepairStatus = () => {
             >
               <CarCard
                 bg={getStatusBg(item.status)}
-                color={getStatusColor(item.status)}
-                icon={getBrandIcon(
-                  item.vehicle.vehicleBrandModel.brand,
-                  getStatusColor(item.status)
-                )}
+                icon={
+                  <BrandIcons
+                    brand={item.vehicle.vehicleBrandModel.brand}
+                    color={getStatusColor(item.status)}
+                  />
+                }
                 licensePlate={
-                  item.vehicle.licensePlate?.plateNumber && item.vehicle.licensePlate?.province
+                  item.vehicle.licensePlate?.plateNumber &&
+                  item.vehicle.licensePlate?.province
                     ? `${item.vehicle.licensePlate.plateNumber} ${item.vehicle.licensePlate.province}`
                     : "ไม่ระบุทะเบียนรถ"
                 }

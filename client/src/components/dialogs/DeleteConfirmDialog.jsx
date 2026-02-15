@@ -1,6 +1,5 @@
 import { X } from "lucide-react";
 import { useState, useRef } from "react";
-import { TIMING } from "@/utils/constants";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +22,7 @@ const DeleteConfirmDialog = ({
   const handleConfirm = async () => {
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, TIMING.LOADING_DELAY));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       await onConfirm();
     } catch (error) {
@@ -57,8 +56,6 @@ const DeleteConfirmDialog = ({
           <DialogDescription className="sr-only">
             {`${title}: ${message} ${itemName}`}
           </DialogDescription>
-
-          {/* ปุ่มปิด dialog */}
           <button
             onClick={onClose}
             autoFocus={false}
@@ -74,7 +71,6 @@ const DeleteConfirmDialog = ({
             <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
               {message}
             </p>
-
             {itemName && (
               <div className="mt-4 flex items-center justify-center">
                 <span className="text-primary bg-primary/10 inline-block rounded-[10px] px-4 py-2 text-[18px] font-semibold md:text-[20px]">
@@ -84,8 +80,6 @@ const DeleteConfirmDialog = ({
             )}
           </div>
         </div>
-
-        {/* ปุ่มลบและยกเลิก */}
         <div className="flex-shrink-0 px-[16px] pb-[16px]">
           <div className="flex gap-[16px]">
             <button
@@ -102,7 +96,7 @@ const DeleteConfirmDialog = ({
               isLoading={isLoading}
               disabled={isLoading}
               onClick={handleConfirm}
-              className="font-athiti bg-delete mr-0 ml-0 flex-1"
+              className="font-athiti bg-destructive mr-0 ml-0 flex-1"
             />
           </div>
         </div>

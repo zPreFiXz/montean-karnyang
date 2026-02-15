@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Car } from "./Icons";
 
 const ICON_SIZE = "w-[45px] h-[45px]";
 const IMAGE_SIZE = "w-[35px] h-[35px]";
-const ICON_BASE_STYLE = "flex items-center justify-center border-2 rounded-full bg-surface";
+const ICON_BASE_STYLE =
+  "flex items-center justify-center border-2 rounded-full bg-surface";
 
 const BRAND_MAP = {
   toyota: "Toyota",
@@ -20,27 +21,19 @@ const BRAND_MAP = {
   tata: "Tata",
 };
 
-const getBrandImagePath = (brandName) => {
-  const name = brandName.toLowerCase();
-  return [`/brands/${name}.png`, `/brands/${name}.jpg`];
-};
-
-const findBrandInfo = (brandText) => {
+const findBrandKey = (brandText) => {
   const brandLower = brandText?.toLowerCase() || "";
-
-  for (const [key, name] of Object.entries(BRAND_MAP)) {
-    if (brandLower.includes(key)) {
-      return {
-        imagePaths: getBrandImagePath(key),
-        brandName: name,
-      };
-    }
+  for (const key of Object.keys(BRAND_MAP)) {
+    if (brandLower.includes(key)) return key;
   }
-
   return null;
 };
 
-export const BrandImage = ({ imagePaths, alt, fallbackIcon, borderColor = "#1976d2" }) => {
+const BrandImage = ({ brandKey, alt, fallbackIcon, borderColor }) => {
+  const imagePaths = useMemo(
+    () => [`/brands/${brandKey}.png`, `/brands/${brandKey}.jpg`],
+    [brandKey],
+  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [allFailed, setAllFailed] = useState(false);
@@ -55,14 +48,13 @@ export const BrandImage = ({ imagePaths, alt, fallbackIcon, borderColor = "#1976
   };
 
   const showFallback = allFailed || !imageLoaded;
-  const currentSrc = imagePaths[currentIndex];
 
   return (
-    <div className={`${ICON_SIZE} ${ICON_BASE_STYLE}`} style={{ borderColor: borderColor }}>
+    <div className={`${ICON_SIZE} ${ICON_BASE_STYLE}`} style={{ borderColor }}>
       {!allFailed && (
         <img
-          key={currentSrc}
-          src={currentSrc}
+          key={imagePaths[currentIndex]}
+          src={imagePaths[currentIndex]}
           alt={alt}
           className={`${IMAGE_SIZE} object-contain`}
           onLoad={() => setImageLoaded(true)}
@@ -70,38 +62,35 @@ export const BrandImage = ({ imagePaths, alt, fallbackIcon, borderColor = "#1976
           style={{ display: imageLoaded ? "block" : "none" }}
         />
       )}
-      {showFallback && <div className="flex items-center justify-center">{fallbackIcon}</div>}
+      {showFallback && (
+        <div className="flex items-center justify-center">{fallbackIcon}</div>
+      )}
     </div>
   );
 };
 
-const DefaultCarIcon = ({ color, borderColor = "#1976d2" }) => (
-  <div className={`${ICON_SIZE} ${ICON_BASE_STYLE}`} style={{ borderColor: borderColor }}>
-    <Car color={color} />
-  </div>
-);
+const BrandIcons = ({ brand, color = "#1976d2" }) => {
+  const brandKey = findBrandKey(brand);
 
-export const getBrandIcon = (brand, color = "#1976d2") => {
-  const brandInfo = findBrandInfo(brand);
+  if (brandKey) {
+    return (
+      <BrandImage
+        brandKey={brandKey}
+        alt={`${BRAND_MAP[brandKey]} Logo`}
+        fallbackIcon={<Car color={color} />}
+        borderColor={color}
+      />
+    );
+  }
 
-  const BrandIconComponent = ({ color: iconColor }) => {
-    const finalColor = iconColor || color;
-
-    // ถ้ามีข้อมูลแบรนด์ ให้แสดงรูปแบรนด์
-    if (brandInfo) {
-      return (
-        <BrandImage
-          imagePaths={brandInfo.imagePaths}
-          alt={`${brandInfo.brandName} Logo`}
-          fallbackIcon={<Car color={finalColor} />}
-          borderColor={finalColor}
-        />
-      );
-    }
-
-    // ถ้าไม่มีข้อมูลแบรนด์ ให้แสดงไอคอนรถยนต์ดีฟอลต์
-    return <DefaultCarIcon color={finalColor} borderColor={finalColor} />;
-  };
-
-  return BrandIconComponent;
+  return (
+    <div
+      className={`${ICON_SIZE} ${ICON_BASE_STYLE}`}
+      style={{ borderColor: color }}
+    >
+      <Car color={color} />
+    </div>
+  );
 };
+
+export default BrandIcons;

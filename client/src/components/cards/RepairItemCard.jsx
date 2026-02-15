@@ -1,13 +1,11 @@
 import { Image, Wrench } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/utils/formats";
 
 const RepairItemCard = ({ item, variant }) => {
   const renderProductInfo = (item) => {
-    // สำหรับ RepairDetail (variant = "detail")
     if (variant === "detail") {
       const isTire = item.part?.category?.name === "ยาง";
 
-      // แสดงข้อมูลยางที่มีขนาดแก้มยาง
       if (
         isTire &&
         item.part?.typeSpecificData &&
@@ -22,7 +20,6 @@ const RepairItemCard = ({ item, variant }) => {
         );
       }
 
-      // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
       if (isTire && item.part?.typeSpecificData) {
         return (
           <p className="text-normal line-clamp-2 text-[16px] font-semibold md:text-[18px]">
@@ -32,7 +29,6 @@ const RepairItemCard = ({ item, variant }) => {
         );
       }
 
-      // แสดงข้อมูลอะไหล่หรือบริการ
       return (
         <p className="text-normal line-clamp-2 text-[16px] font-semibold md:text-[18px]">
           {item.part?.brand && `${item.part.brand} `}
@@ -41,10 +37,8 @@ const RepairItemCard = ({ item, variant }) => {
       );
     }
 
-    // สำหรับ RepairSummary (variant = "summary")
     const isTire = item.category?.name === "ยาง";
 
-    // แสดงข้อมูลยางที่มีขนาดแก้มยาง
     if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
       return (
         <p className="text-normal line-clamp-2 text-[16px] font-semibold md:text-[18px]">
@@ -55,7 +49,6 @@ const RepairItemCard = ({ item, variant }) => {
       );
     }
 
-    // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
     if (isTire && item.typeSpecificData) {
       return (
         <p className="text-normal line-clamp-2 text-[16px] font-semibold md:text-[18px]">
@@ -65,7 +58,6 @@ const RepairItemCard = ({ item, variant }) => {
       );
     }
 
-    // แสดงข้อมูลอะไหล่หรือบริการ
     return (
       <p className="text-normal line-clamp-2 text-[16px] font-semibold md:text-[18px]">
         {item.brand} {item.name}
@@ -82,7 +74,6 @@ const RepairItemCard = ({ item, variant }) => {
     variant === "detail"
       ? item.part?.unit || item.service?.unit || ""
       : item.unit;
-
   const isService = variant === "detail" ? !!item.service : !item.partNumber;
 
   return (
@@ -90,7 +81,6 @@ const RepairItemCard = ({ item, variant }) => {
       <div className="shadow-primary bg-surface flex h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] px-[8px]">
         <div className="flex items-center gap-[8px]">
           <div className="border-subtle-light shadow-primary bg-surface flex items-center justify-center rounded-[10px] border">
-            {/* แสดงรูปภาพถ้ามี ถ้าไม่มีให้แสดงไอคอนตามประเภท */}
             {imageUrl ? (
               <div className="h-[60px] w-[60px]">
                 <img

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { TIMING } from "@/utils/constants";
 import {
   Menu,
   CircleUserRound,
@@ -15,18 +14,18 @@ import InventoryCard from "@/components/cards/InventoryCard";
 import ItemDetailDialog from "@/components/dialogs/ItemDetailDialog";
 import StatusCard from "@/components/cards/StatusCard";
 import { getInventory } from "@/api/inventory";
-import { formatCurrency, formatTime } from "@/lib/utils";
-import useRepairStore from "@/stores/repairStore";
-import useAuthStore from "@/stores/authStore";
+import { formatCurrency, formatDate, formatTime } from "@/utils/formats";
+import useRepairStore from "@/stores/useRepairStore";
+import useAuthStore from "@/stores/useAuthStore";
 import { Success, Wrench, Paid } from "@/components/icons/Icons";
-import { getBrandIcon } from "@/components/icons/BrandIcons";
+import BrandIcons from "@/components/icons/BrandIcons";
 
 const Dashboard = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [inventory, setInventory] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [showItemDetail, setShowItemDetail] = useState(false);
+  const [isItemDetailOpen, setIsItemDetailOpen] = useState(false);
   const navigate = useNavigate();
   const { logout, user } = useAuthStore();
   const {
@@ -39,10 +38,10 @@ const Dashboard = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchRepairs();
-    loadInventory();
+    fetchInventory();
   }, [fetchRepairs]);
 
-  const loadInventory = async () => {
+  const fetchInventory = async () => {
     try {
       const res = await getInventory(null, null);
       setInventory(res.data || []);
@@ -89,7 +88,7 @@ const Dashboard = () => {
   const handleLogout = async () => {
     setIsLoggingOut(true);
 
-    await new Promise((resolve) => setTimeout(resolve, TIMING.LOADING_DELAY));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     try {
       localStorage.setItem("justLoggedOut", "true");
@@ -100,30 +99,6 @@ const Dashboard = () => {
       console.error(error);
       setIsLoggingOut(false);
     }
-  };
-
-  const getCurrentDateThai = () => {
-    const now = new Date();
-    const thaiMonths = [
-      "มกราคม",
-      "กุมภาพันธ์",
-      "มีนาคม",
-      "เมษายน",
-      "พฤษภาคม",
-      "มิถุนายน",
-      "กรกฎาคม",
-      "สิงหาคม",
-      "กันยายน",
-      "ตุลาคม",
-      "พฤศจิกายน",
-      "ธันวาคม",
-    ];
-
-    const day = now.getDate();
-    const month = thaiMonths[now.getMonth()];
-    const year = now.getFullYear() + 543;
-
-    return `วันที่ ${day} ${month} ${year}`;
   };
 
   return (
@@ -138,15 +113,15 @@ const Dashboard = () => {
 
           {/* การ์ดสถานะ */}
           <div className="mt-[16px] grid grid-cols-3 gap-[16px]">
-            <Link to="/repairs/status/in-progress">
+            <Link to="/repairs?status=progress">
               <StatusCard
-                bg="in-progress"
+                bg="progress"
                 icon={Wrench}
                 label={"กำลังซ่อม"}
                 amount={inProgressCount}
               />
             </Link>
-            <Link to="/repairs/status/completed">
+            <Link to="/repairs?status=completed">
               <StatusCard
                 bg="completed"
                 icon={Success}
@@ -154,7 +129,7 @@ const Dashboard = () => {
                 amount={completedCount}
               />
             </Link>
-            <Link to="/repairs/status/paid">
+            <Link to="/repairs?status=paid">
               <StatusCard
                 bg="paid"
                 icon={Paid}
@@ -172,12 +147,13 @@ const Dashboard = () => {
                 inProgressRepairs.map((repair) => (
                   <Link key={repair.id} to={`/repairs/${repair.id}`}>
                     <CarCard
-                      bg="in-progress"
-                      color="#ffb000"
-                      icon={getBrandIcon(
-                        repair.vehicle?.vehicleBrandModel?.brand,
-                        "#ffb000",
-                      )}
+                      bg="progress"
+                      icon={
+                        <BrandIcons
+                          brand={repair.vehicle?.vehicleBrandModel?.brand}
+                          color="#ffb000"
+                        />
+                      }
                       licensePlate={
                         repair.vehicle?.licensePlate?.plateNumber &&
                         repair.vehicle?.licensePlate?.province
@@ -204,11 +180,12 @@ const Dashboard = () => {
                   <Link key={repair.id} to={`/repairs/${repair.id}`}>
                     <CarCard
                       bg="completed"
-                      color="#22c55e"
-                      icon={getBrandIcon(
-                        repair.vehicle?.vehicleBrandModel?.brand,
-                        "#22c55e",
-                      )}
+                      icon={
+                        <BrandIcons
+                          brand={repair.vehicle?.vehicleBrandModel?.brand}
+                          color="#22c55e"
+                        />
+                      }
                       licensePlate={
                         repair.vehicle?.licensePlate?.plateNumber &&
                         repair.vehicle?.licensePlate?.province
@@ -237,11 +214,11 @@ const Dashboard = () => {
                   <Link key={repair.id} to={`/repairs/${repair.id}`}>
                     <CarCard
                       bg="paid"
-                      color="#1976d2"
-                      icon={getBrandIcon(
-                        repair.vehicle?.vehicleBrandModel?.brand,
-                        "#1976d2",
-                      )}
+                      icon={
+                        <BrandIcons
+                          brand={repair.vehicle?.vehicleBrandModel?.brand}
+                        />
+                      }
                       licensePlate={
                         repair.vehicle?.licensePlate?.plateNumber &&
                         repair.vehicle?.licensePlate?.province
@@ -276,7 +253,7 @@ const Dashboard = () => {
                     key={`desk-out-${item.id}`}
                     onClick={() => {
                       setSelectedItem(item);
-                      setShowItemDetail(true);
+                      setIsItemDetailOpen(true);
                     }}
                   >
                     <InventoryCard
@@ -298,7 +275,7 @@ const Dashboard = () => {
                     key={`desk-low-${item.id}`}
                     onClick={() => {
                       setSelectedItem(item);
-                      setShowItemDetail(true);
+                      setIsItemDetailOpen(true);
                     }}
                   >
                     <InventoryCard
@@ -334,7 +311,7 @@ const Dashboard = () => {
                 มณเฑียรการยาง
               </p>
               <p className="text-surface text-[20px] font-medium md:text-[22px]">
-                {getCurrentDateThai()}
+                วันที่ {formatDate(new Date())}
               </p>
             </div>
 
@@ -389,7 +366,7 @@ const Dashboard = () => {
                       className="bg-surface shadow-primary mb-[16px] flex w-full items-center gap-[16px] rounded-[12px] p-[16px] duration-300"
                     >
                       <div className="bg-primary flex h-[48px] w-[48px] items-center justify-center rounded-[10px]">
-                        <CarFront className="text-surface h-[24px] w-[24px]" />
+                        <CarFront className="text-surface h-6 w-6" />
                       </div>
                       <p className="text-normal text-[18px] font-semibold md:text-[20px]">
                         จัดการยี่ห้อและรุ่นรถ
@@ -403,8 +380,8 @@ const Dashboard = () => {
                         onClick={() => setIsMenuOpen(false)}
                         className="bg-surface shadow-primary mb-[16px] flex w-full items-center gap-[16px] rounded-[12px] p-[16px] duration-300"
                       >
-                        <div className="bg-completed flex h-[48px] w-[48px] items-center justify-center rounded-[10px]">
-                          <Users className="text-surface h-[24px] w-[24px]" />
+                        <div className="bg-status-completed flex h-[48px] w-[48px] items-center justify-center rounded-[10px]">
+                          <Users className="text-surface h-6 w-6" />
                         </div>
                         <p className="text-normal text-[18px] font-semibold md:text-[20px]">
                           จัดการบัญชีพนักงาน
@@ -421,11 +398,11 @@ const Dashboard = () => {
                       isLoggingOut ? "cursor-not-allowed opacity-50" : ""
                     }`}
                   >
-                    <div className="bg-delete flex h-[48px] w-[48px] items-center justify-center rounded-[10px]">
+                    <div className="bg-destructive flex h-[48px] w-[48px] items-center justify-center rounded-[10px]">
                       {isLoggingOut ? (
-                        <LoaderCircle className="text-surface h-[24px] w-[24px] animate-spin" />
+                        <LoaderCircle className="text-surface h-6 w-6 animate-spin" />
                       ) : (
-                        <LogOut className="text-surface h-[24px] w-[24px]" />
+                        <LogOut className="text-surface h-6 w-6" />
                       )}
                     </div>
                     <p className="text-normal text-[18px] font-semibold md:text-[20px]">
@@ -440,7 +417,7 @@ const Dashboard = () => {
           {/* ยอดขายวันนี้ */}
           {user?.role === "ADMIN" && (
             <Link
-              to="/admin/reports/sales/daily"
+              to="/admin/reports/sales?period=daily"
               className="bg-surface shadow-primary mx-auto mt-[16px] flex h-[80px] w-full items-center justify-between rounded-[10px] px-[16px]"
             >
               <p className="text-normal text-[22px] font-semibold md:text-[24px]">
@@ -459,10 +436,9 @@ const Dashboard = () => {
           </p>
 
           {/* กำลังซ่อม */}
-          <Link to="/repairs/status/in-progress">
+          <Link to="/repairs?status=progress">
             <CarCard
-              bg="in-progress"
-              color="#ffb000"
+              bg="progress"
               icon={Wrench}
               status={"กำลังซ่อม"}
               amount={inProgressCount > 0 ? inProgressCount : "0"}
@@ -470,10 +446,9 @@ const Dashboard = () => {
           </Link>
 
           {/* ซ่อมเสร็จสิ้น */}
-          <Link to="/repairs/status/completed">
+          <Link to="/repairs?status=completed">
             <CarCard
               bg="completed"
-              color="#22c55e"
               icon={Success}
               status={"ซ่อมเสร็จสิ้น"}
               amount={completedCount > 0 ? completedCount : "0"}
@@ -481,10 +456,9 @@ const Dashboard = () => {
           </Link>
 
           {/* ชำระเงินแล้ว */}
-          <Link to="/repairs/status/paid">
+          <Link to="/repairs?status=paid">
             <CarCard
               bg="paid"
-              color="#1976d2"
               icon={Paid}
               status={"ชำระเงินแล้ว"}
               amount={paidCount > 0 ? paidCount : "0"}
@@ -502,7 +476,7 @@ const Dashboard = () => {
                   key={`m-out-${item.id}`}
                   onClick={() => {
                     setSelectedItem(item);
-                    setShowItemDetail(true);
+                    setIsItemDetailOpen(true);
                   }}
                 >
                   <InventoryCard
@@ -524,7 +498,7 @@ const Dashboard = () => {
                   key={`m-low-${item.id}`}
                   onClick={() => {
                     setSelectedItem(item);
-                    setShowItemDetail(true);
+                    setIsItemDetailOpen(true);
                   }}
                 >
                   <InventoryCard
@@ -544,12 +518,11 @@ const Dashboard = () => {
             </div>
           )}
         </div>
-
         <ItemDetailDialog
           item={selectedItem}
-          open={showItemDetail}
-          onOpenChange={setShowItemDetail}
-          onStockUpdate={loadInventory}
+          open={isItemDetailOpen}
+          onOpenChange={setIsItemDetailOpen}
+          onStockUpdate={fetchInventory}
         />
       </div>
     </div>

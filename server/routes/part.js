@@ -3,7 +3,7 @@ const router = express.Router();
 const {
   partSchema,
   validate,
-  addStockSchema,
+  updatePartStockSchema,
 } = require("../utils/validator");
 
 // Middlewares
@@ -25,19 +25,14 @@ router.get("/parts", authCheck, getParts);
 router.post("/parts", authCheck, validate(partSchema), createPart);
 
 // @ENDPOINTS http://localhost:3000/api/parts/1
-router.put(
-  "/parts/:id",
-  authCheck,
-  validate(partSchema),
-  updatePart
-);
+router.put("/parts/:id", authCheck, validate(partSchema), updatePart);
 
 // @ENDPOINTS http://localhost:3000/api/parts/1/stock
 router.patch(
   "/parts/:id/stock",
   authCheck,
-  validate(addStockSchema),
-  addStock
+  validate(updatePartStockSchema),
+  addStock,
 );
 
 // @ENDPOINTS http://localhost:3000/api/parts/1

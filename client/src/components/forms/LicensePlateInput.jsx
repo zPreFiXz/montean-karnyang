@@ -22,19 +22,19 @@ const LicensePlateInput = ({
         onInput={onInput}
         className={`bg-surface h-[41px] rounded-[20px] text-[18px] font-medium placeholder:font-light md:text-[20px] ${
           error
-            ? "focus:border-delete border-red-400 focus-visible:!border-2 focus-visible:!border-[#FF4545] focus-visible:!ring-[rgba(255,69,69,0.3)]"
-            : "focus-visible:!border-2 focus-visible:!border-[#1976d2] focus-visible:!ring-[rgba(25,118,210,0.35)]"
+            ? "border-destructive focus-visible:!border-destructive focus-visible:!ring-destructive/30 focus-visible:!border-2"
+            : "focus-visible:!border-primary focus-visible:!ring-primary/35 focus-visible:!border-2"
         }`}
         style={{
-          "--tw-ring-color": error ? "#FF4545" : "#1976d2",
+          "--tw-ring-color": error
+            ? "var(--color-destructive)"
+            : "var(--color-primary)",
           "--tw-border-opacity": "1",
         }}
       />
-
-      {/* แสดงไอคอนแจ้งเตือนหากมี error */}
       {error && (
         <div className="absolute top-1/2 right-[8px] -translate-y-1/2 transform">
-          <AlertCircle className="text-delete h-4 w-4" />
+          <AlertCircle className="text-destructive h-4 w-4" />
         </div>
       )}
     </div>

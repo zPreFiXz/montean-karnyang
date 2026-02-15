@@ -83,7 +83,6 @@ exports.updatePart = async (req, res, next) => {
       categoryId,
     } = req.body;
 
-    // ตรวจสอบว่ารหัสอะไหล่ซ้ำกับรหัสอื่นๆ หรือไม่ (ยกเว้นอะไหล่ปัจจุบัน)
     const part = await prisma.part.findUnique({
       where: { partNumber },
     });

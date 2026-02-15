@@ -1,16 +1,15 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router";
-import { TIMING } from "@/utils/constants";
 
 const LoadingToRedirect = () => {
   const [redirect, setRedirect] = useState(false);
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
+    const interval = setInterval(() => {
       setRedirect(true);
-    }, TIMING.LOADING_DELAY);
+    }, 1000);
 
-    return () => clearTimeout(timeout);
+    return () => clearInterval(interval);
   }, []);
 
   if (redirect) {

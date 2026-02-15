@@ -1,8 +1,8 @@
 const StatusCard = ({ bg, icon: Icon, label, amount }) => {
   const bgColorMap = {
-    "in-progress": "bg-[var(--color-in-progress)]",
-    completed: "bg-[var(--color-completed)]",
-    paid: "bg-[var(--color-paid)]",
+    progress: "bg-status-progress",
+    completed: "bg-status-completed",
+    paid: "bg-status-paid",
   };
 
   return (
@@ -11,9 +11,13 @@ const StatusCard = ({ bg, icon: Icon, label, amount }) => {
     >
       <div className="flex items-center gap-[8px]">
         <Icon />
-        <p className="text-surface text-[22px] font-medium">{label}</p>
+        <p className="text-surface text-[22px] font-medium md:text-[24px]">
+          {label}
+        </p>
       </div>
-      <p className="text-surface text-[32px] font-medium">{amount} คัน</p>
+      <p className="text-surface text-[32px] font-semibold md:text-[34px]">
+        {amount} คัน
+      </p>
     </div>
   );
 };

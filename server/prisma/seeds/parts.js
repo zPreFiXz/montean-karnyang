@@ -1178,7 +1178,7 @@ exports.parts = [
     categoryId: 3,
   },
   {
-    partNumber: "MX2655020AT700",
+    partNumber: "MX2655020HPM3",
     brand: "MAXXIS",
     name: "HP-M3",
     costPrice: 3760,

@@ -1,4 +1,4 @@
-import useAuthStore from "@/stores/authStore";
+import useAuthStore from "@/stores/useAuthStore";
 import { useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import FormInput from "@/components/forms/FormInput";
@@ -57,7 +57,6 @@ const Login = () => {
         <Gauge className="text-primary/15 absolute top-29 right-10 h-16 w-16 rotate-6" />
         <Package className="text-primary/15 absolute bottom-55 left-40 h-20 w-20 -rotate-6" />
       </div>
-
       <div className="relative z-20 mt-[24px] flex w-full flex-col items-center">
         <div className="mb-12 flex flex-col items-center text-center">
           <img

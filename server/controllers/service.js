@@ -43,7 +43,6 @@ exports.updateService = async (req, res, next) => {
 
     const { name, price, categoryId } = req.body;
 
-    // ตรวจสอบว่าชื่อบริการซ้ำกับบริการอื่นๆ หรือไม่ (ยกเว้นบริการปัจจุบัน)
     const service = await prisma.service.findUnique({
       where: { name },
     });

@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from "react";
 import { Plus, Trash, X } from "lucide-react";
 import ComboBox from "../ui/ComboBox";
 import { getVehicleBrandModels } from "@/api/vehicleBrandModel";
-import { TIMING } from "@/utils/constants";
 
 const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   const [vehicles, setVehicles] = useState([{ brand: "", model: "" }]);
@@ -17,12 +16,10 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   }, []);
 
   useEffect(() => {
-    // ถ้ามีข้อมูลเริ่มต้น ให้ตั้งค่า
     if (initialData && Array.isArray(initialData) && !isInitialized) {
       setVehicles(initialData);
       setValue("compatibleVehicles", initialData);
       setIsInitialized(true);
-      // ถ้าไม่มีข้อมูลเริ่มต้น ให้ตั้งค่าเป็นรายการว่าง
     } else if (initialData === null && !isInitialized) {
       setVehicles([{ brand: "", model: "" }]);
       setValue("compatibleVehicles", null);
@@ -30,7 +27,6 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
     }
   }, [setValue, initialData, isInitialized]);
 
-  // อัพเดทเมื่อ initialData เปลี่ยนแปลง
   useEffect(() => {
     if (initialData && Array.isArray(initialData)) {
       setVehicles(initialData);
@@ -46,7 +42,6 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
       const res = await getVehicleBrandModels();
       setVehicleBrandModels(res.data);
 
-      // ดึงยี่ห้อรถที่ไม่ซ้ำกัน
       const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
       setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
     } catch (error) {
@@ -79,7 +74,6 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
     const newVehicles = [...vehicles, { brand: "", model: "" }];
     setVehicles(newVehicles);
 
-    // เลื่อนไปยังรถคันใหม่หลังจากเพิ่ม
     setTimeout(() => {
       const newIndex = newVehicles.length - 1;
       if (vehicleRefs.current[newIndex]) {
@@ -88,7 +82,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
           block: "center",
         });
       }
-    }, TIMING.SCROLL_DELAY);
+    }, 200);
   };
 
   const handleClearVehicle = (index) => {
@@ -110,7 +104,6 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
     const newVehicles = vehicles.map((vehicle, i) => {
       if (i === index) {
         if (field === "brand") {
-          // ถ้าเปลี่ยนยี่ห้อ ให้ล้างรุ่นด้วย
           return { brand: value, model: "" };
         } else {
           return { ...vehicle, [field]: value };
@@ -127,8 +120,6 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
       <Label className="text-subtle-dark text-[22px] font-medium md:text-[24px]">
         รถที่รองรับ
       </Label>
-
-      {/* รายการรถที่รองรับ */}
       {vehicles.map((vehicle, index) => (
         <div
           key={index}
@@ -144,7 +135,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                 <button
                   type="button"
                   onClick={() => handleClearVehicle(index)}
-                  className="text-delete flex cursor-pointer items-center text-[18px] font-medium md:text-[20px]"
+                  className="text-destructive flex cursor-pointer items-center text-[18px] font-medium md:text-[20px]"
                 >
                   <X className="mr-[4px] h-4 w-4" />
                   ล้างข้อมูล
@@ -154,7 +145,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                 <button
                   type="button"
                   onClick={() => handleRemoveVehicle(index)}
-                  className="text-delete flex cursor-pointer items-center text-[18px] font-medium md:text-[20px]"
+                  className="text-destructive flex cursor-pointer items-center text-[18px] font-medium md:text-[20px]"
                 >
                   <Trash className="mr-[4px] h-4 w-4" />
                   ลบ
@@ -191,7 +182,6 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
           </div>
         </div>
       ))}
-
       <button
         type="button"
         onClick={handleAddVehicle}

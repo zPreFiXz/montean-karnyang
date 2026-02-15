@@ -6,34 +6,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "../ui/button";
-import {
-  CircleUserRound,
-  LogOut,
-  CarFront,
-  Users,
-  ChevronDown,
-  LoaderCircle,
-} from "lucide-react";
-import useAuthStore from "@/stores/authStore";
-import { useNavigate } from "react-router";
+import { ChevronDown } from "lucide-react";
+import useAuthStore from "@/stores/useAuthStore";
+import { Link } from "react-router";
 import { useState } from "react";
-import { TIMING } from "@/utils/constants";
-import { toast } from "sonner";
+import { publicLinks, privateLinks } from "@/utils/links";
+import SignOutLink from "./SignOutLink";
+import UserIcon from "./UserIcon";
 
 const DropdownListMenu = () => {
-  const navigate = useNavigate();
-  const logout = useAuthStore((state) => state.logout);
   const { user } = useAuthStore();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    await new Promise((resolve) => setTimeout(resolve, TIMING.LOADING_DELAY));
-    await logout();
-    toast.success("ออกจากระบบเรียบร้อยแล้ว");
-    navigate("/login");
-  };
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   return (
     <DropdownMenu
@@ -43,10 +27,10 @@ const DropdownListMenu = () => {
       <DropdownMenuTrigger asChild>
         <div className="group flex cursor-pointer items-center gap-[12px] rounded-[10px] px-[12px] py-[8px]">
           <div className="relative">
-            <div className="bg-gradient-primary flex h-[41px] w-[40px] items-center justify-center rounded-full shadow-md">
-              <CircleUserRound className="text-surface" />
-            </div>
+            <UserIcon />
           </div>
+
+          {/* ชื่อและบทบาทของผู้ใช้ */}
           <div className="flex flex-col">
             <p className="text-primary text-[18px] leading-tight font-semibold">
               {user?.fullName}
@@ -59,44 +43,46 @@ const DropdownListMenu = () => {
             variant="outline"
             className="h-[32px] w-[32px] cursor-pointer transition-transform duration-300 group-data-[state=open]:rotate-180"
           >
-            <ChevronDown className="text-primary h-[16px] w-[16px]" />
+            <ChevronDown className="text-primary h-4 w-4" />
           </Button>
         </div>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        className="font-athiti bg-surface w-[220px] rounded-[12px] border border-gray-100 p-[8px] shadow-[0px_10px_40px_0_rgba(0,0,0,0.15)]"
-        align="end"
-        sideOffset={8}
-      >
-        <DropdownMenuItem
-          onClick={() => navigate("/vehicles/brand-models")}
-          className="flex cursor-pointer items-center gap-[12px] rounded-[8px] px-[12px] py-[8px] text-[16px] font-medium transition-colors duration-200 hover:bg-gray-100"
-        >
-          <CarFront className="text-primary h-[16px] w-[16px]" />
-          <p>จัดการยี่ห้อและรุ่นรถ</p>
-        </DropdownMenuItem>
-        {user?.role === "ADMIN" && (
-          <DropdownMenuItem
-            onClick={() => navigate("/admin/employees")}
-            className="flex cursor-pointer items-center gap-[12px] rounded-[8px] px-[12px] py-[8px] text-[16px] font-medium transition-colors duration-200 hover:bg-gray-100"
-          >
-            <Users className="text-completed h-[16px] w-[16px]" />
-            <p>จัดการบัญชีพนักงาน</p>
-          </DropdownMenuItem>
-        )}
+      <DropdownMenuContent className="font-athiti bg-surface w-[220px] rounded-[12px] border border-gray-100 p-[8px] shadow-[0px_10px_40px_0_rgba(0,0,0,0.15)]">
+        {publicLinks.map((item, index) => {
+          const Icon = item.icon;
+          return (
+            <DropdownMenuItem key={index} asChild>
+              <Link
+                to={item.href}
+                className="flex cursor-pointer items-center gap-[12px] rounded-[8px] px-[12px] py-[8px] text-[16px] font-medium transition-colors duration-200 hover:bg-gray-100"
+              >
+                <Icon className={`h-4 w-4 ${item.iconClass}`} />
+                <p>{item.label}</p>
+              </Link>
+            </DropdownMenuItem>
+          );
+        })}
+
+        {/* Private Links เฉพาะ ADMIN */}
+        {user?.role === "ADMIN" &&
+          privateLinks.map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <DropdownMenuItem key={index} asChild>
+                <Link
+                  to={item.href}
+                  className="flex cursor-pointer items-center gap-[12px] rounded-[8px] px-[12px] py-[8px] text-[16px] font-medium transition-colors duration-200 hover:bg-gray-100"
+                >
+                  <Icon className={`h-4 w-4 ${item.iconClass}`} />
+                  <p>{item.label}</p>
+                </Link>
+              </DropdownMenuItem>
+            );
+          })}
         <DropdownMenuSeparator className="my-[4px]" />
-        <DropdownMenuItem
-          onClick={handleLogout}
-          disabled={isLoggingOut}
-          className="flex cursor-pointer items-center gap-[12px] rounded-[8px] px-[12px] py-[8px] text-[16px] font-medium transition-colors duration-200 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isLoggingOut ? (
-            <LoaderCircle className="text-delete h-[16px] w-[16px] animate-spin" />
-          ) : (
-            <LogOut className="text-delete h-[16px] w-[16px]" />
-          )}
-          <p>{isLoggingOut ? "ออกจากระบบ..." : "ออกจากระบบ"}</p>
-        </DropdownMenuItem>
+
+        {/* ออกจากระบบ */}
+        <SignOutLink onLoggingOut={setIsLoggingOut} />
       </DropdownMenuContent>
     </DropdownMenu>
   );

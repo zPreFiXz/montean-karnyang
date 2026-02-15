@@ -4,7 +4,7 @@ import { useEffect, useState, useId, useCallback } from "react";
 import { ImageIcon, X, Upload } from "lucide-react";
 import { toast } from "sonner";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 1 * 1024 * 1024;
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 const FormUploadImage = ({
@@ -34,46 +34,47 @@ const FormUploadImage = ({
       typeof selectedImage === "string" &&
       selectedImage !== previewImage
     ) {
-      // ถ้า selectedImage เป็น URL string (รูปที่มีอยู่แล้ว)
       setPreviewImage(selectedImage);
     }
   }, [selectedImage, previewImage, inputId]);
 
+  useEffect(() => {
+    return () => {
+      if (previewImage && previewImage.startsWith("blob:")) {
+        URL.revokeObjectURL(previewImage);
+      }
+    };
+  }, [previewImage]);
+
   const validateFile = (file) => {
     if (!file) return false;
 
-    // เช็คประเภทไฟล์
     if (!ACCEPTED_TYPES.includes(file.type)) {
       toast.error("รองรับเฉพาะไฟล์ PNG, JPG, WEBP เท่านั้น");
       return false;
     }
 
-    // เช็คขนาดไฟล์
     if (file.size > MAX_FILE_SIZE) {
-      toast.error("ไฟล์ใหญ่เกิน 5MB กรุณาเลือกไฟล์ที่เล็กกว่า");
+      toast.error("ไฟล์ใหญ่เกิน 1MB กรุณาเลือกไฟล์ที่เล็กกว่า");
       return false;
     }
 
     return true;
   };
 
-  // Process file (ใช้ร่วมกันทั้ง input และ drag & drop)
   const processFile = useCallback(
     (file) => {
       if (!validateFile(file)) return;
 
-      // ลบ blob URL เก่าก่อน (ถ้ามี) เพื่อป้องกัน memory leak
       if (previewImage && previewImage.startsWith("blob:")) {
         URL.revokeObjectURL(previewImage);
       }
 
-      // รีเซ็ต mark for deletion เมื่อมีการอัพโหลดรูปใหม่
       setIsMarkedForDeletion(false);
       if (onMarkForDeletion) {
         onMarkForDeletion(false);
       }
 
-      // สร้าง blob URL ใหม่สำหรับ preview
       const newBlobUrl = URL.createObjectURL(file);
       setPreviewImage(newBlobUrl);
 
@@ -91,7 +92,6 @@ const FormUploadImage = ({
     }
   };
 
-  // Drag and Drop handlers
   const handleDragEnter = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -128,12 +128,10 @@ const FormUploadImage = ({
     e.preventDefault();
     e.stopPropagation();
 
-    // ถ้า previewImage เป็น blob URL ให้ revoke
     if (previewImage && previewImage.startsWith("blob:")) {
       URL.revokeObjectURL(previewImage);
     }
 
-    // ถ้าเป็นรูปเดิมที่มี publicId ให้มาร์กว่าจะลบแต่ยังไม่ลบจริง
     if (publicId && typeof selectedImage === "string") {
       setIsMarkedForDeletion(true);
       if (onMarkForDeletion) {
@@ -152,15 +150,6 @@ const FormUploadImage = ({
       input.value = "";
     }
   };
-
-  useEffect(() => {
-    return () => {
-      // เฉพาะ blob URLs เท่านั้นที่ต้อง revoke
-      if (previewImage && previewImage.startsWith("blob:")) {
-        URL.revokeObjectURL(previewImage);
-      }
-    };
-  }, [previewImage]);
 
   return (
     <div className="w-full justify-center px-[20px] pt-[16px]">
@@ -191,7 +180,6 @@ const FormUploadImage = ({
               : "border-gray-300 hover:border-gray-400"
           } ${isDeleting ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
         >
-          {/* แสดง preview image หากมี */}
           {previewImage ? (
             <div className="h-full w-full">
               <img
@@ -224,7 +212,7 @@ const FormUploadImage = ({
                     {placeholder}
                   </p>
                   <p className="text-subtle-light text-[14px] md:text-[16px]">
-                    PNG, JPG, WEBP ขนาดไม่เกิน 5MB
+                    PNG, JPG, WEBP ขนาดไม่เกิน 1MB
                   </p>
                   <p className="text-subtle-light mt-[4px] text-[14px] md:text-[16px]">
                     หรือลากวางไฟล์ที่นี่

@@ -19,7 +19,6 @@ exports.createVehicleBrandModel = async (req, res, next) => {
 
     let vehicleBrandModel;
 
-    // ตรวจสอบว่ามียี่ห้อ-รุ่นนี้อยู่แล้วหรือไม่
     vehicleBrandModel = await prisma.vehicleBrandModel.findFirst({
       where: {
         brand,
@@ -51,7 +50,6 @@ exports.updateVehicleBrandModel = async (req, res, next) => {
 
     let vehicleBrandModel;
 
-    // ตรวจสอบว่ามียี่ห้อ-รุ่นนี้อยู่แล้วหรือไม่ (ยกเว้นรายการที่กำลังแก้ไข)
     vehicleBrandModel = await prisma.vehicleBrandModel.findFirst({
       where: {
         brand,
@@ -82,7 +80,6 @@ exports.deleteVehicleBrandModel = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // ตรวจสอบว่ามีการใช้งานยี่ห้อ-รุ่นนี้หรือไม่
     const vehicleBrandModel = await prisma.vehicle.findFirst({
       where: { vehicleBrandModelId: Number(id) },
     });
@@ -90,7 +87,7 @@ exports.deleteVehicleBrandModel = async (req, res, next) => {
     if (vehicleBrandModel) {
       createError(
         400,
-        "ไม่สามารถลบยี่ห้อและรุ่นรถนี้ได้ เนื่องจากมีรถที่ใช้งานอยู่"
+        "ไม่สามารถลบยี่ห้อและรุ่นรถนี้ได้ เนื่องจากมีรถที่ใช้งานอยู่",
       );
     }
 

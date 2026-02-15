@@ -1,16 +1,15 @@
 import FormInput from "@/components/forms/FormInput";
 import ComboBox from "@/components/ui/ComboBox";
-import { TIMING } from "@/utils/constants";
 import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
-import EditPriceDialog from "@/components/dialogs/EditRepairItemDialog";
+import EditPriceDialog from "@/components/dialogs/EditNamePriceDialog";
 import { useForm } from "react-hook-form";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { provinces } from "@/utils/data";
+import { PROVINCES } from "@/constants/provinces";
 import { getVehicleBrandModels } from "@/api/vehicleBrandModel";
 import { getParts } from "@/api/part";
 import LicensePlateInput from "@/components/forms/LicensePlateInput";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/utils/formats";
 import {
   Image,
   Trash,
@@ -42,12 +41,11 @@ const SuspensionInspection = () => {
   } = useForm({
     resolver: zodResolver(repairSchema),
   });
-  const isFullNameFilled = Boolean(watch("fullName")?.trim());
   const [vehicleBrandModels, setVehicleBrandModels] = useState([]);
   const [brands, setBrands] = useState([]);
   const [repairItems, setRepairItems] = useState([]);
   const [compatibleParts, setCompatibleParts] = useState([]);
-  const [partsLoaded, setPartsLoaded] = useState(false);
+  const [isPartsLoaded, setIsPartsLoaded] = useState(false);
   const [selectedLeftParts, setSelectedLeftParts] = useState(new Set());
   const [selectedRightParts, setSelectedRightParts] = useState(new Set());
   const [selectedOtherParts, setSelectedOtherParts] = useState(new Set());
@@ -58,8 +56,8 @@ const SuspensionInspection = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [priceOverrides, setPriceOverrides] = useState({});
   const restoredRef = useRef(false);
-  const [showMoreFields, setShowMoreFields] = useState(false);
-  const [showCustomerInfo, setShowCustomerInfo] = useState(false);
+  const [isMoreFieldsVisible, setIsMoreFieldsVisible] = useState(false);
+  const [isCustomerInfoOpen, setIsCustomerInfoOpen] = useState(false);
   const initialSelectedRef = useRef({
     left: new Set(),
     right: new Set(),
@@ -71,19 +69,16 @@ const SuspensionInspection = () => {
     fetchVehicleBrandModels();
   }, []);
 
-  // เพิ่มค่าแรงอัตโนมัติเมื่อมีอะไหล่ที่รองรับ
   useEffect(() => {
-    if (!partsLoaded) return;
+    if (!isPartsLoaded) return;
     if (compatibleParts.length === 0) return;
 
     setRepairItems((prev) => {
       if (restoredRef.current) {
-        // ข้ามการเพิ่มค่าแรงครั้งแรกหลังการกู้คืน แล้วรีเซ็ต
         restoredRef.current = false;
         return prev;
       }
 
-      // เพิ่มค่าแรงถ้ายังไม่มีในรายการซ่อม
       const exists = prev.some(
         (i) => i?.category?.name === "บริการ" && i?.id === 1,
       );
@@ -100,26 +95,24 @@ const SuspensionInspection = () => {
         },
       ];
     });
-  }, [compatibleParts, partsLoaded]);
+  }, [compatibleParts, isPartsLoaded]);
 
-  // ดึงอะไหล่ที่เข้ากันได้เมื่อยี่ห้อหรือรุ่นเปลี่ยน
   useEffect(() => {
     const brand = watch("brand");
     const model = watch("model");
 
-    setPartsLoaded(false);
+    setIsPartsLoaded(false);
 
     if (brand && model) {
       fetchCompatibleParts(brand, model);
     } else {
       setCompatibleParts([]);
-      setPartsLoaded(false);
+      setIsPartsLoaded(false);
     }
   }, [watch("brand"), watch("model")]);
 
-  // กรองเอาค่าแรงออกถ้าไม่มีอะไหล่ที่เข้ากันได้
   useEffect(() => {
-    if (!partsLoaded) return;
+    if (!isPartsLoaded) return;
 
     if (compatibleParts.length === 0) {
       setRepairItems((prev) =>
@@ -132,9 +125,8 @@ const SuspensionInspection = () => {
         ),
       );
     }
-  }, [compatibleParts, partsLoaded]);
+  }, [compatibleParts, isPartsLoaded]);
 
-  // กู้คืนข้อมูลจาก location.state (ถ้ามี) เมื่อเข้ามาในหน้า
   useEffect(() => {
     if (!location.state) return;
 
@@ -152,7 +144,6 @@ const SuspensionInspection = () => {
     }
 
     if (savedItems && Array.isArray(savedItems)) {
-      // แยกรายการซ่อมตาม side
       const manualItems = savedItems.filter((i) => !i.side);
       const leftIds = savedItems
         .filter((i) => i.side === "left")
@@ -171,14 +162,12 @@ const SuspensionInspection = () => {
       setSelectedLeftParts(leftSet);
       setSelectedRightParts(rightSet);
       setSelectedOtherParts(otherSet);
-      // เก็บรายการที่ถูกเลือกมาตั้งแต่แรก เพื่ออนุญาตติ๊กกลับได้แม้สต็อกไม่พอ
       initialSelectedRef.current = {
         left: leftSet,
         right: rightSet,
         other: otherSet,
       };
 
-      //  สร้างแผนที่ stockQuantity ที่กู้คืนมา
       const map = {};
       for (const it of savedItems) {
         if (
@@ -191,16 +180,12 @@ const SuspensionInspection = () => {
         }
       }
       setRestoredStockMap(map);
-      // ตั้งค่าว่าเพิ่งกู้คืนข้อมูล เพื่อกันการเพิ่มค่าแรงซ้ำอัตโนมัติในรอบถัดไป
       restoredRef.current = true;
     }
 
-    // จัดการการแสดงผลฟิลด์ข้อมูลลูกค้า
     if (hideMoreFields) {
-      //  ถ้ามากับคำสั่งซ่อนฟิลด์ข้อมูลลูกค้า ให้ซ่อนเลย
-      setShowMoreFields(false);
+      setIsMoreFieldsVisible(false);
     } else {
-      //  ถ้าไม่มีคำสั่งซ่อนฟิลด์ ให้ตรวจสอบว่ามีค่าฟิลด์ซ่อนอยู่หรือไม่
       try {
         const hiddenInputs = Array.from(
           document.querySelectorAll('form input[type="hidden"]'),
@@ -208,13 +193,10 @@ const SuspensionInspection = () => {
         const hasHiddenValue = hiddenInputs.some(
           (el) => el && el.value != null && String(el.value).trim() !== "",
         );
-        if (hasHiddenValue) setShowMoreFields(true);
-      } catch {
-        // Silently ignore errors
-      }
+        if (hasHiddenValue) setIsMoreFieldsVisible(true);
+      } catch {}
     }
 
-    // เก็บค่าบางค่าไว้ใน history state เพื่อไม่ให้หายไปเมื่อรีเฟรชหรือเปลี่ยนแท็บ
     const preserved = {
       ...(editRepairId ? { editRepairId } : {}),
       ...(location.state?.from ? { from: location.state.from } : {}),
@@ -238,7 +220,6 @@ const SuspensionInspection = () => {
       const res = await getVehicleBrandModels();
       setVehicleBrandModels(res.data);
 
-      // ดึงยี่ห้อรถที่ไม่ซ้ำกัน
       const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
       setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
     } catch (error) {
@@ -251,41 +232,35 @@ const SuspensionInspection = () => {
       const res = await getParts();
       const allParts = res.data;
 
-      // กรองเอาเฉพาะอะไหล่ที่เข้ากันได้กับยี่ห้อและรุ่นที่เลือก
       const compatible = allParts.filter((part) => {
         if (!part.compatibleVehicles) return false;
 
-        // ตรวจสอบใน compatibleVehicles ว่ามียี่ห้อ-รุ่นนี้หรือไม่
         return part.compatibleVehicles.some(
           (vehicle) => vehicle.brand === brand && vehicle.model === model,
         );
       });
 
       setCompatibleParts(compatible);
-      setPartsLoaded(true);
+      setIsPartsLoaded(true);
     } catch (error) {
       console.error(error);
       setCompatibleParts([]);
-      setPartsLoaded(true);
+      setIsPartsLoaded(true);
     }
   };
 
-  // กรองอะไหล่ตามแท็บซ้าย ขวา อื่นๆ
   const getPartsForSide = (side) => {
     return compatibleParts.filter((part) => {
-      // ถ้าไม่มีข้อมูล typeSpecificData หรือไม่มี suspensionType ให้แสดงทั้งหมด
       if (!part.typeSpecificData || !part.typeSpecificData.suspensionType) {
         return true;
       }
 
       const suspensionType = part.typeSpecificData.suspensionType;
 
-      // ถ้าเป็น left-right ให้แสดงเฉพาะแท็บซ้ายและขวา
       if (suspensionType === "left-right") {
         return side === "left" || side === "right";
       }
 
-      // ถ้าเป็น other ให้แสดงเฉพาะแท็บอื่นๆ
       if (suspensionType === "other") {
         return side === "other";
       }
@@ -315,7 +290,6 @@ const SuspensionInspection = () => {
       );
     }
 
-    // แสดงข้อมูลยางที่มีขนาดแก้มยาง
     if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
       return (
         <p className="text-normal line-clamp-1 w-full text-[16px] leading-tight font-semibold md:text-[18px]">
@@ -326,7 +300,6 @@ const SuspensionInspection = () => {
       );
     }
 
-    // แสดงข้อมูลยางที่ไม่มีขนาดแก้มยาง
     if (isTire && item.typeSpecificData) {
       return (
         <p className="text-normal line-clamp-1 w-full text-[16px] leading-tight font-semibold md:text-[18px]">
@@ -336,7 +309,6 @@ const SuspensionInspection = () => {
       );
     }
 
-    // แสดงข้อมูลอะไหล่หรือบริการ
     return (
       <p className="text-normal line-clamp-1 w-full text-[16px] leading-tight font-semibold md:text-[18px]">
         {item.brand} {item.name}
@@ -346,13 +318,11 @@ const SuspensionInspection = () => {
 
   const handleAddItemToRepair = (item) => {
     setRepairItems((prev) => {
-      // สร้างสำเนาของ item โดยตั้งค่า side เป็น null
       const itemWithSide = {
         ...item,
-        side: null, // ตั้งค่า side เป็น null
+        side: null,
       };
 
-      // ตรวจสอบว่ามีรายการซ้ำหรือไม่
       const index = prev.findIndex(
         (i) =>
           i.partNumber === itemWithSide.partNumber &&
@@ -360,7 +330,6 @@ const SuspensionInspection = () => {
           i.name === itemWithSide.name,
       );
       if (index !== -1) {
-        // ถ้ามีรายการซ้ำ เพิ่มจำนวนขึ้น 1
         return prev.map((i, idx) =>
           idx === index
             ? {
@@ -370,7 +339,6 @@ const SuspensionInspection = () => {
             : i,
         );
       } else {
-        // ถ้าไม่มีรายการซ้ำ ให้เพิ่มรายการใหม่
         return [
           ...prev,
           {
@@ -388,7 +356,7 @@ const SuspensionInspection = () => {
         top: document.body.scrollHeight,
         behavior: "smooth",
       });
-    }, TIMING.SCROLL_DELAY);
+    }, 200);
   };
 
   const handleIncreaseQuantity = (index) => {
@@ -410,13 +378,11 @@ const SuspensionInspection = () => {
   };
 
   const handlePriceClick = (index, item) => {
-    // ป้องกันโฟกัสค้างอยู่บน element ที่จะถูกซ่อนไว้ด้วย aria-hidden โดย dialog
     try {
       const ae = document.activeElement;
       if (ae && ae instanceof HTMLElement) ae.blur();
-    } catch {
-      // Silently ignore errors
-    }
+    } catch {}
+
     setEditingItem({ source: "manual", index, ...item });
     setPriceDialogOpen(true);
   };
@@ -466,13 +432,11 @@ const SuspensionInspection = () => {
   };
 
   const handleEditCompatiblePrice = (part) => {
-    // ป้องกันโฟกัสค้างอยู่บน element ที่จะถูกซ่อนไว้ด้วย aria-hidden โดย dialog
     try {
       const ae = document.activeElement;
       if (ae && ae instanceof HTMLElement) ae.blur();
-    } catch {
-      // Silently ignore errors
-    }
+    } catch {}
+
     setEditingItem({
       source: "compatible",
       partId: part.id,
@@ -490,13 +454,11 @@ const SuspensionInspection = () => {
     return repairItems.length;
   };
 
-  // จำนวนที่อนุญาตให้เลือกสำหรับอะไหล่ชิ้นนั้น (พิจารณาจากสต็อกและการเลือกเริ่มต้น)
   const getAllowedUnitsForPart = (part) => {
     const stockQty =
       typeof part?.stockQuantity === "number"
         ? Math.max(part.stockQuantity, 0)
         : Infinity;
-    // ตรวจสอบว่าเป็นอะไหล่ช่วงล่างหรือไม่
     const isSuspensionPart = Boolean(part?.typeSpecificData?.suspensionType);
     const initialCount = isSuspensionPart
       ? Number(initialSelectedRef.current.left.has(part.id)) +
@@ -507,7 +469,6 @@ const SuspensionInspection = () => {
     return Math.max(stockQty, initialCount);
   };
 
-  // จำนวนที่เลือกอยู่ในขณะนี้สำหรับอะไหล่ชิ้นนั้น
   const getCurrentSelectedCountForPart = (part) => {
     return (
       Number(selectedLeftParts.has(part.id)) +
@@ -530,7 +491,6 @@ const SuspensionInspection = () => {
         else next.delete(part.id);
         return next;
       });
-      // ถ้าเลือกฝั่งซ้าย และเป็น left-right และเกินจำนวนที่อนุญาต ให้เอาฝั่งขวาออก
       if (isSelected && isLeftRight && allowedUnits === 1) {
         setSelectedRightParts((prev) => {
           const next = new Set(prev);
@@ -545,7 +505,6 @@ const SuspensionInspection = () => {
         else next.delete(part.id);
         return next;
       });
-      // ถ้าเลือกฝั่งขวา และเป็น left-right และเกินจำนวนที่อนุญาต ให้เอาฝั่งซ้ายออก
       if (isSelected && isLeftRight && allowedUnits === 1) {
         setSelectedLeftParts((prev) => {
           const next = new Set(prev);
@@ -576,9 +535,7 @@ const SuspensionInspection = () => {
 
     try {
       setFocus(firstErrorField, { shouldSelect: true });
-    } catch {
-      // Silently ignore errors
-    }
+    } catch {}
 
     setTimeout(() => {
       let el = document.querySelector(`[name="${firstErrorField}"]`);
@@ -592,16 +549,14 @@ const SuspensionInspection = () => {
           inline: "nearest",
         });
       }
-    }, TIMING.SCROLL_DELAY);
+    }, 200);
   };
 
   const onSubmit = async (data) => {
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, TIMING.LOADING_DELAY));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // รวมรายการซ่อมทั้งหมด
     const allRepairItems = [
-      // รายการซ่อมจากอะไหล่ช่วงล่างฝั่งซ้าย
       ...Array.from(selectedLeftParts)
         .map((id) => getPartsForSide("left").find((p) => p.id === id))
         .filter(Boolean)
@@ -611,7 +566,6 @@ const SuspensionInspection = () => {
           quantity: 1,
           side: "left",
         })),
-      // รายการซ่อมจากอะไหล่ช่วงล่างฝั่งขวา
       ...Array.from(selectedRightParts)
         .map((id) => getPartsForSide("right").find((p) => p.id === id))
         .filter(Boolean)
@@ -621,7 +575,6 @@ const SuspensionInspection = () => {
           quantity: 1,
           side: "right",
         })),
-      // รายการซ่อมจากอะไหล่ช่วงล่างอื่นๆ
       ...Array.from(selectedOtherParts)
         .map((id) => getPartsForSide("other").find((p) => p.id === id))
         .filter(Boolean)
@@ -631,7 +584,6 @@ const SuspensionInspection = () => {
           quantity: 1,
           side: "other",
         })),
-      // รายการซ่อมจากรายการซ่อมที่เพิ่มเอง
       ...repairItems,
     ];
 
@@ -651,19 +603,13 @@ const SuspensionInspection = () => {
   };
 
   return (
-    <>
+    <div>
       <div className="bg-gradient-primary shadow-primary flex min-h-[100svh] flex-col xl:min-h-[calc(100vh-73px)] xl:flex-row xl:items-start xl:gap-[16px] xl:bg-transparent xl:px-[16px] xl:pt-[24px] xl:pb-[24px] xl:shadow-none">
         <div className="xl:shadow-primary flex flex-1 flex-col xl:h-fit xl:w-1/2 xl:flex-initial xl:rounded-2xl xl:bg-white">
           <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
             <div className="bg-surface/20 xl:bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
-              <CarRepair
-                color="#ffffff"
-                className="h-[24px] w-[24px] xl:hidden"
-              />
-              <CarRepair
-                color="#1976d2"
-                className="hidden h-[24px] w-[24px] xl:block"
-              />
+              <CarRepair color="#ffffff" className="h-6 w-6 xl:hidden" />
+              <CarRepair color="#1976d2" className="hidden h-6 w-6 xl:block" />
             </div>
             <div>
               <p className="text-surface xl:text-primary text-[24px] font-semibold md:text-[26px]">
@@ -671,17 +617,15 @@ const SuspensionInspection = () => {
               </p>
             </div>
           </div>
-
           <form
             id="suspension-form"
             className="xl:[&_label]:text-normal xl:[&_.text-surface]:text-normal flex flex-1 flex-col"
             onSubmit={handleSubmit(onSubmit, onInvalid)}
           >
-            {/* ข้อมูลลูกค้า */}
             <div className="mx-[20px] mt-[16px]">
               <button
                 type="button"
-                onClick={() => setShowCustomerInfo(!showCustomerInfo)}
+                onClick={() => setIsCustomerInfoOpen(!isCustomerInfoOpen)}
                 className="bg-surface/10 flex w-full cursor-pointer items-center justify-between rounded-[12px] px-[16px] py-[12px] transition-colors xl:bg-gray-50 xl:hover:bg-gray-100"
               >
                 <div className="flex items-center gap-[12px]">
@@ -701,13 +645,11 @@ const SuspensionInspection = () => {
                   </div>
                 </div>
                 <ChevronDown
-                  className={`text-surface xl:text-subtle-dark h-[24px] w-[24px] transition-transform duration-200 ${showCustomerInfo ? "rotate-180" : ""}`}
+                  className={`text-surface xl:text-subtle-dark h-6 w-6 transition-transform duration-200 ${isCustomerInfoOpen ? "rotate-180" : ""}`}
                 />
               </button>
-
-              {/* ข้อมูลลูกค้า ที่ซ่อน/แสดง */}
               <div
-                className={`overflow-hidden transition-all duration-200 ${showCustomerInfo ? "mt-[12px] max-h-[500px] opacity-100" : "max-h-0 opacity-0"}`}
+                className={`overflow-hidden transition-all duration-200 ${isCustomerInfoOpen ? "mt-[12px] max-h-[500px] opacity-100" : "max-h-0 opacity-0"}`}
               >
                 <div className="space-y-[4px]">
                   <FormInput
@@ -720,6 +662,7 @@ const SuspensionInspection = () => {
                     errors={errors}
                     customClass="mt-[12px]"
                   />
+
                   <FormInput
                     register={register}
                     name="address"
@@ -730,6 +673,7 @@ const SuspensionInspection = () => {
                     errors={errors}
                     customClass="mt-[12px]"
                   />
+
                   <FormInput
                     register={register}
                     name="phoneNumber"
@@ -750,7 +694,6 @@ const SuspensionInspection = () => {
                 </div>
               </div>
             </div>
-
             <div className="mt-[16px] px-[20px]">
               <ComboBox
                 label="ยี่ห้อรถ"
@@ -765,7 +708,7 @@ const SuspensionInspection = () => {
                   setValue("model", "", {
                     shouldValidate: true,
                     shouldTouch: true,
-                  }); // รีเซ็ตรุ่นรถเมื่อเปลี่ยนยี่ห้อ
+                  });
                 }}
                 placeholder="-- เลือกยี่ห้อรถ --"
                 errors={errors}
@@ -800,8 +743,6 @@ const SuspensionInspection = () => {
                 value={watch("model") || ""}
               />
             </div>
-
-            {/* ป้ายทะเบียนรถ */}
             <div className="px-[20px] pt-[16px]">
               <p className="text-surface mb-[8px] text-[22px] font-medium md:text-[24px]">
                 ทะเบียนรถ
@@ -842,7 +783,7 @@ const SuspensionInspection = () => {
                   <ComboBox
                     label=""
                     color="text-surface"
-                    options={provinces}
+                    options={PROVINCES}
                     value={watch("province")}
                     onChange={(value) =>
                       setValue("province", value, {
@@ -868,20 +809,17 @@ const SuspensionInspection = () => {
               errors={errors}
             />
 
-            {/* Desktop: Padding Bottom */}
             <div className="hidden pb-[24px] xl:block" />
 
-            {/* Mobile: รายการซ่อมช่วงล่าง */}
             <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl xl:hidden">
               <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
                 <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
-                  <ClipboardList className="text-primary h-[24px] w-[24px]" />
+                  <ClipboardList className="text-primary h-6 w-6" />
                 </div>
                 <p className="text-[22px] font-semibold md:text-[24px]">
                   รายการซ่อมช่วงล่าง
                 </p>
               </div>
-
               <div className="mx-[20px] mt-[16px] flex justify-center">
                 <div className="relative flex w-[308px] rounded-[10px] bg-gray-100 p-[4px]">
                   <button
@@ -917,8 +855,6 @@ const SuspensionInspection = () => {
                   >
                     <p className="relative z-10">อื่นๆ</p>
                   </button>
-
-                  {/* Sliding background */}
                   <div
                     className={`bg-gradient-primary absolute flex h-[40px] justify-center rounded-[10px] shadow-lg duration-300 ease-out ${
                       activeTab === "left"
@@ -930,11 +866,8 @@ const SuspensionInspection = () => {
                   />
                 </div>
               </div>
-
-              {/* รายการอะไหล่ที่เข้ากันได้ */}
               {compatibleParts.length > 0 && (
                 <div>
-                  {/* Panel ซ้าย */}
                   {activeTab === "left" && (
                     <div
                       key="panel-left"
@@ -1016,8 +949,8 @@ const SuspensionInspection = () => {
                                       </button>
                                     </div>
                                     {isDisabled && (
-                                      <p className="text-delete flex items-center gap-[4px] text-[16px] leading-tight font-semibold md:text-[18px]">
-                                        <AlertTriangle className="text-delete h-5 w-5" />
+                                      <p className="text-destructive flex items-center gap-[4px] text-[16px] leading-tight font-semibold md:text-[18px]">
+                                        <AlertTriangle className="text-destructive h-5 w-5" />
                                         <p>สต็อกหมด</p>
                                       </p>
                                     )}
@@ -1047,8 +980,6 @@ const SuspensionInspection = () => {
                       )}
                     </div>
                   )}
-
-                  {/* Panel ขวา */}
                   {activeTab === "right" && (
                     <div
                       key="panel-right"
@@ -1130,8 +1061,8 @@ const SuspensionInspection = () => {
                                       </button>
                                     </div>
                                     {isDisabled && (
-                                      <p className="text-delete flex items-center gap-[4px] text-[16px] leading-tight font-semibold md:text-[18px]">
-                                        <AlertTriangle className="text-delete h-5 w-5" />
+                                      <p className="text-destructive flex items-center gap-[4px] text-[16px] leading-tight font-semibold md:text-[18px]">
+                                        <AlertTriangle className="text-destructive h-5 w-5" />
                                         <p>สต็อกหมด</p>
                                       </p>
                                     )}
@@ -1161,8 +1092,6 @@ const SuspensionInspection = () => {
                       )}
                     </div>
                   )}
-
-                  {/* Panel อื่นๆ */}
                   {activeTab === "other" && (
                     <div
                       key="panel-other"
@@ -1244,8 +1173,8 @@ const SuspensionInspection = () => {
                                       </button>
                                     </div>
                                     {isDisabled && (
-                                      <p className="text-delete flex items-center gap-[4px] text-[16px] leading-tight font-semibold md:text-[18px]">
-                                        <AlertTriangle className="text-delete h-5 w-5" />
+                                      <p className="text-destructive flex items-center gap-[4px] text-[16px] leading-tight font-semibold md:text-[18px]">
+                                        <AlertTriangle className="text-destructive h-5 w-5" />
                                         <p>สต็อกหมด</p>
                                       </p>
                                     )}
@@ -1277,8 +1206,6 @@ const SuspensionInspection = () => {
                   )}
                 </div>
               )}
-
-              {/* ข้อความเมื่อไม่พบอะไหล่ที่รองรับ */}
               {watch("brand") &&
                 watch("model") &&
                 compatibleParts.length === 0 && (
@@ -1288,8 +1215,6 @@ const SuspensionInspection = () => {
                     </p>
                   </div>
                 )}
-
-              {/* รายการซ่อมเพิ่มเติม */}
               {watch("brand") &&
                 watch("model") &&
                 compatibleParts.length > 0 && (
@@ -1308,11 +1233,8 @@ const SuspensionInspection = () => {
                     </AddRepairItemDialog>
                   </div>
                 )}
-
-              {/* แสดงรายการซ่อมหรือข้อความแนะนำ */}
               {repairItems.length === 0 && compatibleParts.length === 0 ? (
                 <div>
-                  {/* ข้อความแนะนำให้เลือกยี่ห้อและรุ่นรถ */}
                   {(!watch("brand") || !watch("model")) && (
                     <div className="flex h-[228px] items-center justify-center">
                       <p className="text-subtle-light text-[20px] md:text-[22px]">
@@ -1374,7 +1296,7 @@ const SuspensionInspection = () => {
                                   disabled={item.quantity <= 1}
                                   className="flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
                                 >
-                                  <Minus className="h-[16px] w-[16px]" />
+                                  <Minus className="h-4 w-4" />
                                 </button>
                                 <p className="text-primary text-[18px] font-semibold md:text-[20px]">
                                   {item.quantity}
@@ -1390,7 +1312,7 @@ const SuspensionInspection = () => {
                                   }
                                   className="border-primary/30 text-primary bg-primary/10 flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
                                 >
-                                  <Plus className="h-[16px] w-[16px]" />
+                                  <Plus className="h-4 w-4" />
                                 </button>
                               </div>
                             </div>
@@ -1406,14 +1328,12 @@ const SuspensionInspection = () => {
                         }
                         className="text-surface cursor-pointer"
                       >
-                        <div className="bg-delete flex h-[32px] w-[32px] items-center justify-center rounded-full">
+                        <div className="bg-destructive flex h-[32px] w-[32px] items-center justify-center rounded-full">
                           <Trash className="h-[18px] w-[18px]" />
                         </div>
                       </button>
                     </div>
                   ))}
-
-                  {/* สรุปยอดรวมทั้งหมด */}
                   {compatibleParts.length > 0 && (
                     <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
                       <div className="flex items-center justify-between">
@@ -1442,7 +1362,6 @@ const SuspensionInspection = () => {
                         <div className="flex flex-col items-end">
                           <p className="text-primary text-[24px] font-semibold md:text-[26px]">
                             {formatCurrency(
-                              // บวกยอดอะไหล่ที่เลือกทั้งหมด
                               getPartsForSide("left").reduce((total, part) => {
                                 return (
                                   total +
@@ -1473,7 +1392,6 @@ const SuspensionInspection = () => {
                                   },
                                   0,
                                 ) +
-                                // บวกยอดรายการซ่อมทั้งหมด
                                 repairItems.reduce(
                                   (total, item) =>
                                     total + item.sellingPrice * item.quantity,
@@ -1485,7 +1403,6 @@ const SuspensionInspection = () => {
                       </div>
                     </div>
                   )}
-
                   {compatibleParts.length > 0 && (
                     <div className="flex justify-center pb-[16px]">
                       <FormButton
@@ -1515,7 +1432,6 @@ const SuspensionInspection = () => {
                 </div>
               ) : (
                 <div>
-                  {/* สรุปยอดรวมทั้งหมด เมื่อไม่มีรายการซ่อมเพิ่มเติม */}
                   <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col">
@@ -1601,13 +1517,11 @@ const SuspensionInspection = () => {
             </div>
           </form>
         </div>
-
-        {/* Desktop: รายการซ่อมช่วงล่าง */}
         <div className="hidden w-1/2 xl:block">
           <div className="bg-surface shadow-primary h-fit rounded-2xl">
             <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
               <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
-                <ClipboardList className="text-primary h-[24px] w-[24px]" />
+                <ClipboardList className="text-primary h-6 w-6" />
               </div>
               <p className="text-[22px] font-semibold md:text-[24px]">
                 รายการซ่อมช่วงล่าง
@@ -1650,7 +1564,6 @@ const SuspensionInspection = () => {
                     <p className="relative z-10">อื่นๆ</p>
                   </button>
 
-                  {/* Sliding background */}
                   <div
                     className={`bg-gradient-primary absolute flex h-[40px] justify-center rounded-[10px] shadow-lg duration-300 ease-out ${
                       activeTab === "left"
@@ -1662,11 +1575,8 @@ const SuspensionInspection = () => {
                   />
                 </div>
               </div>
-
-              {/* Desktop: รายการอะไหล่ที่รองรับ */}
               {compatibleParts.length > 0 && (
                 <div>
-                  {/* Panel ซ้าย */}
                   {activeTab === "left" && (
                     <div
                       key="desktop-panel-left"
@@ -1748,8 +1658,8 @@ const SuspensionInspection = () => {
                                       </button>
                                     </div>
                                     {isDisabled && (
-                                      <p className="text-delete flex items-center gap-[4px] text-[16px] leading-tight font-semibold md:text-[18px]">
-                                        <AlertTriangle className="text-delete h-5 w-5" />
+                                      <p className="text-destructive flex items-center gap-[4px] text-[16px] leading-tight font-semibold md:text-[18px]">
+                                        <AlertTriangle className="text-destructive h-5 w-5" />
                                         <span>สต็อกหมด</span>
                                       </p>
                                     )}
@@ -1779,8 +1689,6 @@ const SuspensionInspection = () => {
                       )}
                     </div>
                   )}
-
-                  {/* Panel ขวา */}
                   {activeTab === "right" && (
                     <div
                       key="desktop-panel-right"
@@ -1862,8 +1770,8 @@ const SuspensionInspection = () => {
                                       </button>
                                     </div>
                                     {isDisabled && (
-                                      <p className="text-delete flex items-center gap-[4px] text-[16px] leading-tight font-semibold md:text-[18px]">
-                                        <AlertTriangle className="text-delete h-5 w-5" />
+                                      <p className="text-destructive flex items-center gap-[4px] text-[16px] leading-tight font-semibold md:text-[18px]">
+                                        <AlertTriangle className="text-destructive h-5 w-5" />
                                         <span>สต็อกหมด</span>
                                       </p>
                                     )}
@@ -1893,8 +1801,6 @@ const SuspensionInspection = () => {
                       )}
                     </div>
                   )}
-
-                  {/* Panel อื่นๆ */}
                   {activeTab === "other" && (
                     <div
                       key="desktop-panel-other"
@@ -1976,8 +1882,8 @@ const SuspensionInspection = () => {
                                       </button>
                                     </div>
                                     {isDisabled && (
-                                      <p className="text-delete flex items-center gap-[4px] text-[16px] leading-tight font-semibold md:text-[18px]">
-                                        <AlertTriangle className="text-delete h-5 w-5" />
+                                      <p className="text-destructive flex items-center gap-[4px] text-[16px] leading-tight font-semibold md:text-[18px]">
+                                        <AlertTriangle className="text-destructive h-5 w-5" />
                                         <span>สต็อกหมด</span>
                                       </p>
                                     )}
@@ -2009,8 +1915,6 @@ const SuspensionInspection = () => {
                   )}
                 </div>
               )}
-
-              {/* ข้อความเมื่อไม่พบอะไหล่ที่รองรับ */}
               {watch("brand") &&
                 watch("model") &&
                 compatibleParts.length === 0 && (
@@ -2020,8 +1924,6 @@ const SuspensionInspection = () => {
                     </p>
                   </div>
                 )}
-
-              {/* Desktop: รายการซ่อมเพิ่มเติม */}
               {watch("brand") &&
                 watch("model") &&
                 compatibleParts.length > 0 && (
@@ -2040,7 +1942,6 @@ const SuspensionInspection = () => {
                     </AddRepairItemDialog>
                   </div>
                 )}
-
               {repairItems.length === 0 && compatibleParts.length === 0 ? (
                 <div>
                   {(!watch("brand") || !watch("model")) && (
@@ -2103,7 +2004,7 @@ const SuspensionInspection = () => {
                                   disabled={item.quantity <= 1}
                                   className="flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
                                 >
-                                  <Minus className="h-[16px] w-[16px]" />
+                                  <Minus className="h-4 w-4" />
                                 </button>
                                 <p className="text-primary text-[18px] font-semibold md:text-[20px]">
                                   {item.quantity}
@@ -2119,7 +2020,7 @@ const SuspensionInspection = () => {
                                   }
                                   className="border-primary/30 text-primary bg-primary/10 flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
                                 >
-                                  <Plus className="h-[16px] w-[16px]" />
+                                  <Plus className="h-4 w-4" />
                                 </button>
                               </div>
                             </div>
@@ -2135,14 +2036,12 @@ const SuspensionInspection = () => {
                         }
                         className="text-surface cursor-pointer"
                       >
-                        <div className="bg-delete flex h-[32px] w-[32px] items-center justify-center rounded-full">
+                        <div className="bg-destructive flex h-[32px] w-[32px] items-center justify-center rounded-full">
                           <Trash className="h-[18px] w-[18px]" />
                         </div>
                       </button>
                     </div>
                   ))}
-
-                  {/* Desktop: สรุปยอดรวมทั้งหมด */}
                   {compatibleParts.length > 0 && (
                     <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
                       <div className="flex items-center justify-between">
@@ -2212,7 +2111,6 @@ const SuspensionInspection = () => {
                       </div>
                     </div>
                   )}
-
                   {compatibleParts.length > 0 && (
                     <div className="flex justify-center pb-[16px]">
                       <FormButton
@@ -2344,7 +2242,7 @@ const SuspensionInspection = () => {
           (editingItem?.id === 1 || editingItem?.service?.id === 1)
         }
       />
-    </>
+    </div>
   );
 };
 

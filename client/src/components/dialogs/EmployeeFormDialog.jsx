@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { X, Eye, EyeOff, Calendar, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import { TIMING } from "@/utils/constants";
 import FormInput from "@/components/forms/FormInput";
 import ComboBox from "@/components/ui/ComboBox";
 import FormButton from "@/components/forms/FormButton";
@@ -21,11 +20,10 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { employeeCreateSchema, employeeEditSchema } from "@/utils/schemas";
+import { createEmployeeSchema, editEmployeeSchema } from "@/utils/schemas";
 import { createEmployee, updateEmployee } from "@/api/employee";
 import { cn } from "@/lib/utils";
 
-// ฟังก์ชันจัดรูปแบบวันที่เป็นภาษาไทย
 const formatDateThai = (date) => {
   const thaiMonths = [
     "มกราคม",
@@ -50,7 +48,6 @@ const formatDateThai = (date) => {
   return `${day} ${month} ${year}`;
 };
 
-// ฟังก์ชันจัดรูปแบบวันที่เป็น yyyy-MM-dd
 const formatDateISO = (date) => {
   const d = new Date(date);
   const year = d.getFullYear();
@@ -66,8 +63,9 @@ const EmployeeFormDialog = ({
   editingItem = null,
   onSuccess,
 }) => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
+    useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const {
@@ -80,7 +78,7 @@ const EmployeeFormDialog = ({
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(
-      editingItem ? employeeEditSchema : employeeCreateSchema,
+      editingItem ? editEmployeeSchema : createEmployeeSchema,
     ),
     defaultValues: {
       firstName: "",
@@ -134,7 +132,7 @@ const EmployeeFormDialog = ({
 
   const handleAdd = async (data) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, TIMING.LOADING_DELAY));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       await createEmployee({
         email: data.email,
@@ -155,7 +153,7 @@ const EmployeeFormDialog = ({
 
   const handleEdit = async (data) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, TIMING.LOADING_DELAY));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const updateData = {
         email: data.email,
@@ -175,14 +173,16 @@ const EmployeeFormDialog = ({
       handleClose();
       onSuccess?.();
     } catch (error) {
-      toast.error(error.response?.data?.message || "แก้ไขข้อมูลพนักงานไม่สำเร็จ");
+      toast.error(
+        error.response?.data?.message || "แก้ไขข้อมูลพนักงานไม่สำเร็จ",
+      );
     }
   };
 
   const handleClose = () => {
     reset();
-    setShowPassword(false);
-    setShowConfirmPassword(false);
+    setIsPasswordVisible(false);
+    setIsConfirmPasswordVisible(false);
     onClose();
   };
 
@@ -204,8 +204,6 @@ const EmployeeFormDialog = ({
               ? `แก้ไข ${editingItem.fullName}`
               : "เพิ่มบัญชีพนักงาน"}
           </DialogDescription>
-
-          {/* ปุ่มปิด dialog */}
           <button
             onClick={handleClose}
             autoFocus={false}
@@ -274,7 +272,7 @@ const EmployeeFormDialog = ({
                 register={register}
                 name="password"
                 label={editingItem ? "รหัสผ่านใหม่" : "รหัสผ่าน"}
-                type={showPassword ? "text" : "password"}
+                type={isPasswordVisible ? "text" : "password"}
                 placeholder="••••••••"
                 errors={errors}
                 customClass="px-0 pb-[16px]"
@@ -282,11 +280,13 @@ const EmployeeFormDialog = ({
                 rightSlot={
                   <button
                     type="button"
-                    onClick={() => setShowPassword((v) => !v)}
+                    onClick={() => setIsPasswordVisible((v) => !v)}
                     className="text-subtle-light mt-[8px] cursor-pointer hover:text-gray-600"
-                    aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+                    aria-label={
+                      isPasswordVisible ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"
+                    }
                   >
-                    {showPassword ? (
+                    {isPasswordVisible ? (
                       <EyeOff className="h-5 w-5" />
                     ) : (
                       <Eye className="h-5 w-5" />
@@ -300,7 +300,7 @@ const EmployeeFormDialog = ({
                 register={register}
                 name="confirmPassword"
                 label="ยืนยันรหัสผ่าน"
-                type={showConfirmPassword ? "text" : "password"}
+                type={isConfirmPasswordVisible ? "text" : "password"}
                 placeholder="••••••••"
                 errors={errors}
                 customClass="px-0 pb-[16px]"
@@ -308,13 +308,13 @@ const EmployeeFormDialog = ({
                 rightSlot={
                   <button
                     type="button"
-                    onClick={() => setShowConfirmPassword((v) => !v)}
+                    onClick={() => setIsConfirmPasswordVisible((v) => !v)}
                     className="text-subtle-light mt-[8px] cursor-pointer hover:text-gray-600"
                     aria-label={
-                      showConfirmPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"
+                      isConfirmPasswordVisible ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"
                     }
                   >
-                    {showConfirmPassword ? (
+                    {isConfirmPasswordVisible ? (
                       <EyeOff className="h-5 w-5" />
                     ) : (
                       <Eye className="h-5 w-5" />
@@ -323,7 +323,7 @@ const EmployeeFormDialog = ({
                 }
                 autoFocus={false}
               />
-
+              
               <div className="px-0 pb-[16px]">
                 <Label
                   htmlFor="dateOfBirth"
@@ -349,8 +349,8 @@ const EmployeeFormDialog = ({
                               !field.value &&
                                 "text-subtle-dark text-[18px] font-light md:text-[20px]",
                               errors.dateOfBirth
-                                ? "focus-visible:border-delete border-red-400 pr-[44px] focus-visible:ring-[rgba(255,69,69,0.3)]"
-                                : "pr-[44px] focus-visible:border-[#1976d2] focus-visible:ring-[rgba(25,118,210,0.35)]",
+                                ? "focus-visible:border-destructive border-destructive focus-visible:ring-destructive/30 pr-[44px]"
+                                : "focus-visible:border-primary focus-visible:ring-primary/35 pr-[44px]",
                             )}
                           >
                             {field.value
@@ -396,8 +396,8 @@ const EmployeeFormDialog = ({
                       </Popover>
                       {errors.dateOfBirth && (
                         <div className="mt-[6px] flex items-center gap-[4px] px-[4px]">
-                          <AlertCircle className="text-delete h-4 w-4 flex-shrink-0" />
-                          <p className="text-delete text-[18px] font-medium md:text-[20px]">
+                          <AlertCircle className="text-destructive h-4 w-4 flex-shrink-0" />
+                          <p className="text-destructive text-[18px] font-medium md:text-[20px]">
                             {errors.dateOfBirth.message}
                           </p>
                         </div>
@@ -443,8 +443,6 @@ const EmployeeFormDialog = ({
             </div>
           </form>
         </div>
-
-        {/* ปุ่มบันทึกและเพิ่มบัญชีพนักงาน */}
         <div className="flex-shrink-0 px-[16px] pb-[16px]">
           <div className="flex gap-[16px]">
             <FormButton

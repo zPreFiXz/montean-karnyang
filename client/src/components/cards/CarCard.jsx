@@ -1,10 +1,9 @@
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/utils/formats";
 import { ChevronRight } from "lucide-react";
 
 const CarCard = ({
   bg,
-  color,
-  icon: Icon,
+  icon,
   licensePlate,
   brand,
   time,
@@ -13,28 +12,27 @@ const CarCard = ({
   status,
 }) => {
   const bgColorMap = {
-    primary: "bg-[var(--color-primary)]",
-    "in-progress": "bg-[var(--color-in-progress)]",
-    completed: "bg-[var(--color-completed)]",
-    paid: "bg-[var(--color-paid)]",
+    primary: "bg-primary",
+    progress: "bg-status-progress",
+    completed: "bg-status-completed",
+    paid: "bg-status-paid",
   };
 
   const textColorMap = {
-    primary: "text-[var(--color-primary)]",
-    "in-progress": "text-[var(--color-in-progress)]",
-    completed: "text-[var(--color-completed)]",
-    paid: "text-[var(--color-paid)]",
+    primary: "text-primary",
+    progress: "text-status-progress",
+    completed: "text-status-completed",
+    paid: "text-status-paid",
   };
 
   return (
-    <div className="bg-surface shadow-primary flex h-[80px] w-full items-center gap-[8px] rounded-[10px] px-[10px]">
+    <div className="bg-surface shadow-primary flex h-[80px] w-full items-center gap-[8px] rounded-[10px] px-[8px]">
       <div className="flex min-w-0 flex-1 items-center gap-[8px]">
         <div
           className={`flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-full ${bgColorMap[bg]}`}
         >
-          <Icon color={color} />
+          {icon}
         </div>
-        {/* แสดงป้ายทะเบียนถ้ามี ถ้าไม่มีให้แสดงสถานะ */}
         {licensePlate ? (
           <div className="flex min-w-0 flex-1 flex-col">
             <p
@@ -64,18 +62,15 @@ const CarCard = ({
       </div>
       <div
         className={`shrink-0 font-semibold ${
-          price
-            ? "text-[22px] md:text-[24px]"
-            : "text-[32px] md:text-[34px]"
+          price ? "text-[22px] md:text-[24px]" : "text-[32px] md:text-[34px]"
         } ${textColorMap[bg]}`}
       >
-        {/* แสดงราคาถ้ามี ถ้าไม่มีให้แสดงจำนวนรถยนต์ */}
         {price ? (
           formatCurrency(price)
         ) : amount ? (
           `${amount} คัน`
         ) : (
-          <div className="text-subtle-light flex h-[32px] w-[32px] items-center justify-center rounded-full bg-[#F6F6F6]">
+          <div className="text-subtle-light flex h-[32px] w-[32px] items-center justify-center rounded-full bg-gray-100">
             <ChevronRight />
           </div>
         )}

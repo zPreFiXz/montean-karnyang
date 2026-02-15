@@ -18,7 +18,7 @@ import {
 } from "@/components/icons/Icons";
 import { LoaderCircle } from "lucide-react";
 
-const iconMap = {
+const ICON_MAP = {
   บริการ: ToolBox,
   ช่วงล่าง: Suspension,
   ยาง: Tire,
@@ -56,7 +56,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
       const categoriesWithIcons = res.data
         .map((category) => ({
           ...category,
-          icon: iconMap[category.name] || ToolBox,
+          icon: ICON_MAP[category.name] || ToolBox,
         }))
         .sort((a, b) => a.id - b.id);
       setCategories(categoriesWithIcons);
@@ -75,6 +75,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
         </div>
       ) : (
         <div className="flex gap-[8px]">
+          {/* หมวดหมู่ทั้งหมด */}
           <button
             onClick={() => {
               const params = new URLSearchParams(searchParams);
@@ -93,7 +94,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
             </div>
           </button>
 
-          {/* แสดงรายการหมวดหมู่ */}
+          {/* หมวดหมู่อะไหล่และบริการ */}
           {categories.map((item) => {
             const IconComponent = item.icon;
             const isActive = activeCategory === item.name;
@@ -123,7 +124,6 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
               </button>
             );
           })}
-
           <div className="w-[12px] flex-shrink-0"></div>
         </div>
       )}

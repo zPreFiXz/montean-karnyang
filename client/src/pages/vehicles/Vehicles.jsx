@@ -1,12 +1,11 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useSearchParams } from "react-router";
 import { LoaderCircle } from "lucide-react";
-import { TIMING } from "@/utils/constants";
 import SearchBar from "@/components/forms/SearchBar";
 import CarCard from "@/components/cards/CarCard";
 import { getVehicles } from "@/api/vehicle";
 import { Document } from "@/components/icons/Icons";
-import { getBrandIcon } from "@/components/icons/BrandIcons";
+import BrandIcons from "@/components/icons/BrandIcons";
 
 const Vehicles = () => {
   const [vehicles, setVehicles] = useState([]);
@@ -28,7 +27,7 @@ const Vehicles = () => {
 
     setTimeout(() => {
       isInitializing.current = false;
-    }, TIMING.SCROLL_DELAY);
+    }, 200);
   }, []);
 
   useEffect(() => {
@@ -62,7 +61,6 @@ const Vehicles = () => {
           <p className="text-surface text-[24px] font-semibold md:text-[26px]">ประวัติลูกค้า</p>
         </div>
       </div>
-
       <div className="bg-surface shadow-primary mt-[16px] min-h-[calc(100vh-65px)] w-full rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
         <div className="px-[20px] pt-[16px]">
           {/* แถบค้นหา */}
@@ -85,8 +83,7 @@ const Vehicles = () => {
                 <Link to={`/vehicles/${item.id}`}>
                   <CarCard
                     bg="primary"
-                    color="#1976d2"
-                    icon={getBrandIcon(item.vehicleBrandModel.brand, "#1976d2")}
+                    icon={<BrandIcons brand={item.vehicleBrandModel.brand} />}
                     licensePlate={
                       item.licensePlate
                         ? `${item.licensePlate.plateNumber} ${item.licensePlate.province}`

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { ChevronLeft, LoaderCircle, Wrench } from "lucide-react";
-import { getBrandIcon } from "@/components/icons/BrandIcons";
+import BrandIcons from "@/components/icons/BrandIcons";
 import { getVehicleById } from "@/api/vehicle";
-import { formatDate, formatTime } from "@/lib/utils";
+import { formatDate, formatTime } from "@/utils/formats";
 import RepairCard from "@/components/cards/RepairCard";
 
 const VehicleDetail = () => {
@@ -37,9 +37,10 @@ const VehicleDetail = () => {
         >
           <ChevronLeft />
         </button>
-        <p className="text-surface text-[24px] font-semibold md:text-[26px]">ประวัติลูกค้า</p>
+        <p className="text-surface text-[24px] font-semibold md:text-[26px]">
+          ประวัติลูกค้า
+        </p>
       </div>
-
       <div className="bg-surface shadow-primary min-h-[calc(100vh-65px)] rounded-tl-2xl rounded-tr-2xl pt-[16px] pb-[96px]">
         {isLoading ? (
           <div className="flex h-[530px] items-center justify-center">
@@ -49,22 +50,21 @@ const VehicleDetail = () => {
           <div>
             <div className="mb-[16px] flex items-center gap-[8px] px-[20px]">
               <div className="bg-primary flex h-[45px] w-[45px] items-center justify-center rounded-full">
-                {React.createElement(getBrandIcon(vehicle?.vehicleBrandModel.brand, "#1976d2"), {
-                  color: "#1976d2",
-                })}
+                <BrandIcons brand={vehicle?.vehicleBrandModel.brand} />
               </div>
               <div className="flex flex-col">
                 <p className="text-primary text-[22px] leading-tight font-semibold md:text-[24px]">
-                  {vehicle?.licensePlate?.plateNumber && vehicle?.licensePlate?.province
+                  {vehicle?.licensePlate?.plateNumber &&
+                  vehicle?.licensePlate?.province
                     ? `${vehicle.licensePlate.plateNumber} ${vehicle.licensePlate.province}`
                     : "ไม่ระบุทะเบียนรถ"}
                 </p>
                 <p className="text-subtle-dark text-[18px] leading-tight font-medium md:text-[20px]">
-                  {vehicle?.vehicleBrandModel.brand} {vehicle?.vehicleBrandModel.model}
+                  {vehicle?.vehicleBrandModel.brand}{" "}
+                  {vehicle?.vehicleBrandModel.model}
                 </p>
               </div>
             </div>
-
             {vehicle.repairs && (
               <div className="mb-[16px] px-[20px]">
                 <div className="mb-[8px] flex items-center justify-between">
@@ -76,7 +76,8 @@ const VehicleDetail = () => {
                   {vehicle.repairs.map((item, index) => (
                     <div key={index} className="flex flex-col gap-[8px]">
                       <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
-                        {formatDate(item.createdAt)} | {formatTime(item.createdAt)} น.
+                        {formatDate(item.createdAt)} |{" "}
+                        {formatTime(item.createdAt)} น.
                       </p>
                       <Link
                         to={`/repairs/${item.id}`}

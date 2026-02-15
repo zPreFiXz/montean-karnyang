@@ -42,17 +42,17 @@ const FormInput = ({
             type === "date" ? "pr-[44px]" : ""
           } bg-surface rounded-[20px] text-[20px] font-medium placeholder:text-[18px] placeholder:font-light md:text-[22px] md:placeholder:text-[20px] ${
             errors[name]
-              ? "focus:border-delete border-red-400 focus-visible:!border-2 focus-visible:!border-[#FF4545] focus-visible:!ring-[rgba(255,69,69,0.3)]"
-              : "focus-visible:!border-2 focus-visible:!border-[#1976d2] focus-visible:!ring-[rgba(25,118,210,0.35)]"
+              ? "border-destructive focus-visible:!border-destructive focus-visible:!ring-destructive/30 focus-visible:!border-2"
+              : "focus-visible:!border-primary focus-visible:!ring-primary/35 focus-visible:!border-2"
           }`}
           style={{
-            "--tw-ring-color": errors[name] ? "#FF4545" : "#1976d2",
+            "--tw-ring-color": errors[name]
+              ? "var(--color-destructive)"
+              : "var(--color-primary)",
             "--tw-border-opacity": "1",
           }}
           {...props}
         />
-
-        {/* แสดงไอคอนทางขวาหากมีการส่ง rightSlot มา */}
         {rightSlot && (
           <div
             className={`${
@@ -64,16 +64,14 @@ const FormInput = ({
         )}
         {errors[name] && (
           <div className="absolute top-1/2 right-[12px] -translate-y-1/2 transform">
-            <AlertCircle className="text-delete h-5 w-5" />
+            <AlertCircle className="text-destructive h-5 w-5" />
           </div>
         )}
       </div>
-
-      {/* แสดงข้อความผิดพลาดหากมี errors */}
       {errors[name] && (
         <div className="mt-[6px] flex items-center gap-[4px] px-[4px]">
-          <AlertCircle className="text-delete h-4 w-4 flex-shrink-0" />
-          <p className="text-delete text-[18px] font-medium md:text-[20px]">
+          <AlertCircle className="text-destructive h-4 w-4 flex-shrink-0" />
+          <p className="text-destructive text-[18px] font-medium md:text-[20px]">
             {errors[name].message}
           </p>
         </div>

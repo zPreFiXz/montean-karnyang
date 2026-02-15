@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 import {
   Command,
   CommandInput,
@@ -45,7 +49,9 @@ const ComboBox = ({
   const getIdentifier = (item) =>
     item && (item.id !== undefined && item.id !== null ? item.id : item.name);
 
-  const selectedLabel = options.find((item) => getIdentifier(item) === value)?.name;
+  const selectedLabel = options.find(
+    (item) => getIdentifier(item) === value,
+  )?.name;
   const hasError = errors && errors[name];
 
   return (
@@ -54,14 +60,19 @@ const ComboBox = ({
         <Label
           className={`mb-[8px] block font-medium ${
             labelClass ||
-            (customClass ? "text-[18px] md:text-[20px]" : "text-[22px] md:text-[24px]")
+            (customClass
+              ? "text-[18px] md:text-[20px]"
+              : "text-[22px] md:text-[24px]")
           } ${color}`}
         >
           {label}
         </Label>
       )}
       <div className="relative z-10">
-        <Popover open={open && !disabled} onOpenChange={disabled ? undefined : setOpen}>
+        <Popover
+          open={open && !disabled}
+          onOpenChange={disabled ? undefined : setOpen}
+        >
           <PopoverTrigger asChild>
             <Button
               ref={triggerRef}
@@ -76,21 +87,21 @@ const ComboBox = ({
                   (customClass
                     ? "text-muted-foreground font-light"
                     : "text-muted-foreground text-[18px] font-light md:text-[20px]"),
-                hasError && "focus:border-delete border-red-400",
-                disabled && "cursor-not-allowed opacity-50"
+                hasError && "focus:border-destructive border-destructive",
+                disabled && "cursor-not-allowed opacity-50",
               )}
               style={{
-                "--tw-ring-color": hasError ? "#FF4545" : "#1976d2",
+                "--tw-ring-color": hasError ? "var(--color-destructive)" : "var(--color-primary)",
                 "--tw-border-opacity": "1",
               }}
               onFocus={(e) => {
                 if (disabled) return;
                 if (hasError) {
-                  e.target.style.borderColor = "#FF4545";
+                  e.target.style.borderColor = "var(--color-destructive)";
                   e.target.style.borderWidth = "2px";
                   e.target.style.boxShadow = "0 0 0 3px rgba(255, 69, 69, 0.3)";
                 } else {
-                  e.target.style.borderColor = "#1976d2";
+                  e.target.style.borderColor = "var(--color-primary)";
                   e.target.style.borderWidth = "2px";
                   e.target.style.boxShadow = "0 0 0 3px rgba(25,118,210,0.35)";
                 }
@@ -146,7 +157,7 @@ const ComboBox = ({
                       onSelect={() => {
                         onChange(identifier);
                         setOpen(false);
-                        // Blur input เพื่อปิดแป้นพิมพ์
+
                         if (inputRef.current) {
                           inputRef.current.blur();
                         }
@@ -158,7 +169,7 @@ const ComboBox = ({
                       <Check
                         className={cn(
                           "mr-2 h-4 w-4",
-                          value === identifier ? "opacity-100" : "opacity-0"
+                          value === identifier ? "opacity-100" : "opacity-0",
                         )}
                       />
                       {item.name}
@@ -172,8 +183,8 @@ const ComboBox = ({
       </div>
       {hasError && name !== "province" && (
         <div className="mt-[6px] flex items-center gap-[4px] px-[4px]">
-          <AlertCircle className="text-delete h-4 w-4 flex-shrink-0" />
-          <p className="text-delete text-[18px] font-medium md:text-[20px]">
+          <AlertCircle className="text-destructive h-4 w-4 flex-shrink-0" />
+          <p className="text-destructive text-[18px] font-medium md:text-[20px]">
             {errors[name].message}
           </p>
         </div>

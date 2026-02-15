@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
-import { TIMING } from "@/utils/constants";
 import { getRepairById, updateRepairStatus } from "@/api/repair";
-import { formatDate, formatTime, formatCurrency } from "@/lib/utils";
+import {
+  formatDate,
+  formatTime,
+  formatCurrency,
+  getProvinceIdByName,
+} from "@/utils/formats";
 import {
   ChevronLeft,
   CreditCard,
@@ -19,7 +23,7 @@ import {
   Wrench,
   Printer,
 } from "lucide-react";
-import { getBrandIcon } from "@/components/icons/BrandIcons";
+import BrandIcons from "@/components/icons/BrandIcons";
 import FormButton from "@/components/forms/FormButton";
 import {
   Select,
@@ -30,9 +34,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import RepairItemCard from "@/components/cards/RepairItemCard";
-import { provinces } from "@/utils/data";
-import { printReceipt } from "@/utils/printReceipt";
-import { addToPrintQueue } from "@/api/printQueue";
+import { printReceipt } from "@/api/print";
 
 const RepairDetail = () => {
   const { id } = useParams();
@@ -43,7 +45,7 @@ const RepairDetail = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUpdatingSkip, setIsUpdatingSkip] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
-  const [isSendingToPrint, setIsSendingToPrint] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -63,7 +65,7 @@ const RepairDetail = () => {
     }
   };
 
-  const defaultStatusInfo = {
+  const DEFAULT_STATUS_INFO = {
     text: "ไม่ทราบสถานะ",
     color: "text-subtle-dark",
     bg: "bg-gray-200",
@@ -76,29 +78,29 @@ const RepairDetail = () => {
       case "IN_PROGRESS":
         return {
           text: "กำลังซ่อม",
-          color: "text-[var(--color-in-progress)]",
-          bg: "bg-[var(--color-in-progress)]",
+          color: "text-status-progress",
+          bg: "bg-status-progress",
           iconColor: "#ffb000",
           icon: Clock,
         };
       case "COMPLETED":
         return {
           text: "ซ่อมเสร็จสิ้น",
-          color: "text-[var(--color-completed)]",
-          bg: "bg-[var(--color-completed)]",
+          color: "text-status-completed",
+          bg: "bg-status-completed",
           iconColor: "#22c55e",
           icon: CheckCircle2,
         };
       case "PAID":
         return {
           text: "ชำระเงินแล้ว",
-          color: "text-[var(--color-paid)]",
-          bg: "bg-[var(--color-paid)]",
+          color: "text-status-paid",
+          bg: "bg-status-paid",
           iconColor: "#1976d2",
           icon: CreditCard,
         };
     }
-    return defaultStatusInfo;
+    return DEFAULT_STATUS_INFO;
   };
 
   const getPaymentMethodText = (method) => {
@@ -133,16 +135,15 @@ const RepairDetail = () => {
   const getNextStatusButtonClass = (currentStatus) => {
     switch (currentStatus) {
       case "IN_PROGRESS":
-        return "bg-completed";
+        return "bg-status-completed";
       case "COMPLETED":
-        return "bg-paid";
+        return "bg-status-paid";
     }
   };
 
   const handleUpdateStatus = async (skipToCompleted = false) => {
     if (!repair) return;
 
-    // ตรวจสอบว่าปุ่มที่กดกำลัง loading อยู่หรือไม่
     if (skipToCompleted && isUpdatingSkip) return;
     if (!skipToCompleted && isUpdating) return;
 
@@ -166,7 +167,7 @@ const RepairDetail = () => {
         updateData.paymentMethod = selectedPaymentMethod;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, TIMING.LOADING_DELAY));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const res = await updateRepairStatus(repair.id, updateData);
       setRepair(res.data);
@@ -179,9 +180,8 @@ const RepairDetail = () => {
         toast.success("ชำระเงินเรียบร้อยแล้ว");
       }
 
-      // แปลงสถานะเป็น slug สำหรับ URL
       const statusSlug = nextStatus.toLowerCase().replace("_", "-");
-      navigate(`/repairs/status/${statusSlug}`);
+      navigate(`/repairs?status=${statusSlug}`);
     } catch (error) {
       console.error(error);
     } finally {
@@ -190,19 +190,13 @@ const RepairDetail = () => {
     }
   };
 
-  const statusInfo = getStatusInfo(repair?.status) ?? defaultStatusInfo;
+  const statusInfo = getStatusInfo(repair?.status) ?? DEFAULT_STATUS_INFO;
   const StatusIcon = statusInfo?.icon;
-
-  const getProvinceIdByName = (name) => {
-    const found = provinces.find((p) => p.name === name);
-    return found ? found.id : "";
-  };
 
   const handleEditRepair = () => {
     if (!repair) return;
 
-    // เตรียมข้อมูลฟอร์ม
-    const plate = repair?.vehicle?.licensePlate?.plateNumber || ""; // รูปแบบเช่น กก-1234
+    const plate = repair?.vehicle?.licensePlate?.plateNumber || "";
     const [plateLetters = "", plateNumbers = ""] = plate.split("-");
     const provinceName = repair?.vehicle?.licensePlate?.province || "";
 
@@ -218,7 +212,6 @@ const RepairDetail = () => {
       description: repair?.description || "",
     };
 
-    // รวมจำนวนที่ถูกใช้ต่ออะไหล่ เพื่อคืนสต็อกในโหมดแก้ไข (ฝั่ง UI เท่านั้น)
     const usedQtyByPartId = (repair?.repairItems || []).reduce((acc, ri) => {
       if (ri.part?.id) {
         acc[ri.part.id] = (acc[ri.part.id] || 0) + (ri.quantity || 1);
@@ -226,7 +219,6 @@ const RepairDetail = () => {
       return acc;
     }, {});
 
-    // แปลงรายการซ่อมจากรูปแบบ DB -> รูปแบบหน้าสร้าง/ช่วงล่าง
     const normalizedItems = (repair?.repairItems || []).map((ri) => {
       if (ri.part) {
         const baseStock = ri.part.stockQuantity ?? 0;
@@ -243,10 +235,9 @@ const RepairDetail = () => {
           secureUrl: ri.part.secureUrl || null,
           typeSpecificData: ri.part.typeSpecificData || null,
           quantity: ri.quantity || 1,
-          side: ri.side, // เพิ่ม side จาก database
+          side: ri.side,
         };
       }
-      // เป็นบริการ
       return {
         id: ri.service?.id,
         brand: "",
@@ -255,27 +246,24 @@ const RepairDetail = () => {
         category: ri.service?.category,
         secureUrl: null,
         quantity: ri.quantity || 1,
-        side: ri.side, // เพิ่ม side จาก database
+        side: ri.side,
       };
     });
 
     if (repair.source === "SUSPENSION") {
       const savedItems = [];
 
-      // แยกชิ้นส่วนช่วงล่าง และทำ grouping สำหรับชิ้นส่วนที่เป็น left-right (อาจถูกบันทึกเป็นหลายแถว qty=1)
       const lrGroups = {};
 
       normalizedItems.forEach((item) => {
         const st = item?.typeSpecificData?.suspensionType;
         const itemSide = item.side;
 
-        // ถ้าไม่มี typeSpecificData หรือมี side เป็น null -> รายการซ่อมเพิ่มเติม
         if (!st || itemSide === null) {
           savedItems.push({ ...item });
           return;
         }
 
-        // ถ้ามี side ชัดเจนจาก database ให้ใช้ตามนั้น
         if (
           itemSide === "left" ||
           itemSide === "right" ||
@@ -286,7 +274,6 @@ const RepairDetail = () => {
         }
 
         if (st === "left-right") {
-          // group โดยใช้ part.id และ unitPrice เพื่อรวมจำนวนทั้งหมดเข้าด้วยกัน
           const key = `${item.id}-${item.sellingPrice}`;
           if (!lrGroups[key]) {
             lrGroups[key] = { base: item, count: 0 };
@@ -296,7 +283,6 @@ const RepairDetail = () => {
         }
 
         if (["left", "right", "other"].includes(st)) {
-          // ให้แต่ละแถวเป็น qty=1 และระบุด้านชัดเจน
           const count = item.quantity || 1;
           for (let i = 0; i < count; i++) {
             savedItems.push({ ...item, quantity: 1, side: st });
@@ -304,11 +290,9 @@ const RepairDetail = () => {
           return;
         }
 
-        // กรณีอื่นๆ ใส่เป็นรายการทั่วไป
         savedItems.push({ ...item });
       });
 
-      // กระจายซ้าย-ขวาสำหรับกลุ่ม left-right ตามจำนวนรวม
       let assignLeftoverToLeft = true;
       Object.values(lrGroups).forEach(({ base, count }) => {
         const pairs = Math.floor(count / 2);
@@ -341,7 +325,6 @@ const RepairDetail = () => {
       return;
     }
 
-    // กรณีทั่วไป กลับไปหน้า "รายการซ่อมใหม่"
     navigate("/repairs/new", {
       state: {
         repairData: { ...repairData },
@@ -357,10 +340,9 @@ const RepairDetail = () => {
   };
 
   const handleGoBack = () => {
-    // ถ้ามาจาก SalesReport ให้กลับไปพร้อมข้อมูลวันที่
     if (
       location.state?.returnTo &&
-      location.state.returnTo.includes("/admin/reports/sales/")
+      location.state.returnTo.includes("/admin/reports/sales")
     ) {
       navigate(location.state.returnTo, {
         state: { currentDate: location.state.currentDate },
@@ -383,7 +365,6 @@ const RepairDetail = () => {
           รายละเอียดการซ่อม
         </p>
       </div>
-
       <div className="bg-surface shadow-primary mt-[16px] min-h-[calc(100vh-65px)] rounded-tl-2xl rounded-tr-2xl pt-[16px] pb-[112px] xl:pb-[16px]">
         {isLoading ? (
           <div className="flex h-[579px] items-center justify-center">
@@ -408,18 +389,14 @@ const RepairDetail = () => {
                 </p>
               </div>
             </div>
-
             <div className="my-[16px] flex items-center gap-[8px] px-[20px]">
               <div
                 className={`flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full ${statusInfo.bg}`}
               >
-                {React.createElement(
-                  getBrandIcon(
-                    repair.vehicle?.vehicleBrandModel.brand,
-                    statusInfo.iconColor,
-                  ),
-                  { color: statusInfo.iconColor },
-                )}
+                <BrandIcons
+                  brand={repair.vehicle?.vehicleBrandModel.brand}
+                  color={statusInfo.iconColor}
+                />
               </div>
               <div className="flex flex-col">
                 <p
@@ -436,7 +413,6 @@ const RepairDetail = () => {
                 </p>
               </div>
             </div>
-
             {repair.customer && (
               <div>
                 <div className="mb-[16px] flex items-start gap-[8px] px-[20px]">
@@ -493,7 +469,6 @@ const RepairDetail = () => {
                 </div>
               </div>
             )}
-
             {repair.repairItems && (
               <div className="mb-[16px] px-[20px]">
                 <div className="mb-[8px] flex items-center justify-between">
@@ -508,7 +483,6 @@ const RepairDetail = () => {
                     แก้ไขรายการซ่อม
                   </button>
                 </div>
-
                 {repair.source === "SUSPENSION" ? (
                   <div className="space-y-[16px]">
                     {(() => {
@@ -526,11 +500,9 @@ const RepairDetail = () => {
                       const rightItems = [];
                       const otherItems = [];
 
-                      // กลุ่มชิ้นส่วนที่เป็น left-right เพื่อจับคู่ซ้าย-ขวา (เมื่อไม่มี side ใน DB)
                       const lrGroups = {};
 
                       suspensionItems.forEach((ri) => {
-                        // ถ้ามี side ใน DB ให้ใช้เลย
                         if (ri.side === "left") {
                           leftItems.push(ri);
                           return;
@@ -569,7 +541,6 @@ const RepairDetail = () => {
                         otherItems.push(ri);
                       });
 
-                      // จับคู่ซ้าย-ขวาสำหรับชิ้นส่วนที่เป็น left-right
                       let assignLeftoverToLeft = true;
                       Object.values(lrGroups).forEach(({ base, count }) => {
                         const pairs = Math.floor(count / 2);
@@ -607,7 +578,6 @@ const RepairDetail = () => {
                               </div>
                             </div>
                           )}
-
                           {rightItems.length > 0 && (
                             <div className="mb-[8px]">
                               <p className="text-primary mb-[8px] flex items-center gap-[4px] text-[20px] font-semibold md:text-[22px]">
@@ -625,7 +595,6 @@ const RepairDetail = () => {
                               </div>
                             </div>
                           )}
-
                           {otherItems.length > 0 && (
                             <div className="mb-[8px]">
                               <p className="text-primary mb-[8px] flex items-center gap-[4px] text-[20px] font-semibold md:text-[22px]">
@@ -643,7 +612,6 @@ const RepairDetail = () => {
                               </div>
                             </div>
                           )}
-
                           {generalItems.length > 0 && (
                             <div className="mb-[8px]">
                               <p className="text-primary mb-[8px] flex items-center gap-[4px] text-[20px] font-semibold md:text-[22px]">
@@ -678,7 +646,6 @@ const RepairDetail = () => {
                 )}
               </div>
             )}
-
             <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mb-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
@@ -693,7 +660,6 @@ const RepairDetail = () => {
                 </div>
               </div>
             </div>
-
             {repair.description && (
               <div className="mb-[16px] px-[20px]">
                 <p className="text-normal mb-[16px] text-[22px] font-semibold md:text-[24px]">
@@ -706,7 +672,6 @@ const RepairDetail = () => {
                 </div>
               </div>
             )}
-
             <div className="mb-[16px] px-[20px]">
               <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-[24px]">
                 การชำระเงิน
@@ -758,8 +723,8 @@ const RepairDetail = () => {
                   <p
                     className={`text-[18px] font-semibold md:text-[20px] ${
                       repair.paidAt
-                        ? "text-[var(--color-paid)]"
-                        : "text-[var(--color-in-progress)]"
+                        ? "text-status-paid"
+                        : "text-status-progress"
                     }`}
                   >
                     {repair.paidAt ? "ชำระเงินแล้ว" : "รอชำระเงิน"}
@@ -767,7 +732,6 @@ const RepairDetail = () => {
                 </div>
               </div>
             </div>
-
             <div className="mb-[16px] px-[20px]">
               <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-[24px]">
                 เวลาดำเนินการ
@@ -806,7 +770,6 @@ const RepairDetail = () => {
                 )}
               </div>
             </div>
-
             {repair.user && (
               <div className="px-[20px]">
                 <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-[24px]">
@@ -819,46 +782,31 @@ const RepairDetail = () => {
                 </div>
               </div>
             )}
-
-            {/* ปุ่มพิมพ์ใบเสร็จ - แสดงเมื่อชำระเงินแล้ว */}
             {repair.status === "PAID" && (
-              <div className="mt-[16px] space-y-[12px] px-[20px]">
-                {/* ปุ่มส่งพิมพ์ไปคอมพิวเตอร์ (สำหรับใช้จากมือถือ) */}
+              <div className="mt-[16px] px-[20px]">
                 <button
                   onClick={async () => {
-                    setIsSendingToPrint(true);
+                    setIsPrinting(true);
                     try {
-                      await addToPrintQueue(repair.id);
-                      toast.success("ส่งคำสั่งพิมพ์ไปยังเครื่องพิมพ์แล้ว");
+                      await printReceipt(repair.id);
+                      toast.success("กำลังพิมพ์ใบเสร็จ...");
                     } catch (error) {
                       console.error(error);
-                      toast.error("เกิดข้อผิดพลาดในการส่งคำสั่งพิมพ์");
+                      toast.error("เกิดข้อผิดพลาดในการพิมพ์");
                     } finally {
-                      setIsSendingToPrint(false);
+                      setIsPrinting(false);
                     }
                   }}
-                  disabled={isSendingToPrint}
+                  disabled={isPrinting}
                   className="bg-primary hover:bg-primary/90 flex w-full cursor-pointer items-center justify-center gap-[8px] rounded-[10px] py-[12px] text-white duration-300 disabled:opacity-50"
                 >
                   <Printer className="h-5 w-5" />
                   <span className="text-[20px] font-semibold md:text-[22px]">
-                    {isSendingToPrint ? "กำลังส่ง..." : "พิมพ์ใบเสร็จ"}
-                  </span>
-                </button>
-
-                {/* ปุ่มพิมพ์จากเครื่องนี้โดยตรง (สำหรับใช้จากคอมพิวเตอร์) */}
-                <button
-                  onClick={() => printReceipt(repair)}
-                  className="border-primary text-primary hover:bg-primary/5 flex w-full cursor-pointer items-center justify-center gap-[8px] rounded-[10px] border-2 py-[10px] duration-300"
-                >
-                  <Printer className="h-5 w-5" />
-                  <span className="text-[18px] font-medium md:text-[20px]">
-                    พิมพ์จากเครื่องนี้
+                    {isPrinting ? "กำลังพิมพ์..." : "พิมพ์ใบเสร็จ"}
                   </span>
                 </button>
               </div>
             )}
-
             {getNextStatus(repair.status) && (
               <div className="mt-[16px] flex flex-col gap-[16px] pr-[40px]">
                 <FormButton
@@ -868,15 +816,13 @@ const RepairDetail = () => {
                   onClick={() => handleUpdateStatus(false)}
                   className={getNextStatusButtonClass(repair.status)}
                 />
-
-                {/* ปุ่มข้ามขั้นตอนสำหรับสถานะ IN_PROGRESS */}
                 {repair.status === "IN_PROGRESS" && (
                   <FormButton
                     label="เสร็จสิ้นการซ่อมและชำระเงิน"
                     isLoading={isUpdatingSkip}
                     disabled={isUpdatingSkip}
                     onClick={() => handleUpdateStatus(true)}
-                    className="bg-paid mt-0"
+                    className="bg-status-paid mt-0"
                   />
                 )}
               </div>

@@ -1,23 +1,34 @@
 const { z } = require("zod");
 
-exports.registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  fullName: z.string().min(1),
-  nickname: z.string().min(1),
-  phoneNumber: z.string().min(1),
-  dateOfBirth: z.coerce.date(),
-});
-
 exports.loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
 });
 
+exports.createEmployeeSchema = z.object({
+  fullName: z.string().min(1),
+  nickname: z.string().min(1),
+  email: z.string().email(),
+  password: z.string().min(8),
+  dateOfBirth: z.coerce.date(),
+  phoneNumber: z.string().min(1),
+  role: z.enum(["EMPLOYEE", "ADMIN"]),
+});
+
+exports.editEmployeeSchema = z.object({
+  fullName: z.string().min(1),
+  nickname: z.string().min(1),
+  email: z.string().email(),
+  password: z.string().min(8).optional(),
+  dateOfBirth: z.coerce.date(),
+  phoneNumber: z.string().min(1),
+  role: z.enum(["EMPLOYEE", "ADMIN"]),
+});
+
 exports.repairSchema = z.object({
   fullName: z.string().optional(),
   address: z.string().optional(),
-  phoneNumber: z.string().optional(),
+  phoneNumber: z.string().nullable().optional(),
   brand: z.string().min(1),
   model: z.string().min(1),
   plateNumber: z.string().nullable().optional(),
@@ -25,7 +36,18 @@ exports.repairSchema = z.object({
   description: z.string().optional(),
   source: z.enum(["GENERAL", "SUSPENSION"]),
   totalPrice: z.coerce.number(),
-  repairItems: z.any(),
+  repairItems: z
+    .array(
+      z.object({
+        partId: z.number().optional(),
+        serviceId: z.number().optional(),
+        unitPrice: z.coerce.number(),
+        quantity: z.coerce.number().min(1),
+        side: z.string().optional(),
+        customName: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 exports.partSchema = z.object({
@@ -37,8 +59,8 @@ exports.partSchema = z.object({
   unit: z.string().min(1),
   stockQuantity: z.coerce.number(),
   minStockLevel: z.coerce.number(),
-  typeSpecificData: z.json().optional(),
-  compatibleVehicles: z.json().optional(),
+  typeSpecificData: z.any().optional(),
+  compatibleVehicles: z.any().optional(),
   image: z.any().optional(),
   categoryId: z.coerce.number(),
 });
@@ -49,7 +71,12 @@ exports.serviceSchema = z.object({
   categoryId: z.coerce.number(),
 });
 
-exports.addStockSchema = z.object({
+exports.editNamePriceSchema = z.object({
+  name: z.string().min(1),
+  price: z.coerce.number().min(1),
+});
+
+exports.updatePartStockSchema = z.object({
   quantity: z.coerce.number().min(1),
 });
 

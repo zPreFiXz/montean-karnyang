@@ -12,9 +12,9 @@ const Employees = () => {
   const [employees, setEmployees] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingEmployee, setDeletingEmployee] = useState(null);
 
   useEffect(() => {
@@ -22,7 +22,6 @@ const Employees = () => {
     fetchEmployees();
   }, []);
 
-  // ดึงข้อมูลพนักงาน
   const fetchEmployees = async () => {
     try {
       const response = await getEmployees();
@@ -34,9 +33,9 @@ const Employees = () => {
     }
   };
 
-  const confirmDelete = (employee) => {
+  const handleDeleteClick = (employee) => {
     setDeletingEmployee(employee);
-    setShowDeleteDialog(true);
+    setIsDeleteDialogOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
@@ -44,7 +43,7 @@ const Employees = () => {
     try {
       await deleteEmployee(deletingEmployee.id);
       toast.success("ลบพนักงานสำเร็จ");
-      setShowDeleteDialog(false);
+      setIsDeleteDialogOpen(false);
       setDeletingEmployee(null);
       fetchEmployees();
     } catch (error) {
@@ -54,16 +53,15 @@ const Employees = () => {
   };
 
   const handleDeleteCancel = () => {
-    setShowDeleteDialog(false);
+    setIsDeleteDialogOpen(false);
     setDeletingEmployee(null);
   };
 
-  const startEdit = (employee) => {
+  const handleEditClick = (employee) => {
     setEditingEmployee(employee);
-    setShowAddForm(true);
+    setIsFormDialogOpen(true);
   };
 
-  // กรองพนักงานตามคำค้นหา
   const filteredEmployees = employees.filter(
     (employee) =>
       employee.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -71,7 +69,6 @@ const Employees = () => {
       employee.email?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  // จัดกลุ่มพนักงานตามบทบาท
   const groupedByRole = {};
   filteredEmployees.forEach((employee) => {
     if (!groupedByRole[employee.role]) {
@@ -80,19 +77,16 @@ const Employees = () => {
     groupedByRole[employee.role].push(employee);
   });
 
-  // เรียงลำดับพนักงานภายในแต่ละกลุ่มบทบาทตาม ID
   Object.keys(groupedByRole).forEach((role) => {
     groupedByRole[role].sort((a, b) => a.id - b.id);
   });
 
-  // เรียงลำดับกลุ่มบทบาท (ADMIN มาก่อน)
   const sortedRoles = Object.keys(groupedByRole).sort((a, b) => {
     if (a === "ADMIN") return -1;
     if (b === "ADMIN") return 1;
     return 0;
   });
 
-  // แปลงบทบาทเป็นข้อความแสดงผล
   const getRoleLabel = (role) => {
     switch (role) {
       case "ADMIN":
@@ -114,7 +108,6 @@ const Employees = () => {
           จัดการบัญชีพนักงาน
         </p>
       </div>
-
       <div className="bg-surface shadow-primary mt-[16px] min-h-[calc(100vh-65px)] w-full rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
         {isLoading ? (
           <div className="flex h-[502px] items-center justify-center">
@@ -134,16 +127,15 @@ const Employees = () => {
               label="+ เพิ่มบัญชีพนักงาน"
               onClick={() => {
                 setEditingEmployee(null);
-                setShowAddForm(true);
+                setIsFormDialogOpen(true);
               }}
               className="bg-gradient-primary my-[16px] ml-0"
             />
 
-            {/* ฟอร์มเพิ่ม/แก้ไขพนักงาน */}
             <EmployeeFormDialog
-              isOpen={showAddForm}
+              isOpen={isFormDialogOpen}
               onClose={() => {
-                setShowAddForm(false);
+                setIsFormDialogOpen(false);
                 setEditingEmployee(null);
               }}
               editingItem={editingEmployee}
@@ -161,8 +153,6 @@ const Employees = () => {
                       {getRoleLabel(role)}
                     </p>
                   </div>
-
-                  {/* รายการพนักงานในกลุ่มบทบาท */}
                   <div className="space-y-[8px]">
                     {groupedByRole[role].map((employee) => (
                       <div
@@ -179,15 +169,15 @@ const Employees = () => {
                         </div>
                         <div className="flex flex-shrink-0 gap-[8px]">
                           <button
-                            onClick={() => startEdit(employee)}
+                            onClick={() => handleEditClick(employee)}
                             className="text-surface bg-gradient-primary flex cursor-pointer items-center gap-[4px] rounded-[10px] px-[12px] py-[6px] text-[14px] font-medium"
                           >
                             <Edit className="h-[14px] w-[14px]" />
                             <p className="font-semibold">แก้ไข</p>
                           </button>
                           <button
-                            onClick={() => confirmDelete(employee)}
-                            className="text-surface bg-delete flex cursor-pointer items-center gap-[4px] rounded-[10px] px-[12px] py-[6px] text-[14px] font-medium"
+                            onClick={() => handleDeleteClick(employee)}
+                            className="text-surface bg-destructive flex cursor-pointer items-center gap-[4px] rounded-[10px] px-[12px] py-[6px] text-[14px] font-medium"
                           >
                             <Trash2 className="h-[14px] w-[14px]" />
                             <p className="font-semibold">ลบ</p>
@@ -198,7 +188,6 @@ const Employees = () => {
                   </div>
                 </div>
               ))}
-
               {filteredEmployees.length === 0 && (
                 <div className="py-[24px] text-center">
                   <p className="text-subtle-light">ไม่พบข้อมูลพนักงาน</p>
@@ -208,9 +197,8 @@ const Employees = () => {
           </div>
         )}
       </div>
-
       <DeleteConfirmDialog
-        isOpen={showDeleteDialog}
+        isOpen={isDeleteDialogOpen}
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
         title="ยืนยันการลบ"

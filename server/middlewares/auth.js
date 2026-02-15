@@ -27,7 +27,7 @@ exports.adminCheck = async (req, res, next) => {
   try {
     const { email } = req.user;
 
-    const adminUser = await prisma.user.findUnique({
+    const adminUser = await prisma.user.findFirst({
       where: { email },
     });
 
