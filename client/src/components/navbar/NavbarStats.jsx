@@ -4,13 +4,14 @@ import useAuthStore from "@/stores/useAuthStore";
 import useRepairStore from "@/stores/useRepairStore";
 import { formatCurrency, formatDate } from "@/utils/formats";
 
-const DateAndSale = () => {
+const NavbarStats = () => {
   const { getTodaySales } = useRepairStore();
   const { user } = useAuthStore();
   const todaySales = getTodaySales();
 
   return (
     <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-[24px]">
+      
       {/* วันที่ปัจจุบัน */}
       <div className="flex items-center gap-[10px]">
         <Calendar className="text-primary h-[22px] w-[22px]" />
@@ -40,4 +41,4 @@ const DateAndSale = () => {
     </div>
   );
 };
-export default DateAndSale;
+export default NavbarStats;

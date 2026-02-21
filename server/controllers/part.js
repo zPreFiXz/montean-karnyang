@@ -116,7 +116,7 @@ exports.updatePart = async (req, res, next) => {
   }
 };
 
-exports.addStock = async (req, res, next) => {
+exports.updatePartStock = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { quantity } = req.body;

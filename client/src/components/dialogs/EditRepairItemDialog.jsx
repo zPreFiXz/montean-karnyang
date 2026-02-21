@@ -11,7 +11,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { editNamePriceSchema } from "@/utils/schemas";
 
-const EditNamePriceDialog = ({
+const EditRepairItemDialog = ({
   isOpen,
   onClose,
   onConfirm,
@@ -39,7 +39,6 @@ const EditNamePriceDialog = ({
 
   const watchedPrice = watch("price");
   const price = watchedPrice || currentPrice?.toString() || "0";
-
   const isNameEditable =
     typeof canEditName === "boolean" ? canEditName : isService;
 
@@ -100,6 +99,7 @@ const EditNamePriceDialog = ({
             <X size={18} className="text-subtle-dark" />
           </button>
         </div>
+
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto">
           <div className="flex-1 px-[20px]">
             <div className="mb-[16px]">
@@ -107,6 +107,7 @@ const EditNamePriceDialog = ({
                 {isService ? currentName || productName : productName}
               </h2>
             </div>
+
             {!isService && productImage && (
               <div className="mb-[16px] flex justify-center">
                 <div className="border-subtle-light flex h-[250px] w-[250px] items-center justify-center overflow-hidden rounded-[20px] border-2">
@@ -118,9 +119,11 @@ const EditNamePriceDialog = ({
                 </div>
               </div>
             )}
+
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-[8px]">
                 <div className="space-y-[16px] rounded-[10px] bg-gray-50 p-[16px]">
+                  
                   {isNameEditable && (
                     <FormInput
                       register={register}
@@ -156,6 +159,7 @@ const EditNamePriceDialog = ({
             </form>
           </div>
         </div>
+
         <div className="flex-shrink-0 px-[16px] pb-[16px]">
           <div className="flex gap-[16px]">
             <button
@@ -179,4 +183,4 @@ const EditNamePriceDialog = ({
   );
 };
 
-export default EditNamePriceDialog;
+export default EditRepairItemDialog;

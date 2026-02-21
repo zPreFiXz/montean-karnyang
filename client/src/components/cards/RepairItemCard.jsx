@@ -81,6 +81,7 @@ const RepairItemCard = ({ item, variant }) => {
       <div className="shadow-primary bg-surface flex h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] px-[8px]">
         <div className="flex items-center gap-[8px]">
           <div className="border-subtle-light shadow-primary bg-surface flex items-center justify-center rounded-[10px] border">
+            
             {imageUrl ? (
               <div className="h-[60px] w-[60px]">
                 <img
@@ -99,6 +100,7 @@ const RepairItemCard = ({ item, variant }) => {
               </div>
             )}
           </div>
+
           <div className="flex flex-col">
             {renderProductInfo(item)}
             <p className="text-subtle-dark line-clamp-1 text-[16px] font-semibold md:text-[18px]">
@@ -106,6 +108,7 @@ const RepairItemCard = ({ item, variant }) => {
             </p>
           </div>
         </div>
+
         <p className="text-primary text-[22px] font-semibold text-nowrap md:text-[24px]">
           {formatCurrency(unitPrice * item.quantity)}
         </p>

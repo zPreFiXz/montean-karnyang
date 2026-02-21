@@ -33,6 +33,7 @@ const CarCard = ({
         >
           {typeof icon === "function" ? icon() : icon}
         </div>
+
         {licensePlate ? (
           <div className="flex min-w-0 flex-1 flex-col">
             <p
@@ -60,6 +61,7 @@ const CarCard = ({
           </div>
         )}
       </div>
+      
       <div
         className={`shrink-0 font-semibold ${
           price ? "text-[22px] md:text-[24px]" : "text-[32px] md:text-[34px]"

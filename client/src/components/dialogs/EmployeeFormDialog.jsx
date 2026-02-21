@@ -67,7 +67,6 @@ const EmployeeFormDialog = ({
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
     useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-
   const {
     register,
     handleSubmit,
@@ -133,7 +132,6 @@ const EmployeeFormDialog = ({
   const handleAdd = async (data) => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-
       await createEmployee({
         email: data.email,
         password: data.password,
@@ -147,14 +145,13 @@ const EmployeeFormDialog = ({
       handleClose();
       onSuccess?.();
     } catch (error) {
-      toast.error(error.response?.data?.message || "เพิ่มพนักงานไม่สำเร็จ");
+      console.log(error);
     }
   };
 
   const handleEdit = async (data) => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-
       const updateData = {
         email: data.email,
         fullName: `${data.firstName} ${data.lastName}`,
@@ -173,9 +170,7 @@ const EmployeeFormDialog = ({
       handleClose();
       onSuccess?.();
     } catch (error) {
-      toast.error(
-        error.response?.data?.message || "แก้ไขข้อมูลพนักงานไม่สำเร็จ",
-      );
+      console.log(error);
     }
   };
 
@@ -214,6 +209,7 @@ const EmployeeFormDialog = ({
             <X size={18} className="text-subtle-dark" />
           </button>
         </div>
+
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px]">
           <form
             onSubmit={handleSubmit(editingItem ? handleEdit : handleAdd)}
@@ -323,7 +319,7 @@ const EmployeeFormDialog = ({
                 }
                 autoFocus={false}
               />
-              
+
               <div className="px-0 pb-[16px]">
                 <Label
                   htmlFor="dateOfBirth"
@@ -443,6 +439,7 @@ const EmployeeFormDialog = ({
             </div>
           </form>
         </div>
+
         <div className="flex-shrink-0 px-[16px] pb-[16px]">
           <div className="flex gap-[16px]">
             <FormButton

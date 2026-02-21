@@ -7,7 +7,7 @@ import { getVehicles } from "@/api/vehicle";
 import { Document } from "@/components/icons/Icons";
 import BrandIcons from "@/components/icons/BrandIcons";
 
-const Vehicles = () => {
+const VehicleList = () => {
   const [vehicles, setVehicles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -41,11 +41,12 @@ const Vehicles = () => {
   }, [search]);
 
   const handleFilter = async (search) => {
+    setIsLoading(true);
     try {
       const res = await getVehicles(search);
       setVehicles(res.data);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +59,9 @@ const Vehicles = () => {
           <Document color="#ffffff" />
         </div>
         <div>
-          <p className="text-surface text-[24px] font-semibold md:text-[26px]">ประวัติลูกค้า</p>
+          <p className="text-surface text-[24px] font-semibold md:text-[26px]">
+            ประวัติลูกค้า
+          </p>
         </div>
       </div>
       <div className="bg-surface shadow-primary mt-[16px] min-h-[calc(100vh-65px)] w-full rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
@@ -83,13 +86,13 @@ const Vehicles = () => {
                 <Link to={`/vehicles/${item.id}`}>
                   <CarCard
                     bg="primary"
-                    icon={<BrandIcons brand={item.vehicleBrandModel.brand} />}
+                    icon={<BrandIcons brand={item.vehicleBrand.brand} />}
                     licensePlate={
                       item.licensePlate
                         ? `${item.licensePlate.plateNumber} ${item.licensePlate.province}`
                         : "ไม่ระบุทะเบียนรถ"
                     }
-                    brand={`${item.vehicleBrandModel.brand} ${item.vehicleBrandModel.model}`}
+                    brand={`${item.vehicleBrand.brand} ${item.vehicleBrand.model}`}
                   />
                 </Link>
               </div>
@@ -100,4 +103,4 @@ const Vehicles = () => {
     </div>
   );
 };
-export default Vehicles;
+export default VehicleList;

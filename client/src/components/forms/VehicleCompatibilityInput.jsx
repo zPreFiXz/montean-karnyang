@@ -2,17 +2,17 @@ import { Label } from "@radix-ui/react-label";
 import { useState, useEffect, useRef } from "react";
 import { Plus, Trash, X } from "lucide-react";
 import ComboBox from "../ui/ComboBox";
-import { getVehicleBrandModels } from "@/api/vehicleBrandModel";
+import { getVehicleBrands } from "@/api/vehicleBrand";
 
 const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   const [vehicles, setVehicles] = useState([{ brand: "", model: "" }]);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [vehicleBrandModels, setVehicleBrandModels] = useState([]);
+  const [vehicleBrands, setVehicleBrands] = useState([]);
   const [brands, setBrands] = useState([]);
   const vehicleRefs = useRef([]);
 
   useEffect(() => {
-    fetchVehicleBrandModels();
+    fetchVehicleBrands();
   }, []);
 
   useEffect(() => {
@@ -37,22 +37,22 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
     }
   }, [initialData, setValue]);
 
-  const fetchVehicleBrandModels = async () => {
+  const fetchVehicleBrands = async () => {
     try {
-      const res = await getVehicleBrandModels();
-      setVehicleBrandModels(res.data);
+      const res = await getVehicleBrands();
+      setVehicleBrands(res.data);
 
       const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
       setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   };
 
   const getAvailableModels = (brandName) => {
-    if (!brandName || !vehicleBrandModels.length) return [];
+    if (!brandName || !vehicleBrands.length) return [];
 
-    const modelsForBrand = vehicleBrandModels
+    const modelsForBrand = vehicleBrands
       .filter((item) => item.brand === brandName)
       .map((item) => ({ id: item.model, name: item.model }));
 
@@ -95,6 +95,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
 
   const handleRemoveVehicle = (index) => {
     if (vehicles.length <= 1) return;
+
     const newVehicles = vehicles.filter((_, i) => i !== index);
     setVehicles(newVehicles);
     updateFormValue(newVehicles);
@@ -120,6 +121,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
       <Label className="text-subtle-dark text-[22px] font-medium md:text-[24px]">
         รถที่รองรับ
       </Label>
+
       {vehicles.map((vehicle, index) => (
         <div
           key={index}
@@ -130,6 +132,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
             <p className="text-subtle-dark text-[20px] font-medium md:text-[22px]">
               รถคันที่ {index + 1}
             </p>
+
             <div className="flex">
               {vehicles.length === 1 && (vehicle.brand || vehicle.model) && (
                 <button
@@ -141,6 +144,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                   ล้างข้อมูล
                 </button>
               )}
+
               {vehicles.length > 1 && (
                 <button
                   type="button"
@@ -166,6 +170,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                 customClass="text-[18px] md:text-[20px]"
               />
             </div>
+
             <div className="mt-[12px]">
               <ComboBox
                 label="รุ่น"
@@ -182,6 +187,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
           </div>
         </div>
       ))}
+      
       <button
         type="button"
         onClick={handleAddVehicle}

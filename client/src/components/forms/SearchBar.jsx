@@ -61,6 +61,7 @@ const SearchBar = ({
       <div className="text-subtle-dark pointer-events-none absolute left-[16px] flex h-full items-center">
         <Search size={20} />
       </div>
+
       <Input
         type="text"
         value={inputValue}
@@ -94,6 +95,7 @@ const SearchBar = ({
           e.target.style.boxShadow = "";
         }}
       />
+      
       {inputValue && (
         <button
           onClick={handleClear}

@@ -5,13 +5,13 @@ import { LoaderCircle } from "lucide-react";
 import InventoryCard from "@/components/cards/InventoryCard";
 import SearchBar from "@/components/forms/SearchBar";
 import CategoryList from "@/components/CategoryList";
-import ItemDetailDialog from "@/components/dialogs/ItemDetailDialog";
+import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
 import ComboBox from "@/components/ui/ComboBox";
 import { getInventory } from "@/api/inventory";
 import { getParts } from "@/api/part";
 import { BoxSearch } from "@/components/icons/Icons";
 
-const Inventory = () => {
+const InventoryList = () => {
   const [activeCategory, setActiveCategory] = useState("ทั้งหมด");
   const [inventory, setInventory] = useState([]);
   const [tireBrand, setTireBrand] = useState("");
@@ -131,13 +131,14 @@ const Inventory = () => {
   }, [category, search]);
 
   const handleFilter = async (category, search, filterParams = {}) => {
+    setIsLoading(true);
     try {
       const res = await getInventory(category, search, filterParams);
       const data = res.data || [];
 
       setInventory(data);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     } finally {
       setIsLoading(false);
     }
@@ -151,7 +152,7 @@ const Inventory = () => {
         if (!mounted) return;
         setPartsList(partsRes.data || []);
       } catch (err) {
-        console.error("getParts failed", err);
+        console.log("getParts failed", err);
         setPartsList([]);
       }
     })();
@@ -306,7 +307,7 @@ const Inventory = () => {
           )}
         </div>
       </div>
-      <ItemDetailDialog
+      <RepairItemDetailDialog
         item={selectedItem}
         open={isItemDetailOpen}
         onOpenChange={setIsItemDetailOpen}
@@ -315,4 +316,4 @@ const Inventory = () => {
     </div>
   );
 };
-export default Inventory;
+export default InventoryList;

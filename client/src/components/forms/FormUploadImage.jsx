@@ -159,6 +159,7 @@ const FormUploadImage = ({
       >
         {label}
       </Label>
+
       <div className="mt-[8px] flex items-center justify-center">
         <Input
           type="file"
@@ -168,6 +169,7 @@ const FormUploadImage = ({
           id={inputId}
           disabled={isDeleting}
         />
+        
         <label
           htmlFor={isDeleting ? undefined : inputId}
           onDragEnter={handleDragEnter}

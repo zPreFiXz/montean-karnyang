@@ -1,38 +1,8 @@
 import { getCategories } from "@/api/category";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
-import {
-  ToolBox,
-  Tire,
-  Innertube,
-  Oil,
-  Filter,
-  Battery,
-  Brake,
-  Shock,
-  Belt,
-  Gear,
-  Light,
-  Wiper,
-  Suspension,
-} from "@/components/icons/Icons";
+import { ICON_MAP, DEFAULT_ICON } from "@/components/icons/categoryIcons";
 import { LoaderCircle } from "lucide-react";
-
-const ICON_MAP = {
-  บริการ: ToolBox,
-  ช่วงล่าง: Suspension,
-  ยาง: Tire,
-  ยางใน: Innertube,
-  น้ำมันเครื่อง: Oil,
-  เบรค: Brake,
-  โช๊คอัพ: Shock,
-  "คลัช-เกียร์": Gear,
-  แบตเตอรี่: Battery,
-  ระบบไฟฟ้า: Light,
-  สายพาน: Belt,
-  ใบปัดน้ำฝน: Wiper,
-  ไส้กรอง: Filter,
-};
 
 const CategoryList = ({ activeCategory, setActiveCategory }) => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -56,12 +26,12 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
       const categoriesWithIcons = res.data
         .map((category) => ({
           ...category,
-          icon: ICON_MAP[category.name] || ToolBox,
+          icon: ICON_MAP[category.name] || DEFAULT_ICON,
         }))
         .sort((a, b) => a.id - b.id);
       setCategories(categoriesWithIcons);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     } finally {
       setIsLoading(false);
     }

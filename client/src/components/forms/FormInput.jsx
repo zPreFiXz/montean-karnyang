@@ -32,6 +32,7 @@ const FormInput = ({
       >
         {label}
       </Label>
+
       <div className="relative">
         <Input
           {...(register ? register(name, rules) : {})}
@@ -53,6 +54,7 @@ const FormInput = ({
           }}
           {...props}
         />
+
         {rightSlot && (
           <div
             className={`${
@@ -62,12 +64,14 @@ const FormInput = ({
             {rightSlot}
           </div>
         )}
+
         {errors[name] && (
           <div className="absolute top-1/2 right-[12px] -translate-y-1/2 transform">
             <AlertCircle className="text-destructive h-5 w-5" />
           </div>
         )}
       </div>
+      
       {errors[name] && (
         <div className="mt-[6px] flex items-center gap-[4px] px-[4px]">
           <AlertCircle className="text-destructive h-4 w-4 flex-shrink-0" />

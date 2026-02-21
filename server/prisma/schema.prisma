@@ -76,12 +76,12 @@ model Vehicle {
   updatedAt           DateTime          @updatedAt
   licensePlateId      Int?
   licensePlate        LicensePlate?     @relation(fields: [licensePlateId], references: [id], onDelete: Cascade)
-  vehicleBrandModelId Int
-  vehicleBrandModel   VehicleBrandModel @relation(fields: [vehicleBrandModelId], references: [id], onDelete: Cascade)
+  vehicleBrandId Int
+  vehicleBrand   VehicleBrand @relation(fields: [vehicleBrandId], references: [id], onDelete: Cascade)
   repairs             Repair[]
 }
 
-model VehicleBrandModel {
+model VehicleBrand {
   id       Int       @id @default(autoincrement())
   brand    String
   model    String

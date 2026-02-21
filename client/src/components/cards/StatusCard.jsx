@@ -15,6 +15,7 @@ const StatusCard = ({ bg, icon: Icon, label, amount }) => {
           {label}
         </p>
       </div>
+      
       <p className="text-surface text-[32px] font-semibold md:text-[34px]">
         {amount} คัน
       </p>

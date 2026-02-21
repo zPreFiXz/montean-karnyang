@@ -10,7 +10,7 @@ exports.getVehicles = async (req, res, next) => {
       filter = {
         OR: [
           {
-            vehicleBrandModel: {
+            vehicleBrand: {
               OR: [
                 { brand: { contains: search } },
                 { model: { contains: search } },
@@ -33,7 +33,7 @@ exports.getVehicles = async (req, res, next) => {
       where: filter,
       include: {
         licensePlate: true,
-        vehicleBrandModel: true,
+        vehicleBrand: true,
       },
     });
 
@@ -56,7 +56,7 @@ exports.getVehicleById = async (req, res, next) => {
             province: true,
           },
         },
-        vehicleBrandModel: true,
+        vehicleBrand: true,
         repairs: {
           select: {
             id: true,

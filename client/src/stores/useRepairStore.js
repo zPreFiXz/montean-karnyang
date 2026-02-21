@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { getRepairs } from "@/api/repair";
 
-// กรองรายการซ่อมที่มีสถานะ "PAID" และจ่ายเงินในวันนี้
+// กรองรายการซ่อมที่มีสถานะ "PAID" และถูกจ่ายเงินในวันนี้
 const filterTodayPaidRepairs = (repairs) => {
   const todayStr = new Date().toISOString().split("T")[0];
   return repairs.filter((repair) => {
@@ -14,14 +14,29 @@ const filterTodayPaidRepairs = (repairs) => {
 const repairStore = (set, get) => ({
   repairs: [],
 
-  // ดึงรายการซ่อมทั้งหมดจากเซิร์ฟเวอร์และเก็บไว้ในสโตร์
+  // ดึงรายการซ่อมทั้งหมด
   fetchRepairs: async () => {
-    const res = await getRepairs();
-    set({ repairs: res.data });
-    return res.data;
+    try {
+      const res = await getRepairs();
+      set({ repairs: res.data });
+      return res.data;
+    } catch (error) {
+      console.log(error);
+    }
   },
 
-  // นับจำนวนรายการซ่อมตามสถานะ
+  // ดึงรายการซ่อมทั้งหมดตามสถานะ
+  getRepairsByStatus: (status) => {
+    const { repairs } = get();
+
+    if (status === "PAID") {
+      return filterTodayPaidRepairs(repairs);
+    }
+
+    return repairs.filter((repair) => repair.status === status);
+  },
+
+  // ดึงจำนวนรายการซ่อมตามสถานะ
   getRepairCountByStatus: (status) => {
     const { repairs } = get();
 
@@ -32,7 +47,7 @@ const repairStore = (set, get) => ({
     return repairs.filter((repair) => repair.status === status).length;
   },
 
-  // คำนวณยอดขายรวมของวันนี้
+  // ดึงยอดขายรวมของรายการซ่อมที่จ่ายเงินในวันนี้
   getTodaySales: () => {
     const { repairs } = get();
     const todayPaidRepairs = filterTodayPaidRepairs(repairs);
@@ -40,29 +55,6 @@ const repairStore = (set, get) => ({
     return todayPaidRepairs.reduce((total, repair) => {
       return total + Number(repair.totalPrice);
     }, 0);
-  },
-
-  // ดึงรายการซ่อมล่าสุดตามสถานะ
-  getLatestRepairByStatus: (status) => {
-    const { repairs } = get();
-
-    const filteredRepairs =
-      status === "PAID"
-        ? filterTodayPaidRepairs(repairs)
-        : repairs.filter((repair) => repair.status === status);
-
-    return filteredRepairs[0] ?? null;
-  },
-
-  // ดึงรายการซ่อมตามสถานะ
-  getRepairsByStatus: (status) => {
-    const { repairs } = get();
-
-    if (status === "PAID") {
-      return filterTodayPaidRepairs(repairs);
-    }
-
-    return repairs.filter((repair) => repair.status === status);
   },
 });
 

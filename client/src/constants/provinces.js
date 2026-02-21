@@ -1,4 +1,4 @@
-export const PROVINCES = [
+export const provinces = [
   { id: 1, name: "กรุงเทพมหานคร" },
   { id: 2, name: "กระบี่" },
   { id: 3, name: "กาญจนบุรี" },

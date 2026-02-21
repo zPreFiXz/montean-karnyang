@@ -1,4 +1,4 @@
-import { PROVINCES } from "@/constants/provinces";
+import { provinces } from "@/constants/provinces";
 
 export function formatDate(dateString) {
   if (!dateString) return "ไม่ระบุ";
@@ -28,11 +28,11 @@ export function formatCurrency(amount) {
 }
 
 export function getProvinceName(provinceId) {
-  const province = PROVINCES.find((p) => p.id === provinceId);
+  const province = provinces.find((p) => p.id === provinceId);
   return province ? province.name : provinceId;
 }
 
 export function getProvinceIdByName(name) {
-  const found = PROVINCES.find((p) => p.name === name);
+  const found = provinces.find((p) => p.name === name);
   return found ? found.id : "";
 }

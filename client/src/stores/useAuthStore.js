@@ -15,7 +15,9 @@ const authStore = (set) => ({
   logout: async () => {
     try {
       await api.post("/api/logout");
-    } catch {}
+    } catch (error) {
+      console.log(error);
+    }
     set({ user: null });
   },
   clearAuth: () => {

@@ -58,7 +58,7 @@ const SalesReport = () => {
     try {
       await fetchRepairs();
     } catch (error) {
-      console.error(error);
+      console.log(error);
     } finally {
       setIsLoading(false);
     }
@@ -156,7 +156,7 @@ const SalesReport = () => {
         ? `${vehicle.licensePlate.plateNumber} ${getProvinceName(vehicle.licensePlate.province)}`
         : "ไม่ระบุทะเบียนรถ";
 
-    const brand = `${vehicle.vehicleBrandModel.brand} ${vehicle.vehicleBrandModel.model}`;
+    const brand = `${vehicle.vehicleBrand.brand} ${vehicle.vehicleBrand.model}`;
 
     const paidTime = repair.paidAt ? formatTime(repair.paidAt) : "";
 
@@ -432,7 +432,7 @@ const SalesReport = () => {
                         bg="primary"
                         icon={
                           <BrandIcons
-                            brand={repair.vehicle.vehicleBrandModel.brand}
+                            brand={repair.vehicle.vehicleBrand.brand}
                           />
                         }
                         licensePlate={carData.licensePlate}
@@ -465,7 +465,7 @@ const SalesReport = () => {
                               bg="primary"
                               icon={
                                 <BrandIcons
-                                  brand={repair.vehicle.vehicleBrandModel.brand}
+                                  brand={repair.vehicle.vehicleBrand.brand}
                                 />
                               }
                               licensePlate={carData.licensePlate}

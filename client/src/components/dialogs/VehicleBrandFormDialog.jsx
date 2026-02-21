@@ -11,11 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { vehicleBrandModelSchema } from "@/utils/schemas";
-import {
-  createVehicleBrandModel,
-  updateVehicleBrandModel,
-} from "@/api/vehicleBrandModel";
+import { vehicleBrandSchema } from "@/utils/schemas";
+import { createVehicleBrand, updateVehicleBrand } from "@/api/vehicleBrand";
 
 const VehicleBrandFormDialog = ({
   isOpen,
@@ -29,7 +26,7 @@ const VehicleBrandFormDialog = ({
     reset,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver: zodResolver(vehicleBrandModelSchema),
+    resolver: zodResolver(vehicleBrandSchema),
     defaultValues: { brand: "", model: "" },
   });
 
@@ -49,8 +46,7 @@ const VehicleBrandFormDialog = ({
   const handleAddVehicleBrand = async (data) => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      await createVehicleBrandModel({
+      await createVehicleBrand({
         brand: data.brand,
         model: data.model,
       });
@@ -58,17 +54,14 @@ const VehicleBrandFormDialog = ({
       handleClose();
       onSuccess?.();
     } catch (error) {
-      toast.error(
-        error.response?.data?.message || "เพิ่มยี่ห้อและรุ่นรถไม่สำเร็จ",
-      );
+      console.log(error);
     }
   };
 
   const handleEditVehicleBrand = async (data) => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      await updateVehicleBrandModel(editingItem.id, {
+      await updateVehicleBrand(editingItem.id, {
         brand: data.brand,
         model: data.model,
       });
@@ -76,9 +69,7 @@ const VehicleBrandFormDialog = ({
       handleClose();
       onSuccess?.();
     } catch (error) {
-      toast.error(
-        error.response?.data?.message || "แก้ไขยี่ห้อและรุ่นรถไม่สำเร็จ",
-      );
+      console.log(error);
     }
   };
 
@@ -115,6 +106,7 @@ const VehicleBrandFormDialog = ({
             <X size={18} className="text-subtle-dark" />
           </button>
         </div>
+
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px]">
           <form
             onSubmit={handleSubmit(
@@ -147,6 +139,7 @@ const VehicleBrandFormDialog = ({
             </div>
           </form>
         </div>
+
         <div className="flex-shrink-0 px-[16px] pb-[16px]">
           <div className="flex gap-[16px]">
             <FormButton

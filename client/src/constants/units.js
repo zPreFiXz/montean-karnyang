@@ -1,4 +1,4 @@
-export const UNITS = [
+export const units = [
   { name: "ตัว" },
   { name: "อัน" },
   { name: "เส้น" },

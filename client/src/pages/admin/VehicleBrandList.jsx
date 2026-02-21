@@ -1,18 +1,14 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, Edit, Trash2, LoaderCircle } from "lucide-react";
 import { Link } from "react-router";
-
 import { toast } from "sonner";
 import ComboBox from "@/components/ui/ComboBox";
 import VehicleBrandFormDialog from "@/components/dialogs/VehicleBrandFormDialog";
-import DeleteConfirmDialog from "@/components/dialogs/DeleteConfirmDialog";
-import {
-  deleteVehicleBrandModel,
-  getVehicleBrandModels,
-} from "@/api/vehicleBrandModel";
+import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
+import { deleteVehicleBrand, getVehicleBrands } from "@/api/vehicleBrand";
 import FormButton from "@/components/forms/FormButton";
 
-const VehicleBrandModels = () => {
+const VehicleBrandList = () => {
   const [vehicleBrands, setVehicleBrands] = useState([]);
   const [selectedBrand, setSelectedBrand] = useState("");
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
@@ -23,30 +19,30 @@ const VehicleBrandModels = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    fetchVehicleBrandModels();
+    fetchVehicleBrands();
   }, []);
 
-  const fetchVehicleBrandModels = async () => {
+  const fetchVehicleBrands = async () => {
+    setIsLoading(true);
     try {
-      const res = await getVehicleBrandModels();
+      const res = await getVehicleBrands();
       setVehicleBrands(res.data);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleDeleteVehicleBrandModel = async (id) => {
+  const handleDeleteVehicleBrand = async (id) => {
     try {
-      await deleteVehicleBrandModel(id);
-      fetchVehicleBrandModels();
+      await deleteVehicleBrand(id);
+      fetchVehicleBrands();
       setIsDeleteDialogOpen(false);
       setDeletingItem(null);
       toast.success("ลบยี่ห้อและรุ่นรถเรียบร้อยแล้ว");
     } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.message);
+      console.log(error);
     }
   };
 
@@ -57,7 +53,7 @@ const VehicleBrandModels = () => {
 
   const handleDeleteConfirm = () => {
     if (deletingItem) {
-      return handleDeleteVehicleBrandModel(deletingItem.id);
+      return handleDeleteVehicleBrand(deletingItem.id);
     }
   };
 
@@ -133,10 +129,10 @@ const VehicleBrandModels = () => {
               isOpen={isFormDialogOpen}
               onClose={handleCloseDialog}
               editingItem={editingItem}
-              onSuccess={fetchVehicleBrandModels}
+              onSuccess={fetchVehicleBrands}
             />
 
-            <DeleteConfirmDialog
+            <ConfirmDialog
               isOpen={isDeleteDialogOpen}
               onClose={handleDeleteCancel}
               onConfirm={handleDeleteConfirm}
@@ -198,4 +194,4 @@ const VehicleBrandModels = () => {
   );
 };
 
-export default VehicleBrandModels;
+export default VehicleBrandList;

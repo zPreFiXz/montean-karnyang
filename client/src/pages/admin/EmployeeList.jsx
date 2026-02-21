@@ -5,10 +5,10 @@ import { toast } from "sonner";
 import FormButton from "@/components/forms/FormButton";
 import SearchBar from "@/components/forms/SearchBar";
 import EmployeeFormDialog from "@/components/dialogs/EmployeeFormDialog";
-import DeleteConfirmDialog from "@/components/dialogs/DeleteConfirmDialog";
+import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import { getEmployees, deleteEmployee } from "@/api/employee";
 
-const Employees = () => {
+const EmployeeList = () => {
   const [employees, setEmployees] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -23,11 +23,12 @@ const Employees = () => {
   }, []);
 
   const fetchEmployees = async () => {
+    setIsLoading(true);
     try {
-      const response = await getEmployees();
-      setEmployees(response.data);
+      const res = await getEmployees();
+      setEmployees(res.data);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     } finally {
       setIsLoading(false);
     }
@@ -47,8 +48,7 @@ const Employees = () => {
       setDeletingEmployee(null);
       fetchEmployees();
     } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.message);
+      console.log(error);
     }
   };
 
@@ -197,7 +197,7 @@ const Employees = () => {
           </div>
         )}
       </div>
-      <DeleteConfirmDialog
+      <ConfirmDialog
         isOpen={isDeleteDialogOpen}
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
@@ -209,4 +209,4 @@ const Employees = () => {
   );
 };
 
-export default Employees;
+export default EmployeeList;

@@ -1,4 +1,4 @@
-exports.VehicleBrandModels = [
+exports.VehicleBrands = [
   // Toyota
   { brand: "Toyota", model: "Mighty-X" },
   { brand: "Toyota", model: "Tiger" },

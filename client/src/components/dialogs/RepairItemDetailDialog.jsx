@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Edit, Plus, X, AlertTriangle, Check, Trash } from "lucide-react";
-import DeleteConfirmDialog from "@/components/dialogs/DeleteConfirmDialog";
+import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import {
   Dialog,
   DialogContent,
@@ -19,14 +19,18 @@ import { updatePartStockSchema } from "@/utils/schemas";
 import useAuthStore from "@/stores/useAuthStore";
 import { formatCurrency } from "@/utils/formats";
 
-const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
+const RepairItemDetailDialog = ({
+  item,
+  open,
+  onOpenChange,
+  onStockUpdate,
+}) => {
   const [isAddStockVisible, setIsAddStockVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(item);
   const navigate = useNavigate();
   const { user } = useAuthStore();
-
   const {
     register,
     handleSubmit,
@@ -116,9 +120,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
     setIsSubmitting(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-
       await updatePartStock(currentItem.id, Number(data.quantity));
-
       toast.success("เพิ่มสต็อกเรียบร้อยแล้ว");
       setIsAddStockVisible(false);
       reset();
@@ -145,7 +147,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
         onStockUpdate();
       }
     } catch (error) {
-      console.error(error);
+      console.log(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -180,10 +182,12 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
               <X size={18} className="text-subtle-dark" />
             </button>
           </div>
+
           <div className="font-athiti flex flex-1 flex-col overflow-y-auto">
             <div className="flex-1 px-[20px]">
               <div className="mb-[16px]">
                 {renderProductInfo()}
+
                 {!isService && currentItem.partNumber && (
                   <div className="mt-[16px] flex justify-center">
                     {currentItem.stockQuantity === 0 ? (
@@ -209,6 +213,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                   </div>
                 )}
               </div>
+
               {currentItem.secureUrl && (
                 <div className="mb-[16px] flex justify-center">
                   <div className="border-subtle-light flex h-[250px] w-[250px] items-center justify-center overflow-hidden rounded-[20px] border-2">
@@ -220,6 +225,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                   </div>
                 </div>
               )}
+
               <div className="mt-[16px] space-y-[8px]">
                 {!isService && (
                   <p className="font-athiti text-normal text-[22px] font-semibold md:text-[24px]">
@@ -237,6 +243,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                       </p>
                     </div>
                   )}
+
                   <div className="flex justify-between">
                     <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
                       หมวดหมู่:
@@ -245,6 +252,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                       {currentItem.category?.name}
                     </p>
                   </div>
+
                   {currentItem.category?.name === "ช่วงล่าง" &&
                     currentItem.typeSpecificData?.suspensionType && (
                       <div className="flex justify-between">
@@ -260,11 +268,13 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                       </div>
                     )}
                 </div>
+
                 {!isService && (
                   <p className="font-athiti text-normal mt-[16px] text-[22px] font-semibold md:text-[24px]">
                     ข้อมูลราคา
                   </p>
                 )}
+
                 <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
                   {user?.role === "ADMIN" &&
                     !isService &&
@@ -278,6 +288,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                         </p>
                       </div>
                     )}
+                    
                   <div className="flex justify-between">
                     <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
                       {isService ? "ราคา:" : "ราคาขาย:"}
@@ -291,6 +302,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                     </p>
                   </div>
                 </div>
+
                 {!isService && (
                   <div>
                     <p className="font-athiti text-normal mt-[16px] text-[22px] font-semibold md:text-[24px]">
@@ -326,6 +338,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                   </div>
                 )}
               </div>
+
               {!isService &&
                 currentItem.compatibleVehicles &&
                 currentItem.compatibleVehicles.length > 0 && (
@@ -345,11 +358,13 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
                     </div>
                   </div>
                 )}
+
               {!isService && isAddStockVisible && (
                 <div>
                   <p className="font-athiti text-normal mt-[16px] mb-[8px] text-[22px] font-semibold md:text-[24px]">
                     เพิ่มสต็อก
                   </p>
+
                   <div className="rounded-[10px] bg-gray-50 px-[16px] pb-[16px]">
                     <form
                       onSubmit={handleSubmit(onSubmit)}
@@ -395,6 +410,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
               )}
             </div>
           </div>
+
           <div className="flex-shrink-0 px-[16px] pb-[16px]">
             <div className="flex items-center gap-[16px]">
               {!isService && !isAddStockVisible && (
@@ -428,7 +444,8 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
           </div>
         </DialogContent>
       </Dialog>
-      <DeleteConfirmDialog
+
+      <ConfirmDialog
         isOpen={isDeleteConfirmOpen}
         onClose={() => setIsDeleteConfirmOpen(false)}
         itemName={itemDisplayName}
@@ -450,7 +467,7 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
             );
             if (onStockUpdate) onStockUpdate();
           } catch (error) {
-            console.error(error);
+            console.log(error);
           } finally {
             setIsDeleteConfirmOpen(false);
           }
@@ -460,4 +477,4 @@ const ItemDetailDialog = ({ item, open, onOpenChange, onStockUpdate }) => {
   );
 };
 
-export default ItemDetailDialog;
+export default RepairItemDetailDialog;

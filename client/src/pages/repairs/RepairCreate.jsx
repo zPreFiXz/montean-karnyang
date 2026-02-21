@@ -14,15 +14,15 @@ import {
 import FormInput from "@/components/forms/FormInput";
 import LicensePlateInput from "@/components/forms/LicensePlateInput";
 import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
-import EditPriceDialog from "@/components/dialogs/EditNamePriceDialog";
+import EditPriceDialog from "@/components/dialogs/EditRepairItemDialog";
 import FormButton from "@/components/forms/FormButton";
 import ComboBox from "@/components/ui/ComboBox";
-import { getVehicleBrandModels } from "@/api/vehicleBrandModel";
+import { getVehicleBrands } from "@/api/vehicleBrand";
 import { repairSchema } from "@/utils/schemas";
-import { PROVINCES } from "@/constants/provinces";
+import { provinces } from "@/constants/provinces";
 import { formatCurrency } from "@/utils/formats";
 
-const CreateRepair = () => {
+const RepairCreate = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { register, handleSubmit, formState, setValue, watch, setFocus } =
@@ -32,7 +32,7 @@ const CreateRepair = () => {
   const [isCustomerInfoOpen, setIsCustomerInfoOpen] = useState(false);
   const [repairItems, setRepairItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [vehicleBrandModels, setVehicleBrandModels] = useState([]);
+  const [vehicleBrands, setVehicleBrands] = useState([]);
   const [brands, setBrands] = useState([]);
   const [restoredStockMap, setRestoredStockMap] = useState({});
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
@@ -41,7 +41,7 @@ const CreateRepair = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    fetchVehicleBrandModels();
+    fetchVehicleBrands();
   }, []);
 
   useEffect(() => {
@@ -101,21 +101,21 @@ const CreateRepair = () => {
     }
   }, [location.state, setValue]);
 
-  const fetchVehicleBrandModels = async () => {
+  const fetchVehicleBrands = async () => {
     try {
-      const res = await getVehicleBrandModels();
-      setVehicleBrandModels(res.data);
+      const res = await getVehicleBrands();
+      setVehicleBrands(res.data);
 
       const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
       setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   };
 
   const getAvailableModelsForBrand = () => {
     const selectedBrand = watch("brand");
-    const modelsForBrand = vehicleBrandModels
+    const modelsForBrand = vehicleBrands
       .filter((item) => item.brand === selectedBrand)
       .map((item) => ({ id: item.model, name: item.model }));
 
@@ -153,20 +153,23 @@ const CreateRepair = () => {
 
   const onSubmit = async (data) => {
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    navigate("/repairs/summary", {
-      state: {
-        repairData: { ...data, source: "GENERAL" },
-        repairItems: repairItems,
-        editRepairId: location.state?.editRepairId,
-        origin: location.state?.origin || location.state?.from,
-        statusSlug: location.state?.statusSlug,
-        vehicleId: location.state?.vehicleId,
-        from: "create",
-      },
-    });
-    setIsLoading(false);
+      navigate("/repairs/summary", {
+        state: {
+          repairData: { ...data, source: "GENERAL" },
+          repairItems: repairItems,
+          editRepairId: location.state?.editRepairId,
+          origin: location.state?.origin || location.state?.from,
+          statusSlug: location.state?.statusSlug,
+          vehicleId: location.state?.vehicleId,
+          from: "create",
+        },
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const onInvalid = (errs) => {
@@ -471,7 +474,7 @@ const CreateRepair = () => {
                 <ComboBox
                   label=""
                   color="text-surface"
-                  options={PROVINCES}
+                  options={provinces}
                   value={watch("province")}
                   onChange={(value) =>
                     setValue("province", value, {
@@ -821,4 +824,4 @@ const CreateRepair = () => {
   );
 };
 
-export default CreateRepair;
+export default RepairCreate;

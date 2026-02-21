@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
 import InventoryCard from "@/components/cards/InventoryCard";
-import ItemDetailDialog from "@/components/dialogs/ItemDetailDialog";
+import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
 import StatusCard from "@/components/cards/StatusCard";
 import { getInventory } from "@/api/inventory";
 import { formatCurrency, formatDate, formatTime } from "@/utils/formats";
@@ -46,7 +46,7 @@ const Dashboard = () => {
       const res = await getInventory(null, null);
       setInventory(res.data || []);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   };
 
@@ -75,9 +75,9 @@ const Dashboard = () => {
   });
 
   // แสดงยี่ห้อ+รุ่น หรือแค่รุ่นถ้ายี่ห้อเป็น "อื่นๆ"
-  const getDisplayBrand = (vehicleBrandModel) => {
-    const brand = vehicleBrandModel?.brand || "";
-    const model = vehicleBrandModel?.model || "";
+  const getDisplayBrand = (vehicleBrand) => {
+    const brand = vehicleBrand?.brand || "";
+    const model = vehicleBrand?.model || "";
 
     if (brand === "อื่นๆ" || brand === "อื่น ๆ") {
       return model;
@@ -88,15 +88,14 @@ const Dashboard = () => {
   const handleLogout = async () => {
     setIsLoggingOut(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
     try {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       localStorage.setItem("justLoggedOut", "true");
       await logout();
-
       navigate("/login", { replace: true });
     } catch (error) {
-      console.error(error);
+      console.log(error);
+    } finally {
       setIsLoggingOut(false);
     }
   };
@@ -150,7 +149,7 @@ const Dashboard = () => {
                       bg="progress"
                       icon={
                         <BrandIcons
-                          brand={repair.vehicle?.vehicleBrandModel?.brand}
+                          brand={repair.vehicle?.vehicleBrand?.brand}
                           color="#ffb000"
                         />
                       }
@@ -160,7 +159,7 @@ const Dashboard = () => {
                           ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
                           : "ไม่ระบุทะเบียนรถ"
                       }
-                      brand={getDisplayBrand(repair.vehicle?.vehicleBrandModel)}
+                      brand={getDisplayBrand(repair.vehicle?.vehicleBrand)}
                       time={repair.createdAt && formatTime(repair.createdAt)}
                       price={parseFloat(repair.totalPrice)}
                     />
@@ -182,7 +181,7 @@ const Dashboard = () => {
                       bg="completed"
                       icon={
                         <BrandIcons
-                          brand={repair.vehicle?.vehicleBrandModel?.brand}
+                          brand={repair.vehicle?.vehicleBrand?.brand}
                           color="#22c55e"
                         />
                       }
@@ -192,7 +191,7 @@ const Dashboard = () => {
                           ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
                           : "ไม่ระบุทะเบียนรถ"
                       }
-                      brand={getDisplayBrand(repair.vehicle?.vehicleBrandModel)}
+                      brand={getDisplayBrand(repair.vehicle?.vehicleBrand)}
                       time={
                         repair.completedAt && formatTime(repair.completedAt)
                       }
@@ -216,7 +215,7 @@ const Dashboard = () => {
                       bg="paid"
                       icon={
                         <BrandIcons
-                          brand={repair.vehicle?.vehicleBrandModel?.brand}
+                          brand={repair.vehicle?.vehicleBrand?.brand}
                         />
                       }
                       licensePlate={
@@ -225,7 +224,7 @@ const Dashboard = () => {
                           ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
                           : "ไม่ระบุทะเบียนรถ"
                       }
-                      brand={getDisplayBrand(repair.vehicle?.vehicleBrandModel)}
+                      brand={getDisplayBrand(repair.vehicle?.vehicleBrand)}
                       time={repair.paidAt && formatTime(repair.paidAt)}
                       price={parseFloat(repair.totalPrice)}
                     />
@@ -361,7 +360,7 @@ const Dashboard = () => {
                   <div>
                     {/* จัดการยี่ห้อและรุ่นรถ */}
                     <Link
-                      to="/vehicles/brand-models"
+                      to="/vehicles/brands"
                       onClick={() => setIsMenuOpen(false)}
                       className="bg-surface shadow-primary mb-[16px] flex w-full items-center gap-[16px] rounded-[12px] p-[16px] duration-300"
                     >
@@ -518,7 +517,7 @@ const Dashboard = () => {
             </div>
           )}
         </div>
-        <ItemDetailDialog
+        <RepairItemDetailDialog
           item={selectedItem}
           open={isItemDetailOpen}
           onOpenChange={setIsItemDetailOpen}

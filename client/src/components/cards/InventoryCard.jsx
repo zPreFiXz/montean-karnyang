@@ -30,6 +30,7 @@ const InventoryCard = ({
         </p>
       );
     }
+
     return (
       <p className="text-normal line-clamp-2 overflow-hidden text-[16px] font-semibold md:text-[18px]">
         {brand} {name}
@@ -42,6 +43,7 @@ const InventoryCard = ({
       <div className="shadow-primary bg-surface flex h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] px-[8px]">
         <div className="flex items-center gap-[8px]">
           <div className="border-subtle-light shadow-primary bg-surface flex items-center justify-center rounded-[10px] border">
+            
             {secureUrl ? (
               <div className="h-[60px] w-[60px]">
                 <img
@@ -63,6 +65,7 @@ const InventoryCard = ({
 
           <div className="flex flex-col">
             {renderProductInfo()}
+            
             {!isService &&
               (stockQuantity === 0 ? (
                 <div className="text-destructive flex items-center gap-[4px] text-[16px] font-semibold md:text-[18px]">
@@ -83,6 +86,7 @@ const InventoryCard = ({
               ))}
           </div>
         </div>
+        
         <p className="text-primary text-[22px] font-semibold text-nowrap md:text-[24px]">
           {formatCurrency(Number(sellingPrice))}
         </p>

@@ -10,17 +10,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { LoaderCircle, X } from "lucide-react";
-import { ToolBox, Tire, Shock, Oil } from "@/components/icons/Icons";
+import { ICON_MAP, DEFAULT_ICON } from "@/components/icons/categoryIcons";
 import { useDebouncedCallback } from "use-debounce";
 import { getInventory } from "@/api/inventory";
 import { getCategories } from "@/api/category";
-
-const ICON_MAP = {
-  บริการ: ToolBox,
-  ยาง: Tire,
-  ยางใน: Shock,
-  น้ำมันเครื่อง: Oil,
-};
 
 const AddRepairItemDialog = ({
   children,
@@ -28,9 +21,9 @@ const AddRepairItemDialog = ({
   selectedItems = [],
   restoredStockMap = {},
 }) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [inventory, setInventory] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState("ทั้งหมด");
   const [categories, setCategories] = useState([]);
   const [searchValue, setSearchValue] = useState("");
@@ -40,25 +33,30 @@ const AddRepairItemDialog = ({
     `${item.partNumber || ""}|${item.brand || ""}|${item.name || ""}`;
 
   const handleFilter = async (category, search) => {
+    setIsLoading(true);
     try {
       const res = await getInventory(category, search);
       setInventory(res.data);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     } finally {
       setIsLoading(false);
     }
   };
 
   const fetchCategories = async () => {
-    const res = await getCategories();
-    const categoriesWithIcons = res.data
-      .map((category) => ({
-        ...category,
-        icon: ICON_MAP[category.name] || ToolBox,
-      }))
-      .sort((a, b) => a.id - b.id);
-    setCategories(categoriesWithIcons);
+    try {
+      const res = await getCategories();
+      const categoriesWithIcons = res.data
+        .map((category) => ({
+          ...category,
+          icon: ICON_MAP[category.name] || DEFAULT_ICON,
+        }))
+        .sort((a, b) => a.id - b.id);
+      setCategories(categoriesWithIcons);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const debouncedSearch = useDebouncedCallback((value) => {
@@ -84,10 +82,13 @@ const AddRepairItemDialog = ({
         }
       }
     }
+    
     restoredStockMapRef.current = baseline;
+
     if (categories.length === 0) {
       fetchCategories();
     }
+
     handleFilter(null, null);
     setActiveCategory("ทั้งหมด");
     setSearchValue("");
@@ -147,6 +148,7 @@ const AddRepairItemDialog = ({
             <X size={18} className="text-subtle-dark" />
           </button>
         </DialogHeader>
+
         <div className="flex flex-1 flex-col overflow-y-auto">
           <div className="flex flex-shrink-0 flex-col px-[20px]">
             <div className="mt-[4px]">
@@ -160,6 +162,7 @@ const AddRepairItemDialog = ({
                 inputMode="none"
               />
             </div>
+
             <div className="font-athiti -mx-[20px] mt-[14px] overflow-x-auto px-[20px]">
               <div className="flex gap-[8px] py-[2px]">
                 <button
@@ -175,6 +178,7 @@ const AddRepairItemDialog = ({
                     ทั้งหมด
                   </div>
                 </button>
+
                 {categories.map((item, index) => {
                   const IconComponent = item.icon;
                   const isActive = activeCategory === item.name;
@@ -204,12 +208,14 @@ const AddRepairItemDialog = ({
                 })}
               </div>
             </div>
+
             <div className="mt-[14px] flex items-center justify-between">
               <p className="font-athiti text-[20px] font-semibold md:text-[22px]">
                 รายการอะไหล่และบริการ
               </p>
             </div>
           </div>
+
           <div className="flex-1 px-[20px] pb-[16px]">
             {isLoading ? (
               <div className="flex h-full items-center justify-center">

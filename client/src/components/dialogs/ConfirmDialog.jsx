@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import FormButton from "../forms/FormButton";
 
-const DeleteConfirmDialog = ({
+const ConfirmDialog = ({
   isOpen,
   onClose,
   onConfirm,
@@ -23,10 +23,9 @@ const DeleteConfirmDialog = ({
     setIsLoading(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-
       await onConfirm();
     } catch (error) {
-      console.error(error);
+      console.log(error);
     } finally {
       setIsLoading(false);
     }
@@ -66,11 +65,13 @@ const DeleteConfirmDialog = ({
             <X size={18} className="text-subtle-dark" />
           </button>
         </div>
+
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px] py-[16px]">
           <div className="text-center">
             <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
               {message}
             </p>
+
             {itemName && (
               <div className="mt-4 flex items-center justify-center">
                 <span className="text-primary bg-primary/10 inline-block rounded-[10px] px-4 py-2 text-[18px] font-semibold md:text-[20px]">
@@ -80,6 +81,7 @@ const DeleteConfirmDialog = ({
             )}
           </div>
         </div>
+
         <div className="flex-shrink-0 px-[16px] pb-[16px]">
           <div className="flex gap-[16px]">
             <button
@@ -91,6 +93,7 @@ const DeleteConfirmDialog = ({
             >
               ยกเลิก
             </button>
+
             <FormButton
               label="ลบ"
               isLoading={isLoading}
@@ -105,4 +108,4 @@ const DeleteConfirmDialog = ({
   );
 };
 
-export default DeleteConfirmDialog;
+export default ConfirmDialog;

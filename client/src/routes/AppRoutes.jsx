@@ -2,18 +2,18 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import Layout from "@/layouts/Layout";
 import Login from "@/pages/auth/Login";
 import Dashboard from "@/pages/Dashboard";
-import VehicleBrandModels from "@/pages/admin/VehicleBrandModels";
+import VehicleBrandList from "@/pages/admin/VehicleBrandList";
 import SuspensionInspection from "@/pages/inspections/SuspensionInspection";
-import CreateRepair from "@/pages/repairs/CreateRepair";
+import RepairCreate from "@/pages/repairs/RepairCreate";
 import RepairSummary from "@/pages/repairs/RepairSummary";
 import RepairStatus from "@/pages/repairs/RepairStatus";
 import RepairDetail from "@/pages/repairs/RepairDetail";
-import Inventory from "@/pages/inventory/Inventory";
-import CreateInventory from "@/pages/inventory/CreateInventory";
-import EditInventory from "@/pages/inventory/EditInventory";
-import Vehicles from "@/pages/vehicles/Vehicles";
+import InventoryList from "@/pages/inventory/InventoryList";
+import InventoryCreate from "@/pages/inventory/InventoryCreate";
+import InventoryEdit from "@/pages/inventory/InventoryEdit";
+import VehicleList from "@/pages/vehicles/VehicleList";
 import VehicleDetail from "@/pages/vehicles/VehicleDetail";
-import Employees from "@/pages/admin/Employees";
+import EmployeeList from "@/pages/admin/EmployeeList";
 import SalesReport from "@/pages/reports/SalesReport";
 import ProtectRouteUser from "./ProtectRouteUser";
 import ProtectRouteAdmin from "./ProtectRouteAdmin";
@@ -43,22 +43,19 @@ const AppRoutes = () => {
 
           {/* Repair */}
           <Route path="repairs" element={<RepairStatus />} />
-          <Route path="repairs/new" element={<CreateRepair />} />
-          <Route path="repairs/summary" element={<RepairSummary />} />
+          <Route path="repairs/new" element={<RepairCreate />} />
           <Route path="repairs/:id" element={<RepairDetail />} />
+          <Route path="repairs/summary" element={<RepairSummary />} />
 
           {/* Inventory */}
-          <Route path="inventory" element={<Inventory />} />
-          <Route path="inventory/new" element={<CreateInventory />} />
-          <Route path="inventory/:id" element={<EditInventory />} />
+          <Route path="inventory" element={<InventoryList />} />
+          <Route path="inventory/new" element={<InventoryCreate />} />
+          <Route path="inventory/:id" element={<InventoryEdit />} />
 
           {/* Vehicle */}
-          <Route path="vehicles" element={<Vehicles />} />
+          <Route path="vehicles" element={<VehicleList />} />
           <Route path="vehicles/:id" element={<VehicleDetail />} />
-          <Route
-            path="vehicles/brand-models"
-            element={<VehicleBrandModels />}
-          />
+          <Route path="vehicles/brands" element={<VehicleBrandList />} />
         </Route>
 
         {/* Private Admin */}
@@ -67,7 +64,7 @@ const AppRoutes = () => {
           element={<ProtectRouteAdmin element={<Layout />} />}
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="employees" element={<Employees />} />
+          <Route path="employees" element={<EmployeeList />} />
           <Route path="reports/sales" element={<SalesReport />} />
         </Route>
 

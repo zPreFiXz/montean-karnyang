@@ -276,7 +276,7 @@ export const updatePartStockSchema = z.object({
   quantity: z.coerce.number().min(1, "กรุณากรอกจำนวน"),
 });
 
-export const vehicleBrandModelSchema = z.object({
+export const vehicleBrandSchema = z.object({
   brand: z.string().min(1, "กรุณากรอกยี่ห้อรถ"),
   model: z.string().min(1, "กรุณากรอกรุ่นรถ"),
 });

@@ -80,7 +80,7 @@ exports.updatePartStockSchema = z.object({
   quantity: z.coerce.number().min(1),
 });
 
-exports.vehicleBrandModelSchema = z.object({
+exports.vehicleBrandSchema = z.object({
   brand: z.string().min(1),
   model: z.string().min(1),
 });

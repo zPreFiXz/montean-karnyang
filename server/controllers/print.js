@@ -56,7 +56,7 @@ const generateReceiptHTML = (repair) => {
       : "ไม่ระบุทะเบียน";
 
   const vehicleBrand =
-    `${repair.vehicle?.vehicleBrandModel?.brand || ""} ${repair.vehicle?.vehicleBrandModel?.model || ""}`.trim();
+    `${repair.vehicle?.vehicleBrand?.brand || ""} ${repair.vehicle?.vehicleBrand?.model || ""}`.trim();
 
   const generateRepairItemsHTML = () => {
     if (!repair.repairItems || repair.repairItems.length === 0) {
@@ -326,15 +326,15 @@ const generateReceiptHTML = (repair) => {
 
 exports.printReceipt = async (req, res, next) => {
   try {
-    const { repairId } = req.params;
+    const { id } = req.params;
 
     const repair = await prisma.repair.findUnique({
-      where: { id: parseInt(repairId) },
+      where: { id: parseInt(id) },
       include: {
         vehicle: {
           include: {
             licensePlate: true,
-            vehicleBrandModel: true,
+            vehicleBrand: true,
           },
         },
         customer: true,
@@ -381,7 +381,7 @@ exports.printReceipt = async (req, res, next) => {
         const { exec } = require("child_process");
         exec(`lp "${pdfPath}"`, (error, stdout, stderr) => {
           if (error) {
-            console.error("Print error:", error);
+            console.log("Print error:", error);
           }
           setTimeout(() => {
             fs.unlink(pdfPath, () => {});
@@ -396,7 +396,7 @@ exports.printReceipt = async (req, res, next) => {
 
       res.json({ success: true, message: "ส่งคำสั่งพิมพ์เรียบร้อยแล้ว" });
     } catch (printError) {
-      console.error("Print error:", printError);
+      console.log("Print error:", printError);
       fs.unlink(pdfPath, () => {});
       res.status(500).json({
         message: "เกิดข้อผิดพลาดในการพิมพ์",
@@ -404,7 +404,7 @@ exports.printReceipt = async (req, res, next) => {
       });
     }
   } catch (error) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     next(error);
   }
 };

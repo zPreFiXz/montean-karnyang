@@ -12,7 +12,7 @@ exports.getRepairs = async (req, res, next) => {
                 province: true,
               },
             },
-            vehicleBrandModel: {
+            vehicleBrand: {
               select: {
                 brand: true,
                 model: true,
@@ -36,7 +36,7 @@ exports.getRepairById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const repair = await prisma.repair.findFirst({
+    const repair = await prisma.repair.findUnique({
       where: { id: Number(id) },
       include: {
         vehicle: {
@@ -47,7 +47,7 @@ exports.getRepairById = async (req, res, next) => {
                 province: true,
               },
             },
-            vehicleBrandModel: {
+            vehicleBrand: {
               select: {
                 brand: true,
                 model: true,
@@ -104,9 +104,9 @@ exports.createRepair = async (req, res, next) => {
     let vehicle;
     let customer;
     let licensePlate;
-    let vehicleBrandModel;
+    let vehicleBrand;
 
-    vehicleBrandModel = await prisma.vehicleBrandModel.findUnique({
+    vehicleBrand = await prisma.vehicleBrand.findUnique({
       where: {
         brand_model: {
           brand,
@@ -115,8 +115,8 @@ exports.createRepair = async (req, res, next) => {
       },
     });
 
-    if (!vehicleBrandModel) {
-      vehicleBrandModel = await prisma.vehicleBrandModel.create({
+    if (!vehicleBrand) {
+      vehicleBrand = await prisma.vehicleBrand.create({
         data: {
           brand,
           model,
@@ -135,17 +135,17 @@ exports.createRepair = async (req, res, next) => {
       });
 
       if (licensePlate) {
-        vehicle = await prisma.vehicle.findFirst({
+        vehicle = await prisma.vehicle.findUnique({
           where: {
             licensePlateId: licensePlate.id,
-            vehicleBrandModelId: vehicleBrandModel.id,
+            vehicleBrandId: vehicleBrand.id,
           },
         });
 
         if (!vehicle) {
           vehicle = await prisma.vehicle.create({
             data: {
-              vehicleBrandModelId: vehicleBrandModel.id,
+              vehicleBrandId: vehicleBrand.id,
               licensePlateId: licensePlate.id,
             },
           });
@@ -160,15 +160,15 @@ exports.createRepair = async (req, res, next) => {
 
         vehicle = await prisma.vehicle.create({
           data: {
-            vehicleBrandModelId: vehicleBrandModel.id,
+            vehicleBrandId: vehicleBrand.id,
             licensePlateId: licensePlate.id,
           },
         });
       }
     } else {
-      vehicle = await prisma.vehicle.findFirst({
+      vehicle = await prisma.vehicle.findUnique({
         where: {
-          vehicleBrandModelId: vehicleBrandModel.id,
+          vehicleBrandId: vehicleBrand.id,
           licensePlateId: null,
         },
       });
@@ -176,7 +176,7 @@ exports.createRepair = async (req, res, next) => {
       if (!vehicle) {
         vehicle = await prisma.vehicle.create({
           data: {
-            vehicleBrandModelId: vehicleBrandModel.id,
+            vehicleBrandId: vehicleBrand.id,
             licensePlateId: null,
           },
         });
@@ -208,7 +208,7 @@ exports.createRepair = async (req, res, next) => {
     } else if (fullName && !phoneNumber) {
       customer = await prisma.customer.findFirst({
         where: {
-          fullName: fullName,
+          fullName,
         },
       });
       const isSameCustomer = customer.fullName === fullName;
@@ -287,12 +287,12 @@ exports.updateRepair = async (req, res, next) => {
       repairItems,
     } = req.body;
 
-    let vehicleBrandModel = await prisma.vehicleBrandModel.findUnique({
+    let vehicleBrand = await prisma.vehicleBrand.findUnique({
       where: { brand_model: { brand, model } },
     });
 
-    if (!vehicleBrandModel) {
-      vehicleBrandModel = await prisma.vehicleBrandModel.create({
+    if (!vehicleBrand) {
+      vehicleBrand = await prisma.vehicleBrand.create({
         data: { brand, model },
       });
     }
@@ -315,18 +315,18 @@ exports.updateRepair = async (req, res, next) => {
       vehicle = await prisma.vehicle.upsert({
         where: { id: repair.vehicleId },
         update: {
-          vehicleBrandModelId: vehicleBrandModel.id,
+          vehicleBrandId: vehicleBrand.id,
           licensePlateId: licensePlate.id,
         },
         create: {
-          vehicleBrandModelId: vehicleBrandModel.id,
+          vehicleBrandId: vehicleBrand.id,
           licensePlateId: licensePlate.id,
         },
       });
     } else {
-      let existingVehicle = await prisma.vehicle.findFirst({
+      let existingVehicle = await prisma.vehicle.findUnique({
         where: {
-          vehicleBrandModelId: vehicleBrandModel.id,
+          vehicleBrandId: vehicleBrand.id,
           licensePlateId: null,
         },
       });
@@ -342,7 +342,7 @@ exports.updateRepair = async (req, res, next) => {
         vehicle = await prisma.vehicle.update({
           where: { id: repair.vehicleId },
           data: {
-            vehicleBrandModelId: vehicleBrandModel.id,
+            vehicleBrandId: vehicleBrand.id,
             licensePlateId: null,
           },
         });
@@ -436,7 +436,7 @@ exports.updateRepair = async (req, res, next) => {
             licensePlate: {
               select: { plateNumber: true, province: true },
             },
-            vehicleBrandModel: { select: { brand: true, model: true } },
+            vehicleBrand: { select: { brand: true, model: true } },
           },
         },
         customer: true,

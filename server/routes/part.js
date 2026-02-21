@@ -14,8 +14,8 @@ const {
   getParts,
   createPart,
   updatePart,
+  updatePartStock,
   deletePart,
-  addStock,
 } = require("../controllers/part");
 
 // @ENDPOINTS http://localhost:3000/api/parts
@@ -32,7 +32,7 @@ router.patch(
   "/parts/:id/stock",
   authCheck,
   validate(updatePartStockSchema),
-  addStock,
+  updatePartStock,
 );
 
 // @ENDPOINTS http://localhost:3000/api/parts/1

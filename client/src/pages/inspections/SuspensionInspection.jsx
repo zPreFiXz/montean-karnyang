@@ -1,12 +1,12 @@
 import FormInput from "@/components/forms/FormInput";
 import ComboBox from "@/components/ui/ComboBox";
 import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
-import EditPriceDialog from "@/components/dialogs/EditNamePriceDialog";
+import EditPriceDialog from "@/components/dialogs/EditRepairItemDialog";
 import { useForm } from "react-hook-form";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { PROVINCES } from "@/constants/provinces";
-import { getVehicleBrandModels } from "@/api/vehicleBrandModel";
+import { provinces } from "@/constants/provinces";
+import { getVehicleBrands } from "@/api/vehicleBrand";
 import { getParts } from "@/api/part";
 import LicensePlateInput from "@/components/forms/LicensePlateInput";
 import { formatCurrency } from "@/utils/formats";
@@ -41,7 +41,7 @@ const SuspensionInspection = () => {
   } = useForm({
     resolver: zodResolver(repairSchema),
   });
-  const [vehicleBrandModels, setVehicleBrandModels] = useState([]);
+  const [vehicleBrands, setVehicleBrands] = useState([]);
   const [brands, setBrands] = useState([]);
   const [repairItems, setRepairItems] = useState([]);
   const [compatibleParts, setCompatibleParts] = useState([]);
@@ -66,7 +66,7 @@ const SuspensionInspection = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    fetchVehicleBrandModels();
+    fetchVehicleBrands();
   }, []);
 
   useEffect(() => {
@@ -215,15 +215,15 @@ const SuspensionInspection = () => {
     );
   }, [location.state, setValue]);
 
-  const fetchVehicleBrandModels = async () => {
+  const fetchVehicleBrands = async () => {
     try {
-      const res = await getVehicleBrandModels();
-      setVehicleBrandModels(res.data);
+      const res = await getVehicleBrands();
+      setVehicleBrands(res.data);
 
       const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
       setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   };
 
@@ -241,10 +241,10 @@ const SuspensionInspection = () => {
       });
 
       setCompatibleParts(compatible);
-      setIsPartsLoaded(true);
     } catch (error) {
-      console.error(error);
+      console.log(error);
       setCompatibleParts([]);
+    } finally {
       setIsPartsLoaded(true);
     }
   };
@@ -271,7 +271,7 @@ const SuspensionInspection = () => {
 
   const getAvailableModelsForBrand = () => {
     const selectedBrand = watch("brand");
-    const modelsForBrand = vehicleBrandModels
+    const modelsForBrand = vehicleBrands
       .filter((item) => item.brand === selectedBrand)
       .map((item) => ({ id: item.model, name: item.model }));
 
@@ -554,52 +554,54 @@ const SuspensionInspection = () => {
 
   const onSubmit = async (data) => {
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    const allRepairItems = [
-      ...Array.from(selectedLeftParts)
-        .map((id) => getPartsForSide("left").find((p) => p.id === id))
-        .filter(Boolean)
-        .map((part) => ({
-          ...part,
-          sellingPrice: getPriceForPart(part),
-          quantity: 1,
-          side: "left",
-        })),
-      ...Array.from(selectedRightParts)
-        .map((id) => getPartsForSide("right").find((p) => p.id === id))
-        .filter(Boolean)
-        .map((part) => ({
-          ...part,
-          sellingPrice: getPriceForPart(part),
-          quantity: 1,
-          side: "right",
-        })),
-      ...Array.from(selectedOtherParts)
-        .map((id) => getPartsForSide("other").find((p) => p.id === id))
-        .filter(Boolean)
-        .map((part) => ({
-          ...part,
-          sellingPrice: getPriceForPart(part),
-          quantity: 1,
-          side: "other",
-        })),
-      ...repairItems,
-    ];
+      const allRepairItems = [
+        ...Array.from(selectedLeftParts)
+          .map((id) => getPartsForSide("left").find((p) => p.id === id))
+          .filter(Boolean)
+          .map((part) => ({
+            ...part,
+            sellingPrice: getPriceForPart(part),
+            quantity: 1,
+            side: "left",
+          })),
+        ...Array.from(selectedRightParts)
+          .map((id) => getPartsForSide("right").find((p) => p.id === id))
+          .filter(Boolean)
+          .map((part) => ({
+            ...part,
+            sellingPrice: getPriceForPart(part),
+            quantity: 1,
+            side: "right",
+          })),
+        ...Array.from(selectedOtherParts)
+          .map((id) => getPartsForSide("other").find((p) => p.id === id))
+          .filter(Boolean)
+          .map((part) => ({
+            ...part,
+            sellingPrice: getPriceForPart(part),
+            quantity: 1,
+            side: "other",
+          })),
+        ...repairItems,
+      ];
 
-    navigate("/repairs/summary", {
-      state: {
-        repairData: { ...data, source: "SUSPENSION" },
-        repairItems: allRepairItems,
-        from: "suspension",
-        editRepairId: location.state?.editRepairId,
-        origin: location.state?.from,
-        statusSlug: location.state?.statusSlug,
-        vehicleId: location.state?.vehicleId,
-      },
-    });
-
-    setIsLoading(false);
+      navigate("/repairs/summary", {
+        state: {
+          repairData: { ...data, source: "SUSPENSION" },
+          repairItems: allRepairItems,
+          from: "suspension",
+          editRepairId: location.state?.editRepairId,
+          origin: location.state?.from,
+          statusSlug: location.state?.statusSlug,
+          vehicleId: location.state?.vehicleId,
+        },
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -783,7 +785,7 @@ const SuspensionInspection = () => {
                   <ComboBox
                     label=""
                     color="text-surface"
-                    options={PROVINCES}
+                    options={provinces}
                     value={watch("province")}
                     onChange={(value) =>
                       setValue("province", value, {

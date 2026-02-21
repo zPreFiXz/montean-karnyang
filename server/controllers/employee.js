@@ -33,7 +33,7 @@ exports.createEmployee = async (req, res, next) => {
       dateOfBirth,
     } = req.body;
 
-    const user = await prisma.user.findFirst({
+    const user = await prisma.user.findUnique({
       where: { email },
     });
 
@@ -74,7 +74,7 @@ exports.updateEmployee = async (req, res, next) => {
       password,
     } = req.body;
 
-    const existingEmployee = await prisma.user.findFirst({
+    const existingEmployee = await prisma.user.findUnique({
       where: { id: Number(id) },
     });
 
@@ -83,7 +83,7 @@ exports.updateEmployee = async (req, res, next) => {
     }
 
     if (email && email !== existingEmployee.email) {
-      const emailExists = await prisma.user.findFirst({
+      const emailExists = await prisma.user.findUnique({
         where: { email },
       });
 

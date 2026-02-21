@@ -3,7 +3,7 @@ const { categories } = require("./seeds/categories");
 const { users } = require("./seeds/users");
 const { parts } = require("./seeds/parts");
 const { services } = require("./seeds/services");
-const { VehicleBrandModels } = require("./seeds/vehicles");
+const { VehicleBrands } = require("./seeds/vehicles");
 
 const prisma = new PrismaClient();
 
@@ -47,16 +47,16 @@ async function main() {
   );
 
   await Promise.all(
-    VehicleBrandModels.map((vehicleBrandModel) =>
-      prisma.vehicleBrandModel.upsert({
+    VehicleBrands.map((vehicleBrand) =>
+      prisma.vehicleBrand.upsert({
         where: {
           brand_model: {
-            brand: vehicleBrandModel.brand,
-            model: vehicleBrandModel.model,
+            brand: vehicleBrand.brand,
+            model: vehicleBrand.model,
           },
         },
         update: {},
-        create: vehicleBrandModel,
+        create: vehicleBrand,
       }),
     ),
   );
@@ -67,7 +67,7 @@ main()
     await prisma.$disconnect();
   })
   .catch(async (e) => {
-    console.error(e);
+    console.log(e);
     await prisma.$disconnect();
     process.exit(1);
   });

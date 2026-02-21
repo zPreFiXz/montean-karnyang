@@ -14,7 +14,7 @@ import VehicleCompatibilityInput from "@/components/forms/VehicleCompatibilityIn
 import { useNavigate } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { partServiceSchema } from "@/utils/schemas";
-import { UNITS } from "@/constants/units";
+import { units } from "@/constants/units";
 import { ChevronLeft } from "lucide-react";
 
 const SUSPENSION_TYPES = [
@@ -22,7 +22,7 @@ const SUSPENSION_TYPES = [
   { id: "other", name: "อื่นๆ" },
 ];
 
-const CreateInventory = () => {
+const InventoryCreate = () => {
   const {
     register,
     handleSubmit,
@@ -62,7 +62,7 @@ const CreateInventory = () => {
       const res = await getCategories();
       setCategories(res.data);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   };
 
@@ -201,8 +201,7 @@ const CreateInventory = () => {
       setSelectedImage(null);
       setVehicleKey((prev) => prev + 1);
     } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.message);
+      console.log(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -422,7 +421,7 @@ const CreateInventory = () => {
                 <ComboBox
                   label="หน่วย"
                   color="text-subtle-dark"
-                  options={UNITS}
+                  options={units}
                   value={watch("unit")}
                   onChange={(value) =>
                     setValue("unit", value, {
@@ -469,7 +468,7 @@ const CreateInventory = () => {
                   e.target.value = e.target.value.replace(/[^0-9]/g, "");
                 }}
               />
-              
+
               <VehicleCompatibilityInput
                 key={vehicleKey}
                 setValue={setValue}
@@ -489,4 +488,4 @@ const CreateInventory = () => {
   );
 };
 
-export default CreateInventory;
+export default InventoryCreate;

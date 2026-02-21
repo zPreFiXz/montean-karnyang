@@ -40,18 +40,18 @@ CREATE TABLE `Vehicle` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
     `licensePlateId` INTEGER NULL,
-    `vehicleBrandModelId` INTEGER NOT NULL,
+    `vehicleBrandId` INTEGER NOT NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `VehicleBrandModel` (
+CREATE TABLE `VehicleBrand` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `brand` VARCHAR(191) NOT NULL,
     `model` VARCHAR(191) NOT NULL,
 
-    UNIQUE INDEX `VehicleBrandModel_brand_model_key`(`brand`, `model`),
+    UNIQUE INDEX `VehicleBrand_brand_model_key`(`brand`, `model`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -154,7 +154,7 @@ ALTER TABLE `Repair` ADD CONSTRAINT `Repair_customerId_fkey` FOREIGN KEY (`custo
 ALTER TABLE `Vehicle` ADD CONSTRAINT `Vehicle_licensePlateId_fkey` FOREIGN KEY (`licensePlateId`) REFERENCES `LicensePlate`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Vehicle` ADD CONSTRAINT `Vehicle_vehicleBrandModelId_fkey` FOREIGN KEY (`vehicleBrandModelId`) REFERENCES `VehicleBrandModel`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `Vehicle` ADD CONSTRAINT `Vehicle_vehicleBrandId_fkey` FOREIGN KEY (`vehicleBrandId`) REFERENCES `VehicleBrand`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `RepairItem` ADD CONSTRAINT `RepairItem_repairId_fkey` FOREIGN KEY (`repairId`) REFERENCES `Repair`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

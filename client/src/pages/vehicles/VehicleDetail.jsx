@@ -18,11 +18,12 @@ const VehicleDetail = () => {
   }, [id]);
 
   const fetchVehicleDetail = async () => {
+    setIsLoading(true);
     try {
       const res = await getVehicleById(id);
       setVehicle(res.data);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     } finally {
       setIsLoading(false);
     }
@@ -50,7 +51,7 @@ const VehicleDetail = () => {
           <div>
             <div className="mb-[16px] flex items-center gap-[8px] px-[20px]">
               <div className="bg-primary flex h-[45px] w-[45px] items-center justify-center rounded-full">
-                <BrandIcons brand={vehicle?.vehicleBrandModel.brand} />
+                <BrandIcons brand={vehicle?.vehicleBrand.brand} />
               </div>
               <div className="flex flex-col">
                 <p className="text-primary text-[22px] leading-tight font-semibold md:text-[24px]">
@@ -60,8 +61,7 @@ const VehicleDetail = () => {
                     : "ไม่ระบุทะเบียนรถ"}
                 </p>
                 <p className="text-subtle-dark text-[18px] leading-tight font-medium md:text-[20px]">
-                  {vehicle?.vehicleBrandModel.brand}{" "}
-                  {vehicle?.vehicleBrandModel.model}
+                  {vehicle?.vehicleBrand.brand} {vehicle?.vehicleBrand.model}
                 </p>
               </div>
             </div>

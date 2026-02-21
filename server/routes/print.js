@@ -8,6 +8,6 @@ const { authCheck } = require("../middlewares/auth");
 const { printReceipt } = require("../controllers/print");
 
 // @ENDPOINTS http://localhost:3000/api/prints/1
-router.post("/prints/:repairId", authCheck, printReceipt);
+router.post("/prints/:id", authCheck, printReceipt);
 
 module.exports = router;

@@ -7,6 +7,7 @@ const RepairCard = ({ icon: Icon, repairId, itemCount }) => {
         <div className="bg-primary flex h-[45px] w-[45px] items-center justify-center rounded-full">
           <Icon color="white" />
         </div>
+
         <div className="flex min-w-0 flex-1 flex-col">
           <p className="text-primary text-[20px] font-semibold md:text-[22px]">
             รหัสการซ่อม: {repairId}
@@ -16,6 +17,7 @@ const RepairCard = ({ icon: Icon, repairId, itemCount }) => {
           </p>
         </div>
       </div>
+      
       <div className="text-subtle-light flex h-[32px] w-[32px] items-center justify-center rounded-full bg-[#F6F6F6]">
         <ChevronRight />
       </div>

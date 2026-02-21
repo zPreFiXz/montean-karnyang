@@ -6,9 +6,9 @@ import { getRepairs } from "@/api/repair";
 import { formatTime } from "@/utils/formats";
 import BrandIcons from "@/components/icons/BrandIcons";
 
-const getDisplayBrand = (vehicleBrandModel) => {
-  const brand = vehicleBrandModel?.brand || "";
-  const model = vehicleBrandModel?.model || "";
+const getDisplayBrand = (vehicleBrand) => {
+  const brand = vehicleBrand?.brand || "";
+  const model = vehicleBrand?.model || "";
 
   if (brand === "อื่นๆ" || brand === "อื่น ๆ") {
     return model;
@@ -29,11 +29,12 @@ const RepairStatus = () => {
   }, []);
 
   const fetchRepairs = async () => {
+    setIsLoading(true);
     try {
       const res = await getRepairs();
       setRepairs(res.data);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     } finally {
       setIsLoading(false);
     }
@@ -190,7 +191,7 @@ const RepairStatus = () => {
                 bg={getStatusBg(item.status)}
                 icon={
                   <BrandIcons
-                    brand={item.vehicle.vehicleBrandModel.brand}
+                    brand={item.vehicle.vehicleBrand.brand}
                     color={getStatusColor(item.status)}
                   />
                 }
@@ -200,7 +201,7 @@ const RepairStatus = () => {
                     ? `${item.vehicle.licensePlate.plateNumber} ${item.vehicle.licensePlate.province}`
                     : "ไม่ระบุทะเบียนรถ"
                 }
-                brand={getDisplayBrand(item.vehicle.vehicleBrandModel)}
+                brand={getDisplayBrand(item.vehicle.vehicleBrand)}
                 time={item.createdAt && formatTime(item.createdAt)}
                 price={Number(item.totalPrice) || 0}
               />

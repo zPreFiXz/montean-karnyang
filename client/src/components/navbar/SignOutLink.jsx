@@ -14,10 +14,17 @@ const SignOutLink = ({ onLoggingOut }) => {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     onLoggingOut?.(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    await logout();
-    toast.success("ออกจากระบบเรียบร้อยแล้ว");
-    navigate("/login");
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await logout();
+      toast.success("ออกจากระบบเรียบร้อยแล้ว");
+      navigate("/login");
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setIsLoggingOut(false);
+      onLoggingOut?.(false);
+    }
   };
 
   return (

@@ -99,7 +99,7 @@ const RepairSummary = () => {
         navigate(isDesktop ? "/" : "/repairs?status=progress");
       }
     } catch (error) {
-      console.error(error);
+      console.log(error);
     } finally {
       setIsSubmitting(false);
     }

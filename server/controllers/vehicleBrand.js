@@ -1,36 +1,36 @@
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
 
-exports.getVehicleBrandModels = async (req, res, next) => {
+exports.getVehicleBrands = async (req, res, next) => {
   try {
-    const vehicleBrandModels = await prisma.vehicleBrandModel.findMany({
+    const vehicleBrands = await prisma.vehicleBrand.findMany({
       orderBy: { id: "asc" },
     });
 
-    res.json(vehicleBrandModels);
+    res.json(vehicleBrands);
   } catch (error) {
     next(error);
   }
 };
 
-exports.createVehicleBrandModel = async (req, res, next) => {
+exports.createVehicleBrand = async (req, res, next) => {
   try {
     const { brand, model } = req.body;
 
-    let vehicleBrandModel;
+    let vehicleBrand;
 
-    vehicleBrandModel = await prisma.vehicleBrandModel.findFirst({
+    vehicleBrand = await prisma.vehicleBrand.findFirst({
       where: {
         brand,
         model,
       },
     });
 
-    if (vehicleBrandModel) {
+    if (vehicleBrand) {
       createError(400, "ยี่ห้อและรุ่นรถนี้มีอยู่ในระบบแล้ว");
     }
 
-    vehicleBrandModel = await prisma.vehicleBrandModel.create({
+    vehicleBrand = await prisma.vehicleBrand.create({
       data: {
         brand,
         model,
@@ -43,14 +43,14 @@ exports.createVehicleBrandModel = async (req, res, next) => {
   }
 };
 
-exports.updateVehicleBrandModel = async (req, res, next) => {
+exports.updateVehicleBrand = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { brand, model } = req.body;
 
-    let vehicleBrandModel;
+    let vehicleBrand;
 
-    vehicleBrandModel = await prisma.vehicleBrandModel.findFirst({
+    vehicleBrand = await prisma.vehicleBrand.findFirst({
       where: {
         brand,
         model,
@@ -58,11 +58,11 @@ exports.updateVehicleBrandModel = async (req, res, next) => {
       },
     });
 
-    if (vehicleBrandModel) {
+    if (vehicleBrand) {
       createError(400, "ยี่ห้อและรุ่นรถนี้มีอยู่ในระบบแล้ว");
     }
 
-    vehicleBrandModel = await prisma.vehicleBrandModel.update({
+    vehicleBrand = await prisma.vehicleBrand.update({
       where: { id: Number(id) },
       data: {
         brand,
@@ -76,22 +76,22 @@ exports.updateVehicleBrandModel = async (req, res, next) => {
   }
 };
 
-exports.deleteVehicleBrandModel = async (req, res, next) => {
+exports.deleteVehicleBrand = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const vehicleBrandModel = await prisma.vehicle.findFirst({
-      where: { vehicleBrandModelId: Number(id) },
+    const vehicleBrand = await prisma.vehicle.findFirst({
+      where: { vehicleBrandId: Number(id) },
     });
 
-    if (vehicleBrandModel) {
+    if (vehicleBrand) {
       createError(
         400,
         "ไม่สามารถลบยี่ห้อและรุ่นรถนี้ได้ เนื่องจากมีรถที่ใช้งานอยู่",
       );
     }
 
-    await prisma.vehicleBrandModel.delete({
+    await prisma.vehicleBrand.delete({
       where: { id: Number(id) },
     });
 

@@ -15,7 +15,7 @@ import { useNavigate } from "react-router";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { partServiceSchema } from "@/utils/schemas";
-import { UNITS } from "@/constants/units";
+import { units } from "@/constants/units";
 import { ChevronLeft, LoaderCircle } from "lucide-react";
 import { getInventoryById } from "@/api/inventory";
 import { useParams, useSearchParams } from "react-router";
@@ -26,7 +26,7 @@ const SUSPENSION_TYPES = [
   { id: "other", name: "อื่นๆ" },
 ];
 
-const EditInventory = () => {
+const InventoryEdit = () => {
   const {
     register,
     handleSubmit,
@@ -79,7 +79,7 @@ const EditInventory = () => {
       const res = await getCategories();
       setCategories(res.data);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   };
 
@@ -132,7 +132,7 @@ const EditInventory = () => {
         }
       }
     } catch (error) {
-      console.error(error);
+      console.log(error);
     } finally {
       setIsLoading(false);
     }
@@ -214,7 +214,7 @@ const EditInventory = () => {
           try {
             await deleteImage(inventory.publicId);
           } catch (error) {
-            console.error(error);
+            console.log(error);
           }
         }
       } else if (selectedImage && typeof selectedImage === "string") {
@@ -227,7 +227,7 @@ const EditInventory = () => {
           try {
             await deleteImage(inventory.publicId);
           } catch (error) {
-            console.error(error);
+            console.log(error);
           }
         }
 
@@ -286,8 +286,7 @@ const EditInventory = () => {
       setSelectedImage(null);
       setIsImageMarkedForDeletion(false);
     } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.message);
+      console.log(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -520,7 +519,7 @@ const EditInventory = () => {
                   <ComboBox
                     label="หน่วย"
                     color="text-subtle-dark"
-                    options={UNITS}
+                    options={units}
                     value={watch("unit")}
                     onChange={(value) =>
                       setValue("unit", value, {
@@ -552,7 +551,7 @@ const EditInventory = () => {
                     e.target.value = e.target.value.replace(/[^0-9]/g, "");
                   }}
                 />
-                
+
                 <FormInput
                   register={register}
                   name="minStockLevel"
@@ -584,4 +583,4 @@ const EditInventory = () => {
   );
 };
 
-export default EditInventory;
+export default InventoryEdit;

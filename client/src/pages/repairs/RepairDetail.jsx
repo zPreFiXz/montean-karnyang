@@ -54,12 +54,13 @@ const RepairDetail = () => {
   }, [id]);
 
   const fetchRepairDetail = async () => {
+    setIsLoading(true);
     try {
       const res = await getRepairById(id);
       setRepair(res.data);
       setSelectedPaymentMethod(res.data.paymentMethod);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     } finally {
       setIsLoading(false);
     }
@@ -183,7 +184,7 @@ const RepairDetail = () => {
       const statusSlug = nextStatus.toLowerCase().replace("_", "-");
       navigate(`/repairs?status=${statusSlug}`);
     } catch (error) {
-      console.error(error);
+      console.log(error);
     } finally {
       setIsUpdating(false);
       setIsUpdatingSkip(false);
@@ -204,8 +205,8 @@ const RepairDetail = () => {
       fullName: repair?.customer?.fullName || "",
       address: repair?.customer?.address || "",
       phoneNumber: repair?.customer?.phoneNumber || "",
-      brand: repair?.vehicle?.vehicleBrandModel?.brand || "",
-      model: repair?.vehicle?.vehicleBrandModel?.model || "",
+      brand: repair?.vehicle?.vehicleBrand?.brand || "",
+      model: repair?.vehicle?.vehicleBrand?.model || "",
       plateLetters,
       plateNumbers,
       province: getProvinceIdByName(provinceName),
@@ -394,7 +395,7 @@ const RepairDetail = () => {
                 className={`flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full ${statusInfo.bg}`}
               >
                 <BrandIcons
-                  brand={repair.vehicle?.vehicleBrandModel.brand}
+                  brand={repair.vehicle?.vehicleBrand.brand}
                   color={statusInfo.iconColor}
                 />
               </div>
@@ -408,8 +409,8 @@ const RepairDetail = () => {
                     : "ไม่ระบุทะเบียนรถ"}
                 </p>
                 <p className="text-subtle-dark text-[18px] leading-tight font-medium md:text-[20px]">
-                  {repair.vehicle?.vehicleBrandModel.brand}{" "}
-                  {repair.vehicle?.vehicleBrandModel.model}
+                  {repair.vehicle?.vehicleBrand.brand}{" "}
+                  {repair.vehicle?.vehicleBrand.model}
                 </p>
               </div>
             </div>
@@ -791,8 +792,7 @@ const RepairDetail = () => {
                       await printReceipt(repair.id);
                       toast.success("กำลังพิมพ์ใบเสร็จ...");
                     } catch (error) {
-                      console.error(error);
-                      toast.error("เกิดข้อผิดพลาดในการพิมพ์");
+                      console.log(error);
                     } finally {
                       setIsPrinting(false);
                     }
