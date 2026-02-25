@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import RepairItemCard from "@/components/cards/RepairItemCard";
-import { printReceipt } from "@/api/print";
+import PrintPreviewDialog from "@/components/dialogs/PrintPreviewDialog";
 
 const RepairDetail = () => {
   const { id } = useParams();
@@ -46,6 +46,7 @@ const RepairDetail = () => {
   const [isUpdatingSkip, setIsUpdatingSkip] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -786,23 +787,12 @@ const RepairDetail = () => {
             {repair.status === "PAID" && (
               <div className="mt-[16px] px-[20px]">
                 <button
-                  onClick={async () => {
-                    setIsPrinting(true);
-                    try {
-                      await printReceipt(repair.id);
-                      toast.success("กำลังพิมพ์ใบเสร็จ...");
-                    } catch (error) {
-                      console.log(error);
-                    } finally {
-                      setIsPrinting(false);
-                    }
-                  }}
-                  disabled={isPrinting}
-                  className="bg-primary hover:bg-primary/90 flex w-full cursor-pointer items-center justify-center gap-[8px] rounded-[10px] py-[12px] text-white duration-300 disabled:opacity-50"
+                  onClick={() => setIsPrintDialogOpen(true)}
+                  className="bg-primary hover:bg-primary/90 flex w-full cursor-pointer items-center justify-center gap-[8px] rounded-[10px] py-[12px] text-white duration-300"
                 >
                   <Printer className="h-5 w-5" />
                   <span className="text-[20px] font-semibold md:text-[22px]">
-                    {isPrinting ? "กำลังพิมพ์..." : "พิมพ์ใบเสร็จ"}
+                    พิมพ์ใบเสร็จ
                   </span>
                 </button>
               </div>
@@ -830,6 +820,11 @@ const RepairDetail = () => {
           </div>
         )}
       </div>
+      <PrintPreviewDialog
+        isOpen={isPrintDialogOpen}
+        onClose={() => setIsPrintDialogOpen(false)}
+        repairId={repair?.id}
+      />
     </div>
   );
 };

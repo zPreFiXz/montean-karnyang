@@ -5,7 +5,10 @@ const router = express.Router();
 const { authCheck } = require("../middlewares/auth");
 
 // Controllers
-const { printReceipt } = require("../controllers/print");
+const { printReceipt, getReceiptPreview } = require("../controllers/print");
+
+// @ENDPOINTS http://localhost:3000/api/prints/1/preview
+router.get("/prints/:id/preview", authCheck, getReceiptPreview);
 
 // @ENDPOINTS http://localhost:3000/api/prints/1
 router.post("/prints/:id", authCheck, printReceipt);

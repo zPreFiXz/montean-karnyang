@@ -10,30 +10,31 @@ const generateReceiptHTML = (repair) => {
     name: "มณเฑียรการยาง",
     address: "ที่อยู่ร้าน (กรุณาแก้ไขตามที่อยู่จริง)",
     phone: "โทร: XXX-XXX-XXXX",
+    taxId: "เลขประจำตัวผู้เสียภาษี: XXXXXXXXXXXXX",
   };
 
-  const formatDate = (dateString) => {
+  const formatDateTime = (dateString) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
-    return date.toLocaleDateString("th-TH", {
+    const d = date.toLocaleDateString("th-TH", {
       year: "numeric",
-      month: "long",
-      day: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
-  };
-
-  const formatTime = (dateString) => {
-    if (!dateString) return "-";
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("th-TH", {
+    const t = date.toLocaleTimeString("th-TH", {
       hour: "2-digit",
       minute: "2-digit",
+      second: "2-digit",
     });
+    return `${d} ${t}`;
   };
 
   const formatCurrency = (amount) => {
-    if (amount === null || amount === undefined) return "0";
-    return Number(amount).toLocaleString();
+    if (amount === null || amount === undefined) return "0.00";
+    return Number(amount).toLocaleString("th-TH", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   };
 
   const getPaymentMethodText = (method) => {
@@ -53,33 +54,46 @@ const generateReceiptHTML = (repair) => {
     repair.vehicle?.licensePlate?.plate &&
     repair.vehicle?.licensePlate?.province
       ? `${repair.vehicle.licensePlate.plate} ${repair.vehicle.licensePlate.province}`
-      : "ไม่ระบุทะเบียน";
+      : "ไม่ระบุ";
 
   const vehicleBrand =
-    `${repair.vehicle?.vehicleBrand?.brand || ""} ${repair.vehicle?.vehicleBrand?.model || ""}`.trim();
+    `${repair.vehicle?.vehicleBrand?.brand || ""} ${repair.vehicle?.vehicleBrand?.model || ""}`.trim() ||
+    "-";
+
+  const receiptDate = repair.paidAt || repair.createdAt;
+  const receiptNo = `REC-${String(repair.id).padStart(6, "0")}`;
+
+  const VAT_RATE = 0.07;
+  const totalPrice = Number(repair.totalPrice) || 0;
+  const basePrice = totalPrice / (1 + VAT_RATE);
+  const vatAmount = totalPrice - basePrice;
 
   const generateRepairItemsHTML = () => {
     if (!repair.repairItems || repair.repairItems.length === 0) {
-      return '<tr><td colspan="5" style="text-align: center; padding: 10px;">ไม่มีรายการ</td></tr>';
+      return `<tr><td colspan="6" style="text-align:center;padding:16px;color:#999;">ไม่มีรายการ</td></tr>`;
     }
 
     return repair.repairItems
       .map((item, index) => {
+        const partNumber = item.part?.partNumber || "-";
         const name =
           item.customName || item.part?.name || item.service?.name || "-";
+        const brand = item.part?.brand || "";
+        const displayName = brand ? `${brand} ${name}` : name;
         const quantity = item.quantity || 1;
         const unitPrice = Number(item.unitPrice) || 0;
         const total = quantity * unitPrice;
 
         return `
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;">${index + 1}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;">${name}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${quantity}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${formatCurrency(unitPrice)}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${formatCurrency(total)}</td>
-          </tr>
-        `;
+        <tr style="border-bottom:1px solid #e5e7eb;">
+          <td style="padding:7px 8px;text-align:center;white-space:nowrap;">${index + 1}</td>
+          <td style="padding:7px 8px;white-space:nowrap;font-size:11px;">${partNumber}</td>
+          <td style="padding:7px 8px;">${displayName}</td>
+          <td style="padding:7px 8px;text-align:center;">${quantity}</td>
+          <td style="padding:7px 8px;text-align:right;">${formatCurrency(unitPrice)}</td>
+          <td style="padding:7px 8px;text-align:right;">${formatCurrency(total)}</td>
+        </tr>
+      `;
       })
       .join("");
   };
@@ -89,235 +103,297 @@ const generateReceiptHTML = (repair) => {
     <html lang="th">
     <head>
       <meta charset="UTF-8">
-      <title>ใบเสร็จรับเงิน - ${repair.id}</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      <title>ใบเสร็จรับเงิน #${receiptNo}</title>
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
-        
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
-        
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        * { margin:0; padding:0; box-sizing:border-box; }
         body {
           font-family: 'Sarabun', sans-serif;
-          font-size: 12px;
-          line-height: 1.4;
-          color: #333;
+          font-size: 13px;
+          color: #111;
           background: #fff;
-          padding: 10mm;
         }
-        
-        .receipt {
-          max-width: 80mm;
+        .page {
+          width: 148mm;
+          min-height: 210mm;
           margin: 0 auto;
+          padding: 10mm 12mm;
+          position: relative;
         }
-        
+        /* Header */
         .header {
-          text-align: center;
-          margin-bottom: 10px;
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          border-bottom: 2px solid #111;
           padding-bottom: 10px;
-          border-bottom: 2px dashed #333;
+          margin-bottom: 10px;
         }
-        
+        .shop-left { flex: 1; }
         .shop-name {
-          font-size: 18px;
+          font-size: 22px;
           font-weight: 700;
           margin-bottom: 3px;
         }
-        
-        .shop-info {
-          font-size: 11px;
-          color: #666;
-        }
-        
-        .receipt-title {
+        .shop-sub { font-size: 11.5px; color: #444; line-height: 1.6; }
+        .shop-right { text-align: right; font-size: 11.5px; color: #444; line-height:1.7; min-width: 200px; }
+        /* Title bar */
+        .title-bar {
+          background: #111;
+          color: #fff;
           text-align: center;
-          font-size: 14px;
-          font-weight: 600;
-          margin: 10px 0;
-        }
-        
-        .info-section {
+          padding: 6px 0;
+          font-size: 15px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
           margin-bottom: 10px;
         }
-        
-        .info-row {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 3px;
-          font-size: 11px;
+        /* Meta info */
+        .meta-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 4px 20px;
+          margin-bottom: 10px;
+          font-size: 12px;
         }
-        
-        .info-label {
-          color: #666;
+        .meta-row { display: flex; gap: 6px; }
+        .meta-label { color: #555; white-space: nowrap; }
+        .meta-value { font-weight: 600; }
+        /* Customer box */
+        .customer-box {
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          padding: 8px 12px;
+          margin-bottom: 12px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 4px 20px;
+          font-size: 12px;
         }
-        
-        .info-value {
-          font-weight: 600;
-          text-align: right;
-        }
-        
-        .divider {
-          border-top: 1px dashed #ccc;
-          margin: 8px 0;
-        }
-        
-        .items-table {
+        .customer-box .row { display: flex; gap: 6px; }
+        .customer-box .lbl { color: #555; white-space: nowrap; }
+        .customer-box .val { font-weight: 600; }
+        /* Table */
+        table.items {
           width: 100%;
           border-collapse: collapse;
           margin-bottom: 10px;
-          font-size: 10px;
+          font-size: 12.5px;
         }
-        
-        .items-table th {
-          background: #f5f5f5;
-          padding: 6px 4px;
-          text-align: left;
+        table.items thead tr {
+          background: #111;
+          color: #fff;
+        }
+        table.items thead th {
+          padding: 7px 8px;
           font-weight: 600;
-          border-bottom: 1px solid #333;
+          white-space: nowrap;
         }
-        
-        .items-table th:nth-child(3),
-        .items-table th:nth-child(4),
-        .items-table th:nth-child(5) {
+        table.items tbody tr:nth-child(even) { background: #f9fafb; }
+        table.items tbody td { vertical-align: top; }
+        /* Summary */
+        .summary-wrap {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: 4px;
+        }
+        .summary-table {
+          width: 260px;
+          font-size: 12.5px;
+        }
+        .summary-table td { padding: 4px 8px; }
+        .summary-table .lbl { color: #555; }
+        .summary-table .val { text-align: right; font-weight: 600; }
+        .summary-table tr.vat-row td { border-top: 1px solid #d1d5db; }
+        .summary-table tr.total-row td {
+          border-top: 2px solid #111;
+          font-size: 15px;
+          font-weight: 700;
+          padding-top: 6px;
+        }
+        /* VAT breakdown */
+        .vat-box {
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          margin-top: 10px;
+          font-size: 11.5px;
+          overflow: hidden;
+        }
+        .vat-box table { width: 100%; border-collapse: collapse; }
+        .vat-box thead tr { background: #f3f4f6; }
+        .vat-box thead th { padding: 5px 10px; font-weight: 600; text-align: right; border-bottom: 1px solid #d1d5db; }
+        .vat-box thead th:first-child { text-align: left; }
+        .vat-box tbody td { padding: 5px 10px; text-align: right; }
+        .vat-box tbody td:first-child { text-align: left; }
+        .vat-box tfoot td { padding: 5px 10px; text-align: right; font-weight: 700; border-top: 1px solid #d1d5db; }
+        .vat-box tfoot td:first-child { text-align: left; }
+        /* Signatures */
+        .sig-section {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 20px;
+          margin-top: 24px;
+          font-size: 12px;
+        }
+        .sig-box { text-align: center; }
+        .sig-line { border-bottom: 1px dotted #999; margin: 28px 10px 6px; }
+        .sig-label { color: #555; }
+        /* Footer note */
+        .footer-note {
+          margin-top: 16px;
+          font-size: 11px;
+          color: #777;
+          border-top: 1px dashed #ccc;
+          padding-top: 8px;
+          line-height: 1.7;
+        }
+        .print-info {
+          margin-top: 8px;
+          font-size: 10.5px;
+          color: #aaa;
           text-align: right;
         }
-        
-        .total-section {
-          border-top: 2px solid #333;
-          padding-top: 8px;
-          margin-top: 8px;
-        }
-        
-        .total-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 12px;
-          margin-bottom: 3px;
-        }
-        
-        .grand-total {
-          font-size: 16px;
-          font-weight: 700;
-        }
-        
-        .footer {
-          text-align: center;
-          margin-top: 15px;
-          padding-top: 10px;
-          border-top: 2px dashed #333;
-          font-size: 11px;
-          color: #666;
-        }
-        
-        .thank-you {
-          font-size: 12px;
-          font-weight: 600;
-          color: #333;
-          margin-bottom: 3px;
-        }
-
-        @page {
-          size: 80mm auto;
-          margin: 0;
+        @page { size: A5; margin: 0; }
+        @media print {
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
       </style>
     </head>
     <body>
-      <div class="receipt">
+      <div class="page">
+
+        <!-- Header -->
         <div class="header">
-          <div class="shop-name">${shopInfo.name}</div>
-          <div class="shop-info">${shopInfo.address}</div>
-          <div class="shop-info">${shopInfo.phone}</div>
-        </div>
-        
-        <div class="receipt-title">ใบเสร็จรับเงิน</div>
-        
-        <div class="info-section">
-          <div class="info-row">
-            <span class="info-label">เลขที่:</span>
-            <span class="info-value">#${repair.id}</span>
+          <div class="shop-left">
+            <div class="shop-name">${shopInfo.name}</div>
+            <div class="shop-sub">${shopInfo.address}</div>
+            <div class="shop-sub">${shopInfo.phone}</div>
+            <div class="shop-sub">${shopInfo.taxId}</div>
           </div>
-          <div class="info-row">
-            <span class="info-label">วันที่:</span>
-            <span class="info-value">${formatDate(repair.paidAt || repair.createdAt)}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">เวลา:</span>
-            <span class="info-value">${formatTime(repair.paidAt || repair.createdAt)} น.</span>
+          <div class="shop-right">
+            <div style="font-weight:600;">เลขที่: ${receiptNo}</div>
+            <div>วันที่: ${formatDateTime(receiptDate)}</div>
+            <div>ช่างผู้รับผิดชอบ: ${repair.user?.nickname || repair.user?.fullName || "-"}</div>
           </div>
         </div>
-        
-        <div class="divider"></div>
-        
-        <div class="info-section">
-          <div class="info-row">
-            <span class="info-label">ทะเบียนรถ:</span>
-            <span class="info-value">${licensePlate}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">ยี่ห้อ/รุ่น:</span>
-            <span class="info-value">${vehicleBrand || "-"}</span>
-          </div>
-          ${
-            repair.customer?.fullName
-              ? `
-          <div class="info-row">
-            <span class="info-label">ลูกค้า:</span>
-            <span class="info-value">${repair.customer.fullName}</span>
-          </div>
-          `
-              : ""
-          }
-          ${
-            repair.customer?.phoneNumber
-              ? `
-          <div class="info-row">
-            <span class="info-label">โทร:</span>
-            <span class="info-value">${repair.customer.phoneNumber}</span>
-          </div>
-          `
-              : ""
-          }
+
+        <!-- Title -->
+        <div class="title-bar">ใบเสร็จรับเงิน / ใบกำกับภาษี</div>
+
+        <!-- Customer / Vehicle info -->
+        <div class="customer-box">
+          <div class="row"><span class="lbl">ชื่อลูกค้า:</span><span class="val">${repair.customer?.fullName || "ไม่ระบุ"}</span></div>
+          <div class="row"><span class="lbl">ทะเบียนรถ:</span><span class="val">${licensePlate}</span></div>
+          <div class="row"><span class="lbl">ที่อยู่:</span><span class="val">${repair.customer?.address || "ไม่ระบุ"}</span></div>
+          <div class="row"><span class="lbl">ยี่ห้อ/รุ่น:</span><span class="val">${vehicleBrand}</span></div>
+          <div class="row"><span class="lbl">โทรศัพท์:</span><span class="val">${repair.customer?.phoneNumber || "ไม่ระบุ"}</span></div>
+          <div class="row"><span class="lbl">ชำระโดย:</span><span class="val">${getPaymentMethodText(repair.paymentMethod)}</span></div>
+          ${repair.description ? `<div class="row" style="grid-column:1/-1;"><span class="lbl">รายละเอียด:</span><span class="val">${repair.description}</span></div>` : ""}
         </div>
-        
-        <div class="divider"></div>
-        
-        <table class="items-table">
+
+        <!-- Items Table -->
+        <table class="items">
           <thead>
             <tr>
-              <th style="width: 20px;">#</th>
+              <th style="width:32px;text-align:center;">No.</th>
+              <th style="width:110px;">รหัสอะไหล่</th>
               <th>รายการ</th>
-              <th style="width: 30px; text-align: center;">จำนวน</th>
-              <th style="width: 50px; text-align: right;">ราคา</th>
-              <th style="width: 55px; text-align: right;">รวม</th>
+              <th style="width:55px;text-align:center;">จำนวน</th>
+              <th style="width:80px;text-align:right;">ราคา/หน่วย</th>
+              <th style="width:90px;text-align:right;">จำนวนเงิน</th>
             </tr>
           </thead>
           <tbody>
             ${generateRepairItemsHTML()}
+            ${Array.from({
+              length: Math.max(0, 8 - (repair.repairItems?.length || 0)),
+            })
+              .map(
+                () =>
+                  `<tr style="border-bottom:1px solid #e5e7eb;"><td colspan="6" style="padding:7px 8px;">&nbsp;</td></tr>`,
+              )
+              .join("")}
           </tbody>
         </table>
-        
-        <div class="total-section">
-          <div class="total-row">
-            <span>จำนวนรายการ:</span>
-            <span>${repair.repairItems?.length || 0} รายการ</span>
+
+        <!-- Summary -->
+        <div class="summary-wrap">
+          <table class="summary-table">
+            <tr>
+              <td class="lbl">จำนวนรายการ</td>
+              <td class="val">${repair.repairItems?.length || 0} รายการ</td>
+            </tr>
+            <tr class="vat-row">
+              <td class="lbl">มูลค่าก่อนภาษี</td>
+              <td class="val">${formatCurrency(basePrice)} บาท</td>
+            </tr>
+            <tr>
+              <td class="lbl">ภาษีมูลค่าเพิ่ม (7%)</td>
+              <td class="val">${formatCurrency(vatAmount)} บาท</td>
+            </tr>
+            <tr class="total-row">
+              <td>รวมทั้งสิ้น</td>
+              <td class="val">${formatCurrency(totalPrice)} บาท</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- VAT Breakdown -->
+        <div class="vat-box">
+          <table>
+            <thead>
+              <tr>
+                <th>ประเภท</th>
+                <th>มูลค่าสินค้า</th>
+                <th>ภาษีมูลค่าเพิ่ม</th>
+                <th>ราคารวม VAT</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>V สินค้า/บริการที่มีภาษี 7%</td>
+                <td>${formatCurrency(basePrice)}</td>
+                <td>${formatCurrency(vatAmount)}</td>
+                <td>${formatCurrency(totalPrice)}</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>มูลค่าสินค้ารวม</td>
+                <td>${formatCurrency(basePrice)}</td>
+                <td>${formatCurrency(vatAmount)}</td>
+                <td>${formatCurrency(totalPrice)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- Signatures -->
+        <div class="sig-section">
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div>ผู้รับเงิน</div>
+            <div class="sig-label">(${repair.user?.fullName || "............................................"})</div>
           </div>
-          <div class="total-row">
-            <span>ชำระโดย:</span>
-            <span>${getPaymentMethodText(repair.paymentMethod)}</span>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div>ผู้รับสินค้า</div>
+            <div class="sig-label">(............................................)</div>
           </div>
-          <div class="total-row grand-total">
-            <span>รวมทั้งสิ้น:</span>
-            <span>${formatCurrency(repair.totalPrice)} บาท</span>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div>ผู้จ่ายเงิน</div>
+            <div class="sig-label">(............................................)</div>
           </div>
         </div>
-        
-        <div class="footer">
-          <div class="thank-you">ขอบคุณที่ใช้บริการ</div>
-          <div>พิมพ์เมื่อ: ${formatDate(new Date())} ${formatTime(new Date())} น.</div>
+
+        <!-- Footer note -->
+        <div class="footer-note">
+          หมายเหตุ: กรุณาตรวจสอบสินค้าก่อนรับ หากมีข้อผิดพลาดกรุณาแจ้งภายใน 7 วัน
         </div>
+        <div class="print-info">พิมพ์เมื่อ: ${formatDateTime(new Date())} &nbsp;|&nbsp; หน้า 1/1</div>
+
       </div>
     </body>
     </html>
@@ -369,7 +445,7 @@ exports.printReceipt = async (req, res, next) => {
 
     await page.pdf({
       path: pdfPath,
-      width: "80mm",
+      format: "A5",
       printBackground: true,
       margin: { top: 0, right: 0, bottom: 0, left: 0 },
     });
@@ -405,6 +481,42 @@ exports.printReceipt = async (req, res, next) => {
     }
   } catch (error) {
     console.log("Error:", error);
+    next(error);
+  }
+};
+
+exports.getReceiptPreview = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const repair = await prisma.repair.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        vehicle: {
+          include: {
+            licensePlate: true,
+            vehicleBrand: true,
+          },
+        },
+        customer: true,
+        repairItems: {
+          include: {
+            part: true,
+            service: true,
+          },
+        },
+        user: true,
+      },
+    });
+
+    if (!repair) {
+      return res.status(404).json({ message: "ไม่พบข้อมูลการซ่อม" });
+    }
+
+    const html = generateReceiptHTML(repair);
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(html);
+  } catch (error) {
     next(error);
   }
 };
