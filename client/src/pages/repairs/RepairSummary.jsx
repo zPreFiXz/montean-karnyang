@@ -222,10 +222,10 @@ const RepairSummary = () => {
             </div>
           </div>
 
-          {/* Mobile: รายการซ่อม */}
-          <div className="px-[20px] xl:hidden">
+          {/* รายการซ่อม */}
+          <div className="xl:hidden">
             <div className="mb-[16px]">
-              <div className="mb-[16px] flex items-center justify-between">
+              <div className="mb-[16px] flex items-center justify-between px-[20px]">
                 <p className="text-[22px] font-semibold md:text-[24px]">
                   รายการซ่อม
                 </p>
@@ -297,7 +297,7 @@ const RepairSummary = () => {
 
               {/* รายการซ่อมเพิ่มเติม */}
               {generalItems.length > 0 && (
-                <div className="mb-[16px]">
+                <div className="mb-[16px] px-[20px]">
                   {location.state?.from === "suspension" && (
                     <p className="text-primary mb-[8px] flex items-center gap-[4px] text-[20px] font-semibold md:text-[22px]">
                       <Wrench className="mb-[2px] inline" />
@@ -317,8 +317,8 @@ const RepairSummary = () => {
               )}
             </div>
 
-            {/* Mobile: สรุปยอดรวม */}
-            <div className="border-primary/20 from-primary/10 to-primary/5 my-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
+            {/* สรุปยอดรวม */}
+            <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] my-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                   <p className="text-subtle-dark text-[20px] font-semibold md:text-[22px]">

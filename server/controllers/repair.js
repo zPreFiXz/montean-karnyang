@@ -135,7 +135,7 @@ exports.createRepair = async (req, res, next) => {
       });
 
       if (licensePlate) {
-        vehicle = await prisma.vehicle.findUnique({
+        vehicle = await prisma.vehicle.findFirst({
           where: {
             licensePlateId: licensePlate.id,
             vehicleBrandId: vehicleBrand.id,
@@ -166,7 +166,7 @@ exports.createRepair = async (req, res, next) => {
         });
       }
     } else {
-      vehicle = await prisma.vehicle.findUnique({
+      vehicle = await prisma.vehicle.findFirst({
         where: {
           vehicleBrandId: vehicleBrand.id,
           licensePlateId: null,
@@ -474,7 +474,7 @@ exports.updateRepairStatus = async (req, res, next) => {
       data.status = "PAID";
       data.paidAt = new Date();
 
-      if (repair.status === "IN_PROGRESS" && !repair.completedAt) {
+      if (repair.status === "PROGRESS" && !repair.completedAt) {
         data.completedAt = new Date();
       }
 

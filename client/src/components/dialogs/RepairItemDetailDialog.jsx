@@ -120,7 +120,7 @@ const RepairItemDetailDialog = ({
     setIsSubmitting(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      await updatePartStock(currentItem.id, Number(data.quantity));
+      await updatePartStock(currentItem.id, { quantity: Number(data.quantity) });
       toast.success("เพิ่มสต็อกเรียบร้อยแล้ว");
       setIsAddStockVisible(false);
       reset();

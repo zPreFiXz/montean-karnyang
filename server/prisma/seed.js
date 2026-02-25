@@ -8,15 +8,13 @@ const { VehicleBrands } = require("./seeds/vehicles");
 const prisma = new PrismaClient();
 
 async function main() {
-  await Promise.all(
-    users.map((user) =>
-      prisma.user.upsert({
-        where: { email: user.email },
-        update: {},
-        create: user,
-      }),
-    ),
-  );
+  for (const user of users) {
+    await prisma.user.upsert({
+      where: { email: user.email },
+      update: {},
+      create: user,
+    });
+  }
 
   for (const category of categories) {
     await prisma.category.upsert({
@@ -26,40 +24,34 @@ async function main() {
     });
   }
 
-  await Promise.all(
-    parts.map((part) =>
-      prisma.part.upsert({
-        where: { partNumber: part.partNumber },
-        update: {},
-        create: part,
-      }),
-    ),
-  );
+  for (const part of parts) {
+    await prisma.part.upsert({
+      where: { partNumber: part.partNumber },
+      update: {},
+      create: part,
+    });
+  }
 
-  await Promise.all(
-    services.map((service) =>
-      prisma.service.upsert({
-        where: { name: service.name },
-        update: {},
-        create: service,
-      }),
-    ),
-  );
+  for (const service of services) {
+    await prisma.service.upsert({
+      where: { name: service.name },
+      update: {},
+      create: service,
+    });
+  }
 
-  await Promise.all(
-    VehicleBrands.map((vehicleBrand) =>
-      prisma.vehicleBrand.upsert({
-        where: {
-          brand_model: {
-            brand: vehicleBrand.brand,
-            model: vehicleBrand.model,
-          },
+  for (const vehicleBrand of VehicleBrands) {
+    await prisma.vehicleBrand.upsert({
+      where: {
+        brand_model: {
+          brand: vehicleBrand.brand,
+          model: vehicleBrand.model,
         },
-        update: {},
-        create: vehicleBrand,
-      }),
-    ),
-  );
+      },
+      update: {},
+      create: vehicleBrand,
+    });
+  }
 }
 
 main()

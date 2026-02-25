@@ -54,12 +54,12 @@ const Dashboard = () => {
   const todaySales = getTodaySales();
 
   // นับการซ่อมตามสถานะ
-  const inProgressCount = getRepairCountByStatus("IN_PROGRESS");
+  const inProgressCount = getRepairCountByStatus("PROGRESS");
   const completedCount = getRepairCountByStatus("COMPLETED");
   const paidCount = getRepairCountByStatus("PAID");
 
   // ดึงรายการซ่อมทั้งหมดตามสถานะ
-  const inProgressRepairs = getRepairsByStatus("IN_PROGRESS");
+  const inProgressRepairs = getRepairsByStatus("PROGRESS");
   const completedRepairs = getRepairsByStatus("COMPLETED");
   const paidRepairs = getRepairsByStatus("PAID");
 

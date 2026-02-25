@@ -38,7 +38,7 @@ model Repair {
   description   String?
   totalPrice    Int
   completedAt   DateTime?
-  status        RepairStatus  @default(IN_PROGRESS)
+  status        RepairStatus  @default(PROGRESS)
   paymentMethod PaymentMethod @default(CASH)
   paidAt        DateTime?
   source        RepairSource  @default(GENERAL)
@@ -54,7 +54,7 @@ model Repair {
 }
 
 enum RepairStatus {
-  IN_PROGRESS
+  PROGRESS
   COMPLETED
   PAID
 }

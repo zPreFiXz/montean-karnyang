@@ -76,7 +76,7 @@ const RepairDetail = () => {
 
   const getStatusInfo = (status) => {
     switch (status) {
-      case "IN_PROGRESS":
+      case "PROGRESS":
         return {
           text: "กำลังซ่อม",
           color: "text-status-progress",
@@ -117,7 +117,7 @@ const RepairDetail = () => {
 
   const getNextStatus = (currentStatus) => {
     switch (currentStatus) {
-      case "IN_PROGRESS":
+      case "PROGRESS":
         return "COMPLETED";
       case "COMPLETED":
         return "PAID";
@@ -126,7 +126,7 @@ const RepairDetail = () => {
 
   const getNextStatusText = (currentStatus) => {
     switch (currentStatus) {
-      case "IN_PROGRESS":
+      case "PROGRESS":
         return "เสร็จสิ้นการซ่อม";
       case "COMPLETED":
         return "ยืนยันการชำระเงิน";
@@ -135,7 +135,7 @@ const RepairDetail = () => {
 
   const getNextStatusButtonClass = (currentStatus) => {
     switch (currentStatus) {
-      case "IN_PROGRESS":
+      case "PROGRESS":
         return "bg-status-completed";
       case "COMPLETED":
         return "bg-status-paid";
@@ -816,7 +816,7 @@ const RepairDetail = () => {
                   onClick={() => handleUpdateStatus(false)}
                   className={getNextStatusButtonClass(repair.status)}
                 />
-                {repair.status === "IN_PROGRESS" && (
+                {repair.status === "PROGRESS" && (
                   <FormButton
                     label="เสร็จสิ้นการซ่อมและชำระเงิน"
                     isLoading={isUpdatingSkip}

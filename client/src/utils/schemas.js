@@ -91,7 +91,7 @@ export const repairSchema = z.object({
   plateNumbers: z.string().optional(),
   province: z.string().optional(),
   description: z.string().optional(),
-  source: z.enum(["GENERAL", "SUSPENSION"]),
+  source: z.enum(["GENERAL", "SUSPENSION"]).optional(),
 });
 
 export const partServiceSchema = z
@@ -100,11 +100,11 @@ export const partServiceSchema = z
     partNumber: z.string().optional(),
     brand: z.string().optional(),
     name: z.string().optional(),
-    costPrice: z.coerce.number(),
-    sellingPrice: z.coerce.number(),
+    costPrice: z.coerce.number().optional().default(0),
+    sellingPrice: z.coerce.number().optional().default(0),
     unit: z.string().optional(),
-    stockQuantity: z.coerce.number(),
-    minStockLevel: z.coerce.number(),
+    stockQuantity: z.coerce.number().optional().default(0),
+    minStockLevel: z.coerce.number().optional().default(0),
     typeSpecificData: z.any().optional(),
     compatibleVehicles: z.any().optional(),
     image: z.any().optional(),
@@ -119,7 +119,7 @@ export const partServiceSchema = z
     suspensionType: z.string().optional(),
 
     // บริการ
-    price: z.coerce.number(),
+    price: z.coerce.number().optional().default(0),
   })
   .superRefine((data, ctx) => {
     if (!data.categoryId) {
