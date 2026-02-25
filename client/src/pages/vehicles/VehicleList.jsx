@@ -76,7 +76,7 @@ const VehicleList = () => {
             </div>
           ) : vehicles.length === 0 ? (
             <div className="flex h-[490px] items-center justify-center">
-              <p className="text-subtle-light text-[20px] font-medium md:text-[22px]">
+              <p className="text-subtle-light text-[20px] md:text-[22px]">
                 ไม่พบลูกค้า
               </p>
             </div>
@@ -89,7 +89,7 @@ const VehicleList = () => {
                     icon={<BrandIcons brand={item.vehicleBrand.brand} />}
                     licensePlate={
                       item.licensePlate
-                        ? `${item.licensePlate.plateNumber} ${item.licensePlate.province}`
+                        ? `${item.licensePlate.plate} ${item.licensePlate.province}`
                         : "ไม่ระบุทะเบียนรถ"
                     }
                     brand={`${item.vehicleBrand.brand} ${item.vehicleBrand.model}`}

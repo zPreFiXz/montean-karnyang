@@ -7,12 +7,11 @@ export const loginSchema = z.object({
 
 export const createEmployeeSchema = z
   .object({
-    firstName: z.string().min(1, "กรุณากรอกชื่อ"),
-    lastName: z.string().min(1, "กรุณากรอกนามสกุล"),
+    fullName: z.string().min(1, "กรุณากรอกชื่อ-นามสกุล"),
     nickname: z.string().min(1, "กรุณากรอกชื่อเล่น"),
     email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
     password: z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร"),
-    confirmPassword: z.string().min(1, "กรุณายืนยันรหัสผ่าน"),
+    confirmPassword: z.string().min(8, "กรุณายืนยันรหัสผ่าน"),
     dateOfBirth: z.string().min(1, "กรุณาเลือกวันเกิด"),
     phoneNumber: z
       .string()
@@ -20,14 +19,6 @@ export const createEmployeeSchema = z
     role: z.string().optional(),
   })
   .superRefine((data, ctx) => {
-    if (!data.role || data.role.trim() === "") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "กรุณาเลือกบทบาท",
-        path: ["role"],
-      });
-    }
-
     if (data.password !== data.confirmPassword) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -35,12 +26,19 @@ export const createEmployeeSchema = z
         path: ["confirmPassword"],
       });
     }
+
+    if (!data.role || data.role.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "กรุณาเลือกบทบาท",
+        path: ["role"],
+      });
+    }
   });
 
 export const editEmployeeSchema = z
   .object({
-    firstName: z.string().min(1, "กรุณากรอกชื่อ"),
-    lastName: z.string().min(1, "กรุณากรอกนามสกุล"),
+    fullName: z.string().min(1, "กรุณากรอกชื่อ-นามสกุล"),
     nickname: z.string().min(1, "กรุณากรอกชื่อเล่น"),
     email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
     password: z.string().optional(),
@@ -52,14 +50,6 @@ export const editEmployeeSchema = z
     role: z.string().optional(),
   })
   .superRefine((data, ctx) => {
-    if (!data.role || data.role.trim() === "") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "กรุณาเลือกบทบาท",
-        path: ["role"],
-      });
-    }
-
     if (data.password && data.password.trim() !== "") {
       if (data.password.length < 8) {
         ctx.addIssue({
@@ -77,6 +67,14 @@ export const editEmployeeSchema = z
         });
       }
     }
+
+    if (!data.role || data.role.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "กรุณาเลือกบทบาท",
+        path: ["role"],
+      });
+    }
   });
 
 export const repairSchema = z.object({
@@ -91,9 +89,9 @@ export const repairSchema = z.object({
   model: z.string().min(1, "กรุณาเลือกรุ่นรถ"),
   plateLetters: z.string().optional(),
   plateNumbers: z.string().optional(),
-  province: z.string().nullable().optional(),
+  province: z.string().optional(),
   description: z.string().optional(),
-  source: z.enum(["GENERAL", "SUSPENSION"]).optional(),
+  source: z.enum(["GENERAL", "SUSPENSION"]),
 });
 
 export const partServiceSchema = z
@@ -102,11 +100,11 @@ export const partServiceSchema = z
     partNumber: z.string().optional(),
     brand: z.string().optional(),
     name: z.string().optional(),
-    costPrice: z.coerce.number().default(0),
-    sellingPrice: z.coerce.number().default(0),
+    costPrice: z.coerce.number(),
+    sellingPrice: z.coerce.number(),
     unit: z.string().optional(),
-    stockQuantity: z.coerce.number().default(0),
-    minStockLevel: z.coerce.number().default(0),
+    stockQuantity: z.coerce.number(),
+    minStockLevel: z.coerce.number(),
     typeSpecificData: z.any().optional(),
     compatibleVehicles: z.any().optional(),
     image: z.any().optional(),
@@ -121,7 +119,7 @@ export const partServiceSchema = z
     suspensionType: z.string().optional(),
 
     // บริการ
-    price: z.coerce.number().default(0),
+    price: z.coerce.number(),
   })
   .superRefine((data, ctx) => {
     if (!data.categoryId) {

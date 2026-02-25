@@ -152,8 +152,8 @@ const SalesReport = () => {
   const getCarCardData = (repair) => {
     const vehicle = repair.vehicle;
     const licensePlate =
-      vehicle?.licensePlate?.plateNumber && vehicle?.licensePlate?.province
-        ? `${vehicle.licensePlate.plateNumber} ${getProvinceName(vehicle.licensePlate.province)}`
+      vehicle?.licensePlate?.plate && vehicle?.licensePlate?.province
+        ? `${vehicle.licensePlate.plate} ${getProvinceName(vehicle.licensePlate.province)}`
         : "ไม่ระบุทะเบียนรถ";
 
     const brand = `${vehicle.vehicleBrand.brand} ${vehicle.vehicleBrand.model}`;

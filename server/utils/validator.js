@@ -11,7 +11,7 @@ exports.createEmployeeSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   dateOfBirth: z.coerce.date(),
-  phoneNumber: z.string().min(1),
+  phoneNumber: z.string().regex(/^[0-9]{10}$/),
   role: z.enum(["EMPLOYEE", "ADMIN"]),
 });
 
@@ -21,18 +21,18 @@ exports.editEmployeeSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).optional(),
   dateOfBirth: z.coerce.date(),
-  phoneNumber: z.string().min(1),
+  phoneNumber: z.string().regex(/^[0-9]{10}$/),
   role: z.enum(["EMPLOYEE", "ADMIN"]),
 });
 
 exports.repairSchema = z.object({
   fullName: z.string().optional(),
   address: z.string().optional(),
-  phoneNumber: z.string().nullable().optional(),
+  phoneNumber: z.string().optional(),
   brand: z.string().min(1),
   model: z.string().min(1),
-  plateNumber: z.string().nullable().optional(),
-  province: z.string().nullable().optional(),
+  plate: z.string().optional(),
+  province: z.string().optional(),
   description: z.string().optional(),
   source: z.enum(["GENERAL", "SUSPENSION"]),
   totalPrice: z.coerce.number(),

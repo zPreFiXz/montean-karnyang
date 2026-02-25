@@ -475,13 +475,15 @@ const RepairCreate = () => {
                   label=""
                   color="text-surface"
                   options={provinces}
-                  value={watch("province")}
-                  onChange={(value) =>
-                    setValue("province", value, {
+                  value={provinces.find((p) => p.name === watch("province"))?.id}
+                  onChange={(value) => {
+                    const provinceName =
+                      provinces.find((p) => p.id === value)?.name || value;
+                    setValue("province", provinceName, {
                       shouldValidate: true,
                       shouldTouch: true,
-                    })
-                  }
+                    });
+                  }}
                   placeholder="-- เลือกจังหวัด --"
                   errors={errors}
                   name="province"

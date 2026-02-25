@@ -197,7 +197,7 @@ const RepairDetail = () => {
   const handleEditRepair = () => {
     if (!repair) return;
 
-    const plate = repair?.vehicle?.licensePlate?.plateNumber || "";
+    const plate = repair?.vehicle?.licensePlate?.plate || "";
     const [plateLetters = "", plateNumbers = ""] = plate.split("-");
     const provinceName = repair?.vehicle?.licensePlate?.province || "";
 
@@ -403,9 +403,9 @@ const RepairDetail = () => {
                 <p
                   className={`text-[22px] font-semibold md:text-[24px] ${statusInfo.color} leading-tight`}
                 >
-                  {repair?.vehicle?.licensePlate?.plateNumber &&
+                  {repair?.vehicle?.licensePlate?.plate &&
                   repair?.vehicle?.licensePlate?.province
-                    ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
+                    ? `${repair.vehicle.licensePlate.plate} ${repair.vehicle.licensePlate.province}`
                     : "ไม่ระบุทะเบียนรถ"}
                 </p>
                 <p className="text-subtle-dark text-[18px] leading-tight font-medium md:text-[20px]">

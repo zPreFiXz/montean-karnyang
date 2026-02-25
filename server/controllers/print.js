@@ -50,9 +50,9 @@ const generateReceiptHTML = (repair) => {
   };
 
   const licensePlate =
-    repair.vehicle?.licensePlate?.plateNumber &&
+    repair.vehicle?.licensePlate?.plate &&
     repair.vehicle?.licensePlate?.province
-      ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
+      ? `${repair.vehicle.licensePlate.plate} ${repair.vehicle.licensePlate.province}`
       : "ไม่ระบุทะเบียน";
 
   const vehicleBrand =

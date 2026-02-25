@@ -63,7 +63,7 @@ const RepairSummary = () => {
         phoneNumber: repairData.phoneNumber,
         brand: repairData.brand,
         model: repairData.model,
-        plateNumber: `${repairData.plateLetters}-${repairData.plateNumbers}`,
+        plate: `${repairData.plateLetters}-${repairData.plateNumbers}`,
         province: getProvinceName(repairData.province),
         description: repairData.description,
         totalPrice: totalPrice,

@@ -196,9 +196,9 @@ const RepairStatus = () => {
                   />
                 }
                 licensePlate={
-                  item.vehicle.licensePlate?.plateNumber &&
+                  item.vehicle.licensePlate?.plate &&
                   item.vehicle.licensePlate?.province
-                    ? `${item.vehicle.licensePlate.plateNumber} ${item.vehicle.licensePlate.province}`
+                    ? `${item.vehicle.licensePlate.plate} ${item.vehicle.licensePlate.province}`
                     : "ไม่ระบุทะเบียนรถ"
                 }
                 brand={getDisplayBrand(item.vehicle.vehicleBrand)}

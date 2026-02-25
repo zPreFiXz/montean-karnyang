@@ -8,7 +8,7 @@ exports.getRepairs = async (req, res, next) => {
           include: {
             licensePlate: {
               select: {
-                plateNumber: true,
+                plate: true,
                 province: true,
               },
             },
@@ -43,7 +43,7 @@ exports.getRepairById = async (req, res, next) => {
           include: {
             licensePlate: {
               select: {
-                plateNumber: true,
+                plate: true,
                 province: true,
               },
             },
@@ -93,7 +93,7 @@ exports.createRepair = async (req, res, next) => {
       phoneNumber,
       brand,
       model,
-      plateNumber,
+      plate,
       province,
       description,
       totalPrice,
@@ -124,11 +124,11 @@ exports.createRepair = async (req, res, next) => {
       });
     }
 
-    if (plateNumber && province) {
+    if (plate && province) {
       licensePlate = await prisma.licensePlate.findUnique({
         where: {
-          plateNumber_province: {
-            plateNumber,
+          plate_province: {
+            plate,
             province,
           },
         },
@@ -153,7 +153,7 @@ exports.createRepair = async (req, res, next) => {
       } else {
         licensePlate = await prisma.licensePlate.create({
           data: {
-            plateNumber,
+            plate,
             province,
           },
         });
@@ -279,7 +279,7 @@ exports.updateRepair = async (req, res, next) => {
       phoneNumber,
       brand,
       model,
-      plateNumber,
+      plate,
       province,
       description,
       totalPrice,
@@ -298,13 +298,13 @@ exports.updateRepair = async (req, res, next) => {
     }
 
     let vehicle;
-    if (plateNumber && province) {
+    if (plate && province) {
       let licensePlate = await prisma.licensePlate.findUnique({
-        where: { plateNumber_province: { plateNumber, province } },
+        where: { plate_province: { plate, province } },
       });
       if (!licensePlate) {
         licensePlate = await prisma.licensePlate.create({
-          data: { plateNumber, province },
+          data: { plate, province },
         });
       }
 
@@ -434,7 +434,7 @@ exports.updateRepair = async (req, res, next) => {
         vehicle: {
           include: {
             licensePlate: {
-              select: { plateNumber: true, province: true },
+              select: { plate: true, province: true },
             },
             vehicleBrand: { select: { brand: true, model: true } },
           },

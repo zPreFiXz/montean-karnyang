@@ -55,9 +55,9 @@ const VehicleDetail = () => {
               </div>
               <div className="flex flex-col">
                 <p className="text-primary text-[22px] leading-tight font-semibold md:text-[24px]">
-                  {vehicle?.licensePlate?.plateNumber &&
+                  {vehicle?.licensePlate?.plate &&
                   vehicle?.licensePlate?.province
-                    ? `${vehicle.licensePlate.plateNumber} ${vehicle.licensePlate.province}`
+                    ? `${vehicle.licensePlate.plate} ${vehicle.licensePlate.province}`
                     : "ไม่ระบุทะเบียนรถ"}
                 </p>
                 <p className="text-subtle-dark text-[18px] leading-tight font-medium md:text-[20px]">

@@ -20,7 +20,7 @@ exports.getVehicles = async (req, res, next) => {
           {
             licensePlate: {
               OR: [
-                { plateNumber: { contains: search } },
+                { plate: { contains: search } },
                 { province: { contains: search } },
               ],
             },
@@ -52,7 +52,7 @@ exports.getVehicleById = async (req, res, next) => {
       include: {
         licensePlate: {
           select: {
-            plateNumber: true,
+            plate: true,
             province: true,
           },
         },

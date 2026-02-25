@@ -181,7 +181,7 @@ const ComboBox = ({
           </PopoverContent>
         </Popover>
       </div>
-      {hasError && name !== "province" && (
+      {hasError && (
         <div className="mt-[6px] flex items-center gap-[4px] px-[4px]">
           <AlertCircle className="text-destructive h-4 w-4 flex-shrink-0" />
           <p className="text-destructive text-[18px] font-medium md:text-[20px]">

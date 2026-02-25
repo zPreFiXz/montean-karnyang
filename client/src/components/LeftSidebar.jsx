@@ -40,6 +40,7 @@ const LeftSidebar = () => {
 
   return (
     <div className="shadow-primary hidden min-h-[calc(100vh-73px)] w-[269px] flex-col items-center gap-[24px] px-[16px] xl:flex">
+      
       {/* รายการซ่อมใหม่ */}
       <Link
         to="/repairs/new"

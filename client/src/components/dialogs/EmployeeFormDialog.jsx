@@ -80,8 +80,7 @@ const EmployeeFormDialog = ({
       editingItem ? editEmployeeSchema : createEmployeeSchema,
     ),
     defaultValues: {
-      firstName: "",
-      lastName: "",
+      fullName: "",
       nickname: "",
       email: "",
       password: "",
@@ -97,12 +96,8 @@ const EmployeeFormDialog = ({
   useEffect(() => {
     if (isOpen) {
       if (editingItem) {
-        const nameParts = editingItem.fullName?.split(" ") || ["", ""];
-        const firstName = nameParts[0] || "";
-        const lastName = nameParts.slice(1).join(" ") || "";
         reset({
-          firstName,
-          lastName,
+          fullName: editingItem.fullName || "",
           nickname: editingItem.nickname || "",
           email: editingItem.email || "",
           password: "",
@@ -115,8 +110,7 @@ const EmployeeFormDialog = ({
         });
       } else {
         reset({
-          firstName: "",
-          lastName: "",
+          fullName: "",
           nickname: "",
           email: "",
           password: "",
@@ -135,7 +129,7 @@ const EmployeeFormDialog = ({
       await createEmployee({
         email: data.email,
         password: data.password,
-        fullName: `${data.firstName} ${data.lastName}`,
+        fullName: data.fullName,
         nickname: data.nickname,
         role: data.role,
         phoneNumber: data.phoneNumber,
@@ -154,7 +148,7 @@ const EmployeeFormDialog = ({
       await new Promise((resolve) => setTimeout(resolve, 1000));
       const updateData = {
         email: data.email,
-        fullName: `${data.firstName} ${data.lastName}`,
+        fullName: data.fullName,
         nickname: data.nickname,
         role: data.role,
         phoneNumber: data.phoneNumber,
@@ -218,20 +212,9 @@ const EmployeeFormDialog = ({
             <div>
               <FormInput
                 register={register}
-                name="firstName"
-                label="ชื่อ"
-                placeholder="เช่น สมชาย"
-                errors={errors}
-                customClass="px-0 pb-[16px]"
-                color="subtle-dark"
-                autoFocus={false}
-              />
-
-              <FormInput
-                register={register}
-                name="lastName"
-                label="นามสกุล"
-                placeholder="เช่น ใจดี"
+                name="fullName"
+                label="ชื่อ-นามสกุล"
+                placeholder="เช่น สมชาย ใจดี"
                 errors={errors}
                 customClass="px-0 pb-[16px]"
                 color="subtle-dark"

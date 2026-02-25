@@ -39,12 +39,14 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
 
   return (
     <div className="scrollbar-hide -mx-[20px] mt-[16px] overflow-x-auto overflow-y-hidden pl-[20px]">
+      
       {isLoading ? (
         <div className="flex h-[80px] items-center justify-center">
           <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
         </div>
       ) : (
         <div className="flex gap-[8px]">
+          
           {/* หมวดหมู่ทั้งหมด */}
           <button
             onClick={() => {

@@ -154,9 +154,9 @@ const Dashboard = () => {
                         />
                       }
                       licensePlate={
-                        repair.vehicle?.licensePlate?.plateNumber &&
+                        repair.vehicle?.licensePlate?.plate &&
                         repair.vehicle?.licensePlate?.province
-                          ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
+                          ? `${repair.vehicle.licensePlate.plate} ${repair.vehicle.licensePlate.province}`
                           : "ไม่ระบุทะเบียนรถ"
                       }
                       brand={getDisplayBrand(repair.vehicle?.vehicleBrand)}
@@ -186,9 +186,9 @@ const Dashboard = () => {
                         />
                       }
                       licensePlate={
-                        repair.vehicle?.licensePlate?.plateNumber &&
+                        repair.vehicle?.licensePlate?.plate &&
                         repair.vehicle?.licensePlate?.province
-                          ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
+                          ? `${repair.vehicle.licensePlate.plate} ${repair.vehicle.licensePlate.province}`
                           : "ไม่ระบุทะเบียนรถ"
                       }
                       brand={getDisplayBrand(repair.vehicle?.vehicleBrand)}
@@ -219,9 +219,9 @@ const Dashboard = () => {
                         />
                       }
                       licensePlate={
-                        repair.vehicle?.licensePlate?.plateNumber &&
+                        repair.vehicle?.licensePlate?.plate &&
                         repair.vehicle?.licensePlate?.province
-                          ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
+                          ? `${repair.vehicle.licensePlate.plate} ${repair.vehicle.licensePlate.province}`
                           : "ไม่ระบุทะเบียนรถ"
                       }
                       brand={getDisplayBrand(repair.vehicle?.vehicleBrand)}
