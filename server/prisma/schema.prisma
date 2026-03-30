@@ -15,16 +15,16 @@ datasource db {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
+  id           Int          @id @default(autoincrement())
+  email        String       @unique
   passwordHash String
-  role         Role     @default(EMPLOYEE)
+  role         Role         @default(EMPLOYEE)
   fullName     String
   nickname     String
   phoneNumber  String
   dateOfBirth  DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
   repairs      Repair[]
 }
 
@@ -164,4 +164,27 @@ model Category {
   name     String    @unique
   parts    Part[]
   services Service[]
+}
+
+model Employee {
+  id          Int          @id @default(autoincrement())
+  zkUserId    String       @unique
+  fullName    String
+  nickname    String?
+  phoneNumber String?
+  dateOfBirth DateTime?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  attendances Attendance[]
+}
+
+model Attendance {
+  id        Int      @id @default(autoincrement())
+  status    String
+  scanTime  DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  employeeId Int?
+  employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
 }

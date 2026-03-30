@@ -2,16 +2,15 @@ require("dotenv").config();
 require("events").EventEmitter.defaultMaxListeners = 0;
 
 const ZKLib = require("node-zklib");
-const EMPLOYEE_MAP = require("./config/zktecoEmployees");
+const { PrismaClient } = require("@prisma/client");
+
+const prisma = new PrismaClient();
 
 const LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push";
 const CONFIG = {
-  zkIp: process.env.ZKTECO_DEVICE_IP || "192.168.1.101",
-  zkPort: Number(process.env.ZKTECO_DEVICE_PORT || 4370),
-  zkPollIntervalMs: Math.max(
-    200,
-    Number(process.env.ZKTECO_POLL_INTERVAL_MS || 300),
-  ),
+  zkIp: process.env.ZKTECO_DEVICE_IP,
+  zkPort: Number(process.env.ZKTECO_DEVICE_PORT),
+  zkPollIntervalMs: Number(process.env.ZKTECO_POLL_INTERVAL_MS || 300),
   zkSocketTimeoutMs: 10000,
   zkInportTimeoutMs: 4000,
   lineToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
@@ -29,6 +28,7 @@ const CONFIG = {
 const STATUS_TIME_RULES = {
   lateAfterMinutes: 8 * 60,
   lunchFromMinutes: 10 * 60,
+  lunchBreakMinutes: 60,
   offWorkFromMinutes: 17 * 60,
 };
 
@@ -98,15 +98,25 @@ const createScanStatusResolver = () => {
 
     if (minutes >= STATUS_TIME_RULES.lunchFromMinutes) {
       if (!lunchOutTracker.has(trackerKey)) {
-        lunchOutTracker.set(trackerKey, true);
+        lunchOutTracker.set(trackerKey, { lunchOutMinutes: minutes });
         return "พักเที่ยง";
       }
 
-      return "กลับจากพักเที่ยง";
+      const tracker = lunchOutTracker.get(trackerKey);
+      const lunchOutMinutes = tracker?.lunchOutMinutes ?? minutes;
+      const lunchDuration = Math.max(0, minutes - lunchOutMinutes);
+
+      if (lunchDuration > STATUS_TIME_RULES.lunchBreakMinutes) {
+        const lateMinutes = lunchDuration - STATUS_TIME_RULES.lunchBreakMinutes;
+        return `กลับจากพักเที่ยง (สาย ${lateMinutes} นาที)`;
+      }
+
+      return "กลับจากพักเที่ยง (ตรงเวลา)";
     }
 
     if (minutes > STATUS_TIME_RULES.lateAfterMinutes) {
-      return "เข้างาน (สาย)";
+      const lateMinutes = minutes - STATUS_TIME_RULES.lateAfterMinutes;
+      return `เข้างาน (สาย ${lateMinutes} นาที)`;
     }
 
     return "เข้างาน";
@@ -325,9 +335,6 @@ const formatAttendanceMessage = (empName, empId, thaiDateTime, scanStatus) => {
   };
 };
 
-const getEmployeeName = (empId) =>
-  EMPLOYEE_MAP[empId] || `พนักงาน (${empId || "ไม่ทราบรหัส"})`;
-
 const createDedupeChecker = () => {
   const sentCache = new Map();
 
@@ -359,6 +366,30 @@ const getNewLogs = (logs, lastSeenKey) => {
     : logs.length - 1;
 
   return lastIndex >= 0 ? logs.slice(lastIndex + 1) : logs.slice(-1);
+};
+
+const findEmployeeByZkUserId = async (zkUserId) => {
+  if (!zkUserId) return null;
+
+  return prisma.employee.findUnique({
+    where: {
+      zkUserId: String(zkUserId),
+    },
+    select: {
+      id: true,
+      fullName: true,
+    },
+  });
+};
+
+const saveAttendance = async (employeeId, scanStatus, scanTime) => {
+  await prisma.attendance.create({
+    data: {
+      status: scanStatus,
+      scanTime,
+      employeeId: employeeId || null,
+    },
+  });
 };
 
 const startZKTecoListener = async () => {
@@ -398,7 +429,9 @@ const startZKTecoListener = async () => {
           }
 
           const empId = String(log.deviceUserId || "");
-          const empName = getEmployeeName(empId);
+          const employee = await findEmployeeByZkUserId(empId);
+          const empName =
+            employee?.fullName || `ไม่พบข้อมูลพนักงาน (${empId || "-"})`;
           const thaiDateTime = formatThaiDateTime(log.recordTime || new Date());
           const scanStatus = resolveScanStatus(
             empId,
@@ -413,6 +446,14 @@ const startZKTecoListener = async () => {
 
           void sendLineMessage(lineMessage).catch((error) => {
             console.error("Failed to send LINE:", error.message);
+          });
+
+          void saveAttendance(
+            employee?.id,
+            scanStatus,
+            log.recordTime || new Date(),
+          ).catch((error) => {
+            console.error("Failed to save attendance:", error.message);
           });
 
           lastSeenKey = logKey;

@@ -1,15 +1,9 @@
-const bcrypt = require("bcryptjs");
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
 
 exports.getEmployees = async (req, res, next) => {
   try {
-    const employees = await prisma.user.findMany({
-      where: {
-        role: {
-          in: ["EMPLOYEE", "ADMIN"],
-        },
-      },
+    const employees = await prisma.employee.findMany({
       orderBy: {
         createdAt: "desc",
       },
@@ -23,35 +17,25 @@ exports.getEmployees = async (req, res, next) => {
 
 exports.createEmployee = async (req, res, next) => {
   try {
-    const {
-      email,
-      password,
-      fullName,
-      nickname,
-      role,
-      phoneNumber,
-      dateOfBirth,
-    } = req.body;
+    const { zkUserId, fullName, nickname, phoneNumber, dateOfBirth, isActive } =
+      req.body;
 
-    const user = await prisma.user.findUnique({
-      where: { email },
+    const employee = await prisma.employee.findUnique({
+      where: { zkUserId },
     });
 
-    if (user) {
-      createError(400, "อีเมลนี้มีอยู่ในระบบแล้ว");
+    if (employee) {
+      createError(400, "รหัสพนักงานนี้มีอยู่ในระบบแล้ว");
     }
 
-    const hashedPassword = bcrypt.hashSync(password, 10);
-
-    await prisma.user.create({
+    await prisma.employee.create({
       data: {
-        email,
-        passwordHash: hashedPassword,
+        zkUserId,
         fullName,
-        nickname,
-        role,
-        phoneNumber,
-        dateOfBirth: new Date(dateOfBirth),
+        nickname: nickname || null,
+        phoneNumber: phoneNumber || null,
+        dateOfBirth: dateOfBirth || null,
+        isActive: isActive ?? true,
       },
     });
 
@@ -64,17 +48,10 @@ exports.createEmployee = async (req, res, next) => {
 exports.updateEmployee = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const {
-      email,
-      fullName,
-      nickname,
-      role,
-      phoneNumber,
-      dateOfBirth,
-      password,
-    } = req.body;
+    const { zkUserId, fullName, nickname, phoneNumber, dateOfBirth, isActive } =
+      req.body;
 
-    const existingEmployee = await prisma.user.findUnique({
+    const existingEmployee = await prisma.employee.findUnique({
       where: { id: Number(id) },
     });
 
@@ -82,36 +59,25 @@ exports.updateEmployee = async (req, res, next) => {
       createError(404, "ไม่พบพนักงาน");
     }
 
-    if (email && email !== existingEmployee.email) {
-      const emailExists = await prisma.user.findUnique({
-        where: { email },
+    if (zkUserId !== existingEmployee.zkUserId) {
+      const codeExists = await prisma.employee.findUnique({
+        where: { zkUserId },
       });
 
-      if (emailExists) {
-        createError(400, "อีเมลนี้มีอยู่ในระบบแล้ว");
-      }
-    }
-
-    if (role) {
-      const validRoles = ["EMPLOYEE", "ADMIN"];
-      if (!validRoles.includes(role)) {
-        createError(400, "บทบาทไม่ถูกต้อง");
+      if (codeExists) {
+        createError(400, "รหัสพนักงานนี้มีอยู่ในระบบแล้ว");
       }
     }
 
     const updateData = {};
-    if (email) updateData.email = email;
+    if (zkUserId) updateData.zkUserId = zkUserId;
     if (fullName) updateData.fullName = fullName;
-    if (nickname) updateData.nickname = nickname;
-    if (role) updateData.role = role;
+    if (nickname !== undefined) updateData.nickname = nickname || null;
     if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber || null;
-    if (dateOfBirth) updateData.dateOfBirth = new Date(dateOfBirth);
+    if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth || null;
+    if (isActive !== undefined) updateData.isActive = isActive;
 
-    if (password) {
-      updateData.passwordHash = bcrypt.hashSync(password, 10);
-    }
-
-    await prisma.user.update({
+    await prisma.employee.update({
       where: { id: Number(id) },
       data: updateData,
     });
@@ -126,7 +92,7 @@ exports.deleteEmployee = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    await prisma.user.delete({
+    await prisma.employee.delete({
       where: { id: Number(id) },
     });
 

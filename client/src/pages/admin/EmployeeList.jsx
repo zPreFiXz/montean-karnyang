@@ -64,39 +64,13 @@ const EmployeeList = () => {
 
   const filteredEmployees = employees.filter(
     (employee) =>
+      employee.zkUserId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.nickname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.email?.toLowerCase().includes(searchTerm.toLowerCase()),
+      employee.phoneNumber?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const groupedByRole = {};
-  filteredEmployees.forEach((employee) => {
-    if (!groupedByRole[employee.role]) {
-      groupedByRole[employee.role] = [];
-    }
-    groupedByRole[employee.role].push(employee);
-  });
-
-  Object.keys(groupedByRole).forEach((role) => {
-    groupedByRole[role].sort((a, b) => a.id - b.id);
-  });
-
-  const sortedRoles = Object.keys(groupedByRole).sort((a, b) => {
-    if (a === "ADMIN") return -1;
-    if (b === "ADMIN") return 1;
-    return 0;
-  });
-
-  const getRoleLabel = (role) => {
-    switch (role) {
-      case "ADMIN":
-        return "แอดมิน";
-      case "EMPLOYEE":
-        return "พนักงาน";
-      default:
-        return role;
-    }
-  };
+  const sortedEmployees = [...filteredEmployees].sort((a, b) => a.id - b.id);
 
   return (
     <div className="bg-gradient-primary shadow-primary h-[87px] w-full">
@@ -105,7 +79,7 @@ const EmployeeList = () => {
           <ChevronLeft />
         </Link>
         <p className="text-surface text-[24px] font-semibold md:text-[26px]">
-          จัดการบัญชีพนักงาน
+          จัดการพนักงาน
         </p>
       </div>
       <div className="bg-surface shadow-primary mt-[16px] min-h-[calc(100vh-65px)] w-full rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
@@ -117,14 +91,14 @@ const EmployeeList = () => {
           <div className="px-[20px] py-[16px] pb-[112px]">
             <div className="w-full">
               <SearchBar
-                placeholder="ค้นหาชื่อ-นามสกุล, อีเมล"
+                placeholder="ค้นหารหัสพนักงาน, ชื่อ หรือเบอร์โทร"
                 value={searchTerm}
                 onSearch={setSearchTerm}
               />
             </div>
 
             <FormButton
-              label="+ เพิ่มบัญชีพนักงาน"
+              label="+ เพิ่มพนักงาน"
               onClick={() => {
                 setEditingEmployee(null);
                 setIsFormDialogOpen(true);
@@ -143,51 +117,49 @@ const EmployeeList = () => {
             />
 
             <div className="space-y-[16px]">
-              {sortedRoles.map((role) => (
-                <div
-                  key={role}
-                  className="bg-surface shadow-primary rounded-[10px] p-[16px]"
-                >
-                  <div className="mb-[16px] flex items-center gap-[8px] border-b border-gray-100 pb-[16px]">
-                    <p className="text-primary text-[20px] font-semibold md:text-[22px]">
-                      {getRoleLabel(role)}
-                    </p>
-                  </div>
-                  <div className="space-y-[8px]">
-                    {groupedByRole[role].map((employee) => (
-                      <div
-                        key={employee.id}
-                        className="flex items-center justify-between gap-[8px] rounded-[8px] bg-gray-50 p-[8px]"
-                      >
-                        <div className="flex min-w-0 flex-1 flex-col">
-                          <p className="text-normal truncate text-[18px] font-medium md:text-[20px]">
-                            {employee.fullName}
-                          </p>
-                          <p className="text-subtle-dark truncate text-[14px] md:text-[16px]">
-                            {employee.email}
-                          </p>
-                        </div>
-                        <div className="flex flex-shrink-0 gap-[8px]">
-                          <button
-                            onClick={() => handleEditClick(employee)}
-                            className="text-surface bg-gradient-primary flex cursor-pointer items-center gap-[4px] rounded-[10px] px-[12px] py-[6px] text-[14px] font-medium"
-                          >
-                            <Edit className="h-[14px] w-[14px]" />
-                            <p className="font-semibold">แก้ไข</p>
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(employee)}
-                            className="text-surface bg-destructive flex cursor-pointer items-center gap-[4px] rounded-[10px] px-[12px] py-[6px] text-[14px] font-medium"
-                          >
-                            <Trash2 className="h-[14px] w-[14px]" />
-                            <p className="font-semibold">ลบ</p>
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+              <div className="bg-surface shadow-primary rounded-[10px] p-[16px]">
+                <div className="mb-[16px] flex items-center gap-[8px] border-b border-gray-100 pb-[16px]">
+                  <p className="text-primary text-[20px] font-semibold md:text-[22px]">
+                    รายชื่อพนักงาน
+                  </p>
                 </div>
-              ))}
+                <div className="space-y-[8px]">
+                  {sortedEmployees.map((employee) => (
+                    <div
+                      key={employee.id}
+                      className="flex items-center justify-between gap-[8px] rounded-[8px] bg-gray-50 p-[8px]"
+                    >
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <p className="text-normal truncate text-[18px] font-medium md:text-[20px]">
+                          {employee.fullName}
+                        </p>
+                        <p className="text-subtle-dark truncate text-[14px] md:text-[16px]">
+                          รหัสเครื่องสแกน: {employee.zkUserId}
+                          {employee.phoneNumber
+                            ? ` • โทร ${employee.phoneNumber}`
+                            : ""}
+                        </p>
+                      </div>
+                      <div className="flex flex-shrink-0 gap-[8px]">
+                        <button
+                          onClick={() => handleEditClick(employee)}
+                          className="text-surface bg-gradient-primary flex cursor-pointer items-center gap-[4px] rounded-[10px] px-[12px] py-[6px] text-[14px] font-medium"
+                        >
+                          <Edit className="h-[14px] w-[14px]" />
+                          <p className="font-semibold">แก้ไข</p>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(employee)}
+                          className="text-surface bg-destructive flex cursor-pointer items-center gap-[4px] rounded-[10px] px-[12px] py-[6px] text-[14px] font-medium"
+                        >
+                          <Trash2 className="h-[14px] w-[14px]" />
+                          <p className="font-semibold">ลบ</p>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
               {filteredEmployees.length === 0 && (
                 <div className="py-[24px] text-center">
                   <p className="text-subtle-light">ไม่พบข้อมูลพนักงาน</p>
@@ -203,7 +175,7 @@ const EmployeeList = () => {
         onConfirm={handleDeleteConfirm}
         title="ยืนยันการลบ"
         message="ต้องการลบพนักงานนี้หรือไม่?"
-        itemName={deletingEmployee?.fullName || deletingEmployee?.email || ""}
+        itemName={deletingEmployee?.fullName || ""}
       />
     </div>
   );

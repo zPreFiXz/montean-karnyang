@@ -5,7 +5,36 @@ exports.loginSchema = z.object({
   password: z.string().min(8),
 });
 
+const optionalDateSchema = z.preprocess(
+  (value) => (value === "" || value == null ? undefined : value),
+  z.coerce.date().optional(),
+);
+
+const optionalPhoneSchema = z
+  .string()
+  .regex(/^[0-9]{10}$/)
+  .optional()
+  .or(z.literal(""));
+
 exports.createEmployeeSchema = z.object({
+  zkUserId: z.string().min(1),
+  fullName: z.string().min(1),
+  nickname: z.string().optional(),
+  dateOfBirth: optionalDateSchema,
+  phoneNumber: optionalPhoneSchema,
+  isActive: z.boolean().optional(),
+});
+
+exports.editEmployeeSchema = z.object({
+  zkUserId: z.string().min(1),
+  fullName: z.string().min(1),
+  nickname: z.string().optional(),
+  dateOfBirth: optionalDateSchema,
+  phoneNumber: optionalPhoneSchema,
+  isActive: z.boolean().optional(),
+});
+
+exports.createUserAccountSchema = z.object({
   fullName: z.string().min(1),
   nickname: z.string().min(1),
   email: z.string().email(),
@@ -15,7 +44,7 @@ exports.createEmployeeSchema = z.object({
   role: z.enum(["EMPLOYEE", "ADMIN"]),
 });
 
-exports.editEmployeeSchema = z.object({
+exports.editUserAccountSchema = z.object({
   fullName: z.string().min(1),
   nickname: z.string().min(1),
   email: z.string().email(),

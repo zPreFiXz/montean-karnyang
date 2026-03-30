@@ -7,6 +7,56 @@ export const loginSchema = z.object({
 
 export const createEmployeeSchema = z
   .object({
+    zkUserId: z.string().min(1, "กรุณากรอกรหัสพนักงาน (เครื่องสแกน)"),
+    fullName: z.string().min(1, "กรุณากรอกชื่อ-นามสกุล"),
+    nickname: z.string().optional(),
+    dateOfBirth: z.string().optional(),
+    phoneNumber: z
+      .string()
+      .regex(/^[0-9]{10}$/, "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก")
+      .optional()
+      .or(z.literal("")),
+    isActive: z.boolean().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.phoneNumber && data.phoneNumber.trim() !== "") {
+      if (!/^[0-9]{10}$/.test(data.phoneNumber)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก",
+          path: ["phoneNumber"],
+        });
+      }
+    }
+  });
+
+export const editEmployeeSchema = z
+  .object({
+    zkUserId: z.string().min(1, "กรุณากรอกรหัสพนักงาน (เครื่องสแกน)"),
+    fullName: z.string().min(1, "กรุณากรอกชื่อ-นามสกุล"),
+    nickname: z.string().optional(),
+    dateOfBirth: z.string().optional(),
+    phoneNumber: z
+      .string()
+      .regex(/^[0-9]{10}$/, "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก")
+      .optional()
+      .or(z.literal("")),
+    isActive: z.boolean().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.phoneNumber && data.phoneNumber.trim() !== "") {
+      if (!/^[0-9]{10}$/.test(data.phoneNumber)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก",
+          path: ["phoneNumber"],
+        });
+      }
+    }
+  });
+
+export const createUserAccountSchema = z
+  .object({
     fullName: z.string().min(1, "กรุณากรอกชื่อ-นามสกุล"),
     nickname: z.string().min(1, "กรุณากรอกชื่อเล่น"),
     email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
@@ -36,7 +86,7 @@ export const createEmployeeSchema = z
     }
   });
 
-export const editEmployeeSchema = z
+export const editUserAccountSchema = z
   .object({
     fullName: z.string().min(1, "กรุณากรอกชื่อ-นามสกุล"),
     nickname: z.string().min(1, "กรุณากรอกชื่อเล่น"),

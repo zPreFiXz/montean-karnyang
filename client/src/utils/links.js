@@ -1,4 +1,4 @@
-import { CarFront, Users } from "lucide-react";
+import { CarFront, Users, CalendarCheck } from "lucide-react";
 
 export const publicLinks = [
   {
@@ -11,9 +11,21 @@ export const publicLinks = [
 
 export const privateLinks = [
   {
+    href: "/admin/users",
+    label: "จัดการบัญชีผู้ใช้งาน",
+    icon: Users,
+    iconClass: "text-primary",
+  },
+  {
     href: "/admin/employees",
-    label: "จัดการบัญชีพนักงาน",
+    label: "จัดการพนักงาน",
     icon: Users,
     iconClass: "text-status-completed",
+  },
+  {
+    href: "/admin/reports/attendance",
+    label: "รายงานสแกนรายวัน",
+    icon: CalendarCheck,
+    iconClass: "text-primary",
   },
 ];

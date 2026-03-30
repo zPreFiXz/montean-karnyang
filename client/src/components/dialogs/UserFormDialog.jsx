@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { X, Calendar, AlertCircle } from "lucide-react";
+import { X, Eye, EyeOff, Calendar, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import FormInput from "@/components/forms/FormInput";
+import ComboBox from "@/components/ui/ComboBox";
 import FormButton from "@/components/forms/FormButton";
 import { Label } from "@/components/ui/label";
 import {
@@ -19,8 +20,11 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createEmployeeSchema, editEmployeeSchema } from "@/utils/schemas";
-import { createEmployee, updateEmployee } from "@/api/employee";
+import {
+  createUserAccountSchema,
+  editUserAccountSchema,
+} from "@/utils/schemas";
+import { createUser, updateUser } from "@/api/user";
 import { cn } from "@/lib/utils";
 
 const formatDateThai = (date) => {
@@ -56,54 +60,62 @@ const formatDateISO = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-const EmployeeFormDialog = ({
-  isOpen,
-  onClose,
-  editingItem = null,
-  onSuccess,
-}) => {
+const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
+    useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     control,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(
-      editingItem ? editEmployeeSchema : createEmployeeSchema,
+      editingItem ? editUserAccountSchema : createUserAccountSchema,
     ),
     defaultValues: {
-      zkUserId: "",
       fullName: "",
       nickname: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
       dateOfBirth: "",
       phoneNumber: "",
-      isActive: true,
+      role: "",
     },
   });
+
+  const roleValue = watch("role");
 
   useEffect(() => {
     if (isOpen) {
       if (editingItem) {
         reset({
-          zkUserId: editingItem.zkUserId || "",
           fullName: editingItem.fullName || "",
           nickname: editingItem.nickname || "",
+          email: editingItem.email || "",
+          password: "",
+          confirmPassword: "",
           dateOfBirth: editingItem.dateOfBirth
             ? String(editingItem.dateOfBirth).split("T")[0]
             : "",
           phoneNumber: editingItem.phoneNumber || "",
-          isActive: editingItem.isActive ?? true,
+          role: editingItem.role || "",
         });
       } else {
         reset({
-          zkUserId: "",
           fullName: "",
           nickname: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
           dateOfBirth: "",
           phoneNumber: "",
-          isActive: true,
+          role: "",
         });
       }
     }
@@ -111,15 +123,16 @@ const EmployeeFormDialog = ({
 
   const handleAdd = async (data) => {
     try {
-      await createEmployee({
-        zkUserId: data.zkUserId,
+      await createUser({
+        email: data.email,
+        password: data.password,
         fullName: data.fullName,
         nickname: data.nickname,
-        dateOfBirth: data.dateOfBirth,
+        role: data.role,
         phoneNumber: data.phoneNumber,
-        isActive: data.isActive,
+        dateOfBirth: data.dateOfBirth,
       });
-      toast.success("เพิ่มพนักงานเรียบร้อยแล้ว");
+      toast.success("เพิ่มบัญชีผู้ใช้งานเรียบร้อยแล้ว");
       handleClose();
       onSuccess?.();
     } catch (error) {
@@ -129,15 +142,21 @@ const EmployeeFormDialog = ({
 
   const handleEdit = async (data) => {
     try {
-      await updateEmployee(editingItem.id, {
-        zkUserId: data.zkUserId,
+      const updateData = {
+        email: data.email,
         fullName: data.fullName,
         nickname: data.nickname,
-        dateOfBirth: data.dateOfBirth,
+        role: data.role,
         phoneNumber: data.phoneNumber,
-        isActive: data.isActive,
-      });
-      toast.success("แก้ไขข้อมูลพนักงานเรียบร้อยแล้ว");
+        dateOfBirth: data.dateOfBirth,
+      };
+
+      if (data.password && data.password.trim() !== "") {
+        updateData.password = data.password;
+      }
+
+      await updateUser(editingItem.id, updateData);
+      toast.success("แก้ไขบัญชีผู้ใช้งานเรียบร้อยแล้ว");
       handleClose();
       onSuccess?.();
     } catch (error) {
@@ -147,6 +166,8 @@ const EmployeeFormDialog = ({
 
   const handleClose = () => {
     reset();
+    setIsPasswordVisible(false);
+    setIsConfirmPasswordVisible(false);
     onClose();
   };
 
@@ -161,10 +182,12 @@ const EmployeeFormDialog = ({
       >
         <div className="relative flex-shrink-0 pt-[16px]">
           <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-[24px]">
-            {editingItem ? "แก้ไขพนักงาน" : "เพิ่มพนักงาน"}
+            {editingItem ? "แก้ไขบัญชีผู้ใช้งาน" : "เพิ่มบัญชีผู้ใช้งาน"}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            {editingItem ? `แก้ไข ${editingItem.fullName}` : "เพิ่มพนักงาน"}
+            {editingItem
+              ? `แก้ไข ${editingItem.fullName}`
+              : "เพิ่มบัญชีผู้ใช้งาน"}
           </DialogDescription>
           <button
             onClick={handleClose}
@@ -185,17 +208,6 @@ const EmployeeFormDialog = ({
             <div>
               <FormInput
                 register={register}
-                name="zkUserId"
-                label="รหัสพนักงาน (เครื่องสแกน)"
-                placeholder="เช่น 1, 2, 3"
-                errors={errors}
-                customClass="px-0 pb-[16px]"
-                color="subtle-dark"
-                autoFocus={false}
-              />
-
-              <FormInput
-                register={register}
                 name="fullName"
                 label="ชื่อ-นามสกุล"
                 placeholder="เช่น สมชาย ใจดี"
@@ -213,6 +225,77 @@ const EmployeeFormDialog = ({
                 errors={errors}
                 customClass="px-0 pb-[16px]"
                 color="subtle-dark"
+                autoFocus={false}
+              />
+
+              <FormInput
+                register={register}
+                name="email"
+                label="อีเมล"
+                type="email"
+                placeholder="เช่น somchai@gmail.com"
+                errors={errors}
+                customClass="px-0 pb-[16px]"
+                color="subtle-dark"
+                readOnly={Boolean(editingItem)}
+                inputMode={editingItem ? "none" : "email"}
+                disabled={Boolean(editingItem)}
+                autoFocus={false}
+              />
+
+              <FormInput
+                register={register}
+                name="password"
+                label={editingItem ? "รหัสผ่านใหม่" : "รหัสผ่าน"}
+                type={isPasswordVisible ? "text" : "password"}
+                placeholder="••••••••"
+                errors={errors}
+                customClass="px-0 pb-[16px]"
+                color="subtle-dark"
+                rightSlot={
+                  <button
+                    type="button"
+                    onClick={() => setIsPasswordVisible((v) => !v)}
+                    className="text-subtle-light mt-[8px] cursor-pointer hover:text-gray-600"
+                    aria-label={
+                      isPasswordVisible ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"
+                    }
+                  >
+                    {isPasswordVisible ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                }
+                autoFocus={false}
+              />
+
+              <FormInput
+                register={register}
+                name="confirmPassword"
+                label="ยืนยันรหัสผ่าน"
+                type={isConfirmPasswordVisible ? "text" : "password"}
+                placeholder="••••••••"
+                errors={errors}
+                customClass="px-0 pb-[16px]"
+                color="subtle-dark"
+                rightSlot={
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmPasswordVisible((v) => !v)}
+                    className="text-subtle-light mt-[8px] cursor-pointer hover:text-gray-600"
+                    aria-label={
+                      isConfirmPasswordVisible ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"
+                    }
+                  >
+                    {isConfirmPasswordVisible ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                }
                 autoFocus={false}
               />
 
@@ -310,19 +393,27 @@ const EmployeeFormDialog = ({
                 autoFocus={false}
               />
 
-              <div className="flex items-center gap-[8px] py-[4px]">
-                <input
-                  id="isActive"
-                  type="checkbox"
-                  className="h-4 w-4"
-                  {...register("isActive")}
+              <div className="mb-[4px] px-0">
+                <ComboBox
+                  label="บทบาท"
+                  color="text-subtle-dark"
+                  options={[
+                    { id: "ADMIN", name: "แอดมิน" },
+                    { id: "EMPLOYEE", name: "พนักงาน" },
+                  ]}
+                  value={roleValue || ""}
+                  onChange={(val) =>
+                    setValue("role", val, { shouldValidate: true })
+                  }
+                  placeholder="-- เลือกบทบาท --"
+                  errors={errors}
+                  name="role"
                 />
-                <Label
-                  htmlFor="isActive"
-                  className="text-subtle-dark text-[20px]"
-                >
-                  เปิดใช้งานพนักงาน
-                </Label>
+                <input
+                  type="hidden"
+                  value={roleValue || ""}
+                  {...register("role", { required: "กรุณาเลือบทบาท" })}
+                />
               </div>
             </div>
           </form>
@@ -331,7 +422,7 @@ const EmployeeFormDialog = ({
         <div className="flex-shrink-0 px-[16px] pb-[16px]">
           <div className="flex gap-[16px]">
             <FormButton
-              label={editingItem ? "บันทึก" : "เพิ่มพนักงาน"}
+              label={editingItem ? "บันทึก" : "เพิ่มบัญชีผู้ใช้งาน"}
               isLoading={isSubmitting}
               onClick={handleSubmit(editingItem ? handleEdit : handleAdd)}
               className="font-athiti bg-gradient-primary mr-0 ml-0"
@@ -343,4 +434,4 @@ const EmployeeFormDialog = ({
   );
 };
 
-export default EmployeeFormDialog;
+export default UserFormDialog;

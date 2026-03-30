@@ -13,8 +13,10 @@ import InventoryCreate from "@/pages/inventory/InventoryCreate";
 import InventoryEdit from "@/pages/inventory/InventoryEdit";
 import VehicleList from "@/pages/vehicles/VehicleList";
 import VehicleDetail from "@/pages/vehicles/VehicleDetail";
+import UserList from "@/pages/admin/UserList";
 import EmployeeList from "@/pages/admin/EmployeeList";
 import SalesReport from "@/pages/reports/SalesReport";
+import AttendanceDailyReport from "@/pages/reports/AttendanceDailyReport";
 import ProtectRouteUser from "./ProtectRouteUser";
 import ProtectRouteAdmin from "./ProtectRouteAdmin";
 import ProtectRouteGuest from "./ProtectRouteGuest";
@@ -64,8 +66,13 @@ const AppRoutes = () => {
           element={<ProtectRouteAdmin element={<Layout />} />}
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="users" element={<UserList />} />
           <Route path="employees" element={<EmployeeList />} />
           <Route path="reports/sales" element={<SalesReport />} />
+          <Route
+            path="reports/attendance"
+            element={<AttendanceDailyReport />}
+          />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
