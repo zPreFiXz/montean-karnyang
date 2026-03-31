@@ -11,6 +11,7 @@ const CONFIG = {
   zkIp: process.env.ZKTECO_DEVICE_IP,
   zkPort: Number(process.env.ZKTECO_DEVICE_PORT),
   zkPollIntervalMs: Number(process.env.ZKTECO_POLL_INTERVAL_MS || 300),
+  zkReconnectDelayMs: Number(process.env.ZKTECO_RECONNECT_DELAY_MS || 5000),
   zkSocketTimeoutMs: 10000,
   zkInportTimeoutMs: 4000,
   lineToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
@@ -24,6 +25,14 @@ const CONFIG = {
   ),
   dedupeWindowMs: 2 * 60 * 1000,
 };
+
+const createZkClient = () =>
+  new ZKLib(
+    CONFIG.zkIp,
+    CONFIG.zkPort,
+    CONFIG.zkSocketTimeoutMs,
+    CONFIG.zkInportTimeoutMs,
+  );
 
 const STATUS_TIME_RULES = {
   lateAfterMinutes: 8 * 60,
@@ -393,18 +402,16 @@ const saveAttendance = async (employeeId, scanStatus, scanTime) => {
 };
 
 const startZKTecoListener = async () => {
-  const zk = new ZKLib(
-    CONFIG.zkIp,
-    CONFIG.zkPort,
-    CONFIG.zkSocketTimeoutMs,
-    CONFIG.zkInportTimeoutMs,
-  );
+  let zk = null;
   let lastSeenKey = "";
   let polling = false;
+  let reconnecting = false;
+  let connected = false;
   const isDuplicate = createDedupeChecker();
   const resolveScanStatus = createScanStatusResolver();
 
-  try {
+  const connectZk = async () => {
+    zk = createZkClient();
     await zk.createSocket();
 
     const initialData = (await zk.getAttendances())?.data || [];
@@ -412,8 +419,49 @@ const startZKTecoListener = async () => {
       lastSeenKey = getLogKey(initialData[initialData.length - 1]);
     }
 
+    connected = true;
+    reconnecting = false;
+    console.log("ZKTeco connected");
+  };
+
+  const closeCurrentSocket = async () => {
+    if (!zk) return;
+
+    try {
+      if (typeof zk.disconnect === "function") {
+        await zk.disconnect();
+      }
+    } catch {
+      // ignore close errors
+    }
+  };
+
+  const scheduleReconnect = (sourceErrorMessage) => {
+    if (reconnecting) return;
+
+    reconnecting = true;
+    connected = false;
+    console.error(
+      `ZKTeco reconnect scheduled in ${CONFIG.zkReconnectDelayMs}ms: ${sourceErrorMessage}`,
+    );
+
+    setTimeout(async () => {
+      await closeCurrentSocket();
+
+      try {
+        await connectZk();
+      } catch (reconnectError) {
+        reconnecting = false;
+        scheduleReconnect(reconnectError.message);
+      }
+    }, CONFIG.zkReconnectDelayMs);
+  };
+
+  try {
+    await connectZk();
+
     setInterval(async () => {
-      if (polling) return;
+      if (polling || reconnecting || !connected) return;
       polling = true;
 
       try {
@@ -460,12 +508,14 @@ const startZKTecoListener = async () => {
         }
       } catch (error) {
         console.error("Polling error:", error.message);
+        scheduleReconnect(error.message);
       } finally {
         polling = false;
       }
     }, CONFIG.zkPollIntervalMs);
   } catch (error) {
     console.error("ZKTeco connection error:", error.message);
+    scheduleReconnect(error.message);
   }
 };
 
