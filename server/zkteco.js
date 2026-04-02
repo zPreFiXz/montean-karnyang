@@ -1,4 +1,5 @@
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, ".env") });
 require("events").EventEmitter.defaultMaxListeners = 0;
 
 const ZKLib = require("node-zklib");
@@ -6,10 +7,9 @@ const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 
-const LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push";
 const CONFIG = {
-  zkIp: process.env.ZKTECO_DEVICE_IP,
-  zkPort: Number(process.env.ZKTECO_DEVICE_PORT),
+  zkIp: process.env.ZKTECO_DEVICE_IP || "192.168.1.101",
+  zkPort: Number(process.env.ZKTECO_DEVICE_PORT || 4370),
   zkPollIntervalMs: Number(process.env.ZKTECO_POLL_INTERVAL_MS || 300),
   zkReconnectDelayMs: Number(process.env.ZKTECO_RECONNECT_DELAY_MS || 5000),
   zkSocketTimeoutMs: 10000,
@@ -26,6 +26,21 @@ const CONFIG = {
   dedupeWindowMs: 2 * 60 * 1000,
 };
 
+const TIME_RULES = {
+  lateAfterMinutes: 8 * 60,
+  stepStatuses: ["เข้างาน", "พักเที่ยง", "กลับจากพักเที่ยง", "เลิกงาน"],
+  lunchBreakMinutes: 60,
+};
+
+const LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push";
+
+const validateConfig = () => {
+  if (!CONFIG.zkIp) throw new Error("Missing ZKTECO_DEVICE_IP");
+  if (!Number.isFinite(CONFIG.zkPort) || CONFIG.zkPort <= 0) {
+    throw new Error("Invalid ZKTECO_DEVICE_PORT");
+  }
+};
+
 const createZkClient = () =>
   new ZKLib(
     CONFIG.zkIp,
@@ -34,11 +49,34 @@ const createZkClient = () =>
     CONFIG.zkInportTimeoutMs,
   );
 
-const STATUS_TIME_RULES = {
-  lateAfterMinutes: 8 * 60,
-  lunchFromMinutes: 10 * 60,
-  lunchBreakMinutes: 60,
-  offWorkFromMinutes: 17 * 60,
+const getLogKey = (log) =>
+  `${String(log?.deviceUserId || "")}-${String(log?.recordTime || "")}`;
+
+const getBangkokDateKey = (dateInput) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(dateInput));
+
+const getBangkokDayRange = (dateKey) => {
+  const start = new Date(`${dateKey}T00:00:00+07:00`);
+  const end = new Date(`${dateKey}T23:59:59.999+07:00`);
+  return { start, end };
+};
+
+const getMinutesInBangkok = (dateInput) => {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Bangkok",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .format(new Date(dateInput))
+    .split(":");
+
+  return Number(parts[0] || 0) * 60 + Number(parts[1] || 0);
 };
 
 const formatThaiDateTime = (dateInput) => {
@@ -57,23 +95,22 @@ const formatThaiDateTime = (dateInput) => {
   return `${dateText} เวลา ${timeText} น.`;
 };
 
-const getMinutesInBangkok = (dateInput) => {
-  const date = new Date(dateInput);
-  const formatter = new Intl.DateTimeFormat("en-GB", {
+const formatThaiDateLabel = (dateInput) => {
+  return new Date(dateInput).toLocaleDateString("th-TH", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
     timeZone: "Asia/Bangkok",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
   });
-  const [hourText = "0", minuteText = "0"] = formatter.format(date).split(":");
-  const hour = Number(hourText);
-  const minute = Number(minuteText);
-
-  return hour * 60 + minute;
 };
 
-const getLogKey = (log) =>
-  `${String(log?.deviceUserId || "")}-${String(log?.recordTime || "")}`;
+const formatThaiTimeLabel = (dateInput) => {
+  return new Date(dateInput).toLocaleTimeString("th-TH", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Bangkok",
+  });
+};
 
 const parseThaiDateTime = (thaiDateTime) => {
   const [dateOnly = thaiDateTime, timePart = ""] =
@@ -82,110 +119,416 @@ const parseThaiDateTime = (thaiDateTime) => {
   return { dateOnly, timeOnly };
 };
 
-const getBangkokDateKey = (dateInput) => {
-  const date = new Date(dateInput);
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Bangkok",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
-};
-
 const createScanStatusResolver = () => {
-  const lunchOutTracker = new Map();
+  const dailyStepTracker = new Map();
 
   return (empId, recordTime) => {
     const eventTime = recordTime || new Date();
     const minutes = getMinutesInBangkok(eventTime);
-    const dateKey = getBangkokDateKey(eventTime);
-    const trackerKey = `${empId}-${dateKey}`;
+    const trackerKey = `${empId}-${getBangkokDateKey(eventTime)}`;
+    const tracker = dailyStepTracker.get(trackerKey) || {
+      step: 0,
+      lunchOutMinutes: null,
+    };
 
-    if (minutes >= STATUS_TIME_RULES.offWorkFromMinutes) {
-      return "เลิกงาน";
+    if (tracker.step === 0) {
+      dailyStepTracker.set(trackerKey, { step: 1, lunchOutMinutes: null });
+      if (minutes > TIME_RULES.lateAfterMinutes) {
+        return `เข้างาน (สาย ${minutes - TIME_RULES.lateAfterMinutes} นาที)`;
+      }
+      return "เข้างาน";
     }
 
-    if (minutes >= STATUS_TIME_RULES.lunchFromMinutes) {
-      if (!lunchOutTracker.has(trackerKey)) {
-        lunchOutTracker.set(trackerKey, { lunchOutMinutes: minutes });
-        return "พักเที่ยง";
-      }
+    if (tracker.step === 1) {
+      dailyStepTracker.set(trackerKey, { step: 2, lunchOutMinutes: minutes });
+      return TIME_RULES.stepStatuses[1];
+    }
 
-      const tracker = lunchOutTracker.get(trackerKey);
-      const lunchOutMinutes = tracker?.lunchOutMinutes ?? minutes;
-      const lunchDuration = Math.max(0, minutes - lunchOutMinutes);
+    if (tracker.step === 2) {
+      const lunchOutMinutes = tracker.lunchOutMinutes ?? minutes;
+      const restMinutes = Math.max(0, minutes - lunchOutMinutes);
+      const lateMinutes = Math.max(
+        0,
+        restMinutes - TIME_RULES.lunchBreakMinutes,
+      );
+      dailyStepTracker.set(trackerKey, { step: 3, lunchOutMinutes });
 
-      if (lunchDuration > STATUS_TIME_RULES.lunchBreakMinutes) {
-        const lateMinutes = lunchDuration - STATUS_TIME_RULES.lunchBreakMinutes;
+      if (lateMinutes > 0) {
         return `กลับจากพักเที่ยง (สาย ${lateMinutes} นาที)`;
       }
 
-      return "กลับจากพักเที่ยง (ตรงเวลา)";
+      return `กลับจากพักเที่ยง (พัก ${restMinutes} นาที)`;
     }
 
-    if (minutes > STATUS_TIME_RULES.lateAfterMinutes) {
-      const lateMinutes = minutes - STATUS_TIME_RULES.lateAfterMinutes;
-      return `เข้างาน (สาย ${lateMinutes} นาที)`;
-    }
-
-    return "เข้างาน";
+    dailyStepTracker.set(trackerKey, {
+      step: 3,
+      lunchOutMinutes: tracker.lunchOutMinutes,
+    });
+    return TIME_RULES.stepStatuses[3];
   };
 };
 
-const validateLineConfig = () => {
-  if (!CONFIG.lineToken) {
-    throw new Error("LINE configuration missing (channel access token)");
-  }
+const createDedupeChecker = () => {
+  const cache = new Map();
 
-  if (!CONFIG.lineTargetIds.length) {
-    throw new Error("LINE configuration missing (target IDs)");
-  }
+  return (key) => {
+    const now = Date.now();
+    for (const [cacheKey, timestamp] of cache.entries()) {
+      if (now - timestamp > CONFIG.dedupeWindowMs) cache.delete(cacheKey);
+    }
+    if (cache.has(key)) return true;
+    cache.set(key, now);
+    return false;
+  };
 };
 
-const getLineHeaders = () => ({
-  Authorization: `Bearer ${CONFIG.lineToken}`,
-  "Content-Type": "application/json",
-});
+const getNewLogs = (logs, lastSeenKey) => {
+  if (!logs.length) return [];
+  const lastIndex = lastSeenKey
+    ? logs.findIndex((log) => getLogKey(log) === lastSeenKey)
+    : logs.length - 1;
+  return lastIndex >= 0 ? logs.slice(lastIndex + 1) : logs.slice(-1);
+};
 
-const sendPushToTarget = async (targetId, message) => {
-  const response = await fetch(LINE_PUSH_URL, {
-    method: "POST",
-    headers: getLineHeaders(),
-    body: JSON.stringify({
-      to: targetId,
-      messages: [message],
-    }),
+const findEmployeeByZkUserId = async (zkUserId) => {
+  if (!zkUserId) return null;
+  return prisma.employee.findUnique({
+    where: { zkUserId: String(zkUserId) },
+    select: { id: true, fullName: true },
+  });
+};
+
+const saveAttendance = async (employeeId, status, scanTime) => {
+  await prisma.attendance.create({
+    data: { employeeId: employeeId || null, status, scanTime },
+  });
+};
+
+const getEmployeeDisplayName = (employee) => {
+  if (!employee) return "-";
+  return employee.nickname
+    ? `${employee.fullName} (${employee.nickname})`
+    : employee.fullName;
+};
+
+const buildDailySummaryListText = (items) => {
+  if (!items.length) return "- ไม่มี";
+  return items
+    .slice(0, 15)
+    .map((name) => `• ${name}`)
+    .join("\n");
+};
+
+const buildDailyAttendanceSummaryMessage = async (dateKey) => {
+  const { start, end } = getBangkokDayRange(dateKey);
+  const thaiDateText = formatThaiDateLabel(start);
+  const thaiTimeText = formatThaiTimeLabel(new Date());
+
+  const employees = await prisma.employee.findMany({
+    where: { isActive: true },
+    orderBy: [{ fullName: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      fullName: true,
+      nickname: true,
+    },
   });
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    const requestId = response.headers.get("x-line-request-id") || "-";
-    throw new Error(
-      `LINE push API error (${targetId}): ${response.status} | requestId=${requestId} | ${errorBody}`,
-    );
+  if (!employees.length) {
+    return {
+      type: "flex",
+      altText: `สรุปเวลาเข้างาน วันที่ ${thaiDateText}`,
+      contents: {
+        type: "bubble",
+        size: "mega",
+        body: {
+          type: "box",
+          layout: "vertical",
+          spacing: "md",
+          contents: [
+            {
+              type: "text",
+              text: "📋 สรุปเวลาเข้างานประจำวัน",
+              weight: "bold",
+              size: "md",
+              color: "#1DAB47",
+            },
+            {
+              type: "text",
+              text: `วันที่ ${thaiDateText}`,
+              size: "sm",
+              color: "#666666",
+            },
+            {
+              type: "text",
+              text: `เวลา ${thaiTimeText} น.`,
+              size: "sm",
+              color: "#666666",
+            },
+            {
+              type: "separator",
+              margin: "md",
+            },
+            {
+              type: "text",
+              text: "ไม่มีรายชื่อพนักงานที่ใช้งานอยู่",
+              size: "sm",
+              wrap: true,
+            },
+          ],
+        },
+      },
+    };
   }
-};
 
-const getRejectedReasons = (results) =>
-  results
-    .filter((result) => result.status === "rejected")
-    .map((result) => result.reason?.message || String(result.reason));
+  const employeeIds = employees.map((employee) => employee.id);
+  const attendances = await prisma.attendance.findMany({
+    where: {
+      employeeId: { in: employeeIds },
+      scanTime: {
+        gte: start,
+        lte: end,
+      },
+    },
+    select: {
+      employeeId: true,
+      status: true,
+      scanTime: true,
+    },
+    orderBy: {
+      scanTime: "asc",
+    },
+  });
 
-const sendLineMessage = async (message) => {
-  validateLineConfig();
-
-  const results = await Promise.allSettled(
-    CONFIG.lineTargetIds.map((targetId) => sendPushToTarget(targetId, message)),
+  const grouped = new Map(
+    employees.map((employee) => [
+      employee.id,
+      {
+        ...employee,
+        firstInWork: null,
+        lunchOvertimeStatus: null,
+      },
+    ]),
   );
 
-  const failures = getRejectedReasons(results);
+  for (const attendance of attendances) {
+    const item = grouped.get(attendance.employeeId);
+    if (!item) continue;
+
+    if (attendance.status.startsWith("เข้างาน") && !item.firstInWork) {
+      item.firstInWork = attendance;
+    }
+
+    const isLunchReturn = attendance.status.startsWith("กลับจากพักเที่ยง");
+    const isOvertimeLunch =
+      attendance.status.includes("สาย") ||
+      attendance.status.includes("พักเกินเวลา");
+
+    if (isLunchReturn && isOvertimeLunch && !item.lunchOvertimeStatus) {
+      item.lunchOvertimeStatus = attendance.status;
+    }
+  }
+
+  const absentOrLeave = [];
+  const late = [];
+  const lunchOvertime = [];
+
+  for (const employee of grouped.values()) {
+    if (!employee.firstInWork) {
+      absentOrLeave.push(getEmployeeDisplayName(employee));
+      continue;
+    }
+
+    if (employee.firstInWork.status.startsWith("เข้างาน (สาย")) {
+      late.push(
+        `${getEmployeeDisplayName(employee)} - ${employee.firstInWork.status}`,
+      );
+    }
+
+    if (employee.lunchOvertimeStatus) {
+      lunchOvertime.push(
+        `${getEmployeeDisplayName(employee)} - ${employee.lunchOvertimeStatus}`,
+      );
+    }
+  }
+
+  return {
+    type: "flex",
+    altText: `สรุปเวลาเข้างาน วันที่ ${thaiDateText}`,
+    contents: {
+      type: "bubble",
+      size: "giga",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#1DAB47",
+        paddingAll: "14px",
+        contents: [
+          {
+            type: "text",
+            text: "📋 สรุปเวลาเข้างานประจำวัน",
+            color: "#FFFFFF",
+            weight: "bold",
+            size: "md",
+          },
+          {
+            type: "text",
+            text: `วันที่ ${thaiDateText} • ${thaiTimeText} น.`,
+            color: "#E8F8ED",
+            size: "xs",
+            margin: "sm",
+            wrap: true,
+          },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "lg",
+        paddingAll: "16px",
+        contents: [
+          {
+            type: "box",
+            layout: "vertical",
+            spacing: "xs",
+            contents: [
+              {
+                type: "text",
+                text: `ขาด/ลา (${absentOrLeave.length})`,
+                weight: "bold",
+                size: "sm",
+                color: "#B00020",
+              },
+              {
+                type: "text",
+                text: buildDailySummaryListText(absentOrLeave),
+                size: "xs",
+                color: "#444444",
+                wrap: true,
+              },
+            ],
+          },
+          {
+            type: "separator",
+          },
+          {
+            type: "box",
+            layout: "vertical",
+            spacing: "xs",
+            contents: [
+              {
+                type: "text",
+                text: `มาสาย (${late.length})`,
+                weight: "bold",
+                size: "sm",
+                color: "#A35A00",
+              },
+              {
+                type: "text",
+                text: buildDailySummaryListText(late),
+                size: "xs",
+                color: "#444444",
+                wrap: true,
+              },
+            ],
+          },
+          {
+            type: "separator",
+          },
+          {
+            type: "box",
+            layout: "vertical",
+            spacing: "xs",
+            contents: [
+              {
+                type: "text",
+                text: `พักเกินเวลา (${lunchOvertime.length})`,
+                weight: "bold",
+                size: "sm",
+                color: "#6A1B9A",
+              },
+              {
+                type: "text",
+                text: buildDailySummaryListText(lunchOvertime),
+                size: "xs",
+                color: "#444444",
+                wrap: true,
+              },
+            ],
+          },
+        ],
+      },
+    },
+  };
+};
+
+const createDailySummarySender = () => {
+  let lastSentDateKey = "";
+  let running = false;
+
+  return async () => {
+    if (running) return;
+
+    const now = new Date();
+    const dateKey = getBangkokDateKey(now);
+    const currentMinutes = getMinutesInBangkok(now);
+
+    if (currentMinutes < 18 * 60 || lastSentDateKey === dateKey) {
+      return;
+    }
+
+    running = true;
+
+    try {
+      const message = await buildDailyAttendanceSummaryMessage(dateKey);
+      await sendLineMessage(message);
+      lastSentDateKey = dateKey;
+      console.log(`Daily attendance summary sent for ${dateKey}`);
+    } catch (error) {
+      console.error("Failed to send daily summary:", error.message);
+    } finally {
+      running = false;
+    }
+  };
+};
+
+const sendLineMessage = async (message) => {
+  if (!CONFIG.lineToken || !CONFIG.lineTargetIds.length) return;
+
+  const headers = {
+    Authorization: `Bearer ${CONFIG.lineToken}`,
+    "Content-Type": "application/json",
+  };
+
+  const results = await Promise.allSettled(
+    CONFIG.lineTargetIds.map((targetId) =>
+      fetch(LINE_PUSH_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          to: targetId,
+          messages: [message],
+        }),
+      }).then(async (response) => {
+        if (!response.ok) {
+          const body = await response.text();
+          throw new Error(`${targetId}: ${response.status} ${body}`);
+        }
+      }),
+    ),
+  );
+
+  const failures = results
+    .filter((result) => result.status === "rejected")
+    .map((result) => result.reason?.message || String(result.reason));
 
   if (failures.length) {
     throw new Error(failures.join(" | "));
   }
 };
 
-const formatAttendanceMessage = (empName, empId, thaiDateTime, scanStatus) => {
+const formatAttendanceMessage = (empName, empId, scanStatus, recordTime) => {
+  const thaiDateTime = formatThaiDateTime(recordTime);
   const { dateOnly, timeOnly } = parseThaiDateTime(thaiDateTime);
 
   return {
@@ -344,121 +687,65 @@ const formatAttendanceMessage = (empName, empId, thaiDateTime, scanStatus) => {
   };
 };
 
-const createDedupeChecker = () => {
-  const sentCache = new Map();
+const startZktecoListener = async () => {
+  validateConfig();
 
-  return (key) => {
-    const now = Date.now();
-
-    for (const [cacheKey, timestamp] of sentCache.entries()) {
-      if (now - timestamp > CONFIG.dedupeWindowMs) {
-        sentCache.delete(cacheKey);
-      }
-    }
-
-    if (sentCache.has(key)) {
-      return true;
-    }
-
-    sentCache.set(key, now);
-    return false;
-  };
-};
-
-const getNewLogs = (logs, lastSeenKey) => {
-  if (!logs.length) {
-    return [];
-  }
-
-  const lastIndex = lastSeenKey
-    ? logs.findIndex((log) => getLogKey(log) === lastSeenKey)
-    : logs.length - 1;
-
-  return lastIndex >= 0 ? logs.slice(lastIndex + 1) : logs.slice(-1);
-};
-
-const findEmployeeByZkUserId = async (zkUserId) => {
-  if (!zkUserId) return null;
-
-  return prisma.employee.findUnique({
-    where: {
-      zkUserId: String(zkUserId),
-    },
-    select: {
-      id: true,
-      fullName: true,
-    },
-  });
-};
-
-const saveAttendance = async (employeeId, scanStatus, scanTime) => {
-  await prisma.attendance.create({
-    data: {
-      status: scanStatus,
-      scanTime,
-      employeeId: employeeId || null,
-    },
-  });
-};
-
-const startZKTecoListener = async () => {
   let zk = null;
   let lastSeenKey = "";
   let polling = false;
-  let reconnecting = false;
   let connected = false;
+  let reconnecting = false;
+
   const isDuplicate = createDedupeChecker();
   const resolveScanStatus = createScanStatusResolver();
+  const sendDailySummaryIfNeeded = createDailySummarySender();
 
-  const connectZk = async () => {
+  const connect = async () => {
     zk = createZkClient();
     await zk.createSocket();
-
     const initialData = (await zk.getAttendances())?.data || [];
     if (initialData.length) {
       lastSeenKey = getLogKey(initialData[initialData.length - 1]);
     }
-
     connected = true;
     reconnecting = false;
     console.log("ZKTeco connected");
   };
 
-  const closeCurrentSocket = async () => {
-    if (!zk) return;
-
+  const closeSocket = async () => {
+    if (!zk || typeof zk.disconnect !== "function") return;
     try {
-      if (typeof zk.disconnect === "function") {
-        await zk.disconnect();
-      }
-    } catch {
-      // ignore close errors
-    }
+      await zk.disconnect();
+    } catch {}
   };
 
-  const scheduleReconnect = (sourceErrorMessage) => {
+  const scheduleReconnect = (message) => {
     if (reconnecting) return;
-
     reconnecting = true;
     connected = false;
     console.error(
-      `ZKTeco reconnect scheduled in ${CONFIG.zkReconnectDelayMs}ms: ${sourceErrorMessage}`,
+      `ZKTeco reconnect scheduled in ${CONFIG.zkReconnectDelayMs}ms: ${message}`,
     );
 
     setTimeout(async () => {
-      await closeCurrentSocket();
-
+      await closeSocket();
       try {
-        await connectZk();
-      } catch (reconnectError) {
+        await connect();
+      } catch (error) {
         reconnecting = false;
-        scheduleReconnect(reconnectError.message);
+        scheduleReconnect(error.message);
       }
     }, CONFIG.zkReconnectDelayMs);
   };
 
   try {
-    await connectZk();
+    await connect();
+
+    setInterval(() => {
+      void sendDailySummaryIfNeeded();
+    }, 60 * 1000);
+
+    void sendDailySummaryIfNeeded();
 
     setInterval(async () => {
       if (polling || reconnecting || !connected) return;
@@ -477,32 +764,23 @@ const startZKTecoListener = async () => {
           }
 
           const empId = String(log.deviceUserId || "");
+          const recordTime = log.recordTime || new Date();
+          const scanStatus = resolveScanStatus(empId, recordTime);
           const employee = await findEmployeeByZkUserId(empId);
           const empName =
             employee?.fullName || `ไม่พบข้อมูลพนักงาน (${empId || "-"})`;
-          const thaiDateTime = formatThaiDateTime(log.recordTime || new Date());
-          const scanStatus = resolveScanStatus(
-            empId,
-            log.recordTime || new Date(),
-          );
-          const lineMessage = formatAttendanceMessage(
-            empName,
-            empId,
-            thaiDateTime,
-            scanStatus,
-          );
 
-          void sendLineMessage(lineMessage).catch((error) => {
+          void sendLineMessage(
+            formatAttendanceMessage(empName, empId, scanStatus, recordTime),
+          ).catch((error) => {
             console.error("Failed to send LINE:", error.message);
           });
 
-          void saveAttendance(
-            employee?.id,
-            scanStatus,
-            log.recordTime || new Date(),
-          ).catch((error) => {
-            console.error("Failed to save attendance:", error.message);
-          });
+          void saveAttendance(employee?.id, scanStatus, recordTime).catch(
+            (error) => {
+              console.error("Failed to save attendance:", error.message);
+            },
+          );
 
           lastSeenKey = logKey;
         }
@@ -519,4 +797,4 @@ const startZKTecoListener = async () => {
   }
 };
 
-startZKTecoListener();
+startZktecoListener();
