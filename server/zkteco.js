@@ -10,8 +10,8 @@ const prisma = new PrismaClient();
 const CONFIG = {
   zkIp: process.env.ZKTECO_DEVICE_IP || "192.168.1.101",
   zkPort: Number(process.env.ZKTECO_DEVICE_PORT || 4370),
-  zkPollIntervalMs: Number(process.env.ZKTECO_POLL_INTERVAL_MS || 300),
-  zkReconnectDelayMs: Number(process.env.ZKTECO_RECONNECT_DELAY_MS || 5000),
+  zkPollIntervalMs: Number(300),
+  zkReconnectDelayMs: Number(5000),
   zkSocketTimeoutMs: 10000,
   zkInportTimeoutMs: 4000,
   lineToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
@@ -112,13 +112,6 @@ const formatThaiTimeLabel = (dateInput) => {
   });
 };
 
-const parseThaiDateTime = (thaiDateTime) => {
-  const [dateOnly = thaiDateTime, timePart = ""] =
-    String(thaiDateTime).split(" เวลา ");
-  const timeOnly = timePart || "-";
-  return { dateOnly, timeOnly };
-};
-
 const createScanStatusResolver = () => {
   const dailyStepTracker = new Map();
 
@@ -204,20 +197,12 @@ const saveAttendance = async (employeeId, status, scanTime) => {
   });
 };
 
-const getEmployeeDisplayName = (employee) => {
-  if (!employee) return "-";
-  return employee.nickname
-    ? `${employee.fullName} (${employee.nickname})`
-    : employee.fullName;
-};
-
-const buildDailySummaryListText = (items) => {
-  if (!items.length) return "- ไม่มี";
-  return items
-    .slice(0, 15)
-    .map((name) => `• ${name}`)
-    .join("\n");
-};
+const getEmployeeDisplayName = (employee) =>
+  !employee
+    ? "-"
+    : employee.nickname
+      ? `${employee.fullName} (${employee.nickname})`
+      : employee.fullName;
 
 const buildDailyAttendanceSummaryMessage = async (dateKey) => {
   const { start, end } = getBangkokDayRange(dateKey);
@@ -401,7 +386,12 @@ const buildDailyAttendanceSummaryMessage = async (dateKey) => {
               },
               {
                 type: "text",
-                text: buildDailySummaryListText(absentOrLeave),
+                text: !absentOrLeave.length
+                  ? "- ไม่มี"
+                  : absentOrLeave
+                      .slice(0, 15)
+                      .map((name) => `• ${name}`)
+                      .join("\n"),
                 size: "xs",
                 color: "#444444",
                 wrap: true,
@@ -425,7 +415,12 @@ const buildDailyAttendanceSummaryMessage = async (dateKey) => {
               },
               {
                 type: "text",
-                text: buildDailySummaryListText(late),
+                text: !late.length
+                  ? "- ไม่มี"
+                  : late
+                      .slice(0, 15)
+                      .map((name) => `• ${name}`)
+                      .join("\n"),
                 size: "xs",
                 color: "#444444",
                 wrap: true,
@@ -449,7 +444,12 @@ const buildDailyAttendanceSummaryMessage = async (dateKey) => {
               },
               {
                 type: "text",
-                text: buildDailySummaryListText(lunchOvertime),
+                text: !lunchOvertime.length
+                  ? "- ไม่มี"
+                  : lunchOvertime
+                      .slice(0, 15)
+                      .map((name) => `• ${name}`)
+                      .join("\n"),
                 size: "xs",
                 color: "#444444",
                 wrap: true,
@@ -483,7 +483,6 @@ const createDailySummarySender = () => {
       const message = await buildDailyAttendanceSummaryMessage(dateKey);
       await sendLineMessage(message);
       lastSentDateKey = dateKey;
-      console.log(`Daily attendance summary sent for ${dateKey}`);
     } catch (error) {
       console.error("Failed to send daily summary:", error.message);
     } finally {
@@ -492,29 +491,76 @@ const createDailySummarySender = () => {
   };
 };
 
-const sendLineMessage = async (message) => {
-  if (!CONFIG.lineToken || !CONFIG.lineTargetIds.length) return;
-
+const sendLineMessageToTarget = async (targetId, message, attempt = 1) => {
   const headers = {
     Authorization: `Bearer ${CONFIG.lineToken}`,
     "Content-Type": "application/json",
   };
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const response = await fetch(LINE_PUSH_URL, {
+      method: "POST",
+      headers,
+      signal: controller.signal,
+      body: JSON.stringify({
+        to: targetId,
+        messages: [message],
+      }),
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`HTTP ${response.status}: ${body.substring(0, 200)}`);
+    }
+
+    return { success: true, targetId };
+  } catch (error) {
+    clearTimeout(timeout);
+
+    let errorType = "unknown";
+    let errorMsg = String(error?.message || error);
+
+    if (error?.name === "AbortError") {
+      errorType = "timeout";
+      errorMsg = "request timeout (10s)";
+    } else if (error?.code === "ENOTFOUND") {
+      errorType = "dns";
+      errorMsg = "DNS resolution failed";
+    } else if (error?.code === "ECONNREFUSED") {
+      errorType = "connection";
+      errorMsg = "connection refused";
+    } else if (error?.code === "ECONNRESET") {
+      errorType = "network";
+      errorMsg = "connection reset";
+    } else if (
+      error?.message?.includes("fetch") ||
+      error?.message?.includes("network")
+    ) {
+      errorType = "network";
+    }
+
+    if (attempt < 2 && (errorType === "timeout" || errorType === "network")) {
+      console.warn(
+        `LINE retry [${targetId}] attempt ${attempt}: ${errorType} - ${errorMsg}`,
+      );
+      return sendLineMessageToTarget(targetId, message, attempt + 1);
+    }
+
+    throw new Error(`[${targetId}] ${errorType}: ${errorMsg}`);
+  }
+};
+
+const sendLineMessage = async (message) => {
+  if (!CONFIG.lineToken || !CONFIG.lineTargetIds.length) return;
+
   const results = await Promise.allSettled(
     CONFIG.lineTargetIds.map((targetId) =>
-      fetch(LINE_PUSH_URL, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          to: targetId,
-          messages: [message],
-        }),
-      }).then(async (response) => {
-        if (!response.ok) {
-          const body = await response.text();
-          throw new Error(`${targetId}: ${response.status} ${body}`);
-        }
-      }),
+      sendLineMessageToTarget(targetId, message),
     ),
   );
 
@@ -523,13 +569,20 @@ const sendLineMessage = async (message) => {
     .map((result) => result.reason?.message || String(result.reason));
 
   if (failures.length) {
-    throw new Error(failures.join(" | "));
+    const msgType = message.type || "unknown";
+    const totalTargets = CONFIG.lineTargetIds.length;
+    const successCount = CONFIG.lineTargetIds.length - failures.length;
+    const errorMsg = `LINE push [${msgType}] failed (${successCount}/${totalTargets} ok): ${failures.join(" | ")}`;
+    console.error(errorMsg);
+    throw new Error(errorMsg);
   }
 };
 
 const formatAttendanceMessage = (empName, empId, scanStatus, recordTime) => {
   const thaiDateTime = formatThaiDateTime(recordTime);
-  const { dateOnly, timeOnly } = parseThaiDateTime(thaiDateTime);
+  const [dateOnly = thaiDateTime, timePart = ""] =
+    String(thaiDateTime).split(" เวลา ");
+  const timeOnly = timePart || "-";
 
   return {
     type: "flex",
@@ -712,13 +765,6 @@ const startZktecoListener = async () => {
     console.log("ZKTeco connected");
   };
 
-  const closeSocket = async () => {
-    if (!zk || typeof zk.disconnect !== "function") return;
-    try {
-      await zk.disconnect();
-    } catch {}
-  };
-
   const scheduleReconnect = (message) => {
     if (reconnecting) return;
     reconnecting = true;
@@ -728,7 +774,6 @@ const startZktecoListener = async () => {
     );
 
     setTimeout(async () => {
-      await closeSocket();
       try {
         await connect();
       } catch (error) {
@@ -747,49 +792,72 @@ const startZktecoListener = async () => {
 
     void sendDailySummaryIfNeeded();
 
-    setInterval(async () => {
+    setInterval(() => {
       if (polling || reconnecting || !connected) return;
       polling = true;
 
-      try {
-        const data = (await zk.getAttendances())?.data || [];
-        const newLogs = getNewLogs(data, lastSeenKey);
-        if (!newLogs.length) return;
+      void (async () => {
+        let logCount = 0;
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 5000);
 
-        for (const log of newLogs) {
-          const logKey = getLogKey(log);
-          if (isDuplicate(logKey)) {
-            lastSeenKey = logKey;
-            continue;
+          let attendanceData = { data: [] };
+          try {
+            attendanceData = (await zk.getAttendances()) || { data: [] };
+          } catch (error) {
+            if (error?.name === "AbortError") {
+              console.warn(
+                "Attendance fetch timeout (>5s), skipping this poll",
+              );
+            } else {
+              throw error;
+            }
+          } finally {
+            clearTimeout(timeout);
           }
 
-          const empId = String(log.deviceUserId || "");
-          const recordTime = log.recordTime || new Date();
-          const scanStatus = resolveScanStatus(empId, recordTime);
-          const employee = await findEmployeeByZkUserId(empId);
-          const empName =
-            employee?.fullName || `ไม่พบข้อมูลพนักงาน (${empId || "-"})`;
+          const data = attendanceData.data || [];
+          const newLogs = getNewLogs(data, lastSeenKey);
+          if (!newLogs.length) return;
 
-          void sendLineMessage(
-            formatAttendanceMessage(empName, empId, scanStatus, recordTime),
-          ).catch((error) => {
-            console.error("Failed to send LINE:", error.message);
-          });
+          logCount = newLogs.length;
 
-          void saveAttendance(employee?.id, scanStatus, recordTime).catch(
-            (error) => {
-              console.error("Failed to save attendance:", error.message);
-            },
-          );
+          for (const log of newLogs) {
+            const logKey = getLogKey(log);
+            if (isDuplicate(logKey)) {
+              lastSeenKey = logKey;
+              continue;
+            }
 
-          lastSeenKey = logKey;
+            const empId = String(log.deviceUserId || "");
+            const recordTime = log.recordTime || new Date();
+            const scanStatus = resolveScanStatus(empId, recordTime);
+            const employee = await findEmployeeByZkUserId(empId);
+            const empName =
+              employee?.fullName || `ไม่พบข้อมูลพนักงาน (${empId || "-"})`;
+
+            void sendLineMessage(
+              formatAttendanceMessage(empName, empId, scanStatus, recordTime),
+            ).catch((error) => {
+              console.error("Failed to send LINE:", error.message);
+            });
+
+            void saveAttendance(employee?.id, scanStatus, recordTime).catch(
+              (error) => {
+                console.error("Failed to save attendance:", error.message);
+              },
+            );
+
+            lastSeenKey = logKey;
+          }
+        } catch (error) {
+          console.error("Polling error:", error.message);
+          scheduleReconnect(error.message);
+        } finally {
+          polling = false;
         }
-      } catch (error) {
-        console.error("Polling error:", error.message);
-        scheduleReconnect(error.message);
-      } finally {
-        polling = false;
-      }
+      })();
     }, CONFIG.zkPollIntervalMs);
   } catch (error) {
     console.error("ZKTeco connection error:", error.message);
