@@ -1,12 +1,14 @@
 const ZKLib = require("node-zklib");
 const { CONFIG, ZK_ATTENDANCE_TIMEOUT_MS } = require("./config");
+const { createAttendanceService } = require("./attendance");
 const {
   createDailySummarySender,
   buildDailyAttendanceSummaryMessage,
   formatAttendanceMessage,
 } = require("./messages");
-const { sendLineMessage } = require("./line");
-const { createAttendanceService } = require("./attendance");
+const { sendTelegramMessage } = require("./telegram");
+
+const toErrorMessage = (error) => error?.message || String(error);
 
 const validateConfig = () => {
   if (!CONFIG.zkIp) throw new Error("Missing ZKTECO_DEVICE_IP");
@@ -15,30 +17,21 @@ const validateConfig = () => {
   }
 };
 
-const createZkClient = () =>
-  new ZKLib(
-    CONFIG.zkIp,
-    CONFIG.zkPort,
-    CONFIG.zkSocketTimeoutMs,
-    CONFIG.zkInportTimeoutMs,
-  );
-
-const getLogKey = (log) =>
-  `${String(log?.deviceUserId || "")}-${String(log?.recordTime || "")}`;
-
 const createDedupeChecker = () => {
   const cache = new Map();
-
   return (key) => {
     const now = Date.now();
-    for (const [cacheKey, timestamp] of cache.entries()) {
-      if (now - timestamp > CONFIG.dedupeWindowMs) cache.delete(cacheKey);
+    for (const [cacheKey, time] of cache.entries()) {
+      if (now - time > CONFIG.dedupeWindowMs) cache.delete(cacheKey);
     }
     if (cache.has(key)) return true;
     cache.set(key, now);
     return false;
   };
 };
+
+const getLogKey = (log) =>
+  `${String(log?.deviceUserId || "")}-${String(log?.recordTime || "")}`;
 
 const getNewLogs = (logs, lastSeenKey) => {
   if (!logs.length) return [];
@@ -51,16 +44,13 @@ const getNewLogs = (logs, lastSeenKey) => {
 const withAttendanceTimeout = (zk) =>
   Promise.race([
     zk.getAttendances(),
-    new Promise((_, reject) => {
+    new Promise((_, reject) =>
       setTimeout(
         () => reject(new Error("ZK_ATTENDANCE_TIMEOUT")),
         ZK_ATTENDANCE_TIMEOUT_MS,
-      );
-    }),
+      ),
+    ),
   ]);
-
-const toErrorMessage = (error) => error?.message || String(error);
-const startIntervalTask = (task, ms) => setInterval(() => void task(), ms);
 
 const startZktecoListener = async (prisma) => {
   validateConfig();
@@ -73,42 +63,39 @@ const startZktecoListener = async (prisma) => {
     getEmployeeDisplayName,
   } = createAttendanceService(prisma);
 
-  let zk = null;
+  let zk;
   let lastSeenKey = "";
   let polling = false;
   let connected = false;
   let reconnecting = false;
-  const employeeProcessingChains = new Map();
+  const employeeChains = new Map();
 
   const isDuplicate = createDedupeChecker();
-  const buildSummaryMessage = (dateKey) =>
-    buildDailyAttendanceSummaryMessage(prisma, getEmployeeDisplayName, dateKey);
   const sendDailySummaryIfNeeded = createDailySummarySender(
-    sendLineMessage,
-    buildSummaryMessage,
+    sendTelegramMessage,
+    (dateKey) =>
+      buildDailyAttendanceSummaryMessage(
+        prisma,
+        getEmployeeDisplayName,
+        dateKey,
+      ),
   );
 
   const queueEmployeeScan = (empId, task) => {
-    const chainKey = empId || "__unknown__";
-    const previous =
-      employeeProcessingChains.get(chainKey) || Promise.resolve();
+    const key = empId || "__unknown__";
+    const previous = employeeChains.get(key) || Promise.resolve();
 
     const current = previous
       .catch(() => {})
       .then(task)
-      .catch((error) => {
-        console.error(
-          "Scan processing error:",
-          error?.message || String(error),
-        );
-      })
+      .catch((error) =>
+        console.error("Scan processing error:", toErrorMessage(error)),
+      )
       .finally(() => {
-        if (employeeProcessingChains.get(chainKey) === current) {
-          employeeProcessingChains.delete(chainKey);
-        }
+        if (employeeChains.get(key) === current) employeeChains.delete(key);
       });
 
-    employeeProcessingChains.set(chainKey, current);
+    employeeChains.set(key, current);
   };
 
   const processLog = (log) => {
@@ -118,8 +105,8 @@ const startZktecoListener = async (prisma) => {
       return;
     }
 
-    const empId = String(log.deviceUserId || "");
-    const recordTime = log.recordTime || new Date();
+    const empId = String(log?.deviceUserId || "");
+    const recordTime = log?.recordTime || new Date();
 
     queueEmployeeScan(empId, async () => {
       const employee = await findEmployeeByZkUserId(empId);
@@ -129,11 +116,11 @@ const startZktecoListener = async (prisma) => {
       const empName =
         employee?.fullName || `ไม่พบข้อมูลพนักงาน (${empId || "-"})`;
 
-      void sendLineMessage(
+      void sendTelegramMessage(
         formatAttendanceMessage(empName, empId, scanStatus, recordTime),
-      ).catch((error) => {
-        console.error("Failed to send LINE:", toErrorMessage(error));
-      });
+      ).catch((error) =>
+        console.error("Failed to send Telegram:", toErrorMessage(error)),
+      );
 
       try {
         await saveAttendance(employee?.id, scanStatus, recordTime);
@@ -156,23 +143,25 @@ const startZktecoListener = async (prisma) => {
       );
     }
 
-    const data = attendanceData.data || [];
-    const newLogs = getNewLogs(data, lastSeenKey);
-    if (!newLogs.length) return;
-
-    for (const log of newLogs) processLog(log);
+    for (const log of getNewLogs(attendanceData.data || [], lastSeenKey)) {
+      processLog(log);
+    }
   };
 
   const connect = async () => {
-    zk = createZkClient();
+    zk = new ZKLib(
+      CONFIG.zkIp,
+      CONFIG.zkPort,
+      CONFIG.zkSocketTimeoutMs,
+      CONFIG.zkInportTimeoutMs,
+    );
+
     await zk.createSocket();
     const initialData = (await zk.getAttendances())?.data || [];
-    void warmEmployeeCache(true).catch((error) => {
-      console.warn(
-        "Employee cache warmup failed:",
-        error?.message || String(error),
-      );
-    });
+    void warmEmployeeCache(true).catch((error) =>
+      console.warn("Employee cache warmup failed:", toErrorMessage(error)),
+    );
+
     if (initialData.length) {
       lastSeenKey = getLogKey(initialData[initialData.length - 1]);
     }
@@ -183,12 +172,12 @@ const startZktecoListener = async (prisma) => {
   };
 
   const scheduleReconnect = (message) => {
-    const reason = message || "unknown error";
     if (reconnecting) return;
     reconnecting = true;
     connected = false;
+
     console.error(
-      `ZKTeco reconnect scheduled in ${CONFIG.zkReconnectDelayMs}ms: ${reason}`,
+      `ZKTeco reconnect scheduled in ${CONFIG.zkReconnectDelayMs}ms: ${message || "unknown error"}`,
     );
 
     setTimeout(async () => {
@@ -196,16 +185,14 @@ const startZktecoListener = async (prisma) => {
         await connect();
       } catch (error) {
         reconnecting = false;
-        scheduleReconnect(error?.message || String(error));
+        scheduleReconnect(toErrorMessage(error));
       }
     }, CONFIG.zkReconnectDelayMs);
   };
 
   try {
     await connect();
-
-    startIntervalTask(sendDailySummaryIfNeeded, 60 * 1000);
-
+    setInterval(() => void sendDailySummaryIfNeeded(), 60 * 1000);
     void sendDailySummaryIfNeeded();
 
     setInterval(() => {

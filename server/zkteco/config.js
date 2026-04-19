@@ -5,11 +5,11 @@ const CONFIG = {
   zkReconnectDelayMs: 5000,
   zkSocketTimeoutMs: 10000,
   zkInportTimeoutMs: 4000,
-  lineRequestTimeoutMs: 5000,
-  lineToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
-  lineTargetIds: Array.from(
+  telegramRequestTimeoutMs: 5000,
+  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
+  telegramChatIds: Array.from(
     new Set(
-      (process.env.LINE_TARGET_IDS || "")
+      (process.env.TELEGRAM_CHAT_IDS || "")
         .split(/[\s,]+/)
         .map((id) => id.trim())
         .filter(Boolean),
@@ -26,12 +26,12 @@ const TIME_RULES = {
 
 const EMPLOYEE_CACHE_TTL_MS = 5 * 60 * 1000;
 const ZK_ATTENDANCE_TIMEOUT_MS = 5000;
-const LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push";
+const TELEGRAM_TEXT_LIMIT = 4096;
 
 module.exports = {
   CONFIG,
   TIME_RULES,
   EMPLOYEE_CACHE_TTL_MS,
   ZK_ATTENDANCE_TIMEOUT_MS,
-  LINE_PUSH_URL,
+  TELEGRAM_TEXT_LIMIT,
 };

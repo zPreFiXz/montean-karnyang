@@ -6,5 +6,4 @@ const { PrismaClient } = require("@prisma/client");
 const { startZktecoListener } = require("./zkteco/listener");
 
 const prisma = new PrismaClient();
-
 startZktecoListener(prisma);

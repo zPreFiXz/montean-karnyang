@@ -6,7 +6,6 @@ const {
 } = require("./time");
 
 const EMPLOYEE_SELECT = { id: true, fullName: true, nickname: true };
-const EMPLOYEE_WITH_ZK_SELECT = { ...EMPLOYEE_SELECT, zkUserId: true };
 
 const getLunchReturnStatus = (eventTime, lunchOutTime) => {
   const restMinutes = Math.max(
@@ -25,12 +24,17 @@ const createAttendanceService = (prisma) => {
 
   const warmEmployeeCache = async (force = false) => {
     const now = Date.now();
-    const cacheFresh = now - employeeCacheLoadedAt < EMPLOYEE_CACHE_TTL_MS;
-    if (!force && employeeCache.size && cacheFresh) return;
+    if (
+      !force &&
+      employeeCache.size &&
+      now - employeeCacheLoadedAt < EMPLOYEE_CACHE_TTL_MS
+    ) {
+      return;
+    }
 
     const employees = await prisma.employee.findMany({
       where: { isActive: true },
-      select: EMPLOYEE_WITH_ZK_SELECT,
+      select: { ...EMPLOYEE_SELECT, zkUserId: true },
     });
 
     employeeCache.clear();
@@ -42,78 +46,54 @@ const createAttendanceService = (prisma) => {
         nickname: employee.nickname,
       });
     }
-
     employeeCacheLoadedAt = now;
   };
 
   const findEmployeeByZkUserId = async (zkUserId) => {
     if (!zkUserId) return null;
-    const cacheKey = String(zkUserId);
-
+    const key = String(zkUserId);
     await warmEmployeeCache();
-    const cached = employeeCache.get(cacheKey);
-    if (cached) return cached;
+    if (employeeCache.has(key)) return employeeCache.get(key);
 
     const employee = await prisma.employee.findUnique({
-      where: { zkUserId: cacheKey },
+      where: { zkUserId: key },
       select: EMPLOYEE_SELECT,
     });
 
-    if (employee) employeeCache.set(cacheKey, employee);
-
+    if (employee) employeeCache.set(key, employee);
     return employee;
   };
 
   const resolveScanStatusFromDb = async (employeeId, recordTime) => {
     const eventTime = recordTime || new Date();
-    const minutes = getMinutesInBangkok(eventTime);
-
     if (!employeeId) return null;
 
-    const dateKey = getBangkokDateKey(eventTime);
-    const { start, end } = getBangkokDayRange(dateKey);
-
+    const minutes = getMinutesInBangkok(eventTime);
+    const { start, end } = getBangkokDayRange(getBangkokDateKey(eventTime));
     const records = await prisma.attendance.findMany({
-      where: {
-        employeeId,
-        scanTime: {
-          gte: start,
-          lte: end,
-        },
-      },
-      orderBy: {
-        scanTime: "asc",
-      },
-      select: {
-        scanTime: true,
-      },
+      where: { employeeId, scanTime: { gte: start, lte: end } },
+      orderBy: { scanTime: "asc" },
+      select: { scanTime: true },
     });
 
-    const currentStep = records.length;
-
-    switch (records.length) {
-      case 0:
-        if (minutes > TIME_RULES.lateAfterMinutes) {
-          return `เข้างาน (สาย ${minutes - TIME_RULES.lateAfterMinutes} นาที)`;
-        }
-        return "เข้างาน";
-      case 1:
-        return TIME_RULES.stepStatuses[1];
-      case 2:
-        return getLunchReturnStatus(
-          eventTime,
-          records[1]?.scanTime || eventTime,
-        );
-      default:
-        return TIME_RULES.stepStatuses[3];
+    if (!records.length) {
+      return minutes > TIME_RULES.lateAfterMinutes
+        ? `เข้างาน (สาย ${minutes - TIME_RULES.lateAfterMinutes} นาที)`
+        : "เข้างาน";
     }
+
+    if (records.length === 1) return TIME_RULES.stepStatuses[1];
+    if (records.length === 2) {
+      return getLunchReturnStatus(eventTime, records[1]?.scanTime || eventTime);
+    }
+
+    return TIME_RULES.stepStatuses[3];
   };
 
-  const saveAttendance = async (employeeId, status, scanTime) => {
-    await prisma.attendance.create({
+  const saveAttendance = (employeeId, status, scanTime) =>
+    prisma.attendance.create({
       data: { employeeId: employeeId || null, status, scanTime },
     });
-  };
 
   const getEmployeeDisplayName = (employee) =>
     !employee
