@@ -6,8 +6,9 @@ import { useForm } from "react-hook-form";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { provinces } from "@/constants/provinces";
-import { getVehicleBrands } from "@/api/vehicleBrand";
-import { getParts } from "@/api/part";
+import { listVehicleModels } from "@/api/vehicleModel";
+import { listParts } from "@/api/part";
+import useAuthStore from "@/stores/useAuthStore";
 import LicensePlateInput from "@/components/forms/LicensePlateInput";
 import { formatCurrency } from "@/utils/formats";
 import {
@@ -31,6 +32,7 @@ import { CarRepair } from "@/components/icons/Icons";
 const SuspensionInspection = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const token = useAuthStore((state) => state.token);
   const {
     register,
     handleSubmit,
@@ -41,7 +43,7 @@ const SuspensionInspection = () => {
   } = useForm({
     resolver: zodResolver(repairSchema),
   });
-  const [vehicleBrands, setVehicleBrands] = useState([]);
+  const [vehicleModels, setVehicleModels] = useState([]);
   const [brands, setBrands] = useState([]);
   const [repairItems, setRepairItems] = useState([]);
   const [compatibleParts, setCompatibleParts] = useState([]);
@@ -66,7 +68,7 @@ const SuspensionInspection = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    fetchVehicleBrands();
+    fetchVehicleModels();
   }, []);
 
   useEffect(() => {
@@ -170,13 +172,9 @@ const SuspensionInspection = () => {
 
       const map = {};
       for (const it of savedItems) {
-        if (
-          it?.partNumber &&
-          it?.brand &&
-          typeof it.stockQuantity === "number"
-        ) {
+        if (it?.partNumber && it?.brand && typeof it.quantity === "number") {
           const key = `${it.partNumber}|${it.brand}|${it.name || ""}`;
-          map[key] = Math.max(map[key] || 0, it.stockQuantity);
+          map[key] = Math.max(map[key] || 0, it.quantity);
         }
       }
       setRestoredStockMap(map);
@@ -215,10 +213,10 @@ const SuspensionInspection = () => {
     );
   }, [location.state, setValue]);
 
-  const fetchVehicleBrands = async () => {
+  const fetchVehicleModels = async () => {
     try {
-      const res = await getVehicleBrands();
-      setVehicleBrands(res.data);
+      const res = await listVehicleModels(token);
+      setVehicleModels(res.data);
 
       const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
       setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
@@ -229,7 +227,7 @@ const SuspensionInspection = () => {
 
   const fetchCompatibleParts = async (brand, model) => {
     try {
-      const res = await getParts();
+      const res = await listParts(token);
       const allParts = res.data;
 
       const compatible = allParts.filter((part) => {
@@ -271,7 +269,7 @@ const SuspensionInspection = () => {
 
   const getAvailableModelsForBrand = () => {
     const selectedBrand = watch("brand");
-    const modelsForBrand = vehicleBrands
+    const modelsForBrand = vehicleModels
       .filter((item) => item.brand === selectedBrand)
       .map((item) => ({ id: item.model, name: item.model }));
 
@@ -345,7 +343,6 @@ const SuspensionInspection = () => {
             ...itemWithSide,
             quantity: 1,
             sellingPrice: itemWithSide.sellingPrice,
-            stockQuantity: itemWithSide.stockQuantity,
           },
         ];
       }
@@ -443,7 +440,7 @@ const SuspensionInspection = () => {
       sellingPrice: getPriceForPart(part),
       name: part.name,
       brand: part.brand,
-      secureUrl: part.secureUrl,
+      secure_url: part.secure_url,
       category: part.category,
       typeSpecificData: part.typeSpecificData,
     });
@@ -456,8 +453,8 @@ const SuspensionInspection = () => {
 
   const getAllowedUnitsForPart = (part) => {
     const stockQty =
-      typeof part?.stockQuantity === "number"
-        ? Math.max(part.stockQuantity, 0)
+      typeof part?.quantity === "number"
+        ? Math.max(part.quantity, 0)
         : Infinity;
     const isSuspensionPart = Boolean(part?.typeSpecificData?.suspensionType);
     const initialCount = isSuspensionPart
@@ -480,7 +477,7 @@ const SuspensionInspection = () => {
   const handlePartSelection = (part, isSelected, side) => {
     const suspensionType = part?.typeSpecificData?.suspensionType;
     const _stockQty =
-      typeof part?.stockQuantity === "number" ? part.stockQuantity : Infinity;
+      typeof part?.quantity === "number" ? part.quantity : Infinity;
     const isLeftRight = suspensionType === "left-right";
     const allowedUnits = getAllowedUnitsForPart(part);
 
@@ -588,9 +585,9 @@ const SuspensionInspection = () => {
         ...repairItems,
       ];
 
-      navigate("/repairs/summary", {
+      navigate("/repairs/review", {
         state: {
-          repairData: { ...data, source: "SUSPENSION" },
+          repairData: { ...data, type: "SUSPENSION" },
           repairItems: allRepairItems,
           from: "suspension",
           editRepairId: location.state?.editRepairId,
@@ -638,9 +635,9 @@ const SuspensionInspection = () => {
                     <p className="text-surface xl:text-normal text-[18px] font-medium md:text-[20px]">
                       ข้อมูลลูกค้า
                     </p>
-                    {watch("fullName") && (
+                    {watch("name") && (
                       <p className="text-surface/80 xl:text-subtle-dark line-clamp-1 text-[14px] md:text-[16px]">
-                        {watch("fullName")}
+                        {watch("name")}
                         {watch("phoneNumber") && ` • ${watch("phoneNumber")}`}
                       </p>
                     )}
@@ -656,7 +653,7 @@ const SuspensionInspection = () => {
                 <div className="space-y-[4px]">
                   <FormInput
                     register={register}
-                    name="fullName"
+                    name="name"
                     label="ชื่อลูกค้า"
                     type="text"
                     placeholder="เช่น สมชาย ใจดี"
@@ -786,7 +783,9 @@ const SuspensionInspection = () => {
                     label=""
                     color="text-surface"
                     options={provinces}
-                    value={provinces.find((p) => p.name === watch("province"))?.id}
+                    value={
+                      provinces.find((p) => p.name === watch("province"))?.id
+                    }
                     onChange={(value) => {
                       const provinceName =
                         provinces.find((p) => p.id === value)?.name || value;
@@ -917,9 +916,9 @@ const SuspensionInspection = () => {
                               >
                                 <div className="flex flex-1 items-center gap-[8px]">
                                   <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secureUrl ? (
+                                    {part.secure_url ? (
                                       <img
-                                        src={part.secureUrl}
+                                        src={part.secure_url}
                                         alt={part.name}
                                         className="h-full w-full rounded-[10px] object-cover"
                                       />
@@ -1029,9 +1028,9 @@ const SuspensionInspection = () => {
                               >
                                 <div className="flex flex-1 items-center gap-[8px]">
                                   <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secureUrl ? (
+                                    {part.secure_url ? (
                                       <img
-                                        src={part.secureUrl}
+                                        src={part.secure_url}
                                         alt={part.name}
                                         className="h-full w-full rounded-[10px] object-cover"
                                       />
@@ -1141,9 +1140,9 @@ const SuspensionInspection = () => {
                               >
                                 <div className="flex flex-1 items-center gap-[8px]">
                                   <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secureUrl ? (
+                                    {part.secure_url ? (
                                       <img
-                                        src={part.secureUrl}
+                                        src={part.secure_url}
                                         alt={part.name}
                                         className="h-full w-full rounded-[10px] object-cover"
                                       />
@@ -1262,9 +1261,9 @@ const SuspensionInspection = () => {
                       >
                         <div className="flex flex-1 items-center gap-[8px]">
                           <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                            {item.secureUrl ? (
+                            {item.secure_url ? (
                               <img
-                                src={item.secureUrl}
+                                src={item.secure_url}
                                 alt={item.name}
                                 className="h-full w-full rounded-[10px] object-cover"
                               />
@@ -1310,8 +1309,7 @@ const SuspensionInspection = () => {
                                   onClick={() => handleIncreaseQuantity(index)}
                                   disabled={
                                     item.partNumber && item.brand
-                                      ? item.quantity >=
-                                        (item.stockQuantity || 0)
+                                      ? item.quantity >= (item.quantity || 0)
                                       : false
                                   }
                                   className="border-primary/30 text-primary bg-primary/10 flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
@@ -1626,9 +1624,9 @@ const SuspensionInspection = () => {
                               >
                                 <div className="flex flex-1 items-center gap-[8px]">
                                   <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secureUrl ? (
+                                    {part.secure_url ? (
                                       <img
-                                        src={part.secureUrl}
+                                        src={part.secure_url}
                                         alt={part.name}
                                         className="h-full w-full rounded-[10px] object-cover"
                                       />
@@ -1738,9 +1736,9 @@ const SuspensionInspection = () => {
                               >
                                 <div className="flex flex-1 items-center gap-[8px]">
                                   <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secureUrl ? (
+                                    {part.secure_url ? (
                                       <img
-                                        src={part.secureUrl}
+                                        src={part.secure_url}
                                         alt={part.name}
                                         className="h-full w-full rounded-[10px] object-cover"
                                       />
@@ -1850,9 +1848,9 @@ const SuspensionInspection = () => {
                               >
                                 <div className="flex flex-1 items-center gap-[8px]">
                                   <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secureUrl ? (
+                                    {part.secure_url ? (
                                       <img
-                                        src={part.secureUrl}
+                                        src={part.secure_url}
                                         alt={part.name}
                                         className="h-full w-full rounded-[10px] object-cover"
                                       />
@@ -1970,9 +1968,9 @@ const SuspensionInspection = () => {
                       >
                         <div className="flex flex-1 items-center gap-[8px]">
                           <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                            {item.secureUrl ? (
+                            {item.secure_url ? (
                               <img
-                                src={item.secureUrl}
+                                src={item.secure_url}
                                 alt={item.name}
                                 className="h-full w-full rounded-[10px] object-cover"
                               />
@@ -2018,8 +2016,7 @@ const SuspensionInspection = () => {
                                   onClick={() => handleIncreaseQuantity(index)}
                                   disabled={
                                     item.partNumber && item.brand
-                                      ? item.quantity >=
-                                        (item.stockQuantity || 0)
+                                      ? item.quantity >= (item.quantity || 0)
                                       : false
                                   }
                                   className="border-primary/30 text-primary bg-primary/10 flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
@@ -2238,7 +2235,7 @@ const SuspensionInspection = () => {
         onConfirm={handlePriceConfirm}
         currentPrice={editingItem?.sellingPrice || 0}
         productName={editingItem ? getProductName(editingItem) : ""}
-        productImage={editingItem?.secureUrl}
+        productImage={editingItem?.secure_url}
         isService={editingItem?.category?.name === "บริการ"}
         currentName={editingItem?.name || ""}
         canEditName={

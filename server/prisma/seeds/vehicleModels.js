@@ -1,11 +1,10 @@
-exports.VehicleBrands = [
+exports.vehicleModels = [
   // Toyota
   { brand: "Toyota", model: "Mighty-X" },
   { brand: "Toyota", model: "Tiger" },
   { brand: "Toyota", model: "Vigo" },
   { brand: "Toyota", model: "Champ" },
   { brand: "Toyota", model: "Revo" },
-  { brand: "Toyota", model: "Revo 4x4" },
   { brand: "Toyota", model: "Fortuner" },
   { brand: "Toyota", model: "Soluna" },
   { brand: "Toyota", model: "Vios" },
@@ -113,8 +112,6 @@ exports.VehicleBrands = [
   { brand: "MG", model: "5" },
   { brand: "MG", model: "6" },
   { brand: "MG", model: "ZS" },
-  { brand: "MG", model: "GS" },
-  { brand: "MG", model: "VS" },
   { brand: "MG", model: "HS" },
 
   // Chevrolet
@@ -132,10 +129,6 @@ exports.VehicleBrands = [
 
   // Tata
   { brand: "Tata", model: "Super Ace" },
-
-  // Neta
-  { brand: "Neta", model: "V" },
-  { brand: "Neta", model: "X" },
 
   // BYD
   { brand: "BYD", model: "Dolphin" },

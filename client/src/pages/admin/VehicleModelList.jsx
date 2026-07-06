@@ -3,30 +3,32 @@ import { ChevronLeft, Edit, Trash2, LoaderCircle } from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import ComboBox from "@/components/ui/ComboBox";
-import VehicleBrandFormDialog from "@/components/dialogs/VehicleBrandFormDialog";
+import VehicleModelFormDialog from "@/components/dialogs/VehicleModelFormDialog";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
-import { deleteVehicleBrand, getVehicleBrands } from "@/api/vehicleBrand";
+import { deleteVehicleModel, listVehicleModels } from "@/api/vehicleModel";
+import useAuthStore from "@/stores/useAuthStore";
 import FormButton from "@/components/forms/FormButton";
 
-const VehicleBrandList = () => {
-  const [vehicleBrands, setVehicleBrands] = useState([]);
+const VehicleModelList = () => {
+  const [vehicleModels, setVehicleModels] = useState([]);
   const [selectedBrand, setSelectedBrand] = useState("");
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingItem, setDeletingItem] = useState(null);
+  const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    fetchVehicleBrands();
+    fetchVehicleModels();
   }, []);
 
-  const fetchVehicleBrands = async () => {
+  const fetchVehicleModels = async () => {
     setIsLoading(true);
     try {
-      const res = await getVehicleBrands();
-      setVehicleBrands(res.data);
+      const res = await listVehicleModels(token);
+      setVehicleModels(res.data);
     } catch (error) {
       console.log(error);
     } finally {
@@ -34,10 +36,10 @@ const VehicleBrandList = () => {
     }
   };
 
-  const handleDeleteVehicleBrand = async (id) => {
+  const handleDeleteVehicleModel = async (id) => {
     try {
-      await deleteVehicleBrand(id);
-      fetchVehicleBrands();
+      await deleteVehicleModel(token, id);
+      fetchVehicleModels();
       setIsDeleteDialogOpen(false);
       setDeletingItem(null);
       toast.success("ลบยี่ห้อและรุ่นรถเรียบร้อยแล้ว");
@@ -53,7 +55,7 @@ const VehicleBrandList = () => {
 
   const handleDeleteConfirm = () => {
     if (deletingItem) {
-      return handleDeleteVehicleBrand(deletingItem.id);
+      return handleDeleteVehicleModel(deletingItem.id);
     }
   };
 
@@ -72,18 +74,18 @@ const VehicleBrandList = () => {
     setEditingItem(null);
   };
 
-  const uniqueBrands = [...new Set(vehicleBrands.map((item) => item.brand))];
+  const uniqueBrands = [...new Set(vehicleModels.map((item) => item.brand))];
   const brandOptions = [
     { id: "", name: "ทั้งหมด" },
     ...uniqueBrands.map((brand) => ({ id: brand, name: brand })),
   ];
 
-  const filteredVehicleBrands = selectedBrand
-    ? vehicleBrands.filter((item) => item.brand === selectedBrand)
-    : vehicleBrands;
+  const filteredVehicleModels = selectedBrand
+    ? vehicleModels.filter((item) => item.brand === selectedBrand)
+    : vehicleModels;
 
   const groupedByBrand = {};
-  filteredVehicleBrands.forEach((item) => {
+  filteredVehicleModels.forEach((item) => {
     if (!groupedByBrand[item.brand]) {
       groupedByBrand[item.brand] = [];
     }
@@ -125,11 +127,11 @@ const VehicleBrandList = () => {
               className="bg-gradient-primary my-[16px] ml-0"
             />
 
-            <VehicleBrandFormDialog
+            <VehicleModelFormDialog
               isOpen={isFormDialogOpen}
               onClose={handleCloseDialog}
               editingItem={editingItem}
-              onSuccess={fetchVehicleBrands}
+              onSuccess={fetchVehicleModels}
             />
 
             <ConfirmDialog
@@ -194,4 +196,4 @@ const VehicleBrandList = () => {
   );
 };
 
-export default VehicleBrandList;
+export default VehicleModelList;

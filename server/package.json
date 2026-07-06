@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "concurrently \"npm:dev:server\" \"npm:dev:zkteco\"",
+    "dev": "concurrently \"npm:dev:server\" \"npm:dev:worker\"",
     "dev:server": "nodemon server.js",
-    "dev:zkteco": "nodemon zkteco.js"
+    "dev:worker": "nodemon worker.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
@@ -28,12 +28,10 @@
     "morgan": "^1.10.0",
     "node-zklib": "^1.3.0",
     "nodemon": "^3.1.10",
-    "pdf-to-printer": "^5.6.1",
-    "puppeteer": "^24.36.1",
     "zod": "^4.0.5"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1",
+    "concurrently": "^10.0.3",
     "prisma": "^6.14.0"
   }
 }

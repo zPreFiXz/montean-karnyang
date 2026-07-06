@@ -1,7 +1,10 @@
-import api from "@/lib/api";
+import axios from "axios";
 
-export const getDailyAttendanceSummary = async (date) => {
-  return await api.get("/api/attendance/daily-summary", {
+export const getAttendanceSummary = async (token, date) => {
+  return await axios.get(`${import.meta.env.VITE_API_URL}/api/attendances/summary`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
     params: { date },
   });
 };

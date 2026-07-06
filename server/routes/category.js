@@ -5,9 +5,14 @@ const router = express.Router();
 const { authCheck } = require("../middlewares/auth");
 
 // Controllers
-const { getCategories } = require("../controllers/category");
+const {
+  listCategories,
+  createCategory,
+  deleteCategory,
+} = require("../controllers/category");
 
-// @ENDPOINTS http://localhost:3000/api/categories
-router.get("/categories", authCheck, getCategories);
+router.get("/categories", authCheck, listCategories);
+router.post("/categories", authCheck, createCategory);
+router.delete("/categories/:id", authCheck, deleteCategory);
 
 module.exports = router;

@@ -1,4 +1,5 @@
-import { getCategories } from "@/api/category";
+import { listCategories } from "@/api/category";
+import useAuthStore from "@/stores/useAuthStore";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { ICON_MAP, DEFAULT_ICON } from "@/components/icons/categoryIcons";
@@ -6,8 +7,9 @@ import { LoaderCircle } from "lucide-react";
 
 const CategoryList = ({ activeCategory, setActiveCategory }) => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [categories, setCategories] = useState([]);
+  const [category, setCategory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
     fetchCategories();
@@ -19,17 +21,17 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
     setSearchParams(params);
   };
 
-  const fetchCategories = async () => {
+  const fetchCategory = async () => {
     try {
       setIsLoading(true);
-      const res = await getCategories();
-      const categoriesWithIcons = res.data
-        .map((category) => ({
-          ...category,
-          icon: ICON_MAP[category.name] || DEFAULT_ICON,
+      const res = await listCategories(token);
+      const categoryWithIcons = res.data
+        .map((item) => ({
+          ...item,
+          icon: ICON_MAP[item.name] || DEFAULT_ICON,
         }))
         .sort((a, b) => a.id - b.id);
-      setCategories(categoriesWithIcons);
+      setCategory(categoryWithIcons);
     } catch (error) {
       console.log(error);
     } finally {
@@ -39,14 +41,12 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
 
   return (
     <div className="scrollbar-hide -mx-[20px] mt-[16px] overflow-x-auto overflow-y-hidden pl-[20px]">
-      
       {isLoading ? (
         <div className="flex h-[80px] items-center justify-center">
           <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
         </div>
       ) : (
         <div className="flex gap-[8px]">
-          
           {/* หมวดหมู่ทั้งหมด */}
           <button
             onClick={() => {
@@ -67,7 +67,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
           </button>
 
           {/* หมวดหมู่อะไหล่และบริการ */}
-          {categories.map((item) => {
+          {category.map((item) => {
             const IconComponent = item.icon;
             const isActive = activeCategory === item.name;
             return (

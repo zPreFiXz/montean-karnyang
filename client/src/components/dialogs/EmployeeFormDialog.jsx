@@ -1,60 +1,19 @@
-import { useEffect, useState } from "react";
-import { X, Calendar, AlertCircle } from "lucide-react";
+import { useEffect } from "react";
+import { X } from "lucide-react";
 import { toast } from "sonner";
 import FormInput from "@/components/forms/FormInput";
 import FormButton from "@/components/forms/FormButton";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Button } from "@/components/ui/button";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createEmployeeSchema, editEmployeeSchema } from "@/utils/schemas";
 import { createEmployee, updateEmployee } from "@/api/employee";
-import { cn } from "@/lib/utils";
-
-const formatDateThai = (date) => {
-  const thaiMonths = [
-    "มกราคม",
-    "กุมภาพันธ์",
-    "มีนาคม",
-    "เมษายน",
-    "พฤษภาคม",
-    "มิถุนายน",
-    "กรกฎาคม",
-    "สิงหาคม",
-    "กันยายน",
-    "ตุลาคม",
-    "พฤศจิกายน",
-    "ธันวาคม",
-  ];
-
-  const d = new Date(date);
-  const day = d.getDate();
-  const month = thaiMonths[d.getMonth()];
-  const year = d.getFullYear();
-
-  return `${day} ${month} ${year}`;
-};
-
-const formatDateISO = (date) => {
-  const d = new Date(date);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-};
+import useAuthStore from "@/stores/useAuthStore";
 
 const EmployeeFormDialog = ({
   isOpen,
@@ -62,12 +21,11 @@ const EmployeeFormDialog = ({
   editingItem = null,
   onSuccess,
 }) => {
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const token = useAuthStore((state) => state.token);
   const {
     register,
     handleSubmit,
     reset,
-    control,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(
@@ -75,11 +33,7 @@ const EmployeeFormDialog = ({
     ),
     defaultValues: {
       zkUserId: "",
-      fullName: "",
-      nickname: "",
-      dateOfBirth: "",
-      phoneNumber: "",
-      isActive: true,
+      name: "",
     },
   });
 
@@ -88,22 +42,12 @@ const EmployeeFormDialog = ({
       if (editingItem) {
         reset({
           zkUserId: editingItem.zkUserId || "",
-          fullName: editingItem.fullName || "",
-          nickname: editingItem.nickname || "",
-          dateOfBirth: editingItem.dateOfBirth
-            ? String(editingItem.dateOfBirth).split("T")[0]
-            : "",
-          phoneNumber: editingItem.phoneNumber || "",
-          isActive: editingItem.isActive ?? true,
+          name: editingItem.name || "",
         });
       } else {
         reset({
           zkUserId: "",
-          fullName: "",
-          nickname: "",
-          dateOfBirth: "",
-          phoneNumber: "",
-          isActive: true,
+          name: "",
         });
       }
     }
@@ -111,13 +55,9 @@ const EmployeeFormDialog = ({
 
   const handleAdd = async (data) => {
     try {
-      await createEmployee({
+      await createEmployee(token, {
         zkUserId: data.zkUserId,
-        fullName: data.fullName,
-        nickname: data.nickname,
-        dateOfBirth: data.dateOfBirth,
-        phoneNumber: data.phoneNumber,
-        isActive: data.isActive,
+        name: data.name,
       });
       toast.success("เพิ่มพนักงานเรียบร้อยแล้ว");
       handleClose();
@@ -129,13 +69,9 @@ const EmployeeFormDialog = ({
 
   const handleEdit = async (data) => {
     try {
-      await updateEmployee(editingItem.id, {
+      await updateEmployee(token, editingItem.id, {
         zkUserId: data.zkUserId,
-        fullName: data.fullName,
-        nickname: data.nickname,
-        dateOfBirth: data.dateOfBirth,
-        phoneNumber: data.phoneNumber,
-        isActive: data.isActive,
+        name: data.name,
       });
       toast.success("แก้ไขข้อมูลพนักงานเรียบร้อยแล้ว");
       handleClose();
@@ -164,7 +100,7 @@ const EmployeeFormDialog = ({
             {editingItem ? "แก้ไขพนักงาน" : "เพิ่มพนักงาน"}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            {editingItem ? `แก้ไข ${editingItem.fullName}` : "เพิ่มพนักงาน"}
+            {editingItem ? `แก้ไข ${editingItem.name}` : "เพิ่มพนักงาน"}
           </DialogDescription>
           <button
             onClick={handleClose}
@@ -196,134 +132,14 @@ const EmployeeFormDialog = ({
 
               <FormInput
                 register={register}
-                name="fullName"
-                label="ชื่อ-นามสกุล"
+                name="name"
+                label="ชื่อ"
                 placeholder="เช่น สมชาย ใจดี"
                 errors={errors}
                 customClass="px-0 pb-[16px]"
                 color="subtle-dark"
                 autoFocus={false}
               />
-
-              <FormInput
-                register={register}
-                name="nickname"
-                label="ชื่อเล่น"
-                placeholder="เช่น ชาย"
-                errors={errors}
-                customClass="px-0 pb-[16px]"
-                color="subtle-dark"
-                autoFocus={false}
-              />
-
-              <div className="px-0 pb-[16px]">
-                <Label
-                  htmlFor="dateOfBirth"
-                  className="text-subtle-dark mb-[8px] text-[22px] font-medium md:text-[24px]"
-                >
-                  วันเกิด
-                </Label>
-                <Controller
-                  name="dateOfBirth"
-                  control={control}
-                  render={({ field }) => (
-                    <div className="relative">
-                      <Popover
-                        open={isCalendarOpen}
-                        onOpenChange={setIsCalendarOpen}
-                      >
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "bg-surface border-input relative h-[41px] w-full justify-start rounded-[20px] border pl-[12px] text-left text-[20px] font-medium md:text-[22px]",
-                              "focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
-                              !field.value &&
-                                "text-subtle-dark text-[18px] font-light md:text-[20px]",
-                              errors.dateOfBirth
-                                ? "focus-visible:border-destructive border-destructive focus-visible:ring-destructive/30 pr-[44px]"
-                                : "focus-visible:border-primary focus-visible:ring-primary/35 pr-[44px]",
-                            )}
-                          >
-                            {field.value
-                              ? formatDateThai(field.value)
-                              : "-- เลือกวันเกิด --"}
-                            <Calendar
-                              className="text-subtle-light pointer-events-none absolute top-1/2 right-[12px] h-5 w-5 -translate-y-1/2"
-                              strokeWidth={2.25}
-                            />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent
-                          className="w-auto p-0"
-                          align="start"
-                          onPointerDownOutside={(e) => {
-                            if (e.target.closest('[role="gridcell"]')) {
-                              e.preventDefault();
-                            }
-                          }}
-                        >
-                          <CalendarComponent
-                            mode="single"
-                            selected={
-                              field.value ? new Date(field.value) : undefined
-                            }
-                            onSelect={(date) => {
-                              if (date) {
-                                field.onChange(formatDateISO(date));
-                                requestAnimationFrame(() => {
-                                  setIsCalendarOpen(false);
-                                });
-                              }
-                            }}
-                            disabled={(date) =>
-                              date > new Date() || date < new Date("1900-01-01")
-                            }
-                            captionLayout="dropdown"
-                            fromYear={1900}
-                            toYear={new Date().getFullYear()}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      {errors.dateOfBirth && (
-                        <div className="mt-[6px] flex items-center gap-[4px] px-[4px]">
-                          <AlertCircle className="text-destructive h-4 w-4 flex-shrink-0" />
-                          <p className="text-destructive text-[18px] font-medium md:text-[20px]">
-                            {errors.dateOfBirth.message}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                />
-              </div>
-
-              <FormInput
-                register={register}
-                name="phoneNumber"
-                label="เบอร์โทรศัพท์"
-                placeholder="เช่น 0812345678"
-                errors={errors}
-                customClass="px-0 pb-[16px]"
-                color="subtle-dark"
-                autoFocus={false}
-              />
-
-              <div className="flex items-center gap-[8px] py-[4px]">
-                <input
-                  id="isActive"
-                  type="checkbox"
-                  className="h-4 w-4"
-                  {...register("isActive")}
-                />
-                <Label
-                  htmlFor="isActive"
-                  className="text-subtle-dark text-[20px]"
-                >
-                  เปิดใช้งานพนักงาน
-                </Label>
-              </div>
             </div>
           </form>
         </div>

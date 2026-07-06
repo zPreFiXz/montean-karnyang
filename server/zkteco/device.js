@@ -1,8 +1,6 @@
 const ZKLib = require("node-zklib");
 const config = require("./config");
 
-const logKey = (log) => `${log?.deviceUserId || ""}-${log?.recordTime || ""}`;
-
 const withTimeout = (promise, ms) =>
   Promise.race([
     promise,
@@ -41,14 +39,4 @@ const createDevice = () => {
   return { connect, disconnect, fetchLogs };
 };
 
-const getNewLogs = (allLogs, lastKey) => {
-  if (!allLogs.length) return [];
-
-  const idx = lastKey
-    ? allLogs.findIndex((log) => logKey(log) === lastKey)
-    : allLogs.length - 1;
-
-  return idx >= 0 ? allLogs.slice(idx + 1) : allLogs.slice(-1);
-};
-
-module.exports = { createDevice, getNewLogs, logKey };
+module.exports = { createDevice };

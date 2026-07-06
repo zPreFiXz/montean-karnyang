@@ -4,6 +4,7 @@ import FormButton from "@/components/forms/FormButton";
 import RepairItemCard from "@/components/cards/RepairItemCard";
 import { formatCurrency, getProvinceName } from "@/utils/formats";
 import { createRepair, updateRepair } from "@/api/repair";
+import useAuthStore from "@/stores/useAuthStore";
 import { toast } from "sonner";
 import {
   Edit,
@@ -15,10 +16,11 @@ import {
   ClipboardList,
 } from "lucide-react";
 
-const RepairSummary = () => {
+const RepairReview = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const token = useAuthStore((state) => state.token);
 
   const { repairData, repairItems, editRepairId } = location.state || {};
   const origin = location.state?.origin || location.state?.from;
@@ -58,7 +60,7 @@ const RepairSummary = () => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       const repair = {
-        fullName: repairData.fullName,
+        name: repairData.name,
         address: repairData.address,
         phoneNumber: repairData.phoneNumber,
         brand: repairData.brand,
@@ -67,7 +69,7 @@ const RepairSummary = () => {
         province: getProvinceName(repairData.province),
         description: repairData.description,
         totalPrice: totalPrice,
-        source: repairData.source,
+        type: repairData.type,
         repairItems: repairItems.map((item) => {
           const isPart = !!(item.partNumber && item.brand);
           return {
@@ -81,7 +83,7 @@ const RepairSummary = () => {
       };
 
       if (editRepairId) {
-        await updateRepair(editRepairId, repair);
+        await updateRepair(token, editRepairId, repair);
         toast.success("แก้ไขรายการซ่อมเรียบร้อยแล้ว");
         if (statusSlug) {
           navigate(`/repairs?status=${statusSlug}`);
@@ -93,7 +95,7 @@ const RepairSummary = () => {
           navigate(`/repairs/${editRepairId}`);
         }
       } else {
-        await createRepair(repair);
+        await createRepair(token, repair);
         toast.success("สร้างรายการซ่อมเรียบร้อยแล้ว");
         const isDesktop = window.innerWidth >= 1280;
         navigate(isDesktop ? "/" : "/repairs?status=in-progress");
@@ -115,7 +117,7 @@ const RepairSummary = () => {
       origin,
       statusSlug,
       vehicleId,
-      ...(!repairData.fullName || !repairData.fullName.trim()
+      ...(!repairData.name || !repairData.name.trim()
         ? { hideMoreFields: true }
         : {}),
     };
@@ -160,7 +162,7 @@ const RepairSummary = () => {
                     ชื่อลูกค้า:
                   </p>
                   <p className="text-normal text-[18px] font-semibold md:text-[20px]">
-                    {repairData.fullName || "ไม่ระบุ"}
+                    {repairData.name || "ไม่ระบุ"}
                   </p>
                 </div>
                 <div className="flex justify-between">
@@ -473,4 +475,4 @@ const RepairSummary = () => {
   );
 };
 
-export default RepairSummary;
+export default RepairReview;

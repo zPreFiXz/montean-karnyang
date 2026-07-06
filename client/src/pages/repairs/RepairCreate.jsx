@@ -17,7 +17,8 @@ import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
 import EditPriceDialog from "@/components/dialogs/EditRepairItemDialog";
 import FormButton from "@/components/forms/FormButton";
 import ComboBox from "@/components/ui/ComboBox";
-import { getVehicleBrands } from "@/api/vehicleBrand";
+import { listVehicleModels } from "@/api/vehicleModel";
+import useAuthStore from "@/stores/useAuthStore";
 import { repairSchema } from "@/utils/schemas";
 import { provinces } from "@/constants/provinces";
 import { formatCurrency } from "@/utils/formats";
@@ -25,6 +26,7 @@ import { formatCurrency } from "@/utils/formats";
 const RepairCreate = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const token = useAuthStore((state) => state.token);
   const { register, handleSubmit, formState, setValue, watch, setFocus } =
     useForm({
       resolver: zodResolver(repairSchema),
@@ -32,7 +34,7 @@ const RepairCreate = () => {
   const [isCustomerInfoOpen, setIsCustomerInfoOpen] = useState(false);
   const [repairItems, setRepairItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [vehicleBrands, setVehicleBrands] = useState([]);
+  const [vehicleModels, setVehicleModels] = useState([]);
   const [brands, setBrands] = useState([]);
   const [restoredStockMap, setRestoredStockMap] = useState({});
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
@@ -41,7 +43,7 @@ const RepairCreate = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    fetchVehicleBrands();
+    fetchVehicleModels();
   }, []);
 
   useEffect(() => {
@@ -59,13 +61,9 @@ const RepairCreate = () => {
 
         const map = {};
         for (const it of savedItems) {
-          if (
-            it?.partNumber &&
-            it?.brand &&
-            typeof it.stockQuantity === "number"
-          ) {
+          if (it?.partNumber && it?.brand && typeof it.quantity === "number") {
             const key = `${it.partNumber}|${it.brand}|${it.name || ""}`;
-            map[key] = Math.max(map[key] || 0, it.stockQuantity);
+            map[key] = Math.max(map[key] || 0, it.quantity);
           }
         }
         setRestoredStockMap(map);
@@ -101,10 +99,10 @@ const RepairCreate = () => {
     }
   }, [location.state, setValue]);
 
-  const fetchVehicleBrands = async () => {
+  const fetchVehicleModels = async () => {
     try {
-      const res = await getVehicleBrands();
-      setVehicleBrands(res.data);
+      const res = await listVehicleModels(token);
+      setVehicleModels(res.data);
 
       const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
       setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
@@ -115,7 +113,7 @@ const RepairCreate = () => {
 
   const getAvailableModelsForBrand = () => {
     const selectedBrand = watch("brand");
-    const modelsForBrand = vehicleBrands
+    const modelsForBrand = vehicleModels
       .filter((item) => item.brand === selectedBrand)
       .map((item) => ({ id: item.model, name: item.model }));
 
@@ -156,9 +154,9 @@ const RepairCreate = () => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      navigate("/repairs/summary", {
+      navigate("/repairs/review", {
         state: {
-          repairData: { ...data, source: "GENERAL" },
+          repairData: { ...data, type: "GENERAL" },
           repairItems: repairItems,
           editRepairId: location.state?.editRepairId,
           origin: location.state?.origin || location.state?.from,
@@ -219,7 +217,6 @@ const RepairCreate = () => {
             ...item,
             quantity: 1,
             sellingPrice: item.sellingPrice,
-            stockQuantity: item.stockQuantity,
           },
         ];
       }
@@ -323,9 +320,9 @@ const RepairCreate = () => {
                   <p className="text-surface xl:text-normal text-[18px] font-medium md:text-[20px]">
                     ข้อมูลลูกค้า
                   </p>
-                  {watch("fullName") && (
+                  {watch("name") && (
                     <p className="text-surface/80 xl:text-subtle-dark line-clamp-1 text-[14px] md:text-[16px]">
-                      {watch("fullName")}
+                      {watch("name")}
                       {watch("phoneNumber") && ` • ${watch("phoneNumber")}`}
                     </p>
                   )}
@@ -343,7 +340,7 @@ const RepairCreate = () => {
               <div className="space-y-[4px]">
                 <FormInput
                   register={register}
-                  name="fullName"
+                  name="name"
                   label="ชื่อลูกค้า"
                   type="text"
                   placeholder="เช่น สมชาย ใจดี"
@@ -475,7 +472,9 @@ const RepairCreate = () => {
                   label=""
                   color="text-surface"
                   options={provinces}
-                  value={provinces.find((p) => p.name === watch("province"))?.id}
+                  value={
+                    provinces.find((p) => p.name === watch("province"))?.id
+                  }
                   onChange={(value) => {
                     const provinceName =
                       provinces.find((p) => p.id === value)?.name || value;
@@ -542,9 +541,9 @@ const RepairCreate = () => {
                     >
                       <div className="flex flex-1 items-center gap-[8px]">
                         <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                          {item.secureUrl ? (
+                          {item.secure_url ? (
                             <img
-                              src={item.secureUrl}
+                              src={item.secure_url}
                               alt={item.name}
                               className="h-full w-full rounded-[10px] object-cover"
                             />
@@ -596,7 +595,7 @@ const RepairCreate = () => {
                                 }}
                                 disabled={
                                   item.partNumber && item.brand
-                                    ? item.quantity >= (item.stockQuantity || 0)
+                                    ? item.quantity >= (item.quantity || 0)
                                     : false
                                 }
                                 className="border-primary/30 text-primary bg-primary/10 flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
@@ -696,9 +695,9 @@ const RepairCreate = () => {
                   >
                     <div className="flex flex-1 items-center gap-[8px]">
                       <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                        {item.secureUrl ? (
+                        {item.secure_url ? (
                           <img
-                            src={item.secureUrl}
+                            src={item.secure_url}
                             alt={item.name}
                             className="h-full w-full rounded-[10px] object-cover"
                           />
@@ -748,7 +747,7 @@ const RepairCreate = () => {
                               }}
                               disabled={
                                 item.partNumber && item.brand
-                                  ? item.quantity >= (item.stockQuantity || 0)
+                                  ? item.quantity >= (item.quantity || 0)
                                   : false
                               }
                               className="border-primary/30 text-primary bg-primary/10 flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
@@ -814,7 +813,7 @@ const RepairCreate = () => {
         onConfirm={handlePriceConfirm}
         currentPrice={editingItem?.sellingPrice || 0}
         productName={editingItem ? getProductName(editingItem) : ""}
-        productImage={editingItem?.secureUrl}
+        productImage={editingItem?.secure_url}
         isService={editingItem?.category?.name === "บริการ"}
         currentName={editingItem?.name || ""}
         canEditName={

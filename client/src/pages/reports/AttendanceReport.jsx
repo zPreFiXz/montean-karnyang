@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { ChevronLeft, LoaderCircle } from "lucide-react";
 import SearchBar from "@/components/forms/SearchBar";
-import { getDailyAttendanceSummary } from "@/api/attendance";
+import { getAttendanceSummary } from "@/api/attendance";
+import useAuthStore from "@/stores/useAuthStore";
 import { formatTime } from "@/utils/formats";
 
 const SLOT_CONFIG = [
@@ -20,16 +21,17 @@ const getTodayDateKey = () =>
     day: "2-digit",
   }).format(new Date());
 
-const AttendanceDailyReport = () => {
+const AttendanceReport = () => {
   const [dateKey, setDateKey] = useState(getTodayDateKey());
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [summaryData, setSummaryData] = useState(null);
+  const token = useAuthStore((state) => state.token);
 
   const fetchSummary = async (targetDate) => {
     setIsLoading(true);
     try {
-      const res = await getDailyAttendanceSummary(targetDate);
+      const res = await getAttendanceSummary(token, targetDate);
       setSummaryData(res.data);
     } catch (error) {
       console.log(error);
@@ -57,8 +59,7 @@ const AttendanceDailyReport = () => {
 
     return items.filter((item) => {
       return (
-        item.fullName?.toLowerCase().includes(query) ||
-        item.nickname?.toLowerCase().includes(query) ||
+        item.name?.toLowerCase().includes(query) ||
         item.zkUserId?.toLowerCase().includes(query)
       );
     });
@@ -153,7 +154,7 @@ const AttendanceDailyReport = () => {
                   <div className="mb-[10px] flex flex-wrap items-center justify-between gap-[8px] border-b border-gray-100 pb-[10px]">
                     <div className="min-w-0 flex-1">
                       <p className="text-normal truncate text-[18px] font-semibold md:text-[20px]">
-                        {item.fullName}
+                        {item.name}
                         <span className="text-subtle-dark ml-[6px] text-[14px] font-medium">
                           ({item.zkUserId})
                         </span>
@@ -217,4 +218,4 @@ const AttendanceDailyReport = () => {
   );
 };
 
-export default AttendanceDailyReport;
+export default AttendanceReport;

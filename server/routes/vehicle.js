@@ -1,37 +1,27 @@
 const express = require("express");
 const router = express.Router();
-const { validate, vehicleBrandSchema } = require("../utils/validator");
+const { validate, vehicleModelSchema } = require("../utils/validator");
 
 // Middlewares
 const { authCheck } = require("../middlewares/auth");
 
-// Controllers (Vehicle Brand)
+// Controllers (Vehicle Model)
 const {
-  getVehicleBrands,
-  createVehicleBrand,
-  updateVehicleBrand,
-  deleteVehicleBrand,
-} = require("../controllers/vehicleBrand");
+  listVehicleModels,
+  createVehicleModel,
+  updateVehicleModel,
+  deleteVehicleModel,
+} = require("../controllers/vehicleModel");
 
 // Controllers (Vehicle)
-const { getVehicles, getVehicleById } = require("../controllers/vehicle");
+const { listVehicles, getVehicle } = require("../controllers/vehicle");
 
-// @ENDPOINTS http://localhost:3000/api/vehicles/brands
-router.get("/vehicles/brands", authCheck, getVehicleBrands);
+router.get("/vehicles/models", authCheck, listVehicleModels);
+router.post("/vehicles/models", authCheck, validate(vehicleModelSchema), createVehicleModel);
+router.put("/vehicles/models/:id", authCheck, validate(vehicleModelSchema), updateVehicleModel);
+router.delete("/vehicles/models/:id", authCheck, deleteVehicleModel);
 
-// @ENDPOINTS http://localhost:3000/api/vehicles/brands
-router.post("/vehicles/brands", authCheck, validate(vehicleBrandSchema), createVehicleBrand);
-
-// @ENDPOINTS http://localhost:3000/api/vehicles/brands/1
-router.put("/vehicles/brands/:id", authCheck, validate(vehicleBrandSchema), updateVehicleBrand);
-
-// @ENDPOINTS http://localhost:3000/api/vehicles/brands/1
-router.delete("/vehicles/brands/:id", authCheck, deleteVehicleBrand);
-
-// @ENDPOINTS http://localhost:3000/api/vehicles
-router.get("/vehicles", authCheck, getVehicles);
-
-// @ENDPOINTS http://localhost:3000/api/vehicles/1
-router.get("/vehicles/:id", authCheck, getVehicleById);
+router.get("/vehicles", authCheck, listVehicles);
+router.get("/vehicles/:id", authCheck, getVehicle);
 
 module.exports = router;

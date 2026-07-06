@@ -5,11 +5,11 @@ const LoadingToRedirect = () => {
   const [redirect, setRedirect] = useState(false);
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const timer = setTimeout(() => {
       setRedirect(true);
     }, 1000);
 
-    return () => clearInterval(interval);
+    return () => clearTimeout(timer);
   }, []);
 
   if (redirect) {

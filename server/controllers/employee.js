@@ -1,7 +1,7 @@
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
 
-exports.getEmployees = async (req, res, next) => {
+exports.listEmployees = async (req, res, next) => {
   try {
     const employees = await prisma.employee.findMany({
       orderBy: {
@@ -17,8 +17,7 @@ exports.getEmployees = async (req, res, next) => {
 
 exports.createEmployee = async (req, res, next) => {
   try {
-    const { zkUserId, fullName, nickname, phoneNumber, dateOfBirth, isActive } =
-      req.body;
+    const { zkUserId, name } = req.body;
 
     const employee = await prisma.employee.findUnique({
       where: { zkUserId },
@@ -31,11 +30,7 @@ exports.createEmployee = async (req, res, next) => {
     await prisma.employee.create({
       data: {
         zkUserId,
-        fullName,
-        nickname: nickname || null,
-        phoneNumber: phoneNumber || null,
-        dateOfBirth: dateOfBirth || null,
-        isActive: isActive ?? true,
+        name,
       },
     });
 
@@ -48,8 +43,7 @@ exports.createEmployee = async (req, res, next) => {
 exports.updateEmployee = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { zkUserId, fullName, nickname, phoneNumber, dateOfBirth, isActive } =
-      req.body;
+    const { zkUserId, name } = req.body;
 
     const existingEmployee = await prisma.employee.findUnique({
       where: { id: Number(id) },
@@ -71,11 +65,7 @@ exports.updateEmployee = async (req, res, next) => {
 
     const updateData = {};
     if (zkUserId) updateData.zkUserId = zkUserId;
-    if (fullName) updateData.fullName = fullName;
-    if (nickname !== undefined) updateData.nickname = nickname || null;
-    if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber || null;
-    if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth || null;
-    if (isActive !== undefined) updateData.isActive = isActive;
+    if (name) updateData.name = name;
 
     await prisma.employee.update({
       where: { id: Number(id) },

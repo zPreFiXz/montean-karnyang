@@ -1,90 +1,45 @@
 import { useEffect, useState } from "react";
-import { X, Eye, EyeOff, Calendar, AlertCircle } from "lucide-react";
+import { X, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import FormInput from "@/components/forms/FormInput";
 import ComboBox from "@/components/ui/ComboBox";
 import FormButton from "@/components/forms/FormButton";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Button } from "@/components/ui/button";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   createUserAccountSchema,
   editUserAccountSchema,
 } from "@/utils/schemas";
 import { createUser, updateUser } from "@/api/user";
-import { cn } from "@/lib/utils";
-
-const formatDateThai = (date) => {
-  const thaiMonths = [
-    "มกราคม",
-    "กุมภาพันธ์",
-    "มีนาคม",
-    "เมษายน",
-    "พฤษภาคม",
-    "มิถุนายน",
-    "กรกฎาคม",
-    "สิงหาคม",
-    "กันยายน",
-    "ตุลาคม",
-    "พฤศจิกายน",
-    "ธันวาคม",
-  ];
-
-  const d = new Date(date);
-  const day = d.getDate();
-  const month = thaiMonths[d.getMonth()];
-  const year = d.getFullYear();
-
-  return `${day} ${month} ${year}`;
-};
-
-const formatDateISO = (date) => {
-  const d = new Date(date);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-};
+import useAuthStore from "@/stores/useAuthStore";
 
 const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
     useState(false);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const token = useAuthStore((state) => state.token);
   const {
     register,
     handleSubmit,
     reset,
     setValue,
     watch,
-    control,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(
       editingItem ? editUserAccountSchema : createUserAccountSchema,
     ),
     defaultValues: {
-      fullName: "",
-      nickname: "",
+      name: "",
       email: "",
       password: "",
       confirmPassword: "",
-      dateOfBirth: "",
-      phoneNumber: "",
       role: "",
     },
   });
@@ -95,26 +50,18 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
     if (isOpen) {
       if (editingItem) {
         reset({
-          fullName: editingItem.fullName || "",
-          nickname: editingItem.nickname || "",
+          name: editingItem.name || "",
           email: editingItem.email || "",
           password: "",
           confirmPassword: "",
-          dateOfBirth: editingItem.dateOfBirth
-            ? String(editingItem.dateOfBirth).split("T")[0]
-            : "",
-          phoneNumber: editingItem.phoneNumber || "",
           role: editingItem.role || "",
         });
       } else {
         reset({
-          fullName: "",
-          nickname: "",
+          name: "",
           email: "",
           password: "",
           confirmPassword: "",
-          dateOfBirth: "",
-          phoneNumber: "",
           role: "",
         });
       }
@@ -123,14 +70,11 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
 
   const handleAdd = async (data) => {
     try {
-      await createUser({
+      await createUser(token, {
         email: data.email,
         password: data.password,
-        fullName: data.fullName,
-        nickname: data.nickname,
+        name: data.name,
         role: data.role,
-        phoneNumber: data.phoneNumber,
-        dateOfBirth: data.dateOfBirth,
       });
       toast.success("เพิ่มบัญชีผู้ใช้งานเรียบร้อยแล้ว");
       handleClose();
@@ -144,18 +88,15 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
     try {
       const updateData = {
         email: data.email,
-        fullName: data.fullName,
-        nickname: data.nickname,
+        name: data.name,
         role: data.role,
-        phoneNumber: data.phoneNumber,
-        dateOfBirth: data.dateOfBirth,
       };
 
       if (data.password && data.password.trim() !== "") {
         updateData.password = data.password;
       }
 
-      await updateUser(editingItem.id, updateData);
+      await updateUser(token, editingItem.id, updateData);
       toast.success("แก้ไขบัญชีผู้ใช้งานเรียบร้อยแล้ว");
       handleClose();
       onSuccess?.();
@@ -185,9 +126,7 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
             {editingItem ? "แก้ไขบัญชีผู้ใช้งาน" : "เพิ่มบัญชีผู้ใช้งาน"}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            {editingItem
-              ? `แก้ไข ${editingItem.fullName}`
-              : "เพิ่มบัญชีผู้ใช้งาน"}
+            {editingItem ? `แก้ไข ${editingItem.name}` : "เพิ่มบัญชีผู้ใช้งาน"}
           </DialogDescription>
           <button
             onClick={handleClose}
@@ -208,20 +147,9 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
             <div>
               <FormInput
                 register={register}
-                name="fullName"
-                label="ชื่อ-นามสกุล"
+                name="name"
+                label="ชื่อ"
                 placeholder="เช่น สมชาย ใจดี"
-                errors={errors}
-                customClass="px-0 pb-[16px]"
-                color="subtle-dark"
-                autoFocus={false}
-              />
-
-              <FormInput
-                register={register}
-                name="nickname"
-                label="ชื่อเล่น"
-                placeholder="เช่น ชาย"
                 errors={errors}
                 customClass="px-0 pb-[16px]"
                 color="subtle-dark"
@@ -296,100 +224,6 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
                     )}
                   </button>
                 }
-                autoFocus={false}
-              />
-
-              <div className="px-0 pb-[16px]">
-                <Label
-                  htmlFor="dateOfBirth"
-                  className="text-subtle-dark mb-[8px] text-[22px] font-medium md:text-[24px]"
-                >
-                  วันเกิด
-                </Label>
-                <Controller
-                  name="dateOfBirth"
-                  control={control}
-                  render={({ field }) => (
-                    <div className="relative">
-                      <Popover
-                        open={isCalendarOpen}
-                        onOpenChange={setIsCalendarOpen}
-                      >
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "bg-surface border-input relative h-[41px] w-full justify-start rounded-[20px] border pl-[12px] text-left text-[20px] font-medium md:text-[22px]",
-                              "focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
-                              !field.value &&
-                                "text-subtle-dark text-[18px] font-light md:text-[20px]",
-                              errors.dateOfBirth
-                                ? "focus-visible:border-destructive border-destructive focus-visible:ring-destructive/30 pr-[44px]"
-                                : "focus-visible:border-primary focus-visible:ring-primary/35 pr-[44px]",
-                            )}
-                          >
-                            {field.value
-                              ? formatDateThai(field.value)
-                              : "-- เลือกวันเกิด --"}
-                            <Calendar
-                              className="text-subtle-light pointer-events-none absolute top-1/2 right-[12px] h-5 w-5 -translate-y-1/2"
-                              strokeWidth={2.25}
-                            />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent
-                          className="w-auto p-0"
-                          align="start"
-                          onPointerDownOutside={(e) => {
-                            if (e.target.closest('[role="gridcell"]')) {
-                              e.preventDefault();
-                            }
-                          }}
-                        >
-                          <CalendarComponent
-                            mode="single"
-                            selected={
-                              field.value ? new Date(field.value) : undefined
-                            }
-                            onSelect={(date) => {
-                              if (date) {
-                                field.onChange(formatDateISO(date));
-                                requestAnimationFrame(() => {
-                                  setIsCalendarOpen(false);
-                                });
-                              }
-                            }}
-                            disabled={(date) =>
-                              date > new Date() || date < new Date("1900-01-01")
-                            }
-                            captionLayout="dropdown"
-                            fromYear={1900}
-                            toYear={new Date().getFullYear()}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      {errors.dateOfBirth && (
-                        <div className="mt-[6px] flex items-center gap-[4px] px-[4px]">
-                          <AlertCircle className="text-destructive h-4 w-4 flex-shrink-0" />
-                          <p className="text-destructive text-[18px] font-medium md:text-[20px]">
-                            {errors.dateOfBirth.message}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                />
-              </div>
-
-              <FormInput
-                register={register}
-                name="phoneNumber"
-                label="เบอร์โทรศัพท์"
-                placeholder="เช่น 0812345678"
-                errors={errors}
-                customClass="px-0 pb-[16px]"
-                color="subtle-dark"
                 autoFocus={false}
               />
 

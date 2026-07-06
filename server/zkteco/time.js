@@ -15,9 +15,6 @@ const formatThaiTime = (value) =>
     timeZone: TIMEZONE,
   });
 
-const formatThaiDateTime = (value) =>
-  `${formatThaiDate(value)} เวลา ${formatThaiTime(value)} น.`;
-
 const getDateKey = (value) =>
   new Intl.DateTimeFormat("en-CA", {
     timeZone: TIMEZONE,
@@ -47,7 +44,7 @@ const getMinuteOfDay = (value) => {
 
 module.exports = {
   formatThaiDate,
-  formatThaiDateTime,
+  formatThaiTime,
   getDateKey,
   getDayRange,
   getMinuteOfDay,

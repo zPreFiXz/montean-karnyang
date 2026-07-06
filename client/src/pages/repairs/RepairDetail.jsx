@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
-import { getRepairById, updateRepairStatus } from "@/api/repair";
+import { getRepair, updateRepairStatus } from "@/api/repair";
+import useAuthStore from "@/stores/useAuthStore";
 import {
   formatDate,
   formatTime,
@@ -21,7 +22,6 @@ import {
   SquareArrowRight,
   CircleEllipsis,
   Wrench,
-  Printer,
 } from "lucide-react";
 import BrandIcons from "@/components/icons/BrandIcons";
 import FormButton from "@/components/forms/FormButton";
@@ -34,7 +34,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import RepairItemCard from "@/components/cards/RepairItemCard";
-import PrintPreviewDialog from "@/components/dialogs/PrintPreviewDialog";
 
 const RepairDetail = () => {
   const { id } = useParams();
@@ -45,8 +44,7 @@ const RepairDetail = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUpdatingSkip, setIsUpdatingSkip] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
-  const [isPrinting, setIsPrinting] = useState(false);
-  const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
+  const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -57,7 +55,7 @@ const RepairDetail = () => {
   const fetchRepairDetail = async () => {
     setIsLoading(true);
     try {
-      const res = await getRepairById(id);
+      const res = await getRepair(token, id);
       setRepair(res.data);
       setSelectedPaymentMethod(res.data.paymentMethod);
     } catch (error) {
@@ -109,8 +107,8 @@ const RepairDetail = () => {
     switch (method) {
       case "CASH":
         return "เงินสด";
-      case "BANK_TRANSFER":
-        return "โอนเงิน";
+      case "QR_CODE":
+        return "สแกนจ่าย";
       case "CREDIT_CARD":
         return "บัตรเครดิต";
     }
@@ -171,7 +169,7 @@ const RepairDetail = () => {
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      const res = await updateRepairStatus(repair.id, updateData);
+      const res = await updateRepairStatus(token, repair.id, updateData);
       setRepair(res.data);
 
       if (skipToCompleted) {
@@ -198,16 +196,16 @@ const RepairDetail = () => {
   const handleEditRepair = () => {
     if (!repair) return;
 
-    const plate = repair?.vehicle?.licensePlate?.plate || "";
+    const plate = repair?.vehicle?.licensePlate?.plateNumber || "";
     const [plateLetters = "", plateNumbers = ""] = plate.split("-");
     const provinceName = repair?.vehicle?.licensePlate?.province || "";
 
     const repairData = {
-      fullName: repair?.customer?.fullName || "",
+      name: repair?.customer?.name || "",
       address: repair?.customer?.address || "",
       phoneNumber: repair?.customer?.phoneNumber || "",
-      brand: repair?.vehicle?.vehicleBrand?.brand || "",
-      model: repair?.vehicle?.vehicleBrand?.model || "",
+      brand: repair?.vehicle?.vehicleModel?.brand || "",
+      model: repair?.vehicle?.vehicleModel?.model || "",
       plateLetters,
       plateNumbers,
       province: getProvinceIdByName(provinceName),
@@ -223,7 +221,7 @@ const RepairDetail = () => {
 
     const normalizedItems = (repair?.repairItems || []).map((ri) => {
       if (ri.part) {
-        const baseStock = ri.part.stockQuantity ?? 0;
+        const baseStock = ri.part.quantity ?? 0;
         const restoredStock = baseStock + (usedQtyByPartId[ri.part.id] || 0);
         return {
           id: ri.part.id,
@@ -231,10 +229,10 @@ const RepairDetail = () => {
           brand: ri.part.brand || "",
           name: ri.part.name || "",
           sellingPrice: Number(ri.unitPrice),
-          stockQuantity: restoredStock,
+          stock: restoredStock,
           unit: ri.part.unit,
           category: ri.part.category,
-          secureUrl: ri.part.secureUrl || null,
+          secure_url: ri.part.secure_url || null,
           typeSpecificData: ri.part.typeSpecificData || null,
           quantity: ri.quantity || 1,
           side: ri.side,
@@ -246,13 +244,13 @@ const RepairDetail = () => {
         name: ri.customName || ri.service?.name || "",
         sellingPrice: Number(ri.unitPrice),
         category: ri.service?.category,
-        secureUrl: null,
+        secure_url: null,
         quantity: ri.quantity || 1,
         side: ri.side,
       };
     });
 
-    if (repair.source === "SUSPENSION") {
+    if (repair.type === "SUSPENSION") {
       const savedItems = [];
 
       const lrGroups = {};
@@ -321,7 +319,7 @@ const RepairDetail = () => {
           from: location.state?.from,
           statusSlug: location.state?.statusSlug,
           vehicleId: location.state?.vehicleId,
-          hideMoreFields: !repairData.fullName?.trim(),
+          hideMoreFields: !repairData.name?.trim(),
         },
       });
       return;
@@ -336,7 +334,7 @@ const RepairDetail = () => {
         from: location.state?.from,
         statusSlug: location.state?.statusSlug,
         vehicleId: location.state?.vehicleId,
-        hideMoreFields: !repairData.fullName?.trim(),
+        hideMoreFields: !repairData.name?.trim(),
       },
     });
   };
@@ -396,7 +394,7 @@ const RepairDetail = () => {
                 className={`flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full ${statusInfo.bg}`}
               >
                 <BrandIcons
-                  brand={repair.vehicle?.vehicleBrand.brand}
+                  brand={repair.vehicle?.vehicleModel.brand}
                   color={statusInfo.iconColor}
                 />
               </div>
@@ -404,14 +402,14 @@ const RepairDetail = () => {
                 <p
                   className={`text-[22px] font-semibold md:text-[24px] ${statusInfo.color} leading-tight`}
                 >
-                  {repair?.vehicle?.licensePlate?.plate &&
+                  {repair?.vehicle?.licensePlate?.plateNumber &&
                   repair?.vehicle?.licensePlate?.province
-                    ? `${repair.vehicle.licensePlate.plate} ${repair.vehicle.licensePlate.province}`
+                    ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
                     : "ไม่ระบุทะเบียนรถ"}
                 </p>
                 <p className="text-subtle-dark text-[18px] leading-tight font-medium md:text-[20px]">
-                  {repair.vehicle?.vehicleBrand.brand}{" "}
-                  {repair.vehicle?.vehicleBrand.model}
+                  {repair.vehicle?.vehicleModel.brand}{" "}
+                  {repair.vehicle?.vehicleModel.model}
                 </p>
               </div>
             </div>
@@ -423,23 +421,23 @@ const RepairDetail = () => {
                   >
                     <CircleUserRound color="#ffffff" />
                   </div>
-                  {repair.customer.fullName &&
+                  {repair.customer.name &&
                   !repair.customer.phoneNumber &&
                   !repair.customer.address ? (
                     <div className="mt-[4px] flex h-[45px] items-center justify-center">
                       <p
                         className={`text-[22px] font-semibold md:text-[24px] ${statusInfo.color} leading-tight`}
                       >
-                        {repair.customer.fullName}
+                        {repair.customer.name}
                       </p>
                     </div>
                   ) : (
                     <div className="flex flex-col">
-                      {repair.customer.fullName && (
+                      {repair.customer.name && (
                         <p
                           className={`text-[22px] font-semibold md:text-[24px] ${statusInfo.color} leading-tight`}
                         >
-                          {repair.customer.fullName}
+                          {repair.customer.name}
                         </p>
                       )}
                       <div className="mt-[4px] flex flex-wrap items-start gap-[8px]">
@@ -485,7 +483,7 @@ const RepairDetail = () => {
                     แก้ไขรายการซ่อม
                   </button>
                 </div>
-                {repair.source === "SUSPENSION" ? (
+                {repair.type === "SUSPENSION" ? (
                   <div className="space-y-[16px]">
                     {(() => {
                       const suspensionItems = (repair.repairItems || []).filter(
@@ -700,9 +698,9 @@ const RepairDetail = () => {
                         </SelectItem>
                         <SelectItem
                           className="cursor-pointer text-[18px] md:text-[20px]"
-                          value="BANK_TRANSFER"
+                          value="QR_CODE"
                         >
-                          โอนเงิน
+                          สแกนจ่าย
                         </SelectItem>
                         <SelectItem
                           className="cursor-pointer text-[18px] md:text-[20px]"
@@ -779,22 +777,9 @@ const RepairDetail = () => {
                 </p>
                 <div className="rounded-[10px] bg-gray-50 p-[16px]">
                   <p className="text-normal text-[18px] font-medium md:text-[20px]">
-                    {repair.user.fullName} ({repair.user.nickname})
+                    {repair.user.name}
                   </p>
                 </div>
-              </div>
-            )}
-            {repair.status === "PAID" && (
-              <div className="mt-[16px] px-[20px]">
-                <button
-                  onClick={() => setIsPrintDialogOpen(true)}
-                  className="bg-primary hover:bg-primary/90 flex w-full cursor-pointer items-center justify-center gap-[8px] rounded-[10px] py-[12px] text-white duration-300"
-                >
-                  <Printer className="h-5 w-5" />
-                  <span className="text-[20px] font-semibold md:text-[22px]">
-                    พิมพ์ใบเสร็จ
-                  </span>
-                </button>
               </div>
             )}
             {getNextStatus(repair.status) && (
@@ -820,11 +805,6 @@ const RepairDetail = () => {
           </div>
         )}
       </div>
-      <PrintPreviewDialog
-        isOpen={isPrintDialogOpen}
-        onClose={() => setIsPrintDialogOpen(false)}
-        repairId={repair?.id}
-      />
     </div>
   );
 };

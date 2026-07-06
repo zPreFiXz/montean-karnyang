@@ -1,6 +1,7 @@
 const prisma = require("../config/prisma");
+const createError = require("../utils/createError");
 
-exports.getRepairs = async (req, res, next) => {
+exports.listRepairs = async (req, res, next) => {
   try {
     const repairs = await prisma.repair.findMany({
       include: {
@@ -8,11 +9,11 @@ exports.getRepairs = async (req, res, next) => {
           include: {
             licensePlate: {
               select: {
-                plate: true,
+                plateNumber: true,
                 province: true,
               },
             },
-            vehicleBrand: {
+            vehicleModel: {
               select: {
                 brand: true,
                 model: true,
@@ -32,7 +33,7 @@ exports.getRepairs = async (req, res, next) => {
   }
 };
 
-exports.getRepairById = async (req, res, next) => {
+exports.getRepair = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -43,11 +44,11 @@ exports.getRepairById = async (req, res, next) => {
           include: {
             licensePlate: {
               select: {
-                plate: true,
+                plateNumber: true,
                 province: true,
               },
             },
-            vehicleBrand: {
+            vehicleModel: {
               select: {
                 brand: true,
                 model: true,
@@ -58,8 +59,7 @@ exports.getRepairById = async (req, res, next) => {
         customer: true,
         user: {
           select: {
-            fullName: true,
-            nickname: true,
+            name: true,
           },
         },
         repairItems: {
@@ -79,6 +79,10 @@ exports.getRepairById = async (req, res, next) => {
       },
     });
 
+    if (!repair) {
+      return createError(404, "ไม่พบรายการซ่อม");
+    }
+
     res.json(repair);
   } catch (error) {
     next(error);
@@ -88,7 +92,7 @@ exports.getRepairById = async (req, res, next) => {
 exports.createRepair = async (req, res, next) => {
   try {
     const {
-      fullName,
+      name,
       address,
       phoneNumber,
       brand,
@@ -97,172 +101,139 @@ exports.createRepair = async (req, res, next) => {
       province,
       description,
       totalPrice,
-      source,
+      type,
       repairItems,
     } = req.body;
 
-    let vehicle;
-    let customer;
-    let licensePlate;
-    let vehicleBrand;
+    // ห่อทั้งหมดใน transaction: ถ้าพังกลางทางจะ rollback ไม่เหลือข้อมูลค้างครึ่ง
+    await prisma.$transaction(async (tx) => {
+      let vehicle;
+      let customer;
+      let licensePlate;
 
-    vehicleBrand = await prisma.vehicleBrand.findUnique({
-      where: {
-        brand_model: {
-          brand,
-          model,
-        },
-      },
-    });
-
-    if (!vehicleBrand) {
-      vehicleBrand = await prisma.vehicleBrand.create({
-        data: {
-          brand,
-          model,
-        },
-      });
-    }
-
-    if (plate && province) {
-      licensePlate = await prisma.licensePlate.findUnique({
-        where: {
-          plate_province: {
-            plate,
-            province,
-          },
-        },
+      let vehicleModel = await tx.vehicleModel.findUnique({
+        where: { brand_model: { brand, model } },
       });
 
-      if (licensePlate) {
-        vehicle = await prisma.vehicle.findFirst({
-          where: {
-            licensePlateId: licensePlate.id,
-            vehicleBrandId: vehicleBrand.id,
-          },
+      if (!vehicleModel) {
+        vehicleModel = await tx.vehicleModel.create({
+          data: { brand, model },
+        });
+      }
+
+      if (plate && province) {
+        licensePlate = await tx.licensePlate.findUnique({
+          where: { plateNumber_province: { plateNumber: plate, province } },
         });
 
-        if (!vehicle) {
-          vehicle = await prisma.vehicle.create({
+        if (licensePlate) {
+          vehicle = await tx.vehicle.findFirst({
+            where: {
+              licensePlateId: licensePlate.id,
+              vehicleModelId: vehicleModel.id,
+            },
+          });
+
+          if (!vehicle) {
+            vehicle = await tx.vehicle.create({
+              data: {
+                vehicleModelId: vehicleModel.id,
+                licensePlateId: licensePlate.id,
+              },
+            });
+          }
+        } else {
+          licensePlate = await tx.licensePlate.create({
+            data: { plateNumber: plate, province },
+          });
+
+          vehicle = await tx.vehicle.create({
             data: {
-              vehicleBrandId: vehicleBrand.id,
+              vehicleModelId: vehicleModel.id,
               licensePlateId: licensePlate.id,
             },
           });
         }
       } else {
-        licensePlate = await prisma.licensePlate.create({
-          data: {
-            plate,
-            province,
-          },
+        vehicle = await tx.vehicle.findFirst({
+          where: { vehicleModelId: vehicleModel.id, licensePlateId: null },
         });
 
-        vehicle = await prisma.vehicle.create({
-          data: {
-            vehicleBrandId: vehicleBrand.id,
-            licensePlateId: licensePlate.id,
-          },
-        });
-      }
-    } else {
-      vehicle = await prisma.vehicle.findFirst({
-        where: {
-          vehicleBrandId: vehicleBrand.id,
-          licensePlateId: null,
-        },
-      });
-
-      if (!vehicle) {
-        vehicle = await prisma.vehicle.create({
-          data: {
-            vehicleBrandId: vehicleBrand.id,
-            licensePlateId: null,
-          },
-        });
-      }
-    }
-
-    if (phoneNumber) {
-      customer = await prisma.customer.findUnique({
-        where: { phoneNumber: phoneNumber },
-      });
-
-      if (!customer) {
-        customer = await prisma.customer.create({
-          data: {
-            fullName: fullName || null,
-            address: address || null,
-            phoneNumber: phoneNumber,
-          },
-        });
-      } else if (fullName || address) {
-        customer = await prisma.customer.update({
-          where: { id: customer.id },
-          data: {
-            fullName: fullName || null,
-            address: address || customer.address,
-          },
-        });
-      }
-    } else if (fullName && !phoneNumber) {
-      customer = await prisma.customer.findFirst({
-        where: {
-          fullName,
-        },
-      });
-      const isSameCustomer = customer.fullName === fullName;
-
-      if (!isSameCustomer) {
-        customer = await prisma.customer.create({
-          data: {
-            fullName: fullName,
-            address: address || null,
-            phoneNumber: null,
-          },
-        });
-      }
-    }
-
-    const repair = await prisma.repair.create({
-      data: {
-        description: description || null,
-        totalPrice,
-        source: source,
-        user: { connect: { id: req.user.id } },
-        vehicle: { connect: { id: vehicle.id } },
-        ...(customer ? { customer: { connect: { id: customer.id } } } : {}),
-      },
-    });
-
-    if (repairItems) {
-      const repairItemsData = repairItems.map((item) => ({
-        customName: item.customName || null,
-        side: item.side || null,
-        unitPrice: item.unitPrice,
-        quantity: item.quantity,
-        repairId: repair.id,
-        partId: item.partId,
-        serviceId: item.serviceId,
-      }));
-
-      await prisma.repairItem.createMany({
-        data: repairItemsData,
-      });
-
-      for (const item of repairItems) {
-        if (item.partId) {
-          await prisma.part.update({
-            where: { id: item.partId },
-            data: {
-              stockQuantity: {
-                decrement: item.quantity,
-              },
-            },
+        if (!vehicle) {
+          vehicle = await tx.vehicle.create({
+            data: { vehicleModelId: vehicleModel.id, licensePlateId: null },
           });
         }
       }
-    }
+
+      if (phoneNumber) {
+        customer = await tx.customer.findUnique({
+          where: { phoneNumber },
+        });
+
+        if (!customer) {
+          customer = await tx.customer.create({
+            data: {
+              name: name || null,
+              address: address || null,
+              phoneNumber,
+            },
+          });
+        } else if (name || address) {
+          customer = await tx.customer.update({
+            where: { id: customer.id },
+            data: {
+              name: name || null,
+              address: address || customer.address,
+            },
+          });
+        }
+      } else if (name && !phoneNumber) {
+        customer = await tx.customer.findFirst({
+          where: { name },
+        });
+
+        if (!customer) {
+          customer = await tx.customer.create({
+            data: { name, address: address || null, phoneNumber: null },
+          });
+        }
+      }
+
+      const repair = await tx.repair.create({
+        data: {
+          description: description || null,
+          totalPrice,
+          type,
+          user: { connect: { id: req.user.id } },
+          vehicle: { connect: { id: vehicle.id } },
+          ...(customer ? { customer: { connect: { id: customer.id } } } : {}),
+        },
+      });
+
+      if (repairItems) {
+        await tx.repairItem.createMany({
+          data: repairItems.map((item) => ({
+            customName: item.customName || null,
+            side: item.side || null,
+            unitPrice: item.unitPrice,
+            quantity: item.quantity,
+            repairId: repair.id,
+            partId: item.partId,
+            serviceId: item.serviceId,
+          })),
+        });
+
+        for (const item of repairItems) {
+          if (item.partId) {
+            await tx.part.update({
+              where: { id: item.partId },
+              data: { quantity: { decrement: item.quantity } },
+            });
+          }
+        }
+      }
+    });
 
     res.json({ message: "สร้างรายการซ่อมเรียบร้อยแล้ว" });
   } catch (error) {
@@ -274,7 +245,7 @@ exports.updateRepair = async (req, res, next) => {
   try {
     const { id } = req.params;
     const {
-      fullName,
+      name,
       address,
       phoneNumber,
       brand,
@@ -283,171 +254,146 @@ exports.updateRepair = async (req, res, next) => {
       province,
       description,
       totalPrice,
-      source,
+      type,
       repairItems,
     } = req.body;
 
-    let vehicleBrand = await prisma.vehicleBrand.findUnique({
-      where: { brand_model: { brand, model } },
-    });
-
-    if (!vehicleBrand) {
-      vehicleBrand = await prisma.vehicleBrand.create({
-        data: { brand, model },
+    // ห่อทั้งหมดใน transaction: คืนสต็อก + ลบ/สร้างรายการใหม่ + อัปเดตบิล ต้อง atomic
+    await prisma.$transaction(async (tx) => {
+      let vehicleModel = await tx.vehicleModel.findUnique({
+        where: { brand_model: { brand, model } },
       });
-    }
 
-    let vehicle;
-    if (plate && province) {
-      let licensePlate = await prisma.licensePlate.findUnique({
-        where: { plate_province: { plate, province } },
-      });
-      if (!licensePlate) {
-        licensePlate = await prisma.licensePlate.create({
-          data: { plate, province },
+      if (!vehicleModel) {
+        vehicleModel = await tx.vehicleModel.create({
+          data: { brand, model },
         });
       }
 
-      const repair = await prisma.repair.findUnique({
-        where: { id: Number(id) },
-        select: { vehicleId: true },
-      });
-      vehicle = await prisma.vehicle.upsert({
-        where: { id: repair.vehicleId },
-        update: {
-          vehicleBrandId: vehicleBrand.id,
-          licensePlateId: licensePlate.id,
-        },
-        create: {
-          vehicleBrandId: vehicleBrand.id,
-          licensePlateId: licensePlate.id,
-        },
-      });
-    } else {
-      let existingVehicle = await prisma.vehicle.findUnique({
-        where: {
-          vehicleBrandId: vehicleBrand.id,
-          licensePlateId: null,
-        },
-      });
-
-      const repair = await prisma.repair.findUnique({
+      const currentRepair = await tx.repair.findUnique({
         where: { id: Number(id) },
         select: { vehicleId: true },
       });
 
-      if (existingVehicle && existingVehicle.id !== repair.vehicleId) {
-        vehicle = existingVehicle;
+      let vehicle;
+      if (plate && province) {
+        let licensePlate = await tx.licensePlate.findUnique({
+          where: { plateNumber_province: { plateNumber: plate, province } },
+        });
+        if (!licensePlate) {
+          licensePlate = await tx.licensePlate.create({
+            data: { plateNumber: plate, province },
+          });
+        }
+
+        vehicle = await tx.vehicle.upsert({
+          where: { id: currentRepair.vehicleId },
+          update: {
+            vehicleModelId: vehicleModel.id,
+            licensePlateId: licensePlate.id,
+          },
+          create: {
+            vehicleModelId: vehicleModel.id,
+            licensePlateId: licensePlate.id,
+          },
+        });
       } else {
-        vehicle = await prisma.vehicle.update({
-          where: { id: repair.vehicleId },
-          data: {
-            vehicleBrandId: vehicleBrand.id,
-            licensePlateId: null,
-          },
+        const existingVehicle = await tx.vehicle.findFirst({
+          where: { vehicleModelId: vehicleModel.id, licensePlateId: null },
         });
-      }
-    }
 
-    let customer = null;
-    if (phoneNumber) {
-      customer = await prisma.customer.findUnique({
-        where: { phoneNumber },
-      });
-      if (!customer) {
-        customer = await prisma.customer.create({
-          data: {
-            fullName: fullName || null,
-            address: address || null,
-            phoneNumber,
-          },
-        });
-      } else if (fullName || address) {
-        customer = await prisma.customer.update({
-          where: { id: customer.id },
-          data: {
-            fullName: fullName || null,
-            address: address || customer.address,
-          },
-        });
-      }
-    } else if (fullName && !phoneNumber) {
-      customer = await prisma.customer.findFirst({ where: { fullName } });
-      if (!customer) {
-        customer = await prisma.customer.create({
-          data: { fullName, address: address || null, phoneNumber: null },
-        });
-      }
-    }
-
-    const existingItems = await prisma.repairItem.findMany({
-      where: { repairId: Number(id) },
-      include: { part: true },
-    });
-
-    for (const item of existingItems) {
-      if (item.partId) {
-        await prisma.part.update({
-          where: { id: item.partId },
-          data: { stockQuantity: { increment: item.quantity } },
-        });
-      }
-    }
-
-    await prisma.repairItem.deleteMany({ where: { repairId: Number(id) } });
-
-    if (Array.isArray(repairItems)) {
-      const dataItems = repairItems.map((item) => ({
-        customName: item.customName || null,
-        side: item.side || null,
-        unitPrice: item.unitPrice,
-        quantity: item.quantity,
-        repairId: Number(id),
-        partId: item.partId,
-        serviceId: item.serviceId,
-      }));
-      if (dataItems.length) {
-        await prisma.repairItem.createMany({ data: dataItems });
-      }
-      for (const item of repairItems) {
-        if (item.partId) {
-          await prisma.part.update({
-            where: { id: item.partId },
-            data: { stockQuantity: { decrement: item.quantity } },
+        if (existingVehicle && existingVehicle.id !== currentRepair.vehicleId) {
+          vehicle = existingVehicle;
+        } else {
+          vehicle = await tx.vehicle.update({
+            where: { id: currentRepair.vehicleId },
+            data: { vehicleModelId: vehicleModel.id, licensePlateId: null },
           });
         }
       }
-    }
 
-    await prisma.repair.update({
-      where: { id: Number(id) },
-      data: {
-        description: description || null,
-        totalPrice,
-        source,
-        vehicle: { connect: { id: vehicle.id } },
-        ...(customer
-          ? { customer: { connect: { id: customer.id } } }
-          : { customer: { disconnect: true } }),
-      },
-      include: {
-        vehicle: {
-          include: {
-            licensePlate: {
-              select: { plate: true, province: true },
+      let customer = null;
+      if (phoneNumber) {
+        customer = await tx.customer.findUnique({
+          where: { phoneNumber },
+        });
+        if (!customer) {
+          customer = await tx.customer.create({
+            data: {
+              name: name || null,
+              address: address || null,
+              phoneNumber,
             },
-            vehicleBrand: { select: { brand: true, model: true } },
-          },
+          });
+        } else if (name || address) {
+          customer = await tx.customer.update({
+            where: { id: customer.id },
+            data: {
+              name: name || null,
+              address: address || customer.address,
+            },
+          });
+        }
+      } else if (name && !phoneNumber) {
+        customer = await tx.customer.findFirst({ where: { name } });
+        if (!customer) {
+          customer = await tx.customer.create({
+            data: { name, address: address || null, phoneNumber: null },
+          });
+        }
+      }
+
+      // คืนสต็อกจากรายการเดิม ก่อนลบทิ้ง
+      const existingItems = await tx.repairItem.findMany({
+        where: { repairId: Number(id) },
+      });
+
+      for (const item of existingItems) {
+        if (item.partId) {
+          await tx.part.update({
+            where: { id: item.partId },
+            data: { quantity: { increment: item.quantity } },
+          });
+        }
+      }
+
+      await tx.repairItem.deleteMany({ where: { repairId: Number(id) } });
+
+      if (Array.isArray(repairItems) && repairItems.length) {
+        await tx.repairItem.createMany({
+          data: repairItems.map((item) => ({
+            customName: item.customName || null,
+            side: item.side || null,
+            unitPrice: item.unitPrice,
+            quantity: item.quantity,
+            repairId: Number(id),
+            partId: item.partId,
+            serviceId: item.serviceId,
+          })),
+        });
+
+        for (const item of repairItems) {
+          if (item.partId) {
+            await tx.part.update({
+              where: { id: item.partId },
+              data: { quantity: { decrement: item.quantity } },
+            });
+          }
+        }
+      }
+
+      await tx.repair.update({
+        where: { id: Number(id) },
+        data: {
+          description: description || null,
+          totalPrice,
+          type,
+          vehicle: { connect: { id: vehicle.id } },
+          ...(customer
+            ? { customer: { connect: { id: customer.id } } }
+            : { customer: { disconnect: true } }),
         },
-        customer: true,
-        user: { select: { fullName: true, nickname: true } },
-        repairItems: {
-          include: {
-            part: { include: { category: true } },
-            service: { include: { category: true } },
-          },
-        },
-      },
+      });
     });
 
     res.json({ message: "แก้ไขรายการซ่อมเรียบร้อยแล้ว" });
@@ -465,6 +411,10 @@ exports.updateRepairStatus = async (req, res, next) => {
       where: { id: Number(id) },
     });
 
+    if (!repair) {
+      return createError(404, "ไม่พบรายการซ่อม");
+    }
+
     const data = {};
 
     if (nextStatus === "COMPLETED") {
@@ -478,7 +428,7 @@ exports.updateRepairStatus = async (req, res, next) => {
         data.completedAt = new Date();
       }
 
-      const validPaymentMethods = ["CASH", "CREDIT_CARD", "BANK_TRANSFER"];
+      const validPaymentMethods = ["CASH", "CREDIT_CARD", "QR_CODE"];
       if (paymentMethod && validPaymentMethods.includes(paymentMethod)) {
         data.paymentMethod = paymentMethod;
       }

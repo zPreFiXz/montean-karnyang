@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router";
 import { LoaderCircle, ChevronLeft } from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
-import { getRepairs } from "@/api/repair";
+import { listRepairs } from "@/api/repair";
+import useAuthStore from "@/stores/useAuthStore";
 import { formatTime } from "@/utils/formats";
 import BrandIcons from "@/components/icons/BrandIcons";
 
-const getDisplayBrand = (vehicleBrand) => {
-  const brand = vehicleBrand?.brand || "";
-  const model = vehicleBrand?.model || "";
+const getDisplayBrand = (vehicleModel) => {
+  const brand = vehicleModel?.brand || "";
+  const model = vehicleModel?.model || "";
 
   if (brand === "อื่นๆ" || brand === "อื่น ๆ") {
     return model;
@@ -16,12 +17,13 @@ const getDisplayBrand = (vehicleBrand) => {
   return `${brand} ${model}`.trim();
 };
 
-const RepairStatus = () => {
+const RepairList = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const status = searchParams.get("status") || "in-progress";
   const [repairs, setRepairs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -31,7 +33,7 @@ const RepairStatus = () => {
   const fetchRepairs = async () => {
     setIsLoading(true);
     try {
-      const res = await getRepairs();
+      const res = await listRepairs(token);
       setRepairs(res.data);
     } catch (error) {
       console.log(error);
@@ -191,17 +193,17 @@ const RepairStatus = () => {
                 bg={getStatusBg(item.status)}
                 icon={
                   <BrandIcons
-                    brand={item.vehicle.vehicleBrand.brand}
+                    brand={item.vehicle.vehicleModel.brand}
                     color={getStatusColor(item.status)}
                   />
                 }
                 licensePlate={
-                  item.vehicle.licensePlate?.plate &&
+                  item.vehicle.licensePlate?.plateNumber &&
                   item.vehicle.licensePlate?.province
-                    ? `${item.vehicle.licensePlate.plate} ${item.vehicle.licensePlate.province}`
+                    ? `${item.vehicle.licensePlate.plateNumber} ${item.vehicle.licensePlate.province}`
                     : "ไม่ระบุทะเบียนรถ"
                 }
-                brand={getDisplayBrand(item.vehicle.vehicleBrand)}
+                brand={getDisplayBrand(item.vehicle.vehicleModel)}
                 time={item.createdAt && formatTime(item.createdAt)}
                 price={Number(item.totalPrice) || 0}
               />
@@ -213,4 +215,4 @@ const RepairStatus = () => {
   );
 };
 
-export default RepairStatus;
+export default RepairList;

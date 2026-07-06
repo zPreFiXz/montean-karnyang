@@ -1,15 +1,15 @@
 const prisma = require("../config/prisma");
-const createError = require("../utils/createError");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const createError = require("../utils/createError");
 
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
       where: {
-        email,
+        email: email,
       },
     });
 
@@ -27,21 +27,17 @@ exports.login = async (req, res, next) => {
       id: user.id,
       email: user.email,
       role: user.role,
-      fullName: user.fullName,
+      name: user.name,
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: "1d",
     });
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
-    });
-
     res.json({
       message: "เข้าสู่ระบบเรียบร้อยแล้ว",
-      payload,
+      payload: payload,
+      token: token,
     });
   } catch (error) {
     next(error);
@@ -70,7 +66,7 @@ exports.currentUser = async (req, res, next) => {
         id: true,
         email: true,
         role: true,
-        fullName: true,
+        name: true,
       },
     });
 

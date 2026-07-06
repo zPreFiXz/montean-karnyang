@@ -15,17 +15,14 @@ datasource db {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
-  password String
-  role         Role     @default(EMPLOYEE)
-  fullName     String
-  nickname     String
-  phoneNumber  String
-  dateOfBirth  DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  repairs      Repair[]
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(EMPLOYEE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  repairs   Repair[]
 }
 
 enum Role {
@@ -37,19 +34,19 @@ model Repair {
   id            Int           @id @default(autoincrement())
   description   String?
   totalPrice    Int
-  completedAt   DateTime?
+  type          RepairType    @default(GENERAL)
   status        RepairStatus  @default(IN_PROGRESS)
+  completedAt   DateTime?
   paymentMethod PaymentMethod @default(CASH)
   paidAt        DateTime?
-  source        RepairSource  @default(GENERAL)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
-  userId        Int
   user          User          @relation(fields: [userId], references: [id], onDelete: Restrict)
-  vehicleId     Int
+  userId        Int
   vehicle       Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
-  customerId    Int?
-  customer      Customer?     @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  vehicleId     Int
+  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  customerId    Int
   repairItems   RepairItem[]
 }
 
@@ -59,51 +56,53 @@ enum RepairStatus {
   PAID
 }
 
-enum RepairSource {
+enum RepairType {
   GENERAL
   SUSPENSION
 }
 
 enum PaymentMethod {
   CASH
-  BANK_TRANSFER
+  QR_CODE
   CREDIT_CARD
 }
 
 model Vehicle {
-  id             Int           @id @default(autoincrement())
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  licensePlateId Int?          @unique
-  licensePlate   LicensePlate? @relation(fields: [licensePlateId], references: [id], onDelete: Restrict)
-  vehicleBrandId Int
-  vehicleBrand   VehicleBrand  @relation(fields: [vehicleBrandId], references: [id], onDelete: Restrict)
+  id             Int          @id @default(autoincrement())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  licensePlate   LicensePlate @relation(fields: [licensePlateId], references: [id], onDelete: Cascade)
+  licensePlateId Int          @unique
+  vehicleModel   VehicleModel @relation(fields: [vehicleModelId], references: [id], onDelete: Restrict)
+  vehicleModelId Int
   repairs        Repair[]
 }
 
-model VehicleBrand {
-  id       Int       @id @default(autoincrement())
-  brand    String
-  model    String
-  vehicles Vehicle[]
+model VehicleModel {
+  id        Int       @id @default(autoincrement())
+  brand     String
+  model     String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  vehicles  Vehicle[]
 
   @@unique([brand, model])
 }
 
 model LicensePlate {
-  id        Int      @id @default(autoincrement())
-  plate     String
-  province  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  vehicle   Vehicle?
+  id          Int      @id @default(autoincrement())
+  plateNumber String
+  province    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  vehicle     Vehicle?
 
-  @@unique([plate, province])
+  @@unique([plateNumber, province])
 }
 
 model Customer {
   id          Int      @id @default(autoincrement())
-  fullName    String?
+  name        String?
   address     String?
   phoneNumber String?  @unique
   createdAt   DateTime @default(now())
@@ -119,12 +118,12 @@ model RepairItem {
   quantity   Int      @default(1)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  repairId   Int
   repair     Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
-  partId     Int?
+  repairId   Int
   part       Part?    @relation(fields: [partId], references: [id], onDelete: SetNull)
-  serviceId  Int?
+  partId     Int?
   service    Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  serviceId  Int?
 }
 
 model Part {
@@ -132,19 +131,19 @@ model Part {
   partNumber         String       @unique
   brand              String
   name               String
-  costPrice          Int
+  costPrice          Int?
   sellingPrice       Int
   unit               String
-  stockQuantity      Int
+  quantity           Int
   minStockLevel      Int
   typeSpecificData   Json?
   compatibleVehicles Json?
-  publicId           String?
-  secureUrl          String?
+  public_id          String?
+  secure_url         String?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
-  categoryId         Int
   category           Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  categoryId         Int
   repairItems        RepairItem[]
 }
 
@@ -154,33 +153,47 @@ model Service {
   price       Int
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-  categoryId  Int
   category    Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  categoryId  Int
   repairItems RepairItem[]
 }
 
 model Category {
-  id       Int       @id @default(autoincrement())
-  name     String    @unique
-  parts    Part[]
-  services Service[]
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  parts     Part[]
+  services  Service[]
 }
 
 model Employee {
   id          Int          @id @default(autoincrement())
   zkUserId    String       @unique
-  nickname    String
+  name        String
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   attendances Attendance[]
 }
 
 model Attendance {
-  id         Int       @id @default(autoincrement())
-  status     String
+  id         Int             @id @default(autoincrement())
+  type       AttendanceType
+  statusText String
   scanTime   DateTime
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  employeeId Int?
-  employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  employee   Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId Int
+
+  @@index([employeeId, scanTime])
+}
+
+enum AttendanceType {
+  CLOCK_IN
+  CLOCK_IN_LATE
+  LUNCH_OUT
+  LUNCH_RETURN
+  LUNCH_RETURN_LATE
+  CLOCK_OUT
 }

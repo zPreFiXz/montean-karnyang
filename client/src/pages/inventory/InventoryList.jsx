@@ -7,8 +7,9 @@ import SearchBar from "@/components/forms/SearchBar";
 import CategoryList from "@/components/CategoryList";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
 import ComboBox from "@/components/ui/ComboBox";
-import { getInventory } from "@/api/inventory";
-import { getParts } from "@/api/part";
+import { listInventory } from "@/api/inventory";
+import { listParts } from "@/api/part";
+import useAuthStore from "@/stores/useAuthStore";
 import { BoxSearch } from "@/components/icons/Icons";
 
 const InventoryList = () => {
@@ -24,6 +25,7 @@ const InventoryList = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [isItemDetailOpen, setIsItemDetailOpen] = useState(false);
   const isInitializing = useRef(false);
+  const token = useAuthStore((state) => state.token);
 
   const category = searchParams.get("category");
   const search = searchParams.get("search");
@@ -133,7 +135,7 @@ const InventoryList = () => {
   const handleFilter = async (category, search, filterParams = {}) => {
     setIsLoading(true);
     try {
-      const res = await getInventory(category, search, filterParams);
+      const res = await listInventory(token, category, search, filterParams);
       const data = res.data || [];
 
       setInventory(data);
@@ -148,11 +150,11 @@ const InventoryList = () => {
     let mounted = true;
     (async () => {
       try {
-        const partsRes = await getParts();
+        const partsRes = await listParts(token);
         if (!mounted) return;
         setPartsList(partsRes.data || []);
       } catch (err) {
-        console.log("getParts failed", err);
+        console.log("listParts failed", err);
         setPartsList([]);
       }
     })();
@@ -295,10 +297,10 @@ const InventoryList = () => {
                   name={item.name}
                   unit={item.unit}
                   sellingPrice={item.sellingPrice}
-                  stockQuantity={item.stockQuantity}
+                  quantity={item.quantity}
                   minStockLevel={item.minStockLevel}
                   typeSpecificData={item.typeSpecificData}
-                  secureUrl={item.secureUrl}
+                  secure_url={item.secure_url}
                   category={item.category.name}
                   onStockUpdate={handleStockUpdate}
                 />

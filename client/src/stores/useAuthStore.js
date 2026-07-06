@@ -1,27 +1,29 @@
-import api from "@/lib/api";
+import axios from "axios";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
 const authStore = (set) => ({
   user: null,
+  token: null,
 
   actionLogin: async (form) => {
-    const res = await api.post("/api/login", form);
+    const res = await axios.post(
+      `${import.meta.env.VITE_API_URL}/api/login`,
+      form,
+    );
     set({
       user: res.data.payload,
+      token: res.data.token,
     });
     return res;
   },
   logout: async () => {
     try {
-      await api.post("/api/logout");
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/logout`);
     } catch (error) {
       console.log(error);
     }
-    set({ user: null });
-  },
-  clearAuth: () => {
-    set({ user: null });
+    set({ user: null, token: null });
   },
 });
 

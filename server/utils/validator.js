@@ -1,92 +1,77 @@
 const { z } = require("zod");
 
 exports.loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
+  email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
+  password: z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร"),
 });
 
-const optionalDateSchema = z.preprocess(
-  (value) => (value === "" || value == null ? undefined : value),
-  z.coerce.date().optional(),
-);
-
-const optionalPhoneSchema = z
-  .string()
-  .regex(/^[0-9]{10}$/)
-  .optional()
-  .or(z.literal(""));
-
 exports.createEmployeeSchema = z.object({
-  zkUserId: z.string().min(1),
-  fullName: z.string().min(1),
-  nickname: z.string().optional(),
-  dateOfBirth: optionalDateSchema,
-  phoneNumber: optionalPhoneSchema,
-  isActive: z.boolean().optional(),
+  zkUserId: z.string().min(1, "กรุณากรอกรหัสพนักงาน (เครื่องสแกน)"),
+  name: z.string().min(1, "กรุณากรอกชื่อ"),
 });
 
 exports.editEmployeeSchema = z.object({
-  zkUserId: z.string().min(1),
-  fullName: z.string().min(1),
-  nickname: z.string().optional(),
-  dateOfBirth: optionalDateSchema,
-  phoneNumber: optionalPhoneSchema,
-  isActive: z.boolean().optional(),
+  zkUserId: z.string().min(1, "กรุณากรอกรหัสพนักงาน (เครื่องสแกน)"),
+  name: z.string().min(1, "กรุณากรอกชื่อ"),
 });
 
 exports.createUserAccountSchema = z.object({
-  fullName: z.string().min(1),
-  nickname: z.string().min(1),
-  email: z.string().email(),
-  password: z.string().min(8),
-  dateOfBirth: z.coerce.date(),
-  phoneNumber: z.string().regex(/^[0-9]{10}$/),
-  role: z.enum(["EMPLOYEE", "ADMIN"]),
+  name: z.string().min(1, "กรุณากรอกชื่อ"),
+  email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
+  password: z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร"),
+  role: z.enum(["EMPLOYEE", "ADMIN"], { message: "กรุณาเลือกบทบาท" }),
 });
 
 exports.editUserAccountSchema = z.object({
-  fullName: z.string().min(1),
-  nickname: z.string().min(1),
-  email: z.string().email(),
-  password: z.string().min(8).optional(),
-  dateOfBirth: z.coerce.date(),
-  phoneNumber: z.string().regex(/^[0-9]{10}$/),
-  role: z.enum(["EMPLOYEE", "ADMIN"]),
+  name: z.string().min(1, "กรุณากรอกชื่อ"),
+  email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
+  password: z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร").optional(),
+  role: z.enum(["EMPLOYEE", "ADMIN"], { message: "กรุณาเลือกบทบาท" }),
 });
 
 exports.repairSchema = z.object({
-  fullName: z.string().optional(),
+  name: z.string().optional(),
   address: z.string().optional(),
-  phoneNumber: z.string().optional(),
-  brand: z.string().min(1),
-  model: z.string().min(1),
+  phoneNumber: z.preprocess(
+    (v) => (v === "" || v == null ? undefined : v),
+    z
+      .string()
+      .regex(/^[0-9]{10}$/, "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก")
+      .optional(),
+  ),
+  brand: z.string().min(1, "กรุณาเลือกยี่ห้อรถ"),
+  model: z.string().min(1, "กรุณาเลือกรุ่นรถ"),
   plate: z.string().optional(),
   province: z.string().optional(),
   description: z.string().optional(),
-  source: z.enum(["GENERAL", "SUSPENSION"]),
+  type: z.enum(["GENERAL", "SUSPENSION"], { message: "ประเภทงานซ่อมไม่ถูกต้อง" }),
   totalPrice: z.coerce.number(),
   repairItems: z
     .array(
-      z.object({
-        partId: z.number().optional(),
-        serviceId: z.number().optional(),
-        unitPrice: z.coerce.number(),
-        quantity: z.coerce.number().min(1),
-        side: z.string().optional(),
-        customName: z.string().optional(),
-      }),
+      z
+        .object({
+          partId: z.number().optional(),
+          serviceId: z.number().optional(),
+          unitPrice: z.coerce.number(),
+          quantity: z.coerce.number().min(1, "จำนวนอย่างน้อย 1"),
+          side: z.string().optional(),
+          customName: z.string().optional(),
+        })
+        .refine((item) => item.partId || item.serviceId || item.customName, {
+          message: "แต่ละรายการต้องมีอะไหล่ บริการ หรือชื่อรายการอย่างน้อย 1",
+        }),
     )
     .optional(),
 });
 
 exports.partSchema = z.object({
-  partNumber: z.string().min(1),
-  brand: z.string().min(1),
-  name: z.string().min(1),
-  costPrice: z.coerce.number(),
+  partNumber: z.string().min(1, "กรุณากรอกรหัสอะไหล่"),
+  brand: z.string().min(1, "กรุณากรอกยี่ห้อ"),
+  name: z.string().min(1, "กรุณากรอกชื่ออะไหล่"),
+  costPrice: z.coerce.number().optional(),
   sellingPrice: z.coerce.number(),
-  unit: z.string().min(1),
-  stockQuantity: z.coerce.number(),
+  unit: z.string().min(1, "กรุณาเลือกหน่วย"),
+  quantity: z.coerce.number(),
   minStockLevel: z.coerce.number(),
   typeSpecificData: z.any().optional(),
   compatibleVehicles: z.any().optional(),
@@ -95,23 +80,23 @@ exports.partSchema = z.object({
 });
 
 exports.serviceSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1, "กรุณากรอกชื่อบริการ"),
   price: z.coerce.number(),
   categoryId: z.coerce.number(),
 });
 
 exports.editNamePriceSchema = z.object({
-  name: z.string().min(1),
-  price: z.coerce.number().min(1),
+  name: z.string().min(1, "กรุณากรอกชื่อ"),
+  price: z.coerce.number().min(1, "กรุณากรอกราคาต่อหน่วย"),
 });
 
 exports.updatePartStockSchema = z.object({
-  quantity: z.coerce.number().min(1),
+  quantity: z.coerce.number().min(1, "กรุณากรอกจำนวน"),
 });
 
-exports.vehicleBrandSchema = z.object({
-  brand: z.string().min(1),
-  model: z.string().min(1),
+exports.vehicleModelSchema = z.object({
+  brand: z.string().min(1, "กรุณากรอกยี่ห้อรถ"),
+  model: z.string().min(1, "กรุณากรอกรุ่นรถ"),
 });
 
 exports.validate = (schema) => (req, res, next) => {

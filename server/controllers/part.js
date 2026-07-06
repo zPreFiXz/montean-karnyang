@@ -1,7 +1,7 @@
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
 
-exports.getParts = async (req, res, next) => {
+exports.listParts = async (req, res, next) => {
   try {
     const parts = await prisma.part.findMany({
       include: {
@@ -24,7 +24,7 @@ exports.createPart = async (req, res, next) => {
       costPrice,
       sellingPrice,
       unit,
-      stockQuantity,
+      quantity,
       minStockLevel,
       typeSpecificData,
       compatibleVehicles,
@@ -48,12 +48,12 @@ exports.createPart = async (req, res, next) => {
         costPrice,
         sellingPrice,
         unit,
-        stockQuantity,
+        quantity,
         minStockLevel,
         typeSpecificData,
         compatibleVehicles,
-        publicId: image?.publicId,
-        secureUrl: image?.secureUrl,
+        public_id: image?.public_id,
+        secure_url: image?.secure_url,
         categoryId,
       },
     });
@@ -75,7 +75,7 @@ exports.updatePart = async (req, res, next) => {
       costPrice,
       sellingPrice,
       unit,
-      stockQuantity,
+      quantity,
       minStockLevel,
       typeSpecificData,
       compatibleVehicles,
@@ -100,12 +100,12 @@ exports.updatePart = async (req, res, next) => {
         costPrice,
         sellingPrice,
         unit,
-        stockQuantity,
+        quantity,
         minStockLevel,
         typeSpecificData,
         compatibleVehicles,
-        publicId: image?.publicId,
-        secureUrl: image?.secureUrl,
+        public_id: image?.public_id,
+        secure_url: image?.secure_url,
         categoryId,
       },
     });
@@ -124,7 +124,7 @@ exports.updatePartStock = async (req, res, next) => {
     await prisma.part.update({
       where: { id: Number(id) },
       data: {
-        stockQuantity: {
+        quantity: {
           increment: Number(quantity),
         },
       },

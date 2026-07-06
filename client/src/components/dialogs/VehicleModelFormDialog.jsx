@@ -11,22 +11,24 @@ import {
 } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { vehicleBrandSchema } from "@/utils/schemas";
-import { createVehicleBrand, updateVehicleBrand } from "@/api/vehicleBrand";
+import { vehicleModelSchema } from "@/utils/schemas";
+import { createVehicleModel, updateVehicleModel } from "@/api/vehicleModel";
+import useAuthStore from "@/stores/useAuthStore";
 
-const VehicleBrandFormDialog = ({
+const VehicleModelFormDialog = ({
   isOpen,
   onClose,
   editingItem = null,
   onSuccess,
 }) => {
+  const token = useAuthStore((state) => state.token);
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver: zodResolver(vehicleBrandSchema),
+    resolver: zodResolver(vehicleModelSchema),
     defaultValues: { brand: "", model: "" },
   });
 
@@ -43,10 +45,10 @@ const VehicleBrandFormDialog = ({
     }
   }, [isOpen, editingItem, reset]);
 
-  const handleAddVehicleBrand = async (data) => {
+  const handleAddVehicleModel = async (data) => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      await createVehicleBrand({
+      await createVehicleModel(token, {
         brand: data.brand,
         model: data.model,
       });
@@ -58,10 +60,10 @@ const VehicleBrandFormDialog = ({
     }
   };
 
-  const handleEditVehicleBrand = async (data) => {
+  const handleEditVehicleModel = async (data) => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      await updateVehicleBrand(editingItem.id, {
+      await updateVehicleModel(token, editingItem.id, {
         brand: data.brand,
         model: data.model,
       });
@@ -110,7 +112,7 @@ const VehicleBrandFormDialog = ({
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px]">
           <form
             onSubmit={handleSubmit(
-              editingItem ? handleEditVehicleBrand : handleAddVehicleBrand,
+              editingItem ? handleEditVehicleModel : handleAddVehicleModel,
             )}
             className="space-y-[16px]"
           >
@@ -146,7 +148,7 @@ const VehicleBrandFormDialog = ({
               label={editingItem ? "บันทึก" : "เพิ่มยี่ห้อและรุ่นรถ"}
               isLoading={isSubmitting}
               onClick={handleSubmit(
-                editingItem ? handleEditVehicleBrand : handleAddVehicleBrand,
+                editingItem ? handleEditVehicleModel : handleAddVehicleModel,
               )}
               className="font-athiti bg-gradient-primary mr-0 ml-0"
             />
@@ -157,4 +159,4 @@ const VehicleBrandFormDialog = ({
   );
 };
 
-export default VehicleBrandFormDialog;
+export default VehicleModelFormDialog;

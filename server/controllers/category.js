@@ -1,6 +1,7 @@
 const prisma = require("../config/prisma");
+const createError = require("../utils/createError");
 
-exports.getCategories = async (req, res, next) => {
+exports.listCategories = async (req, res, next) => {
   try {
     const categories = await prisma.category.findMany({
       orderBy: { id: "asc" },
@@ -16,9 +17,17 @@ exports.createCategory = async (req, res, next) => {
   try {
     const { name } = req.body;
 
+    const category = await prisma.category.findUnique({
+      where: { name },
+    });
+
+    if (category) {
+      createError(400, "หมวดหมู่นี้มีอยู่ในระบบแล้ว");
+    }
+
     await prisma.category.create({
       data: {
-        name,
+        name: name,
       },
     });
 

@@ -2,13 +2,15 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { ChevronLeft, LoaderCircle, Wrench } from "lucide-react";
 import BrandIcons from "@/components/icons/BrandIcons";
-import { getVehicleById } from "@/api/vehicle";
+import { getVehicle } from "@/api/vehicle";
+import useAuthStore from "@/stores/useAuthStore";
 import { formatDate, formatTime } from "@/utils/formats";
 import RepairCard from "@/components/cards/RepairCard";
 
 const VehicleDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const token = useAuthStore((state) => state.token);
   const [vehicle, setVehicle] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -20,7 +22,7 @@ const VehicleDetail = () => {
   const fetchVehicleDetail = async () => {
     setIsLoading(true);
     try {
-      const res = await getVehicleById(id);
+      const res = await getVehicle(token, id);
       setVehicle(res.data);
     } catch (error) {
       console.log(error);
@@ -51,17 +53,17 @@ const VehicleDetail = () => {
           <div>
             <div className="mb-[16px] flex items-center gap-[8px] px-[20px]">
               <div className="bg-primary flex h-[45px] w-[45px] items-center justify-center rounded-full">
-                <BrandIcons brand={vehicle?.vehicleBrand.brand} />
+                <BrandIcons brand={vehicle?.vehicleModel.brand} />
               </div>
               <div className="flex flex-col">
                 <p className="text-primary text-[22px] leading-tight font-semibold md:text-[24px]">
-                  {vehicle?.licensePlate?.plate &&
+                  {vehicle?.licensePlate?.plateNumber &&
                   vehicle?.licensePlate?.province
-                    ? `${vehicle.licensePlate.plate} ${vehicle.licensePlate.province}`
+                    ? `${vehicle.licensePlate.plateNumber} ${vehicle.licensePlate.province}`
                     : "ไม่ระบุทะเบียนรถ"}
                 </p>
                 <p className="text-subtle-dark text-[18px] leading-tight font-medium md:text-[20px]">
-                  {vehicle?.vehicleBrand.brand} {vehicle?.vehicleBrand.model}
+                  {vehicle?.vehicleModel.brand} {vehicle?.vehicleModel.model}
                 </p>
               </div>
             </div>

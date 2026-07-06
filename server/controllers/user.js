@@ -2,7 +2,7 @@ const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
 const bcrypt = require("bcryptjs");
 
-exports.getUsers = async (req, res, next) => {
+exports.listUsers = async (req, res, next) => {
   try {
     const users = await prisma.user.findMany({
       where: {
@@ -23,15 +23,7 @@ exports.getUsers = async (req, res, next) => {
 
 exports.createUser = async (req, res, next) => {
   try {
-    const {
-      email,
-      password,
-      fullName,
-      nickname,
-      role,
-      phoneNumber,
-      dateOfBirth,
-    } = req.body;
+    const { email, password, name, role } = req.body;
 
     const user = await prisma.user.findUnique({
       where: { email },
@@ -47,11 +39,8 @@ exports.createUser = async (req, res, next) => {
       data: {
         email,
         password: hashPassword,
-        fullName,
-        nickname,
+        name,
         role,
-        phoneNumber,
-        dateOfBirth: new Date(dateOfBirth),
       },
     });
 
@@ -64,15 +53,7 @@ exports.createUser = async (req, res, next) => {
 exports.updateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const {
-      email,
-      fullName,
-      nickname,
-      role,
-      phoneNumber,
-      dateOfBirth,
-      password,
-    } = req.body;
+    const { email, name, role, password } = req.body;
 
     const user = await prisma.user.findUnique({
       where: { id: Number(id) },
@@ -101,11 +82,8 @@ exports.updateUser = async (req, res, next) => {
 
     const updateData = {};
     if (email) updateData.email = email;
-    if (fullName) updateData.fullName = fullName;
-    if (nickname) updateData.nickname = nickname;
+    if (name) updateData.name = name;
     if (role) updateData.role = role;
-    if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber || null;
-    if (dateOfBirth) updateData.dateOfBirth = new Date(dateOfBirth);
 
     if (password) {
       updateData.password = bcrypt.hashSync(password, 10);

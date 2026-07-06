@@ -1,17 +1,33 @@
-import api from "@/lib/api";
+import axios from "axios";
 
-export const getUsers = async () => {
-  return await api.get("/api/users");
+export const listUsers = async (token) => {
+  return await axios.get(`${import.meta.env.VITE_API_URL}/api/users`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 };
 
-export const createUser = async (data) => {
-  return await api.post("/api/users", data);
+export const createUser = async (token, data) => {
+  return await axios.post(`${import.meta.env.VITE_API_URL}/api/users`, data, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 };
 
-export const updateUser = async (id, data) => {
-  return await api.put(`/api/users/${id}`, data);
+export const updateUser = async (token, id, data) => {
+  return await axios.put(`${import.meta.env.VITE_API_URL}/api/users/${id}`, data, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 };
 
-export const deleteUser = async (id) => {
-  return await api.delete(`/api/users/${id}`);
+export const deleteUser = async (token, id) => {
+  return await axios.delete(`${import.meta.env.VITE_API_URL}/api/users/${id}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 };

@@ -6,17 +6,19 @@ const {
   editUserAccountSchema,
 } = require("../utils/validator");
 
+
+// Middlewares
 const { authCheck, adminCheck } = require("../middlewares/auth");
 
+// Controllers
 const {
-  getUsers,
+  listUsers,
   createUser,
   updateUser,
   deleteUser,
 } = require("../controllers/user");
 
-router.get("/users", authCheck, adminCheck, getUsers);
-
+router.get("/users", authCheck, adminCheck, listUsers);
 router.post(
   "/users",
   authCheck,
@@ -24,7 +26,6 @@ router.post(
   validate(createUserAccountSchema),
   createUser,
 );
-
 router.put(
   "/users/:id",
   authCheck,
@@ -32,7 +33,6 @@ router.put(
   validate(editUserAccountSchema),
   updateUser,
 );
-
 router.delete("/users/:id", authCheck, adminCheck, deleteUser);
 
 module.exports = router;

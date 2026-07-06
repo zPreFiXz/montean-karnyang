@@ -1,9 +1,8 @@
 const { PrismaClient } = require("@prisma/client");
 const { categories } = require("./seeds/categories");
 const { users } = require("./seeds/users");
-const { parts } = require("./seeds/parts");
 const { services } = require("./seeds/services");
-const { VehicleBrands } = require("./seeds/vehicles");
+const { vehicleModels } = require("./seeds/vehicleModels");
 
 const prisma = new PrismaClient();
 
@@ -16,19 +15,11 @@ async function main() {
     });
   }
 
-  for (const category of categories) {
+  for (const item of categories) {
     await prisma.category.upsert({
-      where: { name: category.name },
+      where: { name: item.name },
       update: {},
-      create: category,
-    });
-  }
-
-  for (const part of parts) {
-    await prisma.part.upsert({
-      where: { partNumber: part.partNumber },
-      update: {},
-      create: part,
+      create: item,
     });
   }
 
@@ -40,26 +31,27 @@ async function main() {
     });
   }
 
-  for (const vehicleBrand of VehicleBrands) {
-    await prisma.vehicleBrand.upsert({
+  for (const vehicleModel of vehicleModels) {
+    await prisma.vehicleModel.upsert({
       where: {
         brand_model: {
-          brand: vehicleBrand.brand,
-          model: vehicleBrand.model,
+          brand: vehicleModel.brand,
+          model: vehicleModel.model,
         },
       },
       update: {},
-      create: vehicleBrand,
+      create: vehicleModel,
     });
   }
 }
 
 main()
   .then(async () => {
+    console.log("✅ Seed เรียบร้อยแล้ว");
     await prisma.$disconnect();
   })
   .catch(async (e) => {
-    console.log(e);
+    console.error(e);
     await prisma.$disconnect();
     process.exit(1);
   });

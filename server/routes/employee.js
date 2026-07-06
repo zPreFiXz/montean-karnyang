@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+
 const {
   validate,
   createEmployeeSchema,
@@ -11,16 +12,13 @@ const { authCheck, adminCheck } = require("../middlewares/auth");
 
 // Controllers
 const {
-  getEmployees,
+  listEmployees,
   createEmployee,
   updateEmployee,
   deleteEmployee,
 } = require("../controllers/employee");
 
-// @ENDPOINTS http://localhost:3000/api/employees
-router.get("/employees", authCheck, adminCheck, getEmployees);
-
-// @ENDPOINTS http://localhost:3000/api/employees
+router.get("/employees", authCheck, adminCheck, listEmployees);
 router.post(
   "/employees",
   authCheck,
@@ -28,8 +26,6 @@ router.post(
   validate(createEmployeeSchema),
   createEmployee,
 );
-
-// @ENDPOINTS http://localhost:3000/api/employees/1
 router.put(
   "/employees/:id",
   authCheck,
@@ -37,8 +33,6 @@ router.put(
   validate(editEmployeeSchema),
   updateEmployee,
 );
-
-// @ENDPOINTS http://localhost:3000/api/employees/1
 router.delete("/employees/:id", authCheck, adminCheck, deleteEmployee);
 
 module.exports = router;

@@ -30,7 +30,7 @@ const RepairItemDetailDialog = ({
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(item);
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const {
     register,
     handleSubmit,
@@ -120,14 +120,16 @@ const RepairItemDetailDialog = ({
     setIsSubmitting(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      await updatePartStock(currentItem.id, { quantity: Number(data.quantity) });
+      await updatePartStock(token, currentItem.id, {
+        quantity: Number(data.quantity),
+      });
       toast.success("เพิ่มสต็อกเรียบร้อยแล้ว");
       setIsAddStockVisible(false);
       reset();
 
       const updatedItem = {
         ...currentItem,
-        stockQuantity: currentItem.stockQuantity + Number(data.quantity),
+        quantity: currentItem.quantity + Number(data.quantity),
       };
       setCurrentItem(updatedItem);
 
@@ -190,23 +192,22 @@ const RepairItemDetailDialog = ({
 
                 {!isService && currentItem.partNumber && (
                   <div className="mt-[16px] flex justify-center">
-                    {currentItem.stockQuantity === 0 ? (
+                    {currentItem.quantity === 0 ? (
                       <div className="text-surface bg-destructive flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-[16px] font-semibold md:text-[18px]">
                         <AlertTriangle className="h-4 w-4" />
-                        สต็อกหมด - จำนวน {currentItem.stockQuantity}{" "}
+                        สต็อกหมด - จำนวน {currentItem.quantity}{" "}
                         {currentItem.unit}
                       </div>
-                    ) : currentItem.stockQuantity <=
-                      currentItem.minStockLevel ? (
+                    ) : currentItem.quantity <= currentItem.minStockLevel ? (
                       <div className="text-surface bg-status-progress flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-[16px] font-semibold md:text-[18px]">
                         <AlertTriangle className="h-4 w-4" />
-                        สต็อกต่ำ - จำนวน {currentItem.stockQuantity}{" "}
+                        สต็อกต่ำ - จำนวน {currentItem.quantity}{" "}
                         {currentItem.unit}
                       </div>
                     ) : (
                       <div className="text-surface bg-status-completed flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-[16px] font-semibold md:text-[18px]">
                         <Check className="h-4 w-4" />
-                        สต็อกปกติ - จำนวน {currentItem.stockQuantity}{" "}
+                        สต็อกปกติ - จำนวน {currentItem.quantity}{" "}
                         {currentItem.unit}
                       </div>
                     )}
@@ -214,11 +215,11 @@ const RepairItemDetailDialog = ({
                 )}
               </div>
 
-              {currentItem.secureUrl && (
+              {currentItem.secure_url && (
                 <div className="mb-[16px] flex justify-center">
                   <div className="border-subtle-light flex h-[250px] w-[250px] items-center justify-center overflow-hidden rounded-[20px] border-2">
                     <img
-                      src={currentItem.secureUrl}
+                      src={currentItem.secure_url}
                       alt={currentItem.name}
                       className="h-full w-full object-cover"
                     />
@@ -288,7 +289,7 @@ const RepairItemDetailDialog = ({
                         </p>
                       </div>
                     )}
-                    
+
                   <div className="flex justify-between">
                     <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
                       {isService ? "ราคา:" : "ราคาขาย:"}
@@ -315,15 +316,15 @@ const RepairItemDetailDialog = ({
                         </p>
                         <p
                           className={`text-[18px] font-semibold md:text-[20px] ${
-                            currentItem.stockQuantity === 0
+                            currentItem.quantity === 0
                               ? "text-destructive"
-                              : currentItem.stockQuantity <=
+                              : currentItem.quantity <=
                                   currentItem.minStockLevel
                                 ? "text-status-progress"
                                 : "text-status-completed"
                           }`}
                         >
-                          {currentItem.stockQuantity} {currentItem.unit}
+                          {currentItem.quantity} {currentItem.unit}
                         </p>
                       </div>
                       <div className="flex justify-between">
@@ -458,9 +459,9 @@ const RepairItemDetailDialog = ({
         onConfirm={async () => {
           try {
             if (isService) {
-              await deleteService(currentItem.id);
+              await deleteService(token, currentItem.id);
             } else {
-              await deletePart(currentItem.id);
+              await deletePart(token, currentItem.id);
             }
             toast.success(
               isService ? "ลบบริการเรียบร้อยแล้ว" : "ลบอะไหล่เรียบร้อยแล้ว",

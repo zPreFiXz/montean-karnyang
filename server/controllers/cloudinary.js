@@ -24,9 +24,9 @@ exports.deleteImage = async (req, res, next) => {
   try {
     const { public_id } = req.body;
 
-    await cloudinary.uploader.destroy(public_id, () => {
-      res.json({ message: "ลบรูปภาพเรียบร้อยแล้ว" });
-    });
+    await cloudinary.uploader.destroy(public_id);
+
+    res.json({ message: "ลบรูปภาพเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }

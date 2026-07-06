@@ -29,11 +29,9 @@ const DropdownListMenu = () => {
           <div className="relative">
             <UserIcon />
           </div>
-
-          {/* ชื่อและบทบาทของผู้ใช้ */}
           <div className="flex flex-col">
             <p className="text-primary text-[18px] leading-tight font-semibold">
-              {user?.fullName}
+              {user?.name}
             </p>
             <p className="text-subtle-dark text-[14px] leading-tight font-medium">
               {user?.role === "ADMIN" ? "แอดมิน" : user?.role ? "พนักงาน" : ""}
@@ -63,7 +61,6 @@ const DropdownListMenu = () => {
           );
         })}
 
-        {/* Private Links เฉพาะ ADMIN */}
         {user?.role === "ADMIN" &&
           privateLinks.map((item, index) => {
             const Icon = item.icon;

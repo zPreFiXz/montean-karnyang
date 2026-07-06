@@ -65,7 +65,7 @@ const RepairItemCard = ({ item, variant }) => {
     );
   };
 
-  const imageUrl = variant === "detail" ? item.part?.secureUrl : item.secureUrl;
+  const imageUrl = variant === "detail" ? item.part?.secure_url : item.secure_url;
   const itemName =
     variant === "detail" ? item.part?.name || item.service?.name : item.name;
   const unitPrice =

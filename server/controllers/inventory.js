@@ -1,6 +1,6 @@
 const prisma = require("../config/prisma");
 
-exports.getInventory = async (req, res, next) => {
+exports.listInventory = async (req, res, next) => {
   try {
     const { category, search, width, aspectRatio, rimDiameter, brand } =
       req.query;
@@ -76,15 +76,15 @@ exports.getInventory = async (req, res, next) => {
         type: "service",
         partNumber: null,
         brand: null,
-        costPrice: 0,
+        costPrice: null,
         sellingPrice: item.price,
         unit: null,
-        stockQuantity: 0,
+        quantity: 0,
         minStockLevel: 0,
         typeSpecificData: null,
         compatibleVehicles: null,
-        publicId: null,
-        secureUrl: null,
+        public_id: null,
+        secure_url: null,
         category: { name: item.category.name },
       })),
     ];
@@ -95,7 +95,7 @@ exports.getInventory = async (req, res, next) => {
   }
 };
 
-exports.getInventoryById = async (req, res, next) => {
+exports.getInventory = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { type } = req.query;
@@ -127,15 +127,15 @@ exports.getInventoryById = async (req, res, next) => {
           type: "service",
           partNumber: null,
           brand: null,
-          costPrice: 0,
+          costPrice: null,
           sellingPrice: service.price,
           unit: null,
-          stockQuantity: 0,
+          quantity: 0,
           minStockLevel: 0,
           typeSpecificData: null,
           compatibleVehicles: null,
-          publicId: null,
-          secureUrl: null,
+          public_id: null,
+          secure_url: null,
           category: { name: service.category.name },
         };
       }

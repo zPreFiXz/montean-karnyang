@@ -2,7 +2,7 @@ import { CarFront, Users, CalendarCheck } from "lucide-react";
 
 export const publicLinks = [
   {
-    href: "/vehicles/brands",
+    href: "/vehicles/models",
     label: "จัดการยี่ห้อและรุ่นรถ",
     icon: CarFront,
     iconClass: "text-primary",

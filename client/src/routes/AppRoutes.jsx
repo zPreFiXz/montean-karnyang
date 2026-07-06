@@ -2,11 +2,11 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import Layout from "@/layouts/Layout";
 import Login from "@/pages/auth/Login";
 import Dashboard from "@/pages/Dashboard";
-import VehicleBrandList from "@/pages/admin/VehicleBrandList";
+import VehicleModelList from "@/pages/admin/VehicleModelList";
 import SuspensionInspection from "@/pages/inspections/SuspensionInspection";
 import RepairCreate from "@/pages/repairs/RepairCreate";
-import RepairSummary from "@/pages/repairs/RepairSummary";
-import RepairStatus from "@/pages/repairs/RepairStatus";
+import RepairReview from "@/pages/repairs/RepairReview";
+import RepairList from "@/pages/repairs/RepairList";
 import RepairDetail from "@/pages/repairs/RepairDetail";
 import InventoryList from "@/pages/inventory/InventoryList";
 import InventoryCreate from "@/pages/inventory/InventoryCreate";
@@ -16,7 +16,7 @@ import VehicleDetail from "@/pages/vehicles/VehicleDetail";
 import UserList from "@/pages/admin/UserList";
 import EmployeeList from "@/pages/admin/EmployeeList";
 import SalesReport from "@/pages/reports/SalesReport";
-import AttendanceDailyReport from "@/pages/reports/AttendanceDailyReport";
+import AttendanceReport from "@/pages/reports/AttendanceReport";
 import ProtectRouteUser from "./ProtectRouteUser";
 import ProtectRouteAdmin from "./ProtectRouteAdmin";
 import ProtectRouteGuest from "./ProtectRouteGuest";
@@ -27,7 +27,6 @@ const AppRoutes = () => {
       <Routes>
         {/* Public */}
         <Route path="/" element={<Navigate to="/login" replace />} />
-
         <Route
           path="login"
           element={<ProtectRouteGuest element={<Login />} />}
@@ -44,10 +43,10 @@ const AppRoutes = () => {
           />
 
           {/* Repair */}
-          <Route path="repairs" element={<RepairStatus />} />
+          <Route path="repairs" element={<RepairList />} />
           <Route path="repairs/new" element={<RepairCreate />} />
+          <Route path="repairs/review" element={<RepairReview />} />
           <Route path="repairs/:id" element={<RepairDetail />} />
-          <Route path="repairs/summary" element={<RepairSummary />} />
 
           {/* Inventory */}
           <Route path="inventory" element={<InventoryList />} />
@@ -56,8 +55,8 @@ const AppRoutes = () => {
 
           {/* Vehicle */}
           <Route path="vehicles" element={<VehicleList />} />
+          <Route path="vehicles/models" element={<VehicleModelList />} />
           <Route path="vehicles/:id" element={<VehicleDetail />} />
-          <Route path="vehicles/brands" element={<VehicleBrandList />} />
         </Route>
 
         {/* Private Admin */}
@@ -65,16 +64,17 @@ const AppRoutes = () => {
           path="admin"
           element={<ProtectRouteAdmin element={<Layout />} />}
         >
-          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route index element={<Dashboard />} />
           <Route path="users" element={<UserList />} />
           <Route path="employees" element={<EmployeeList />} />
           <Route path="reports/sales" element={<SalesReport />} />
           <Route
             path="reports/attendance"
-            element={<AttendanceDailyReport />}
+            element={<AttendanceReport />}
           />
         </Route>
 
+        {/* Not Found */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>

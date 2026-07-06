@@ -5,67 +5,22 @@ export const loginSchema = z.object({
   password: z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร"),
 });
 
-export const createEmployeeSchema = z
-  .object({
-    zkUserId: z.string().min(1, "กรุณากรอกรหัสพนักงาน (เครื่องสแกน)"),
-    fullName: z.string().min(1, "กรุณากรอกชื่อ-นามสกุล"),
-    nickname: z.string().optional(),
-    dateOfBirth: z.string().optional(),
-    phoneNumber: z
-      .string()
-      .regex(/^[0-9]{10}$/, "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก")
-      .optional()
-      .or(z.literal("")),
-    isActive: z.boolean().optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.phoneNumber && data.phoneNumber.trim() !== "") {
-      if (!/^[0-9]{10}$/.test(data.phoneNumber)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก",
-          path: ["phoneNumber"],
-        });
-      }
-    }
-  });
+export const createEmployeeSchema = z.object({
+  zkUserId: z.string().min(1, "กรุณากรอกรหัสพนักงาน (เครื่องสแกน)"),
+  name: z.string().min(1, "กรุณากรอกชื่อ"),
+});
 
-export const editEmployeeSchema = z
-  .object({
-    zkUserId: z.string().min(1, "กรุณากรอกรหัสพนักงาน (เครื่องสแกน)"),
-    fullName: z.string().min(1, "กรุณากรอกชื่อ-นามสกุล"),
-    nickname: z.string().optional(),
-    dateOfBirth: z.string().optional(),
-    phoneNumber: z
-      .string()
-      .regex(/^[0-9]{10}$/, "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก")
-      .optional()
-      .or(z.literal("")),
-    isActive: z.boolean().optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.phoneNumber && data.phoneNumber.trim() !== "") {
-      if (!/^[0-9]{10}$/.test(data.phoneNumber)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก",
-          path: ["phoneNumber"],
-        });
-      }
-    }
-  });
+export const editEmployeeSchema = z.object({
+  zkUserId: z.string().min(1, "กรุณากรอกรหัสพนักงาน (เครื่องสแกน)"),
+  name: z.string().min(1, "กรุณากรอกชื่อ"),
+});
 
 export const createUserAccountSchema = z
   .object({
-    fullName: z.string().min(1, "กรุณากรอกชื่อ-นามสกุล"),
-    nickname: z.string().min(1, "กรุณากรอกชื่อเล่น"),
+    name: z.string().min(1, "กรุณากรอกชื่อ"),
     email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
     password: z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร"),
     confirmPassword: z.string().min(8, "กรุณายืนยันรหัสผ่าน"),
-    dateOfBirth: z.string().min(1, "กรุณาเลือกวันเกิด"),
-    phoneNumber: z
-      .string()
-      .regex(/^[0-9]{10}$/, "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก"),
     role: z.string().optional(),
   })
   .superRefine((data, ctx) => {
@@ -88,15 +43,10 @@ export const createUserAccountSchema = z
 
 export const editUserAccountSchema = z
   .object({
-    fullName: z.string().min(1, "กรุณากรอกชื่อ-นามสกุล"),
-    nickname: z.string().min(1, "กรุณากรอกชื่อเล่น"),
+    name: z.string().min(1, "กรุณากรอกชื่อ"),
     email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
     password: z.string().optional(),
     confirmPassword: z.string().optional(),
-    dateOfBirth: z.string().min(1, "กรุณาเลือกวันเกิด"),
-    phoneNumber: z
-      .string()
-      .regex(/^[0-9]{10}$/, "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก"),
     role: z.string().optional(),
   })
   .superRefine((data, ctx) => {
@@ -128,7 +78,7 @@ export const editUserAccountSchema = z
   });
 
 export const repairSchema = z.object({
-  fullName: z.string().optional(),
+  name: z.string().optional(),
   address: z.string().optional(),
   phoneNumber: z
     .string()
@@ -141,7 +91,7 @@ export const repairSchema = z.object({
   plateNumbers: z.string().optional(),
   province: z.string().optional(),
   description: z.string().optional(),
-  source: z.enum(["GENERAL", "SUSPENSION"]).optional(),
+  type: z.enum(["GENERAL", "SUSPENSION"]).optional(),
 });
 
 export const partServiceSchema = z
@@ -150,10 +100,13 @@ export const partServiceSchema = z
     partNumber: z.string().optional(),
     brand: z.string().optional(),
     name: z.string().optional(),
-    costPrice: z.coerce.number().optional().default(0),
+    costPrice: z.preprocess(
+      (v) => (v === "" || v == null ? undefined : v),
+      z.coerce.number().optional(),
+    ),
     sellingPrice: z.coerce.number().optional().default(0),
     unit: z.string().optional(),
-    stockQuantity: z.coerce.number().optional().default(0),
+    quantity: z.coerce.number().optional().default(0),
     minStockLevel: z.coerce.number().optional().default(0),
     typeSpecificData: z.any().optional(),
     compatibleVehicles: z.any().optional(),
@@ -324,7 +277,7 @@ export const updatePartStockSchema = z.object({
   quantity: z.coerce.number().min(1, "กรุณากรอกจำนวน"),
 });
 
-export const vehicleBrandSchema = z.object({
+export const vehicleModelSchema = z.object({
   brand: z.string().min(1, "กรุณากรอกยี่ห้อรถ"),
   model: z.string().min(1, "กรุณากรอกรุ่นรถ"),
 });

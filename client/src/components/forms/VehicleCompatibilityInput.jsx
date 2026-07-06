@@ -2,17 +2,19 @@ import { Label } from "@radix-ui/react-label";
 import { useState, useEffect, useRef } from "react";
 import { Plus, Trash, X } from "lucide-react";
 import ComboBox from "../ui/ComboBox";
-import { getVehicleBrands } from "@/api/vehicleBrand";
+import { listVehicleModels } from "@/api/vehicleModel";
+import useAuthStore from "@/stores/useAuthStore";
 
 const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   const [vehicles, setVehicles] = useState([{ brand: "", model: "" }]);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [vehicleBrands, setVehicleBrands] = useState([]);
+  const [vehicleModels, setVehicleModels] = useState([]);
   const [brands, setBrands] = useState([]);
+  const token = useAuthStore((state) => state.token);
   const vehicleRefs = useRef([]);
 
   useEffect(() => {
-    fetchVehicleBrands();
+    fetchVehicleModels();
   }, []);
 
   useEffect(() => {
@@ -37,10 +39,10 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
     }
   }, [initialData, setValue]);
 
-  const fetchVehicleBrands = async () => {
+  const fetchVehicleModels = async () => {
     try {
-      const res = await getVehicleBrands();
-      setVehicleBrands(res.data);
+      const res = await listVehicleModels(token);
+      setVehicleModels(res.data);
 
       const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
       setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
@@ -50,9 +52,9 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   };
 
   const getAvailableModels = (brandName) => {
-    if (!brandName || !vehicleBrands.length) return [];
+    if (!brandName || !vehicleModels.length) return [];
 
-    const modelsForBrand = vehicleBrands
+    const modelsForBrand = vehicleModels
       .filter((item) => item.brand === brandName)
       .map((item) => ({ id: item.model, name: item.model }));
 

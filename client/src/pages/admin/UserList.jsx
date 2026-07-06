@@ -6,7 +6,8 @@ import FormButton from "@/components/forms/FormButton";
 import SearchBar from "@/components/forms/SearchBar";
 import UserFormDialog from "@/components/dialogs/UserFormDialog";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
-import { getUsers, deleteUser } from "@/api/user";
+import { listUsers, deleteUser } from "@/api/user";
+import useAuthStore from "@/stores/useAuthStore";
 
 const UserList = () => {
   const [users, setUsers] = useState([]);
@@ -16,6 +17,7 @@ const UserList = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState(null);
+  const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -25,7 +27,7 @@ const UserList = () => {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const res = await getUsers();
+      const res = await listUsers(token);
       setUsers(res.data);
     } catch (error) {
       console.log(error);
@@ -42,7 +44,7 @@ const UserList = () => {
   const handleDeleteConfirm = async () => {
     if (!deletingUser) return;
     try {
-      await deleteUser(deletingUser.id);
+      await deleteUser(token, deletingUser.id);
       toast.success("ลบบัญชีผู้ใช้งานสำเร็จ");
       setIsDeleteDialogOpen(false);
       setDeletingUser(null);
@@ -64,8 +66,7 @@ const UserList = () => {
 
   const filteredUsers = users.filter(
     (user) =>
-      user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.nickname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
@@ -161,7 +162,7 @@ const UserList = () => {
                       >
                         <div className="flex min-w-0 flex-1 flex-col">
                           <p className="text-normal truncate text-[18px] font-medium md:text-[20px]">
-                            {user.fullName}
+                            {user.name}
                           </p>
                           <p className="text-subtle-dark truncate text-[14px] md:text-[16px]">
                             {user.email}
@@ -203,7 +204,7 @@ const UserList = () => {
         onConfirm={handleDeleteConfirm}
         title="ยืนยันการลบ"
         message="ต้องการลบบัญชีผู้ใช้งานนี้หรือไม่?"
-        itemName={deletingUser?.fullName || deletingUser?.email || ""}
+        itemName={deletingUser?.name || deletingUser?.email || ""}
       />
     </div>
   );

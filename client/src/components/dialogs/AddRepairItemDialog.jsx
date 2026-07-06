@@ -12,8 +12,9 @@ import {
 import { LoaderCircle, X } from "lucide-react";
 import { ICON_MAP, DEFAULT_ICON } from "@/components/icons/categoryIcons";
 import { useDebouncedCallback } from "use-debounce";
-import { getInventory } from "@/api/inventory";
-import { getCategories } from "@/api/category";
+import { listInventory } from "@/api/inventory";
+import { listCategories } from "@/api/category";
+import useAuthStore from "@/stores/useAuthStore";
 
 const AddRepairItemDialog = ({
   children,
@@ -25,9 +26,10 @@ const AddRepairItemDialog = ({
   const [inventory, setInventory] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState("ทั้งหมด");
-  const [categories, setCategories] = useState([]);
+  const [category, setCategory] = useState([]);
   const [searchValue, setSearchValue] = useState("");
   const restoredStockMapRef = useRef({});
+  const token = useAuthStore((state) => state.token);
 
   const buildPartKey = (item) =>
     `${item.partNumber || ""}|${item.brand || ""}|${item.name || ""}`;
@@ -35,7 +37,7 @@ const AddRepairItemDialog = ({
   const handleFilter = async (category, search) => {
     setIsLoading(true);
     try {
-      const res = await getInventory(category, search);
+      const res = await listInventory(token, category, search);
       setInventory(res.data);
     } catch (error) {
       console.log(error);
@@ -44,16 +46,16 @@ const AddRepairItemDialog = ({
     }
   };
 
-  const fetchCategories = async () => {
+  const fetchCategory = async () => {
     try {
-      const res = await getCategories();
-      const categoriesWithIcons = res.data
-        .map((category) => ({
-          ...category,
-          icon: ICON_MAP[category.name] || DEFAULT_ICON,
+      const res = await listCategories(token);
+      const categoryWithIcons = res.data
+        .map((item) => ({
+          ...item,
+          icon: ICON_MAP[item.name] || DEFAULT_ICON,
         }))
         .sort((a, b) => a.id - b.id);
-      setCategories(categoriesWithIcons);
+      setCategory(categoryWithIcons);
     } catch (error) {
       console.log(error);
     }
@@ -77,16 +79,16 @@ const AddRepairItemDialog = ({
     for (const selected of selectedItems) {
       if (selected.partNumber && selected.brand) {
         const key = buildPartKey(selected);
-        if (typeof selected.stockQuantity === "number") {
-          baseline[key] = Math.max(baseline[key] || 0, selected.stockQuantity);
+        if (typeof selected.quantity === "number") {
+          baseline[key] = Math.max(baseline[key] || 0, selected.quantity);
         }
       }
     }
-    
+
     restoredStockMapRef.current = baseline;
 
-    if (categories.length === 0) {
-      fetchCategories();
+    if (category.length === 0) {
+      fetchCategory();
     }
 
     handleFilter(null, null);
@@ -107,7 +109,7 @@ const AddRepairItemDialog = ({
     const displayStock =
       typeof restoredStockMapRef.current[key] === "number"
         ? restoredStockMapRef.current[key]
-        : item.stockQuantity || 0;
+        : item.quantity || 0;
 
     const remainingAddable = (displayStock || 0) - selectedQuantity;
 
@@ -115,7 +117,7 @@ const AddRepairItemDialog = ({
       return;
     }
 
-    onAddItem({ ...item, stockQuantity: displayStock });
+    onAddItem({ ...item, quantity: displayStock });
     setIsDialogOpen(false);
   };
 
@@ -179,7 +181,7 @@ const AddRepairItemDialog = ({
                   </div>
                 </button>
 
-                {categories.map((item, index) => {
+                {category.map((item, index) => {
                   const IconComponent = item.icon;
                   const isActive = activeCategory === item.name;
                   return (
@@ -245,7 +247,7 @@ const AddRepairItemDialog = ({
                   const displayStock =
                     typeof restoredStockMapRef.current[key] === "number"
                       ? restoredStockMapRef.current[key]
-                      : item.stockQuantity || 0;
+                      : item.quantity || 0;
 
                   const remainingAddable =
                     (displayStock || 0) - selectedQuantity;
@@ -268,10 +270,10 @@ const AddRepairItemDialog = ({
                         name={item.name}
                         unit={item.unit}
                         sellingPrice={item.sellingPrice}
-                        stockQuantity={Math.max(remainingAddable, 0)}
+                        quantity={Math.max(remainingAddable, 0)}
                         minStockLevel={item.minStockLevel}
                         typeSpecificData={item.typeSpecificData}
-                        secureUrl={item.secureUrl}
+                        secure_url={item.secure_url}
                         category={item.category.name}
                         disabled={isDisabled}
                       />

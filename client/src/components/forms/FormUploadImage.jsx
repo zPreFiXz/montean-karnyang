@@ -11,7 +11,7 @@ const FormUploadImage = ({
   label,
   setSelectedImage,
   selectedImage,
-  publicId,
+  public_id,
   onMarkForDeletion,
   placeholder = "เลือกรูปภาพ",
 }) => {
@@ -132,7 +132,7 @@ const FormUploadImage = ({
       URL.revokeObjectURL(previewImage);
     }
 
-    if (publicId && typeof selectedImage === "string") {
+    if (public_id && typeof selectedImage === "string") {
       setIsMarkedForDeletion(true);
       if (onMarkForDeletion) {
         onMarkForDeletion(true);

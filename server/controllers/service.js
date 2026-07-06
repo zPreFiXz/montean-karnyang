@@ -1,7 +1,7 @@
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
 
-exports.getServices = async (req, res, next) => {
+exports.listServices = async (req, res, next) => {
   try {
     const services = await prisma.service.findMany();
 

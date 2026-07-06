@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { getRepairs } from "@/api/repair";
+import { listRepairs } from "@/api/repair";
+import useAuthStore from "@/stores/useAuthStore";
 
 // กรองรายการซ่อมที่มีสถานะ "PAID" และถูกจ่ายเงินในวันนี้
 const filterTodayPaidRepairs = (repairs) => {
@@ -17,7 +18,8 @@ const repairStore = (set, get) => ({
   // ดึงรายการซ่อมทั้งหมด
   fetchRepairs: async () => {
     try {
-      const res = await getRepairs();
+      const token = useAuthStore.getState().token;
+      const res = await listRepairs(token);
       set({ repairs: res.data });
       return res.data;
     } catch (error) {

@@ -6,12 +6,13 @@ import LoadingToRedirect from "./LoadingToRedirect";
 const ProtectRouteAdmin = ({ element }) => {
   const [ok, setOk] = useState(false);
   const user = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
-    if (user) {
-      currentAdmin()
-        .then(() => setOk(true))
-        .catch(() => setOk(false));
+    if (user && token) {
+      currentAdmin(token)
+        .then((res) => setOk(true))
+        .catch((err) => setOk(false));
     }
   }, []);
 

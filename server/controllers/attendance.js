@@ -46,20 +46,17 @@ const mapStatusToSlotKey = (status) => {
   return null;
 };
 
-exports.getDailyAttendanceSummary = async (req, res, next) => {
+exports.getAttendanceSummary = async (req, res, next) => {
   try {
     const dateKey = normalizeDateKey(req.query.date);
     const { start, end } = getBangkokDayRange(dateKey);
 
     const employees = await prisma.employee.findMany({
-      where: { isActive: true },
-      orderBy: [{ fullName: "asc" }, { id: "asc" }],
+      orderBy: [{ name: "asc" }, { id: "asc" }],
       select: {
         id: true,
         zkUserId: true,
-        fullName: true,
-        nickname: true,
-        isActive: true,
+        name: true,
       },
     });
 
@@ -76,7 +73,7 @@ exports.getDailyAttendanceSummary = async (req, res, next) => {
           },
           select: {
             employeeId: true,
-            status: true,
+            statusText: true,
             scanTime: true,
           },
           orderBy: {
@@ -112,12 +109,12 @@ exports.getDailyAttendanceSummary = async (req, res, next) => {
 
       item.scanCount += 1;
 
-      const slotKey = mapStatusToSlotKey(attendance.status);
+      const slotKey = mapStatusToSlotKey(attendance.statusText);
       if (!slotKey) continue;
 
       if (!item.slots[slotKey]) {
         item.slots[slotKey] = {
-          status: attendance.status,
+          status: attendance.statusText,
           scanTime: attendance.scanTime,
         };
       }
@@ -131,8 +128,7 @@ exports.getDailyAttendanceSummary = async (req, res, next) => {
       return {
         employeeId: item.id,
         zkUserId: item.zkUserId,
-        fullName: item.fullName,
-        nickname: item.nickname,
+        name: item.name,
         scanCount: item.scanCount,
         requiredScans: REQUIRED_SLOT_KEYS.length,
         completed: missingSlots.length === 0,

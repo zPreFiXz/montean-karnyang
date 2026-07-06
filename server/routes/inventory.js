@@ -5,12 +5,9 @@ const router = express.Router();
 const { authCheck } = require("../middlewares/auth");
 
 // Controllers
-const { getInventory, getInventoryById } = require("../controllers/inventory");
+const { listInventory, getInventory } = require("../controllers/inventory");
 
-// @ENDPOINTS http://localhost:3000/api/inventory
-router.get("/inventory", authCheck, getInventory);
-
-// @ENDPOINTS http://localhost:3000/api/inventory/1
-router.get("/inventory/:id", authCheck, getInventoryById);
+router.get("/inventory", authCheck, listInventory);
+router.get("/inventory/:id", authCheck, getInventory);
 
 module.exports = router;

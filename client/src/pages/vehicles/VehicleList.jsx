@@ -3,13 +3,15 @@ import { Link, useSearchParams } from "react-router";
 import { LoaderCircle } from "lucide-react";
 import SearchBar from "@/components/forms/SearchBar";
 import CarCard from "@/components/cards/CarCard";
-import { getVehicles } from "@/api/vehicle";
+import { listVehicles } from "@/api/vehicle";
+import useAuthStore from "@/stores/useAuthStore";
 import { Document } from "@/components/icons/Icons";
 import BrandIcons from "@/components/icons/BrandIcons";
 
 const VehicleList = () => {
   const [vehicles, setVehicles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const token = useAuthStore((state) => state.token);
   const [searchParams, setSearchParams] = useSearchParams();
   const isInitializing = useRef(false);
 
@@ -43,7 +45,7 @@ const VehicleList = () => {
   const handleFilter = async (search) => {
     setIsLoading(true);
     try {
-      const res = await getVehicles(search);
+      const res = await listVehicles(token, search);
       setVehicles(res.data);
     } catch (error) {
       console.log(error);
@@ -86,13 +88,13 @@ const VehicleList = () => {
                 <Link to={`/vehicles/${item.id}`}>
                   <CarCard
                     bg="primary"
-                    icon={<BrandIcons brand={item.vehicleBrand.brand} />}
+                    icon={<BrandIcons brand={item.vehicleModel.brand} />}
                     licensePlate={
                       item.licensePlate
-                        ? `${item.licensePlate.plate} ${item.licensePlate.province}`
+                        ? `${item.licensePlate.plateNumber} ${item.licensePlate.province}`
                         : "ไม่ระบุทะเบียนรถ"
                     }
-                    brand={`${item.vehicleBrand.brand} ${item.vehicleBrand.model}`}
+                    brand={`${item.vehicleModel.brand} ${item.vehicleModel.model}`}
                   />
                 </Link>
               </div>

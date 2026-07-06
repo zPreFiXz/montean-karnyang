@@ -3,7 +3,8 @@ import AppRoutes from "./routes/AppRoutes";
 
 const App = () => {
   return (
-    <div>
+    <>
+      <AppRoutes />
       <Toaster
         richColors
         position="top-center"
@@ -17,8 +18,7 @@ const App = () => {
           },
         }}
       />
-      <AppRoutes />
-    </div>
+    </>
   );
 };
 export default App;

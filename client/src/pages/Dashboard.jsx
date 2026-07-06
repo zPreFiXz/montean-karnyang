@@ -13,7 +13,7 @@ import CarCard from "@/components/cards/CarCard";
 import InventoryCard from "@/components/cards/InventoryCard";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
 import StatusCard from "@/components/cards/StatusCard";
-import { getInventory } from "@/api/inventory";
+import { listInventory } from "@/api/inventory";
 import { formatCurrency, formatDate, formatTime } from "@/utils/formats";
 import useRepairStore from "@/stores/useRepairStore";
 import useAuthStore from "@/stores/useAuthStore";
@@ -27,7 +27,7 @@ const Dashboard = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [isItemDetailOpen, setIsItemDetailOpen] = useState(false);
   const navigate = useNavigate();
-  const { logout, user } = useAuthStore();
+  const { logout, user, token } = useAuthStore();
   const {
     fetchRepairs,
     getRepairCountByStatus,
@@ -43,7 +43,7 @@ const Dashboard = () => {
 
   const fetchInventory = async () => {
     try {
-      const res = await getInventory(null, null);
+      const res = await listInventory(token, null, null);
       setInventory(res.data || []);
     } catch (error) {
       console.log(error);
@@ -66,18 +66,18 @@ const Dashboard = () => {
   // กรองสินค้าที่ไม่ใช่บริการ
   const stockItems = inventory.filter((i) => i?.category?.name !== "บริการ");
   const outOfStockItems = stockItems.filter(
-    (i) => Number(i?.stockQuantity || 0) <= 0,
+    (i) => Number(i?.quantity || 0) <= 0,
   );
   const lowStockItems = stockItems.filter((i) => {
-    const qty = Number(i?.stockQuantity || 0);
+    const qty = Number(i?.quantity || 0);
     const min = Number(i?.minStockLevel || 0);
     return qty > 0 && min > 0 && qty <= min;
   });
 
   // แสดงยี่ห้อ+รุ่น หรือแค่รุ่นถ้ายี่ห้อเป็น "อื่นๆ"
-  const getDisplayBrand = (vehicleBrand) => {
-    const brand = vehicleBrand?.brand || "";
-    const model = vehicleBrand?.model || "";
+  const getDisplayBrand = (vehicleModel) => {
+    const brand = vehicleModel?.brand || "";
+    const model = vehicleModel?.model || "";
 
     if (brand === "อื่นๆ" || brand === "อื่น ๆ") {
       return model;
@@ -149,17 +149,17 @@ const Dashboard = () => {
                       bg="progress"
                       icon={
                         <BrandIcons
-                          brand={repair.vehicle?.vehicleBrand?.brand}
+                          brand={repair.vehicle?.vehicleModel?.brand}
                           color="#ffb000"
                         />
                       }
                       licensePlate={
-                        repair.vehicle?.licensePlate?.plate &&
+                        repair.vehicle?.licensePlate?.plateNumber &&
                         repair.vehicle?.licensePlate?.province
-                          ? `${repair.vehicle.licensePlate.plate} ${repair.vehicle.licensePlate.province}`
+                          ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
                           : "ไม่ระบุทะเบียนรถ"
                       }
-                      brand={getDisplayBrand(repair.vehicle?.vehicleBrand)}
+                      brand={getDisplayBrand(repair.vehicle?.vehicleModel)}
                       time={repair.createdAt && formatTime(repair.createdAt)}
                       price={parseFloat(repair.totalPrice)}
                     />
@@ -181,17 +181,17 @@ const Dashboard = () => {
                       bg="completed"
                       icon={
                         <BrandIcons
-                          brand={repair.vehicle?.vehicleBrand?.brand}
+                          brand={repair.vehicle?.vehicleModel?.brand}
                           color="#22c55e"
                         />
                       }
                       licensePlate={
-                        repair.vehicle?.licensePlate?.plate &&
+                        repair.vehicle?.licensePlate?.plateNumber &&
                         repair.vehicle?.licensePlate?.province
-                          ? `${repair.vehicle.licensePlate.plate} ${repair.vehicle.licensePlate.province}`
+                          ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
                           : "ไม่ระบุทะเบียนรถ"
                       }
-                      brand={getDisplayBrand(repair.vehicle?.vehicleBrand)}
+                      brand={getDisplayBrand(repair.vehicle?.vehicleModel)}
                       time={
                         repair.completedAt && formatTime(repair.completedAt)
                       }
@@ -215,16 +215,16 @@ const Dashboard = () => {
                       bg="paid"
                       icon={
                         <BrandIcons
-                          brand={repair.vehicle?.vehicleBrand?.brand}
+                          brand={repair.vehicle?.vehicleModel?.brand}
                         />
                       }
                       licensePlate={
-                        repair.vehicle?.licensePlate?.plate &&
+                        repair.vehicle?.licensePlate?.plateNumber &&
                         repair.vehicle?.licensePlate?.province
-                          ? `${repair.vehicle.licensePlate.plate} ${repair.vehicle.licensePlate.province}`
+                          ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
                           : "ไม่ระบุทะเบียนรถ"
                       }
-                      brand={getDisplayBrand(repair.vehicle?.vehicleBrand)}
+                      brand={getDisplayBrand(repair.vehicle?.vehicleModel)}
                       time={repair.paidAt && formatTime(repair.paidAt)}
                       price={parseFloat(repair.totalPrice)}
                     />
@@ -261,10 +261,10 @@ const Dashboard = () => {
                       name={item.name}
                       unit={item.unit}
                       sellingPrice={item.sellingPrice}
-                      stockQuantity={item.stockQuantity}
+                      quantity={item.quantity}
                       minStockLevel={item.minStockLevel}
                       typeSpecificData={item.typeSpecificData}
-                      secureUrl={item.secureUrl}
+                      secure_url={item.secure_url}
                       category={item.category?.name}
                     />
                   </div>
@@ -283,10 +283,10 @@ const Dashboard = () => {
                       name={item.name}
                       unit={item.unit}
                       sellingPrice={item.sellingPrice}
-                      stockQuantity={item.stockQuantity}
+                      quantity={item.quantity}
                       minStockLevel={item.minStockLevel}
                       typeSpecificData={item.typeSpecificData}
-                      secureUrl={item.secureUrl}
+                      secure_url={item.secure_url}
                       category={item.category?.name}
                     />
                   </div>
@@ -338,7 +338,7 @@ const Dashboard = () => {
                       </div>
                       <div>
                         <p className="text-surface text-[20px] font-semibold md:text-[22px]">
-                          {user?.fullName}
+                          {user?.name}
                         </p>
                         <p className="text-surface text-[18px] md:text-[20px]">
                           {user?.role === "ADMIN" ? "แอดมิน" : "พนักงาน"}
@@ -360,7 +360,7 @@ const Dashboard = () => {
                   <div>
                     {/* จัดการยี่ห้อและรุ่นรถ */}
                     <Link
-                      to="/vehicles/brands"
+                      to="/vehicles/models"
                       onClick={() => setIsMenuOpen(false)}
                       className="bg-surface shadow-primary mb-[16px] flex w-full items-center gap-[16px] rounded-[12px] p-[16px] duration-300"
                     >
@@ -484,10 +484,10 @@ const Dashboard = () => {
                     name={item.name}
                     unit={item.unit}
                     sellingPrice={item.sellingPrice}
-                    stockQuantity={item.stockQuantity}
+                    quantity={item.quantity}
                     minStockLevel={item.minStockLevel}
                     typeSpecificData={item.typeSpecificData}
-                    secureUrl={item.secureUrl}
+                    secure_url={item.secure_url}
                     category={item.category?.name}
                   />
                 </div>
@@ -506,10 +506,10 @@ const Dashboard = () => {
                     name={item.name}
                     unit={item.unit}
                     sellingPrice={item.sellingPrice}
-                    stockQuantity={item.stockQuantity}
+                    quantity={item.quantity}
                     minStockLevel={item.minStockLevel}
                     typeSpecificData={item.typeSpecificData}
-                    secureUrl={item.secureUrl}
+                    secure_url={item.secure_url}
                     category={item.category?.name}
                   />
                 </div>

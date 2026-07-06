@@ -6,7 +6,8 @@ import FormButton from "@/components/forms/FormButton";
 import SearchBar from "@/components/forms/SearchBar";
 import EmployeeFormDialog from "@/components/dialogs/EmployeeFormDialog";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
-import { getEmployees, deleteEmployee } from "@/api/employee";
+import { listEmployees, deleteEmployee } from "@/api/employee";
+import useAuthStore from "@/stores/useAuthStore";
 
 const EmployeeList = () => {
   const [employees, setEmployees] = useState([]);
@@ -16,6 +17,7 @@ const EmployeeList = () => {
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingEmployee, setDeletingEmployee] = useState(null);
+  const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -25,7 +27,7 @@ const EmployeeList = () => {
   const fetchEmployees = async () => {
     setIsLoading(true);
     try {
-      const res = await getEmployees();
+      const res = await listEmployees(token);
       setEmployees(res.data);
     } catch (error) {
       console.log(error);
@@ -42,7 +44,7 @@ const EmployeeList = () => {
   const handleDeleteConfirm = async () => {
     if (!deletingEmployee) return;
     try {
-      await deleteEmployee(deletingEmployee.id);
+      await deleteEmployee(token, deletingEmployee.id);
       toast.success("ลบพนักงานสำเร็จ");
       setIsDeleteDialogOpen(false);
       setDeletingEmployee(null);
@@ -65,9 +67,7 @@ const EmployeeList = () => {
   const filteredEmployees = employees.filter(
     (employee) =>
       employee.zkUserId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.nickname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.phoneNumber?.toLowerCase().includes(searchTerm.toLowerCase()),
+      employee.name?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const sortedEmployees = [...filteredEmployees].sort((a, b) => a.id - b.id);
@@ -131,13 +131,10 @@ const EmployeeList = () => {
                     >
                       <div className="flex min-w-0 flex-1 flex-col">
                         <p className="text-normal truncate text-[18px] font-medium md:text-[20px]">
-                          {employee.fullName}
+                          {employee.name}
                         </p>
                         <p className="text-subtle-dark truncate text-[14px] md:text-[16px]">
                           รหัสเครื่องสแกน: {employee.zkUserId}
-                          {employee.phoneNumber
-                            ? ` • โทร ${employee.phoneNumber}`
-                            : ""}
                         </p>
                       </div>
                       <div className="flex flex-shrink-0 gap-[8px]">
@@ -175,7 +172,7 @@ const EmployeeList = () => {
         onConfirm={handleDeleteConfirm}
         title="ยืนยันการลบ"
         message="ต้องการลบพนักงานนี้หรือไม่?"
-        itemName={deletingEmployee?.fullName || ""}
+        itemName={deletingEmployee?.name || ""}
       />
     </div>
   );

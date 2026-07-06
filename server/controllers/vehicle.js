@@ -1,6 +1,7 @@
 const prisma = require("../config/prisma");
+const createError = require("../utils/createError");
 
-exports.getVehicles = async (req, res, next) => {
+exports.listVehicles = async (req, res, next) => {
   try {
     const { search } = req.query;
 
@@ -10,7 +11,7 @@ exports.getVehicles = async (req, res, next) => {
       filter = {
         OR: [
           {
-            vehicleBrand: {
+            vehicleModel: {
               OR: [
                 { brand: { contains: search } },
                 { model: { contains: search } },
@@ -20,7 +21,7 @@ exports.getVehicles = async (req, res, next) => {
           {
             licensePlate: {
               OR: [
-                { plate: { contains: search } },
+                { plateNumber: { contains: search } },
                 { province: { contains: search } },
               ],
             },
@@ -33,7 +34,7 @@ exports.getVehicles = async (req, res, next) => {
       where: filter,
       include: {
         licensePlate: true,
-        vehicleBrand: true,
+        vehicleModel: true,
       },
     });
 
@@ -43,7 +44,7 @@ exports.getVehicles = async (req, res, next) => {
   }
 };
 
-exports.getVehicleById = async (req, res, next) => {
+exports.getVehicle = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -52,11 +53,11 @@ exports.getVehicleById = async (req, res, next) => {
       include: {
         licensePlate: {
           select: {
-            plate: true,
+            plateNumber: true,
             province: true,
           },
         },
-        vehicleBrand: true,
+        vehicleModel: true,
         repairs: {
           select: {
             id: true,
@@ -66,6 +67,10 @@ exports.getVehicleById = async (req, res, next) => {
         },
       },
     });
+
+    if (!vehicle) {
+      return createError(404, "ไม่พบข้อมูลรถ");
+    }
 
     res.json(vehicle);
   } catch (error) {

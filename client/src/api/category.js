@@ -1,5 +1,9 @@
-import api from "@/lib/api";
+import axios from "axios";
 
-export const getCategories = async () => {
-  return await api.get("/api/categories");
+export const listCategories = async (token) => {
+  return await axios.get(`${import.meta.env.VITE_API_URL}/api/categories`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 };

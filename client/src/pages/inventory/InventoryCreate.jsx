@@ -5,11 +5,12 @@ import { createPart } from "@/api/part";
 import { createService } from "@/api/service";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
-import { getCategories } from "@/api/category";
+import { listCategories } from "@/api/category";
 import ComboBox from "@/components/ui/ComboBox";
 import FormUploadImage from "@/components/forms/FormUploadImage";
 import { resizeImage } from "@/utils/resizeImage";
 import { uploadImage } from "@/api/uploadImage";
+import useAuthStore from "@/stores/useAuthStore";
 import VehicleCompatibilityInput from "@/components/forms/VehicleCompatibilityInput";
 import { useNavigate } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,16 +40,17 @@ const InventoryCreate = () => {
       categoryId: undefined,
     },
   });
-  const [categories, setCategories] = useState([]);
+  const [category, setCategory] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [vehicleKey, setVehicleKey] = useState(0);
+  const token = useAuthStore((state) => state.token);
   const navigate = useNavigate();
   const { errors } = formState;
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    fetchCategories();
+    fetchCategory();
   }, []);
 
   useEffect(() => {
@@ -57,10 +59,10 @@ const InventoryCreate = () => {
     }
   }, [errors.categoryId]);
 
-  const fetchCategories = async () => {
+  const fetchCategory = async () => {
     try {
-      const res = await getCategories();
-      setCategories(res.data);
+      const res = await listCategories(token);
+      setCategory(res.data);
     } catch (error) {
       console.log(error);
     }
@@ -68,7 +70,7 @@ const InventoryCreate = () => {
 
   const isServiceCategory = () => {
     const selectedCategoryId = watch("categoryId");
-    const selectedCategory = categories.find(
+    const selectedCategory = category.find(
       (cat) => cat.id === selectedCategoryId,
     );
     return selectedCategory?.name === "บริการ";
@@ -76,7 +78,7 @@ const InventoryCreate = () => {
 
   const isTireCategory = () => {
     const selectedCategoryId = watch("categoryId");
-    const selectedCategory = categories.find(
+    const selectedCategory = category.find(
       (cat) => cat.id === selectedCategoryId,
     );
     return selectedCategory?.name === "ยาง";
@@ -84,7 +86,7 @@ const InventoryCreate = () => {
 
   const isSuspensionCategory = () => {
     const selectedCategoryId = watch("categoryId");
-    const selectedCategory = categories.find(
+    const selectedCategory = category.find(
       (cat) => cat.id === selectedCategoryId,
     );
     return selectedCategory?.name === "ช่วงล่าง";
@@ -100,7 +102,7 @@ const InventoryCreate = () => {
       "costPrice",
       "sellingPrice",
       "unit",
-      "stockQuantity",
+      "quantity",
       "minStockLevel",
       "width",
       "aspectRatio",
@@ -144,11 +146,11 @@ const InventoryCreate = () => {
 
       if (selectedImage) {
         const resizedImage = await resizeImage(selectedImage);
-        const res = await uploadImage(resizedImage);
+        const res = await uploadImage(token, resizedImage);
 
         image = {
-          publicId: res.data?.public_id,
-          secureUrl: res.data?.secure_url,
+          public_id: res.data?.public_id,
+          secure_url: res.data?.secure_url,
         };
       } else if (!isServiceCategory()) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -162,7 +164,7 @@ const InventoryCreate = () => {
           costPrice: data.costPrice,
           sellingPrice: data.sellingPrice,
           unit: data.unit,
-          stockQuantity: data.stockQuantity,
+          quantity: data.quantity,
           minStockLevel: data.minStockLevel,
           typeSpecificData: isTireCategory()
             ? {
@@ -188,11 +190,11 @@ const InventoryCreate = () => {
       }
 
       if (isServiceCategory()) {
-        await createService(serviceData);
+        await createService(token, serviceData);
         toast.success("เพิ่มบริการเรียบร้อยแล้ว");
         navigate("/inventory");
       } else {
-        await createPart(partData);
+        await createPart(token, partData);
         toast.success("เพิ่มอะไหล่เรียบร้อยแล้ว");
         navigate("/inventory");
       }
@@ -223,7 +225,7 @@ const InventoryCreate = () => {
             <ComboBox
               label="หมวดหมู่"
               color="text-subtle-dark"
-              options={categories}
+              options={category}
               value={watch("categoryId")}
               onChange={handleCategoryChange}
               placeholder="-- เลือกหมวดหมู่ --"
@@ -441,7 +443,7 @@ const InventoryCreate = () => {
               </div>
               <FormInput
                 register={register}
-                name="stockQuantity"
+                name="quantity"
                 label="จำนวนสต็อก"
                 type="number"
                 placeholder="เช่น 4"

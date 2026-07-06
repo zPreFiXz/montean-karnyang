@@ -1,6 +1,6 @@
 const express = require("express");
-const { validate, loginSchema } = require("../utils/validator");
 const router = express.Router();
+const { validate, loginSchema } = require("../utils/validator");
 
 // Middlewares
 const { authCheck, adminCheck } = require("../middlewares/auth");
@@ -8,16 +8,9 @@ const { authCheck, adminCheck } = require("../middlewares/auth");
 // Controllers
 const { login, logout, currentUser } = require("../controllers/auth");
 
-// @ENDPOINTS http://localhost:3000/api/login
 router.post("/login", validate(loginSchema), login);
-
-// @ENDPOINTS http://localhost:3000/api/logout
 router.post("/logout", authCheck, logout);
-
-// @ENDPOINTS http://localhost:3000/api/current-user
-router.post("/current-user", authCheck, currentUser);
-
-// @ENDPOINTS http://localhost:3000/api/current-admin
-router.post("/current-admin", authCheck, adminCheck, currentUser);
+router.get("/current-user", authCheck, currentUser);
+router.get("/current-admin", authCheck, adminCheck, currentUser);
 
 module.exports = router;

@@ -152,11 +152,11 @@ const SalesReport = () => {
   const getCarCardData = (repair) => {
     const vehicle = repair.vehicle;
     const licensePlate =
-      vehicle?.licensePlate?.plate && vehicle?.licensePlate?.province
-        ? `${vehicle.licensePlate.plate} ${getProvinceName(vehicle.licensePlate.province)}`
+      vehicle?.licensePlate?.plateNumber && vehicle?.licensePlate?.province
+        ? `${vehicle.licensePlate.plateNumber} ${getProvinceName(vehicle.licensePlate.province)}`
         : "ไม่ระบุทะเบียนรถ";
 
-    const brand = `${vehicle.vehicleBrand.brand} ${vehicle.vehicleBrand.model}`;
+    const brand = `${vehicle.vehicleModel.brand} ${vehicle.vehicleModel.model}`;
 
     const paidTime = repair.paidAt ? formatTime(repair.paidAt) : "";
 
@@ -432,7 +432,7 @@ const SalesReport = () => {
                         bg="primary"
                         icon={
                           <BrandIcons
-                            brand={repair.vehicle.vehicleBrand.brand}
+                            brand={repair.vehicle.vehicleModel.brand}
                           />
                         }
                         licensePlate={carData.licensePlate}
@@ -465,7 +465,7 @@ const SalesReport = () => {
                               bg="primary"
                               icon={
                                 <BrandIcons
-                                  brand={repair.vehicle.vehicleBrand.brand}
+                                  brand={repair.vehicle.vehicleModel.brand}
                                 />
                               }
                               licensePlate={carData.licensePlate}

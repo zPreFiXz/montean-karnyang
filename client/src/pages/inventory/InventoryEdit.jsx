@@ -5,7 +5,7 @@ import { updatePart } from "@/api/part";
 import { updateService } from "@/api/service";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
-import { getCategories } from "@/api/category";
+import { listCategories } from "@/api/category";
 import ComboBox from "@/components/ui/ComboBox";
 import FormUploadImage from "@/components/forms/FormUploadImage";
 import { resizeImage } from "@/utils/resizeImage";
@@ -17,7 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { partServiceSchema } from "@/utils/schemas";
 import { units } from "@/constants/units";
 import { ChevronLeft, LoaderCircle } from "lucide-react";
-import { getInventoryById } from "@/api/inventory";
+import { getInventory } from "@/api/inventory";
 import { useParams, useSearchParams } from "react-router";
 import useAuthStore from "@/stores/useAuthStore";
 
@@ -46,7 +46,7 @@ const InventoryEdit = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const type = searchParams.get("type");
-  const [categories, setCategories] = useState([]);
+  const [category, setCategory] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -55,18 +55,18 @@ const InventoryEdit = () => {
     useState(false);
   const navigate = useNavigate();
   const { errors } = formState;
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    fetchCategories();
+    fetchCategory();
   }, []);
 
   useEffect(() => {
-    if (categories.length > 0 && id && type) {
+    if (category.length > 0 && id && type) {
       fetchInventory(id, type);
     }
-  }, [categories, id, type]);
+  }, [category, id, type]);
 
   useEffect(() => {
     if (errors.categoryId) {
@@ -74,10 +74,10 @@ const InventoryEdit = () => {
     }
   }, [errors.categoryId]);
 
-  const fetchCategories = async () => {
+  const fetchCategory = async () => {
     try {
-      const res = await getCategories();
-      setCategories(res.data);
+      const res = await listCategories(token);
+      setCategory(res.data);
     } catch (error) {
       console.log(error);
     }
@@ -86,17 +86,17 @@ const InventoryEdit = () => {
   const fetchInventory = async (id, type) => {
     try {
       setIsLoading(true);
-      const res = await getInventoryById(id, type);
+      const res = await getInventory(token, id, type);
       setInventory(res.data);
 
       if (res.data) {
         const item = res.data;
 
-        const category = categories.find(
+        const selectedCategory = category.find(
           (cat) => cat.name === item.category.name,
         );
-        if (category) {
-          setValue("categoryId", category.id);
+        if (selectedCategory) {
+          setValue("categoryId", selectedCategory.id);
         }
 
         if (item.type === "service") {
@@ -109,7 +109,7 @@ const InventoryEdit = () => {
           setValue("costPrice", item.costPrice);
           setValue("sellingPrice", item.sellingPrice);
           setValue("unit", item.unit);
-          setValue("stockQuantity", item.stockQuantity);
+          setValue("quantity", item.quantity);
           setValue("minStockLevel", item.minStockLevel);
 
           if (item.typeSpecificData) {
@@ -126,8 +126,8 @@ const InventoryEdit = () => {
             setValue("compatibleVehicles", item.compatibleVehicles);
           }
 
-          if (item.secureUrl) {
-            setSelectedImage(item.secureUrl);
+          if (item.secure_url) {
+            setSelectedImage(item.secure_url);
           }
         }
       }
@@ -144,7 +144,7 @@ const InventoryEdit = () => {
     }
 
     const selectedCategoryId = watch("categoryId");
-    const selectedCategory = categories.find(
+    const selectedCategory = category.find(
       (cat) => cat.id === selectedCategoryId,
     );
     return selectedCategory?.name === "บริการ";
@@ -156,7 +156,7 @@ const InventoryEdit = () => {
     }
 
     const selectedCategoryId = watch("categoryId");
-    const selectedCategory = categories.find(
+    const selectedCategory = category.find(
       (cat) => cat.id === selectedCategoryId,
     );
     return selectedCategory?.name === "ยาง";
@@ -168,7 +168,7 @@ const InventoryEdit = () => {
     }
 
     const selectedCategoryId = watch("categoryId");
-    const selectedCategory = categories.find(
+    const selectedCategory = category.find(
       (cat) => cat.id === selectedCategoryId,
     );
     return selectedCategory?.name === "ช่วงล่าง";
@@ -184,7 +184,7 @@ const InventoryEdit = () => {
       "costPrice",
       "sellingPrice",
       "unit",
-      "stockQuantity",
+      "quantity",
       "minStockLevel",
       "width",
       "aspectRatio",
@@ -203,37 +203,37 @@ const InventoryEdit = () => {
 
       if (selectedImage && typeof selectedImage !== "string") {
         const resizedImage = await resizeImage(selectedImage);
-        const res = await uploadImage(resizedImage);
+        const res = await uploadImage(token, resizedImage);
 
         image = {
-          publicId: res.data?.public_id,
-          secureUrl: res.data?.secure_url,
+          public_id: res.data?.public_id,
+          secure_url: res.data?.secure_url,
         };
 
-        if (inventory?.publicId) {
+        if (inventory?.public_id) {
           try {
-            await deleteImage(inventory.publicId);
+            await deleteImage(token, inventory.public_id);
           } catch (error) {
             console.log(error);
           }
         }
       } else if (selectedImage && typeof selectedImage === "string") {
         image = {
-          publicId: inventory?.publicId,
-          secureUrl: inventory?.secureUrl,
+          public_id: inventory?.public_id,
+          secure_url: inventory?.secure_url,
         };
       } else if (selectedImage === null) {
-        if (inventory?.publicId && isImageMarkedForDeletion) {
+        if (inventory?.public_id && isImageMarkedForDeletion) {
           try {
-            await deleteImage(inventory.publicId);
+            await deleteImage(token, inventory.public_id);
           } catch (error) {
             console.log(error);
           }
         }
 
         image = {
-          publicId: null,
-          secureUrl: null,
+          public_id: null,
+          secure_url: null,
         };
       }
 
@@ -245,7 +245,7 @@ const InventoryEdit = () => {
           costPrice: data.costPrice,
           sellingPrice: data.sellingPrice,
           unit: data.unit,
-          stockQuantity: data.stockQuantity,
+          quantity: data.quantity,
           minStockLevel: data.minStockLevel,
           typeSpecificData: isTireCategory()
             ? {
@@ -273,11 +273,11 @@ const InventoryEdit = () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       if (isServiceCategory()) {
-        await updateService(id, serviceData);
+        await updateService(token, id, serviceData);
         toast.success("แก้ไขบริการเรียบร้อยแล้ว");
         navigate("/inventory");
       } else {
-        await updatePart(id, partData);
+        await updatePart(token, id, partData);
         toast.success("แก้ไขอะไหล่เรียบร้อยแล้ว");
         navigate("/inventory");
       }
@@ -316,7 +316,7 @@ const InventoryEdit = () => {
               <ComboBox
                 label="หมวดหมู่"
                 color="text-subtle-dark"
-                options={categories}
+                options={category}
                 value={watch("categoryId")}
                 onChange={handleCategoryChange}
                 placeholder="-- เลือกหมวดหมู่ --"
@@ -359,7 +359,7 @@ const InventoryEdit = () => {
                   label="รูปภาพอะไหล่"
                   setSelectedImage={setSelectedImage}
                   selectedImage={selectedImage}
-                  publicId={inventory?.publicId}
+                  public_id={inventory?.public_id}
                   onMarkForDeletion={setIsImageMarkedForDeletion}
                 />
 
@@ -539,7 +539,7 @@ const InventoryEdit = () => {
                 </div>
                 <FormInput
                   register={register}
-                  name="stockQuantity"
+                  name="quantity"
                   label="จำนวนสต็อก"
                   type="number"
                   placeholder="เช่น 10"
