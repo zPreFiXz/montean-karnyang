@@ -3,7 +3,7 @@ const config = {
     ip: process.env.ZKTECO_DEVICE_IP || "192.168.1.101",
     port: Number(process.env.ZKTECO_DEVICE_PORT || 4370),
     socketTimeoutMs: 10_000,
-    inportTimeoutMs: 4_000,
+    connectionTimeoutMs: 4_000,
     pollIntervalMs: 30_000,
     fetchTimeoutMs: 20_000,
     reconnectDelayMs: 10_000,
@@ -27,7 +27,7 @@ const config = {
     lunchBreakMinutes: 60,
     stepStatuses: ["เข้างาน", "พักเที่ยง", "กลับจากพักเที่ยง", "เลิกงาน"],
     employeeCacheTtlMs: 5 * 60 * 1_000,
-    summaryAfterMinutes: 18 * 60,
+    summaryAtMinutes: 18 * 60,
   },
 };
 

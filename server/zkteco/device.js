@@ -1,8 +1,7 @@
 const ZKLib = require("node-zklib");
 const config = require("./config");
 
-const logKey = (log) =>
-  `${log?.deviceUserId || ""}-${log?.recordTime || ""}`;
+const logKey = (log) => `${log?.deviceUserId || ""}-${log?.recordTime || ""}`;
 
 const withTimeout = (promise, ms) =>
   Promise.race([
@@ -13,25 +12,24 @@ const withTimeout = (promise, ms) =>
   ]);
 
 const createDevice = () => {
-  const { ip, port, socketTimeoutMs, inportTimeoutMs, fetchTimeoutMs } = config.device;
+  const { ip, port, socketTimeoutMs, connectionTimeoutMs, fetchTimeoutMs } =
+    config.device;
   let zk = null;
 
   const disconnect = async () => {
     if (!zk) return;
     try {
       await zk.disconnect();
-    } catch (err) {
-      console.warn("Disconnect error:", err.message);
-    }
+    } catch {}
     zk = null;
   };
 
   const connect = async () => {
     await disconnect();
-    
-    zk = new ZKLib(ip, port, socketTimeoutMs, inportTimeoutMs);
+
+    zk = new ZKLib(ip, port, socketTimeoutMs, connectionTimeoutMs);
     await zk.createSocket();
-    console.log(`Connected successfully to ${ip}:${port}`);
+    console.log(`[ZKTeco] Connected to ${ip}:${port}`);
   };
 
   const fetchLogs = async () => {

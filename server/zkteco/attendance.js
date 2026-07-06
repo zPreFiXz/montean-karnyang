@@ -3,6 +3,13 @@ const { getDateKey, getDayRange, getMinuteOfDay } = require("./time");
 
 const { attendance: rules } = config;
 
+const STEP = {
+  CLOCK_IN: 0,
+  LUNCH_OUT: 1,
+  LUNCH_RETURN: 2,
+  CLOCK_OUT: 3,
+};
+
 const createEmployeeCache = (prisma) => {
   const cache = new Map();
   let loadedAt = 0;
@@ -12,8 +19,7 @@ const createEmployeeCache = (prisma) => {
     if (!force && cache.size && now - loadedAt < rules.employeeCacheTtlMs) return;
 
     const employees = await prisma.employee.findMany({
-      where: { isActive: true },
-      select: { id: true, fullName: true, nickname: true, zkUserId: true },
+      select: { id: true, nickname: true, zkUserId: true },
     });
 
     cache.clear();
@@ -32,7 +38,7 @@ const createEmployeeCache = (prisma) => {
 
     const emp = await prisma.employee.findUnique({
       where: { zkUserId: key },
-      select: { id: true, fullName: true, nickname: true },
+      select: { id: true, nickname: true },
     });
 
     if (emp) cache.set(key, emp);
@@ -54,7 +60,7 @@ const lunchReturnStatus = (eventTime, lunchOutTime) => {
 };
 
 const resolveStatus = async (prisma, employeeId, recordTime) => {
-  if (!employeeId) return "เข้างาน";
+  if (!employeeId) return rules.stepStatuses[STEP.CLOCK_IN];
 
   const eventTime = recordTime || new Date();
   const minutes = getMinuteOfDay(eventTime);
@@ -69,12 +75,12 @@ const resolveStatus = async (prisma, employeeId, recordTime) => {
   if (!records.length) {
     return minutes > rules.lateAfterMinutes
       ? `เข้างาน (สาย ${minutes - rules.lateAfterMinutes} นาที)`
-      : "เข้างาน";
+      : rules.stepStatuses[STEP.CLOCK_IN];
   }
 
-  if (records.length === 1) return rules.stepStatuses[1];
-  if (records.length === 2) return lunchReturnStatus(eventTime, records[1].scanTime);
-  return rules.stepStatuses[3];
+  if (records.length === 1) return rules.stepStatuses[STEP.LUNCH_OUT];
+  if (records.length === 2) return lunchReturnStatus(eventTime, records[STEP.LUNCH_OUT].scanTime);
+  return rules.stepStatuses[STEP.CLOCK_OUT];
 };
 
 const save = (prisma, employeeId, status, scanTime) =>

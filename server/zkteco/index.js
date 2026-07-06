@@ -5,6 +5,9 @@ const { displayName, scanMessage, dailySummary } = require("./formatter");
 const telegram = require("./telegram");
 const { getDateKey, getMinuteOfDay } = require("./time");
 
+const zkErrorMessage = (err) =>
+  err?.err?.message || err?.message || String(err);
+
 const createDeduper = (windowMs) => {
   const seen = new Map();
   return (key) => {
@@ -46,25 +49,21 @@ const startZktecoService = async (prisma) => {
 
     const prev = chains.get(empId) || Promise.resolve();
     const task = prev
-      .catch(() => {})
+      .catch((err) => console.error("[ZKTeco] Chain error:", err))
       .then(async () => {
         const emp = await employees.find(empId);
-        const status = emp?.id
-          ? await resolveStatus(prisma, emp.id, recordTime)
-          : "เข้างาน";
+        const status = await resolveStatus(prisma, emp?.id, recordTime);
 
-        const name = emp
-          ? displayName(emp)
-          : `ไม่พบข้อมูลพนักงาน (${empId || "-"})`;
+        const name = displayName(emp);
 
         telegram
           .send(scanMessage(name, empId, status, recordTime))
-          .catch((err) => console.error("Telegram:", err.message));
+          .catch((err) => console.error("[Telegram] Send notification failed:", err));
 
         try {
           await save(prisma, emp?.id, status, recordTime);
         } catch (err) {
-          console.error("Save failed:", err.message);
+          console.error("[DB] Save attendance failed:", err);
         }
       })
       .finally(() => {
@@ -86,12 +85,11 @@ const startZktecoService = async (prisma) => {
       }
     } catch (err) {
       if (err.message === "FETCH_TIMEOUT") {
-        console.warn(`Fetch timeout (>${deviceCfg.fetchTimeoutMs}ms) — reconnecting`);
-        scheduleReconnect("FETCH_TIMEOUT");
+        console.warn(`[ZKTeco] Fetch timeout (>${deviceCfg.fetchTimeoutMs}ms) — reconnecting`);
       } else {
-        console.error("Polling:", err.message);
-        scheduleReconnect(err.message);
+        console.error(`[ZKTeco] Polling error: ${zkErrorMessage(err)}`);
       }
+      scheduleReconnect(zkErrorMessage(err));
     } finally {
       polling = false;
     }
@@ -100,15 +98,14 @@ const startZktecoService = async (prisma) => {
   const checkDailySummary = async () => {
     const now = new Date();
     const dateKey = getDateKey(now);
-    if (getMinuteOfDay(now) < attCfg.summaryAfterMinutes) return;
+    if (getMinuteOfDay(now) !== attCfg.summaryAtMinutes) return;
     if (lastSummaryDate === dateKey) return;
 
     try {
       await telegram.send(await dailySummary(prisma, dateKey));
       lastSummaryDate = dateKey;
-      console.log(`Daily summary sent: ${dateKey}`);
     } catch (err) {
-      console.error("Daily summary failed:", err.message);
+      console.error("[Telegram] Daily summary failed:", err);
     }
   };
 
@@ -119,7 +116,7 @@ const startZktecoService = async (prisma) => {
 
     employees
       .warm(true)
-      .catch((err) => console.warn("Cache warmup:", err.message));
+      .catch((err) => console.warn("[Cache] Employee warmup failed:", err));
 
     connected = true;
     reconnecting = false;
@@ -130,8 +127,8 @@ const startZktecoService = async (prisma) => {
     reconnecting = true;
     connected = false;
 
-    console.error(
-      `Reconnecting in ${deviceCfg.reconnectDelayMs}ms (${reason})`,
+    console.warn(
+      `[ZKTeco] Reconnecting in ${deviceCfg.reconnectDelayMs}ms (${reason})`,
     );
 
     setTimeout(async () => {
@@ -139,22 +136,28 @@ const startZktecoService = async (prisma) => {
         await connect();
       } catch (err) {
         reconnecting = false;
-        scheduleReconnect(err.message);
+        scheduleReconnect(zkErrorMessage(err));
       }
     }, deviceCfg.reconnectDelayMs);
   };
 
-  setInterval(poll, deviceCfg.pollIntervalMs);
-  setInterval(checkDailySummary, 60_000);
+  const pollTimerId = setInterval(poll, deviceCfg.pollIntervalMs);
+  const summaryTimerId = setInterval(checkDailySummary, 60_000);
+
+  const stop = () => {
+    clearInterval(pollTimerId);
+    clearInterval(summaryTimerId);
+    device.disconnect().catch(() => {});
+  };
 
   connect()
-    .then(() => {
-      checkDailySummary();
-    })
+    .then(checkDailySummary)
     .catch((err) => {
-      console.error("Initialization failed:", err.message);
-      scheduleReconnect(err.message);
+      console.error(`[ZKTeco] Initialization failed: ${zkErrorMessage(err)}`);
+      scheduleReconnect(zkErrorMessage(err));
     });
+
+  return stop;
 };
 
 module.exports = { startZktecoService };

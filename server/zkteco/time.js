@@ -47,7 +47,6 @@ const getMinuteOfDay = (value) => {
 
 module.exports = {
   formatThaiDate,
-  formatThaiTime,
   formatThaiDateTime,
   getDateKey,
   getDayRange,

@@ -72,11 +72,11 @@ const send = async (message) => {
   const { botToken, chatIds } = config.telegram;
 
   if (!botToken || !chatIds.length) {
-    console.warn("Skipped: Missing BOT_TOKEN or CHAT_IDS");
+    console.warn("[Telegram] Skipped: BOT_TOKEN or CHAT_IDS not configured");
     return;
   }
 
-  const text = typeof message === "string" ? message : JSON.stringify(message) ?? "";
+  const text = typeof message === "string" ? message : JSON.stringify(message);
   const chunks = splitText(text);
 
   const results = await Promise.allSettled(
@@ -92,9 +92,9 @@ const send = async (message) => {
     .map((r) => r.reason?.message || String(r.reason));
 
   if (failures.length) {
-    const msg = `Send failed (${chatIds.length - failures.length}/${chatIds.length} succeeded): ${failures.join(" | ")}`;
-    console.error(msg);
-    throw new Error(msg);
+    throw new Error(
+      `Send failed (${chatIds.length - failures.length}/${chatIds.length} succeeded): ${failures.join(" | ")}`,
+    );
   }
 };
 
