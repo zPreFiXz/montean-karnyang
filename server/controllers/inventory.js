@@ -1,5 +1,23 @@
 const prisma = require("../config/prisma");
 
+// แปลง service ให้มีโครงสร้างเดียวกับ part เพื่อให้ client แสดงคลังสินค้ารวมกันได้
+const mapServiceToInventoryItem = (service) => ({
+  ...service,
+  type: "service",
+  partNumber: null,
+  brand: null,
+  costPrice: null,
+  sellingPrice: service.price,
+  unit: null,
+  quantity: 0,
+  minStockLevel: 0,
+  typeSpecificData: null,
+  compatibleVehicles: null,
+  public_id: null,
+  secure_url: null,
+  category: { name: service.category.name },
+});
+
 exports.listInventory = async (req, res, next) => {
   try {
     const { category, search, width, aspectRatio, rimDiameter, brand } =
@@ -71,22 +89,7 @@ exports.listInventory = async (req, res, next) => {
         type: "part",
         category: { name: item.category.name },
       })),
-      ...services.map((item) => ({
-        ...item,
-        type: "service",
-        partNumber: null,
-        brand: null,
-        costPrice: null,
-        sellingPrice: item.price,
-        unit: null,
-        quantity: 0,
-        minStockLevel: 0,
-        typeSpecificData: null,
-        compatibleVehicles: null,
-        public_id: null,
-        secure_url: null,
-        category: { name: item.category.name },
-      })),
+      ...services.map(mapServiceToInventoryItem),
     ];
 
     res.json(inventory);
@@ -122,22 +125,7 @@ exports.getInventory = async (req, res, next) => {
       });
 
       if (service) {
-        inventory = {
-          ...service,
-          type: "service",
-          partNumber: null,
-          brand: null,
-          costPrice: null,
-          sellingPrice: service.price,
-          unit: null,
-          quantity: 0,
-          minStockLevel: 0,
-          typeSpecificData: null,
-          compatibleVehicles: null,
-          public_id: null,
-          secure_url: null,
-          category: { name: service.category.name },
-        };
+        inventory = mapServiceToInventoryItem(service);
       }
     }
 

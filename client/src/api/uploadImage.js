@@ -13,13 +13,10 @@ export const uploadImage = async (token, form) => {
 };
 
 export const deleteImage = async (token, public_id) => {
-  return await axios.post(
-    `${import.meta.env.VITE_API_URL}/api/images/delete`,
-    { public_id },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+  return await axios.delete(`${import.meta.env.VITE_API_URL}/api/images`, {
+    data: { public_id },
+    headers: {
+      Authorization: `Bearer ${token}`,
     },
-  );
+  });
 };

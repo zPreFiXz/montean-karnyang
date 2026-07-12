@@ -49,8 +49,11 @@ app.use(
   })
 );
 
-// Routing
-readdirSync("./routes").map((c) => app.use("/api", require("./routes/" + c)));
+// Routing: mount ตามลำดับชื่อไฟล์ (sort ให้แน่นอน — vehicle-model ต้องมาก่อน vehicle
+// ไม่งั้น GET /vehicles/:id จะดักเส้นทาง /vehicles/models)
+readdirSync("./routes")
+  .sort()
+  .forEach((file) => app.use("/api", require("./routes/" + file)));
 
 // 404 สำหรับ path ที่ไม่มีในระบบ
 app.use((req, res) => {

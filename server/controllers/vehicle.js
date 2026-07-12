@@ -69,7 +69,7 @@ exports.getVehicle = async (req, res, next) => {
     });
 
     if (!vehicle) {
-      return createError(404, "ไม่พบข้อมูลรถ");
+      createError(404, "ไม่พบข้อมูลรถ");
     }
 
     res.json(vehicle);

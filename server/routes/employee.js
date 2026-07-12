@@ -1,11 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const {
-  validate,
-  createEmployeeSchema,
-  editEmployeeSchema,
-} = require("../utils/validator");
+const { validate, employeeSchema } = require("../utils/validator");
 
 // Middlewares
 const { authCheck, adminCheck } = require("../middlewares/auth");
@@ -23,14 +19,14 @@ router.post(
   "/employees",
   authCheck,
   adminCheck,
-  validate(createEmployeeSchema),
+  validate(employeeSchema),
   createEmployee,
 );
 router.put(
   "/employees/:id",
   authCheck,
   adminCheck,
-  validate(editEmployeeSchema),
+  validate(employeeSchema),
   updateEmployee,
 );
 router.delete("/employees/:id", authCheck, adminCheck, deleteEmployee);

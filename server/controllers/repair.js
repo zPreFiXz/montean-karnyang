@@ -1,6 +1,74 @@
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
 
+// หา/สร้างรุ่นรถตามยี่ห้อ+รุ่น (ใช้ทั้งตอนสร้างและแก้ไขรายการซ่อม)
+const findOrCreateVehicleModel = async (tx, brand, model) => {
+  const vehicleModel = await tx.vehicleModel.findUnique({
+    where: { brand_model: { brand, model } },
+  });
+
+  if (vehicleModel) return vehicleModel;
+
+  return tx.vehicleModel.create({ data: { brand, model } });
+};
+
+// หา/สร้าง/อัปเดตลูกค้า: จับคู่ด้วยเบอร์โทรก่อน (unique) ถ้าไม่มีเบอร์ค่อยจับคู่ด้วยชื่อ
+const resolveCustomer = async (tx, { name, address, phoneNumber }) => {
+  if (phoneNumber) {
+    let customer = await tx.customer.findUnique({ where: { phoneNumber } });
+
+    if (!customer) {
+      return tx.customer.create({
+        data: { name: name || null, address: address || null, phoneNumber },
+      });
+    }
+
+    if (name || address) {
+      customer = await tx.customer.update({
+        where: { id: customer.id },
+        data: { name: name || null, address: address || customer.address },
+      });
+    }
+
+    return customer;
+  }
+
+  if (name) {
+    const customer = await tx.customer.findFirst({ where: { name } });
+    if (customer) return customer;
+
+    return tx.customer.create({
+      data: { name, address: address || null, phoneNumber: null },
+    });
+  }
+
+  return null;
+};
+
+// บันทึกรายการซ่อมย่อยชุดใหม่ พร้อมตัดสต็อกอะไหล่ที่ใช้
+const createRepairItemsAndDecrementStock = async (tx, repairId, repairItems) => {
+  await tx.repairItem.createMany({
+    data: repairItems.map((item) => ({
+      customName: item.customName || null,
+      side: item.side || null,
+      unitPrice: item.unitPrice,
+      quantity: item.quantity,
+      repairId,
+      partId: item.partId,
+      serviceId: item.serviceId,
+    })),
+  });
+
+  for (const item of repairItems) {
+    if (item.partId) {
+      await tx.part.update({
+        where: { id: item.partId },
+        data: { quantity: { decrement: item.quantity } },
+      });
+    }
+  }
+};
+
 exports.listRepairs = async (req, res, next) => {
   try {
     const repairs = await prisma.repair.findMany({
@@ -80,7 +148,7 @@ exports.getRepair = async (req, res, next) => {
     });
 
     if (!repair) {
-      return createError(404, "ไม่พบรายการซ่อม");
+      createError(404, "ไม่พบรายการซ่อม");
     }
 
     res.json(repair);
@@ -108,18 +176,9 @@ exports.createRepair = async (req, res, next) => {
     // ห่อทั้งหมดใน transaction: ถ้าพังกลางทางจะ rollback ไม่เหลือข้อมูลค้างครึ่ง
     await prisma.$transaction(async (tx) => {
       let vehicle;
-      let customer;
       let licensePlate;
 
-      let vehicleModel = await tx.vehicleModel.findUnique({
-        where: { brand_model: { brand, model } },
-      });
-
-      if (!vehicleModel) {
-        vehicleModel = await tx.vehicleModel.create({
-          data: { brand, model },
-        });
-      }
+      const vehicleModel = await findOrCreateVehicleModel(tx, brand, model);
 
       if (plate && province) {
         licensePlate = await tx.licensePlate.findUnique({
@@ -166,39 +225,7 @@ exports.createRepair = async (req, res, next) => {
         }
       }
 
-      if (phoneNumber) {
-        customer = await tx.customer.findUnique({
-          where: { phoneNumber },
-        });
-
-        if (!customer) {
-          customer = await tx.customer.create({
-            data: {
-              name: name || null,
-              address: address || null,
-              phoneNumber,
-            },
-          });
-        } else if (name || address) {
-          customer = await tx.customer.update({
-            where: { id: customer.id },
-            data: {
-              name: name || null,
-              address: address || customer.address,
-            },
-          });
-        }
-      } else if (name && !phoneNumber) {
-        customer = await tx.customer.findFirst({
-          where: { name },
-        });
-
-        if (!customer) {
-          customer = await tx.customer.create({
-            data: { name, address: address || null, phoneNumber: null },
-          });
-        }
-      }
+      const customer = await resolveCustomer(tx, { name, address, phoneNumber });
 
       const repair = await tx.repair.create({
         data: {
@@ -211,27 +238,8 @@ exports.createRepair = async (req, res, next) => {
         },
       });
 
-      if (repairItems) {
-        await tx.repairItem.createMany({
-          data: repairItems.map((item) => ({
-            customName: item.customName || null,
-            side: item.side || null,
-            unitPrice: item.unitPrice,
-            quantity: item.quantity,
-            repairId: repair.id,
-            partId: item.partId,
-            serviceId: item.serviceId,
-          })),
-        });
-
-        for (const item of repairItems) {
-          if (item.partId) {
-            await tx.part.update({
-              where: { id: item.partId },
-              data: { quantity: { decrement: item.quantity } },
-            });
-          }
-        }
+      if (repairItems?.length) {
+        await createRepairItemsAndDecrementStock(tx, repair.id, repairItems);
       }
     });
 
@@ -260,15 +268,7 @@ exports.updateRepair = async (req, res, next) => {
 
     // ห่อทั้งหมดใน transaction: คืนสต็อก + ลบ/สร้างรายการใหม่ + อัปเดตบิล ต้อง atomic
     await prisma.$transaction(async (tx) => {
-      let vehicleModel = await tx.vehicleModel.findUnique({
-        where: { brand_model: { brand, model } },
-      });
-
-      if (!vehicleModel) {
-        vehicleModel = await tx.vehicleModel.create({
-          data: { brand, model },
-        });
-      }
+      const vehicleModel = await findOrCreateVehicleModel(tx, brand, model);
 
       const currentRepair = await tx.repair.findUnique({
         where: { id: Number(id) },
@@ -312,36 +312,7 @@ exports.updateRepair = async (req, res, next) => {
         }
       }
 
-      let customer = null;
-      if (phoneNumber) {
-        customer = await tx.customer.findUnique({
-          where: { phoneNumber },
-        });
-        if (!customer) {
-          customer = await tx.customer.create({
-            data: {
-              name: name || null,
-              address: address || null,
-              phoneNumber,
-            },
-          });
-        } else if (name || address) {
-          customer = await tx.customer.update({
-            where: { id: customer.id },
-            data: {
-              name: name || null,
-              address: address || customer.address,
-            },
-          });
-        }
-      } else if (name && !phoneNumber) {
-        customer = await tx.customer.findFirst({ where: { name } });
-        if (!customer) {
-          customer = await tx.customer.create({
-            data: { name, address: address || null, phoneNumber: null },
-          });
-        }
-      }
+      const customer = await resolveCustomer(tx, { name, address, phoneNumber });
 
       // คืนสต็อกจากรายการเดิม ก่อนลบทิ้ง
       const existingItems = await tx.repairItem.findMany({
@@ -359,27 +330,8 @@ exports.updateRepair = async (req, res, next) => {
 
       await tx.repairItem.deleteMany({ where: { repairId: Number(id) } });
 
-      if (Array.isArray(repairItems) && repairItems.length) {
-        await tx.repairItem.createMany({
-          data: repairItems.map((item) => ({
-            customName: item.customName || null,
-            side: item.side || null,
-            unitPrice: item.unitPrice,
-            quantity: item.quantity,
-            repairId: Number(id),
-            partId: item.partId,
-            serviceId: item.serviceId,
-          })),
-        });
-
-        for (const item of repairItems) {
-          if (item.partId) {
-            await tx.part.update({
-              where: { id: item.partId },
-              data: { quantity: { decrement: item.quantity } },
-            });
-          }
-        }
+      if (repairItems?.length) {
+        await createRepairItemsAndDecrementStock(tx, Number(id), repairItems);
       }
 
       await tx.repair.update({
@@ -405,31 +357,29 @@ exports.updateRepair = async (req, res, next) => {
 exports.updateRepairStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { nextStatus, paymentMethod } = req.body;
+    // status/paymentMethod ผ่าน zod (updateRepairStatusSchema) มาแล้ว
+    const { status, paymentMethod } = req.body;
 
     const repair = await prisma.repair.findUnique({
       where: { id: Number(id) },
     });
 
     if (!repair) {
-      return createError(404, "ไม่พบรายการซ่อม");
+      createError(404, "ไม่พบรายการซ่อม");
     }
 
-    const data = {};
+    const data = { status };
 
-    if (nextStatus === "COMPLETED") {
-      data.status = "COMPLETED";
+    if (status === "COMPLETED") {
       data.completedAt = new Date();
-    } else if (nextStatus === "PAID") {
-      data.status = "PAID";
+    } else if (status === "PAID") {
       data.paidAt = new Date();
 
       if (repair.status === "IN_PROGRESS" && !repair.completedAt) {
         data.completedAt = new Date();
       }
 
-      const validPaymentMethods = ["CASH", "CREDIT_CARD", "QR_CODE"];
-      if (paymentMethod && validPaymentMethods.includes(paymentMethod)) {
+      if (paymentMethod) {
         data.paymentMethod = paymentMethod;
       }
     }

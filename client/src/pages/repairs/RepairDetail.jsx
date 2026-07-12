@@ -161,16 +161,13 @@ const RepairDetail = () => {
         setIsUpdating(true);
       }
 
-      const updateData = { nextStatus: nextStatus };
+      const updateData = { status: nextStatus };
 
       if (needsPaymentMethod) {
         updateData.paymentMethod = selectedPaymentMethod;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      const res = await updateRepairStatus(token, repair.id, updateData);
-      setRepair(res.data);
+      await updateRepairStatus(token, repair.id, updateData);
 
       if (skipToCompleted) {
         toast.success("ซ่อมเสร็จสิ้นและชำระเงินเรียบร้อยแล้ว");

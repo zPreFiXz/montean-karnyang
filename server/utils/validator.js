@@ -5,12 +5,7 @@ exports.loginSchema = z.object({
   password: z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร"),
 });
 
-exports.createEmployeeSchema = z.object({
-  zkUserId: z.string().min(1, "กรุณากรอกรหัสพนักงาน (เครื่องสแกน)"),
-  name: z.string().min(1, "กรุณากรอกชื่อ"),
-});
-
-exports.editEmployeeSchema = z.object({
+exports.employeeSchema = z.object({
   zkUserId: z.string().min(1, "กรุณากรอกรหัสพนักงาน (เครื่องสแกน)"),
   name: z.string().min(1, "กรุณากรอกชื่อ"),
 });
@@ -85,9 +80,17 @@ exports.serviceSchema = z.object({
   categoryId: z.coerce.number(),
 });
 
-exports.editNamePriceSchema = z.object({
-  name: z.string().min(1, "กรุณากรอกชื่อ"),
-  price: z.coerce.number().min(1, "กรุณากรอกราคาต่อหน่วย"),
+exports.categorySchema = z.object({
+  name: z.string().min(1, "กรุณากรอกชื่อหมวดหมู่"),
+});
+
+exports.updateRepairStatusSchema = z.object({
+  status: z.enum(["COMPLETED", "PAID"], { message: "สถานะไม่ถูกต้อง" }),
+  paymentMethod: z
+    .enum(["CASH", "CREDIT_CARD", "QR_CODE"], {
+      message: "วิธีชำระเงินไม่ถูกต้อง",
+    })
+    .optional(),
 });
 
 exports.updatePartStockSchema = z.object({

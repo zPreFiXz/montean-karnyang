@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 
+const { validate, categorySchema } = require("../utils/validator");
+
 // Middlewares
 const { authCheck } = require("../middlewares/auth");
 
@@ -12,7 +14,7 @@ const {
 } = require("../controllers/category");
 
 router.get("/categories", authCheck, listCategories);
-router.post("/categories", authCheck, createCategory);
+router.post("/categories", authCheck, validate(categorySchema), createCategory);
 router.delete("/categories/:id", authCheck, deleteCategory);
 
 module.exports = router;
