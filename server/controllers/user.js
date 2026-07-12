@@ -13,6 +13,15 @@ exports.listUsers = async (req, res, next) => {
       orderBy: {
         createdAt: "desc",
       },
+      // ห้ามส่ง password hash ออกไปหา client
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     res.json(users);

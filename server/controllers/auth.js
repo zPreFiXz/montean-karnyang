@@ -46,10 +46,7 @@ exports.login = async (req, res, next) => {
 
 exports.logout = (req, res, next) => {
   try {
-    res.clearCookie("token", {
-      httpOnly: true,
-    });
-
+    // ระบบใช้ Bearer token ฝั่ง client เป็นคนทิ้ง token เอง endpoint นี้มีไว้ยืนยันการออกจากระบบ
     res.json({ message: "ออกจากระบบเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
@@ -58,19 +55,8 @@ exports.logout = (req, res, next) => {
 
 exports.currentUser = async (req, res, next) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: {
-        email: req.user.email,
-      },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        name: true,
-      },
-    });
-
-    res.json(user);
+    // authCheck ดึงข้อมูล user ล่าสุด (ไม่มี password) ใส่ req.user ให้แล้ว
+    res.json(req.user);
   } catch (error) {
     next(error);
   }
