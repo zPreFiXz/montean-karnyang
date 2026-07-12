@@ -357,7 +357,7 @@ const RepairDetail = () => {
         >
           <ChevronLeft />
         </button>
-        <p className="text-surface text-[24px] font-semibold md:text-[26px]">
+        <p className="text-surface text-2xl font-semibold md:text-[26px]">
           รายละเอียดการซ่อม
         </p>
       </div>
@@ -370,7 +370,7 @@ const RepairDetail = () => {
           <div>
             <div className="mb-[16px] flex items-center justify-between px-[20px]">
               <p
-                className={`text-[22px] leading-tight font-semibold md:text-[24px] ${statusInfo.color}`}
+                className={`text-[22px] leading-tight font-semibold md:text-2xl ${statusInfo.color}`}
               >
                 รหัสการซ่อม: {repair.id}
               </p>
@@ -379,7 +379,7 @@ const RepairDetail = () => {
                   <StatusIcon size={18} className="text-surface" />
                 </div>
                 <p
-                  className={`text-[20px] font-semibold md:text-[22px] ${statusInfo.color}`}
+                  className={`text-xl font-semibold md:text-[22px] ${statusInfo.color}`}
                 >
                   {statusInfo.text}
                 </p>
@@ -396,14 +396,14 @@ const RepairDetail = () => {
               </div>
               <div className="flex flex-col">
                 <p
-                  className={`text-[22px] font-semibold md:text-[24px] ${statusInfo.color} leading-tight`}
+                  className={`text-[22px] font-semibold md:text-2xl ${statusInfo.color} leading-tight`}
                 >
                   {repair?.vehicle?.licensePlate?.plateNumber &&
                   repair?.vehicle?.licensePlate?.province
                     ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
                     : "ไม่ระบุทะเบียนรถ"}
                 </p>
-                <p className="text-subtle-dark text-[18px] leading-tight font-medium md:text-[20px]">
+                <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
                   {repair.vehicle?.vehicleModel.brand}{" "}
                   {repair.vehicle?.vehicleModel.model}
                 </p>
@@ -422,7 +422,7 @@ const RepairDetail = () => {
                   !repair.customer.address ? (
                     <div className="mt-[4px] flex h-[45px] items-center justify-center">
                       <p
-                        className={`text-[22px] font-semibold md:text-[24px] ${statusInfo.color} leading-tight`}
+                        className={`text-[22px] font-semibold md:text-2xl ${statusInfo.color} leading-tight`}
                       >
                         {repair.customer.name}
                       </p>
@@ -431,7 +431,7 @@ const RepairDetail = () => {
                     <div className="flex flex-col">
                       {repair.customer.name && (
                         <p
-                          className={`text-[22px] font-semibold md:text-[24px] ${statusInfo.color} leading-tight`}
+                          className={`text-[22px] font-semibold md:text-2xl ${statusInfo.color} leading-tight`}
                         >
                           {repair.customer.name}
                         </p>
@@ -442,7 +442,7 @@ const RepairDetail = () => {
                             <Phone size={16} className="text-subtle-dark" />
                             <a
                               href={`tel:${repair.customer.phoneNumber}`}
-                              className="text-subtle-dark text-[18px] leading-tight font-medium underline decoration-dashed md:text-[20px]"
+                              className="text-subtle-dark text-lg leading-tight font-medium underline decoration-dashed md:text-xl"
                             >
                               {repair.customer.phoneNumber}
                             </a>
@@ -454,7 +454,7 @@ const RepairDetail = () => {
                               size={16}
                               className="text-subtle-dark mt-[2px] flex-shrink-0"
                             />
-                            <p className="text-subtle-dark text-[18px] leading-tight font-medium md:text-[20px]">
+                            <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
                               {repair.customer.address}
                             </p>
                           </div>
@@ -468,12 +468,12 @@ const RepairDetail = () => {
             {repair.repairItems && (
               <div className="mb-[16px] px-[20px]">
                 <div className="mb-[8px] flex items-center justify-between">
-                  <p className="text-normal text-[22px] font-semibold md:text-[24px]">
+                  <p className="text-normal text-[22px] font-semibold md:text-2xl">
                     รายการซ่อม
                   </p>
                   <button
                     onClick={handleEditRepair}
-                    className="text-primary flex cursor-pointer items-center gap-[4px] text-[20px] font-semibold md:text-[22px]"
+                    className="text-primary flex cursor-pointer items-center gap-[4px] text-xl font-semibold md:text-[22px]"
                   >
                     <Edit className="h-5 w-5" />
                     แก้ไขรายการซ่อม
@@ -559,7 +559,7 @@ const RepairDetail = () => {
                         <div>
                           {leftItems.length > 0 && (
                             <div className="mb-[8px]">
-                              <p className="text-primary mb-[8px] flex items-center gap-[4px] text-[20px] font-semibold md:text-[22px]">
+                              <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                                 <SquareArrowLeft className="mt-[2px]" />
                                 รายการซ่อมฝั่งซ้าย
                               </p>
@@ -576,7 +576,7 @@ const RepairDetail = () => {
                           )}
                           {rightItems.length > 0 && (
                             <div className="mb-[8px]">
-                              <p className="text-primary mb-[8px] flex items-center gap-[4px] text-[20px] font-semibold md:text-[22px]">
+                              <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                                 <SquareArrowRight className="mt-[2px]" />
                                 รายการซ่อมฝั่งขวา
                               </p>
@@ -593,7 +593,7 @@ const RepairDetail = () => {
                           )}
                           {otherItems.length > 0 && (
                             <div className="mb-[8px]">
-                              <p className="text-primary mb-[8px] flex items-center gap-[4px] text-[20px] font-semibold md:text-[22px]">
+                              <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                                 <CircleEllipsis className="mt-[2px]" />
                                 รายการซ่อมอื่นๆ
                               </p>
@@ -610,7 +610,7 @@ const RepairDetail = () => {
                           )}
                           {generalItems.length > 0 && (
                             <div className="mb-[8px]">
-                              <p className="text-primary mb-[8px] flex items-center gap-[4px] text-[20px] font-semibold md:text-[22px]">
+                              <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                                 <Wrench className="mt-[2px]" />
                                 รายการซ่อมเพิ่มเติม
                               </p>
@@ -645,12 +645,12 @@ const RepairDetail = () => {
             <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mb-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
-                  <p className="text-subtle-dark text-[20px] font-semibold md:text-[22px]">
+                  <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
                     รวม {repair.repairItems?.length || 0} รายการ
                   </p>
                 </div>
                 <div className="flex flex-col items-end">
-                  <p className="text-primary text-[24px] font-semibold md:text-[26px]">
+                  <p className="text-primary text-2xl font-semibold md:text-[26px]">
                     {formatCurrency(Number(repair.totalPrice))}
                   </p>
                 </div>
@@ -658,23 +658,23 @@ const RepairDetail = () => {
             </div>
             {repair.description && (
               <div className="mb-[16px] px-[20px]">
-                <p className="text-normal mb-[16px] text-[22px] font-semibold md:text-[24px]">
+                <p className="text-normal mb-[16px] text-[22px] font-semibold md:text-2xl">
                   รายละเอียดเพิ่มเติม
                 </p>
                 <div className="rounded-[10px] bg-gray-50 p-[16px]">
-                  <p className="text-normal text-[18px] leading-relaxed font-medium md:text-[20px]">
+                  <p className="text-normal text-lg leading-relaxed font-medium md:text-xl">
                     {repair.description}
                   </p>
                 </div>
               </div>
             )}
             <div className="mb-[16px] px-[20px]">
-              <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-[24px]">
+              <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
                 การชำระเงิน
               </p>
               <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
                 <div className="flex items-center justify-between">
-                  <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
                     วิธีชำระเงิน:
                   </p>
                   {repair.status !== "PAID" ? (
@@ -682,24 +682,24 @@ const RepairDetail = () => {
                       value={selectedPaymentMethod}
                       onValueChange={(value) => setSelectedPaymentMethod(value)}
                     >
-                      <SelectTrigger className="text-normal focus:ring-primary/20 focus:border-primary bg-surface w-auto min-w-[140px] cursor-pointer rounded-[20px] border px-[12px] py-[8px] text-[18px] font-medium duration-300 ease-in-out focus:border-2 focus:ring-3 focus:outline-none">
+                      <SelectTrigger className="text-normal focus:ring-primary/20 focus:border-primary bg-surface w-auto min-w-[140px] cursor-pointer rounded-[20px] border px-[12px] py-[8px] text-lg font-medium duration-300 ease-in-out focus:border-2 focus:ring-3 focus:outline-none">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="font-athiti font-medium">
                         <SelectItem
-                          className="cursor-pointer text-[18px] md:text-[20px]"
+                          className="cursor-pointer text-lg md:text-xl"
                           value="CASH"
                         >
                           เงินสด
                         </SelectItem>
                         <SelectItem
-                          className="cursor-pointer text-[18px] md:text-[20px]"
+                          className="cursor-pointer text-lg md:text-xl"
                           value="QR_CODE"
                         >
                           สแกนจ่าย
                         </SelectItem>
                         <SelectItem
-                          className="cursor-pointer text-[18px] md:text-[20px]"
+                          className="cursor-pointer text-lg md:text-xl"
                           value="CREDIT_CARD"
                         >
                           บัตรเครดิต
@@ -707,17 +707,17 @@ const RepairDetail = () => {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <p className="text-normal text-[18px] font-semibold md:text-[20px]">
+                    <p className="text-normal text-lg font-semibold md:text-xl">
                       {getPaymentMethodText(repair.paymentMethod)}
                     </p>
                   )}
                 </div>
                 <div className="flex justify-between">
-                  <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
                     สถานะ:
                   </p>
                   <p
-                    className={`text-[18px] font-semibold md:text-[20px] ${
+                    className={`text-lg font-semibold md:text-xl ${
                       repair.paidAt
                         ? "text-status-paid"
                         : "text-status-progress"
@@ -729,25 +729,25 @@ const RepairDetail = () => {
               </div>
             </div>
             <div className="mb-[16px] px-[20px]">
-              <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-[24px]">
+              <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
                 เวลาดำเนินการ
               </p>
               <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
                 <div className="flex justify-between">
-                  <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
                     เริ่มซ่อม:
                   </p>
-                  <p className="text-normal text-[18px] font-medium md:text-[20px]">
+                  <p className="text-normal text-lg font-medium md:text-xl">
                     {formatDate(repair.createdAt)} |{" "}
                     {formatTime(repair.createdAt)} น.
                   </p>
                 </div>
                 {repair.completedAt && (
                   <div className="flex justify-between">
-                    <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                    <p className="text-subtle-dark text-lg font-medium md:text-xl">
                       ซ่อมเสร็จ:
                     </p>
-                    <p className="text-normal text-[18px] font-medium md:text-[20px]">
+                    <p className="text-normal text-lg font-medium md:text-xl">
                       {formatDate(repair.completedAt)} |{" "}
                       {formatTime(repair.completedAt)} น.
                     </p>
@@ -755,10 +755,10 @@ const RepairDetail = () => {
                 )}
                 {repair.paidAt && (
                   <div className="flex justify-between">
-                    <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                    <p className="text-subtle-dark text-lg font-medium md:text-xl">
                       ชำระเงิน:
                     </p>
-                    <p className="text-normal text-[18px] font-medium md:text-[20px]">
+                    <p className="text-normal text-lg font-medium md:text-xl">
                       {formatDate(repair.paidAt)} | {formatTime(repair.paidAt)}{" "}
                       น.
                     </p>
@@ -768,11 +768,11 @@ const RepairDetail = () => {
             </div>
             {repair.user && (
               <div className="px-[20px]">
-                <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-[24px]">
+                <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
                   ผู้รับงานซ่อม
                 </p>
                 <div className="rounded-[10px] bg-gray-50 p-[16px]">
-                  <p className="text-normal text-[18px] font-medium md:text-[20px]">
+                  <p className="text-normal text-lg font-medium md:text-xl">
                     {repair.user.name}
                   </p>
                 </div>

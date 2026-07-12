@@ -167,7 +167,7 @@ const Dashboard = () => {
                   </Link>
                 ))
               ) : (
-                <p className="text-subtle-light py-[24px] text-center text-[20px]">
+                <p className="text-subtle-light py-[24px] text-center text-xl">
                   ไม่มีรายการซ่อม
                 </p>
               )}
@@ -201,7 +201,7 @@ const Dashboard = () => {
                   </Link>
                 ))
               ) : (
-                <p className="text-subtle-light py-[24px] text-center text-[20px]">
+                <p className="text-subtle-light py-[24px] text-center text-xl">
                   ไม่มีรายการซ่อม
                 </p>
               )}
@@ -232,7 +232,7 @@ const Dashboard = () => {
                   </Link>
                 ))
               ) : (
-                <p className="text-subtle-light py-[24px] text-center text-[20px]">
+                <p className="text-subtle-light py-[24px] text-center text-xl">
                   ไม่มีรายการซ่อม
                 </p>
               )}
@@ -310,7 +310,7 @@ const Dashboard = () => {
               <p className="text-surface text-[32px] font-semibold md:text-[34px]">
                 มณเฑียรการยาง
               </p>
-              <p className="text-surface text-[20px] font-medium md:text-[22px]">
+              <p className="text-surface text-xl font-medium md:text-[22px]">
                 วันที่ {formatDate(new Date())}
               </p>
             </div>
@@ -338,10 +338,10 @@ const Dashboard = () => {
                         <CircleUserRound className="text-surface h-7 w-7" />
                       </div>
                       <div>
-                        <p className="text-surface text-[20px] font-semibold md:text-[22px]">
+                        <p className="text-surface text-xl font-semibold md:text-[22px]">
                           {user?.name}
                         </p>
-                        <p className="text-surface text-[18px] md:text-[20px]">
+                        <p className="text-surface text-lg md:text-xl">
                           {user?.role === "ADMIN" ? "แอดมิน" : "พนักงาน"}
                         </p>
                       </div>
@@ -368,7 +368,7 @@ const Dashboard = () => {
                       <div className="bg-primary flex h-[48px] w-[48px] items-center justify-center rounded-[10px]">
                         <CarFront className="text-surface h-6 w-6" />
                       </div>
-                      <p className="text-normal text-[18px] font-semibold md:text-[20px]">
+                      <p className="text-normal text-lg font-semibold md:text-xl">
                         จัดการยี่ห้อและรุ่นรถ
                       </p>
                     </Link>
@@ -383,7 +383,7 @@ const Dashboard = () => {
                         <div className="bg-status-completed flex h-[48px] w-[48px] items-center justify-center rounded-[10px]">
                           <Users className="text-surface h-6 w-6" />
                         </div>
-                        <p className="text-normal text-[18px] font-semibold md:text-[20px]">
+                        <p className="text-normal text-lg font-semibold md:text-xl">
                           จัดการบัญชีพนักงาน
                         </p>
                       </Link>
@@ -405,7 +405,7 @@ const Dashboard = () => {
                         <LogOut className="text-surface h-6 w-6" />
                       )}
                     </div>
-                    <p className="text-normal text-[18px] font-semibold md:text-[20px]">
+                    <p className="text-normal text-lg font-semibold md:text-xl">
                       {isLoggingOut ? "ออกจากระบบ..." : "ออกจากระบบ"}
                     </p>
                   </button>
@@ -420,10 +420,10 @@ const Dashboard = () => {
               to="/admin/reports/sales?period=daily"
               className="bg-surface shadow-primary mx-auto mt-[16px] flex h-[80px] w-full items-center justify-between rounded-[10px] px-[16px]"
             >
-              <p className="text-normal text-[22px] font-semibold md:text-[24px]">
+              <p className="text-normal text-[22px] font-semibold md:text-2xl">
                 ยอดขายวันนี้
               </p>
-              <p className="text-primary text-[30px] font-semibold md:text-[32px]">
+              <p className="text-primary text-3xl font-semibold md:text-[32px]">
                 {formatCurrency(todaySales)}
               </p>
             </Link>
@@ -431,7 +431,7 @@ const Dashboard = () => {
         </div>
         {/* สถานะการซ่อม */}
         <div className="bg-surface -mt-[16px] flex min-h-[calc(100svh-206px)] w-full flex-col gap-[16px] rounded-tl-2xl rounded-tr-2xl px-[20px] pb-[96px] md:min-h-[calc(100svh-212px)]">
-          <p className="text-normal pt-[16px] text-[22px] font-semibold md:text-[24px]">
+          <p className="text-normal pt-[16px] text-[22px] font-semibold md:text-2xl">
             สถานะการซ่อม
           </p>
 
@@ -468,7 +468,7 @@ const Dashboard = () => {
           {/* แจ้งเตือนสต็อก */}
           {(outOfStockItems.length > 0 || lowStockItems.length > 0) && (
             <div className="pb-[16px]">
-              <p className="text-normal pt-[8px] text-[22px] font-semibold md:text-[24px]">
+              <p className="text-normal pt-[8px] text-[22px] font-semibold md:text-2xl">
                 แจ้งเตือนสต็อก
               </p>
               {outOfStockItems.slice(0, 5).map((item) => (

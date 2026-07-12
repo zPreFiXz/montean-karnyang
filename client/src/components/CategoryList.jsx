@@ -60,7 +60,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
                 : "border-subtle-light text-subtle-dark bg-surface"
             }`}
           >
-            <div className="text-[14px] font-semibold text-nowrap md:text-[16px]">
+            <div className="text-sm font-semibold text-nowrap md:text-base">
               ทั้งหมด
             </div>
           </button>
@@ -89,7 +89,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
                 >
                   <IconComponent />
                 </div>
-                <div className="text-[14px] font-semibold text-nowrap md:text-[16px]">
+                <div className="text-sm font-semibold text-nowrap md:text-base">
                   {item.name}
                 </div>
               </button>

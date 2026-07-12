@@ -30,10 +30,10 @@ const DropdownListMenu = () => {
             <UserIcon />
           </div>
           <div className="flex flex-col">
-            <p className="text-primary text-[18px] leading-tight font-semibold">
+            <p className="text-primary text-lg leading-tight font-semibold">
               {user?.name}
             </p>
-            <p className="text-subtle-dark text-[14px] leading-tight font-medium">
+            <p className="text-subtle-dark text-sm leading-tight font-medium">
               {user?.role === "ADMIN" ? "แอดมิน" : user?.role ? "พนักงาน" : ""}
             </p>
           </div>
@@ -52,7 +52,7 @@ const DropdownListMenu = () => {
             <DropdownMenuItem key={index} asChild>
               <Link
                 to={item.href}
-                className="flex cursor-pointer items-center gap-[12px] rounded-[8px] px-[12px] py-[8px] text-[16px] font-medium transition-colors duration-200 hover:bg-gray-100"
+                className="flex cursor-pointer items-center gap-[12px] rounded-[8px] px-[12px] py-[8px] text-base font-medium transition-colors duration-200 hover:bg-gray-100"
               >
                 <Icon className={`h-4 w-4 ${item.iconClass}`} />
                 <p>{item.label}</p>
@@ -68,7 +68,7 @@ const DropdownListMenu = () => {
               <DropdownMenuItem key={index} asChild>
                 <Link
                   to={item.href}
-                  className="flex cursor-pointer items-center gap-[12px] rounded-[8px] px-[12px] py-[8px] text-[16px] font-medium transition-colors duration-200 hover:bg-gray-100"
+                  className="flex cursor-pointer items-center gap-[12px] rounded-[8px] px-[12px] py-[8px] text-base font-medium transition-colors duration-200 hover:bg-gray-100"
                 >
                   <Icon className={`h-4 w-4 ${item.iconClass}`} />
                   <p>{item.label}</p>

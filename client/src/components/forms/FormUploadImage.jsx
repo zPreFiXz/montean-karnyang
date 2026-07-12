@@ -155,7 +155,7 @@ const FormUploadImage = ({
     <div className="w-full justify-center px-[20px] pt-[16px]">
       <Label
         htmlFor={inputId}
-        className="text-subtle-dark text-[22px] font-medium md:text-[24px]"
+        className="text-subtle-dark text-[22px] font-medium md:text-2xl"
       >
         {label}
       </Label>
@@ -176,7 +176,7 @@ const FormUploadImage = ({
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          className={`group bg-surface relative flex h-[280px] w-[280px] flex-col items-center justify-center rounded-[20px] border-2 border-dashed transition-colors ${
+          className={`group bg-surface relative flex aspect-square w-full max-w-[280px] flex-col items-center justify-center rounded-[20px] border-2 border-dashed transition-colors ${
             isDragging
               ? "border-primary bg-primary/5"
               : "border-gray-300 hover:border-gray-400"
@@ -203,20 +203,20 @@ const FormUploadImage = ({
               {isDragging ? (
                 <>
                   <Upload className="text-primary mb-[8px] h-[48px] w-[48px]" />
-                  <p className="text-primary mb-[4px] text-[16px] font-medium md:text-[18px]">
+                  <p className="text-primary mb-[4px] text-base font-medium md:text-lg">
                     วางรูปภาพที่นี่
                   </p>
                 </>
               ) : (
                 <>
                   <ImageIcon className="text-subtle-light mb-[8px] h-[48px] w-[48px]" />
-                  <p className="text-subtle-light mb-[4px] text-[16px] font-medium md:text-[18px]">
+                  <p className="text-subtle-light mb-[4px] text-base font-medium md:text-lg">
                     {placeholder}
                   </p>
-                  <p className="text-subtle-light text-[14px] md:text-[16px]">
+                  <p className="text-subtle-light text-sm md:text-base">
                     PNG, JPG, WEBP ขนาดไม่เกิน 1MB
                   </p>
-                  <p className="text-subtle-light mt-[4px] text-[14px] md:text-[16px]">
+                  <p className="text-subtle-light mt-[4px] text-sm md:text-base">
                     หรือลากวางไฟล์ที่นี่
                   </p>
                 </>

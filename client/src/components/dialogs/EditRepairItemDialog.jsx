@@ -81,7 +81,7 @@ const EditRepairItemDialog = ({
         }}
       >
         <div className="relative flex-shrink-0 pt-[16px]">
-          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-[24px]">
+          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-2xl">
             {isService ? "แก้ไขรายการบริการ" : "แก้ไขราคาอะไหล่"}
           </DialogTitle>
           <DialogDescription className="sr-only">
@@ -103,14 +103,14 @@ const EditRepairItemDialog = ({
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto">
           <div className="flex-1 px-[20px]">
             <div className="mb-[16px]">
-              <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold md:text-[24px]">
+              <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold md:text-2xl">
                 {isService ? currentName || productName : productName}
               </h2>
             </div>
 
             {!isService && productImage && (
               <div className="mb-[16px] flex justify-center">
-                <div className="border-subtle-light flex h-[250px] w-[250px] items-center justify-center overflow-hidden rounded-[20px] border-2">
+                <div className="border-subtle-light flex aspect-square w-full max-w-[250px] items-center justify-center overflow-hidden rounded-[20px] border-2">
                   <img
                     src={productImage}
                     alt={productName}
@@ -131,7 +131,7 @@ const EditRepairItemDialog = ({
                       label="ชื่อบริการ"
                       type="text"
                       placeholder={currentName || "กรอกชื่อบริการ"}
-                      textSize="text-[18px] md:text-[20px]"
+                      textSize="text-lg md:text-xl"
                       color="subtle-dark"
                       customClass="px-0 pt-[0px]"
                       autoFocus={false}
@@ -144,7 +144,7 @@ const EditRepairItemDialog = ({
                     name="price"
                     label="ราคาต่อหน่วย (บาท)"
                     type="text"
-                    textSize="text-[18px] md:text-[20px]"
+                    textSize="text-lg md:text-xl"
                     color="subtle-dark"
                     customClass="px-0 pt-[0px]"
                     inputMode="numeric"
@@ -165,14 +165,14 @@ const EditRepairItemDialog = ({
             <button
               type="button"
               onClick={handleCancel}
-              className="font-athiti text-subtle-dark flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] bg-gray-100 text-[18px] font-semibold md:text-[20px]"
+              className="font-athiti text-subtle-dark flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] bg-gray-100 text-lg font-semibold md:text-xl"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
               onClick={handleSubmit(onSubmit)}
-              className="font-athiti text-surface bg-gradient-primary flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] text-[18px] font-semibold md:text-[20px]"
+              className="font-athiti text-surface bg-gradient-primary flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] text-lg font-semibold md:text-xl"
             >
               ยืนยัน
             </button>

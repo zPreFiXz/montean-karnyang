@@ -30,7 +30,7 @@ const SalesReport = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { repairs, fetchRepairs } = useRepairStore();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(() => {
     if (location.state?.currentDate) {
@@ -253,7 +253,7 @@ const SalesReport = () => {
             >
               <ChevronLeft />
             </button>
-            <p className="text-surface text-[24px] font-semibold md:text-[26px]">
+            <p className="text-surface text-2xl font-semibold md:text-[26px]">
               รายงานยอดขาย
             </p>
           </div>
@@ -261,7 +261,7 @@ const SalesReport = () => {
             <PopoverTrigger asChild>
               <button className="text-surface flex cursor-pointer items-center gap-[8px]">
                 <CalendarIcon className="h-5 w-5" />
-                <p className="text-[20px] font-semibold md:text-[22px]">
+                <p className="text-xl font-semibold md:text-[22px]">
                   {periodType === "yearly"
                     ? "เลือกปี"
                     : periodType === "monthly"
@@ -327,7 +327,7 @@ const SalesReport = () => {
           <Link
             to="/admin/reports/sales?period=daily"
             state={{ currentDate: new Date().toISOString() }}
-            className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold md:h-[40px] md:w-[95px] md:text-[20px] ${
+            className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-lg font-semibold md:h-[40px] md:w-[95px] md:text-xl ${
               getPeriodType() === "daily"
                 ? "text-surface bg-primary border-white"
                 : "border-subtle-light text-subtle-light bg-surface"
@@ -338,7 +338,7 @@ const SalesReport = () => {
           <Link
             to="/admin/reports/sales?period=weekly"
             state={{ currentDate: new Date().toISOString() }}
-            className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold md:h-[40px] md:w-[95px] md:text-[20px] ${
+            className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-lg font-semibold md:h-[40px] md:w-[95px] md:text-xl ${
               getPeriodType() === "weekly"
                 ? "text-surface bg-primary border-white"
                 : "border-subtle-light text-subtle-light bg-surface"
@@ -349,7 +349,7 @@ const SalesReport = () => {
           <Link
             to="/admin/reports/sales?period=monthly"
             state={{ currentDate: new Date().toISOString() }}
-            className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold md:h-[40px] md:w-[95px] md:text-[20px] ${
+            className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-lg font-semibold md:h-[40px] md:w-[95px] md:text-xl ${
               getPeriodType() === "monthly"
                 ? "text-surface bg-primary border-white"
                 : "border-subtle-light text-subtle-light bg-surface"
@@ -360,7 +360,7 @@ const SalesReport = () => {
           <Link
             to="/admin/reports/sales?period=yearly"
             state={{ currentDate: new Date().toISOString() }}
-            className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold md:h-[40px] md:w-[95px] md:text-[20px] ${
+            className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-lg font-semibold md:h-[40px] md:w-[95px] md:text-xl ${
               getPeriodType() === "yearly"
                 ? "text-surface bg-primary border-white"
                 : "border-subtle-light text-subtle-light bg-surface"
@@ -370,7 +370,7 @@ const SalesReport = () => {
           </Link>
         </div>
         <div className="flex items-center justify-center pt-[16px]">
-          <div className="text-surface text-[22px] font-semibold md:text-[24px]">
+          <div className="text-surface text-[22px] font-semibold md:text-2xl">
             {getDisplayDate()}
           </div>
         </div>
@@ -402,7 +402,7 @@ const SalesReport = () => {
       </div>
       <div className="bg-surface -mt-[16px] flex min-h-[calc(100vh-249px)] w-full flex-col rounded-tl-2xl rounded-tr-2xl px-[20px] md:min-h-[calc(100vh-269px)]">
         <div className="pt-[16px]">
-          <p className="text-normal text-[22px] font-semibold md:text-[24px]">
+          <p className="text-normal text-[22px] font-semibold md:text-2xl">
             {periodRepairs.length > 0
               ? `รายการซ่อม (${periodRepairs.length} รายการ)`
               : "รายการซ่อม"}
@@ -447,7 +447,7 @@ const SalesReport = () => {
               : Object.entries(groupRepairsByDay(periodRepairs)).map(
                   ([day, repairsForDay]) => (
                     <div key={day} className="mb-4">
-                      <p className="text-subtle-dark mb-[8px] text-[18px] font-medium md:text-[20px]">
+                      <p className="text-subtle-dark mb-[8px] text-lg font-medium md:text-xl">
                         {day}
                       </p>
                       {repairsForDay.map((repair, i) => {
@@ -483,7 +483,7 @@ const SalesReport = () => {
           </div>
         ) : (
           <div className="flex h-[256px] flex-col items-center justify-center text-center">
-            <p className="text-subtle-light text-[20px] md:text-[22px]">
+            <p className="text-subtle-light text-xl md:text-[22px]">
               ไม่มีรายการซ่อม
             </p>
           </div>

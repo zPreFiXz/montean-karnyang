@@ -9,10 +9,10 @@ const RepairCard = ({ icon: Icon, repairId, itemCount }) => {
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <p className="text-primary text-[20px] font-semibold md:text-[22px]">
+          <p className="text-primary text-xl font-semibold md:text-[22px]">
             รหัสการซ่อม: {repairId}
           </p>
-          <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+          <p className="text-subtle-dark text-lg font-medium md:text-xl">
             รวม {itemCount} รายการ
           </p>
         </div>

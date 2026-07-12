@@ -119,7 +119,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
 
   return (
     <div className="space-y-[16px] px-[20px] pt-[16px]">
-      <Label className="text-subtle-dark text-[22px] font-medium md:text-[24px]">
+      <Label className="text-subtle-dark text-[22px] font-medium md:text-2xl">
         รถที่รองรับ
       </Label>
 
@@ -130,7 +130,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
           className="mt-[8px] rounded-[10px] border p-[16px]"
         >
           <div className="mb-[8px] flex items-center justify-between">
-            <p className="text-subtle-dark text-[20px] font-medium md:text-[22px]">
+            <p className="text-subtle-dark text-xl font-medium md:text-[22px]">
               รถคันที่ {index + 1}
             </p>
 
@@ -139,7 +139,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                 <button
                   type="button"
                   onClick={() => handleClearVehicle(index)}
-                  className="text-destructive flex cursor-pointer items-center text-[18px] font-medium md:text-[20px]"
+                  className="text-destructive flex cursor-pointer items-center text-lg font-medium md:text-xl"
                 >
                   <X className="mr-[4px] h-4 w-4" />
                   ล้างข้อมูล
@@ -150,7 +150,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                 <button
                   type="button"
                   onClick={() => handleRemoveVehicle(index)}
-                  className="text-destructive flex cursor-pointer items-center text-[18px] font-medium md:text-[20px]"
+                  className="text-destructive flex cursor-pointer items-center text-lg font-medium md:text-xl"
                 >
                   <Trash className="mr-[4px] h-4 w-4" />
                   ลบ
@@ -168,7 +168,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                 onChange={(value) => handleUpdateVehicle(index, "brand", value)}
                 placeholder="-- เลือกยี่ห้อรถ --"
                 name="brand"
-                customClass="text-[18px] md:text-[20px]"
+                customClass="text-lg md:text-xl"
               />
             </div>
 
@@ -182,7 +182,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                 placeholder="-- เลือกรุ่นรถ --"
                 name="model"
                 disabled={!vehicle.brand}
-                customClass="text-[18px] md:text-[20px]"
+                customClass="text-lg md:text-xl"
               />
             </div>
           </div>
@@ -192,7 +192,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
       <button
         type="button"
         onClick={handleAddVehicle}
-        className="text-subtle-light mb-[16px] flex w-full cursor-pointer items-center justify-center gap-[8px] rounded-lg border-2 border-dashed border-gray-300 py-3 text-[18px] font-medium transition-colors hover:border-gray-400 hover:bg-gray-50 md:text-[20px]"
+        className="text-subtle-light mb-[16px] flex w-full cursor-pointer items-center justify-center gap-[8px] rounded-lg border-2 border-dashed border-gray-300 py-3 text-lg font-medium transition-colors hover:border-gray-400 hover:bg-gray-50 md:text-xl"
       >
         <Plus className="h-5 w-5" />
         เพิ่มรถรุ่นอื่น

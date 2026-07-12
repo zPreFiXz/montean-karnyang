@@ -130,14 +130,14 @@ const RepairList = () => {
         >
           <ChevronLeft />
         </button>
-        <p className="text-surface text-[24px] font-semibold md:text-[26px]">
+        <p className="text-surface text-2xl font-semibold md:text-[26px]">
           สถานะการซ่อม
         </p>
       </div>
       <div className="mx-[20px] mt-[16px] flex justify-center gap-[16px]">
         <Link
           to="/repairs?status=in-progress"
-          className={`flex h-[45px] w-[106px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold duration-300 md:w-[120px] md:text-[20px] ${
+          className={`flex h-[45px] w-[106px] items-center justify-center rounded-[10px] border-2 text-lg font-semibold duration-300 md:w-[120px] md:text-xl ${
             status === "in-progress"
               ? "text-surface bg-status-progress border-white"
               : "border-subtle-light text-subtle-light bg-surface"
@@ -147,7 +147,7 @@ const RepairList = () => {
         </Link>
         <Link
           to="/repairs?status=completed"
-          className={`flex h-[45px] w-[106px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold duration-300 md:w-[120px] md:text-[20px] ${
+          className={`flex h-[45px] w-[106px] items-center justify-center rounded-[10px] border-2 text-lg font-semibold duration-300 md:w-[120px] md:text-xl ${
             status === "completed"
               ? "text-surface bg-status-completed border-white"
               : "border-subtle-light text-subtle-light bg-surface"
@@ -157,7 +157,7 @@ const RepairList = () => {
         </Link>
         <Link
           to="/repairs?status=paid"
-          className={`flex h-[45px] w-[106px] items-center justify-center rounded-[10px] border-2 text-[18px] font-semibold duration-300 md:w-[120px] md:text-[20px] ${
+          className={`flex h-[45px] w-[106px] items-center justify-center rounded-[10px] border-2 text-lg font-semibold duration-300 md:w-[120px] md:text-xl ${
             status === "paid"
               ? "text-surface bg-status-paid border-white"
               : "border-subtle-light text-subtle-light bg-surface"
@@ -167,7 +167,7 @@ const RepairList = () => {
         </Link>
       </div>
       <div className="bg-surface shadow-primary mt-[16px] min-h-[calc(100vh-126px)] w-full rounded-tl-2xl rounded-tr-2xl px-[20px] pb-[112px]">
-        <p className="text-normal pt-[16px] text-[22px] font-semibold md:text-[24px]">
+        <p className="text-normal pt-[16px] text-[22px] font-semibold md:text-2xl">
           {getStatusTitle()}
         </p>
         {isLoading ? (
@@ -176,7 +176,7 @@ const RepairList = () => {
           </div>
         ) : currentRepairs.length === 0 ? (
           <div className="flex h-[435px] items-center justify-center">
-            <p className="text-subtle-light text-[20px] md:text-[22px]">
+            <p className="text-subtle-light text-xl md:text-[22px]">
               {getEmptyMessage()}
             </p>
           </div>

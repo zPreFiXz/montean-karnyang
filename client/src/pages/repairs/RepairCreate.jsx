@@ -124,7 +124,7 @@ const RepairCreate = () => {
 
     if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
       return (
-        <p className="text-normal line-clamp-1 w-full text-[16px] leading-tight font-semibold md:text-[18px]">
+        <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
           {item.brand} {item.typeSpecificData.width}/
           {item.typeSpecificData.aspectRatio}R
           {item.typeSpecificData.rimDiameter} {item.name}
@@ -134,7 +134,7 @@ const RepairCreate = () => {
 
     if (isTire && item.typeSpecificData) {
       return (
-        <p className="text-normal line-clamp-1 w-full text-[16px] leading-tight font-semibold md:text-[18px]">
+        <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
           {item.brand} {item.typeSpecificData.width}R
           {item.typeSpecificData.rimDiameter} {item.name}
         </p>
@@ -142,7 +142,7 @@ const RepairCreate = () => {
     }
 
     return (
-      <p className="text-normal line-clamp-1 w-full text-[16px] leading-tight font-semibold md:text-[18px]">
+      <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
         {item.brand} {item.name}
       </p>
     );
@@ -296,7 +296,7 @@ const RepairCreate = () => {
             <Plus className="text-primary hidden xl:block" />
           </div>
           <div>
-            <p className="text-surface xl:text-primary text-[24px] font-semibold md:text-[26px]">
+            <p className="text-surface xl:text-primary text-2xl font-semibold md:text-[26px]">
               รายการซ่อมใหม่
             </p>
           </div>
@@ -318,11 +318,11 @@ const RepairCreate = () => {
                   <User className="text-surface xl:text-primary h-[18px] w-[18px]" />
                 </div>
                 <div className="text-left">
-                  <p className="text-surface xl:text-normal text-[18px] font-medium md:text-[20px]">
+                  <p className="text-surface xl:text-normal text-lg font-medium md:text-xl">
                     ข้อมูลลูกค้า
                   </p>
                   {watch("name") && (
-                    <p className="text-surface/80 xl:text-subtle-dark line-clamp-1 text-[14px] md:text-[16px]">
+                    <p className="text-surface/80 xl:text-subtle-dark line-clamp-1 text-sm md:text-base">
                       {watch("name")}
                       {watch("phoneNumber") && ` • ${watch("phoneNumber")}`}
                     </p>
@@ -434,7 +434,7 @@ const RepairCreate = () => {
 
           {/* ป้ายทะเบียนรถ */}
           <div className="xl:[&_.text-surface]:text-normal px-[20px] pt-[16px]">
-            <p className="text-surface mb-[8px] text-[22px] font-medium md:text-[24px]">
+            <p className="text-surface mb-[8px] text-[22px] font-medium md:text-2xl">
               ทะเบียนรถ
             </p>
             <div className="flex items-start gap-[4px]">
@@ -453,7 +453,7 @@ const RepairCreate = () => {
                   }}
                 />
               </div>
-              <p className="text-surface pt-[8px] text-[18px] font-medium">-</p>
+              <p className="text-surface pt-[8px] text-lg font-medium">-</p>
               <div className="w-[80px]">
                 <LicensePlateInput
                   register={register}
@@ -506,7 +506,7 @@ const RepairCreate = () => {
           {/* Mobile: รายการซ่อม */}
           <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl xl:hidden">
             <div className="flex items-center justify-between px-[20px] pt-[16px]">
-              <p className="text-[22px] font-semibold md:text-[24px]">
+              <p className="text-[22px] font-semibold md:text-2xl">
                 รายการซ่อม
               </p>
               <AddRepairItemDialog
@@ -514,7 +514,7 @@ const RepairCreate = () => {
                 selectedItems={repairItems}
                 restoredStockMap={restoredStockMap}
               >
-                <p className="text-primary cursor-pointer text-[20px] font-semibold md:text-[22px]">
+                <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
                   + เพิ่มรายการซ่อม
                 </p>
               </AddRepairItemDialog>
@@ -522,7 +522,7 @@ const RepairCreate = () => {
             {repairItems.length === 0 ? (
               <div>
                 <div className="flex h-[228px] items-center justify-center xl:h-auto">
-                  <p className="text-subtle-light text-[20px] md:text-[22px]">
+                  <p className="text-subtle-light text-xl md:text-[22px]">
                     กรุณาเพิ่มรายการซ่อม
                   </p>
                 </div>
@@ -557,15 +557,15 @@ const RepairCreate = () => {
                         <div className="flex flex-1 flex-col">
                           {renderProductInfo(item)}
                           <div className="flex items-center gap-[4px]">
-                            <p className="text-subtle-dark text-[16px] leading-tight font-medium md:text-[18px]">
+                            <p className="text-subtle-dark text-base leading-tight font-medium md:text-lg">
                               ราคาต่อหน่วย:
                             </p>
-                            <p className="text-primary text-[16px] font-medium md:text-[18px]">
+                            <p className="text-primary text-base font-medium md:text-lg">
                               {formatCurrency(Number(item.sellingPrice))}
                             </p>
                           </div>
                           <div className="flex w-full items-center justify-between">
-                            <p className="text-primary line-clamp-1 text-[20px] leading-tight font-semibold md:text-[22px]">
+                            <p className="text-primary line-clamp-1 text-xl leading-tight font-semibold md:text-[22px]">
                               {formatCurrency(
                                 item.quantity * item.sellingPrice,
                               )}
@@ -585,7 +585,7 @@ const RepairCreate = () => {
                               >
                                 <Minus className="h-4 w-4" />
                               </button>
-                              <p className="text-primary text-[18px] font-semibold md:text-[20px]">
+                              <p className="text-primary text-lg font-semibold md:text-xl">
                                 {item.quantity}
                               </p>
                               <button
@@ -626,12 +626,12 @@ const RepairCreate = () => {
                 <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] my-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col">
-                      <p className="text-subtle-dark text-[20px] font-semibold md:text-[22px]">
+                      <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
                         รวม {repairItems.length} รายการ
                       </p>
                     </div>
                     <div className="flex flex-col items-end">
-                      <p className="text-primary text-[24px] font-semibold md:text-[26px]">
+                      <p className="text-primary text-2xl font-semibold md:text-[26px]">
                         {formatCurrency(
                           repairItems.reduce(
                             (total, item) =>
@@ -660,7 +660,7 @@ const RepairCreate = () => {
               <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
                 <ClipboardList className="text-primary h-6 w-6" />
               </div>
-              <p className="text-[22px] font-semibold md:text-[24px]">
+              <p className="text-[22px] font-semibold md:text-2xl">
                 รายการซ่อม
               </p>
             </div>
@@ -669,7 +669,7 @@ const RepairCreate = () => {
               selectedItems={repairItems}
               restoredStockMap={restoredStockMap}
             >
-              <p className="text-primary cursor-pointer text-[20px] font-semibold md:text-[22px]">
+              <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
                 + เพิ่มรายการซ่อม
               </p>
             </AddRepairItemDialog>
@@ -677,7 +677,7 @@ const RepairCreate = () => {
           {repairItems.length === 0 ? (
             <div>
               <div className="flex h-[228px] items-center justify-center">
-                <p className="text-subtle-light text-[20px] md:text-[22px]">
+                <p className="text-subtle-light text-xl md:text-[22px]">
                   กรุณาเพิ่มรายการซ่อม
                 </p>
               </div>
@@ -711,15 +711,15 @@ const RepairCreate = () => {
                       <div className="flex flex-1 flex-col">
                         {renderProductInfo(item)}
                         <div className="flex items-center gap-[4px]">
-                          <p className="text-subtle-dark text-[16px] leading-tight font-medium md:text-[18px]">
+                          <p className="text-subtle-dark text-base leading-tight font-medium md:text-lg">
                             ราคาต่อหน่วย:
                           </p>
-                          <p className="text-primary text-[16px] font-medium md:text-[18px]">
+                          <p className="text-primary text-base font-medium md:text-lg">
                             {formatCurrency(Number(item.sellingPrice))}
                           </p>
                         </div>
                         <div className="flex w-full items-center justify-between">
-                          <p className="text-primary line-clamp-1 text-[20px] leading-tight font-semibold md:text-[22px]">
+                          <p className="text-primary line-clamp-1 text-xl leading-tight font-semibold md:text-[22px]">
                             {formatCurrency(item.quantity * item.sellingPrice)}
                           </p>
                           <div
@@ -737,7 +737,7 @@ const RepairCreate = () => {
                             >
                               <Minus className="h-4 w-4" />
                             </button>
-                            <p className="text-primary text-[18px] font-semibold md:text-[20px]">
+                            <p className="text-primary text-lg font-semibold md:text-xl">
                               {item.quantity}
                             </p>
                             <button
@@ -780,12 +780,12 @@ const RepairCreate = () => {
               <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] my-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
-                    <p className="text-subtle-dark text-[20px] font-semibold md:text-[22px]">
+                    <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
                       รวม {repairItems.length} รายการ
                     </p>
                   </div>
                   <div className="flex flex-col items-end">
-                    <p className="text-primary text-[24px] font-semibold md:text-[26px]">
+                    <p className="text-primary text-2xl font-semibold md:text-[26px]">
                       {formatCurrency(
                         repairItems.reduce(
                           (total, item) =>

@@ -12,7 +12,7 @@ const RepairItemCard = ({ item, variant }) => {
         item.part.typeSpecificData.aspectRatio
       ) {
         return (
-          <p className="text-normal line-clamp-2 text-[16px] font-semibold md:text-[18px]">
+          <p className="text-normal line-clamp-2 text-base font-semibold md:text-lg">
             {item.part.brand} {item.part.typeSpecificData.width}/
             {item.part.typeSpecificData.aspectRatio}R
             {item.part.typeSpecificData.rimDiameter} {item.part.name}
@@ -22,7 +22,7 @@ const RepairItemCard = ({ item, variant }) => {
 
       if (isTire && item.part?.typeSpecificData) {
         return (
-          <p className="text-normal line-clamp-2 text-[16px] font-semibold md:text-[18px]">
+          <p className="text-normal line-clamp-2 text-base font-semibold md:text-lg">
             {item.part.brand} {item.part.typeSpecificData.width}R
             {item.part.typeSpecificData.rimDiameter} {item.part.name}
           </p>
@@ -30,7 +30,7 @@ const RepairItemCard = ({ item, variant }) => {
       }
 
       return (
-        <p className="text-normal line-clamp-2 text-[16px] font-semibold md:text-[18px]">
+        <p className="text-normal line-clamp-2 text-base font-semibold md:text-lg">
           {item.part?.brand && `${item.part.brand} `}
           {item.part?.name ||
             item.customName ||
@@ -45,7 +45,7 @@ const RepairItemCard = ({ item, variant }) => {
 
     if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
       return (
-        <p className="text-normal line-clamp-2 text-[16px] font-semibold md:text-[18px]">
+        <p className="text-normal line-clamp-2 text-base font-semibold md:text-lg">
           {item.brand} {item.typeSpecificData.width}/
           {item.typeSpecificData.aspectRatio}R
           {item.typeSpecificData.rimDiameter} {item.name}
@@ -55,7 +55,7 @@ const RepairItemCard = ({ item, variant }) => {
 
     if (isTire && item.typeSpecificData) {
       return (
-        <p className="text-normal line-clamp-2 text-[16px] font-semibold md:text-[18px]">
+        <p className="text-normal line-clamp-2 text-base font-semibold md:text-lg">
           {item.brand} {item.typeSpecificData.width}R
           {item.typeSpecificData.rimDiameter} {item.name}
         </p>
@@ -63,7 +63,7 @@ const RepairItemCard = ({ item, variant }) => {
     }
 
     return (
-      <p className="text-normal line-clamp-2 text-[16px] font-semibold md:text-[18px]">
+      <p className="text-normal line-clamp-2 text-base font-semibold md:text-lg">
         {item.brand} {item.name}
       </p>
     );
@@ -109,13 +109,13 @@ const RepairItemCard = ({ item, variant }) => {
 
           <div className="flex flex-col">
             {renderProductInfo(item)}
-            <p className="text-subtle-dark line-clamp-1 text-[16px] font-semibold md:text-[18px]">
+            <p className="text-subtle-dark line-clamp-1 text-base font-semibold md:text-lg">
               {formatCurrency(unitPrice)} × {item.quantity} {unit}
             </p>
           </div>
         </div>
 
-        <p className="text-primary text-[22px] font-semibold text-nowrap md:text-[24px]">
+        <p className="text-primary text-[22px] font-semibold text-nowrap md:text-2xl">
           {formatCurrency(unitPrice * item.quantity)}
         </p>
       </div>

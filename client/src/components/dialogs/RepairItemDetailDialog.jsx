@@ -90,7 +90,7 @@ const RepairItemDetailDialog = ({
       currentItem.typeSpecificData.aspectRatio
     ) {
       return (
-        <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold md:text-[24px]">
+        <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold md:text-2xl">
           {currentItem.brand} {currentItem.typeSpecificData.width}/
           {currentItem.typeSpecificData.aspectRatio}R
           {currentItem.typeSpecificData.rimDiameter} {currentItem.name}
@@ -98,7 +98,7 @@ const RepairItemDetailDialog = ({
       );
     } else if (isTire && currentItem.typeSpecificData) {
       return (
-        <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold md:text-[24px]">
+        <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold md:text-2xl">
           {currentItem.brand} {currentItem.typeSpecificData.width}R
           {currentItem.typeSpecificData.rimDiameter} {currentItem.name}
         </h2>
@@ -106,7 +106,7 @@ const RepairItemDetailDialog = ({
     }
 
     return (
-      <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold md:text-[24px]">
+      <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold md:text-2xl">
         {currentItem.brand} {currentItem.name}
       </h2>
     );
@@ -168,7 +168,7 @@ const RepairItemDetailDialog = ({
           }}
         >
           <div className="relative flex-shrink-0 pt-[16px]">
-            <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-[24px]">
+            <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-2xl">
               รายละเอียด{isService ? "บริการ" : "อะไหล่"}
             </DialogTitle>
             <DialogDescription className="sr-only">
@@ -194,19 +194,19 @@ const RepairItemDetailDialog = ({
                 {!isService && currentItem.partNumber && (
                   <div className="mt-[16px] flex justify-center">
                     {currentItem.quantity === 0 ? (
-                      <div className="text-surface bg-destructive flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-[16px] font-semibold md:text-[18px]">
+                      <div className="text-surface bg-destructive flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-base font-semibold md:text-lg">
                         <AlertTriangle className="h-4 w-4" />
                         สต็อกหมด - จำนวน {currentItem.quantity}{" "}
                         {currentItem.unit}
                       </div>
                     ) : currentItem.quantity <= currentItem.minStockLevel ? (
-                      <div className="text-surface bg-status-progress flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-[16px] font-semibold md:text-[18px]">
+                      <div className="text-surface bg-status-progress flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-base font-semibold md:text-lg">
                         <AlertTriangle className="h-4 w-4" />
                         สต็อกต่ำ - จำนวน {currentItem.quantity}{" "}
                         {currentItem.unit}
                       </div>
                     ) : (
-                      <div className="text-surface bg-status-completed flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-[16px] font-semibold md:text-[18px]">
+                      <div className="text-surface bg-status-completed flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-base font-semibold md:text-lg">
                         <Check className="h-4 w-4" />
                         สต็อกปกติ - จำนวน {currentItem.quantity}{" "}
                         {currentItem.unit}
@@ -218,7 +218,7 @@ const RepairItemDetailDialog = ({
 
               {currentItem.secureUrl && (
                 <div className="mb-[16px] flex justify-center">
-                  <div className="border-subtle-light flex h-[250px] w-[250px] items-center justify-center overflow-hidden rounded-[20px] border-2">
+                  <div className="border-subtle-light flex aspect-square w-full max-w-[250px] items-center justify-center overflow-hidden rounded-[20px] border-2">
                     <img
                       src={currentItem.secureUrl}
                       alt={currentItem.name}
@@ -230,27 +230,27 @@ const RepairItemDetailDialog = ({
 
               <div className="mt-[16px] space-y-[8px]">
                 {!isService && (
-                  <p className="font-athiti text-normal text-[22px] font-semibold md:text-[24px]">
+                  <p className="font-athiti text-normal text-[22px] font-semibold md:text-2xl">
                     ข้อมูลทั่วไป
                   </p>
                 )}
                 <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
                   {!isService && currentItem.partNumber && (
                     <div className="flex justify-between">
-                      <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
                         รหัสอะไหล่:
                       </p>
-                      <p className="text-normal text-[18px] font-semibold md:text-[20px]">
+                      <p className="text-normal text-lg font-semibold md:text-xl">
                         {currentItem.partNumber}
                       </p>
                     </div>
                   )}
 
                   <div className="flex justify-between">
-                    <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                    <p className="text-subtle-dark text-lg font-medium md:text-xl">
                       หมวดหมู่:
                     </p>
-                    <p className="text-normal text-[18px] font-semibold md:text-[20px]">
+                    <p className="text-normal text-lg font-semibold md:text-xl">
                       {currentItem.category?.name}
                     </p>
                   </div>
@@ -258,10 +258,10 @@ const RepairItemDetailDialog = ({
                   {currentItem.category?.name === "ช่วงล่าง" &&
                     currentItem.typeSpecificData?.suspensionType && (
                       <div className="flex justify-between">
-                        <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                        <p className="text-subtle-dark text-lg font-medium md:text-xl">
                           ประเภทช่วงล่าง:
                         </p>
-                        <p className="text-normal text-[18px] font-semibold md:text-[20px]">
+                        <p className="text-normal text-lg font-semibold md:text-xl">
                           {currentItem.typeSpecificData.suspensionType ===
                           "left-right"
                             ? "ซ้าย-ขวา"
@@ -272,7 +272,7 @@ const RepairItemDetailDialog = ({
                 </div>
 
                 {!isService && (
-                  <p className="font-athiti text-normal mt-[16px] text-[22px] font-semibold md:text-[24px]">
+                  <p className="font-athiti text-normal mt-[16px] text-[22px] font-semibold md:text-2xl">
                     ข้อมูลราคา
                   </p>
                 )}
@@ -282,20 +282,20 @@ const RepairItemDetailDialog = ({
                     !isService &&
                     currentItem.costPrice && (
                       <div className="flex justify-between">
-                        <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                        <p className="text-subtle-dark text-lg font-medium md:text-xl">
                           ราคาต้นทุน:
                         </p>
-                        <p className="text-normal text-[18px] font-semibold md:text-[20px]">
+                        <p className="text-normal text-lg font-semibold md:text-xl">
                           {formatCurrency(Number(currentItem.costPrice))}
                         </p>
                       </div>
                     )}
 
                   <div className="flex justify-between">
-                    <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                    <p className="text-subtle-dark text-lg font-medium md:text-xl">
                       {isService ? "ราคา:" : "ราคาขาย:"}
                     </p>
-                    <p className="text-primary text-[18px] font-semibold md:text-[20px]">
+                    <p className="text-primary text-lg font-semibold md:text-xl">
                       {formatCurrency(
                         Number(
                           currentItem.sellingPrice || currentItem.price || 0,
@@ -307,16 +307,16 @@ const RepairItemDetailDialog = ({
 
                 {!isService && (
                   <div>
-                    <p className="font-athiti text-normal mt-[16px] text-[22px] font-semibold md:text-[24px]">
+                    <p className="font-athiti text-normal mt-[16px] text-[22px] font-semibold md:text-2xl">
                       ข้อมูลสต็อก
                     </p>
                     <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
                       <div className="flex justify-between">
-                        <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                        <p className="text-subtle-dark text-lg font-medium md:text-xl">
                           จำนวนสต็อก:
                         </p>
                         <p
-                          className={`text-[18px] font-semibold md:text-[20px] ${
+                          className={`text-lg font-semibold md:text-xl ${
                             currentItem.quantity === 0
                               ? "text-destructive"
                               : currentItem.quantity <=
@@ -329,10 +329,10 @@ const RepairItemDetailDialog = ({
                         </p>
                       </div>
                       <div className="flex justify-between">
-                        <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                        <p className="text-subtle-dark text-lg font-medium md:text-xl">
                           สต็อกขั้นต่ำ:
                         </p>
-                        <p className="text-normal text-[18px] font-semibold md:text-[20px]">
+                        <p className="text-normal text-lg font-semibold md:text-xl">
                           {currentItem.minStockLevel} {currentItem.unit}
                         </p>
                       </div>
@@ -345,14 +345,14 @@ const RepairItemDetailDialog = ({
                 currentItem.compatibleVehicles &&
                 currentItem.compatibleVehicles.length > 0 && (
                   <div className="mt-[16px]">
-                    <p className="font-athiti text-normal mb-[8px] text-[22px] font-semibold md:text-[24px]">
+                    <p className="font-athiti text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
                       รถที่รองรับ
                     </p>
                     <div className="flex flex-wrap gap-[6px]">
                       {currentItem.compatibleVehicles.map((vehicle, index) => (
                         <p
                           key={index}
-                          className="text-subtle-dark rounded-[10px] bg-gray-100 px-[10px] py-[4px] text-[18px] font-medium"
+                          className="text-subtle-dark rounded-[10px] bg-gray-100 px-[10px] py-[4px] text-lg font-medium"
                         >
                           {vehicle.brand} {vehicle.model}
                         </p>
@@ -363,7 +363,7 @@ const RepairItemDetailDialog = ({
 
               {!isService && isAddStockVisible && (
                 <div>
-                  <p className="font-athiti text-normal mt-[16px] mb-[8px] text-[22px] font-semibold md:text-[24px]">
+                  <p className="font-athiti text-normal mt-[16px] mb-[8px] text-[22px] font-semibold md:text-2xl">
                     เพิ่มสต็อก
                   </p>
 
@@ -378,7 +378,7 @@ const RepairItemDetailDialog = ({
                         label={`จำนวน (${currentItem.unit})`}
                         type="number"
                         placeholder="เช่น 2"
-                        textSize="text-[18px] md:text-[20px]"
+                        textSize="text-lg md:text-xl"
                         color="subtle-dark"
                         errors={errors}
                         inputMode="numeric"
@@ -418,7 +418,7 @@ const RepairItemDetailDialog = ({
               {!isService && !isAddStockVisible && (
                 <button
                   onClick={handleShowAddStock}
-                  className="font-athiti text-surface bg-gradient-primary flex h-[41px] flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] text-[18px] font-semibold md:text-[20px]"
+                  className="font-athiti text-surface bg-gradient-primary flex h-[41px] flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] text-lg font-semibold md:text-xl"
                 >
                   <Plus className="h-4 w-4" />
                   เพิ่มสต็อก
@@ -427,7 +427,7 @@ const RepairItemDetailDialog = ({
               <button
                 onClick={handleEdit}
                 autoFocus={false}
-                className="font-athiti text-surface bg-status-progress flex h-[41px] flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] text-[18px] font-semibold md:text-[20px]"
+                className="font-athiti text-surface bg-status-progress flex h-[41px] flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] text-lg font-semibold md:text-xl"
               >
                 <Edit className="h-4 w-4" />
                 แก้ไข
@@ -437,7 +437,7 @@ const RepairItemDetailDialog = ({
                   onOpenChange(false);
                   setTimeout(() => setIsDeleteConfirmOpen(true), 150);
                 }}
-                className="font-athiti text-surface bg-destructive flex h-[41px] w-[44px] cursor-pointer items-center justify-center rounded-[20px] text-[18px] font-semibold md:text-[20px]"
+                className="font-athiti text-surface bg-destructive flex h-[41px] w-[44px] cursor-pointer items-center justify-center rounded-[20px] text-lg font-semibold md:text-xl"
                 aria-label="ลบ"
               >
                 <Trash className="h-4 w-4" />

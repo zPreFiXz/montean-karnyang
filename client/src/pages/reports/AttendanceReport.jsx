@@ -70,7 +70,7 @@ const AttendanceReport = () => {
         <Link to="/dashboard" className="text-surface mt-[2px]">
           <ChevronLeft />
         </Link>
-        <p className="text-surface text-[24px] font-semibold md:text-[26px]">
+        <p className="text-surface text-2xl font-semibold md:text-[26px]">
           รายงานสแกนรายวัน
         </p>
       </div>
@@ -85,13 +85,13 @@ const AttendanceReport = () => {
             <div className="mb-[12px] flex flex-wrap items-center gap-[8px]">
               <Link
                 to="/admin/reports/sales"
-                className="text-primary border-primary rounded-[10px] border px-[12px] py-[8px] text-[14px] font-semibold"
+                className="text-primary border-primary rounded-[10px] border px-[12px] py-[8px] text-sm font-semibold"
               >
                 รายงานยอดขาย
               </Link>
               <Link
                 to="/admin/reports/attendance"
-                className="bg-primary text-surface rounded-[10px] px-[12px] py-[8px] text-[14px] font-semibold"
+                className="bg-primary text-surface rounded-[10px] px-[12px] py-[8px] text-sm font-semibold"
               >
                 รายงานสแกนรายวัน
               </Link>
@@ -108,14 +108,14 @@ const AttendanceReport = () => {
 
               <div className="flex items-end">
                 <div className="w-full">
-                  <p className="text-subtle-dark mb-[8px] text-[18px] font-medium md:text-[20px]">
+                  <p className="text-subtle-dark mb-[8px] text-lg font-medium md:text-xl">
                     วันที่
                   </p>
                   <input
                     type="date"
                     value={dateKey}
                     onChange={handleDateChange}
-                    className="border-input bg-surface h-[41px] w-full rounded-[20px] border px-[12px] text-[18px] font-medium md:text-[20px]"
+                    className="border-input bg-surface h-[41px] w-full rounded-[20px] border px-[12px] text-lg font-medium md:text-xl"
                   />
                 </div>
               </div>
@@ -123,19 +123,19 @@ const AttendanceReport = () => {
 
             <div className="mb-[12px] grid gap-[8px] md:grid-cols-3">
               <div className="bg-surface shadow-primary rounded-[10px] p-[12px]">
-                <p className="text-subtle-dark text-[14px]">พนักงานทั้งหมด</p>
+                <p className="text-subtle-dark text-sm">พนักงานทั้งหมด</p>
                 <p className="text-primary text-[22px] font-semibold">
                   {summaryData?.totalEmployees || 0}
                 </p>
               </div>
               <div className="bg-surface shadow-primary rounded-[10px] p-[12px]">
-                <p className="text-subtle-dark text-[14px]">สแกนครบ 4 ครั้ง</p>
+                <p className="text-subtle-dark text-sm">สแกนครบ 4 ครั้ง</p>
                 <p className="text-primary text-[22px] font-semibold">
                   {summaryData?.completeEmployees || 0}
                 </p>
               </div>
               <div className="bg-surface shadow-primary rounded-[10px] p-[12px]">
-                <p className="text-subtle-dark text-[14px]">
+                <p className="text-subtle-dark text-sm">
                   สแกนไม่ผูกพนักงาน
                 </p>
                 <p className="text-primary text-[22px] font-semibold">
@@ -152,9 +152,9 @@ const AttendanceReport = () => {
                 >
                   <div className="mb-[10px] flex flex-wrap items-center justify-between gap-[8px] border-b border-gray-100 pb-[10px]">
                     <div className="min-w-0 flex-1">
-                      <p className="text-normal truncate text-[18px] font-semibold md:text-[20px]">
+                      <p className="text-normal truncate text-lg font-semibold md:text-xl">
                         {item.name}
-                        <span className="text-subtle-dark ml-[6px] text-[14px] font-medium">
+                        <span className="text-subtle-dark ml-[6px] text-sm font-medium">
                           ({item.zkUserId})
                         </span>
                       </p>
@@ -180,12 +180,12 @@ const AttendanceReport = () => {
                           key={slot.key}
                           className="rounded-[8px] bg-gray-50 px-[10px] py-[8px]"
                         >
-                          <p className="text-subtle-dark text-[14px]">
+                          <p className="text-subtle-dark text-sm">
                             {slot.label}
                           </p>
                           {slotData ? (
                             <>
-                              <p className="text-normal text-[16px] font-medium">
+                              <p className="text-normal text-base font-medium">
                                 {formatTime(slotData.scanTime)} น.
                               </p>
                               <p className="text-subtle-dark text-[13px]">
@@ -193,7 +193,7 @@ const AttendanceReport = () => {
                               </p>
                             </>
                           ) : (
-                            <p className="text-destructive text-[16px] font-medium">
+                            <p className="text-destructive text-base font-medium">
                               ยังไม่สแกน
                             </p>
                           )}

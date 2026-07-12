@@ -20,7 +20,7 @@ const LicensePlateInput = ({
         pattern={pattern}
         maxLength={maxLength}
         onInput={onInput}
-        className={`bg-surface h-[41px] rounded-[20px] text-[18px] font-medium placeholder:font-light md:text-[20px] ${
+        className={`bg-surface h-[41px] rounded-[20px] text-lg font-medium placeholder:font-light md:text-xl ${
           error
             ? "border-destructive focus-visible:!border-destructive focus-visible:!ring-destructive/30 focus-visible:!border-2"
             : "focus-visible:!border-primary focus-visible:!ring-primary/35 focus-visible:!border-2"

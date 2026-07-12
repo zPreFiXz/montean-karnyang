@@ -39,7 +39,7 @@ const VehicleDetail = () => {
         >
           <ChevronLeft />
         </button>
-        <p className="text-surface text-[24px] font-semibold md:text-[26px]">
+        <p className="text-surface text-2xl font-semibold md:text-[26px]">
           ประวัติลูกค้า
         </p>
       </div>
@@ -55,13 +55,13 @@ const VehicleDetail = () => {
                 <BrandIcons brand={vehicle?.vehicleModel.brand} />
               </div>
               <div className="flex flex-col">
-                <p className="text-primary text-[22px] leading-tight font-semibold md:text-[24px]">
+                <p className="text-primary text-[22px] leading-tight font-semibold md:text-2xl">
                   {vehicle?.licensePlate?.plateNumber &&
                   vehicle?.licensePlate?.province
                     ? `${vehicle.licensePlate.plateNumber} ${vehicle.licensePlate.province}`
                     : "ไม่ระบุทะเบียนรถ"}
                 </p>
-                <p className="text-subtle-dark text-[18px] leading-tight font-medium md:text-[20px]">
+                <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
                   {vehicle?.vehicleModel.brand} {vehicle?.vehicleModel.model}
                 </p>
               </div>
@@ -69,14 +69,14 @@ const VehicleDetail = () => {
             {vehicle.repairs && (
               <div className="mb-[16px] px-[20px]">
                 <div className="mb-[8px] flex items-center justify-between">
-                  <p className="text-normal text-[22px] font-semibold md:text-[24px]">
+                  <p className="text-normal text-[22px] font-semibold md:text-2xl">
                     ประวัติการซ่อม
                   </p>
                 </div>
                 <div className="space-y-[16px]">
                   {vehicle.repairs.map((item, index) => (
                     <div key={index} className="flex flex-col gap-[8px]">
-                      <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
                         {formatDate(item.createdAt)} |{" "}
                         {formatTime(item.createdAt)} น.
                       </p>

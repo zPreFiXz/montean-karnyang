@@ -65,13 +65,13 @@ const Login = () => {
             className="h-19 w-auto md:h-26"
           />
         </div>
-        <div className="bg-surface shadow-primary relative z-30 w-full rounded-[24px] p-[24px] md:w-[500px]">
+        <div className="bg-surface shadow-primary relative z-30 w-full rounded-[24px] p-[24px] md:max-w-[500px]">
           <form
             noValidate
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-[16px]"
           >
-            <p className="text-primary flex items-center justify-center gap-[8px] text-[30px] font-semibold md:text-[32px]">
+            <p className="text-primary flex items-center justify-center gap-[8px] text-3xl font-semibold md:text-[32px]">
               <Warehouse />
               เข้าสู่ระบบ
             </p>

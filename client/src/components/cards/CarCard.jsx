@@ -37,11 +37,11 @@ const CarCard = ({
         {licensePlate ? (
           <div className="flex min-w-0 flex-1 flex-col">
             <p
-              className={`truncate text-[18px] font-semibold md:text-[20px] ${textColorMap[bg]}`}
+              className={`truncate text-lg font-semibold md:text-xl ${textColorMap[bg]}`}
             >
               {licensePlate}
             </p>
-            <p className="text-subtle-dark truncate text-[14px] font-medium md:text-[16px]">
+            <p className="text-subtle-dark truncate text-sm font-medium md:text-base">
               {brand}
               {time && (
                 <span className="text-subtle-dark">
@@ -54,7 +54,7 @@ const CarCard = ({
         ) : (
           <div className="flex min-w-0 flex-1 flex-col">
             <p
-              className={`truncate text-[20px] font-semibold md:text-[22px] ${textColorMap[bg]}`}
+              className={`truncate text-xl font-semibold md:text-[22px] ${textColorMap[bg]}`}
             >
               {status}
             </p>
@@ -64,7 +64,7 @@ const CarCard = ({
       
       <div
         className={`shrink-0 font-semibold ${
-          price ? "text-[22px] md:text-[24px]" : "text-[32px] md:text-[34px]"
+          price ? "text-[22px] md:text-2xl" : "text-[32px] md:text-[34px]"
         } ${textColorMap[bg]}`}
       >
         {price ? (

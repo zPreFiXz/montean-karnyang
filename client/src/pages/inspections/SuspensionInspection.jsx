@@ -283,7 +283,7 @@ const SuspensionInspection = () => {
 
     if (isService) {
       return (
-        <p className="text-normal line-clamp-1 w-full text-[16px] leading-tight font-semibold md:text-[18px]">
+        <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
           {item.name}
         </p>
       );
@@ -291,7 +291,7 @@ const SuspensionInspection = () => {
 
     if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
       return (
-        <p className="text-normal line-clamp-1 w-full text-[16px] leading-tight font-semibold md:text-[18px]">
+        <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
           {item.brand} {item.typeSpecificData.width}/
           {item.typeSpecificData.aspectRatio}R
           {item.typeSpecificData.rimDiameter} {item.name}
@@ -301,7 +301,7 @@ const SuspensionInspection = () => {
 
     if (isTire && item.typeSpecificData) {
       return (
-        <p className="text-normal line-clamp-1 w-full text-[16px] leading-tight font-semibold md:text-[18px]">
+        <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
           {item.brand} {item.typeSpecificData.width}R
           {item.typeSpecificData.rimDiameter} {item.name}
         </p>
@@ -309,7 +309,7 @@ const SuspensionInspection = () => {
     }
 
     return (
-      <p className="text-normal line-clamp-1 w-full text-[16px] leading-tight font-semibold md:text-[18px]">
+      <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
         {item.brand} {item.name}
       </p>
     );
@@ -608,6 +608,122 @@ const SuspensionInspection = () => {
     }
   };
 
+
+  // แผงเลือกอะไหล่ตามฝั่ง (ซ้าย/ขวา/อื่นๆ) ใช้ร่วมกันทั้ง mobile และ desktop
+  const renderPartPanel = (side) => (
+                    <div
+                      key={`panel-${side}`}
+                      className="animate-in fade-in zoom-in-95 w-full duration-200"
+                    >
+                      {getPartsForSide(side).length === 0 ? (
+                        <div className="flex h-[120px] items-center justify-center">
+                          <p className="text-subtle-light text-lg md:text-xl">
+                            ไม่มีอะไหล่ที่รองรับ
+                          </p>
+                        </div>
+                      ) : (
+                        getPartsForSide(side).map((part) => {
+                          const selectedThis = isPartSelected(part.id, side);
+                          const allowedUnits = getAllowedUnitsForPart(part);
+                          const currentSelectedAll =
+                            getCurrentSelectedCountForPart(part);
+                          const isDisabled =
+                            !selectedThis && currentSelectedAll >= allowedUnits;
+                          return (
+                            <div
+                              key={`${side}-${part.id}`}
+                              className={`mt-[16px] flex items-center gap-[16px] px-[20px] ${
+                                isDisabled
+                                  ? "cursor-not-allowed opacity-50"
+                                  : ""
+                              }`}
+                            >
+                              <div
+                                className={`shadow-primary flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] border-2 px-[8px] duration-300 ${
+                                  isPartSelected(part.id, side)
+                                    ? "bg-primary/5 border-primary scale-[1.02]"
+                                    : "bg-surface border-transparent"
+                                }`}
+                                onClick={() => {
+                                  if (isDisabled) return;
+                                  handlePartSelection(
+                                    part,
+                                    !isPartSelected(part.id, side),
+                                    side,
+                                  );
+                                }}
+                              >
+                                <div className="flex flex-1 items-center gap-[8px]">
+                                  <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
+                                    {part.secureUrl ? (
+                                      <img
+                                        src={part.secureUrl}
+                                        alt={part.name}
+                                        className="h-full w-full rounded-[10px] object-cover"
+                                      />
+                                    ) : (
+                                      <div className="text-subtle-light flex h-[70px] w-[70px] items-center justify-center">
+                                        <Image className="h-8 w-8" />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-1 flex-col">
+                                    {renderProductInfo(part)}
+                                    <div className="flex items-center gap-2">
+                                      <p
+                                        className={`text-xl leading-tight font-semibold duration-300 md:text-[22px] ${
+                                          isPartSelected(part.id, side)
+                                            ? "text-primary"
+                                            : "text-subtle-dark"
+                                        }`}
+                                      >
+                                        {formatCurrency(getPriceForPart(part))}
+                                      </p>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditCompatiblePrice(part);
+                                        }}
+                                        aria-label="แก้ไขราคา"
+                                        className="text-primary mt-[2px] flex cursor-pointer items-center justify-center"
+                                      >
+                                        <SquarePen className="h-5 w-5" />
+                                      </button>
+                                    </div>
+                                    {isDisabled && (
+                                      <p className="text-destructive flex items-center gap-[4px] text-base leading-tight font-semibold md:text-lg">
+                                        <AlertTriangle className="text-destructive h-5 w-5" />
+                                        <span>สต็อกหมด</span>
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div
+                                className={`flex h-[32px] w-[32px] min-w-[32px] cursor-pointer items-center justify-center rounded-full duration-300 ${
+                                  isPartSelected(part.id, side)
+                                    ? "bg-gradient-primary text-surface scale-110 shadow-lg"
+                                    : "bg-subtle-light text-surface"
+                                }`}
+                                onClick={() => {
+                                  if (isDisabled) return;
+                                  handlePartSelection(
+                                    part,
+                                    !isPartSelected(part.id, side),
+                                    side,
+                                  );
+                                }}
+                              >
+                                <Check className="h-[18px] w-[18px]" />
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+  );
+
   return (
     <div>
       <div className="bg-gradient-primary shadow-primary flex min-h-[100svh] flex-col xl:min-h-[calc(100vh-73px)] xl:flex-row xl:items-start xl:gap-[16px] xl:bg-transparent xl:px-[16px] xl:pt-[24px] xl:pb-[24px] xl:shadow-none">
@@ -618,7 +734,7 @@ const SuspensionInspection = () => {
               <CarRepair color="#1976d2" className="hidden h-6 w-6 xl:block" />
             </div>
             <div>
-              <p className="text-surface xl:text-primary text-[24px] font-semibold md:text-[26px]">
+              <p className="text-surface xl:text-primary text-2xl font-semibold md:text-[26px]">
                 เช็กช่วงล่าง
               </p>
             </div>
@@ -639,11 +755,11 @@ const SuspensionInspection = () => {
                     <User className="text-surface xl:text-primary h-[18px] w-[18px]" />
                   </div>
                   <div className="text-left">
-                    <p className="text-surface xl:text-normal text-[18px] font-medium md:text-[20px]">
+                    <p className="text-surface xl:text-normal text-lg font-medium md:text-xl">
                       ข้อมูลลูกค้า
                     </p>
                     {watch("name") && (
-                      <p className="text-surface/80 xl:text-subtle-dark line-clamp-1 text-[14px] md:text-[16px]">
+                      <p className="text-surface/80 xl:text-subtle-dark line-clamp-1 text-sm md:text-base">
                         {watch("name")}
                         {watch("phoneNumber") && ` • ${watch("phoneNumber")}`}
                       </p>
@@ -750,7 +866,7 @@ const SuspensionInspection = () => {
               />
             </div>
             <div className="px-[20px] pt-[16px]">
-              <p className="text-surface mb-[8px] text-[22px] font-medium md:text-[24px]">
+              <p className="text-surface mb-[8px] text-[22px] font-medium md:text-2xl">
                 ทะเบียนรถ
               </p>
               <div className="flex items-start gap-[4px]">
@@ -768,7 +884,7 @@ const SuspensionInspection = () => {
                     }}
                   />
                 </div>
-                <p className="text-surface pt-[8px] text-[18px] font-medium">
+                <p className="text-surface pt-[8px] text-lg font-medium">
                   -
                 </p>
                 <div className="w-[80px]">
@@ -826,16 +942,16 @@ const SuspensionInspection = () => {
                 <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
                   <ClipboardList className="text-primary h-6 w-6" />
                 </div>
-                <p className="text-[22px] font-semibold md:text-[24px]">
+                <p className="text-[22px] font-semibold md:text-2xl">
                   รายการซ่อมช่วงล่าง
                 </p>
               </div>
               <div className="mx-[20px] mt-[16px] flex justify-center">
-                <div className="relative flex w-[308px] rounded-[10px] bg-gray-100 p-[4px]">
+                <div className="relative flex w-full max-w-sm rounded-[10px] bg-gray-100 p-1">
                   <button
                     type="button"
                     onClick={() => setActiveTab("left")}
-                    className={`relative z-10 flex h-[40px] w-[100px] cursor-pointer items-center justify-center rounded-[10px] text-[18px] font-semibold duration-300 ease-out md:text-[20px] ${
+                    className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
                       activeTab === "left"
                         ? "scale-105 transform text-white"
                         : "text-subtle-dark"
@@ -846,7 +962,7 @@ const SuspensionInspection = () => {
                   <button
                     type="button"
                     onClick={() => setActiveTab("right")}
-                    className={`relative z-10 flex h-[40px] w-[100px] cursor-pointer items-center justify-center rounded-[10px] text-[18px] font-semibold duration-300 ease-out md:text-[20px] ${
+                    className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
                       activeTab === "right"
                         ? "scale-105 transform text-white"
                         : "text-subtle-dark"
@@ -857,7 +973,7 @@ const SuspensionInspection = () => {
                   <button
                     type="button"
                     onClick={() => setActiveTab("other")}
-                    className={`relative z-10 flex h-[40px] w-[100px] cursor-pointer items-center justify-center rounded-[10px] text-[18px] font-semibold duration-300 ease-out md:text-[20px] ${
+                    className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
                       activeTab === "other"
                         ? "scale-105 transform text-white"
                         : "text-subtle-dark"
@@ -868,359 +984,24 @@ const SuspensionInspection = () => {
                   <div
                     className={`bg-gradient-primary absolute flex h-[40px] justify-center rounded-[10px] shadow-lg duration-300 ease-out ${
                       activeTab === "left"
-                        ? "left-[4px] w-[100px]"
+                        ? "left-1 w-[calc(33.33%-4px)]"
                         : activeTab === "right"
-                          ? "left-[104px] w-[100px]"
-                          : "left-[204px] w-[100px]"
+                          ? "left-[33.33%] w-[calc(33.33%-4px)]"
+                          : "left-[66.66%] w-[calc(33.33%-4px)]"
                     }`}
                   />
                 </div>
               </div>
               {compatibleParts.length > 0 && (
                 <div>
-                  {activeTab === "left" && (
-                    <div
-                      key="panel-left"
-                      className="animate-in fade-in zoom-in-95 w-full duration-200"
-                    >
-                      {getPartsForSide("left").length === 0 ? (
-                        <div className="flex h-[120px] items-center justify-center">
-                          <p className="text-subtle-light text-[18px] md:text-[20px]">
-                            ไม่มีอะไหล่ที่รองรับ
-                          </p>
-                        </div>
-                      ) : (
-                        getPartsForSide("left").map((part) => {
-                          const selectedThis = isPartSelected(part.id, "left");
-                          const allowedUnits = getAllowedUnitsForPart(part);
-                          const currentSelectedAll =
-                            getCurrentSelectedCountForPart(part);
-                          const isDisabled =
-                            !selectedThis && currentSelectedAll >= allowedUnits;
-                          return (
-                            <div
-                              key={`left-${part.id}`}
-                              className={`mt-[16px] flex items-center gap-[16px] px-[20px] ${
-                                isDisabled
-                                  ? "cursor-not-allowed opacity-50"
-                                  : ""
-                              }`}
-                            >
-                              <div
-                                className={`shadow-primary flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] border-2 px-[8px] duration-300 ${
-                                  isPartSelected(part.id, "left")
-                                    ? "bg-primary/5 border-primary scale-[1.02]"
-                                    : "bg-surface border-transparent"
-                                }`}
-                                onClick={() => {
-                                  if (isDisabled) return;
-                                  handlePartSelection(
-                                    part,
-                                    !isPartSelected(part.id, "left"),
-                                    "left",
-                                  );
-                                }}
-                              >
-                                <div className="flex flex-1 items-center gap-[8px]">
-                                  <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secureUrl ? (
-                                      <img
-                                        src={part.secureUrl}
-                                        alt={part.name}
-                                        className="h-full w-full rounded-[10px] object-cover"
-                                      />
-                                    ) : (
-                                      <div className="text-subtle-light flex h-[70px] w-[70px] items-center justify-center">
-                                        <Image className="h-8 w-8" />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-1 flex-col">
-                                    {renderProductInfo(part)}
-                                    <div className="flex items-center gap-2">
-                                      <p
-                                        className={`text-[20px] leading-tight font-semibold duration-300 md:text-[22px] ${
-                                          isPartSelected(part.id, "left")
-                                            ? "text-primary"
-                                            : "text-subtle-dark"
-                                        }`}
-                                      >
-                                        {formatCurrency(getPriceForPart(part))}
-                                      </p>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleEditCompatiblePrice(part);
-                                        }}
-                                        className="text-primary mt-[2px] flex items-center justify-center"
-                                      >
-                                        <SquarePen className="h-5 w-5" />
-                                      </button>
-                                    </div>
-                                    {isDisabled && (
-                                      <p className="text-destructive flex items-center gap-[4px] text-[16px] leading-tight font-semibold md:text-[18px]">
-                                        <AlertTriangle className="text-destructive h-5 w-5" />
-                                        <p>สต็อกหมด</p>
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                              <div
-                                className={`flex h-[32px] w-[32px] min-w-[32px] cursor-pointer items-center justify-center rounded-full duration-300 ${
-                                  isPartSelected(part.id, "left")
-                                    ? "bg-gradient-primary text-surface scale-110 shadow-lg"
-                                    : "bg-subtle-light text-surface"
-                                }`}
-                                onClick={() => {
-                                  if (isDisabled) return;
-                                  handlePartSelection(
-                                    part,
-                                    !isPartSelected(part.id, "left"),
-                                    "left",
-                                  );
-                                }}
-                              >
-                                <Check className="h-[18px] w-[18px]" />
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  )}
-                  {activeTab === "right" && (
-                    <div
-                      key="panel-right"
-                      className="animate-in fade-in zoom-in-95 w-full duration-200"
-                    >
-                      {getPartsForSide("right").length === 0 ? (
-                        <div className="flex h-[120px] items-center justify-center">
-                          <p className="text-subtle-light text-[18px] md:text-[20px]">
-                            ไม่มีอะไหล่ที่รองรับ
-                          </p>
-                        </div>
-                      ) : (
-                        getPartsForSide("right").map((part) => {
-                          const selectedThis = isPartSelected(part.id, "right");
-                          const allowedUnits = getAllowedUnitsForPart(part);
-                          const currentSelectedAll =
-                            getCurrentSelectedCountForPart(part);
-                          const isDisabled =
-                            !selectedThis && currentSelectedAll >= allowedUnits;
-                          return (
-                            <div
-                              key={`right-${part.id}`}
-                              className={`mt-[16px] flex items-center gap-[16px] px-[20px] ${
-                                isDisabled
-                                  ? "cursor-not-allowed opacity-50"
-                                  : ""
-                              }`}
-                            >
-                              <div
-                                className={`shadow-primary flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] border-2 px-[8px] duration-300 ${
-                                  isPartSelected(part.id, "right")
-                                    ? "bg-primary/5 border-primary scale-[1.02]"
-                                    : "bg-surface border-transparent"
-                                }`}
-                                onClick={() => {
-                                  if (isDisabled) return;
-                                  handlePartSelection(
-                                    part,
-                                    !isPartSelected(part.id, "right"),
-                                    "right",
-                                  );
-                                }}
-                              >
-                                <div className="flex flex-1 items-center gap-[8px]">
-                                  <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secureUrl ? (
-                                      <img
-                                        src={part.secureUrl}
-                                        alt={part.name}
-                                        className="h-full w-full rounded-[10px] object-cover"
-                                      />
-                                    ) : (
-                                      <div className="text-subtle-light flex h-[70px] w-[70px] items-center justify-center">
-                                        <Image className="h-8 w-8" />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-1 flex-col">
-                                    {renderProductInfo(part)}
-                                    <div className="flex items-center gap-2">
-                                      <p
-                                        className={`text-[20px] leading-tight font-semibold duration-300 md:text-[22px] ${
-                                          isPartSelected(part.id, "right")
-                                            ? "text-primary"
-                                            : "text-subtle-dark"
-                                        }`}
-                                      >
-                                        {formatCurrency(getPriceForPart(part))}
-                                      </p>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleEditCompatiblePrice(part);
-                                        }}
-                                        className="text-primary flex items-center justify-center"
-                                      >
-                                        <SquarePen className="h-5 w-5" />
-                                      </button>
-                                    </div>
-                                    {isDisabled && (
-                                      <p className="text-destructive flex items-center gap-[4px] text-[16px] leading-tight font-semibold md:text-[18px]">
-                                        <AlertTriangle className="text-destructive h-5 w-5" />
-                                        <p>สต็อกหมด</p>
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                              <div
-                                className={`flex h-[32px] w-[32px] min-w-[32px] cursor-pointer items-center justify-center rounded-full duration-300 ${
-                                  isPartSelected(part.id, "right")
-                                    ? "bg-gradient-primary text-surface scale-110 shadow-lg"
-                                    : "bg-subtle-light text-surface"
-                                }`}
-                                onClick={() => {
-                                  if (isDisabled) return;
-                                  handlePartSelection(
-                                    part,
-                                    !isPartSelected(part.id, "right"),
-                                    "right",
-                                  );
-                                }}
-                              >
-                                <Check className="h-[18px] w-[18px]" />
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  )}
-                  {activeTab === "other" && (
-                    <div
-                      key="panel-other"
-                      className="animate-in fade-in zoom-in-95 w-full duration-200"
-                    >
-                      {getPartsForSide("other").length === 0 ? (
-                        <div className="flex h-[120px] items-center justify-center">
-                          <p className="text-subtle-light text-[20px] md:text-[22px]">
-                            ไม่มีอะไหล่ที่รองรับ
-                          </p>
-                        </div>
-                      ) : (
-                        getPartsForSide("other").map((part) => {
-                          const selectedThis = isPartSelected(part.id, "other");
-                          const allowedUnits = getAllowedUnitsForPart(part);
-                          const currentSelectedAll =
-                            getCurrentSelectedCountForPart(part);
-                          const isDisabled =
-                            !selectedThis && currentSelectedAll >= allowedUnits;
-                          return (
-                            <div
-                              key={`other-${part.id}`}
-                              className={`mt-[16px] flex items-center gap-[16px] px-[20px] ${
-                                isDisabled
-                                  ? "cursor-not-allowed opacity-50"
-                                  : ""
-                              }`}
-                            >
-                              <div
-                                className={`shadow-primary flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] border-2 px-[8px] duration-300 ${
-                                  isPartSelected(part.id, "other")
-                                    ? "bg-primary/5 border-primary scale-[1.02]"
-                                    : "bg-surface border-transparent"
-                                }`}
-                                onClick={() => {
-                                  if (isDisabled) return;
-                                  handlePartSelection(
-                                    part,
-                                    !isPartSelected(part.id, "other"),
-                                    "other",
-                                  );
-                                }}
-                              >
-                                <div className="flex flex-1 items-center gap-[8px]">
-                                  <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secureUrl ? (
-                                      <img
-                                        src={part.secureUrl}
-                                        alt={part.name}
-                                        className="h-full w-full rounded-[10px] object-cover"
-                                      />
-                                    ) : (
-                                      <div className="text-subtle-light flex h-[70px] w-[70px] items-center justify-center">
-                                        <Image className="h-8 w-8" />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-1 flex-col">
-                                    {renderProductInfo(part)}
-                                    <div className="flex items-center gap-2">
-                                      <p
-                                        className={`text-[20px] leading-tight font-semibold duration-300 md:text-[22px] ${
-                                          isPartSelected(part.id, "other")
-                                            ? "text-primary"
-                                            : "text-subtle-dark"
-                                        }`}
-                                      >
-                                        {formatCurrency(getPriceForPart(part))}
-                                      </p>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleEditCompatiblePrice(part);
-                                        }}
-                                        className="text-primary flex items-center justify-center"
-                                      >
-                                        <SquarePen className="h-5 w-5" />
-                                      </button>
-                                    </div>
-                                    {isDisabled && (
-                                      <p className="text-destructive flex items-center gap-[4px] text-[16px] leading-tight font-semibold md:text-[18px]">
-                                        <AlertTriangle className="text-destructive h-5 w-5" />
-                                        <p>สต็อกหมด</p>
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                              <div
-                                className={`flex h-[32px] w-[32px] min-w-[32px] cursor-pointer items-center justify-center rounded-full duration-300 ${
-                                  isPartSelected(part.id, "other")
-                                    ? "bg-gradient-primary text-surface scale-110 shadow-lg"
-                                    : "bg-subtle-light text-surface"
-                                }`}
-                                onClick={() => {
-                                  if (isDisabled) return;
-                                  handlePartSelection(
-                                    part,
-                                    !isPartSelected(part.id, "other"),
-                                    "other",
-                                  );
-                                }}
-                              >
-                                <Check className="h-[18px] w-[18px]" />
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  )}
+                  {renderPartPanel(activeTab)}
                 </div>
               )}
               {watch("brand") &&
                 watch("model") &&
                 compatibleParts.length === 0 && (
                   <div className="flex h-[228px] items-center justify-center">
-                    <p className="text-subtle-light text-[20px] md:text-[22px]">
+                    <p className="text-subtle-light text-xl md:text-[22px]">
                       ไม่พบอะไหล่ที่รองรับ
                     </p>
                   </div>
@@ -1229,7 +1010,7 @@ const SuspensionInspection = () => {
                 watch("model") &&
                 compatibleParts.length > 0 && (
                   <div className="flex items-center justify-between px-[20px] pt-[16px]">
-                    <p className="text-[22px] font-semibold md:text-[24px]">
+                    <p className="text-[22px] font-semibold md:text-2xl">
                       รายการซ่อมเพิ่มเติม
                     </p>
                     <AddRepairItemDialog
@@ -1237,7 +1018,7 @@ const SuspensionInspection = () => {
                       selectedItems={repairItems}
                       restoredStockMap={restoredStockMap}
                     >
-                      <p className="text-primary cursor-pointer text-[20px] font-semibold md:text-[22px]">
+                      <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
                         + เพิ่มรายการซ่อม
                       </p>
                     </AddRepairItemDialog>
@@ -1247,7 +1028,7 @@ const SuspensionInspection = () => {
                 <div>
                   {(!watch("brand") || !watch("model")) && (
                     <div className="flex h-[228px] items-center justify-center">
-                      <p className="text-subtle-light text-[20px] md:text-[22px]">
+                      <p className="text-subtle-light text-xl md:text-[22px]">
                         กรุณาเลือกยี่ห้อและรุ่นรถ
                       </p>
                     </div>
@@ -1286,12 +1067,12 @@ const SuspensionInspection = () => {
                           </div>
                           <div className="flex flex-1 flex-col">
                             {renderProductInfo(item)}
-                            <p className="text-subtle-dark text-[16px] leading-tight font-medium md:text-[18px]">
+                            <p className="text-subtle-dark text-base leading-tight font-medium md:text-lg">
                               ราคาต่อหน่วย:{" "}
                               {formatCurrency(Number(item.sellingPrice))}
                             </p>
                             <div className="flex w-full items-center justify-between">
-                              <p className="text-primary text-[20px] leading-tight font-semibold md:text-[22px]">
+                              <p className="text-primary text-xl leading-tight font-semibold md:text-[22px]">
                                 {formatCurrency(
                                   item.quantity * item.sellingPrice,
                                 )}
@@ -1308,7 +1089,7 @@ const SuspensionInspection = () => {
                                 >
                                   <Minus className="h-4 w-4" />
                                 </button>
-                                <p className="text-primary text-[18px] font-semibold md:text-[20px]">
+                                <p className="text-primary text-lg font-semibold md:text-xl">
                                   {item.quantity}
                                 </p>
                                 <button
@@ -1347,7 +1128,7 @@ const SuspensionInspection = () => {
                     <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col">
-                          <p className="text-subtle-dark text-[20px] font-semibold md:text-[22px]">
+                          <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
                             รวม{" "}
                             {Array.from(selectedLeftParts).filter((id) =>
                               getPartsForSide("left").some(
@@ -1369,7 +1150,7 @@ const SuspensionInspection = () => {
                           </p>
                         </div>
                         <div className="flex flex-col items-end">
-                          <p className="text-primary text-[24px] font-semibold md:text-[26px]">
+                          <p className="text-primary text-2xl font-semibold md:text-[26px]">
                             {formatCurrency(
                               getPartsForSide("left").reduce((total, part) => {
                                 return (
@@ -1444,7 +1225,7 @@ const SuspensionInspection = () => {
                   <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col">
-                        <p className="text-subtle-dark text-[20px] font-semibold md:text-[22px]">
+                        <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
                           รวม{" "}
                           {Array.from(selectedLeftParts).filter((id) =>
                             getPartsForSide("left").some(
@@ -1465,7 +1246,7 @@ const SuspensionInspection = () => {
                         </p>
                       </div>
                       <div className="flex flex-col items-end">
-                        <p className="text-primary text-[24px] font-semibold md:text-[26px]">
+                        <p className="text-primary text-2xl font-semibold md:text-[26px]">
                           {formatCurrency(
                             getPartsForSide("left").reduce((total, part) => {
                               return (
@@ -1532,17 +1313,17 @@ const SuspensionInspection = () => {
               <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
                 <ClipboardList className="text-primary h-6 w-6" />
               </div>
-              <p className="text-[22px] font-semibold md:text-[24px]">
+              <p className="text-[22px] font-semibold md:text-2xl">
                 รายการซ่อมช่วงล่าง
               </p>
             </div>
             <div>
               <div className="mx-[20px] mt-[16px] flex justify-center">
-                <div className="relative flex w-[308px] rounded-[10px] bg-gray-100 p-[4px]">
+                <div className="relative flex w-full max-w-sm rounded-[10px] bg-gray-100 p-1">
                   <button
                     type="button"
                     onClick={() => setActiveTab("left")}
-                    className={`relative z-10 flex h-[40px] w-[100px] cursor-pointer items-center justify-center rounded-[10px] text-[18px] font-semibold duration-300 ease-out md:text-[20px] ${
+                    className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
                       activeTab === "left"
                         ? "scale-105 transform text-white"
                         : "text-subtle-dark"
@@ -1553,7 +1334,7 @@ const SuspensionInspection = () => {
                   <button
                     type="button"
                     onClick={() => setActiveTab("right")}
-                    className={`relative z-10 flex h-[40px] w-[100px] cursor-pointer items-center justify-center rounded-[10px] text-[18px] font-semibold duration-300 ease-out md:text-[20px] ${
+                    className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
                       activeTab === "right"
                         ? "scale-105 transform text-white"
                         : "text-subtle-dark"
@@ -1564,7 +1345,7 @@ const SuspensionInspection = () => {
                   <button
                     type="button"
                     onClick={() => setActiveTab("other")}
-                    className={`relative z-10 flex h-[40px] w-[100px] cursor-pointer items-center justify-center rounded-[10px] text-[18px] font-semibold duration-300 ease-out md:text-[20px] ${
+                    className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
                       activeTab === "other"
                         ? "scale-105 transform text-white"
                         : "text-subtle-dark"
@@ -1576,359 +1357,24 @@ const SuspensionInspection = () => {
                   <div
                     className={`bg-gradient-primary absolute flex h-[40px] justify-center rounded-[10px] shadow-lg duration-300 ease-out ${
                       activeTab === "left"
-                        ? "left-[4px] w-[100px]"
+                        ? "left-1 w-[calc(33.33%-4px)]"
                         : activeTab === "right"
-                          ? "left-[104px] w-[100px]"
-                          : "left-[204px] w-[100px]"
+                          ? "left-[33.33%] w-[calc(33.33%-4px)]"
+                          : "left-[66.66%] w-[calc(33.33%-4px)]"
                     }`}
                   />
                 </div>
               </div>
               {compatibleParts.length > 0 && (
                 <div>
-                  {activeTab === "left" && (
-                    <div
-                      key="desktop-panel-left"
-                      className="animate-in fade-in zoom-in-95 w-full duration-200"
-                    >
-                      {getPartsForSide("left").length === 0 ? (
-                        <div className="flex h-[120px] items-center justify-center">
-                          <p className="text-subtle-light text-[18px] md:text-[20px]">
-                            ไม่มีอะไหล่ที่รองรับ
-                          </p>
-                        </div>
-                      ) : (
-                        getPartsForSide("left").map((part) => {
-                          const selectedThis = isPartSelected(part.id, "left");
-                          const allowedUnits = getAllowedUnitsForPart(part);
-                          const currentSelectedAll =
-                            getCurrentSelectedCountForPart(part);
-                          const isDisabled =
-                            !selectedThis && currentSelectedAll >= allowedUnits;
-                          return (
-                            <div
-                              key={`desktop-left-${part.id}`}
-                              className={`mt-[16px] flex items-center gap-[16px] px-[20px] ${
-                                isDisabled
-                                  ? "cursor-not-allowed opacity-50"
-                                  : ""
-                              }`}
-                            >
-                              <div
-                                className={`shadow-primary flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] border-2 px-[8px] duration-300 ${
-                                  isPartSelected(part.id, "left")
-                                    ? "bg-primary/5 border-primary scale-[1.02]"
-                                    : "bg-surface border-transparent"
-                                }`}
-                                onClick={() => {
-                                  if (isDisabled) return;
-                                  handlePartSelection(
-                                    part,
-                                    !isPartSelected(part.id, "left"),
-                                    "left",
-                                  );
-                                }}
-                              >
-                                <div className="flex flex-1 items-center gap-[8px]">
-                                  <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secureUrl ? (
-                                      <img
-                                        src={part.secureUrl}
-                                        alt={part.name}
-                                        className="h-full w-full rounded-[10px] object-cover"
-                                      />
-                                    ) : (
-                                      <div className="text-subtle-light flex h-[70px] w-[70px] items-center justify-center">
-                                        <Image className="h-8 w-8" />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-1 flex-col">
-                                    {renderProductInfo(part)}
-                                    <div className="flex items-center gap-2">
-                                      <p
-                                        className={`text-[20px] leading-tight font-semibold duration-300 md:text-[22px] ${
-                                          isPartSelected(part.id, "left")
-                                            ? "text-primary"
-                                            : "text-subtle-dark"
-                                        }`}
-                                      >
-                                        {formatCurrency(getPriceForPart(part))}
-                                      </p>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleEditCompatiblePrice(part);
-                                        }}
-                                        className="text-primary mt-[2px] flex items-center justify-center"
-                                      >
-                                        <SquarePen className="h-5 w-5" />
-                                      </button>
-                                    </div>
-                                    {isDisabled && (
-                                      <p className="text-destructive flex items-center gap-[4px] text-[16px] leading-tight font-semibold md:text-[18px]">
-                                        <AlertTriangle className="text-destructive h-5 w-5" />
-                                        <span>สต็อกหมด</span>
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                              <div
-                                className={`flex h-[32px] w-[32px] min-w-[32px] cursor-pointer items-center justify-center rounded-full duration-300 ${
-                                  isPartSelected(part.id, "left")
-                                    ? "bg-gradient-primary text-surface scale-110 shadow-lg"
-                                    : "bg-subtle-light text-surface"
-                                }`}
-                                onClick={() => {
-                                  if (isDisabled) return;
-                                  handlePartSelection(
-                                    part,
-                                    !isPartSelected(part.id, "left"),
-                                    "left",
-                                  );
-                                }}
-                              >
-                                <Check className="h-[18px] w-[18px]" />
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  )}
-                  {activeTab === "right" && (
-                    <div
-                      key="desktop-panel-right"
-                      className="animate-in fade-in zoom-in-95 w-full duration-200"
-                    >
-                      {getPartsForSide("right").length === 0 ? (
-                        <div className="flex h-[120px] items-center justify-center">
-                          <p className="text-subtle-light text-[18px] md:text-[20px]">
-                            ไม่มีอะไหล่ที่รองรับ
-                          </p>
-                        </div>
-                      ) : (
-                        getPartsForSide("right").map((part) => {
-                          const selectedThis = isPartSelected(part.id, "right");
-                          const allowedUnits = getAllowedUnitsForPart(part);
-                          const currentSelectedAll =
-                            getCurrentSelectedCountForPart(part);
-                          const isDisabled =
-                            !selectedThis && currentSelectedAll >= allowedUnits;
-                          return (
-                            <div
-                              key={`desktop-right-${part.id}`}
-                              className={`mt-[16px] flex items-center gap-[16px] px-[20px] ${
-                                isDisabled
-                                  ? "cursor-not-allowed opacity-50"
-                                  : ""
-                              }`}
-                            >
-                              <div
-                                className={`shadow-primary flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] border-2 px-[8px] duration-300 ${
-                                  isPartSelected(part.id, "right")
-                                    ? "bg-primary/5 border-primary scale-[1.02]"
-                                    : "bg-surface border-transparent"
-                                }`}
-                                onClick={() => {
-                                  if (isDisabled) return;
-                                  handlePartSelection(
-                                    part,
-                                    !isPartSelected(part.id, "right"),
-                                    "right",
-                                  );
-                                }}
-                              >
-                                <div className="flex flex-1 items-center gap-[8px]">
-                                  <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secureUrl ? (
-                                      <img
-                                        src={part.secureUrl}
-                                        alt={part.name}
-                                        className="h-full w-full rounded-[10px] object-cover"
-                                      />
-                                    ) : (
-                                      <div className="text-subtle-light flex h-[70px] w-[70px] items-center justify-center">
-                                        <Image className="h-8 w-8" />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-1 flex-col">
-                                    {renderProductInfo(part)}
-                                    <div className="flex items-center gap-2">
-                                      <p
-                                        className={`text-[20px] leading-tight font-semibold duration-300 md:text-[22px] ${
-                                          isPartSelected(part.id, "right")
-                                            ? "text-primary"
-                                            : "text-subtle-dark"
-                                        }`}
-                                      >
-                                        {formatCurrency(getPriceForPart(part))}
-                                      </p>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleEditCompatiblePrice(part);
-                                        }}
-                                        className="text-primary flex items-center justify-center"
-                                      >
-                                        <SquarePen className="h-5 w-5" />
-                                      </button>
-                                    </div>
-                                    {isDisabled && (
-                                      <p className="text-destructive flex items-center gap-[4px] text-[16px] leading-tight font-semibold md:text-[18px]">
-                                        <AlertTriangle className="text-destructive h-5 w-5" />
-                                        <span>สต็อกหมด</span>
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                              <div
-                                className={`flex h-[32px] w-[32px] min-w-[32px] cursor-pointer items-center justify-center rounded-full duration-300 ${
-                                  isPartSelected(part.id, "right")
-                                    ? "bg-gradient-primary text-surface scale-110 shadow-lg"
-                                    : "bg-subtle-light text-surface"
-                                }`}
-                                onClick={() => {
-                                  if (isDisabled) return;
-                                  handlePartSelection(
-                                    part,
-                                    !isPartSelected(part.id, "right"),
-                                    "right",
-                                  );
-                                }}
-                              >
-                                <Check className="h-[18px] w-[18px]" />
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  )}
-                  {activeTab === "other" && (
-                    <div
-                      key="desktop-panel-other"
-                      className="animate-in fade-in zoom-in-95 w-full duration-200"
-                    >
-                      {getPartsForSide("other").length === 0 ? (
-                        <div className="flex h-[120px] items-center justify-center">
-                          <p className="text-subtle-light text-[20px] md:text-[22px]">
-                            ไม่มีอะไหล่ที่รองรับ
-                          </p>
-                        </div>
-                      ) : (
-                        getPartsForSide("other").map((part) => {
-                          const selectedThis = isPartSelected(part.id, "other");
-                          const allowedUnits = getAllowedUnitsForPart(part);
-                          const currentSelectedAll =
-                            getCurrentSelectedCountForPart(part);
-                          const isDisabled =
-                            !selectedThis && currentSelectedAll >= allowedUnits;
-                          return (
-                            <div
-                              key={`desktop-other-${part.id}`}
-                              className={`mt-[16px] flex items-center gap-[16px] px-[20px] ${
-                                isDisabled
-                                  ? "cursor-not-allowed opacity-50"
-                                  : ""
-                              }`}
-                            >
-                              <div
-                                className={`shadow-primary flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] border-2 px-[8px] duration-300 ${
-                                  isPartSelected(part.id, "other")
-                                    ? "bg-primary/5 ห้ฟ-primary scale-[1.02]"
-                                    : "bg-surface border-transparent"
-                                }`}
-                                onClick={() => {
-                                  if (isDisabled) return;
-                                  handlePartSelection(
-                                    part,
-                                    !isPartSelected(part.id, "other"),
-                                    "other",
-                                  );
-                                }}
-                              >
-                                <div className="flex flex-1 items-center gap-[8px]">
-                                  <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secureUrl ? (
-                                      <img
-                                        src={part.secureUrl}
-                                        alt={part.name}
-                                        className="h-full w-full rounded-[10px] object-cover"
-                                      />
-                                    ) : (
-                                      <div className="text-subtle-light flex h-[70px] w-[70px] items-center justify-center">
-                                        <Image className="h-8 w-8" />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-1 flex-col">
-                                    {renderProductInfo(part)}
-                                    <div className="flex items-center gap-2">
-                                      <p
-                                        className={`text-[20px] leading-tight font-semibold duration-300 md:text-[22px] ${
-                                          isPartSelected(part.id, "other")
-                                            ? "text-primary"
-                                            : "text-subtle-dark"
-                                        }`}
-                                      >
-                                        {formatCurrency(getPriceForPart(part))}
-                                      </p>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleEditCompatiblePrice(part);
-                                        }}
-                                        className="text-primary flex items-center justify-center"
-                                      >
-                                        <SquarePen className="h-5 w-5" />
-                                      </button>
-                                    </div>
-                                    {isDisabled && (
-                                      <p className="text-destructive flex items-center gap-[4px] text-[16px] leading-tight font-semibold md:text-[18px]">
-                                        <AlertTriangle className="text-destructive h-5 w-5" />
-                                        <span>สต็อกหมด</span>
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                              <div
-                                className={`flex h-[32px] w-[32px] min-w-[32px] cursor-pointer items-center justify-center rounded-full duration-300 ${
-                                  isPartSelected(part.id, "other")
-                                    ? "bg-gradient-primary text-surface scale-110 shadow-lg"
-                                    : "bg-subtle-light text-surface"
-                                }`}
-                                onClick={() => {
-                                  if (isDisabled) return;
-                                  handlePartSelection(
-                                    part,
-                                    !isPartSelected(part.id, "other"),
-                                    "other",
-                                  );
-                                }}
-                              >
-                                <Check className="h-[18px] w-[18px]" />
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  )}
+                  {renderPartPanel(activeTab)}
                 </div>
               )}
               {watch("brand") &&
                 watch("model") &&
                 compatibleParts.length === 0 && (
                   <div className="flex h-[228px] items-center justify-center">
-                    <p className="text-subtle-light text-[20px] md:text-[22px]">
+                    <p className="text-subtle-light text-xl md:text-[22px]">
                       ไม่พบอะไหล่ที่รองรับ
                     </p>
                   </div>
@@ -1937,7 +1383,7 @@ const SuspensionInspection = () => {
                 watch("model") &&
                 compatibleParts.length > 0 && (
                   <div className="flex items-center justify-between px-[20px] pt-[16px]">
-                    <p className="text-[22px] font-semibold md:text-[24px]">
+                    <p className="text-[22px] font-semibold md:text-2xl">
                       รายการซ่อมเพิ่มเติม
                     </p>
                     <AddRepairItemDialog
@@ -1945,7 +1391,7 @@ const SuspensionInspection = () => {
                       selectedItems={repairItems}
                       restoredStockMap={restoredStockMap}
                     >
-                      <p className="text-primary cursor-pointer text-[20px] font-semibold md:text-[22px]">
+                      <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
                         + เพิ่มรายการซ่อม
                       </p>
                     </AddRepairItemDialog>
@@ -1955,7 +1401,7 @@ const SuspensionInspection = () => {
                 <div>
                   {(!watch("brand") || !watch("model")) && (
                     <div className="flex h-[228px] items-center justify-center">
-                      <p className="text-subtle-light text-[20px] md:text-[22px]">
+                      <p className="text-subtle-light text-xl md:text-[22px]">
                         กรุณาเลือกยี่ห้อและรุ่นรถ
                       </p>
                     </div>
@@ -1993,12 +1439,12 @@ const SuspensionInspection = () => {
                           </div>
                           <div className="flex flex-1 flex-col">
                             {renderProductInfo(item)}
-                            <p className="text-subtle-dark text-[16px] leading-tight font-medium md:text-[18px]">
+                            <p className="text-subtle-dark text-base leading-tight font-medium md:text-lg">
                               ราคาต่อหน่วย:{" "}
                               {formatCurrency(Number(item.sellingPrice))}
                             </p>
                             <div className="flex w-full items-center justify-between">
-                              <p className="text-primary text-[20px] leading-tight font-semibold md:text-[22px]">
+                              <p className="text-primary text-xl leading-tight font-semibold md:text-[22px]">
                                 {formatCurrency(
                                   item.quantity * item.sellingPrice,
                                 )}
@@ -2015,7 +1461,7 @@ const SuspensionInspection = () => {
                                 >
                                   <Minus className="h-4 w-4" />
                                 </button>
-                                <p className="text-primary text-[18px] font-semibold md:text-[20px]">
+                                <p className="text-primary text-lg font-semibold md:text-xl">
                                   {item.quantity}
                                 </p>
                                 <button
@@ -2054,7 +1500,7 @@ const SuspensionInspection = () => {
                     <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col">
-                          <p className="text-subtle-dark text-[20px] font-semibold md:text-[22px]">
+                          <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
                             รวม{" "}
                             {Array.from(selectedLeftParts).filter((id) =>
                               getPartsForSide("left").some(
@@ -2076,7 +1522,7 @@ const SuspensionInspection = () => {
                           </p>
                         </div>
                         <div className="flex flex-col items-end">
-                          <p className="text-primary text-[24px] font-semibold md:text-[26px]">
+                          <p className="text-primary text-2xl font-semibold md:text-[26px]">
                             {formatCurrency(
                               getPartsForSide("left").reduce((total, part) => {
                                 return (
@@ -2152,7 +1598,7 @@ const SuspensionInspection = () => {
                   <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col">
-                        <p className="text-subtle-dark text-[20px] font-semibold md:text-[22px]">
+                        <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
                           รวม{" "}
                           {Array.from(selectedLeftParts).filter((id) =>
                             getPartsForSide("left").some(
@@ -2173,7 +1619,7 @@ const SuspensionInspection = () => {
                         </p>
                       </div>
                       <div className="flex flex-col items-end">
-                        <p className="text-primary text-[24px] font-semibold md:text-[26px]">
+                        <p className="text-primary text-2xl font-semibold md:text-[26px]">
                           {formatCurrency(
                             getPartsForSide("left").reduce((total, part) => {
                               return (

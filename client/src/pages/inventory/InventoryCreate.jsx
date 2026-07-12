@@ -214,7 +214,7 @@ const InventoryCreate = () => {
         <button onClick={() => navigate(-1)} className="text-surface mt-[2px]">
           <ChevronLeft />
         </button>
-        <p className="text-surface text-[24px] font-semibold md:text-[26px]">
+        <p className="text-surface text-2xl font-semibold md:text-[26px]">
           เพิ่มรายการ
         </p>
       </div>

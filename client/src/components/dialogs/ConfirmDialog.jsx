@@ -50,7 +50,7 @@ const ConfirmDialog = ({
         }}
       >
         <div className="relative flex-shrink-0 pt-[16px]">
-          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-[24px]">
+          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-2xl">
             {title}
           </DialogTitle>
           <DialogDescription className="sr-only">
@@ -69,13 +69,13 @@ const ConfirmDialog = ({
 
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px] py-[16px]">
           <div className="text-center">
-            <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+            <p className="text-subtle-dark text-lg font-medium md:text-xl">
               {message}
             </p>
 
             {itemName && (
               <div className="mt-4 flex items-center justify-center">
-                <span className="text-primary bg-primary/10 inline-block rounded-[10px] px-4 py-2 text-[18px] font-semibold md:text-[20px]">
+                <span className="text-primary bg-primary/10 inline-block rounded-[10px] px-4 py-2 text-lg font-semibold md:text-xl">
                   {itemName}
                 </span>
               </div>
@@ -89,7 +89,7 @@ const ConfirmDialog = ({
               type="button"
               disabled={isLoading}
               onClick={onClose}
-              className="font-athiti text-subtle-dark flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] bg-gray-100 text-[18px] font-semibold md:text-[20px]"
+              className="font-athiti text-subtle-dark flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] bg-gray-100 text-lg font-semibold md:text-xl"
               ref={cancelButtonRef}
             >
               ยกเลิก

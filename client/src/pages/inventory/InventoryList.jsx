@@ -182,7 +182,7 @@ const InventoryList = () => {
           <BoxSearch color="#ffffff" />
         </div>
         <div>
-          <p className="text-surface text-[24px] font-semibold md:text-[26px]">
+          <p className="text-surface text-2xl font-semibold md:text-[26px]">
             อะไหล่และบริการ
           </p>
         </div>
@@ -212,8 +212,8 @@ const InventoryList = () => {
                       debouncedFilter();
                     }}
                     placeholder="-- เลือกหน้ายาง --"
-                    customClass="text-[18px] md:text-[20px]"
-                    labelClass="text-[20px] md:text-[22px]"
+                    customClass="text-lg md:text-xl"
+                    labelClass="text-xl md:text-[22px]"
                   />
                 </div>
                 <div className="w-full">
@@ -226,8 +226,8 @@ const InventoryList = () => {
                       debouncedFilter();
                     }}
                     placeholder="-- เลือกแก้มยาง --"
-                    customClass="text-[18px] md:text-[20px]"
-                    labelClass="text-[20px] md:text-[22px]"
+                    customClass="text-lg md:text-xl"
+                    labelClass="text-xl md:text-[22px]"
                   />
                 </div>
                 <div className="w-full">
@@ -240,8 +240,8 @@ const InventoryList = () => {
                       debouncedFilter();
                     }}
                     placeholder="-- เลือกขอบ --"
-                    customClass="text-[18px] md:text-[20px]"
-                    labelClass="text-[20px] md:text-[22px]"
+                    customClass="text-lg md:text-xl"
+                    labelClass="text-xl md:text-[22px]"
                   />
                 </div>
                 <div className="w-full">
@@ -254,20 +254,20 @@ const InventoryList = () => {
                       debouncedFilter();
                     }}
                     placeholder="-- เลือกยี่ห้อ --"
-                    customClass="text-[18px] md:text-[20px]"
-                    labelClass="text-[20px] md:text-[22px]"
+                    customClass="text-lg md:text-xl"
+                    labelClass="text-xl md:text-[22px]"
                   />
                 </div>
               </div>
             </div>
           )}
           <div className="mt-[16px] flex items-center justify-between">
-            <p className="text-[20px] font-semibold md:text-[22px]">
+            <p className="text-xl font-semibold md:text-[22px]">
               รายการอะไหล่และบริการ
             </p>
             <Link
               to="/inventory/new"
-              className="text-primary cursor-pointer text-[20px] font-semibold md:text-[22px]"
+              className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]"
             >
               + เพิ่มรายการ
             </Link>
@@ -280,7 +280,7 @@ const InventoryList = () => {
             </div>
           ) : inventory.length === 0 ? (
             <div className="flex h-[346px] items-center justify-center">
-              <p className="text-subtle-light text-[20px] font-medium md:text-[22px]">
+              <p className="text-subtle-light text-xl font-medium md:text-[22px]">
                 ไม่พบอะไหล่และบริการ
               </p>
             </div>

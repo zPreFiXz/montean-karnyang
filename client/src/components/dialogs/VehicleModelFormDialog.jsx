@@ -89,7 +89,7 @@ const VehicleModelFormDialog = ({
         }}
       >
         <div className="relative flex-shrink-0 pt-[16px]">
-          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-[24px]">
+          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-2xl">
             {editingItem ? "แก้ไขยี่ห้อและรุ่นรถ" : "เพิ่มยี่ห้อและรุ่นรถ"}
           </DialogTitle>
           <DialogDescription className="sr-only">

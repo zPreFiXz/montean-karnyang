@@ -11,7 +11,7 @@ const StatusCard = ({ bg, icon: Icon, label, amount }) => {
     >
       <div className="flex items-center gap-[8px]">
         <Icon />
-        <p className="text-surface text-[22px] font-medium md:text-[24px]">
+        <p className="text-surface text-[22px] font-medium md:text-2xl">
           {label}
         </p>
       </div>

@@ -18,21 +18,21 @@ const InventoryCard = ({
   const renderProductInfo = () => {
     if (isTire && typeSpecificData && typeSpecificData.aspectRatio) {
       return (
-        <p className="text-normal line-clamp-2 overflow-hidden text-[16px] font-semibold md:text-[18px]">
+        <p className="text-normal line-clamp-2 overflow-hidden text-base font-semibold md:text-lg">
           {brand} {typeSpecificData.width}/{typeSpecificData.aspectRatio}R
           {typeSpecificData.rimDiameter} {name}
         </p>
       );
     } else if (isTire && typeSpecificData) {
       return (
-        <p className="text-normal line-clamp-2 overflow-hidden text-[16px] font-semibold md:text-[18px]">
+        <p className="text-normal line-clamp-2 overflow-hidden text-base font-semibold md:text-lg">
           {brand} {typeSpecificData.width}R{typeSpecificData.rimDiameter} {name}
         </p>
       );
     }
 
     return (
-      <p className="text-normal line-clamp-2 overflow-hidden text-[16px] font-semibold md:text-[18px]">
+      <p className="text-normal line-clamp-2 overflow-hidden text-base font-semibold md:text-lg">
         {brand} {name}
       </p>
     );
@@ -67,26 +67,26 @@ const InventoryCard = ({
 
             {!isService &&
               (quantity === 0 ? (
-                <div className="text-destructive flex items-center gap-[4px] text-[16px] font-semibold md:text-[18px]">
+                <div className="text-destructive flex items-center gap-[4px] text-base font-semibold md:text-lg">
                   <AlertTriangle className="text-destructive h-5 w-5" />
                   <p>สต็อกหมด</p>
                 </div>
               ) : minStockLevel !== undefined &&
                 minStockLevel !== null &&
                 Number(quantity) <= Number(minStockLevel) ? (
-                <div className="text-status-progress flex items-center gap-[4px] text-[16px] font-semibold md:text-[18px]">
+                <div className="text-status-progress flex items-center gap-[4px] text-base font-semibold md:text-lg">
                   <AlertTriangle className="h-5 w-5" />
                   <p className="line-clamp-1">{`จำนวน: ${Number(quantity)} ${unit || ""}`}</p>
                 </div>
               ) : (
-                <p className="text-subtle-dark text-[16px] font-semibold md:text-[18px]">
+                <p className="text-subtle-dark text-base font-semibold md:text-lg">
                   {`จำนวน: ${quantity} ${unit}`}
                 </p>
               ))}
           </div>
         </div>
 
-        <p className="text-primary text-[22px] font-semibold text-nowrap md:text-[24px]">
+        <p className="text-primary text-[22px] font-semibold text-nowrap md:text-2xl">
           {formatCurrency(Number(sellingPrice))}
         </p>
       </div>

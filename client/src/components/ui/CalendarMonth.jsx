@@ -76,7 +76,7 @@ function CalendarMonth({
                     commit(viewYear, m);
                   }}
                   ref={monthSelectRef}
-                  className="font-athiti h-(--cell-size) cursor-pointer appearance-none rounded-md bg-transparent pr-6 pl-3 text-[16px] font-medium focus:outline-none"
+                  className="font-athiti h-(--cell-size) cursor-pointer appearance-none rounded-md bg-transparent pr-6 pl-3 text-base font-medium focus:outline-none"
                 >
                   {months.map((m) => (
                     <option key={m} value={String(m)}>
@@ -95,7 +95,7 @@ function CalendarMonth({
                     setViewYear(y);
                     commit(y, viewMonth);
                   }}
-                  className="font-athiti h-(--cell-size) cursor-pointer appearance-none rounded-md bg-transparent px-3 pr-8 text-[16px] font-medium focus:outline-none"
+                  className="font-athiti h-(--cell-size) cursor-pointer appearance-none rounded-md bg-transparent px-3 pr-8 text-base font-medium focus:outline-none"
                 >
                   {Array.from({ length: maxYear - minYear + 1 }).map((_, idx) => {
                     const y = minYear + idx;
@@ -112,7 +112,7 @@ function CalendarMonth({
             </div>
           ) : (
             <div className="flex h-(--cell-size) items-center justify-center px-2">
-              <p className="text-[16px] font-medium select-none">{`${formatMonth(
+              <p className="text-base font-medium select-none">{`${formatMonth(
                 viewMonth,
                 viewYear
               )} ${viewYear + 543}`}</p>

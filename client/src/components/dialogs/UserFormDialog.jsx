@@ -121,7 +121,7 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
         }}
       >
         <div className="relative flex-shrink-0 pt-[16px]">
-          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-[24px]">
+          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-2xl">
             {editingItem ? "แก้ไขบัญชีผู้ใช้งาน" : "เพิ่มบัญชีผู้ใช้งาน"}
           </DialogTitle>
           <DialogDescription className="sr-only">

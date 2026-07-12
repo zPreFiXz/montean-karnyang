@@ -302,7 +302,7 @@ const InventoryEdit = () => {
         >
           <ChevronLeft />
         </button>
-        <p className="text-surface text-[24px] font-semibold md:text-[26px]">
+        <p className="text-surface text-2xl font-semibold md:text-[26px]">
           {isServiceCategory() ? "แก้ไขบริการ" : "แก้ไขอะไหล่"}
         </p>
       </div>

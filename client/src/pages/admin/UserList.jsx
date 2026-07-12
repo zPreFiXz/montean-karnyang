@@ -104,7 +104,7 @@ const UserList = () => {
         <Link to="/dashboard" className="text-surface mt-[2px]">
           <ChevronLeft />
         </Link>
-        <p className="text-surface text-[24px] font-semibold md:text-[26px]">
+        <p className="text-surface text-2xl font-semibold md:text-[26px]">
           จัดการบัญชีผู้ใช้งาน
         </p>
       </div>
@@ -149,7 +149,7 @@ const UserList = () => {
                   className="bg-surface shadow-primary rounded-[10px] p-[16px]"
                 >
                   <div className="mb-[16px] flex items-center gap-[8px] border-b border-gray-100 pb-[16px]">
-                    <p className="text-primary text-[20px] font-semibold md:text-[22px]">
+                    <p className="text-primary text-xl font-semibold md:text-[22px]">
                       {getRoleLabel(role)}
                     </p>
                   </div>
@@ -160,24 +160,24 @@ const UserList = () => {
                         className="flex items-center justify-between gap-[8px] rounded-[8px] bg-gray-50 p-[8px]"
                       >
                         <div className="flex min-w-0 flex-1 flex-col">
-                          <p className="text-normal truncate text-[18px] font-medium md:text-[20px]">
+                          <p className="text-normal truncate text-lg font-medium md:text-xl">
                             {user.name}
                           </p>
-                          <p className="text-subtle-dark truncate text-[14px] md:text-[16px]">
+                          <p className="text-subtle-dark truncate text-sm md:text-base">
                             {user.email}
                           </p>
                         </div>
                         <div className="flex flex-shrink-0 gap-[8px]">
                           <button
                             onClick={() => handleEditClick(user)}
-                            className="text-surface bg-gradient-primary flex cursor-pointer items-center gap-[4px] rounded-[10px] px-[12px] py-[6px] text-[14px] font-medium"
+                            className="text-surface bg-gradient-primary flex cursor-pointer items-center gap-[4px] rounded-[10px] px-[12px] py-[6px] text-sm font-medium"
                           >
                             <Edit className="h-[14px] w-[14px]" />
                             <p className="font-semibold">แก้ไข</p>
                           </button>
                           <button
                             onClick={() => handleDeleteClick(user)}
-                            className="text-surface bg-destructive flex cursor-pointer items-center gap-[4px] rounded-[10px] px-[12px] py-[6px] text-[14px] font-medium"
+                            className="text-surface bg-destructive flex cursor-pointer items-center gap-[4px] rounded-[10px] px-[12px] py-[6px] text-sm font-medium"
                           >
                             <Trash2 className="h-[14px] w-[14px]" />
                             <p className="font-semibold">ลบ</p>

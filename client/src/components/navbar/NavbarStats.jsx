@@ -15,7 +15,7 @@ const NavbarStats = () => {
       {/* วันที่ปัจจุบัน */}
       <div className="flex items-center gap-[10px]">
         <Calendar className="text-primary h-[22px] w-[22px]" />
-        <span className="text-normal text-[18px] font-medium">
+        <span className="text-normal text-lg font-medium">
           วันที่ {formatDate(new Date())}
         </span>
       </div>
@@ -29,7 +29,7 @@ const NavbarStats = () => {
             className="group flex items-center gap-[10px] transition-opacity hover:opacity-80"
           >
             <TrendingUp className="text-primary h-[22px] w-[22px]" />
-            <span className="text-normal text-[18px] font-medium">
+            <span className="text-normal text-lg font-medium">
               ยอดขายวันนี้
             </span>
             <span className="text-primary mb-0.5 text-[22px] font-semibold">

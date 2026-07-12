@@ -133,7 +133,7 @@ const AddRepairItemDialog = ({
         }}
       >
         <DialogHeader className="relative flex-shrink-0 pt-[16px]">
-          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-[24px]">
+          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-2xl">
             เลือกอะไหล่หรือบริการ
           </DialogTitle>
           <DialogDescription className="sr-only">
@@ -175,7 +175,7 @@ const AddRepairItemDialog = ({
                       : "border-subtle-light text-subtle-dark bg-surface"
                   }`}
                 >
-                  <div className="text-[14px] font-semibold text-nowrap md:text-[16px]">
+                  <div className="text-sm font-semibold text-nowrap md:text-base">
                     ทั้งหมด
                   </div>
                 </button>
@@ -201,7 +201,7 @@ const AddRepairItemDialog = ({
                       >
                         <IconComponent />
                       </div>
-                      <div className="text-[14px] font-semibold text-nowrap md:text-[16px]">
+                      <div className="text-sm font-semibold text-nowrap md:text-base">
                         {item.name}
                       </div>
                     </button>
@@ -211,7 +211,7 @@ const AddRepairItemDialog = ({
             </div>
 
             <div className="mt-[14px] flex items-center justify-between">
-              <p className="font-athiti text-[20px] font-semibold md:text-[22px]">
+              <p className="font-athiti text-xl font-semibold md:text-[22px]">
                 รายการอะไหล่และบริการ
               </p>
             </div>
@@ -224,7 +224,7 @@ const AddRepairItemDialog = ({
               </div>
             ) : inventory.length === 0 ? (
               <div className="flex h-full items-center justify-center">
-                <p className="font-athiti text-subtle-light text-[20px] font-medium md:text-[22px]">
+                <p className="font-athiti text-subtle-light text-xl font-medium md:text-[22px]">
                   ไม่พบอะไหล่และบริการ
                 </p>
               </div>

@@ -141,7 +141,7 @@ const RepairReview = () => {
             <ChevronLeft className="text-primary hidden xl:block" />
           </button>
           <div>
-            <p className="text-surface xl:text-primary text-[24px] font-semibold md:text-[26px]">
+            <p className="text-surface xl:text-primary text-2xl font-semibold md:text-[26px]">
               สรุปรายการซ่อม
             </p>
           </div>
@@ -152,31 +152,31 @@ const RepairReview = () => {
           {/* ข้อมูลลูกค้า */}
           <div className="px-[20px]">
             <div className="mb-[16px]">
-              <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-[24px]">
+              <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
                 ข้อมูลลูกค้า
               </p>
               <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
                 <div className="flex justify-between">
-                  <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
                     ชื่อลูกค้า:
                   </p>
-                  <p className="text-normal text-[18px] font-semibold md:text-[20px]">
+                  <p className="text-normal text-lg font-semibold md:text-xl">
                     {repairData.name || "ไม่ระบุ"}
                   </p>
                 </div>
                 <div className="flex justify-between">
-                  <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
                     ที่อยู่:
                   </p>
-                  <p className="text-normal max-w-[250px] text-right text-[18px] font-semibold break-words md:text-[20px]">
+                  <p className="text-normal max-w-[250px] text-right text-lg font-semibold break-words md:text-xl">
                     {repairData.address || "ไม่ระบุ"}
                   </p>
                 </div>
                 <div className="flex justify-between">
-                  <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
                     หมายเลขโทรศัพท์:
                   </p>
-                  <p className="text-normal text-[18px] font-semibold md:text-[20px]">
+                  <p className="text-normal text-lg font-semibold md:text-xl">
                     {repairData.phoneNumber || "ไม่ระบุ"}
                   </p>
                 </div>
@@ -185,23 +185,23 @@ const RepairReview = () => {
 
             {/* ข้อมูลรถยนต์ */}
             <div className="mb-[16px]">
-              <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-[24px]">
+              <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
                 ข้อมูลรถยนต์
               </p>
               <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
                 <div className="flex justify-between">
-                  <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
                     ยี่ห้อ-รุ่น:
                   </p>
-                  <p className="text-normal text-[18px] font-semibold md:text-[20px]">
+                  <p className="text-normal text-lg font-semibold md:text-xl">
                     {repairData.brand} {repairData.model}
                   </p>
                 </div>
                 <div className="flex justify-between">
-                  <p className="text-subtle-dark text-[18px] font-medium md:text-[20px]">
+                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
                     ทะเบียนรถ:
                   </p>
-                  <p className="text-normal text-[18px] font-semibold md:text-[20px]">
+                  <p className="text-normal text-lg font-semibold md:text-xl">
                     {repairData.plateLetters &&
                     repairData.plateNumbers &&
                     getProvinceName(repairData.province)
@@ -212,10 +212,10 @@ const RepairReview = () => {
                   </p>
                 </div>
                 <div className="flex items-start justify-between">
-                  <p className="text-subtle-dark flex-shrink-0 text-[18px] font-medium md:text-[20px]">
+                  <p className="text-subtle-dark flex-shrink-0 text-lg font-medium md:text-xl">
                     รายละเอียดการซ่อม:
                   </p>
-                  <p className="text-normal min-w-0 text-right text-[18px] leading-relaxed font-semibold break-words md:text-[20px]">
+                  <p className="text-normal min-w-0 text-right text-lg leading-relaxed font-semibold break-words md:text-xl">
                     {repairData.description || "ไม่ระบุ"}
                   </p>
                 </div>
@@ -227,12 +227,12 @@ const RepairReview = () => {
           <div className="xl:hidden">
             <div className="mb-[16px]">
               <div className="mb-[16px] flex items-center justify-between px-[20px]">
-                <p className="text-[22px] font-semibold md:text-[24px]">
+                <p className="text-[22px] font-semibold md:text-2xl">
                   รายการซ่อม
                 </p>
                 <button
                   onClick={() => handleGoBack()}
-                  className="text-primary flex cursor-pointer items-center gap-[4px] text-[20px] font-semibold md:text-[22px]"
+                  className="text-primary flex cursor-pointer items-center gap-[4px] text-xl font-semibold md:text-[22px]"
                 >
                   <Edit className="h-5 w-5" />
                   แก้ไขรายการซ่อม
@@ -242,7 +242,7 @@ const RepairReview = () => {
               {/* รายการฝั่งซ้าย */}
               {leftItems.length > 0 && (
                 <div className="mb-[16px]">
-                  <p className="text-primary mb-[8px] flex items-center gap-[4px] text-[20px] font-semibold md:text-[22px]">
+                  <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                     <SquareArrowLeft className="mt-[2px]" />
                     รายการซ่อมฝั่งซ้าย
                   </p>
@@ -261,7 +261,7 @@ const RepairReview = () => {
               {/* รายการฝั่งขวา */}
               {rightItems.length > 0 && (
                 <div className="mb-[16px]">
-                  <p className="text-primary mb-[8px] flex items-center gap-[4px] text-[20px] font-semibold md:text-[22px]">
+                  <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                     <SquareArrowRight className="mt-[2px]" />
                     รายการซ่อมฝั่งขวา
                   </p>
@@ -280,7 +280,7 @@ const RepairReview = () => {
               {/* รายการอื่นๆ */}
               {otherItems.length > 0 && (
                 <div className="mb-[16px]">
-                  <p className="text-primary mb-[8px] flex items-center gap-[4px] text-[20px] font-semibold md:text-[22px]">
+                  <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                     <CircleEllipsis className="mt-[2px]" />
                     รายการซ่อมอื่นๆ
                   </p>
@@ -300,7 +300,7 @@ const RepairReview = () => {
               {generalItems.length > 0 && (
                 <div className="mb-[16px] px-[20px]">
                   {location.state?.from === "suspension" && (
-                    <p className="text-primary mb-[8px] flex items-center gap-[4px] text-[20px] font-semibold md:text-[22px]">
+                    <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                       <Wrench className="mb-[2px] inline" />
                       รายการซ่อมเพิ่มเติม
                     </p>
@@ -322,12 +322,12 @@ const RepairReview = () => {
             <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] my-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
-                  <p className="text-subtle-dark text-[20px] font-semibold md:text-[22px]">
+                  <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
                     รวม {repairItems.length} รายการ
                   </p>
                 </div>
                 <div className="flex flex-col items-end">
-                  <p className="text-primary text-[24px] font-semibold md:text-[26px]">
+                  <p className="text-primary text-2xl font-semibold md:text-[26px]">
                     {formatCurrency(totalPrice)}
                   </p>
                 </div>
@@ -354,13 +354,13 @@ const RepairReview = () => {
               <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
                 <ClipboardList className="text-primary h-5 w-5" />
               </div>
-              <p className="text-[22px] font-semibold md:text-[24px]">
+              <p className="text-[22px] font-semibold md:text-2xl">
                 รายการซ่อม
               </p>
             </div>
             <button
               onClick={() => handleGoBack()}
-              className="text-primary flex cursor-pointer items-center gap-[4px] text-[20px] font-semibold md:text-[22px]"
+              className="text-primary flex cursor-pointer items-center gap-[4px] text-xl font-semibold md:text-[22px]"
             >
               <Edit className="h-5 w-5" />
               แก้ไขรายการซ่อม
@@ -370,7 +370,7 @@ const RepairReview = () => {
             {/* รายการฝั่งซ้าย */}
             {leftItems.length > 0 && (
               <div className="mb-[16px]">
-                <p className="text-primary mb-[8px] flex items-center gap-[4px] text-[20px] font-semibold md:text-[22px]">
+                <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                   <SquareArrowLeft className="mt-[2px]" />
                   รายการซ่อมฝั่งซ้าย
                 </p>
@@ -389,7 +389,7 @@ const RepairReview = () => {
             {/* รายการฝั่งขวา */}
             {rightItems.length > 0 && (
               <div className="mb-[16px]">
-                <p className="text-primary mb-[8px] flex items-center gap-[4px] text-[20px] font-semibold md:text-[22px]">
+                <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                   <SquareArrowRight className="mt-[2px]" />
                   รายการซ่อมฝั่งขวา
                 </p>
@@ -408,7 +408,7 @@ const RepairReview = () => {
             {/* รายการอื่นๆ */}
             {otherItems.length > 0 && (
               <div className="mb-[16px]">
-                <p className="text-primary mb-[8px] flex items-center gap-[4px] text-[20px] font-semibold md:text-[22px]">
+                <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                   <CircleEllipsis className="mt-[2px]" />
                   รายการซ่อมอื่นๆ
                 </p>
@@ -428,7 +428,7 @@ const RepairReview = () => {
             {generalItems.length > 0 && (
               <div className="mb-[16px]">
                 {location.state?.from === "suspension" && (
-                  <p className="text-primary mb-[8px] flex items-center gap-[4px] text-[20px] font-semibold md:text-[22px]">
+                  <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                     <Wrench className="mb-[2px] inline" />
                     รายการซ่อมเพิ่มเติม
                   </p>
@@ -450,12 +450,12 @@ const RepairReview = () => {
           <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] my-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
-                <p className="text-subtle-dark text-[20px] font-semibold md:text-[22px]">
+                <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
                   รวม {repairItems.length} รายการ
                 </p>
               </div>
               <div className="flex flex-col items-end">
-                <p className="text-primary text-[24px] font-semibold md:text-[26px]">
+                <p className="text-primary text-2xl font-semibold md:text-[26px]">
                   {formatCurrency(totalPrice)}
                 </p>
               </div>

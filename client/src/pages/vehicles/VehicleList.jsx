@@ -60,7 +60,7 @@ const VehicleList = () => {
           <Document color="#ffffff" />
         </div>
         <div>
-          <p className="text-surface text-[24px] font-semibold md:text-[26px]">
+          <p className="text-surface text-2xl font-semibold md:text-[26px]">
             ประวัติลูกค้า
           </p>
         </div>
@@ -77,7 +77,7 @@ const VehicleList = () => {
             </div>
           ) : vehicles.length === 0 ? (
             <div className="flex h-[490px] items-center justify-center">
-              <p className="text-subtle-light text-[20px] md:text-[22px]">
+              <p className="text-subtle-light text-xl md:text-[22px]">
                 ไม่พบลูกค้า
               </p>
             </div>

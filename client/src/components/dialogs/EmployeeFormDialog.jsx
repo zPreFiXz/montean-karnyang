@@ -95,7 +95,7 @@ const EmployeeFormDialog = ({
         }}
       >
         <div className="relative flex-shrink-0 pt-[16px]">
-          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-[24px]">
+          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-2xl">
             {editingItem ? "แก้ไขพนักงาน" : "เพิ่มพนักงาน"}
           </DialogTitle>
           <DialogDescription className="sr-only">

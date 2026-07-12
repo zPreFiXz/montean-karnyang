@@ -80,7 +80,7 @@ function Calendar({
                     setViewMonth(m);
                     handleMonthChange(new Date(viewYear, m, 1));
                   }}
-                  className="font-athiti h-(--cell-size) cursor-pointer appearance-none rounded-md bg-transparent pr-6 pl-3 text-[16px] font-medium focus:outline-none"
+                  className="font-athiti h-(--cell-size) cursor-pointer appearance-none rounded-md bg-transparent pr-6 pl-3 text-base font-medium focus:outline-none"
                 >
                   {months.map((m) => (
                     <option key={m} value={String(m)}>
@@ -99,7 +99,7 @@ function Calendar({
                     setViewYear(y);
                     handleMonthChange(new Date(y, viewMonth, 1));
                   }}
-                  className="font-athiti h-(--cell-size) cursor-pointer appearance-none rounded-md bg-transparent px-3 pr-8 text-[16px] font-medium focus:outline-none"
+                  className="font-athiti h-(--cell-size) cursor-pointer appearance-none rounded-md bg-transparent px-3 pr-8 text-base font-medium focus:outline-none"
                 >
                   {Array.from({ length: maxYear - minYear + 1 }).map((_, idx) => {
                     const y = minYear + idx;
@@ -125,7 +125,7 @@ function Calendar({
             </div>
           ) : (
             <div className="flex h-(--cell-size) items-center justify-center px-2">
-              <p className="text-[16px] font-medium select-none">{`${formatMonth(
+              <p className="text-base font-medium select-none">{`${formatMonth(
                 viewMonth,
                 viewYear
               )} ${viewYear + 543}`}</p>
@@ -200,7 +200,7 @@ function Calendar({
           table: "w-auto mx-auto border-collapse",
           weekdays: cn("flex", defaultClassNames.weekdays),
           weekday: cn(
-            "text-muted-foreground rounded-md flex-1 font-semibold text-[16px] text-primary select-none",
+            "text-muted-foreground rounded-md flex-1 font-semibold text-base text-primary select-none",
             defaultClassNames.weekday
           ),
           week: cn("flex w-full mt-2", defaultClassNames.week),
@@ -288,7 +288,7 @@ function CalendarDayButton({ className, day, modifiers, ...props }) {
       data-range-end={modifiers.range_end}
       data-range-middle={modifiers.range_middle}
       className={cn(
-        "data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground data-[range-middle=true]:bg-accent data-[range-middle=true]:text-accent-foreground data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground group-data-[focused=true]/day:border-primary group-data-[focused=true]/day:ring-primary/50 dark:hover:text-accent-foreground flex aspect-square size-auto min-h-[42px] w-full min-w-[42px] cursor-pointer flex-col gap-1 text-[16px] leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-[3px] data-[range-end=true]:rounded-md data-[range-end=true]:rounded-r-md data-[range-middle=true]:rounded-none data-[range-start=true]:rounded-md data-[range-start=true]:rounded-l-md [&>p]:text-sm [&>p]:opacity-90",
+        "data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground data-[range-middle=true]:bg-accent data-[range-middle=true]:text-accent-foreground data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground group-data-[focused=true]/day:border-primary group-data-[focused=true]/day:ring-primary/50 dark:hover:text-accent-foreground flex aspect-square size-auto min-h-[42px] w-full min-w-[42px] cursor-pointer flex-col gap-1 text-base leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-[3px] data-[range-end=true]:rounded-md data-[range-end=true]:rounded-r-md data-[range-middle=true]:rounded-none data-[range-start=true]:rounded-md data-[range-start=true]:rounded-l-md [&>p]:text-sm [&>p]:opacity-90",
         defaultClassNames.day,
         className
       )}

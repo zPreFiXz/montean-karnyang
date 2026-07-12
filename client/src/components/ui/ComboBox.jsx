@@ -61,8 +61,8 @@ const ComboBox = ({
           className={`mb-[8px] block font-medium ${
             labelClass ||
             (customClass
-              ? "text-[18px] md:text-[20px]"
-              : "text-[22px] md:text-[24px]")
+              ? "text-lg md:text-xl"
+              : "text-[22px] md:text-2xl")
           } ${color}`}
         >
           {label}
@@ -82,11 +82,11 @@ const ComboBox = ({
               disabled={disabled}
               className={cn(
                 "border-input text-foreground h-[41px] w-full cursor-pointer justify-between rounded-[20px] font-medium",
-                customClass || "text-[20px] md:text-[22px]",
+                customClass || "text-xl md:text-[22px]",
                 !selectedLabel &&
                   (customClass
                     ? "text-muted-foreground font-light"
-                    : "text-muted-foreground text-[18px] font-light md:text-[20px]"),
+                    : "text-muted-foreground text-lg font-light md:text-xl"),
                 hasError && "focus:border-destructive border-destructive",
                 disabled && "cursor-not-allowed opacity-50",
               )}
@@ -135,13 +135,13 @@ const ComboBox = ({
                 ref={inputRef}
                 placeholder="ค้นหา..."
                 className={`font-athiti text-normal h-9 font-medium ${
-                  customClass || "text-[18px] md:text-[20px]"
+                  customClass || "text-lg md:text-xl"
                 }`}
               />
               <CommandEmpty>
                 <p
                   className={`font-athiti text-subtle-dark font-medium ${
-                    customClass || "text-[18px] md:text-[20px]"
+                    customClass || "text-lg md:text-xl"
                   }`}
                 >
                   ไม่พบข้อมูล
@@ -163,7 +163,7 @@ const ComboBox = ({
                         }
                       }}
                       className={`font-athiti text-normal cursor-pointer font-medium ${
-                        customClass || "text-[18px] md:text-[20px]"
+                        customClass || "text-lg md:text-xl"
                       }`}
                     >
                       <Check
@@ -184,7 +184,7 @@ const ComboBox = ({
       {hasError && (
         <div className="mt-[6px] flex items-center gap-[4px] px-[4px]">
           <AlertCircle className="text-destructive h-4 w-4 flex-shrink-0" />
-          <p className="text-destructive text-[18px] font-medium md:text-[20px]">
+          <p className="text-destructive text-lg font-medium md:text-xl">
             {errors[name].message}
           </p>
         </div>

@@ -27,7 +27,7 @@ const FormInput = ({
       <Label
         htmlFor={name}
         className={`mb-[8px] font-medium ${
-          textSize ? textSize : "text-[22px] md:text-[24px]"
+          textSize ? textSize : "text-[22px] md:text-2xl"
         } ${getTextColor()}`}
       >
         {label}
@@ -41,7 +41,7 @@ const FormInput = ({
           aria-invalid={errors[name] ? "true" : "false"}
           className={`h-[41px] w-full px-[12px] ${
             type === "date" ? "pr-[44px]" : ""
-          } bg-surface rounded-[20px] text-[20px] font-medium placeholder:text-[18px] placeholder:font-light md:text-[22px] md:placeholder:text-[20px] ${
+          } bg-surface rounded-[20px] text-xl font-medium placeholder:text-lg placeholder:font-light md:text-[22px] md:placeholder:text-xl ${
             errors[name]
               ? "border-destructive focus-visible:!border-destructive focus-visible:!ring-destructive/30 focus-visible:!border-2"
               : "focus-visible:!border-primary focus-visible:!ring-primary/35 focus-visible:!border-2"
@@ -75,7 +75,7 @@ const FormInput = ({
       {errors[name] && (
         <div className="mt-[6px] flex items-center gap-[4px] px-[4px]">
           <AlertCircle className="text-destructive h-4 w-4 flex-shrink-0" />
-          <p className="text-destructive text-[18px] font-medium md:text-[20px]">
+          <p className="text-destructive text-lg font-medium md:text-xl">
             {errors[name].message}
           </p>
         </div>

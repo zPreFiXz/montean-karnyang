@@ -79,7 +79,7 @@ const SearchBar = ({
             e.target.inputMode = "text";
           }
         }}
-        className="font-athiti bg-surface h-[41px] w-full rounded-[20px] px-[40px] text-[20px] font-medium placeholder:text-[18px] placeholder:font-light focus:outline-none md:text-[22px] md:placeholder:text-[20px]"
+        className="font-athiti bg-surface h-[41px] w-full rounded-[20px] px-[40px] text-xl font-medium placeholder:text-lg placeholder:font-light focus:outline-none md:text-[22px] md:placeholder:text-xl"
         style={{
           "--tw-ring-color": "var(--color-primary)",
           "--tw-border-opacity": "1",
