@@ -4,23 +4,18 @@ const { formatThaiDate, formatThaiTime, getDayRange } = require("./time");
 
 const displayName = (emp) => emp?.name ?? "ไม่ทราบชื่อ";
 
-const bulletList = (items, max = 15) =>
-  items
-    .slice(0, max)
-    .map((n) => `• ${n}`)
-    .join("\n");
+const bulletList = (items, max = 15) => {
+  const lines = items.slice(0, max).map((n) => `• ${n}`);
+  if (items.length > max) lines.push(`• …และอีก ${items.length - max} คน`);
+  return lines.join("\n");
+};
 
-const LUNCH_TYPES = new Set([
-  STATUS.LUNCH_OUT,
-  STATUS.LUNCH_RETURN,
-  STATUS.LUNCH_RETURN_LATE,
-]);
+const LUNCH_TYPES = new Set([STATUS.LUNCH_OUT, STATUS.LUNCH_RETURN, STATUS.LUNCH_RETURN_LATE]);
 
 const scanMessage = (empName, empId, type, statusText, recordTime) => {
   const header = LUNCH_TYPES.has(type)
     ? "🍱 บันทึกเวลาพักเที่ยง"
     : "⏰ บันทึกเวลาเข้า-ออกงาน";
-
   return [
     header,
     "",
@@ -33,20 +28,25 @@ const scanMessage = (empName, empId, type, statusText, recordTime) => {
   ].join("\n");
 };
 
-// ข้อความเริ่มวันใหม่ (ส่งตอนเช้า) — คั่นแชทเป็นวันใหม่ + การมีข้อความนี้ = ระบบทำงานอยู่
+// ส่งตอนเช้า: คั่นแชทเป็นวันใหม่ + ยืนยันระบบทำงานอยู่
 const dayStartMessage = (date) => `🌅 วันที่ ${formatThaiDate(date)}`;
 
-// เอาแค่ข้อความในวงเล็บของ status เช่น "เข้างาน (สาย 12 นาที)" -> "(สาย 12 นาที)"
+// เอาเฉพาะข้อความในวงเล็บ เช่น "เข้างาน (สาย 12 นาที)" -> "(สาย 12 นาที)"
 const lateNote = (status) => status.match(/\(.*\)/)?.[0] ?? status;
 
 const dailySummary = async (prisma, dateKey) => {
   const { start, end } = getDayRange(dateKey);
-  const thaiDate = formatThaiDate(start);
 
   const employees = await prisma.employee.findMany({
     select: { id: true, name: true, zkUserId: true },
   });
-  employees.sort((a, b) => Number(a.zkUserId) - Number(b.zkUserId));
+  employees.sort((a, b) => {
+    const na = Number(a.zkUserId);
+    const nb = Number(b.zkUserId);
+    return Number.isNaN(na) || Number.isNaN(nb)
+      ? String(a.zkUserId).localeCompare(String(b.zkUserId))
+      : na - nb;
+  });
 
   const attendances = await prisma.attendance.findMany({
     where: {
@@ -60,14 +60,7 @@ const dailySummary = async (prisma, dateKey) => {
   const grouped = new Map(employees.map((e) => [e.id, { ...e, scans: [] }]));
   for (const att of attendances) grouped.get(att.employeeId)?.scans.push(att);
 
-  const stats = {
-    onTime: [],
-    absent: [],
-    halfDay: [],
-    late: [],
-    lunchOvertime: [],
-    forgotScan: [],
-  };
+  const stats = { onTime: [], absent: [], halfDay: [], late: [], lunchOvertime: [], forgotScan: [] };
 
   for (const emp of grouped.values()) {
     const name = displayName(emp);
@@ -85,34 +78,27 @@ const dailySummary = async (prisma, dateKey) => {
       stats.onTime.push(name);
     } else if (
       scans.length === 2 &&
-      (scans[0].type === STATUS.CLOCK_IN ||
-        scans[0].type === STATUS.CLOCK_IN_LATE) &&
+      (scans[0].type === STATUS.CLOCK_IN || scans[0].type === STATUS.CLOCK_IN_LATE) &&
       scans[1].type === STATUS.LUNCH_OUT
     ) {
-      stats.halfDay.push(
-        lateScan ? `${name} ${lateNote(lateScan.statusText)}` : name,
-      );
+      stats.halfDay.push(lateScan ? `${name} ${lateNote(lateScan.statusText)}` : name);
     } else {
       if (lateScan) stats.late.push(`${name} ${lateNote(lateScan.statusText)}`);
-      if (lunchOTScan)
-        stats.lunchOvertime.push(`${name} ${lateNote(lunchOTScan.statusText)}`);
+      if (lunchOTScan) stats.lunchOvertime.push(`${name} ${lateNote(lunchOTScan.statusText)}`);
       if (scans.length < 4) {
         const missing = config.attendance.stepStatuses.slice(scans.length, 4);
-        const missingText = missing.length
-          ? ` (ไม่ได้สแกน: ${missing.join(", ")})`
-          : "";
-        stats.forgotScan.push(`${name}${missingText}`);
+        stats.forgotScan.push(
+          missing.length ? `${name} (ไม่ได้สแกน: ${missing.join(", ")})` : name,
+        );
       }
     }
   }
 
-  const totalAllEmployees = employees.length;
-
   const message = [
     "📊 สรุปเวลาเข้า-ออกงานประจำวัน",
     "",
-    `📅 วันที่ ${thaiDate}`,
-    `👥 พนักงานทั้งหมด ${totalAllEmployees} คน`,
+    `📅 วันที่ ${formatThaiDate(start)}`,
+    `👥 พนักงานทั้งหมด ${employees.length} คน`,
   ];
 
   const sections = [
@@ -123,10 +109,8 @@ const dailySummary = async (prisma, dateKey) => {
     ["🍱 พักเกินเวลา", stats.lunchOvertime],
     ["⚠️ ลืมสแกน", stats.forgotScan],
   ];
-
   for (const [label, list] of sections) {
-    if (list.length)
-      message.push("", `${label} (${list.length} คน)`, bulletList(list));
+    if (list.length) message.push("", `${label} (${list.length} คน)`, bulletList(list));
   }
 
   return message.join("\n");

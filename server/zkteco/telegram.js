@@ -1,16 +1,15 @@
 const config = require("./config");
 
 const MAX_RETRIES = 1;
-
 const NETWORK_ERROR_CODES = new Set(["ENOTFOUND", "ECONNREFUSED", "ECONNRESET"]);
 
-const isRetryable = (error) =>
-  error?.name === "AbortError" || NETWORK_ERROR_CODES.has(error?.code);
+// retry เฉพาะ error ที่ยังไม่ถึงเซิร์ฟเวอร์
+// ไม่รวม timeout (AbortError) เพราะ sendMessage ไม่ idempotent → กันแจ้งเตือนซ้ำ
+const isRetryable = (error) => NETWORK_ERROR_CODES.has(error?.code);
 
 const sendToChat = async (chatId, text, attempt = 0) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), config.telegram.requestTimeoutMs);
-
   try {
     const res = await fetch(
       `https://api.telegram.org/bot${config.telegram.botToken}/sendMessage`,
@@ -21,21 +20,16 @@ const sendToChat = async (chatId, text, attempt = 0) => {
         body: JSON.stringify({ chat_id: chatId, text }),
       },
     );
-
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`HTTP ${res.status}: ${body.slice(0, 200)}`);
-    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
   } catch (error) {
-    if (attempt < MAX_RETRIES && isRetryable(error)) {
-      return sendToChat(chatId, text, attempt + 1);
-    }
+    if (attempt < MAX_RETRIES && isRetryable(error)) return sendToChat(chatId, text, attempt + 1);
     throw error;
   } finally {
     clearTimeout(timer);
   }
 };
 
+// แบ่งข้อความยาวให้ไม่เกิน limit ของ Telegram โดยพยายามตัดตามบรรทัด
 const splitText = (text) => {
   const limit = config.telegram.textLimit;
   if (!text) return ["-"];
@@ -43,47 +37,36 @@ const splitText = (text) => {
 
   const chunks = [];
   let current = "";
-
   for (const line of text.split("\n")) {
     const next = current ? `${current}\n${line}` : line;
-
     if (next.length <= limit) {
       current = next;
       continue;
     }
-
     if (current) chunks.push(current);
-
     if (line.length <= limit) {
       current = line;
     } else {
-      for (let i = 0; i < line.length; i += limit) {
-        chunks.push(line.slice(i, i + limit));
-      }
+      for (let i = 0; i < line.length; i += limit) chunks.push(line.slice(i, i + limit));
       current = "";
     }
   }
-
   if (current) chunks.push(current);
   return chunks.length ? chunks : ["-"];
 };
 
 const send = async (message) => {
   const { botToken, chatIds } = config.telegram;
-
   if (!botToken || !chatIds.length) {
     console.warn("[Telegram] Skipped: BOT_TOKEN or CHAT_IDS not configured");
     return;
   }
 
-  const text = typeof message === "string" ? message : JSON.stringify(message);
-  const chunks = splitText(text);
+  const chunks = splitText(typeof message === "string" ? message : JSON.stringify(message));
 
   const results = await Promise.allSettled(
     chatIds.map(async (chatId) => {
-      for (const chunk of chunks) {
-        await sendToChat(chatId, chunk);
-      }
+      for (const chunk of chunks) await sendToChat(chatId, chunk);
     }),
   );
 

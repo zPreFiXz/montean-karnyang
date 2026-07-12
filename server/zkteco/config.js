@@ -1,6 +1,6 @@
 const config = {
   device: {
-    ip: process.env.ZKTECO_DEVICE_IP || "192.168.1.101",
+    ip: process.env.ZKTECO_DEVICE_IP,
     port: Number(process.env.ZKTECO_DEVICE_PORT || 4370),
     socketTimeoutMs: 10_000,
     connectionTimeoutMs: 4_000,

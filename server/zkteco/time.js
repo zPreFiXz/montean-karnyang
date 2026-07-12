@@ -33,7 +33,7 @@ const getMinuteOfDay = (value) => {
     timeZone: TIMEZONE,
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
+    hourCycle: "h23", // กันบั๊กบาง ICU ที่คืน "24:00" ตอนเที่ยงคืน (hour12:false)
   })
     .format(new Date(value))
     .split(":")

@@ -1,5 +1,5 @@
 const dotenv = require("dotenv");
-dotenv.config(); // โหลด .env ก่อน require อื่น เผื่อโมดูลอ่าน env ตอน import
+dotenv.config();
 
 const express = require("express");
 const cors = require("cors");

@@ -5,7 +5,11 @@ const withTimeout = (promise, ms) =>
   Promise.race([
     promise,
     new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("FETCH_TIMEOUT")), ms),
+      setTimeout(() => {
+        const err = new Error(`Fetch timeout (>${ms}ms)`);
+        err.code = "FETCH_TIMEOUT";
+        reject(err);
+      }, ms),
     ),
   ]);
 
