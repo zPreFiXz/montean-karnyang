@@ -440,7 +440,7 @@ const SuspensionInspection = () => {
       sellingPrice: getPriceForPart(part),
       name: part.name,
       brand: part.brand,
-      secure_url: part.secure_url,
+      secureUrl: part.secureUrl,
       category: part.category,
       typeSpecificData: part.typeSpecificData,
     });
@@ -916,9 +916,9 @@ const SuspensionInspection = () => {
                               >
                                 <div className="flex flex-1 items-center gap-[8px]">
                                   <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secure_url ? (
+                                    {part.secureUrl ? (
                                       <img
-                                        src={part.secure_url}
+                                        src={part.secureUrl}
                                         alt={part.name}
                                         className="h-full w-full rounded-[10px] object-cover"
                                       />
@@ -1028,9 +1028,9 @@ const SuspensionInspection = () => {
                               >
                                 <div className="flex flex-1 items-center gap-[8px]">
                                   <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secure_url ? (
+                                    {part.secureUrl ? (
                                       <img
-                                        src={part.secure_url}
+                                        src={part.secureUrl}
                                         alt={part.name}
                                         className="h-full w-full rounded-[10px] object-cover"
                                       />
@@ -1140,9 +1140,9 @@ const SuspensionInspection = () => {
                               >
                                 <div className="flex flex-1 items-center gap-[8px]">
                                   <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secure_url ? (
+                                    {part.secureUrl ? (
                                       <img
-                                        src={part.secure_url}
+                                        src={part.secureUrl}
                                         alt={part.name}
                                         className="h-full w-full rounded-[10px] object-cover"
                                       />
@@ -1261,9 +1261,9 @@ const SuspensionInspection = () => {
                       >
                         <div className="flex flex-1 items-center gap-[8px]">
                           <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                            {item.secure_url ? (
+                            {item.secureUrl ? (
                               <img
-                                src={item.secure_url}
+                                src={item.secureUrl}
                                 alt={item.name}
                                 className="h-full w-full rounded-[10px] object-cover"
                               />
@@ -1624,9 +1624,9 @@ const SuspensionInspection = () => {
                               >
                                 <div className="flex flex-1 items-center gap-[8px]">
                                   <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secure_url ? (
+                                    {part.secureUrl ? (
                                       <img
-                                        src={part.secure_url}
+                                        src={part.secureUrl}
                                         alt={part.name}
                                         className="h-full w-full rounded-[10px] object-cover"
                                       />
@@ -1736,9 +1736,9 @@ const SuspensionInspection = () => {
                               >
                                 <div className="flex flex-1 items-center gap-[8px]">
                                   <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secure_url ? (
+                                    {part.secureUrl ? (
                                       <img
-                                        src={part.secure_url}
+                                        src={part.secureUrl}
                                         alt={part.name}
                                         className="h-full w-full rounded-[10px] object-cover"
                                       />
@@ -1848,9 +1848,9 @@ const SuspensionInspection = () => {
                               >
                                 <div className="flex flex-1 items-center gap-[8px]">
                                   <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secure_url ? (
+                                    {part.secureUrl ? (
                                       <img
-                                        src={part.secure_url}
+                                        src={part.secureUrl}
                                         alt={part.name}
                                         className="h-full w-full rounded-[10px] object-cover"
                                       />
@@ -1968,9 +1968,9 @@ const SuspensionInspection = () => {
                       >
                         <div className="flex flex-1 items-center gap-[8px]">
                           <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                            {item.secure_url ? (
+                            {item.secureUrl ? (
                               <img
-                                src={item.secure_url}
+                                src={item.secureUrl}
                                 alt={item.name}
                                 className="h-full w-full rounded-[10px] object-cover"
                               />
@@ -2235,7 +2235,7 @@ const SuspensionInspection = () => {
         onConfirm={handlePriceConfirm}
         currentPrice={editingItem?.sellingPrice || 0}
         productName={editingItem ? getProductName(editingItem) : ""}
-        productImage={editingItem?.secure_url}
+        productImage={editingItem?.secureUrl}
         isService={editingItem?.category?.name === "บริการ"}
         currentName={editingItem?.name || ""}
         canEditName={

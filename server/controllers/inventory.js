@@ -13,8 +13,8 @@ const mapServiceToInventoryItem = (service) => ({
   minStockLevel: 0,
   typeSpecificData: null,
   compatibleVehicles: null,
-  public_id: null,
-  secure_url: null,
+  publicId: null,
+  secureUrl: null,
   category: { name: service.category.name },
 });
 

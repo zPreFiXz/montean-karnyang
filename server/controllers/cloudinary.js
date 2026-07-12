@@ -31,7 +31,7 @@ exports.createImage = async (req, res, next) => {
       folder: UPLOAD_FOLDER,
     });
 
-    res.json({ public_id: result.public_id, secure_url: result.secure_url });
+    res.json({ publicId: result.public_id, secureUrl: result.secure_url });
   } catch (error) {
     next(error);
   }
@@ -39,17 +39,17 @@ exports.createImage = async (req, res, next) => {
 
 exports.deleteImage = async (req, res, next) => {
   try {
-    const { public_id } = req.body;
+    const { publicId } = req.body;
 
     // ลบได้เฉพาะรูปในโฟลเดอร์ของระบบนี้ กันลบ asset อื่นในบัญชี Cloudinary
     if (
-      typeof public_id !== "string" ||
-      !public_id.startsWith(`${UPLOAD_FOLDER}/`)
+      typeof publicId !== "string" ||
+      !publicId.startsWith(`${UPLOAD_FOLDER}/`)
     ) {
       createError(400, "รหัสรูปภาพไม่ถูกต้อง");
     }
 
-    await cloudinary.uploader.destroy(public_id);
+    await cloudinary.uploader.destroy(publicId);
 
     res.json({ message: "ลบรูปภาพเรียบร้อยแล้ว" });
   } catch (error) {

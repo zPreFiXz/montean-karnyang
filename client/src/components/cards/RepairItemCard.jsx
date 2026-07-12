@@ -32,7 +32,11 @@ const RepairItemCard = ({ item, variant }) => {
       return (
         <p className="text-normal line-clamp-2 text-[16px] font-semibold md:text-[18px]">
           {item.part?.brand && `${item.part.brand} `}
-          {item.part?.name || item.customName || item.service?.name}
+          {item.part?.name ||
+            item.customName ||
+            item.service?.name ||
+            item.partName ||
+            item.serviceName}
         </p>
       );
     }
@@ -65,9 +69,11 @@ const RepairItemCard = ({ item, variant }) => {
     );
   };
 
-  const imageUrl = variant === "detail" ? item.part?.secure_url : item.secure_url;
+  const imageUrl = variant === "detail" ? item.part?.secureUrl : item.secureUrl;
   const itemName =
-    variant === "detail" ? item.part?.name || item.service?.name : item.name;
+    variant === "detail"
+      ? item.part?.name || item.service?.name || item.partName || item.serviceName
+      : item.name;
   const unitPrice =
     variant === "detail" ? Number(item.unitPrice) : Number(item.sellingPrice);
   const unit =

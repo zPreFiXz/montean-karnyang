@@ -9,7 +9,7 @@ const InventoryCard = ({
   quantity,
   minStockLevel,
   typeSpecificData,
-  secure_url,
+  secureUrl,
   category,
 }) => {
   const isTire = category === "ยาง";
@@ -43,10 +43,10 @@ const InventoryCard = ({
       <div className="shadow-primary bg-surface flex h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] px-[8px]">
         <div className="flex items-center gap-[8px]">
           <div className="border-subtle-light shadow-primary bg-surface flex items-center justify-center rounded-[10px] border">
-            {secure_url ? (
+            {secureUrl ? (
               <div className="h-[60px] w-[60px]">
                 <img
-                  src={secure_url}
+                  src={secureUrl}
                   alt={name}
                   className="h-full w-full rounded-[10px] object-cover"
                 />

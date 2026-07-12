@@ -47,6 +47,22 @@ const resolveCustomer = async (tx, { name, address, phoneNumber }) => {
 
 // บันทึกรายการซ่อมย่อยชุดใหม่ พร้อมตัดสต็อกอะไหล่ที่ใช้
 const createRepairItemsAndDecrementStock = async (tx, repairId, repairItems) => {
+  // snapshot ชื่ออะไหล่/บริการ ณ วันซ่อม เผื่ออะไหล่ถูกลบภายหลัง ประวัติจะยังมีชื่อ
+  const partIds = repairItems.map((i) => i.partId).filter(Boolean);
+  const serviceIds = repairItems.map((i) => i.serviceId).filter(Boolean);
+
+  const [parts, services] = await Promise.all([
+    partIds.length
+      ? tx.part.findMany({ where: { id: { in: partIds } }, select: { id: true, name: true } })
+      : [],
+    serviceIds.length
+      ? tx.service.findMany({ where: { id: { in: serviceIds } }, select: { id: true, name: true } })
+      : [],
+  ]);
+
+  const partNameById = new Map(parts.map((p) => [p.id, p.name]));
+  const serviceNameById = new Map(services.map((s) => [s.id, s.name]));
+
   await tx.repairItem.createMany({
     data: repairItems.map((item) => ({
       customName: item.customName || null,
@@ -56,6 +72,8 @@ const createRepairItemsAndDecrementStock = async (tx, repairId, repairItems) => 
       repairId,
       partId: item.partId,
       serviceId: item.serviceId,
+      partName: item.partId ? partNameById.get(item.partId) || null : null,
+      serviceName: item.serviceId ? serviceNameById.get(item.serviceId) || null : null,
     })),
   });
 

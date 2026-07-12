@@ -33,7 +33,7 @@ enum Role {
 model Repair {
   id            Int           @id @default(autoincrement())
   description   String?
-  totalPrice    Int
+  totalPrice    Int // หน่วย: บาทเต็ม (ไม่มีสตางค์)
   type          RepairType    @default(GENERAL)
   status        RepairStatus  @default(IN_PROGRESS)
   completedAt   DateTime?
@@ -45,8 +45,9 @@ model Repair {
   userId        Int
   vehicle       Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
   vehicleId     Int
-  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  customerId    Int
+  // ลูกค้าเป็น optional: งานซ่อมบางรายการไม่ระบุตัวลูกค้า
+  customer      Customer?     @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  customerId    Int?
   repairItems   RepairItem[]
 }
 
@@ -114,8 +115,11 @@ model RepairItem {
   id         Int      @id @default(autoincrement())
   customName String?
   side       String?
-  unitPrice  Int
+  unitPrice  Int // หน่วย: บาทเต็ม (ไม่มีสตางค์)
   quantity   Int      @default(1)
+  // snapshot ชื่ออะไหล่/บริการ ณ วันซ่อม: ถ้าอะไหล่ถูกลบ (SetNull) ประวัติยังอ่านรู้เรื่อง
+  partName    String?
+  serviceName String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   repair     Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
@@ -131,15 +135,15 @@ model Part {
   partNumber         String       @unique
   brand              String
   name               String
-  costPrice          Int?
-  sellingPrice       Int
+  costPrice          Int? // หน่วย: บาทเต็ม
+  sellingPrice       Int // หน่วย: บาทเต็ม
   unit               String
   quantity           Int
   minStockLevel      Int
   typeSpecificData   Json?
   compatibleVehicles Json?
-  public_id          String?
-  secure_url         String?
+  publicId           String? @map("public_id")
+  secureUrl          String? @map("secure_url")
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   category           Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
@@ -150,7 +154,7 @@ model Part {
 model Service {
   id          Int          @id @default(autoincrement())
   name        String       @unique
-  price       Int
+  price       Int // หน่วย: บาทเต็ม
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   category    Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)

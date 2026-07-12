@@ -215,11 +215,11 @@ const RepairItemDetailDialog = ({
                 )}
               </div>
 
-              {currentItem.secure_url && (
+              {currentItem.secureUrl && (
                 <div className="mb-[16px] flex justify-center">
                   <div className="border-subtle-light flex h-[250px] w-[250px] items-center justify-center overflow-hidden rounded-[20px] border-2">
                     <img
-                      src={currentItem.secure_url}
+                      src={currentItem.secureUrl}
                       alt={currentItem.name}
                       className="h-full w-full object-cover"
                     />

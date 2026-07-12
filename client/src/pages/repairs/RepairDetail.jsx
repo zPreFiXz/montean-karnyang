@@ -229,7 +229,7 @@ const RepairDetail = () => {
           stock: restoredStock,
           unit: ri.part.unit,
           category: ri.part.category,
-          secure_url: ri.part.secure_url || null,
+          secureUrl: ri.part.secureUrl || null,
           typeSpecificData: ri.part.typeSpecificData || null,
           quantity: ri.quantity || 1,
           side: ri.side,
@@ -238,10 +238,10 @@ const RepairDetail = () => {
       return {
         id: ri.service?.id,
         brand: "",
-        name: ri.customName || ri.service?.name || "",
+        name: ri.customName || ri.service?.name || ri.serviceName || ri.partName || "",
         sellingPrice: Number(ri.unitPrice),
         category: ri.service?.category,
-        secure_url: null,
+        secureUrl: null,
         quantity: ri.quantity || 1,
         side: ri.side,
       };

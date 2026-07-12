@@ -52,8 +52,8 @@ exports.createPart = async (req, res, next) => {
         minStockLevel,
         typeSpecificData,
         compatibleVehicles,
-        public_id: image?.public_id,
-        secure_url: image?.secure_url,
+        publicId: image?.publicId,
+        secureUrl: image?.secureUrl,
         categoryId,
       },
     });
@@ -104,8 +104,8 @@ exports.updatePart = async (req, res, next) => {
         minStockLevel,
         typeSpecificData,
         compatibleVehicles,
-        public_id: image?.public_id,
-        secure_url: image?.secure_url,
+        publicId: image?.publicId,
+        secureUrl: image?.secureUrl,
         categoryId,
       },
     });

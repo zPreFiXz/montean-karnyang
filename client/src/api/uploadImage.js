@@ -12,9 +12,9 @@ export const uploadImage = async (token, form) => {
   );
 };
 
-export const deleteImage = async (token, public_id) => {
+export const deleteImage = async (token, publicId) => {
   return await axios.delete(`${import.meta.env.VITE_API_URL}/api/images`, {
-    data: { public_id },
+    data: { publicId },
     headers: {
       Authorization: `Bearer ${token}`,
     },

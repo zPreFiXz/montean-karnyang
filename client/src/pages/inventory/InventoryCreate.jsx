@@ -149,8 +149,8 @@ const InventoryCreate = () => {
         const res = await uploadImage(token, resizedImage);
 
         image = {
-          public_id: res.data?.public_id,
-          secure_url: res.data?.secure_url,
+          publicId: res.data?.publicId,
+          secureUrl: res.data?.secureUrl,
         };
       } else if (!isServiceCategory()) {
         await new Promise((resolve) => setTimeout(resolve, 1000));

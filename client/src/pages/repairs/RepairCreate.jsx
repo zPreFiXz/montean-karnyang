@@ -541,9 +541,9 @@ const RepairCreate = () => {
                     >
                       <div className="flex flex-1 items-center gap-[8px]">
                         <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                          {item.secure_url ? (
+                          {item.secureUrl ? (
                             <img
-                              src={item.secure_url}
+                              src={item.secureUrl}
                               alt={item.name}
                               className="h-full w-full rounded-[10px] object-cover"
                             />
@@ -695,9 +695,9 @@ const RepairCreate = () => {
                   >
                     <div className="flex flex-1 items-center gap-[8px]">
                       <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                        {item.secure_url ? (
+                        {item.secureUrl ? (
                           <img
-                            src={item.secure_url}
+                            src={item.secureUrl}
                             alt={item.name}
                             className="h-full w-full rounded-[10px] object-cover"
                           />
@@ -813,7 +813,7 @@ const RepairCreate = () => {
         onConfirm={handlePriceConfirm}
         currentPrice={editingItem?.sellingPrice || 0}
         productName={editingItem ? getProductName(editingItem) : ""}
-        productImage={editingItem?.secure_url}
+        productImage={editingItem?.secureUrl}
         isService={editingItem?.category?.name === "บริการ"}
         currentName={editingItem?.name || ""}
         canEditName={

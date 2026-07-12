@@ -273,7 +273,7 @@ const AddRepairItemDialog = ({
                         quantity={Math.max(remainingAddable, 0)}
                         minStockLevel={item.minStockLevel}
                         typeSpecificData={item.typeSpecificData}
-                        secure_url={item.secure_url}
+                        secureUrl={item.secureUrl}
                         category={item.category.name}
                         disabled={isDisabled}
                       />

@@ -126,8 +126,8 @@ const InventoryEdit = () => {
             setValue("compatibleVehicles", item.compatibleVehicles);
           }
 
-          if (item.secure_url) {
-            setSelectedImage(item.secure_url);
+          if (item.secureUrl) {
+            setSelectedImage(item.secureUrl);
           }
         }
       }
@@ -206,34 +206,34 @@ const InventoryEdit = () => {
         const res = await uploadImage(token, resizedImage);
 
         image = {
-          public_id: res.data?.public_id,
-          secure_url: res.data?.secure_url,
+          publicId: res.data?.publicId,
+          secureUrl: res.data?.secureUrl,
         };
 
-        if (inventory?.public_id) {
+        if (inventory?.publicId) {
           try {
-            await deleteImage(token, inventory.public_id);
+            await deleteImage(token, inventory.publicId);
           } catch (error) {
             console.log(error);
           }
         }
       } else if (selectedImage && typeof selectedImage === "string") {
         image = {
-          public_id: inventory?.public_id,
-          secure_url: inventory?.secure_url,
+          publicId: inventory?.publicId,
+          secureUrl: inventory?.secureUrl,
         };
       } else if (selectedImage === null) {
-        if (inventory?.public_id && isImageMarkedForDeletion) {
+        if (inventory?.publicId && isImageMarkedForDeletion) {
           try {
-            await deleteImage(token, inventory.public_id);
+            await deleteImage(token, inventory.publicId);
           } catch (error) {
             console.log(error);
           }
         }
 
         image = {
-          public_id: null,
-          secure_url: null,
+          publicId: null,
+          secureUrl: null,
         };
       }
 
@@ -359,7 +359,7 @@ const InventoryEdit = () => {
                   label="รูปภาพอะไหล่"
                   setSelectedImage={setSelectedImage}
                   selectedImage={selectedImage}
-                  public_id={inventory?.public_id}
+                  publicId={inventory?.publicId}
                   onMarkForDeletion={setIsImageMarkedForDeletion}
                 />
 
