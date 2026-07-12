@@ -12,7 +12,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
   const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
-    fetchCategories();
+    fetchCategory();
   }, []);
 
   const handleFilter = (category) => {

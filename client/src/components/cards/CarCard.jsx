@@ -26,7 +26,7 @@ const CarCard = ({
   };
 
   return (
-    <div className="bg-surface shadow-primary flex h-[80px] w-full items-center gap-[8px] rounded-[10px] px-[8px]">
+    <div className="bg-surface shadow-primary card-interactive flex h-[80px] w-full cursor-pointer items-center gap-[8px] rounded-[10px] px-[8px]">
       <div className="flex min-w-0 flex-1 items-center gap-[8px]">
         <div
           className={`flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-full ${bgColorMap[bg]}`}

@@ -7,7 +7,7 @@ const StatusCard = ({ bg, icon: Icon, label, amount }) => {
 
   return (
     <div
-      className={`shadow-primary flex h-[80px] w-full items-center justify-between rounded-[10px] px-[16px] ${bgColorMap[bg]}`}
+      className={`shadow-primary card-interactive flex h-[80px] w-full cursor-pointer items-center justify-between rounded-[10px] px-[16px] ${bgColorMap[bg]}`}
     >
       <div className="flex items-center gap-[8px]">
         <Icon />
