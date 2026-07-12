@@ -1,33 +1,17 @@
-import axios from "axios";
+import apiClient from "./apiClient";
 
-export const listVehicleModels = async (token) => {
-  return await axios.get(`${import.meta.env.VITE_API_URL}/api/vehicles/models`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const listVehicleModels = async () => {
+  return await apiClient.get("/vehicles/models");
 };
 
-export const createVehicleModel = async (token, data) => {
-  return await axios.post(`${import.meta.env.VITE_API_URL}/api/vehicles/models`, data, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const createVehicleModel = async (data) => {
+  return await apiClient.post("/vehicles/models", data);
 };
 
-export const updateVehicleModel = async (token, id, data) => {
-  return await axios.put(`${import.meta.env.VITE_API_URL}/api/vehicles/models/${id}`, data, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const updateVehicleModel = async (id, data) => {
+  return await apiClient.put(`/vehicles/models/${id}`, data);
 };
 
-export const deleteVehicleModel = async (token, id) => {
-  return await axios.delete(`${import.meta.env.VITE_API_URL}/api/vehicles/models/${id}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const deleteVehicleModel = async (id) => {
+  return await apiClient.delete(`/vehicles/models/${id}`);
 };

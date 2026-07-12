@@ -1,15 +1,14 @@
 import { listCategories } from "@/api/category";
-import useAuthStore from "@/stores/useAuthStore";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { ICON_MAP, DEFAULT_ICON } from "@/components/icons/categoryIcons";
 import { LoaderCircle } from "lucide-react";
+import { toastError } from "@/utils/handleError";
 
 const CategoryList = ({ activeCategory, setActiveCategory }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [category, setCategory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
     fetchCategory();
@@ -24,7 +23,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
   const fetchCategory = async () => {
     try {
       setIsLoading(true);
-      const res = await listCategories(token);
+      const res = await listCategories();
       const categoryWithIcons = res.data
         .map((item) => ({
           ...item,
@@ -33,7 +32,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
         .sort((a, b) => a.id - b.id);
       setCategory(categoryWithIcons);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsLoading(false);
     }

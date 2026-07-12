@@ -3,14 +3,13 @@ import { useParams, useNavigate, Link } from "react-router";
 import { ChevronLeft, LoaderCircle, Wrench } from "lucide-react";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { getVehicle } from "@/api/vehicle";
-import useAuthStore from "@/stores/useAuthStore";
 import { formatDate, formatTime } from "@/utils/formats";
 import RepairCard from "@/components/cards/RepairCard";
+import { toastError } from "@/utils/handleError";
 
 const VehicleDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const token = useAuthStore((state) => state.token);
   const [vehicle, setVehicle] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -22,10 +21,10 @@ const VehicleDetail = () => {
   const fetchVehicleDetail = async () => {
     setIsLoading(true);
     try {
-      const res = await getVehicle(token, id);
+      const res = await getVehicle(id);
       setVehicle(res.data);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsLoading(false);
     }

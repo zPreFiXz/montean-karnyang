@@ -17,13 +17,12 @@ import {
   editUserAccountSchema,
 } from "@/utils/schemas";
 import { createUser, updateUser } from "@/api/user";
-import useAuthStore from "@/stores/useAuthStore";
+import { toastError } from "@/utils/handleError";
 
 const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
     useState(false);
-  const token = useAuthStore((state) => state.token);
   const {
     register,
     handleSubmit,
@@ -70,7 +69,7 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
 
   const handleAdd = async (data) => {
     try {
-      await createUser(token, {
+      await createUser({
         email: data.email,
         password: data.password,
         name: data.name,
@@ -80,7 +79,7 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
       handleClose();
       onSuccess?.();
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
 
@@ -96,12 +95,12 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
         updateData.password = data.password;
       }
 
-      await updateUser(token, editingItem.id, updateData);
+      await updateUser(editingItem.id, updateData);
       toast.success("แก้ไขบัญชีผู้ใช้งานเรียบร้อยแล้ว");
       handleClose();
       onSuccess?.();
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
 

@@ -13,7 +13,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { vehicleModelSchema } from "@/utils/schemas";
 import { createVehicleModel, updateVehicleModel } from "@/api/vehicleModel";
-import useAuthStore from "@/stores/useAuthStore";
+import { toastError } from "@/utils/handleError";
 
 const VehicleModelFormDialog = ({
   isOpen,
@@ -21,7 +21,6 @@ const VehicleModelFormDialog = ({
   editingItem = null,
   onSuccess,
 }) => {
-  const token = useAuthStore((state) => state.token);
   const {
     register,
     handleSubmit,
@@ -48,7 +47,7 @@ const VehicleModelFormDialog = ({
   const handleAddVehicleModel = async (data) => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      await createVehicleModel(token, {
+      await createVehicleModel({
         brand: data.brand,
         model: data.model,
       });
@@ -56,14 +55,14 @@ const VehicleModelFormDialog = ({
       handleClose();
       onSuccess?.();
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
 
   const handleEditVehicleModel = async (data) => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      await updateVehicleModel(token, editingItem.id, {
+      await updateVehicleModel(editingItem.id, {
         brand: data.brand,
         model: data.model,
       });
@@ -71,7 +70,7 @@ const VehicleModelFormDialog = ({
       handleClose();
       onSuccess?.();
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
 

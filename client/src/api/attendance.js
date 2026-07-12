@@ -1,10 +1,5 @@
-import axios from "axios";
+import apiClient from "./apiClient";
 
-export const getAttendanceSummary = async (token, date) => {
-  return await axios.get(`${import.meta.env.VITE_API_URL}/api/attendances/summary`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    params: { date },
-  });
+export const getAttendanceSummary = async (date) => {
+  return await apiClient.get("/attendances/summary", { params: { date } });
 };

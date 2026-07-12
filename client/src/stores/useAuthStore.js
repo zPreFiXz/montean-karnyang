@@ -1,16 +1,13 @@
-import axios from "axios";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import apiClient from "@/api/apiClient";
 
 const authStore = (set) => ({
   user: null,
   token: null,
 
-  actionLogin: async (form) => {
-    const res = await axios.post(
-      `${import.meta.env.VITE_API_URL}/api/login`,
-      form,
-    );
+  login: async (form) => {
+    const res = await apiClient.post("/login", form);
     set({
       user: res.data.payload,
       token: res.data.token,
@@ -19,19 +16,20 @@ const authStore = (set) => ({
   },
   logout: async () => {
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/logout`);
-    } catch (error) {
-      console.log(error);
+      await apiClient.post("/logout");
+    } catch {
+      // แจ้ง server ไม่สำเร็จก็ไม่เป็นไร ล้าง session ฝั่ง client ต่อได้เลย
     }
     set({ user: null, token: null });
   },
+  clearAuth: () => set({ user: null, token: null }),
 });
 
-const usePersist = {
+const persistOptions = {
   name: "auth-store",
   storage: createJSONStorage(() => localStorage),
 };
 
-const useAuthStore = create(persist(authStore, usePersist));
+const useAuthStore = create(persist(authStore, persistOptions));
 
 export default useAuthStore;

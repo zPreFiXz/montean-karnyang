@@ -7,7 +7,7 @@ import SearchBar from "@/components/forms/SearchBar";
 import EmployeeFormDialog from "@/components/dialogs/EmployeeFormDialog";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import { listEmployees, deleteEmployee } from "@/api/employee";
-import useAuthStore from "@/stores/useAuthStore";
+import { toastError } from "@/utils/handleError";
 
 const EmployeeList = () => {
   const [employees, setEmployees] = useState([]);
@@ -17,7 +17,6 @@ const EmployeeList = () => {
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingEmployee, setDeletingEmployee] = useState(null);
-  const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -27,10 +26,10 @@ const EmployeeList = () => {
   const fetchEmployees = async () => {
     setIsLoading(true);
     try {
-      const res = await listEmployees(token);
+      const res = await listEmployees();
       setEmployees(res.data);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsLoading(false);
     }
@@ -44,13 +43,13 @@ const EmployeeList = () => {
   const handleDeleteConfirm = async () => {
     if (!deletingEmployee) return;
     try {
-      await deleteEmployee(token, deletingEmployee.id);
+      await deleteEmployee(deletingEmployee.id);
       toast.success("ลบพนักงานสำเร็จ");
       setIsDeleteDialogOpen(false);
       setDeletingEmployee(null);
       fetchEmployees();
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
 

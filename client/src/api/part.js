@@ -1,41 +1,21 @@
-import axios from "axios";
+import apiClient from "./apiClient";
 
-export const listParts = async (token) => {
-  return await axios.get(`${import.meta.env.VITE_API_URL}/api/parts`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const listParts = async () => {
+  return await apiClient.get("/parts");
 };
 
-export const createPart = async (token, data) => {
-  return await axios.post(`${import.meta.env.VITE_API_URL}/api/parts`, data, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const createPart = async (data) => {
+  return await apiClient.post("/parts", data);
 };
 
-export const updatePart = async (token, id, data) => {
-  return await axios.put(`${import.meta.env.VITE_API_URL}/api/parts/${id}`, data, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const updatePart = async (id, data) => {
+  return await apiClient.put(`/parts/${id}`, data);
 };
 
-export const updatePartStock = async (token, id, data) => {
-  return await axios.patch(`${import.meta.env.VITE_API_URL}/api/parts/${id}/stock`, data, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const updatePartStock = async (id, data) => {
+  return await apiClient.patch(`/parts/${id}/stock`, data);
 };
 
-export const deletePart = async (token, id) => {
-  return await axios.delete(`${import.meta.env.VITE_API_URL}/api/parts/${id}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const deletePart = async (id) => {
+  return await apiClient.delete(`/parts/${id}`);
 };

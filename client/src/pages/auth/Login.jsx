@@ -1,4 +1,5 @@
 import useAuthStore from "@/stores/useAuthStore";
+import { toastError } from "@/utils/handleError";
 import { useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import FormInput from "@/components/forms/FormInput";
@@ -23,7 +24,7 @@ const Login = () => {
     resolver: zodResolver(loginSchema),
   });
   const navigate = useNavigate();
-  const actionLogin = useAuthStore((state) => state.actionLogin);
+  const login = useAuthStore((state) => state.login);
   const { errors } = formState;
 
   useEffect(() => {
@@ -36,11 +37,11 @@ const Login = () => {
 
   const onSubmit = async (data) => {
     try {
-      const res = await actionLogin(data);
+      const res = await login(data);
       navigate("/dashboard");
       toast.success(res.data.message);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
 

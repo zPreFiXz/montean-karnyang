@@ -1,17 +1,9 @@
-import axios from "axios";
+import apiClient from "./apiClient";
 
-export const currentUser = async (token) => {
-  return await axios.get(`${import.meta.env.VITE_API_URL}/api/current-user`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const currentUser = async () => {
+  return await apiClient.get("/current-user");
 };
 
-export const currentAdmin = async (token) => {
-  return await axios.get(`${import.meta.env.VITE_API_URL}/api/current-admin`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const currentAdmin = async () => {
+  return await apiClient.get("/current-admin");
 };

@@ -14,7 +14,7 @@ import { ICON_MAP, DEFAULT_ICON } from "@/components/icons/categoryIcons";
 import { useDebouncedCallback } from "use-debounce";
 import { listInventory } from "@/api/inventory";
 import { listCategories } from "@/api/category";
-import useAuthStore from "@/stores/useAuthStore";
+import { toastError } from "@/utils/handleError";
 
 const AddRepairItemDialog = ({
   children,
@@ -29,7 +29,6 @@ const AddRepairItemDialog = ({
   const [category, setCategory] = useState([]);
   const [searchValue, setSearchValue] = useState("");
   const restoredStockMapRef = useRef({});
-  const token = useAuthStore((state) => state.token);
 
   const buildPartKey = (item) =>
     `${item.partNumber || ""}|${item.brand || ""}|${item.name || ""}`;
@@ -37,10 +36,10 @@ const AddRepairItemDialog = ({
   const handleFilter = async (category, search) => {
     setIsLoading(true);
     try {
-      const res = await listInventory(token, category, search);
+      const res = await listInventory(category, search);
       setInventory(res.data);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsLoading(false);
     }
@@ -48,7 +47,7 @@ const AddRepairItemDialog = ({
 
   const fetchCategory = async () => {
     try {
-      const res = await listCategories(token);
+      const res = await listCategories();
       const categoryWithIcons = res.data
         .map((item) => ({
           ...item,
@@ -57,7 +56,7 @@ const AddRepairItemDialog = ({
         .sort((a, b) => a.id - b.id);
       setCategory(categoryWithIcons);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
 

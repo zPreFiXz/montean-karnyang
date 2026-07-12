@@ -10,13 +10,13 @@ import ComboBox from "@/components/ui/ComboBox";
 import FormUploadImage from "@/components/forms/FormUploadImage";
 import { resizeImage } from "@/utils/resizeImage";
 import { uploadImage } from "@/api/uploadImage";
-import useAuthStore from "@/stores/useAuthStore";
 import VehicleCompatibilityInput from "@/components/forms/VehicleCompatibilityInput";
 import { useNavigate } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { partServiceSchema } from "@/utils/schemas";
 import { units } from "@/constants/units";
 import { ChevronLeft } from "lucide-react";
+import { toastError } from "@/utils/handleError";
 
 const SUSPENSION_TYPES = [
   { id: "left-right", name: "ซ้าย-ขวา" },
@@ -44,7 +44,6 @@ const InventoryCreate = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [vehicleKey, setVehicleKey] = useState(0);
-  const token = useAuthStore((state) => state.token);
   const navigate = useNavigate();
   const { errors } = formState;
 
@@ -61,10 +60,10 @@ const InventoryCreate = () => {
 
   const fetchCategory = async () => {
     try {
-      const res = await listCategories(token);
+      const res = await listCategories();
       setCategory(res.data);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
 
@@ -146,7 +145,7 @@ const InventoryCreate = () => {
 
       if (selectedImage) {
         const resizedImage = await resizeImage(selectedImage);
-        const res = await uploadImage(token, resizedImage);
+        const res = await uploadImage(resizedImage);
 
         image = {
           publicId: res.data?.publicId,
@@ -190,11 +189,11 @@ const InventoryCreate = () => {
       }
 
       if (isServiceCategory()) {
-        await createService(token, serviceData);
+        await createService(serviceData);
         toast.success("เพิ่มบริการเรียบร้อยแล้ว");
         navigate("/inventory");
       } else {
-        await createPart(token, partData);
+        await createPart(partData);
         toast.success("เพิ่มอะไหล่เรียบร้อยแล้ว");
         navigate("/inventory");
       }
@@ -203,7 +202,7 @@ const InventoryCreate = () => {
       setSelectedImage(null);
       setVehicleKey((prev) => prev + 1);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsSubmitting(false);
     }

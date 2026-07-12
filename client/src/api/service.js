@@ -1,25 +1,13 @@
-import axios from "axios";
+import apiClient from "./apiClient";
 
-export const createService = async (token, data) => {
-  return await axios.post(`${import.meta.env.VITE_API_URL}/api/services`, data, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const createService = async (data) => {
+  return await apiClient.post("/services", data);
 };
 
-export const updateService = async (token, id, data) => {
-  return await axios.put(`${import.meta.env.VITE_API_URL}/api/services/${id}`, data, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const updateService = async (id, data) => {
+  return await apiClient.put(`/services/${id}`, data);
 };
 
-export const deleteService = async (token, id) => {
-  return await axios.delete(`${import.meta.env.VITE_API_URL}/api/services/${id}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const deleteService = async (id) => {
+  return await apiClient.delete(`/services/${id}`);
 };

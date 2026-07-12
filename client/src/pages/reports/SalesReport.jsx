@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toastError } from "@/utils/handleError";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import {
   ChevronLeft,
@@ -58,7 +59,7 @@ const SalesReport = () => {
     try {
       await fetchRepairs();
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsLoading(false);
     }

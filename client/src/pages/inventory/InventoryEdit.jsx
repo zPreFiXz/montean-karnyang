@@ -20,6 +20,7 @@ import { ChevronLeft, LoaderCircle } from "lucide-react";
 import { getInventory } from "@/api/inventory";
 import { useParams, useSearchParams } from "react-router";
 import useAuthStore from "@/stores/useAuthStore";
+import { toastError } from "@/utils/handleError";
 
 const SUSPENSION_TYPES = [
   { id: "left-right", name: "ซ้าย-ขวา" },
@@ -55,7 +56,7 @@ const InventoryEdit = () => {
     useState(false);
   const navigate = useNavigate();
   const { errors } = formState;
-  const { user, token } = useAuthStore();
+  const { user } = useAuthStore();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -76,17 +77,17 @@ const InventoryEdit = () => {
 
   const fetchCategory = async () => {
     try {
-      const res = await listCategories(token);
+      const res = await listCategories();
       setCategory(res.data);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
 
   const fetchInventory = async (id, type) => {
     try {
       setIsLoading(true);
-      const res = await getInventory(token, id, type);
+      const res = await getInventory(id, type);
       setInventory(res.data);
 
       if (res.data) {
@@ -132,7 +133,7 @@ const InventoryEdit = () => {
         }
       }
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsLoading(false);
     }
@@ -203,7 +204,7 @@ const InventoryEdit = () => {
 
       if (selectedImage && typeof selectedImage !== "string") {
         const resizedImage = await resizeImage(selectedImage);
-        const res = await uploadImage(token, resizedImage);
+        const res = await uploadImage(resizedImage);
 
         image = {
           publicId: res.data?.publicId,
@@ -212,9 +213,9 @@ const InventoryEdit = () => {
 
         if (inventory?.publicId) {
           try {
-            await deleteImage(token, inventory.publicId);
+            await deleteImage(inventory.publicId);
           } catch (error) {
-            console.log(error);
+            toastError(error);
           }
         }
       } else if (selectedImage && typeof selectedImage === "string") {
@@ -225,9 +226,9 @@ const InventoryEdit = () => {
       } else if (selectedImage === null) {
         if (inventory?.publicId && isImageMarkedForDeletion) {
           try {
-            await deleteImage(token, inventory.publicId);
+            await deleteImage(inventory.publicId);
           } catch (error) {
-            console.log(error);
+            toastError(error);
           }
         }
 
@@ -273,11 +274,11 @@ const InventoryEdit = () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       if (isServiceCategory()) {
-        await updateService(token, id, serviceData);
+        await updateService(id, serviceData);
         toast.success("แก้ไขบริการเรียบร้อยแล้ว");
         navigate("/inventory");
       } else {
-        await updatePart(token, id, partData);
+        await updatePart(id, partData);
         toast.success("แก้ไขอะไหล่เรียบร้อยแล้ว");
         navigate("/inventory");
       }
@@ -286,7 +287,7 @@ const InventoryEdit = () => {
       setSelectedImage(null);
       setIsImageMarkedForDeletion(false);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsSubmitting(false);
     }

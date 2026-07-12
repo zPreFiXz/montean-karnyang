@@ -8,7 +8,6 @@ import { useNavigate, useLocation } from "react-router";
 import { provinces } from "@/constants/provinces";
 import { listVehicleModels } from "@/api/vehicleModel";
 import { listParts } from "@/api/part";
-import useAuthStore from "@/stores/useAuthStore";
 import LicensePlateInput from "@/components/forms/LicensePlateInput";
 import { formatCurrency } from "@/utils/formats";
 import {
@@ -28,11 +27,11 @@ import FormButton from "@/components/forms/FormButton";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
 import { CarRepair } from "@/components/icons/Icons";
+import { toastError } from "@/utils/handleError";
 
 const SuspensionInspection = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const token = useAuthStore((state) => state.token);
   const {
     register,
     handleSubmit,
@@ -58,7 +57,7 @@ const SuspensionInspection = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [priceOverrides, setPriceOverrides] = useState({});
   const restoredRef = useRef(false);
-  const [isMoreFieldsVisible, setIsMoreFieldsVisible] = useState(false);
+  const [_isMoreFieldsVisible, setIsMoreFieldsVisible] = useState(false);
   const [isCustomerInfoOpen, setIsCustomerInfoOpen] = useState(false);
   const initialSelectedRef = useRef({
     left: new Set(),
@@ -192,7 +191,9 @@ const SuspensionInspection = () => {
           (el) => el && el.value != null && String(el.value).trim() !== "",
         );
         if (hasHiddenValue) setIsMoreFieldsVisible(true);
-      } catch {}
+      } catch {
+      // ไม่ต้องทำอะไร: เป็นการ blur/focus เสริม ถ้าพลาดก็ไม่กระทบการทำงาน
+    }
     }
 
     const preserved = {
@@ -215,19 +216,19 @@ const SuspensionInspection = () => {
 
   const fetchVehicleModels = async () => {
     try {
-      const res = await listVehicleModels(token);
+      const res = await listVehicleModels();
       setVehicleModels(res.data);
 
       const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
       setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
 
   const fetchCompatibleParts = async (brand, model) => {
     try {
-      const res = await listParts(token);
+      const res = await listParts();
       const allParts = res.data;
 
       const compatible = allParts.filter((part) => {
@@ -240,7 +241,7 @@ const SuspensionInspection = () => {
 
       setCompatibleParts(compatible);
     } catch (error) {
-      console.log(error);
+      toastError(error);
       setCompatibleParts([]);
     } finally {
       setIsPartsLoaded(true);
@@ -378,7 +379,9 @@ const SuspensionInspection = () => {
     try {
       const ae = document.activeElement;
       if (ae && ae instanceof HTMLElement) ae.blur();
-    } catch {}
+    } catch {
+      // ไม่ต้องทำอะไร: เป็นการ blur/focus เสริม ถ้าพลาดก็ไม่กระทบการทำงาน
+    }
 
     setEditingItem({ source: "manual", index, ...item });
     setPriceDialogOpen(true);
@@ -432,7 +435,9 @@ const SuspensionInspection = () => {
     try {
       const ae = document.activeElement;
       if (ae && ae instanceof HTMLElement) ae.blur();
-    } catch {}
+    } catch {
+      // ไม่ต้องทำอะไร: เป็นการ blur/focus เสริม ถ้าพลาดก็ไม่กระทบการทำงาน
+    }
 
     setEditingItem({
       source: "compatible",
@@ -532,7 +537,9 @@ const SuspensionInspection = () => {
 
     try {
       setFocus(firstErrorField, { shouldSelect: true });
-    } catch {}
+    } catch {
+      // ไม่ต้องทำอะไร: เป็นการ blur/focus เสริม ถ้าพลาดก็ไม่กระทบการทำงาน
+    }
 
     setTimeout(() => {
       let el = document.querySelector(`[name="${firstErrorField}"]`);

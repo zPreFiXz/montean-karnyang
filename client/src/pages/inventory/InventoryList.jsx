@@ -9,8 +9,8 @@ import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog"
 import ComboBox from "@/components/ui/ComboBox";
 import { listInventory } from "@/api/inventory";
 import { listParts } from "@/api/part";
-import useAuthStore from "@/stores/useAuthStore";
 import { BoxSearch } from "@/components/icons/Icons";
+import { toastError } from "@/utils/handleError";
 
 const InventoryList = () => {
   const [activeCategory, setActiveCategory] = useState("ทั้งหมด");
@@ -25,7 +25,6 @@ const InventoryList = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [isItemDetailOpen, setIsItemDetailOpen] = useState(false);
   const isInitializing = useRef(false);
-  const token = useAuthStore((state) => state.token);
 
   const category = searchParams.get("category");
   const search = searchParams.get("search");
@@ -135,12 +134,12 @@ const InventoryList = () => {
   const handleFilter = async (category, search, filterParams = {}) => {
     setIsLoading(true);
     try {
-      const res = await listInventory(token, category, search, filterParams);
+      const res = await listInventory(category, search, filterParams);
       const data = res.data || [];
 
       setInventory(data);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsLoading(false);
     }
@@ -150,11 +149,11 @@ const InventoryList = () => {
     let mounted = true;
     (async () => {
       try {
-        const partsRes = await listParts(token);
+        const partsRes = await listParts();
         if (!mounted) return;
         setPartsList(partsRes.data || []);
-      } catch (err) {
-        console.log("listParts failed", err);
+      } catch (error) {
+        toastError(error, "โหลดรายการอะไหล่ไม่สำเร็จ");
         setPartsList([]);
       }
     })();

@@ -18,6 +18,7 @@ import { useNavigate } from "react-router";
 import { updatePartStockSchema } from "@/utils/schemas";
 import useAuthStore from "@/stores/useAuthStore";
 import { formatCurrency } from "@/utils/formats";
+import { toastError } from "@/utils/handleError";
 
 const RepairItemDetailDialog = ({
   item,
@@ -30,7 +31,7 @@ const RepairItemDetailDialog = ({
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(item);
   const navigate = useNavigate();
-  const { user, token } = useAuthStore();
+  const { user } = useAuthStore();
   const {
     register,
     handleSubmit,
@@ -120,7 +121,7 @@ const RepairItemDetailDialog = ({
     setIsSubmitting(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      await updatePartStock(token, currentItem.id, {
+      await updatePartStock(currentItem.id, {
         quantity: Number(data.quantity),
       });
       toast.success("เพิ่มสต็อกเรียบร้อยแล้ว");
@@ -149,7 +150,7 @@ const RepairItemDetailDialog = ({
         onStockUpdate();
       }
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -459,16 +460,16 @@ const RepairItemDetailDialog = ({
         onConfirm={async () => {
           try {
             if (isService) {
-              await deleteService(token, currentItem.id);
+              await deleteService(currentItem.id);
             } else {
-              await deletePart(token, currentItem.id);
+              await deletePart(currentItem.id);
             }
             toast.success(
               isService ? "ลบบริการเรียบร้อยแล้ว" : "ลบอะไหล่เรียบร้อยแล้ว",
             );
             if (onStockUpdate) onStockUpdate();
           } catch (error) {
-            console.log(error);
+            toastError(error);
           } finally {
             setIsDeleteConfirmOpen(false);
           }

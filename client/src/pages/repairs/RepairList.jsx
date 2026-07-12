@@ -3,9 +3,9 @@ import { Link, useSearchParams, useNavigate } from "react-router";
 import { LoaderCircle, ChevronLeft } from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
 import { listRepairs } from "@/api/repair";
-import useAuthStore from "@/stores/useAuthStore";
 import { formatTime } from "@/utils/formats";
 import BrandIcons from "@/components/icons/BrandIcons";
+import { toastError } from "@/utils/handleError";
 
 const getDisplayBrand = (vehicleModel) => {
   const brand = vehicleModel?.brand || "";
@@ -23,7 +23,6 @@ const RepairList = () => {
   const status = searchParams.get("status") || "in-progress";
   const [repairs, setRepairs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -33,10 +32,10 @@ const RepairList = () => {
   const fetchRepairs = async () => {
     setIsLoading(true);
     try {
-      const res = await listRepairs(token);
+      const res = await listRepairs();
       setRepairs(res.data);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsLoading(false);
     }

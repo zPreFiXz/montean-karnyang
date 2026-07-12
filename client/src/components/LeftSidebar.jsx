@@ -1,58 +1,25 @@
-import {
-  BoxSearch,
-  CarRepair,
-  DashboardBar,
-  Document,
-  Plus,
-} from "./icons/Icons";
-import { useLocation, Link } from "react-router";
+import { Link, useLocation } from "react-router";
+import { Plus } from "./icons/Icons";
+import { MENU_ITEMS, isActivePath } from "@/constants/menu";
 
+// แถบเมนูซ้ายสำหรับจอ desktop
 const LeftSidebar = () => {
   const location = useLocation();
-  const menuItems = [
-    { path: "/dashboard", label: "หน้าหลัก", icon: DashboardBar },
-    { path: "/inspections/suspension", label: "เช็กช่วงล่าง", icon: CarRepair },
-    { path: "/vehicles", label: "ประวัติลูกค้า", icon: Document },
-    { path: "/inventory", label: "สต็อกอะไหล่", icon: BoxSearch },
-  ];
-
-  const isActivePath = (path) => {
-    if (path === "/dashboard") {
-      return location.pathname === path;
-    }
-
-    if (path === "/vehicles") {
-      const isRepairDetail =
-        location.pathname.startsWith("/repairs/") &&
-        !location.pathname.includes("/new") &&
-        !location.pathname.includes("/summary");
-      const isRepairStatus = location.pathname === "/repairs";
-      return (
-        location.pathname === path ||
-        location.pathname.startsWith(path + "/") ||
-        (isRepairDetail && !isRepairStatus)
-      );
-    }
-    return (
-      location.pathname === path || location.pathname.startsWith(path + "/")
-    );
-  };
 
   return (
-    <div className="shadow-primary hidden min-h-[calc(100vh-73px)] w-[269px] flex-col items-center gap-[24px] px-[16px] xl:flex">
-      
+    <nav className="shadow-primary hidden min-h-[calc(100vh-73px)] w-64 flex-col items-center gap-6 px-4 lg:flex">
       {/* รายการซ่อมใหม่ */}
       <Link
         to="/repairs/new"
-        className="bg-gradient-primary shadow-primary mt-[24px] flex h-[65px] w-[237px] cursor-pointer items-center justify-center gap-[8px] rounded-[10px] duration-300 hover:opacity-90"
+        className="bg-gradient-primary shadow-primary mt-6 flex h-16 w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] duration-300 hover:opacity-90"
       >
         <Plus size="sm" />
-        <p className="text-surface text-[22px] font-medium">รายการซ่อมใหม่</p>
+        <p className="text-surface text-xl font-medium">รายการซ่อมใหม่</p>
       </Link>
 
       {/* เมนูหลัก */}
-      {menuItems.map((item) => {
-        const isActive = isActivePath(item.path);
+      {MENU_ITEMS.map((item) => {
+        const isActive = isActivePath(item.path, location.pathname);
         const Icon = item.icon;
 
         return (
@@ -60,17 +27,18 @@ const LeftSidebar = () => {
             key={item.path}
             to={item.path}
             className="flex w-full justify-center"
+            aria-current={isActive ? "page" : undefined}
           >
             <div
-              className={`group flex h-[65px] w-[237px] cursor-pointer items-center justify-center gap-[22px] rounded-[10px] duration-300 ${
+              className={`group flex h-16 w-full cursor-pointer items-center justify-center gap-5 rounded-[10px] duration-300 ${
                 isActive
                   ? "border-primary bg-surface shadow-primary border-2"
-                  : "hover:bg-surface hover:border-primary border-2 border-black/10 hover:border-2"
+                  : "hover:bg-surface hover:border-primary border-2 border-black/10"
               }`}
             >
               <Icon isActive={isActive} size="md" />
               <p
-                className={`text-[22px] font-medium duration-300 ${
+                className={`text-xl font-medium duration-300 ${
                   isActive
                     ? "text-primary"
                     : "text-subtle-dark group-hover:text-primary"
@@ -82,7 +50,7 @@ const LeftSidebar = () => {
           </Link>
         );
       })}
-    </div>
+    </nav>
   );
 };
 export default LeftSidebar;

@@ -7,7 +7,7 @@ import SearchBar from "@/components/forms/SearchBar";
 import UserFormDialog from "@/components/dialogs/UserFormDialog";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import { listUsers, deleteUser } from "@/api/user";
-import useAuthStore from "@/stores/useAuthStore";
+import { toastError } from "@/utils/handleError";
 
 const UserList = () => {
   const [users, setUsers] = useState([]);
@@ -17,7 +17,6 @@ const UserList = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState(null);
-  const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -27,10 +26,10 @@ const UserList = () => {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const res = await listUsers(token);
+      const res = await listUsers();
       setUsers(res.data);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsLoading(false);
     }
@@ -44,13 +43,13 @@ const UserList = () => {
   const handleDeleteConfirm = async () => {
     if (!deletingUser) return;
     try {
-      await deleteUser(token, deletingUser.id);
+      await deleteUser(deletingUser.id);
       toast.success("ลบบัญชีผู้ใช้งานสำเร็จ");
       setIsDeleteDialogOpen(false);
       setDeletingUser(null);
       fetchUsers();
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
 

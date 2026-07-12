@@ -3,8 +3,8 @@ import { Link } from "react-router";
 import { ChevronLeft, LoaderCircle } from "lucide-react";
 import SearchBar from "@/components/forms/SearchBar";
 import { getAttendanceSummary } from "@/api/attendance";
-import useAuthStore from "@/stores/useAuthStore";
 import { formatTime } from "@/utils/formats";
+import { toastError } from "@/utils/handleError";
 
 const SLOT_CONFIG = [
   { key: "inWork", label: "เข้างาน" },
@@ -26,15 +26,14 @@ const AttendanceReport = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [summaryData, setSummaryData] = useState(null);
-  const token = useAuthStore((state) => state.token);
 
   const fetchSummary = async (targetDate) => {
     setIsLoading(true);
     try {
-      const res = await getAttendanceSummary(token, targetDate);
+      const res = await getAttendanceSummary(targetDate);
       setSummaryData(res.data);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsLoading(false);
     }

@@ -19,6 +19,7 @@ import useRepairStore from "@/stores/useRepairStore";
 import useAuthStore from "@/stores/useAuthStore";
 import { Success, Wrench, Paid } from "@/components/icons/Icons";
 import BrandIcons from "@/components/icons/BrandIcons";
+import { toastError } from "@/utils/handleError";
 
 const Dashboard = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -27,7 +28,7 @@ const Dashboard = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [isItemDetailOpen, setIsItemDetailOpen] = useState(false);
   const navigate = useNavigate();
-  const { logout, user, token } = useAuthStore();
+  const { logout, user } = useAuthStore();
   const {
     fetchRepairs,
     getRepairCountByStatus,
@@ -43,10 +44,10 @@ const Dashboard = () => {
 
   const fetchInventory = async () => {
     try {
-      const res = await listInventory(token, null, null);
+      const res = await listInventory(null, null);
       setInventory(res.data || []);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
 
@@ -94,7 +95,7 @@ const Dashboard = () => {
       await logout();
       navigate("/login", { replace: true });
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsLoggingOut(false);
     }

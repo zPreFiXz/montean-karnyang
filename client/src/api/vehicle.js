@@ -1,18 +1,9 @@
-import axios from "axios";
+import apiClient from "./apiClient";
 
-export const listVehicles = async (token, search) => {
-  return await axios.get(`${import.meta.env.VITE_API_URL}/api/vehicles`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    params: { search },
-  });
+export const listVehicles = async (search) => {
+  return await apiClient.get("/vehicles", { params: { search } });
 };
 
-export const getVehicle = async (token, id) => {
-  return await axios.get(`${import.meta.env.VITE_API_URL}/api/vehicles/${id}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const getVehicle = async (id) => {
+  return await apiClient.get(`/vehicles/${id}`);
 };

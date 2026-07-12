@@ -1,19 +1,13 @@
-import axios from "axios";
+import apiClient from "./apiClient";
 
-export const listInventory = async (token, category, search, filterParams) => {
-  return await axios.get(`${import.meta.env.VITE_API_URL}/api/inventory`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+export const listInventory = async (category, search, filterParams) => {
+  return await apiClient.get("/inventory", {
     params: { category, search, ...(filterParams || {}) },
   });
 };
 
-export const getInventory = async (token, id, type) => {
-  return await axios.get(`${import.meta.env.VITE_API_URL}/api/inventory/${id}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+export const getInventory = async (id, type) => {
+  return await apiClient.get(`/inventory/${id}`, {
     params: type ? { type } : {},
   });
 };

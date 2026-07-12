@@ -13,7 +13,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createEmployeeSchema, editEmployeeSchema } from "@/utils/schemas";
 import { createEmployee, updateEmployee } from "@/api/employee";
-import useAuthStore from "@/stores/useAuthStore";
+import { toastError } from "@/utils/handleError";
 
 const EmployeeFormDialog = ({
   isOpen,
@@ -21,7 +21,6 @@ const EmployeeFormDialog = ({
   editingItem = null,
   onSuccess,
 }) => {
-  const token = useAuthStore((state) => state.token);
   const {
     register,
     handleSubmit,
@@ -55,7 +54,7 @@ const EmployeeFormDialog = ({
 
   const handleAdd = async (data) => {
     try {
-      await createEmployee(token, {
+      await createEmployee({
         zkUserId: data.zkUserId,
         name: data.name,
       });
@@ -63,13 +62,13 @@ const EmployeeFormDialog = ({
       handleClose();
       onSuccess?.();
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
 
   const handleEdit = async (data) => {
     try {
-      await updateEmployee(token, editingItem.id, {
+      await updateEmployee(editingItem.id, {
         zkUserId: data.zkUserId,
         name: data.name,
       });
@@ -77,7 +76,7 @@ const EmployeeFormDialog = ({
       handleClose();
       onSuccess?.();
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
 

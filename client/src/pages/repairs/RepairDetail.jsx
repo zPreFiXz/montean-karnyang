@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
 import { getRepair, updateRepairStatus } from "@/api/repair";
-import useAuthStore from "@/stores/useAuthStore";
 import {
   formatDate,
   formatTime,
@@ -34,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import RepairItemCard from "@/components/cards/RepairItemCard";
+import { toastError } from "@/utils/handleError";
 
 const RepairDetail = () => {
   const { id } = useParams();
@@ -44,7 +44,6 @@ const RepairDetail = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUpdatingSkip, setIsUpdatingSkip] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
-  const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -55,11 +54,11 @@ const RepairDetail = () => {
   const fetchRepairDetail = async () => {
     setIsLoading(true);
     try {
-      const res = await getRepair(token, id);
+      const res = await getRepair(id);
       setRepair(res.data);
       setSelectedPaymentMethod(res.data.paymentMethod);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsLoading(false);
     }
@@ -167,7 +166,7 @@ const RepairDetail = () => {
         updateData.paymentMethod = selectedPaymentMethod;
       }
 
-      await updateRepairStatus(token, repair.id, updateData);
+      await updateRepairStatus(repair.id, updateData);
 
       if (skipToCompleted) {
         toast.success("ซ่อมเสร็จสิ้นและชำระเงินเรียบร้อยแล้ว");
@@ -180,7 +179,7 @@ const RepairDetail = () => {
       const statusSlug = nextStatus.toLowerCase().replace("_", "-");
       navigate(`/repairs?status=${statusSlug}`);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsUpdating(false);
       setIsUpdatingSkip(false);

@@ -3,14 +3,13 @@ import { useState, useEffect, useRef } from "react";
 import { Plus, Trash, X } from "lucide-react";
 import ComboBox from "../ui/ComboBox";
 import { listVehicleModels } from "@/api/vehicleModel";
-import useAuthStore from "@/stores/useAuthStore";
+import { toastError } from "@/utils/handleError";
 
 const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   const [vehicles, setVehicles] = useState([{ brand: "", model: "" }]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [vehicleModels, setVehicleModels] = useState([]);
   const [brands, setBrands] = useState([]);
-  const token = useAuthStore((state) => state.token);
   const vehicleRefs = useRef([]);
 
   useEffect(() => {
@@ -41,13 +40,13 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
 
   const fetchVehicleModels = async () => {
     try {
-      const res = await listVehicleModels(token);
+      const res = await listVehicleModels();
       setVehicleModels(res.data);
 
       const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
       setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
 

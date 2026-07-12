@@ -18,15 +18,14 @@ import EditPriceDialog from "@/components/dialogs/EditRepairItemDialog";
 import FormButton from "@/components/forms/FormButton";
 import ComboBox from "@/components/ui/ComboBox";
 import { listVehicleModels } from "@/api/vehicleModel";
-import useAuthStore from "@/stores/useAuthStore";
 import { repairSchema } from "@/utils/schemas";
 import { provinces } from "@/constants/provinces";
 import { formatCurrency } from "@/utils/formats";
+import { toastError } from "@/utils/handleError";
 
 const RepairCreate = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const token = useAuthStore((state) => state.token);
   const { register, handleSubmit, formState, setValue, watch, setFocus } =
     useForm({
       resolver: zodResolver(repairSchema),
@@ -101,13 +100,13 @@ const RepairCreate = () => {
 
   const fetchVehicleModels = async () => {
     try {
-      const res = await listVehicleModels(token);
+      const res = await listVehicleModels();
       setVehicleModels(res.data);
 
       const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
       setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
 
@@ -176,7 +175,9 @@ const RepairCreate = () => {
 
     try {
       setFocus(firstErrorField, { shouldSelect: true });
-    } catch {}
+    } catch {
+      // ไม่ต้องทำอะไร: เป็นการ blur/focus เสริม ถ้าพลาดก็ไม่กระทบการทำงาน
+    }
 
     setTimeout(() => {
       let el = document.querySelector(`[name="${firstErrorField}"]`);

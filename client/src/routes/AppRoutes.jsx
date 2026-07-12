@@ -17,6 +17,7 @@ import UserList from "@/pages/admin/UserList";
 import EmployeeList from "@/pages/admin/EmployeeList";
 import SalesReport from "@/pages/reports/SalesReport";
 import AttendanceReport from "@/pages/reports/AttendanceReport";
+import NotFound from "@/pages/NotFound";
 import ProtectRouteUser from "./ProtectRouteUser";
 import ProtectRouteAdmin from "./ProtectRouteAdmin";
 import ProtectRouteGuest from "./ProtectRouteGuest";
@@ -75,7 +76,7 @@ const AppRoutes = () => {
         </Route>
 
         {/* Not Found */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

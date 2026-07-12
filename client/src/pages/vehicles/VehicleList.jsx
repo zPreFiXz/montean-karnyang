@@ -4,14 +4,13 @@ import { LoaderCircle } from "lucide-react";
 import SearchBar from "@/components/forms/SearchBar";
 import CarCard from "@/components/cards/CarCard";
 import { listVehicles } from "@/api/vehicle";
-import useAuthStore from "@/stores/useAuthStore";
 import { Document } from "@/components/icons/Icons";
 import BrandIcons from "@/components/icons/BrandIcons";
+import { toastError } from "@/utils/handleError";
 
 const VehicleList = () => {
   const [vehicles, setVehicles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const token = useAuthStore((state) => state.token);
   const [searchParams, setSearchParams] = useSearchParams();
   const isInitializing = useRef(false);
 
@@ -45,10 +44,10 @@ const VehicleList = () => {
   const handleFilter = async (search) => {
     setIsLoading(true);
     try {
-      const res = await listVehicles(token, search);
+      const res = await listVehicles(search);
       setVehicles(res.data);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsLoading(false);
     }

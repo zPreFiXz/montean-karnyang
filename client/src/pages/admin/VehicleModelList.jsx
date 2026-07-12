@@ -6,8 +6,8 @@ import ComboBox from "@/components/ui/ComboBox";
 import VehicleModelFormDialog from "@/components/dialogs/VehicleModelFormDialog";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import { deleteVehicleModel, listVehicleModels } from "@/api/vehicleModel";
-import useAuthStore from "@/stores/useAuthStore";
 import FormButton from "@/components/forms/FormButton";
+import { toastError } from "@/utils/handleError";
 
 const VehicleModelList = () => {
   const [vehicleModels, setVehicleModels] = useState([]);
@@ -17,7 +17,6 @@ const VehicleModelList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingItem, setDeletingItem] = useState(null);
-  const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -27,10 +26,10 @@ const VehicleModelList = () => {
   const fetchVehicleModels = async () => {
     setIsLoading(true);
     try {
-      const res = await listVehicleModels(token);
+      const res = await listVehicleModels();
       setVehicleModels(res.data);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsLoading(false);
     }
@@ -38,13 +37,13 @@ const VehicleModelList = () => {
 
   const handleDeleteVehicleModel = async (id) => {
     try {
-      await deleteVehicleModel(token, id);
+      await deleteVehicleModel(id);
       fetchVehicleModels();
       setIsDeleteDialogOpen(false);
       setDeletingItem(null);
       toast.success("ลบยี่ห้อและรุ่นรถเรียบร้อยแล้ว");
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
 

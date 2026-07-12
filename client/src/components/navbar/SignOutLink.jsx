@@ -4,6 +4,7 @@ import useAuthStore from "@/stores/useAuthStore";
 import { useNavigate } from "react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { toastError } from "@/utils/handleError";
 
 const SignOutLink = ({ onLoggingOut }) => {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ const SignOutLink = ({ onLoggingOut }) => {
       toast.success("ออกจากระบบเรียบร้อยแล้ว");
       navigate("/login");
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsLoggingOut(false);
       onLoggingOut?.(false);

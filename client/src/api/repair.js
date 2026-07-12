@@ -1,41 +1,21 @@
-import axios from "axios";
+import apiClient from "./apiClient";
 
-export const listRepairs = async (token) => {
-  return await axios.get(`${import.meta.env.VITE_API_URL}/api/repairs`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const listRepairs = async () => {
+  return await apiClient.get("/repairs");
 };
 
-export const getRepair = async (token, id) => {
-  return await axios.get(`${import.meta.env.VITE_API_URL}/api/repairs/${id}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const getRepair = async (id) => {
+  return await apiClient.get(`/repairs/${id}`);
 };
 
-export const createRepair = async (token, data) => {
-  return await axios.post(`${import.meta.env.VITE_API_URL}/api/repairs`, data, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const createRepair = async (data) => {
+  return await apiClient.post("/repairs", data);
 };
 
-export const updateRepair = async (token, id, data) => {
-  return await axios.put(`${import.meta.env.VITE_API_URL}/api/repairs/${id}`, data, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const updateRepair = async (id, data) => {
+  return await apiClient.put(`/repairs/${id}`, data);
 };
 
-export const updateRepairStatus = async (token, id, data) => {
-  return await axios.patch(`${import.meta.env.VITE_API_URL}/api/repairs/${id}/status`, data, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const updateRepairStatus = async (id, data) => {
+  return await apiClient.patch(`/repairs/${id}/status`, data);
 };

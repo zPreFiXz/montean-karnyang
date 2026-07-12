@@ -1,10 +1,10 @@
 import { useLocation, useNavigate } from "react-router";
+import { toastError } from "@/utils/handleError";
 import { useEffect, useState } from "react";
 import FormButton from "@/components/forms/FormButton";
 import RepairItemCard from "@/components/cards/RepairItemCard";
 import { formatCurrency, getProvinceName } from "@/utils/formats";
 import { createRepair, updateRepair } from "@/api/repair";
-import useAuthStore from "@/stores/useAuthStore";
 import { toast } from "sonner";
 import {
   Edit,
@@ -20,7 +20,6 @@ const RepairReview = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const token = useAuthStore((state) => state.token);
 
   const { repairData, repairItems, editRepairId } = location.state || {};
   const origin = location.state?.origin || location.state?.from;
@@ -83,7 +82,7 @@ const RepairReview = () => {
       };
 
       if (editRepairId) {
-        await updateRepair(token, editRepairId, repair);
+        await updateRepair(editRepairId, repair);
         toast.success("แก้ไขรายการซ่อมเรียบร้อยแล้ว");
         if (statusSlug) {
           navigate(`/repairs?status=${statusSlug}`);
@@ -95,13 +94,13 @@ const RepairReview = () => {
           navigate(`/repairs/${editRepairId}`);
         }
       } else {
-        await createRepair(token, repair);
+        await createRepair(repair);
         toast.success("สร้างรายการซ่อมเรียบร้อยแล้ว");
         const isDesktop = window.innerWidth >= 1280;
         navigate(isDesktop ? "/" : "/repairs?status=in-progress");
       }
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsSubmitting(false);
     }

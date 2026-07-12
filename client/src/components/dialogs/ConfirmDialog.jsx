@@ -7,6 +7,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import FormButton from "../forms/FormButton";
+import { toastError } from "@/utils/handleError";
 
 const ConfirmDialog = ({
   isOpen,
@@ -25,7 +26,7 @@ const ConfirmDialog = ({
       await new Promise((resolve) => setTimeout(resolve, 1000));
       await onConfirm();
     } catch (error) {
-      console.log(error);
+      toastError(error);
     } finally {
       setIsLoading(false);
     }

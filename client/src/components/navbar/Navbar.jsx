@@ -4,11 +4,11 @@ import Logo from "./Logo";
 
 const Navbar = () => {
   return (
-    <div className="shadow-primary relative hidden h-[73px] w-full items-center justify-between pr-[24px] pl-[43px] xl:flex">
+    <header className="shadow-primary relative hidden h-[73px] w-full items-center justify-between pr-6 pl-10 lg:flex">
       <Logo />
       <NavbarStats />
       <DropdownListMenu />
-    </div>
+    </header>
   );
 };
 export default Navbar;
