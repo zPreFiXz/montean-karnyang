@@ -73,7 +73,7 @@ exports.getAttendanceSummary = async (req, res, next) => {
           },
           select: {
             employeeId: true,
-            statusText: true,
+            statusLabel: true,
             scanTime: true,
           },
           orderBy: {
@@ -82,15 +82,10 @@ exports.getAttendanceSummary = async (req, res, next) => {
         })
       : [];
 
-    const unknownScanCount = await prisma.attendance.count({
-      where: {
-        employeeId: null,
-        scanTime: {
-          gte: start,
-          lte: end,
-        },
-      },
-    });
+    // สแกนจากรหัสที่ไม่รู้จักถูก worker ข้ามไม่บันทึกลง DB (ดู zkteco/attendance.js)
+    // และ employeeId เป็น required จึงไม่มีทางมีแถวไร้พนักงาน — ค่านี้เป็น 0 เสมอ
+    // (เดิม query ด้วย employeeId: null ซึ่ง Prisma ปฏิเสธ ทำให้ endpoint นี้ 500 ทุกครั้ง)
+    const unknownScanCount = 0;
 
     const groupedMap = new Map(
       employees.map((employee) => [
@@ -109,12 +104,12 @@ exports.getAttendanceSummary = async (req, res, next) => {
 
       item.scanCount += 1;
 
-      const slotKey = mapStatusToSlotKey(attendance.statusText);
+      const slotKey = mapStatusToSlotKey(attendance.statusLabel);
       if (!slotKey) continue;
 
       if (!item.slots[slotKey]) {
         item.slots[slotKey] = {
-          status: attendance.statusText,
+          status: attendance.statusLabel,
           scanTime: attendance.scanTime,
         };
       }

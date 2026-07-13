@@ -75,7 +75,7 @@ const resolveStatus = async (prisma, employeeId, recordTime) => {
   return { type: STATUS.CLOCK_OUT, text: rules.stepStatuses[3] };
 };
 
-const save = (prisma, employeeId, type, statusText, scanTime) =>
-  prisma.attendance.create({ data: { employeeId, type, statusText, scanTime } });
+const save = (prisma, employeeId, type, statusLabel, scanTime) =>
+  prisma.attendance.create({ data: { employeeId, type, statusLabel, scanTime } });
 
 module.exports = { STATUS, createEmployeeCache, resolveStatus, save };

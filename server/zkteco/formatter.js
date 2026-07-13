@@ -12,7 +12,7 @@ const bulletList = (items, max = 15) => {
 
 const LUNCH_TYPES = new Set([STATUS.LUNCH_OUT, STATUS.LUNCH_RETURN, STATUS.LUNCH_RETURN_LATE]);
 
-const scanMessage = (empName, empId, type, statusText, recordTime) => {
+const scanMessage = (empName, empId, type, statusLabel, recordTime) => {
   const header = LUNCH_TYPES.has(type)
     ? "🍱 บันทึกเวลาพักเที่ยง"
     : "⏰ บันทึกเวลาเข้า-ออกงาน";
@@ -21,7 +21,7 @@ const scanMessage = (empName, empId, type, statusText, recordTime) => {
     "",
     `🆔 รหัส: ${empId}`,
     `👤 พนักงาน: ${empName}`,
-    `📌 สถานะ: ${statusText}`,
+    `📌 สถานะ: ${statusLabel}`,
     "",
     `📅 วันที่ ${formatThaiDate(recordTime)}`,
     `🕒 เวลา ${formatThaiTime(recordTime)} น.`,
@@ -53,7 +53,7 @@ const dailySummary = async (prisma, dateKey) => {
       employeeId: { in: employees.map((e) => e.id) },
       scanTime: { gte: start, lte: end },
     },
-    select: { employeeId: true, type: true, statusText: true, scanTime: true },
+    select: { employeeId: true, type: true, statusLabel: true, scanTime: true },
     orderBy: { scanTime: "asc" },
   });
 
@@ -81,10 +81,10 @@ const dailySummary = async (prisma, dateKey) => {
       (scans[0].type === STATUS.CLOCK_IN || scans[0].type === STATUS.CLOCK_IN_LATE) &&
       scans[1].type === STATUS.LUNCH_OUT
     ) {
-      stats.halfDay.push(lateScan ? `${name} ${lateNote(lateScan.statusText)}` : name);
+      stats.halfDay.push(lateScan ? `${name} ${lateNote(lateScan.statusLabel)}` : name);
     } else {
-      if (lateScan) stats.late.push(`${name} ${lateNote(lateScan.statusText)}`);
-      if (lunchOTScan) stats.lunchOvertime.push(`${name} ${lateNote(lunchOTScan.statusText)}`);
+      if (lateScan) stats.late.push(`${name} ${lateNote(lateScan.statusLabel)}`);
+      if (lunchOTScan) stats.lunchOvertime.push(`${name} ${lateNote(lunchOTScan.statusLabel)}`);
       if (scans.length < 4) {
         const missing = config.attendance.stepStatuses.slice(scans.length, 4);
         stats.forgotScan.push(

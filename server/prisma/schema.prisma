@@ -136,27 +136,20 @@ enum Side {
 
 model Part {
   id                 Int          @id @default(autoincrement())
-  // รหัสประจำตัว
   partNumber         String       @unique
-  // ข้อมูลสินค้า
   brand              String
   name               String
-  unit               String
-  // ราคา (หน่วย: บาทเต็ม)
   costPrice          Int?
   sellingPrice       Int
-  // สต็อก
+  unit               String
   stockQuantity      Int
   minStockLevel      Int
-  // ข้อมูลยืดหยุ่นตามหมวด
   attributes         Json?
   compatibleVehicles Json?
-  // รูปภาพ (Cloudinary)
   publicId           String?
   secureUrl          String?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
-  // ความสัมพันธ์
   category           Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   categoryId         Int
   repairItems        RepairItem[]
@@ -194,7 +187,7 @@ model Employee {
 model Attendance {
   id         Int            @id @default(autoincrement())
   type       AttendanceType
-  statusText String
+  statusLabel String
   scanTime   DateTime
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
