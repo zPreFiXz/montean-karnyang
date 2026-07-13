@@ -1,18 +1,16 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  // output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
+
+// ---------- ผู้ใช้งานระบบ (auth) ----------
 
 model User {
   id        Int      @id @default(autoincrement())
@@ -29,6 +27,96 @@ enum Role {
   EMPLOYEE
   ADMIN
 }
+
+// ---------- ลูกค้าและรถ ----------
+
+model Customer {
+  id          Int      @id @default(autoincrement())
+  name        String?
+  address     String?
+  phoneNumber String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  repairs     Repair[]
+}
+
+model VehicleModel {
+  id        Int       @id @default(autoincrement())
+  brand     String
+  model     String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  vehicles  Vehicle[]
+
+  @@unique([brand, model])
+}
+
+model LicensePlate {
+  id          Int      @id @default(autoincrement())
+  plateNumber String
+  province    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  vehicle     Vehicle?
+
+  @@unique([plateNumber, province])
+}
+
+model Vehicle {
+  id             Int           @id @default(autoincrement())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  licensePlate   LicensePlate? @relation(fields: [licensePlateId], references: [id], onDelete: Cascade)
+  licensePlateId Int?          @unique
+  vehicleModel   VehicleModel  @relation(fields: [vehicleModelId], references: [id], onDelete: Restrict)
+  vehicleModelId Int
+  repairs        Repair[]
+}
+
+// ---------- คลังอะไหล่และบริการ (catalog) ----------
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  parts     Part[]
+  services  Service[]
+}
+
+model Part {
+  id                 Int          @id @default(autoincrement())
+  partNumber         String       @unique
+  brand              String
+  name               String
+  costPrice          Int?
+  sellingPrice       Int
+  unit               String
+  stockQuantity      Int
+  minStockLevel      Int
+  attributes         Json?
+  compatibleVehicles Json?
+  publicId           String?
+  secureUrl          String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  category           Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  categoryId         Int
+  repairItems        RepairItem[]
+}
+
+model Service {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  price       Int
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  category    Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  categoryId  Int
+  repairItems RepairItem[]
+}
+
+// ---------- งานซ่อม (core) ----------
 
 model Repair {
   id            Int           @id @default(autoincrement())
@@ -67,49 +155,6 @@ enum PaymentMethod {
   CREDIT_CARD
 }
 
-model Vehicle {
-  id             Int           @id @default(autoincrement())
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  licensePlate   LicensePlate? @relation(fields: [licensePlateId], references: [id], onDelete: Cascade)
-  licensePlateId Int?          @unique
-  vehicleModel   VehicleModel  @relation(fields: [vehicleModelId], references: [id], onDelete: Restrict)
-  vehicleModelId Int
-  repairs        Repair[]
-}
-
-model VehicleModel {
-  id        Int       @id @default(autoincrement())
-  brand     String
-  model     String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  vehicles  Vehicle[]
-
-  @@unique([brand, model])
-}
-
-model LicensePlate {
-  id          Int      @id @default(autoincrement())
-  plateNumber String
-  province    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  vehicle     Vehicle?
-
-  @@unique([plateNumber, province])
-}
-
-model Customer {
-  id          Int      @id @default(autoincrement())
-  name        String?
-  address     String?
-  phoneNumber String?  @unique
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  repairs     Repair[]
-}
-
 model RepairItem {
   id          Int      @id @default(autoincrement())
   partName    String?
@@ -134,46 +179,7 @@ enum Side {
   OTHER
 }
 
-model Part {
-  id                 Int          @id @default(autoincrement())
-  partNumber         String       @unique
-  brand              String
-  name               String
-  costPrice          Int?
-  sellingPrice       Int
-  unit               String
-  stockQuantity      Int
-  minStockLevel      Int
-  attributes         Json?
-  compatibleVehicles Json?
-  publicId           String?
-  secureUrl          String?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  category           Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  categoryId         Int
-  repairItems        RepairItem[]
-}
-
-model Service {
-  id          Int          @id @default(autoincrement())
-  name        String       @unique
-  price       Int
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  category    Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  categoryId  Int
-  repairItems RepairItem[]
-}
-
-model Category {
-  id        Int       @id @default(autoincrement())
-  name      String    @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  parts     Part[]
-  services  Service[]
-}
+// ---------- ลงเวลาพนักงาน (ZKTeco) ----------
 
 model Employee {
   id          Int          @id @default(autoincrement())
