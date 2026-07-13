@@ -51,10 +51,10 @@ const dailySummary = async (prisma, dateKey) => {
   const attendances = await prisma.attendance.findMany({
     where: {
       employeeId: { in: employees.map((e) => e.id) },
-      scanTime: { gte: start, lte: end },
+      scannedAt: { gte: start, lte: end },
     },
-    select: { employeeId: true, type: true, statusLabel: true, scanTime: true },
-    orderBy: { scanTime: "asc" },
+    select: { employeeId: true, type: true, statusLabel: true, scannedAt: true },
+    orderBy: { scannedAt: "asc" },
   });
 
   const grouped = new Map(employees.map((e) => [e.id, { ...e, scans: [] }]));

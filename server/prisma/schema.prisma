@@ -185,16 +185,16 @@ model Employee {
 }
 
 model Attendance {
-  id         Int            @id @default(autoincrement())
-  type       AttendanceType
+  id          Int            @id @default(autoincrement())
+  type        AttendanceType
   statusLabel String
-  scanTime   DateTime
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
-  employee   Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  employeeId Int
+  scannedAt   DateTime
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  employee    Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId  Int
 
-  @@index([employeeId, scanTime])
+  @@index([employeeId, scannedAt])
 }
 
 enum AttendanceType {

@@ -13,7 +13,7 @@ const { getDateKey, getDayRange, getMinuteOfDay } = require("./time");
 const zkErrorMessage = (err) => err?.err?.message || err?.message || String(err);
 
 // คีย์ระบุการสแกน 1 ครั้งแบบไม่ซ้ำ = พนักงาน + เวลาสแกน
-const scanKey = (employeeId, scanTime) => `${employeeId}-${new Date(scanTime).getTime()}`;
+const scanKey = (employeeId, scannedAt) => `${employeeId}-${new Date(scannedAt).getTime()}`;
 
 const startZktecoService = async (prisma) => {
   const { device: deviceCfg, attendance: attCfg } = config;
@@ -47,15 +47,15 @@ const startZktecoService = async (prisma) => {
     if (!todayLogs.length) return;
 
     const existing = await prisma.attendance.findMany({
-      where: { scanTime: { gte: start, lte: end } },
-      select: { employeeId: true, scanTime: true },
+      where: { scannedAt: { gte: start, lte: end } },
+      select: { employeeId: true, scannedAt: true },
     });
-    const seen = new Set(existing.map((r) => scanKey(r.employeeId, r.scanTime)));
+    const seen = new Set(existing.map((r) => scanKey(r.employeeId, r.scannedAt)));
 
     // เวลาสแกนล่าสุดต่อพนักงาน (กันแตะซ้ำถี่ ๆ)
     const lastScan = new Map();
     for (const r of existing) {
-      const t = new Date(r.scanTime).getTime();
+      const t = new Date(r.scannedAt).getTime();
       if (t > (lastScan.get(r.employeeId) ?? 0)) lastScan.set(r.employeeId, t);
     }
     const minGapMs = attCfg.minScanGapMinutes * 60_000;

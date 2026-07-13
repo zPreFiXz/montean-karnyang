@@ -59,9 +59,9 @@ const resolveStatus = async (prisma, employeeId, recordTime) => {
   const eventTime = recordTime || new Date();
   const { start, end } = getDayRange(getDateKey(eventTime));
   const records = await prisma.attendance.findMany({
-    where: { employeeId, scanTime: { gte: start, lte: end } },
-    orderBy: { scanTime: "asc" },
-    select: { scanTime: true },
+    where: { employeeId, scannedAt: { gte: start, lte: end } },
+    orderBy: { scannedAt: "asc" },
+    select: { scannedAt: true },
   });
 
   if (!records.length) {
@@ -71,11 +71,11 @@ const resolveStatus = async (prisma, employeeId, recordTime) => {
       : { type: STATUS.CLOCK_IN, text: rules.stepStatuses[0] };
   }
   if (records.length === 1) return { type: STATUS.LUNCH_OUT, text: rules.stepStatuses[1] };
-  if (records.length === 2) return lunchReturnStatus(eventTime, records[1].scanTime);
+  if (records.length === 2) return lunchReturnStatus(eventTime, records[1].scannedAt);
   return { type: STATUS.CLOCK_OUT, text: rules.stepStatuses[3] };
 };
 
-const save = (prisma, employeeId, type, statusLabel, scanTime) =>
-  prisma.attendance.create({ data: { employeeId, type, statusLabel, scanTime } });
+const save = (prisma, employeeId, type, statusLabel, scannedAt) =>
+  prisma.attendance.create({ data: { employeeId, type, statusLabel, scannedAt } });
 
 module.exports = { STATUS, createEmployeeCache, resolveStatus, save };

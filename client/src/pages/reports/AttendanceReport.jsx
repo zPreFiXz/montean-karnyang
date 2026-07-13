@@ -186,7 +186,7 @@ const AttendanceReport = () => {
                           {slotData ? (
                             <>
                               <p className="text-normal text-base font-medium">
-                                {formatTime(slotData.scanTime)} น.
+                                {formatTime(slotData.scannedAt)} น.
                               </p>
                               <p className="text-subtle-dark text-[13px]">
                                 {slotData.status}

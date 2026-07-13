@@ -66,7 +66,7 @@ exports.getAttendanceSummary = async (req, res, next) => {
       ? await prisma.attendance.findMany({
           where: {
             employeeId: { in: employeeIds },
-            scanTime: {
+            scannedAt: {
               gte: start,
               lte: end,
             },
@@ -74,10 +74,10 @@ exports.getAttendanceSummary = async (req, res, next) => {
           select: {
             employeeId: true,
             statusLabel: true,
-            scanTime: true,
+            scannedAt: true,
           },
           orderBy: {
-            scanTime: "asc",
+            scannedAt: "asc",
           },
         })
       : [];
@@ -110,7 +110,7 @@ exports.getAttendanceSummary = async (req, res, next) => {
       if (!item.slots[slotKey]) {
         item.slots[slotKey] = {
           status: attendance.statusLabel,
-          scanTime: attendance.scanTime,
+          scannedAt: attendance.scannedAt,
         };
       }
     }
