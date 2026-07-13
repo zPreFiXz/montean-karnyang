@@ -110,22 +110,14 @@ model Customer {
   repairs     Repair[]
 }
 
-// ตำแหน่งข้างของรายการซ่อมช่วงล่าง — client ใช้ตัวพิมพ์เล็กเป็น UI state
-// (validator แปลงเป็นตัวใหญ่ตอนบันทึก, client แปลงกลับเป็นตัวเล็กตอนอ่านใน RepairDetail)
-enum Side {
-  LEFT
-  RIGHT
-  OTHER
-}
-
 model RepairItem {
   id          Int      @id @default(autoincrement())
+  partName    String?
+  serviceName String?
   customName  String?
   side        Side?
   unitPrice   Int
   quantity    Int      @default(1)
-  partName    String?
-  serviceName String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   repair      Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
@@ -136,6 +128,12 @@ model RepairItem {
   serviceId   Int?
 }
 
+enum Side {
+  LEFT
+  RIGHT
+  OTHER
+}
+
 model Part {
   id                 Int          @id @default(autoincrement())
   partNumber         String       @unique
@@ -144,12 +142,12 @@ model Part {
   costPrice          Int?
   sellingPrice       Int
   unit               String
-  stockQuantity      Int          @map("quantity")
+  stockQuantity      Int
   minStockLevel      Int
   typeSpecificData   Json?
   compatibleVehicles Json?
-  publicId           String?      @map("public_id")
-  secureUrl          String?      @map("secure_url")
+  publicId           String?
+  secureUrl          String?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   category           Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
