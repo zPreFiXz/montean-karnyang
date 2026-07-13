@@ -8,23 +8,23 @@ const RepairItemCard = ({ item, variant }) => {
 
       if (
         isTire &&
-        item.part?.typeSpecificData &&
-        item.part.typeSpecificData.aspectRatio
+        item.part?.attributes &&
+        item.part.attributes.aspectRatio
       ) {
         return (
           <p className="text-normal line-clamp-2 text-base font-semibold md:text-lg">
-            {item.part.brand} {item.part.typeSpecificData.width}/
-            {item.part.typeSpecificData.aspectRatio}R
-            {item.part.typeSpecificData.rimDiameter} {item.part.name}
+            {item.part.brand} {item.part.attributes.width}/
+            {item.part.attributes.aspectRatio}R
+            {item.part.attributes.rimDiameter} {item.part.name}
           </p>
         );
       }
 
-      if (isTire && item.part?.typeSpecificData) {
+      if (isTire && item.part?.attributes) {
         return (
           <p className="text-normal line-clamp-2 text-base font-semibold md:text-lg">
-            {item.part.brand} {item.part.typeSpecificData.width}R
-            {item.part.typeSpecificData.rimDiameter} {item.part.name}
+            {item.part.brand} {item.part.attributes.width}R
+            {item.part.attributes.rimDiameter} {item.part.name}
           </p>
         );
       }
@@ -43,21 +43,21 @@ const RepairItemCard = ({ item, variant }) => {
 
     const isTire = item.category?.name === "ยาง";
 
-    if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
+    if (isTire && item.attributes && item.attributes.aspectRatio) {
       return (
         <p className="text-normal line-clamp-2 text-base font-semibold md:text-lg">
-          {item.brand} {item.typeSpecificData.width}/
-          {item.typeSpecificData.aspectRatio}R
-          {item.typeSpecificData.rimDiameter} {item.name}
+          {item.brand} {item.attributes.width}/
+          {item.attributes.aspectRatio}R
+          {item.attributes.rimDiameter} {item.name}
         </p>
       );
     }
 
-    if (isTire && item.typeSpecificData) {
+    if (isTire && item.attributes) {
       return (
         <p className="text-normal line-clamp-2 text-base font-semibold md:text-lg">
-          {item.brand} {item.typeSpecificData.width}R
-          {item.typeSpecificData.rimDiameter} {item.name}
+          {item.brand} {item.attributes.width}R
+          {item.attributes.rimDiameter} {item.name}
         </p>
       );
     }

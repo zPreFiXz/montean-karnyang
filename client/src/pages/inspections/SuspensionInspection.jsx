@@ -250,11 +250,11 @@ const SuspensionInspection = () => {
 
   const getPartsForSide = (side) => {
     return compatibleParts.filter((part) => {
-      if (!part.typeSpecificData || !part.typeSpecificData.suspensionType) {
+      if (!part.attributes || !part.attributes.suspensionType) {
         return true;
       }
 
-      const suspensionType = part.typeSpecificData.suspensionType;
+      const suspensionType = part.attributes.suspensionType;
 
       if (suspensionType === "left-right") {
         return side === "left" || side === "right";
@@ -289,21 +289,21 @@ const SuspensionInspection = () => {
       );
     }
 
-    if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
+    if (isTire && item.attributes && item.attributes.aspectRatio) {
       return (
         <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
-          {item.brand} {item.typeSpecificData.width}/
-          {item.typeSpecificData.aspectRatio}R
-          {item.typeSpecificData.rimDiameter} {item.name}
+          {item.brand} {item.attributes.width}/
+          {item.attributes.aspectRatio}R
+          {item.attributes.rimDiameter} {item.name}
         </p>
       );
     }
 
-    if (isTire && item.typeSpecificData) {
+    if (isTire && item.attributes) {
       return (
         <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
-          {item.brand} {item.typeSpecificData.width}R
-          {item.typeSpecificData.rimDiameter} {item.name}
+          {item.brand} {item.attributes.width}R
+          {item.attributes.rimDiameter} {item.name}
         </p>
       );
     }
@@ -416,11 +416,11 @@ const SuspensionInspection = () => {
   const getProductName = (item) => {
     if (!item) return "";
     const isTire = item.category?.name === "ยาง";
-    if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
-      return `${item.brand} ${item.typeSpecificData.width}/${item.typeSpecificData.aspectRatio}R${item.typeSpecificData.rimDiameter} ${item.name}`;
+    if (isTire && item.attributes && item.attributes.aspectRatio) {
+      return `${item.brand} ${item.attributes.width}/${item.attributes.aspectRatio}R${item.attributes.rimDiameter} ${item.name}`;
     }
-    if (isTire && item.typeSpecificData) {
-      return `${item.brand} ${item.typeSpecificData.width}R${item.typeSpecificData.rimDiameter} ${item.name}`;
+    if (isTire && item.attributes) {
+      return `${item.brand} ${item.attributes.width}R${item.attributes.rimDiameter} ${item.name}`;
     }
     return `${item.brand} ${item.name}`;
   };
@@ -447,7 +447,7 @@ const SuspensionInspection = () => {
       brand: part.brand,
       secureUrl: part.secureUrl,
       category: part.category,
-      typeSpecificData: part.typeSpecificData,
+      attributes: part.attributes,
     });
     setPriceDialogOpen(true);
   };
@@ -461,7 +461,7 @@ const SuspensionInspection = () => {
       typeof part?.stockQuantity === "number"
         ? Math.max(part.stockQuantity, 0)
         : Infinity;
-    const isSuspensionPart = Boolean(part?.typeSpecificData?.suspensionType);
+    const isSuspensionPart = Boolean(part?.attributes?.suspensionType);
     const initialCount = isSuspensionPart
       ? Number(initialSelectedRef.current.left.has(part.id)) +
         Number(initialSelectedRef.current.right.has(part.id)) +
@@ -480,7 +480,7 @@ const SuspensionInspection = () => {
   };
 
   const handlePartSelection = (part, isSelected, side) => {
-    const suspensionType = part?.typeSpecificData?.suspensionType;
+    const suspensionType = part?.attributes?.suspensionType;
     const _stockQty =
       typeof part?.stockQuantity === "number" ? part.stockQuantity : Infinity;
     const isLeftRight = suspensionType === "left-right";

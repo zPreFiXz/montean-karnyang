@@ -264,7 +264,7 @@ const Dashboard = () => {
                       sellingPrice={item.sellingPrice}
                       quantity={item.stockQuantity}
                       minStockLevel={item.minStockLevel}
-                      typeSpecificData={item.typeSpecificData}
+                      attributes={item.attributes}
                       secureUrl={item.secureUrl}
                       category={item.category?.name}
                     />
@@ -286,7 +286,7 @@ const Dashboard = () => {
                       sellingPrice={item.sellingPrice}
                       quantity={item.stockQuantity}
                       minStockLevel={item.minStockLevel}
-                      typeSpecificData={item.typeSpecificData}
+                      attributes={item.attributes}
                       secureUrl={item.secureUrl}
                       category={item.category?.name}
                     />
@@ -487,7 +487,7 @@ const Dashboard = () => {
                     sellingPrice={item.sellingPrice}
                     quantity={item.stockQuantity}
                     minStockLevel={item.minStockLevel}
-                    typeSpecificData={item.typeSpecificData}
+                    attributes={item.attributes}
                     secureUrl={item.secureUrl}
                     category={item.category?.name}
                   />
@@ -509,7 +509,7 @@ const Dashboard = () => {
                     sellingPrice={item.sellingPrice}
                     quantity={item.stockQuantity}
                     minStockLevel={item.minStockLevel}
-                    typeSpecificData={item.typeSpecificData}
+                    attributes={item.attributes}
                     secureUrl={item.secureUrl}
                     category={item.category?.name}
                   />

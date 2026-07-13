@@ -8,7 +8,7 @@ const InventoryCard = ({
   sellingPrice,
   quantity,
   minStockLevel,
-  typeSpecificData,
+  attributes,
   secureUrl,
   category,
 }) => {
@@ -16,17 +16,17 @@ const InventoryCard = ({
   const isService = category === "บริการ";
 
   const renderProductInfo = () => {
-    if (isTire && typeSpecificData && typeSpecificData.aspectRatio) {
+    if (isTire && attributes && attributes.aspectRatio) {
       return (
         <p className="text-normal line-clamp-2 overflow-hidden text-base font-semibold md:text-lg">
-          {brand} {typeSpecificData.width}/{typeSpecificData.aspectRatio}R
-          {typeSpecificData.rimDiameter} {name}
+          {brand} {attributes.width}/{attributes.aspectRatio}R
+          {attributes.rimDiameter} {name}
         </p>
       );
-    } else if (isTire && typeSpecificData) {
+    } else if (isTire && attributes) {
       return (
         <p className="text-normal line-clamp-2 overflow-hidden text-base font-semibold md:text-lg">
-          {brand} {typeSpecificData.width}R{typeSpecificData.rimDiameter} {name}
+          {brand} {attributes.width}R{attributes.rimDiameter} {name}
         </p>
       );
     }

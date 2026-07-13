@@ -48,7 +48,7 @@ const InventoryList = () => {
     return uniqSorted(
       partsList
         .filter(isTirePart)
-        .map((p) => (p.typeSpecificData?.width ?? "").toString().trim())
+        .map((p) => (p.attributes?.width ?? "").toString().trim())
         .filter((v) => v !== ""),
     );
   }, [partsList]);
@@ -59,9 +59,9 @@ const InventoryList = () => {
         .filter(
           (p) =>
             isTirePart(p) &&
-            (!width || String(p.typeSpecificData?.width) === String(width)),
+            (!width || String(p.attributes?.width) === String(width)),
         )
-        .map((p) => (p.typeSpecificData?.aspectRatio ?? "").toString().trim())
+        .map((p) => (p.attributes?.aspectRatio ?? "").toString().trim())
         .filter((v) => v !== ""),
     );
   }, [partsList, width]);
@@ -72,11 +72,11 @@ const InventoryList = () => {
         .filter(
           (p) =>
             isTirePart(p) &&
-            (!width || String(p.typeSpecificData?.width) === String(width)) &&
+            (!width || String(p.attributes?.width) === String(width)) &&
             (!aspectRatio ||
-              String(p.typeSpecificData?.aspectRatio) === String(aspectRatio)),
+              String(p.attributes?.aspectRatio) === String(aspectRatio)),
         )
-        .map((p) => (p.typeSpecificData?.rimDiameter ?? "").toString().trim())
+        .map((p) => (p.attributes?.rimDiameter ?? "").toString().trim())
         .filter((v) => v !== ""),
     );
   }, [partsList, width, aspectRatio]);
@@ -86,11 +86,11 @@ const InventoryList = () => {
       .filter(
         (p) =>
           isTirePart(p) &&
-          (!width || String(p.typeSpecificData?.width) === String(width)) &&
+          (!width || String(p.attributes?.width) === String(width)) &&
           (!aspectRatio ||
-            String(p.typeSpecificData?.aspectRatio) === String(aspectRatio)) &&
+            String(p.attributes?.aspectRatio) === String(aspectRatio)) &&
           (!rimDiameter ||
-            String(p.typeSpecificData?.rimDiameter) === String(rimDiameter)),
+            String(p.attributes?.rimDiameter) === String(rimDiameter)),
       )
       .map((p) => (p.brand || "").toString().trim())
       .filter((b) => !!b);
@@ -298,7 +298,7 @@ const InventoryList = () => {
                   sellingPrice={item.sellingPrice}
                   quantity={item.stockQuantity}
                   minStockLevel={item.minStockLevel}
-                  typeSpecificData={item.typeSpecificData}
+                  attributes={item.attributes}
                   secureUrl={item.secureUrl}
                   category={item.category.name}
                   onStockUpdate={handleStockUpdate}

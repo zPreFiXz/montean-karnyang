@@ -75,7 +75,7 @@ exports.partSchema = z.object({
   unit: z.string().min(1, "กรุณาเลือกหน่วย"),
   stockQuantity: z.coerce.number(),
   minStockLevel: z.coerce.number(),
-  typeSpecificData: z.any().optional(),
+  attributes: z.any().optional(),
   compatibleVehicles: z.any().optional(),
   image: z.any().optional(),
   categoryId: z.coerce.number(),

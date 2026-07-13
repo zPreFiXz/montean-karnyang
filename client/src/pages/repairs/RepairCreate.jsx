@@ -122,21 +122,21 @@ const RepairCreate = () => {
   const renderProductInfo = (item) => {
     const isTire = item.category?.name === "ยาง";
 
-    if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
+    if (isTire && item.attributes && item.attributes.aspectRatio) {
       return (
         <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
-          {item.brand} {item.typeSpecificData.width}/
-          {item.typeSpecificData.aspectRatio}R
-          {item.typeSpecificData.rimDiameter} {item.name}
+          {item.brand} {item.attributes.width}/
+          {item.attributes.aspectRatio}R
+          {item.attributes.rimDiameter} {item.name}
         </p>
       );
     }
 
-    if (isTire && item.typeSpecificData) {
+    if (isTire && item.attributes) {
       return (
         <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
-          {item.brand} {item.typeSpecificData.width}R
-          {item.typeSpecificData.rimDiameter} {item.name}
+          {item.brand} {item.attributes.width}R
+          {item.attributes.rimDiameter} {item.name}
         </p>
       );
     }
@@ -276,12 +276,12 @@ const RepairCreate = () => {
   const getProductName = (item) => {
     const isTire = item.category?.name === "ยาง";
 
-    if (isTire && item.typeSpecificData && item.typeSpecificData.aspectRatio) {
-      return `${item.brand} ${item.typeSpecificData.width}/${item.typeSpecificData.aspectRatio}R${item.typeSpecificData.rimDiameter} ${item.name}`;
+    if (isTire && item.attributes && item.attributes.aspectRatio) {
+      return `${item.brand} ${item.attributes.width}/${item.attributes.aspectRatio}R${item.attributes.rimDiameter} ${item.name}`;
     }
 
-    if (isTire && item.typeSpecificData) {
-      return `${item.brand} ${item.typeSpecificData.width}R${item.typeSpecificData.rimDiameter} ${item.name}`;
+    if (isTire && item.attributes) {
+      return `${item.brand} ${item.attributes.width}R${item.attributes.rimDiameter} ${item.name}`;
     }
 
     return `${item.brand} ${item.name}`;

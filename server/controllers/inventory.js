@@ -11,7 +11,7 @@ const mapServiceToInventoryItem = (service) => ({
   unit: null,
   stockQuantity: 0,
   minStockLevel: 0,
-  typeSpecificData: null,
+  attributes: null,
   compatibleVehicles: null,
   publicId: null,
   secureUrl: null,
@@ -75,7 +75,7 @@ exports.listInventory = async (req, res, next) => {
     };
 
     const filteredParts = parts.filter((p) => {
-      const ts = p.typeSpecificData || {};
+      const ts = p.attributes || {};
       return (
         matches(ts.width, width) &&
         matches(ts.aspectRatio, aspectRatio) &&

@@ -165,7 +165,7 @@ const InventoryCreate = () => {
           unit: data.unit,
           stockQuantity: data.stockQuantity,
           minStockLevel: data.minStockLevel,
-          typeSpecificData: isTireCategory()
+          attributes: isTireCategory()
             ? {
                 width: data.width,
                 aspectRatio: data.aspectRatio,

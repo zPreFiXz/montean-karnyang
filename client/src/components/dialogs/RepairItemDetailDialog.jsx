@@ -73,8 +73,8 @@ const RepairItemDetailDialog = ({
 
   const itemDisplayName = (() => {
     if (isService) return `${currentItem.name}`;
-    if (isTire && currentItem.typeSpecificData) {
-      const t = currentItem.typeSpecificData;
+    if (isTire && currentItem.attributes) {
+      const t = currentItem.attributes;
       if (t.aspectRatio) {
         return `${currentItem.brand} ${t.width}/${t.aspectRatio}R${t.rimDiameter} ${currentItem.name}`;
       }
@@ -86,21 +86,21 @@ const RepairItemDetailDialog = ({
   const renderProductInfo = () => {
     if (
       isTire &&
-      currentItem.typeSpecificData &&
-      currentItem.typeSpecificData.aspectRatio
+      currentItem.attributes &&
+      currentItem.attributes.aspectRatio
     ) {
       return (
         <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold md:text-2xl">
-          {currentItem.brand} {currentItem.typeSpecificData.width}/
-          {currentItem.typeSpecificData.aspectRatio}R
-          {currentItem.typeSpecificData.rimDiameter} {currentItem.name}
+          {currentItem.brand} {currentItem.attributes.width}/
+          {currentItem.attributes.aspectRatio}R
+          {currentItem.attributes.rimDiameter} {currentItem.name}
         </h2>
       );
-    } else if (isTire && currentItem.typeSpecificData) {
+    } else if (isTire && currentItem.attributes) {
       return (
         <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold md:text-2xl">
-          {currentItem.brand} {currentItem.typeSpecificData.width}R
-          {currentItem.typeSpecificData.rimDiameter} {currentItem.name}
+          {currentItem.brand} {currentItem.attributes.width}R
+          {currentItem.attributes.rimDiameter} {currentItem.name}
         </h2>
       );
     }
@@ -256,13 +256,13 @@ const RepairItemDetailDialog = ({
                   </div>
 
                   {currentItem.category?.name === "ช่วงล่าง" &&
-                    currentItem.typeSpecificData?.suspensionType && (
+                    currentItem.attributes?.suspensionType && (
                       <div className="flex justify-between">
                         <p className="text-subtle-dark text-lg font-medium md:text-xl">
                           ประเภทช่วงล่าง:
                         </p>
                         <p className="text-normal text-lg font-semibold md:text-xl">
-                          {currentItem.typeSpecificData.suspensionType ===
+                          {currentItem.attributes.suspensionType ===
                           "left-right"
                             ? "ซ้าย-ขวา"
                             : "อื่นๆ"}

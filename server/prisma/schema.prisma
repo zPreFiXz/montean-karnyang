@@ -144,7 +144,7 @@ model Part {
   unit               String
   stockQuantity      Int
   minStockLevel      Int
-  typeSpecificData   Json?
+  attributes         Json?
   compatibleVehicles Json?
   publicId           String?
   secureUrl          String?

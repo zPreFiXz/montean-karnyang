@@ -113,11 +113,11 @@ const InventoryEdit = () => {
           setValue("stockQuantity", item.stockQuantity);
           setValue("minStockLevel", item.minStockLevel);
 
-          if (item.typeSpecificData) {
-            setValue("width", item.typeSpecificData.width);
-            setValue("aspectRatio", item.typeSpecificData.aspectRatio || "");
-            setValue("rimDiameter", item.typeSpecificData.rimDiameter);
-            setValue("suspensionType", item.typeSpecificData.suspensionType, {
+          if (item.attributes) {
+            setValue("width", item.attributes.width);
+            setValue("aspectRatio", item.attributes.aspectRatio || "");
+            setValue("rimDiameter", item.attributes.rimDiameter);
+            setValue("suspensionType", item.attributes.suspensionType, {
               shouldValidate: true,
               shouldTouch: true,
             });
@@ -248,7 +248,7 @@ const InventoryEdit = () => {
           unit: data.unit,
           stockQuantity: data.stockQuantity,
           minStockLevel: data.minStockLevel,
-          typeSpecificData: isTireCategory()
+          attributes: isTireCategory()
             ? {
                 width: data.width,
                 aspectRatio: data.aspectRatio,

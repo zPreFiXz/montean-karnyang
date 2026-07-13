@@ -232,7 +232,7 @@ const RepairDetail = () => {
           unit: ri.part.unit,
           category: ri.part.category,
           secureUrl: ri.part.secureUrl || null,
-          typeSpecificData: ri.part.typeSpecificData || null,
+          attributes: ri.part.attributes || null,
           quantity: ri.quantity || 1,
           side: toUiSide(ri.side),
         };
@@ -255,7 +255,7 @@ const RepairDetail = () => {
       const lrGroups = {};
 
       normalizedItems.forEach((item) => {
-        const st = item?.typeSpecificData?.suspensionType;
+        const st = item?.attributes?.suspensionType;
         const itemSide = item.side;
 
         if (!st || itemSide === null) {
@@ -487,11 +487,11 @@ const RepairDetail = () => {
                     {(() => {
                       const suspensionItems = (repair.repairItems || []).filter(
                         (ri) =>
-                          ri.part?.typeSpecificData?.suspensionType || ri.side,
+                          ri.part?.attributes?.suspensionType || ri.side,
                       );
                       const generalItems = (repair.repairItems || []).filter(
                         (ri) =>
-                          !ri.part?.typeSpecificData?.suspensionType &&
+                          !ri.part?.attributes?.suspensionType &&
                           !ri.side,
                       );
 
@@ -515,7 +515,7 @@ const RepairDetail = () => {
                           return;
                         }
 
-                        const st = ri.part.typeSpecificData.suspensionType;
+                        const st = ri.part.attributes.suspensionType;
                         const qty = ri.quantity || 1;
                         if (st === "left-right") {
                           const key = `${ri.part.id}-${ri.unitPrice}`;
