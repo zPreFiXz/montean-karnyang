@@ -81,7 +81,7 @@ const createRepairItemsAndDecrementStock = async (tx, repairId, repairItems) => 
     if (item.partId) {
       await tx.part.update({
         where: { id: item.partId },
-        data: { quantity: { decrement: item.quantity } },
+        data: { stockQuantity: { decrement: item.quantity } },
       });
     }
   }
@@ -341,7 +341,7 @@ exports.updateRepair = async (req, res, next) => {
         if (item.partId) {
           await tx.part.update({
             where: { id: item.partId },
-            data: { quantity: { increment: item.quantity } },
+            data: { stockQuantity: { increment: item.quantity } },
           });
         }
       }

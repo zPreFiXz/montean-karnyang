@@ -9,7 +9,7 @@ const mapServiceToInventoryItem = (service) => ({
   costPrice: null,
   sellingPrice: service.price,
   unit: null,
-  quantity: 0,
+  stockQuantity: 0,
   minStockLevel: 0,
   typeSpecificData: null,
   compatibleVehicles: null,

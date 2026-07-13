@@ -110,7 +110,7 @@ const InventoryEdit = () => {
           setValue("costPrice", item.costPrice);
           setValue("sellingPrice", item.sellingPrice);
           setValue("unit", item.unit);
-          setValue("quantity", item.quantity);
+          setValue("stockQuantity", item.stockQuantity);
           setValue("minStockLevel", item.minStockLevel);
 
           if (item.typeSpecificData) {
@@ -185,7 +185,7 @@ const InventoryEdit = () => {
       "costPrice",
       "sellingPrice",
       "unit",
-      "quantity",
+      "stockQuantity",
       "minStockLevel",
       "width",
       "aspectRatio",
@@ -246,7 +246,7 @@ const InventoryEdit = () => {
           costPrice: data.costPrice,
           sellingPrice: data.sellingPrice,
           unit: data.unit,
-          quantity: data.quantity,
+          stockQuantity: data.stockQuantity,
           minStockLevel: data.minStockLevel,
           typeSpecificData: isTireCategory()
             ? {
@@ -540,7 +540,7 @@ const InventoryEdit = () => {
                 </div>
                 <FormInput
                   register={register}
-                  name="quantity"
+                  name="stockQuantity"
                   label="จำนวนสต็อก"
                   type="number"
                   placeholder="เช่น 10"

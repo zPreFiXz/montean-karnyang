@@ -69,12 +69,13 @@ enum PaymentMethod {
 }
 
 model Vehicle {
-  id             Int          @id @default(autoincrement())
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  licensePlate   LicensePlate @relation(fields: [licensePlateId], references: [id], onDelete: Cascade)
-  licensePlateId Int          @unique
-  vehicleModel   VehicleModel @relation(fields: [vehicleModelId], references: [id], onDelete: Restrict)
+  id             Int           @id @default(autoincrement())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  // ทะเบียนเป็น optional: มี flow รับงานซ่อมรถที่ยังไม่ระบุทะเบียน (ดู controllers/repair.js)
+  licensePlate   LicensePlate? @relation(fields: [licensePlateId], references: [id], onDelete: Cascade)
+  licensePlateId Int?          @unique
+  vehicleModel   VehicleModel  @relation(fields: [vehicleModelId], references: [id], onDelete: Restrict)
   vehicleModelId Int
   repairs        Repair[]
 }
@@ -111,23 +112,31 @@ model Customer {
   repairs     Repair[]
 }
 
+// ค่า enum เป็นตัวพิมพ์เล็กโดยเจตนา: ให้ตรงกับค่าที่ client ใช้อยู่ ("left"/"right"/"other")
+// จะได้ไม่ต้อง migrate ข้อมูลเดิมและไม่ต้องแปลงค่าที่ API boundary
+enum Side {
+  left
+  right
+  other
+}
+
 model RepairItem {
-  id         Int      @id @default(autoincrement())
-  customName String?
-  side       String?
-  unitPrice  Int // หน่วย: บาทเต็ม (ไม่มีสตางค์)
-  quantity   Int      @default(1)
+  id          Int      @id @default(autoincrement())
+  customName  String?
+  side        Side?
+  unitPrice   Int // หน่วย: บาทเต็ม (ไม่มีสตางค์)
+  quantity    Int      @default(1)
   // snapshot ชื่ออะไหล่/บริการ ณ วันซ่อม: ถ้าอะไหล่ถูกลบ (SetNull) ประวัติยังอ่านรู้เรื่อง
   partName    String?
   serviceName String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  repair     Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
-  repairId   Int
-  part       Part?    @relation(fields: [partId], references: [id], onDelete: SetNull)
-  partId     Int?
-  service    Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
-  serviceId  Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  repair      Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
+  repairId    Int
+  part        Part?    @relation(fields: [partId], references: [id], onDelete: SetNull)
+  partId      Int?
+  service     Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  serviceId   Int?
 }
 
 model Part {
@@ -138,12 +147,15 @@ model Part {
   costPrice          Int? // หน่วย: บาทเต็ม
   sellingPrice       Int // หน่วย: บาทเต็ม
   unit               String
-  quantity           Int
+  // สต็อกคงเหลือ (เปลี่ยนชื่อจาก quantity ที่กำกวมกับ RepairItem.quantity; คอลัมน์เดิมผ่าน @map)
+  stockQuantity      Int          @map("quantity")
   minStockLevel      Int
+  // เก็บเป็น JSON โดยเจตนา: สเปคต่างกันตามหมวด (เช่น ยาง: width/aspectRatio/rimDiameter)
+  // ข้อมูลระดับอู่เดียวยังไม่คุ้มแตกตาราง ถ้าต้อง filter หนักขึ้นค่อยแยกเป็นคอลัมน์/ตาราง
   typeSpecificData   Json?
   compatibleVehicles Json?
-  publicId           String? @map("public_id")
-  secureUrl          String? @map("secure_url")
+  publicId           String?      @map("public_id")
+  secureUrl          String?      @map("secure_url")
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   category           Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
@@ -181,13 +193,14 @@ model Employee {
 }
 
 model Attendance {
-  id         Int             @id @default(autoincrement())
+  id         Int            @id @default(autoincrement())
   type       AttendanceType
+  // snapshot ข้อความสถานะภาษาไทย ณ เวลาบันทึก (derive จาก type ได้ แต่เก็บไว้ให้รายงานเก่าไม่เปลี่ยนตามโค้ด)
   statusText String
   scanTime   DateTime
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
-  employee   Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  employee   Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   employeeId Int
 
   @@index([employeeId, scanTime])

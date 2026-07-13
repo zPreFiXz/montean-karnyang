@@ -296,7 +296,7 @@ const InventoryList = () => {
                   name={item.name}
                   unit={item.unit}
                   sellingPrice={item.sellingPrice}
-                  quantity={item.quantity}
+                  quantity={item.stockQuantity}
                   minStockLevel={item.minStockLevel}
                   typeSpecificData={item.typeSpecificData}
                   secureUrl={item.secureUrl}

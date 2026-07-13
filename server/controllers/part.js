@@ -24,7 +24,7 @@ exports.createPart = async (req, res, next) => {
       costPrice,
       sellingPrice,
       unit,
-      quantity,
+      stockQuantity,
       minStockLevel,
       typeSpecificData,
       compatibleVehicles,
@@ -48,7 +48,7 @@ exports.createPart = async (req, res, next) => {
         costPrice,
         sellingPrice,
         unit,
-        quantity,
+        stockQuantity,
         minStockLevel,
         typeSpecificData,
         compatibleVehicles,
@@ -75,7 +75,7 @@ exports.updatePart = async (req, res, next) => {
       costPrice,
       sellingPrice,
       unit,
-      quantity,
+      stockQuantity,
       minStockLevel,
       typeSpecificData,
       compatibleVehicles,
@@ -100,7 +100,7 @@ exports.updatePart = async (req, res, next) => {
         costPrice,
         sellingPrice,
         unit,
-        quantity,
+        stockQuantity,
         minStockLevel,
         typeSpecificData,
         compatibleVehicles,
@@ -119,12 +119,12 @@ exports.updatePart = async (req, res, next) => {
 exports.updatePartStock = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { quantity } = req.body;
+    const { quantity } = req.body; // จำนวนที่เพิ่มเข้าสต็อก
 
     await prisma.part.update({
       where: { id: Number(id) },
       data: {
-        quantity: {
+        stockQuantity: {
           increment: Number(quantity),
         },
       },

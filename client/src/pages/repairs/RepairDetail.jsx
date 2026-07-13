@@ -217,7 +217,7 @@ const RepairDetail = () => {
 
     const normalizedItems = (repair?.repairItems || []).map((ri) => {
       if (ri.part) {
-        const baseStock = ri.part.quantity ?? 0;
+        const baseStock = ri.part.stockQuantity ?? 0;
         const restoredStock = baseStock + (usedQtyByPartId[ri.part.id] || 0);
         return {
           id: ri.part.id,

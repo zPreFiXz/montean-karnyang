@@ -130,7 +130,7 @@ const RepairItemDetailDialog = ({
 
       const updatedItem = {
         ...currentItem,
-        quantity: currentItem.quantity + Number(data.quantity),
+        stockQuantity: currentItem.stockQuantity + Number(data.quantity),
       };
       setCurrentItem(updatedItem);
 
@@ -193,22 +193,22 @@ const RepairItemDetailDialog = ({
 
                 {!isService && currentItem.partNumber && (
                   <div className="mt-[16px] flex justify-center">
-                    {currentItem.quantity === 0 ? (
+                    {currentItem.stockQuantity === 0 ? (
                       <div className="text-surface bg-destructive flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-base font-semibold md:text-lg">
                         <AlertTriangle className="h-4 w-4" />
-                        สต็อกหมด - จำนวน {currentItem.quantity}{" "}
+                        สต็อกหมด - จำนวน {currentItem.stockQuantity}{" "}
                         {currentItem.unit}
                       </div>
-                    ) : currentItem.quantity <= currentItem.minStockLevel ? (
+                    ) : currentItem.stockQuantity <= currentItem.minStockLevel ? (
                       <div className="text-surface bg-status-progress flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-base font-semibold md:text-lg">
                         <AlertTriangle className="h-4 w-4" />
-                        สต็อกต่ำ - จำนวน {currentItem.quantity}{" "}
+                        สต็อกต่ำ - จำนวน {currentItem.stockQuantity}{" "}
                         {currentItem.unit}
                       </div>
                     ) : (
                       <div className="text-surface bg-status-completed flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-base font-semibold md:text-lg">
                         <Check className="h-4 w-4" />
-                        สต็อกปกติ - จำนวน {currentItem.quantity}{" "}
+                        สต็อกปกติ - จำนวน {currentItem.stockQuantity}{" "}
                         {currentItem.unit}
                       </div>
                     )}
@@ -317,15 +317,15 @@ const RepairItemDetailDialog = ({
                         </p>
                         <p
                           className={`text-lg font-semibold md:text-xl ${
-                            currentItem.quantity === 0
+                            currentItem.stockQuantity === 0
                               ? "text-destructive"
-                              : currentItem.quantity <=
+                              : currentItem.stockQuantity <=
                                   currentItem.minStockLevel
                                 ? "text-status-progress"
                                 : "text-status-completed"
                           }`}
                         >
-                          {currentItem.quantity} {currentItem.unit}
+                          {currentItem.stockQuantity} {currentItem.unit}
                         </p>
                       </div>
                       <div className="flex justify-between">

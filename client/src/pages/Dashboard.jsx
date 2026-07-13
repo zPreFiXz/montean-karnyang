@@ -67,10 +67,10 @@ const Dashboard = () => {
   // กรองสินค้าที่ไม่ใช่บริการ
   const stockItems = inventory.filter((i) => i?.category?.name !== "บริการ");
   const outOfStockItems = stockItems.filter(
-    (i) => Number(i?.quantity || 0) <= 0,
+    (i) => Number(i?.stockQuantity || 0) <= 0,
   );
   const lowStockItems = stockItems.filter((i) => {
-    const qty = Number(i?.quantity || 0);
+    const qty = Number(i?.stockQuantity || 0);
     const min = Number(i?.minStockLevel || 0);
     return qty > 0 && min > 0 && qty <= min;
   });
@@ -262,7 +262,7 @@ const Dashboard = () => {
                       name={item.name}
                       unit={item.unit}
                       sellingPrice={item.sellingPrice}
-                      quantity={item.quantity}
+                      quantity={item.stockQuantity}
                       minStockLevel={item.minStockLevel}
                       typeSpecificData={item.typeSpecificData}
                       secureUrl={item.secureUrl}
@@ -284,7 +284,7 @@ const Dashboard = () => {
                       name={item.name}
                       unit={item.unit}
                       sellingPrice={item.sellingPrice}
-                      quantity={item.quantity}
+                      quantity={item.stockQuantity}
                       minStockLevel={item.minStockLevel}
                       typeSpecificData={item.typeSpecificData}
                       secureUrl={item.secureUrl}
@@ -485,7 +485,7 @@ const Dashboard = () => {
                     name={item.name}
                     unit={item.unit}
                     sellingPrice={item.sellingPrice}
-                    quantity={item.quantity}
+                    quantity={item.stockQuantity}
                     minStockLevel={item.minStockLevel}
                     typeSpecificData={item.typeSpecificData}
                     secureUrl={item.secureUrl}
@@ -507,7 +507,7 @@ const Dashboard = () => {
                     name={item.name}
                     unit={item.unit}
                     sellingPrice={item.sellingPrice}
-                    quantity={item.quantity}
+                    quantity={item.stockQuantity}
                     minStockLevel={item.minStockLevel}
                     typeSpecificData={item.typeSpecificData}
                     secureUrl={item.secureUrl}

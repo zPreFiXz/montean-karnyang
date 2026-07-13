@@ -106,7 +106,7 @@ export const partServiceSchema = z
     ),
     sellingPrice: z.coerce.number().optional().default(0),
     unit: z.string().optional(),
-    quantity: z.coerce.number().optional().default(0),
+    stockQuantity: z.coerce.number().optional().default(0),
     minStockLevel: z.coerce.number().optional().default(0),
     typeSpecificData: z.any().optional(),
     compatibleVehicles: z.any().optional(),

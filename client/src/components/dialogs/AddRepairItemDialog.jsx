@@ -108,7 +108,7 @@ const AddRepairItemDialog = ({
     const displayStock =
       typeof restoredStockMapRef.current[key] === "number"
         ? restoredStockMapRef.current[key]
-        : item.quantity || 0;
+        : item.stockQuantity || 0;
 
     const remainingAddable = (displayStock || 0) - selectedQuantity;
 
@@ -246,7 +246,7 @@ const AddRepairItemDialog = ({
                   const displayStock =
                     typeof restoredStockMapRef.current[key] === "number"
                       ? restoredStockMapRef.current[key]
-                      : item.quantity || 0;
+                      : item.stockQuantity || 0;
 
                   const remainingAddable =
                     (displayStock || 0) - selectedQuantity;

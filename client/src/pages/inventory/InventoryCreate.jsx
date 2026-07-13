@@ -101,7 +101,7 @@ const InventoryCreate = () => {
       "costPrice",
       "sellingPrice",
       "unit",
-      "quantity",
+      "stockQuantity",
       "minStockLevel",
       "width",
       "aspectRatio",
@@ -163,7 +163,7 @@ const InventoryCreate = () => {
           costPrice: data.costPrice,
           sellingPrice: data.sellingPrice,
           unit: data.unit,
-          quantity: data.quantity,
+          stockQuantity: data.stockQuantity,
           minStockLevel: data.minStockLevel,
           typeSpecificData: isTireCategory()
             ? {
@@ -442,7 +442,7 @@ const InventoryCreate = () => {
               </div>
               <FormInput
                 register={register}
-                name="quantity"
+                name="stockQuantity"
                 label="จำนวนสต็อก"
                 type="number"
                 placeholder="เช่น 4"

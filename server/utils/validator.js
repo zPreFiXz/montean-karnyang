@@ -49,7 +49,10 @@ exports.repairSchema = z.object({
           serviceId: z.number().optional(),
           unitPrice: z.coerce.number(),
           quantity: z.coerce.number().min(1, "จำนวนอย่างน้อย 1"),
-          side: z.string().optional(),
+          side: z
+            .enum(["left", "right", "other"], { message: "ตำแหน่งข้างไม่ถูกต้อง" })
+            .nullable()
+            .optional(),
           customName: z.string().optional(),
         })
         .refine((item) => item.partId || item.serviceId || item.customName, {
@@ -66,7 +69,7 @@ exports.partSchema = z.object({
   costPrice: z.coerce.number().optional(),
   sellingPrice: z.coerce.number(),
   unit: z.string().min(1, "กรุณาเลือกหน่วย"),
-  quantity: z.coerce.number(),
+  stockQuantity: z.coerce.number(),
   minStockLevel: z.coerce.number(),
   typeSpecificData: z.any().optional(),
   compatibleVehicles: z.any().optional(),

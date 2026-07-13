@@ -458,8 +458,8 @@ const SuspensionInspection = () => {
 
   const getAllowedUnitsForPart = (part) => {
     const stockQty =
-      typeof part?.quantity === "number"
-        ? Math.max(part.quantity, 0)
+      typeof part?.stockQuantity === "number"
+        ? Math.max(part.stockQuantity, 0)
         : Infinity;
     const isSuspensionPart = Boolean(part?.typeSpecificData?.suspensionType);
     const initialCount = isSuspensionPart
@@ -482,7 +482,7 @@ const SuspensionInspection = () => {
   const handlePartSelection = (part, isSelected, side) => {
     const suspensionType = part?.typeSpecificData?.suspensionType;
     const _stockQty =
-      typeof part?.quantity === "number" ? part.quantity : Infinity;
+      typeof part?.stockQuantity === "number" ? part.stockQuantity : Infinity;
     const isLeftRight = suspensionType === "left-right";
     const allowedUnits = getAllowedUnitsForPart(part);
 
