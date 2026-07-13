@@ -49,10 +49,14 @@ exports.repairSchema = z.object({
           serviceId: z.number().optional(),
           unitPrice: z.coerce.number(),
           quantity: z.coerce.number().min(1, "จำนวนอย่างน้อย 1"),
-          side: z
-            .enum(["left", "right", "other"], { message: "ตำแหน่งข้างไม่ถูกต้อง" })
-            .nullable()
-            .optional(),
+          // client ส่งตัวพิมพ์เล็ก (UI state) → แปลงเป็นตัวใหญ่ให้ตรง enum Side ใน DB
+          side: z.preprocess(
+            (v) => (typeof v === "string" ? v.toUpperCase() : v),
+            z
+              .enum(["LEFT", "RIGHT", "OTHER"], { message: "ตำแหน่งข้างไม่ถูกต้อง" })
+              .nullable()
+              .optional(),
+          ),
           customName: z.string().optional(),
         })
         .refine((item) => item.partId || item.serviceId || item.customName, {

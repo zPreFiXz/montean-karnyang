@@ -33,7 +33,7 @@ enum Role {
 model Repair {
   id            Int           @id @default(autoincrement())
   description   String?
-  totalPrice    Int // หน่วย: บาทเต็ม (ไม่มีสตางค์)
+  totalPrice    Int
   type          RepairType    @default(GENERAL)
   status        RepairStatus  @default(IN_PROGRESS)
   completedAt   DateTime?
@@ -45,21 +45,20 @@ model Repair {
   userId        Int
   vehicle       Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
   vehicleId     Int
-  // ลูกค้าเป็น optional: งานซ่อมบางรายการไม่ระบุตัวลูกค้า
   customer      Customer?     @relation(fields: [customerId], references: [id], onDelete: Restrict)
   customerId    Int?
   repairItems   RepairItem[]
+}
+
+enum RepairType {
+  GENERAL
+  SUSPENSION
 }
 
 enum RepairStatus {
   IN_PROGRESS
   COMPLETED
   PAID
-}
-
-enum RepairType {
-  GENERAL
-  SUSPENSION
 }
 
 enum PaymentMethod {
@@ -72,7 +71,6 @@ model Vehicle {
   id             Int           @id @default(autoincrement())
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
-  // ทะเบียนเป็น optional: มี flow รับงานซ่อมรถที่ยังไม่ระบุทะเบียน (ดู controllers/repair.js)
   licensePlate   LicensePlate? @relation(fields: [licensePlateId], references: [id], onDelete: Cascade)
   licensePlateId Int?          @unique
   vehicleModel   VehicleModel  @relation(fields: [vehicleModelId], references: [id], onDelete: Restrict)
@@ -112,21 +110,20 @@ model Customer {
   repairs     Repair[]
 }
 
-// ค่า enum เป็นตัวพิมพ์เล็กโดยเจตนา: ให้ตรงกับค่าที่ client ใช้อยู่ ("left"/"right"/"other")
-// จะได้ไม่ต้อง migrate ข้อมูลเดิมและไม่ต้องแปลงค่าที่ API boundary
+// ตำแหน่งข้างของรายการซ่อมช่วงล่าง — client ใช้ตัวพิมพ์เล็กเป็น UI state
+// (validator แปลงเป็นตัวใหญ่ตอนบันทึก, client แปลงกลับเป็นตัวเล็กตอนอ่านใน RepairDetail)
 enum Side {
-  left
-  right
-  other
+  LEFT
+  RIGHT
+  OTHER
 }
 
 model RepairItem {
   id          Int      @id @default(autoincrement())
   customName  String?
   side        Side?
-  unitPrice   Int // หน่วย: บาทเต็ม (ไม่มีสตางค์)
+  unitPrice   Int
   quantity    Int      @default(1)
-  // snapshot ชื่ออะไหล่/บริการ ณ วันซ่อม: ถ้าอะไหล่ถูกลบ (SetNull) ประวัติยังอ่านรู้เรื่อง
   partName    String?
   serviceName String?
   createdAt   DateTime @default(now())
@@ -144,14 +141,11 @@ model Part {
   partNumber         String       @unique
   brand              String
   name               String
-  costPrice          Int? // หน่วย: บาทเต็ม
-  sellingPrice       Int // หน่วย: บาทเต็ม
+  costPrice          Int?
+  sellingPrice       Int
   unit               String
-  // สต็อกคงเหลือ (เปลี่ยนชื่อจาก quantity ที่กำกวมกับ RepairItem.quantity; คอลัมน์เดิมผ่าน @map)
   stockQuantity      Int          @map("quantity")
   minStockLevel      Int
-  // เก็บเป็น JSON โดยเจตนา: สเปคต่างกันตามหมวด (เช่น ยาง: width/aspectRatio/rimDiameter)
-  // ข้อมูลระดับอู่เดียวยังไม่คุ้มแตกตาราง ถ้าต้อง filter หนักขึ้นค่อยแยกเป็นคอลัมน์/ตาราง
   typeSpecificData   Json?
   compatibleVehicles Json?
   publicId           String?      @map("public_id")
@@ -166,7 +160,7 @@ model Part {
 model Service {
   id          Int          @id @default(autoincrement())
   name        String       @unique
-  price       Int // หน่วย: บาทเต็ม
+  price       Int
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   category    Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
@@ -195,7 +189,6 @@ model Employee {
 model Attendance {
   id         Int            @id @default(autoincrement())
   type       AttendanceType
-  // snapshot ข้อความสถานะภาษาไทย ณ เวลาบันทึก (derive จาก type ได้ แต่เก็บไว้ให้รายงานเก่าไม่เปลี่ยนตามโค้ด)
   statusText String
   scanTime   DateTime
   createdAt  DateTime       @default(now())

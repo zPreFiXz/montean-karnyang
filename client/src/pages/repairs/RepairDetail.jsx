@@ -189,6 +189,9 @@ const RepairDetail = () => {
   const statusInfo = getStatusInfo(repair?.status) ?? DEFAULT_STATUS_INFO;
   const StatusIcon = statusInfo?.icon;
 
+  // DB เก็บ side เป็นตัวพิมพ์ใหญ่ (enum LEFT/RIGHT/OTHER) — แปลงเป็นตัวเล็กให้ตรง UI state
+  const toUiSide = (side) => (side ? side.toLowerCase() : null);
+
   const handleEditRepair = () => {
     if (!repair) return;
 
@@ -231,7 +234,7 @@ const RepairDetail = () => {
           secureUrl: ri.part.secureUrl || null,
           typeSpecificData: ri.part.typeSpecificData || null,
           quantity: ri.quantity || 1,
-          side: ri.side,
+          side: toUiSide(ri.side),
         };
       }
       return {
@@ -242,7 +245,7 @@ const RepairDetail = () => {
         category: ri.service?.category,
         secureUrl: null,
         quantity: ri.quantity || 1,
-        side: ri.side,
+        side: toUiSide(ri.side),
       };
     });
 
@@ -499,15 +502,15 @@ const RepairDetail = () => {
                       const lrGroups = {};
 
                       suspensionItems.forEach((ri) => {
-                        if (ri.side === "left") {
+                        if (toUiSide(ri.side) === "left") {
                           leftItems.push(ri);
                           return;
                         }
-                        if (ri.side === "right") {
+                        if (toUiSide(ri.side) === "right") {
                           rightItems.push(ri);
                           return;
                         }
-                        if (ri.side === "other") {
+                        if (toUiSide(ri.side) === "other") {
                           otherItems.push(ri);
                           return;
                         }
