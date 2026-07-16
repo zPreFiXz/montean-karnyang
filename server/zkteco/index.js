@@ -33,14 +33,28 @@ const startZktecoService = async (prisma) => {
   let stopped = false;
   let reconnectTimerId = null;
   let reconnectAttempts = 0;
-  let lastDayStartDate = "";
-  let lastSummaryDate = "";
-  let lastAllInDate = "";
+  // cache กัน query DailyNotice ซ้ำทุกนาที — สถานะจริงอยู่ใน DB (ทน restart)
+  const sentNoticeCache = new Set();
+
+  const noticeSent = async (dateKey, kind) => {
+    const cacheKey = `${dateKey}:${kind}`;
+    if (sentNoticeCache.has(cacheKey)) return true;
+    const notice = await prisma.dailyNotice.findUnique({
+      where: { dateKey_kind: { dateKey, kind } },
+    });
+    if (notice) sentNoticeCache.add(cacheKey);
+    return Boolean(notice);
+  };
+
+  const markNoticeSent = async (dateKey, kind) => {
+    await prisma.dailyNotice.create({ data: { dateKey, kind } });
+    sentNoticeCache.add(`${dateKey}:${kind}`);
+  };
 
   // แจ้งครั้งเดียวต่อวัน เมื่อพนักงานทุกคนมีสแกนแรกของวันแล้ว
   const checkAllClockedIn = async (recordTime) => {
     const dateKey = getDateKey(recordTime);
-    if (lastAllInDate === dateKey) return;
+    if (await noticeSent(dateKey, "ALL_CLOCKED_IN")) return;
 
     const total = await prisma.employee.count();
     if (!total) return;
@@ -66,11 +80,11 @@ const startZktecoService = async (prisma) => {
       statusLabel: s.statusLabel,
     }));
 
-    lastAllInDate = dateKey;
     try {
       await telegram.send(allClockedInMessage(lateEmployees));
+      await markNoticeSent(dateKey, "ALL_CLOCKED_IN");
     } catch (err) {
-      lastAllInDate = ""; // ส่งไม่สำเร็จ ให้ลองใหม่เมื่อมีสแกนถัดไป
+      // ส่งไม่สำเร็จ → ยังไม่ mark จะลองใหม่เมื่อมีสแกนถัดไป
       console.error("[Telegram] All clocked-in message failed:", err);
     }
   };
@@ -189,17 +203,18 @@ const startZktecoService = async (prisma) => {
     polling = false;
   };
 
-  // จริงเมื่ออยู่ในหน้าต่าง [target, target+5) นาที (กันดริฟต์ข้ามนาที)
-  const isWithinWindow = (minuteNow, target) => minuteNow >= target && minuteNow < target + 5;
+  // "ถึงกำหนดแล้ว" = เลยเวลาเป้าหมายของวันนี้มาแล้ว (ไม่จำกัดหน้าต่าง —
+  // เน็ตหลุด/worker restart คร่อมเวลาเป้าหมาย ข้อความจะตามส่งในวันเดียวกัน)
+  const isDue = (minuteNow, target) => minuteNow >= target;
 
   const checkDayStart = async () => {
     const now = new Date();
     const dateKey = getDateKey(now);
-    if (!isWithinWindow(getMinuteOfDay(now), attCfg.dayStartAtMinutes)) return;
-    if (lastDayStartDate === dateKey) return;
+    if (!isDue(getMinuteOfDay(now), attCfg.dayStartAtMinutes)) return;
+    if (await noticeSent(dateKey, "DAY_START")) return;
     try {
       await telegram.send(dayStartMessage(now));
-      lastDayStartDate = dateKey;
+      await markNoticeSent(dateKey, "DAY_START");
     } catch (err) {
       console.error("[Telegram] Day start message failed:", err);
     }
@@ -208,11 +223,11 @@ const startZktecoService = async (prisma) => {
   const checkDailySummary = async () => {
     const now = new Date();
     const dateKey = getDateKey(now);
-    if (!isWithinWindow(getMinuteOfDay(now), attCfg.summaryAtMinutes)) return;
-    if (lastSummaryDate === dateKey) return;
+    if (!isDue(getMinuteOfDay(now), attCfg.summaryAtMinutes)) return;
+    if (await noticeSent(dateKey, "DAILY_SUMMARY")) return;
     try {
       await telegram.send(await dailySummary(prisma, dateKey));
-      lastSummaryDate = dateKey;
+      await markNoticeSent(dateKey, "DAILY_SUMMARY");
     } catch (err) {
       console.error("[Telegram] Daily summary failed:", err);
     }
