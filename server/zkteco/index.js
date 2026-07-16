@@ -5,6 +5,7 @@ const {
   displayName,
   scanMessage,
   dayStartMessage,
+  morningStatusMessage,
   allClockedInMessage,
   dailySummary,
 } = require("./formatter");
@@ -36,6 +37,18 @@ const startZktecoService = async (prisma) => {
   let lastDayStartDate = "";
   let lastSummaryDate = "";
   let lastAllInDate = "";
+  let lastMorningStatusDate = "";
+
+  // จำนวนพนักงานที่มีสแกนแล้ววันนี้ (คนเดิมสแกนหลายครั้งนับ 1)
+  const countPresent = async (dateKey) => {
+    const { start, end } = getDayRange(dateKey);
+    const scanned = await prisma.attendance.findMany({
+      where: { scannedAt: { gte: start, lte: end } },
+      distinct: ["employeeId"],
+      select: { employeeId: true },
+    });
+    return scanned.length;
+  };
 
   // แจ้งครั้งเดียวต่อวัน เมื่อพนักงานทุกคนมีสแกนแรกของวันแล้ว
   const checkAllClockedIn = async (recordTime) => {
@@ -44,14 +57,9 @@ const startZktecoService = async (prisma) => {
 
     const total = await prisma.employee.count();
     if (!total) return;
+    if ((await countPresent(dateKey)) < total) return;
 
     const { start, end } = getDayRange(dateKey);
-    const scanned = await prisma.attendance.findMany({
-      where: { scannedAt: { gte: start, lte: end } },
-      distinct: ["employeeId"],
-      select: { employeeId: true },
-    });
-    if (scanned.length < total) return;
 
     const lateScans = await prisma.attendance.findMany({
       where: {
@@ -185,8 +193,37 @@ const startZktecoService = async (prisma) => {
     }
   };
 
+  // 08:15 แจ้งจำนวนคนที่มาแล้ว เฉพาะวันที่ยังไม่ครบ (ครบแล้วมีข้อความ ✅ อยู่แล้ว)
+  const checkMorningStatus = async () => {
+    const now = new Date();
+    const dateKey = getDateKey(now);
+    if (!isWithinWindow(getMinuteOfDay(now), attCfg.morningStatusAtMinutes)) return;
+    if (lastMorningStatusDate === dateKey) return;
+    if (lastAllInDate === dateKey) {
+      lastMorningStatusDate = dateKey;
+      return;
+    }
+
+    try {
+      const total = await prisma.employee.count();
+      if (!total) return;
+
+      const present = await countPresent(dateKey);
+      if (present >= total) {
+        lastMorningStatusDate = dateKey;
+        return;
+      }
+
+      await telegram.send(morningStatusMessage(present, total));
+      lastMorningStatusDate = dateKey;
+    } catch (err) {
+      console.error("[Telegram] Morning status failed:", err);
+    }
+  };
+
   const checkSchedules = () => {
     checkDayStart();
+    checkMorningStatus();
     checkDailySummary();
   };
 
