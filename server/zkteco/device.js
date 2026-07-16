@@ -1,14 +1,14 @@
 const ZKLib = require("node-zklib");
 const config = require("./config");
 
-const withTimeout = (promise, ms) => {
+const withTimeout = (promise, ms, code) => {
   let timer;
   return Promise.race([
     promise,
     new Promise((_, reject) => {
       timer = setTimeout(() => {
-        const err = new Error(`Fetch timeout (>${ms}ms)`);
-        err.code = "FETCH_TIMEOUT";
+        const err = new Error(`${code} (>${ms}ms)`);
+        err.code = code;
         reject(err);
       }, ms);
     }),
@@ -16,7 +16,7 @@ const withTimeout = (promise, ms) => {
 };
 
 const createDevice = () => {
-  const { ip, port, socketTimeoutMs, connectionTimeoutMs, fetchTimeoutMs } =
+  const { ip, port, socketTimeoutMs, connectionTimeoutMs, connectTimeoutMs, fetchTimeoutMs } =
     config.device;
   let zk = null;
 
@@ -28,17 +28,23 @@ const createDevice = () => {
     zk = null;
   };
 
+  // node-zklib อาจค้างเงียบถ้าเครื่องสแกนไม่ตอบ — บังคับ timeout เองทั้ง connect และ fetch
   const connect = async () => {
     await disconnect();
 
     zk = new ZKLib(ip, port, socketTimeoutMs, connectionTimeoutMs);
-    await zk.createSocket();
+    try {
+      await withTimeout(zk.createSocket(), connectTimeoutMs, "CONNECT_TIMEOUT");
+    } catch (err) {
+      await disconnect();
+      throw err;
+    }
     console.log(`[ZKTeco] Connected to ${ip}:${port}`);
   };
 
   const fetchLogs = async () => {
     if (!zk) throw new Error("ZKLib not connected");
-    const data = await withTimeout(zk.getAttendances(), fetchTimeoutMs);
+    const data = await withTimeout(zk.getAttendances(), fetchTimeoutMs, "FETCH_TIMEOUT");
     return data?.data || [];
   };
 
