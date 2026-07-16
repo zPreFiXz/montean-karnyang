@@ -31,9 +31,6 @@ const scanMessage = (empName, empId, type, statusLabel, recordTime) => {
 // ส่งตอนเช้า: คั่นแชทเป็นวันใหม่ + ยืนยันระบบทำงานอยู่
 const dayStartMessage = (date) => `🌅 วันที่ ${formatThaiDate(date)}`;
 
-const morningStatusMessage = (presentCount, totalEmployees) =>
-  `👥 พนักงานมาแล้ว ${presentCount}/${totalEmployees} คน`;
-
 // lateEmployees: [{ name, statusLabel }] — คนสายไม่ได้ค่าข้าวเที่ยงของวันนั้น
 const allClockedInMessage = (lateEmployees = []) => {
   const header = "✅ พนักงานเข้างานครบแล้ว";
@@ -134,7 +131,6 @@ module.exports = {
   displayName,
   scanMessage,
   dayStartMessage,
-  morningStatusMessage,
   allClockedInMessage,
   dailySummary,
 };

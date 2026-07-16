@@ -31,7 +31,6 @@ const config = {
     stepStatuses: ["เข้างาน", "พักเที่ยง", "กลับจากพักเที่ยง", "เลิกงาน"],
     employeeCacheTtlMs: 5 * 60 * 1_000,
     dayStartAtMinutes: 6 * 60 + 30, // 06:30 แจ้งเริ่มวันใหม่ + ยืนยันระบบทำงาน
-    morningStatusAtMinutes: 8 * 60 + 15, // 08:15 แจ้งจำนวนคนมาแล้ว ถ้ายังไม่ครบ
     summaryAtMinutes: 18 * 60,
     scheduleCheckIntervalMs: 60_000,
   },
