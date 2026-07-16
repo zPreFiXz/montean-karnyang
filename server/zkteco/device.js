@@ -28,7 +28,6 @@ const createDevice = () => {
     zk = null;
   };
 
-  // node-zklib อาจค้างเงียบถ้าเครื่องสแกนไม่ตอบ — บังคับ timeout เองทั้ง connect และ fetch
   const connect = async () => {
     await disconnect();
 

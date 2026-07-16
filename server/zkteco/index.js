@@ -5,6 +5,7 @@ const {
   displayName,
   scanMessage,
   dayStartMessage,
+  allClockedInMessage,
   dailySummary,
 } = require("./formatter");
 const telegram = require("./telegram");
@@ -34,6 +35,32 @@ const startZktecoService = async (prisma) => {
   let reconnectAttempts = 0;
   let lastDayStartDate = "";
   let lastSummaryDate = "";
+  let lastAllInDate = "";
+
+  // แจ้งครั้งเดียวต่อวัน เมื่อพนักงานทุกคนมีสแกนแรกของวันแล้ว
+  const checkAllClockedIn = async (recordTime) => {
+    const dateKey = getDateKey(recordTime);
+    if (lastAllInDate === dateKey) return;
+
+    const total = await prisma.employee.count();
+    if (!total) return;
+
+    const { start, end } = getDayRange(dateKey);
+    const scanned = await prisma.attendance.findMany({
+      where: { scannedAt: { gte: start, lte: end } },
+      distinct: ["employeeId"],
+      select: { employeeId: true },
+    });
+    if (scanned.length < total) return;
+
+    lastAllInDate = dateKey;
+    try {
+      await telegram.send(allClockedInMessage(total, recordTime));
+    } catch (err) {
+      lastAllInDate = ""; // ส่งไม่สำเร็จ ให้ลองใหม่เมื่อมีสแกนถัดไป
+      console.error("[Telegram] All clocked-in message failed:", err);
+    }
+  };
 
   // เทียบ log จากเครื่องกับ DB → อันที่ DB ยังไม่มี = ยังไม่เคยบันทึก/แจ้ง
   // (DB เป็น source of truth ทนเน็ตหลุด/รีสตาร์ท)
@@ -93,6 +120,8 @@ const startZktecoService = async (prisma) => {
       telegram
         .send(scanMessage(displayName(emp), empId, status.type, status.text, recordTime))
         .catch((err) => console.error("[Telegram] Send notification failed:", err));
+
+      await checkAllClockedIn(recordTime);
     }
   };
 
