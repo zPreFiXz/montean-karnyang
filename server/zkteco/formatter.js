@@ -31,7 +31,19 @@ const scanMessage = (empName, empId, type, statusLabel, recordTime) => {
 // ส่งตอนเช้า: คั่นแชทเป็นวันใหม่ + ยืนยันระบบทำงานอยู่
 const dayStartMessage = (date) => `🌅 วันที่ ${formatThaiDate(date)}`;
 
-const allClockedInMessage = () => "✅ พนักงานเข้างานครบแล้ว";
+// lateEmployees: [{ name, statusLabel }] — คนสายไม่ได้ค่าข้าวเที่ยงของวันนั้น
+const allClockedInMessage = (lateEmployees = []) => {
+  if (!lateEmployees.length) {
+    return "✅ พนักงานเข้างานครบแล้ว ตรงเวลาทุกคน";
+  }
+
+  return [
+    "✅ พนักงานเข้างานครบแล้ว",
+    "",
+    `⏱️ มาสาย ไม่ได้ค่าข้าวเที่ยง (${lateEmployees.length} คน)`,
+    bulletList(lateEmployees.map((e) => `${e.name} ${lateNote(e.statusLabel)}`)),
+  ].join("\n");
+};
 
 // เอาเฉพาะข้อความในวงเล็บ เช่น "เข้างาน (สาย 12 นาที)" -> "(สาย 12 นาที)"
 const lateNote = (status) => status.match(/\(.*\)/)?.[0] ?? status;

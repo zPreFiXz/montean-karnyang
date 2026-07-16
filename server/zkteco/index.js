@@ -53,9 +53,22 @@ const startZktecoService = async (prisma) => {
     });
     if (scanned.length < total) return;
 
+    const lateScans = await prisma.attendance.findMany({
+      where: {
+        type: "CLOCK_IN_LATE",
+        scannedAt: { gte: start, lte: end },
+      },
+      select: { statusLabel: true, employee: { select: { name: true } } },
+      orderBy: { scannedAt: "asc" },
+    });
+    const lateEmployees = lateScans.map((s) => ({
+      name: s.employee.name,
+      statusLabel: s.statusLabel,
+    }));
+
     lastAllInDate = dateKey;
     try {
-      await telegram.send(allClockedInMessage());
+      await telegram.send(allClockedInMessage(lateEmployees));
     } catch (err) {
       lastAllInDate = ""; // ส่งไม่สำเร็จ ให้ลองใหม่เมื่อมีสแกนถัดไป
       console.error("[Telegram] All clocked-in message failed:", err);
