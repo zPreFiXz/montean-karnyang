@@ -29,6 +29,9 @@ const startZktecoService = async (prisma) => {
   let polling = false;
   let reconnecting = false;
   let connected = false;
+  let stopped = false;
+  let reconnectTimerId = null;
+  let reconnectAttempts = 0;
   let lastDayStartDate = "";
   let lastSummaryDate = "";
 
@@ -150,29 +153,38 @@ const startZktecoService = async (prisma) => {
     employees.warm(true).catch((err) => console.warn("[Cache] Employee warmup failed:", err));
     connected = true;
     reconnecting = false;
+    reconnectAttempts = 0;
   };
 
+  // exponential backoff: 10s, 20s, 40s, ... เพดาน reconnectMaxDelayMs
   const scheduleReconnect = (reason) => {
-    if (reconnecting) return;
+    if (reconnecting || stopped) return;
     reconnecting = true;
     connected = false;
-    console.warn(`[ZKTeco] Reconnecting in ${deviceCfg.reconnectDelayMs}ms (${reason})`);
-    setTimeout(async () => {
+    const delay = Math.min(
+      deviceCfg.reconnectDelayMs * 2 ** reconnectAttempts,
+      deviceCfg.reconnectMaxDelayMs,
+    );
+    reconnectAttempts += 1;
+    console.warn(`[ZKTeco] Reconnecting in ${delay}ms (${reason})`);
+    reconnectTimerId = setTimeout(async () => {
       try {
         await connect();
       } catch (err) {
         reconnecting = false;
         scheduleReconnect(zkErrorMessage(err));
       }
-    }, deviceCfg.reconnectDelayMs);
+    }, delay);
   };
 
   const pollTimerId = setInterval(poll, deviceCfg.pollIntervalMs);
   const scheduleTimerId = setInterval(checkSchedules, attCfg.scheduleCheckIntervalMs);
 
   const stop = () => {
+    stopped = true;
     clearInterval(pollTimerId);
     clearInterval(scheduleTimerId);
+    clearTimeout(reconnectTimerId);
     device.disconnect().catch(() => {});
   };
 

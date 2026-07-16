@@ -7,6 +7,7 @@ const config = {
     pollIntervalMs: 30_000,
     fetchTimeoutMs: 20_000,
     reconnectDelayMs: 10_000,
+    reconnectMaxDelayMs: 5 * 60_000,
   },
 
   telegram: {

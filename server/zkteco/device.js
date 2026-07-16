@@ -1,17 +1,19 @@
 const ZKLib = require("node-zklib");
 const config = require("./config");
 
-const withTimeout = (promise, ms) =>
-  Promise.race([
+const withTimeout = (promise, ms) => {
+  let timer;
+  return Promise.race([
     promise,
-    new Promise((_, reject) =>
-      setTimeout(() => {
+    new Promise((_, reject) => {
+      timer = setTimeout(() => {
         const err = new Error(`Fetch timeout (>${ms}ms)`);
         err.code = "FETCH_TIMEOUT";
         reject(err);
-      }, ms),
-    ),
-  ]);
+      }, ms);
+    }),
+  ]).finally(() => clearTimeout(timer));
+};
 
 const createDevice = () => {
   const { ip, port, socketTimeoutMs, connectionTimeoutMs, fetchTimeoutMs } =
