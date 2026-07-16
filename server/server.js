@@ -1,9 +1,10 @@
+const path = require("path");
 const dotenv = require("dotenv");
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, ".env") });
 
-// ตรวจสอบ env ที่จำเป็นก่อนเริ่มเซิร์ฟเวอร์
 const REQUIRED_ENV = ["DATABASE_URL", "JWT_SECRET"];
 const missingEnv = REQUIRED_ENV.filter((name) => !process.env[name]);
+
 if (missingEnv.length > 0) {
   console.error(
     `Missing required environment variables: ${missingEnv.join(", ")}`,
@@ -16,7 +17,6 @@ const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const morgan = require("morgan");
-const path = require("path");
 const { readdirSync, existsSync } = require("fs");
 const handleError = require("./middlewares/error");
 
@@ -29,20 +29,18 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-        // อนุญาตรูปจาก Cloudinary (ค่า default อนุญาตแค่ 'self' กับ data:)
         "img-src": ["'self'", "data:", "https://res.cloudinary.com"],
       },
     },
   }),
 );
-// จำกัด origin ตาม CLIENT_URL กันเว็บอื่นยิง API ข้ามโดเมน
 app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true,
   }),
 );
-app.use(morgan("dev"));
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json({ limit: "5mb" }));
 app.use(
   "/api",
@@ -64,9 +62,10 @@ app.use(
   }),
 );
 
-readdirSync("./routes")
+const routesPath = path.join(__dirname, "routes");
+readdirSync(routesPath)
   .sort()
-  .forEach((file) => app.use("/api", require("./routes/" + file)));
+  .forEach((file) => app.use("/api", require(path.join(routesPath, file))));
 
 const clientDistPath = path.join(__dirname, "..", "client", "dist");
 if (existsSync(clientDistPath)) {
