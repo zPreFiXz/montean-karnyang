@@ -185,6 +185,8 @@ model Attendance {
   type        AttendanceType
   statusLabel String
   scannedAt   DateTime
+  // เวลาส่งแจ้งเตือน Telegram สำเร็จ — null คือยังส่งไม่สำเร็จ worker จะ retry รอบถัดไป
+  notifiedAt  DateTime?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   employee    Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)

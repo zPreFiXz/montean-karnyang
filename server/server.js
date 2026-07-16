@@ -19,11 +19,9 @@ const rateLimit = require("express-rate-limit");
 const morgan = require("morgan");
 const { readdirSync, existsSync } = require("fs");
 const handleError = require("./middlewares/error");
-
 const app = express();
-app.disable("x-powered-by");
 
-// Middleware
+app.disable("x-powered-by");
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -83,7 +81,6 @@ app.use((req, res) => {
   res.status(404).json({ message: "ไม่พบเส้นทางที่เรียกใช้งาน" });
 });
 
-// Error handling
 app.use(handleError);
 
 const PORT = process.env.PORT || 3000;

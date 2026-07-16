@@ -130,11 +130,39 @@ const startZktecoService = async (prisma) => {
         continue; // ยังไม่บันทึก → ไม่แจ้ง จะลองใหม่รอบหน้า
       }
 
-      telegram
-        .send(scanMessage(displayName(emp), empId, status.type, status.text, recordTime))
-        .catch((err) => console.error("[Telegram] Send notification failed:", err));
-
       await checkAllClockedIn(recordTime);
+    }
+  };
+
+  // ส่งแจ้งเตือนสแกนที่ยังไม่ได้ส่ง (notifiedAt = null) — ครอบทั้งสแกนใหม่
+  // และรายการค้างจากช่วงเน็ตหลุด (บันทึก DB ได้แต่ส่ง Telegram ไม่ออก)
+  const flushScanNotifications = async () => {
+    const { start, end } = getDayRange(getDateKey(new Date()));
+    const pending = await prisma.attendance.findMany({
+      where: { notifiedAt: null, scannedAt: { gte: start, lte: end } },
+      select: {
+        id: true,
+        type: true,
+        statusLabel: true,
+        scannedAt: true,
+        employee: { select: { name: true, zkUserId: true } },
+      },
+      orderBy: { scannedAt: "asc" },
+    });
+
+    for (const att of pending) {
+      try {
+        await telegram.send(
+          scanMessage(displayName(att.employee), att.employee.zkUserId, att.type, att.statusLabel, att.scannedAt),
+        );
+      } catch (err) {
+        console.error("[Telegram] Send notification failed (will retry):", err);
+        break; // เน็ตน่าจะยังไม่มา หยุดรอบนี้ รักษาลำดับข้อความไว้รอบหน้า
+      }
+      await prisma.attendance.update({
+        where: { id: att.id },
+        data: { notifiedAt: new Date() },
+      });
     }
   };
 
@@ -151,9 +179,14 @@ const startZktecoService = async (prisma) => {
         console.error(`[ZKTeco] Polling error: ${message}`);
       }
       scheduleReconnect(message);
-    } finally {
-      polling = false;
     }
+    // แยกจาก try ของเครื่องสแกน: ปัญหาส่งแจ้งเตือนต้องไม่ไปกระตุ้น reconnect
+    try {
+      await flushScanNotifications();
+    } catch (err) {
+      console.error("[Notify] Flush pending notifications failed:", err);
+    }
+    polling = false;
   };
 
   // จริงเมื่ออยู่ในหน้าต่าง [target, target+5) นาที (กันดริฟต์ข้ามนาที)
