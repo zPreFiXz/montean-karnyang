@@ -13,6 +13,13 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    // dev: ส่งต่อ /api ไปหา Express (port 3000) ให้เว็บเรียก same-origin ได้เหมือนตอนรันจริง
+    proxy: {
+      "/api": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+    },
   },
   resolve: {
     alias: {
