@@ -10,8 +10,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ---------- ผู้ใช้งานระบบ (auth) ----------
-
 model User {
   id        Int      @id @default(autoincrement())
   name      String
@@ -27,8 +25,6 @@ enum Role {
   EMPLOYEE
   ADMIN
 }
-
-// ---------- ลูกค้าและรถ ----------
 
 model Customer {
   id          Int      @id @default(autoincrement())
@@ -73,8 +69,6 @@ model Vehicle {
   repairs        Repair[]
 }
 
-// ---------- คลังอะไหล่และบริการ (catalog) ----------
-
 model Category {
   id        Int       @id @default(autoincrement())
   name      String    @unique
@@ -115,8 +109,6 @@ model Service {
   categoryId  Int
   repairItems RepairItem[]
 }
-
-// ---------- งานซ่อม (core) ----------
 
 model Repair {
   id            Int           @id @default(autoincrement())
@@ -178,8 +170,6 @@ enum Side {
   RIGHT
   OTHER
 }
-
-// ---------- ลงเวลาพนักงาน (ZKTeco) ----------
 
 model Employee {
   id          Int          @id @default(autoincrement())
