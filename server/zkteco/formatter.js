@@ -33,14 +33,11 @@ const dayStartMessage = (date) => `🌅 วันที่ ${formatThaiDate(date
 
 // lateEmployees: [{ name, statusLabel }] — คนสายไม่ได้ค่าข้าวเที่ยงของวันนั้น
 const allClockedInMessage = (lateEmployees = []) => {
-  if (!lateEmployees.length) {
-    return "✅ พนักงานเข้างานครบแล้ว ตรงเวลาทุกคน";
-  }
+  const header = "✅ พนักงานเข้างานครบแล้ว";
+  if (!lateEmployees.length) return header;
 
   return [
-    "✅ พนักงานเข้างานครบแล้ว",
-    "",
-    `⏱️ มาสาย ไม่ได้ค่าข้าวเที่ยง (${lateEmployees.length} คน)`,
+    header,
     bulletList(lateEmployees.map((e) => `${e.name} ${lateNote(e.statusLabel)}`)),
   ].join("\n");
 };
