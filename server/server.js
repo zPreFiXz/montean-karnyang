@@ -14,14 +14,25 @@ const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const morgan = require("morgan");
-const { readdirSync } = require("fs");
+const path = require("path");
+const { readdirSync, existsSync } = require("fs");
 const handleError = require("./middlewares/error");
 
 const app = express();
 app.disable("x-powered-by");
 
 // Middleware
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        // อนุญาตรูปจาก Cloudinary (ค่า default อนุญาตแค่ 'self' กับ data:)
+        "img-src": ["'self'", "data:", "https://res.cloudinary.com"],
+      },
+    },
+  })
+);
 // จำกัด origin ตาม CLIENT_URL กันเว็บอื่นยิง API ข้ามโดเมน
 app.use(
   cors({
@@ -54,6 +65,21 @@ app.use(
 readdirSync("./routes")
   .sort()
   .forEach((file) => app.use("/api", require("./routes/" + file)));
+
+// เสิร์ฟหน้าเว็บ (client ที่ build แล้ว) จาก server เดียวกัน — ใช้ตอน deploy ที่ร้าน
+// dev ไม่กระทบ: ถ้าไม่มีโฟลเดอร์ dist ก็ข้ามส่วนนี้ไป (client รันผ่าน Vite แยกอยู่แล้ว)
+const clientDistPath = path.join(__dirname, "..", "client", "dist");
+if (existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+
+  // SPA fallback: ทุก GET ที่ไม่ใช่ /api ให้ตอบ index.html (react-router จัดการ path ต่อเอง)
+  app.use((req, res, next) => {
+    if (req.method === "GET" && !req.path.startsWith("/api")) {
+      return res.sendFile(path.join(clientDistPath, "index.html"));
+    }
+    next();
+  });
+}
 
 // 404 สำหรับ path ที่ไม่มีในระบบ
 app.use((req, res) => {
