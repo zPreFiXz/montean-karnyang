@@ -55,7 +55,7 @@ const startZktecoService = async (prisma) => {
 
     lastAllInDate = dateKey;
     try {
-      await telegram.send(allClockedInMessage(total, recordTime));
+      await telegram.send(allClockedInMessage());
     } catch (err) {
       lastAllInDate = ""; // ส่งไม่สำเร็จ ให้ลองใหม่เมื่อมีสแกนถัดไป
       console.error("[Telegram] All clocked-in message failed:", err);
