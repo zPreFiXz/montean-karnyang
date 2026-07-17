@@ -153,8 +153,6 @@ const startZktecoService = async (prisma) => {
         console.error("[DB] Save attendance failed:", err);
         continue; // ยังไม่บันทึก → ไม่แจ้ง จะลองใหม่รอบหน้า
       }
-
-      await checkAllClockedIn(recordTime);
     }
   };
 
@@ -205,8 +203,10 @@ const startZktecoService = async (prisma) => {
       scheduleReconnect(message);
     }
     // แยกจาก try ของเครื่องสแกน: ปัญหาส่งแจ้งเตือนต้องไม่ไปกระตุ้น reconnect
+    // เช็คครบทุกรอบ poll (ไม่ผูกกับสแกนใหม่) เพื่อให้ ✅ ตามส่งได้หลังเน็ตกลับมา
     try {
       await flushScanNotifications();
+      await checkAllClockedIn(new Date());
     } catch (err) {
       console.error("[Notify] Flush pending notifications failed:", err);
     }
