@@ -46,7 +46,9 @@ const createEmployeeCache = (prisma) => {
 };
 
 const lunchReturnStatus = (eventTime, lunchOutTime) => {
-  const restMin = Math.max(0, Math.floor((new Date(eventTime) - new Date(lunchOutTime)) / 60_000));
+  // เทียบนาทีบนหน้าปัด (ตัดวินาทีทิ้ง) ให้ตรงกับที่คนอ่านนาฬิกา:
+  // ออก 12:00:30 กลับ 13:00:10 = พัก 60 นาที ไม่ใช่ 59
+  const restMin = Math.max(0, getMinuteOfDay(eventTime) - getMinuteOfDay(lunchOutTime));
   const lateMin = Math.max(0, restMin - rules.lunchBreakMinutes);
   return lateMin > 0
     ? { type: STATUS.LUNCH_RETURN_LATE, text: `กลับจากพักเที่ยง (พักเกิน ${lateMin} นาที)` }
