@@ -33,28 +33,38 @@ const startZktecoService = async (prisma) => {
   let stopped = false;
   let reconnectTimerId = null;
   let reconnectAttempts = 0;
-  // cache กัน query DailyNotice ซ้ำทุกนาที — สถานะจริงอยู่ใน DB (ทน restart)
+  // cache กันยิง DB ทุกรอบเช็ค — ตัวตัดสินจริงคือตาราง DailyNotice (ทน restart)
   const sentNoticeCache = new Set();
 
-  const noticeSent = async (dateKey, kind) => {
-    const cacheKey = `${dateKey}:${kind}`;
-    if (sentNoticeCache.has(cacheKey)) return true;
-    const notice = await prisma.dailyNotice.findUnique({
-      where: { dateKey_kind: { dateKey, kind } },
-    });
-    if (notice) sentNoticeCache.add(cacheKey);
-    return Boolean(notice);
+  // จองสิทธิ์ส่งข้อความประจำวัน: true = ยังไม่เคยส่ง ให้ผู้เรียกส่งได้เลย
+  const claimDailyNotice = async (kind, dateKey) => {
+    const cacheKey = `${kind}:${dateKey}`;
+    if (sentNoticeCache.has(cacheKey)) return false;
+    try {
+      await prisma.dailyNotice.create({ data: { kind, dateKey } });
+      sentNoticeCache.add(cacheKey);
+      return true;
+    } catch (err) {
+      if (err.code === "P2002") {
+        sentNoticeCache.add(cacheKey); // มีคนส่งไปแล้ว (ก่อน restart)
+        return false;
+      }
+      throw err;
+    }
   };
 
-  const markNoticeSent = async (dateKey, kind) => {
-    await prisma.dailyNotice.create({ data: { dateKey, kind } });
-    sentNoticeCache.add(`${dateKey}:${kind}`);
+  // คืนสิทธิ์เมื่อส่งไม่สำเร็จ จะได้ลองใหม่รอบถัดไป
+  const releaseDailyNotice = async (kind, dateKey) => {
+    sentNoticeCache.delete(`${kind}:${dateKey}`);
+    await prisma.dailyNotice
+      .deleteMany({ where: { kind, dateKey } })
+      .catch((err) => console.error("[Notice] Release failed:", err));
   };
 
   // แจ้งครั้งเดียวต่อวัน เมื่อพนักงานทุกคนมีสแกนแรกของวันแล้ว
   const checkAllClockedIn = async (recordTime) => {
     const dateKey = getDateKey(recordTime);
-    if (await noticeSent(dateKey, "ALL_CLOCKED_IN")) return;
+    if (sentNoticeCache.has(`ALL_CLOCKED_IN:${dateKey}`)) return;
 
     const total = await prisma.employee.count();
     if (!total) return;
@@ -80,11 +90,11 @@ const startZktecoService = async (prisma) => {
       statusLabel: s.statusLabel,
     }));
 
+    if (!(await claimDailyNotice("ALL_CLOCKED_IN", dateKey))) return;
     try {
       await telegram.send(allClockedInMessage(lateEmployees));
-      await markNoticeSent(dateKey, "ALL_CLOCKED_IN");
     } catch (err) {
-      // ส่งไม่สำเร็จ → ยังไม่ mark จะลองใหม่เมื่อมีสแกนถัดไป
+      await releaseDailyNotice("ALL_CLOCKED_IN", dateKey);
       console.error("[Telegram] All clocked-in message failed:", err);
     }
   };
@@ -203,19 +213,19 @@ const startZktecoService = async (prisma) => {
     polling = false;
   };
 
-  // "ถึงกำหนดแล้ว" = เลยเวลาเป้าหมายของวันนี้มาแล้ว (ไม่จำกัดหน้าต่าง —
-  // เน็ตหลุด/worker restart คร่อมเวลาเป้าหมาย ข้อความจะตามส่งในวันเดียวกัน)
+  // ถึงเวลาแล้ว (ส่งครั้งเดียวต่อวันผ่าน dedupe รายวัน) — ไม่ใช้หน้าต่างเวลาแคบ
+  // เพื่อให้เปิดระบบสาย/เน็ตหลุดคาบเกี่ยวแล้วยังตามส่งได้ ระบบปิดทุกคืนจึงไม่ค้างข้ามวัน
   const isDue = (minuteNow, target) => minuteNow >= target;
 
   const checkDayStart = async () => {
     const now = new Date();
     const dateKey = getDateKey(now);
     if (!isDue(getMinuteOfDay(now), attCfg.dayStartAtMinutes)) return;
-    if (await noticeSent(dateKey, "DAY_START")) return;
+    if (!(await claimDailyNotice("DAY_START", dateKey))) return;
     try {
       await telegram.send(dayStartMessage(now));
-      await markNoticeSent(dateKey, "DAY_START");
     } catch (err) {
+      await releaseDailyNotice("DAY_START", dateKey);
       console.error("[Telegram] Day start message failed:", err);
     }
   };
@@ -224,11 +234,11 @@ const startZktecoService = async (prisma) => {
     const now = new Date();
     const dateKey = getDateKey(now);
     if (!isDue(getMinuteOfDay(now), attCfg.summaryAtMinutes)) return;
-    if (await noticeSent(dateKey, "DAILY_SUMMARY")) return;
+    if (!(await claimDailyNotice("DAILY_SUMMARY", dateKey))) return;
     try {
       await telegram.send(await dailySummary(prisma, dateKey));
-      await markNoticeSent(dateKey, "DAILY_SUMMARY");
     } catch (err) {
+      await releaseDailyNotice("DAILY_SUMMARY", dateKey);
       console.error("[Telegram] Daily summary failed:", err);
     }
   };

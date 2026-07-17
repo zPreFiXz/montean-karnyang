@@ -1,3 +1,5 @@
+// ตารางการใช้งานที่ร้าน: คอมเปิดระบบ 06:25 ปิด 18:05 / เครื่องสแกนเปิด 06:30
+// worker จึงบูตก่อนเครื่องสแกน ~5 นาทีเสมอ และไม่มีการรันข้ามคืน
 const config = {
   device: {
     ip: process.env.ZKTECO_DEVICE_IP,
@@ -8,7 +10,9 @@ const config = {
     pollIntervalMs: 30_000,
     fetchTimeoutMs: 20_000,
     reconnectDelayMs: 10_000,
-    reconnectMaxDelayMs: 5 * 60_000,
+    // เพดานสั้น: ตอน 06:25-06:30 ต้องต่อติดเร็วหลังเครื่องสแกนเปิด
+    // (ไม่ต้องกันหลุดข้ามคืนเพราะระบบปิดตอน 18:05)
+    reconnectMaxDelayMs: 30_000,
   },
 
   telegram: {

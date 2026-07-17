@@ -194,18 +194,17 @@ model Attendance {
   @@index([employeeId, scannedAt])
 }
 
-// บันทึกว่าข้อความประจำวันแบบไหนส่งไปแล้ว — กันส่งซ้ำแม้ worker restart
-// และให้ข้อความที่พลาดตามเวลา (เช่น เน็ตหลุด) ถูกส่งย้อนหลังได้ในวันเดียวกัน
+// กันส่งข้อความตามเวลา (เปิดวัน/ครบ/สรุปเย็น) ซ้ำ แบบทนต่อการ restart ระหว่างวัน
 model DailyNotice {
-  id      Int             @id @default(autoincrement())
-  dateKey String // YYYY-MM-DD (เวลาไทย)
-  kind    DailyNoticeKind
-  sentAt  DateTime        @default(now())
+  id      Int        @id @default(autoincrement())
+  dateKey String
+  kind    NoticeKind
+  sentAt  DateTime   @default(now())
 
   @@unique([dateKey, kind])
 }
 
-enum DailyNoticeKind {
+enum NoticeKind {
   DAY_START
   ALL_CLOCKED_IN
   DAILY_SUMMARY
