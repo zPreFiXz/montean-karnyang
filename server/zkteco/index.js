@@ -33,50 +33,57 @@ const startZktecoService = async (prisma) => {
   let stopped = false;
   let reconnectTimerId = null;
   let reconnectAttempts = 0;
-  // cache กันยิง DB ทุกรอบเช็ค — ตัวตัดสินจริงคือตาราง DailyNotice (ทน restart)
-  const sentNoticeCache = new Set();
+  let lastDayStartDate = "";
+  let lastSummaryDate = "";
+  let lastAllInDate = "";
 
-  // จองสิทธิ์ส่งข้อความประจำวัน: true = ยังไม่เคยส่ง ให้ผู้เรียกส่งได้เลย
-  const claimDailyNotice = async (kind, dateKey) => {
-    const cacheKey = `${kind}:${dateKey}`;
-    if (sentNoticeCache.has(cacheKey)) return false;
-    try {
-      await prisma.dailyNotice.create({ data: { kind, dateKey } });
-      sentNoticeCache.add(cacheKey);
-      return true;
-    } catch (err) {
-      if (err.code === "P2002") {
-        sentNoticeCache.add(cacheKey); // มีคนส่งไปแล้ว (ก่อน restart)
-        return false;
-      }
-      throw err;
-    }
-  };
-
-  // คืนสิทธิ์เมื่อส่งไม่สำเร็จ จะได้ลองใหม่รอบถัดไป
-  const releaseDailyNotice = async (kind, dateKey) => {
-    sentNoticeCache.delete(`${kind}:${dateKey}`);
-    await prisma.dailyNotice
-      .deleteMany({ where: { kind, dateKey } })
-      .catch((err) => console.error("[Notice] Release failed:", err));
-  };
-
-  // แจ้งครั้งเดียวต่อวัน เมื่อพนักงานทุกคนมีสแกนแรกของวันแล้ว
-  const checkAllClockedIn = async (recordTime) => {
-    const dateKey = getDateKey(recordTime);
-    if (sentNoticeCache.has(`ALL_CLOCKED_IN:${dateKey}`)) return;
-
-    const total = await prisma.employee.count();
-    if (!total) return;
-
+  const countPresent = async (dateKey) => {
     const { start, end } = getDayRange(dateKey);
     const scanned = await prisma.attendance.findMany({
       where: { scannedAt: { gte: start, lte: end } },
       distinct: ["employeeId"],
       select: { employeeId: true },
     });
-    if (scanned.length < total) return;
+    return scanned.length;
+  };
 
+  // ตัวกันส่งซ้ำอยู่ใน RAM — ตอนบูตจึงต้องเดาสถานะจากข้อมูลที่มี
+  // กันข้อความเด้งซ้ำเมื่อ restart กลางวัน (รีบูตคอม/PM2 restart)
+  const initDailyFlags = async () => {
+    const now = new Date();
+    const dateKey = getDateKey(now);
+    const minute = getMinuteOfDay(now);
+    const { start, end } = getDayRange(dateKey);
+
+    const scansToday = await prisma.attendance.count({
+      where: { scannedAt: { gte: start, lte: end } },
+    });
+
+    // เลยเวลาเปิดวันและมีคนสแกนแล้ว = วันนี้ระบบเคยรัน ถือว่า 🌅 ส่งไปแล้ว
+    if (minute >= attCfg.dayStartAtMinutes && scansToday > 0) {
+      lastDayStartDate = dateKey;
+    }
+    // บูตหลังเวลาสรุปเย็น = ถือว่า 📊 ส่งไปแล้ว
+    if (minute >= attCfg.summaryAtMinutes) {
+      lastSummaryDate = dateKey;
+    }
+    // ครบอยู่แล้วตั้งแต่บูต = ถือว่า ✅ ส่งไปแล้ว
+    const total = await prisma.employee.count();
+    if (total && (await countPresent(dateKey)) >= total) {
+      lastAllInDate = dateKey;
+    }
+  };
+
+  // แจ้งครั้งเดียวต่อวัน เมื่อพนักงานทุกคนมีสแกนแรกของวันแล้ว
+  const checkAllClockedIn = async (recordTime) => {
+    const dateKey = getDateKey(recordTime);
+    if (lastAllInDate === dateKey) return;
+
+    const total = await prisma.employee.count();
+    if (!total) return;
+    if ((await countPresent(dateKey)) < total) return;
+
+    const { start, end } = getDayRange(dateKey);
     const lateScans = await prisma.attendance.findMany({
       where: {
         type: "CLOCK_IN_LATE",
@@ -90,11 +97,11 @@ const startZktecoService = async (prisma) => {
       statusLabel: s.statusLabel,
     }));
 
-    if (!(await claimDailyNotice("ALL_CLOCKED_IN", dateKey))) return;
+    lastAllInDate = dateKey;
     try {
       await telegram.send(allClockedInMessage(lateEmployees));
     } catch (err) {
-      await releaseDailyNotice("ALL_CLOCKED_IN", dateKey);
+      lastAllInDate = ""; // ส่งไม่สำเร็จ ให้ลองใหม่รอบถัดไป
       console.error("[Telegram] All clocked-in message failed:", err);
     }
   };
@@ -221,11 +228,12 @@ const startZktecoService = async (prisma) => {
     const now = new Date();
     const dateKey = getDateKey(now);
     if (!isDue(getMinuteOfDay(now), attCfg.dayStartAtMinutes)) return;
-    if (!(await claimDailyNotice("DAY_START", dateKey))) return;
+    if (lastDayStartDate === dateKey) return;
+    lastDayStartDate = dateKey;
     try {
       await telegram.send(dayStartMessage(now));
     } catch (err) {
-      await releaseDailyNotice("DAY_START", dateKey);
+      lastDayStartDate = "";
       console.error("[Telegram] Day start message failed:", err);
     }
   };
@@ -234,11 +242,12 @@ const startZktecoService = async (prisma) => {
     const now = new Date();
     const dateKey = getDateKey(now);
     if (!isDue(getMinuteOfDay(now), attCfg.summaryAtMinutes)) return;
-    if (!(await claimDailyNotice("DAILY_SUMMARY", dateKey))) return;
+    if (lastSummaryDate === dateKey) return;
+    lastSummaryDate = dateKey;
     try {
       await telegram.send(await dailySummary(prisma, dateKey));
     } catch (err) {
-      await releaseDailyNotice("DAILY_SUMMARY", dateKey);
+      lastSummaryDate = "";
       console.error("[Telegram] Daily summary failed:", err);
     }
   };
@@ -276,6 +285,10 @@ const startZktecoService = async (prisma) => {
       }
     }, delay);
   };
+
+  await initDailyFlags().catch((err) =>
+    console.error("[Notice] Init daily flags failed (may resend today's notices):", err),
+  );
 
   const pollTimerId = setInterval(poll, deviceCfg.pollIntervalMs);
   const scheduleTimerId = setInterval(checkSchedules, attCfg.scheduleCheckIntervalMs);
