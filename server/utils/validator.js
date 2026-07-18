@@ -39,6 +39,14 @@ exports.repairSchema = z.object({
   plate: z.string().optional(),
   province: z.string().optional(),
   description: z.string().optional(),
+  mileage: z.preprocess(
+    (v) => (v === "" || v == null ? undefined : v),
+    z.coerce
+      .number({ message: "เลขกิโลเมตรต้องเป็นตัวเลข" })
+      .int("เลขกิโลเมตรต้องเป็นจำนวนเต็ม")
+      .min(0, "เลขกิโลเมตรต้องไม่ติดลบ")
+      .optional(),
+  ),
   type: z.enum(["GENERAL", "SUSPENSION"], { message: "ประเภทงานซ่อมไม่ถูกต้อง" }),
   totalPrice: z.coerce.number(),
   repairItems: z

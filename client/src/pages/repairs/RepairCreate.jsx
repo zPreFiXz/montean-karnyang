@@ -500,6 +500,15 @@ const RepairCreate = () => {
             color="surface"
             errors={errors}
           />
+          <FormInput
+            register={register}
+            name="mileage"
+            label="เลขกิโลเมตร (กม.)"
+            type="number"
+            placeholder="เช่น 85000"
+            color="surface"
+            errors={errors}
+          />
 
           <div className="hidden pb-[24px] xl:block" />
 

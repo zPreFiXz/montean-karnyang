@@ -113,6 +113,7 @@ model Service {
 model Repair {
   id            Int           @id @default(autoincrement())
   description   String?
+  mileage       Int? // เลขไมล์ (กม.) ณ วันรับรถ
   totalPrice    Int
   type          RepairType    @default(GENERAL)
   status        RepairStatus  @default(IN_PROGRESS)
@@ -194,7 +195,15 @@ model Attendance {
   @@index([employeeId, scannedAt])
 }
 
-// กันส่งข้อความตามเวลา (เปิดวัน/ครบ/สรุปเย็น) ซ้ำ แบบทนต่อการ restart ระหว่างวัน
+enum AttendanceType {
+  CLOCK_IN
+  CLOCK_IN_LATE
+  LUNCH_OUT
+  LUNCH_RETURN
+  LUNCH_RETURN_LATE
+  CLOCK_OUT
+}
+
 model DailyNotice {
   id      Int        @id @default(autoincrement())
   dateKey String
@@ -208,13 +217,4 @@ enum NoticeKind {
   DAY_START
   ALL_CLOCKED_IN
   DAILY_SUMMARY
-}
-
-enum AttendanceType {
-  CLOCK_IN
-  CLOCK_IN_LATE
-  LUNCH_OUT
-  LUNCH_RETURN
-  LUNCH_RETURN_LATE
-  CLOCK_OUT
 }

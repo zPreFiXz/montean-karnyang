@@ -935,6 +935,16 @@ const SuspensionInspection = () => {
               errors={errors}
             />
 
+            <FormInput
+              register={register}
+              name="mileage"
+              label="เลขกิโลเมตร (กม.)"
+              type="number"
+              placeholder="เช่น 85000"
+              color="surface"
+              errors={errors}
+            />
+
             <div className="hidden pb-[24px] xl:block" />
 
             <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl xl:hidden">

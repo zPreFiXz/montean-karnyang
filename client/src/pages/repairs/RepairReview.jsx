@@ -67,6 +67,7 @@ const RepairReview = () => {
         plate: `${repairData.plateLetters}-${repairData.plateNumbers}`,
         province: getProvinceName(repairData.province),
         description: repairData.description,
+        ...(repairData.mileage ? { mileage: Number(repairData.mileage) } : {}),
         totalPrice: totalPrice,
         type: repairData.type,
         repairItems: repairItems.map((item) => {
@@ -208,6 +209,16 @@ const RepairReview = () => {
                       ? `${repairData.plateLetters}-${
                           repairData.plateNumbers
                         } ${getProvinceName(repairData.province)}`
+                      : "ไม่ระบุ"}
+                  </p>
+                </div>
+                <div className="flex items-start justify-between">
+                  <p className="text-subtle-dark flex-shrink-0 text-lg font-medium md:text-xl">
+                    เลขกิโลเมตร:
+                  </p>
+                  <p className="text-normal min-w-0 text-right text-lg leading-relaxed font-semibold break-words md:text-xl">
+                    {repairData.mileage
+                      ? `${Number(repairData.mileage).toLocaleString()} กม.`
                       : "ไม่ระบุ"}
                   </p>
                 </div>

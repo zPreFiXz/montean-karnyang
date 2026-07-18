@@ -91,6 +91,11 @@ export const repairSchema = z.object({
   plateNumbers: z.string().optional(),
   province: z.string().optional(),
   description: z.string().optional(),
+  mileage: z
+    .string()
+    .regex(/^[0-9]*$/, "เลขกิโลเมตรต้องเป็นตัวเลข")
+    .optional()
+    .or(z.literal("")),
   type: z.enum(["GENERAL", "SUSPENSION"]).optional(),
 });
 

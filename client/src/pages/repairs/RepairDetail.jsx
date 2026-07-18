@@ -209,6 +209,7 @@ const RepairDetail = () => {
       plateNumbers,
       province: getProvinceIdByName(provinceName),
       description: repair?.description || "",
+      mileage: repair?.mileage != null ? String(repair.mileage) : "",
     };
 
     const usedQtyByPartId = (repair?.repairItems || []).reduce((acc, ri) => {
@@ -659,6 +660,18 @@ const RepairDetail = () => {
                 </div>
               </div>
             </div>
+            {repair.mileage != null && (
+              <div className="mb-[16px] px-[20px]">
+                <div className="flex items-center justify-between rounded-[10px] bg-gray-50 p-[16px]">
+                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                    เลขกิโลเมตร
+                  </p>
+                  <p className="text-normal text-lg font-semibold md:text-xl">
+                    {Number(repair.mileage).toLocaleString()} กม.
+                  </p>
+                </div>
+              </div>
+            )}
             {repair.description && (
               <div className="mb-[16px] px-[20px]">
                 <p className="text-normal mb-[16px] text-[22px] font-semibold md:text-2xl">

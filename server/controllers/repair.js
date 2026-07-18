@@ -186,6 +186,7 @@ exports.createRepair = async (req, res, next) => {
       plate,
       province,
       description,
+      mileage,
       totalPrice,
       type,
       repairItems,
@@ -248,6 +249,7 @@ exports.createRepair = async (req, res, next) => {
       const repair = await tx.repair.create({
         data: {
           description: description || null,
+          mileage: mileage ?? null,
           totalPrice,
           type,
           user: { connect: { id: req.user.id } },
@@ -279,6 +281,7 @@ exports.updateRepair = async (req, res, next) => {
       plate,
       province,
       description,
+      mileage,
       totalPrice,
       type,
       repairItems,
@@ -356,6 +359,7 @@ exports.updateRepair = async (req, res, next) => {
         where: { id: Number(id) },
         data: {
           description: description || null,
+          mileage: mileage ?? null,
           totalPrice,
           type,
           vehicle: { connect: { id: vehicle.id } },
