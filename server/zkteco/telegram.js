@@ -3,8 +3,7 @@ const config = require("./config");
 const MAX_RETRIES = 1;
 const NETWORK_ERROR_CODES = new Set(["ENOTFOUND", "ECONNREFUSED", "ECONNRESET"]);
 
-// retry เฉพาะ error ที่ยังไม่ถึงเซิร์ฟเวอร์
-// ไม่รวม timeout (AbortError) เพราะ sendMessage ไม่ idempotent → กันแจ้งเตือนซ้ำ
+// ห้าม retry timeout: sendMessage ไม่ idempotent จะแจ้งเตือนซ้ำ
 const isRetryable = (error) => NETWORK_ERROR_CODES.has(error?.code);
 
 const sendToChat = async (chatId, text, attempt = 0) => {
@@ -29,7 +28,6 @@ const sendToChat = async (chatId, text, attempt = 0) => {
   }
 };
 
-// แบ่งข้อความยาวให้ไม่เกิน limit ของ Telegram โดยพยายามตัดตามบรรทัด
 const splitText = (text) => {
   const limit = config.telegram.textLimit;
   if (!text) return ["-"];

@@ -28,7 +28,6 @@ const scanMessage = (empName, empId, type, statusLabel, recordTime) => {
   ].join("\n");
 };
 
-// ส่งตอนเช้า: คั่นแชทเป็นวันใหม่ + ยืนยันระบบทำงานอยู่
 const dayStartMessage = (date) => `🌅 วันที่ ${formatThaiDate(date)}`;
 
 // lateEmployees: [{ name, statusLabel }] — คนสายไม่ได้ค่าข้าวเที่ยงของวันนั้น
@@ -42,7 +41,6 @@ const allClockedInMessage = (lateEmployees = []) => {
   ].join("\n");
 };
 
-// เอาเฉพาะข้อความในวงเล็บ เช่น "เข้างาน (สาย 12 นาที)" -> "(สาย 12 นาที)"
 const lateNote = (status) => status.match(/\(.*\)/)?.[0] ?? status;
 
 const dailySummary = async (prisma, dateKey) => {

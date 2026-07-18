@@ -3,7 +3,6 @@ const { getDateKey, getDayRange, getMinuteOfDay } = require("./time");
 
 const { attendance: rules } = config;
 
-// รหัสสถานะ ตรงกับ enum AttendanceType ใน schema.prisma
 const STATUS = {
   CLOCK_IN: "CLOCK_IN",
   CLOCK_IN_LATE: "CLOCK_IN_LATE",
@@ -33,7 +32,6 @@ const createEmployeeCache = (prisma) => {
     await warm();
     if (cache.has(key)) return cache.get(key);
 
-    // เผื่อพนักงานถูกเพิ่มหลัง warm ล่าสุด
     const emp = await prisma.employee.findUnique({
       where: { zkUserId: key },
       select: { id: true, name: true, zkUserId: true },
@@ -46,8 +44,7 @@ const createEmployeeCache = (prisma) => {
 };
 
 const lunchReturnStatus = (eventTime, lunchOutTime) => {
-  // เทียบนาทีบนหน้าปัด (ตัดวินาทีทิ้ง) ให้ตรงกับที่คนอ่านนาฬิกา:
-  // ออก 12:00:30 กลับ 13:00:10 = พัก 60 นาที ไม่ใช่ 59
+  // นาทีหน้าปัด (ตัดวินาที): ออก 12:00:30 กลับ 13:00:10 = 60 นาที ไม่ใช่ 59
   const restMin = Math.max(0, getMinuteOfDay(eventTime) - getMinuteOfDay(lunchOutTime));
   const lateMin = Math.max(0, restMin - rules.lunchBreakMinutes);
   return lateMin > 0
@@ -56,7 +53,6 @@ const lunchReturnStatus = (eventTime, lunchOutTime) => {
 };
 
 // สถานะอิงจำนวนสแกนที่มีแล้ววันนี้: 0=เข้างาน 1=ออกพัก 2=กลับพัก 3+=เลิกงาน
-// (stepStatuses index: 0 เข้างาน, 1 พักเที่ยง, 3 เลิกงาน)
 const resolveStatus = async (prisma, employeeId, recordTime) => {
   const eventTime = recordTime || new Date();
   const { start, end } = getDayRange(getDateKey(eventTime));

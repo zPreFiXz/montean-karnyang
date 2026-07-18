@@ -1,5 +1,4 @@
-// ตารางการใช้งานที่ร้าน: คอมเปิดระบบ 06:25 ปิด 18:05 / เครื่องสแกนเปิด 06:30
-// worker จึงบูตก่อนเครื่องสแกน ~5 นาทีเสมอ และไม่มีการรันข้ามคืน
+// ตารางร้าน: ระบบเปิด 06:25 ปิด 18:05 / เครื่องสแกนเปิด 06:30
 const config = {
   device: {
     ip: process.env.ZKTECO_DEVICE_IP,
@@ -10,8 +9,6 @@ const config = {
     pollIntervalMs: 30_000,
     fetchTimeoutMs: 20_000,
     reconnectDelayMs: 10_000,
-    // เพดานสั้น: ตอน 06:25-06:30 ต้องต่อติดเร็วหลังเครื่องสแกนเปิด
-    // (ไม่ต้องกันหลุดข้ามคืนเพราะระบบปิดตอน 18:05)
     reconnectMaxDelayMs: 30_000,
   },
 
@@ -30,11 +27,10 @@ const config = {
   attendance: {
     lateAfterMinutes: 8 * 60,
     lunchBreakMinutes: 60,
-    // สแกนซ้ำห่างจากครั้งก่อนไม่ถึงเท่านี้ = แตะซ้ำ ไม่นับเป็นสแกนใหม่
     minScanGapMinutes: 5,
     stepStatuses: ["เข้างาน", "พักเที่ยง", "กลับจากพักเที่ยง", "เลิกงาน"],
     employeeCacheTtlMs: 5 * 60 * 1_000,
-    dayStartAtMinutes: 6 * 60 + 30, // 06:30 แจ้งเริ่มวันใหม่ + ยืนยันระบบทำงาน
+    dayStartAtMinutes: 6 * 60 + 30,
     summaryAtMinutes: 18 * 60,
     scheduleCheckIntervalMs: 60_000,
   },
