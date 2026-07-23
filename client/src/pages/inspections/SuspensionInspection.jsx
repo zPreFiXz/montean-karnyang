@@ -28,6 +28,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
 import { CarRepair } from "@/components/icons/Icons";
 import { toastError } from "@/utils/handleError";
+import { onKeyActivate } from "@/utils/a11y";
 
 const SuspensionInspection = () => {
   const navigate = useNavigate();
@@ -644,6 +645,16 @@ const SuspensionInspection = () => {
                                     ? "bg-primary/5 border-primary scale-[1.02]"
                                     : "bg-surface border-transparent"
                                 }`}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={onKeyActivate(() => {
+                                  if (isDisabled) return;
+                                  handlePartSelection(
+                                    part,
+                                    !isPartSelected(part.id, side),
+                                    side,
+                                  );
+                                })}
                                 onClick={() => {
                                   if (isDisabled) return;
                                   handlePartSelection(
@@ -706,6 +717,16 @@ const SuspensionInspection = () => {
                                     ? "bg-gradient-primary text-surface scale-110 shadow-lg"
                                     : "bg-subtle-light text-surface"
                                 }`}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={onKeyActivate(() => {
+                                  if (isDisabled) return;
+                                  handlePartSelection(
+                                    part,
+                                    !isPartSelected(part.id, side),
+                                    side,
+                                  );
+                                })}
                                 onClick={() => {
                                   if (isDisabled) return;
                                   handlePartSelection(
@@ -1054,6 +1075,8 @@ const SuspensionInspection = () => {
                     >
                       <div
                         role="button"
+                        tabIndex={0}
+                        onKeyDown={onKeyActivate(() => handlePriceClick(index, item))}
                         onClick={() => handlePriceClick(index, item)}
                         className="shadow-primary bg-surface flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] px-[8px]"
                       >
@@ -1095,7 +1118,7 @@ const SuspensionInspection = () => {
                                   type="button"
                                   onClick={() => handleDecreaseQuantity(index)}
                                   disabled={item.quantity <= 1}
-                                  className="flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
+                                  className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
                                 >
                                   <Minus className="h-4 w-4" />
                                 </button>
@@ -1110,7 +1133,7 @@ const SuspensionInspection = () => {
                                       ? item.quantity >= (item.quantity || 0)
                                       : false
                                   }
-                                  className="border-primary/30 text-primary bg-primary/10 flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
+                                  className="border-primary/30 text-primary bg-primary/10 flex h-11 w-11 cursor-pointer items-center justify-center rounded-[8px] border disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
                                 >
                                   <Plus className="h-4 w-4" />
                                 </button>
@@ -1128,7 +1151,7 @@ const SuspensionInspection = () => {
                         }
                         className="text-surface cursor-pointer"
                       >
-                        <div className="bg-destructive flex h-[32px] w-[32px] items-center justify-center rounded-full">
+                        <div className="bg-destructive flex h-11 w-11 items-center justify-center rounded-full">
                           <Trash className="h-[18px] w-[18px]" />
                         </div>
                       </button>
@@ -1426,6 +1449,8 @@ const SuspensionInspection = () => {
                     >
                       <div
                         role="button"
+                        tabIndex={0}
+                        onKeyDown={onKeyActivate(() => handlePriceClick(index, item))}
                         onClick={() => handlePriceClick(index, item)}
                         className="shadow-primary bg-surface flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] px-[8px]"
                       >
@@ -1467,7 +1492,7 @@ const SuspensionInspection = () => {
                                   type="button"
                                   onClick={() => handleDecreaseQuantity(index)}
                                   disabled={item.quantity <= 1}
-                                  className="flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
+                                  className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
                                 >
                                   <Minus className="h-4 w-4" />
                                 </button>
@@ -1482,7 +1507,7 @@ const SuspensionInspection = () => {
                                       ? item.quantity >= (item.quantity || 0)
                                       : false
                                   }
-                                  className="border-primary/30 text-primary bg-primary/10 flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
+                                  className="border-primary/30 text-primary bg-primary/10 flex h-11 w-11 cursor-pointer items-center justify-center rounded-[8px] border disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
                                 >
                                   <Plus className="h-4 w-4" />
                                 </button>
@@ -1500,7 +1525,7 @@ const SuspensionInspection = () => {
                         }
                         className="text-surface cursor-pointer"
                       >
-                        <div className="bg-destructive flex h-[32px] w-[32px] items-center justify-center rounded-full">
+                        <div className="bg-destructive flex h-11 w-11 items-center justify-center rounded-full">
                           <Trash className="h-[18px] w-[18px]" />
                         </div>
                       </button>

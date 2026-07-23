@@ -15,6 +15,7 @@ import { useDebouncedCallback } from "use-debounce";
 import { listInventory } from "@/api/inventory";
 import { listCategories } from "@/api/category";
 import { toastError } from "@/utils/handleError";
+import { onKeyActivate } from "@/utils/a11y";
 
 const AddRepairItemDialog = ({
   children,
@@ -144,7 +145,7 @@ const AddRepairItemDialog = ({
             autoFocus={false}
             tabIndex={-1}
             aria-label="ปิดหน้าต่าง"
-            className="absolute top-[16px] right-[20px] flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-full bg-black/5"
+            className="absolute top-[16px] right-[20px] flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-black/5"
           >
             <X size={18} className="text-subtle-dark" />
           </button>
@@ -257,6 +258,9 @@ const AddRepairItemDialog = ({
                   return (
                     <div
                       key={index}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={onKeyActivate(() => handleAddItemToRepair(item))}
                       onClick={() => handleAddItemToRepair(item)}
                       className={`font-athiti rounded-lg ${
                         isDisabled

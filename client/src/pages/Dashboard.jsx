@@ -20,6 +20,7 @@ import useAuthStore from "@/stores/useAuthStore";
 import { Success, Wrench, Paid } from "@/components/icons/Icons";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { toastError } from "@/utils/handleError";
+import { onKeyActivate } from "@/utils/a11y";
 
 const Dashboard = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -251,6 +252,12 @@ const Dashboard = () => {
                 {outOfStockItems.slice(0, 5).map((item) => (
                   <div
                     key={`desk-out-${item.id}`}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={onKeyActivate(() => {
+                      setSelectedItem(item);
+                      setIsItemDetailOpen(true);
+                    })}
                     onClick={() => {
                       setSelectedItem(item);
                       setIsItemDetailOpen(true);
@@ -273,6 +280,12 @@ const Dashboard = () => {
                 {lowStockItems.slice(0, 5).map((item) => (
                   <div
                     key={`desk-low-${item.id}`}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={onKeyActivate(() => {
+                      setSelectedItem(item);
+                      setIsItemDetailOpen(true);
+                    })}
                     onClick={() => {
                       setSelectedItem(item);
                       setIsItemDetailOpen(true);
@@ -474,6 +487,12 @@ const Dashboard = () => {
               {outOfStockItems.slice(0, 5).map((item) => (
                 <div
                   key={`m-out-${item.id}`}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={onKeyActivate(() => {
+                    setSelectedItem(item);
+                    setIsItemDetailOpen(true);
+                  })}
                   onClick={() => {
                     setSelectedItem(item);
                     setIsItemDetailOpen(true);
@@ -496,6 +515,12 @@ const Dashboard = () => {
               {lowStockItems.slice(0, 5).map((item) => (
                 <div
                   key={`m-low-${item.id}`}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={onKeyActivate(() => {
+                    setSelectedItem(item);
+                    setIsItemDetailOpen(true);
+                  })}
                   onClick={() => {
                     setSelectedItem(item);
                     setIsItemDetailOpen(true);

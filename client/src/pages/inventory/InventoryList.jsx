@@ -11,6 +11,7 @@ import { listInventory } from "@/api/inventory";
 import { listParts } from "@/api/part";
 import { BoxSearch } from "@/components/icons/Icons";
 import { toastError } from "@/utils/handleError";
+import { onKeyActivate } from "@/utils/a11y";
 
 const InventoryList = () => {
   const [activeCategory, setActiveCategory] = useState("ทั้งหมด");
@@ -288,6 +289,9 @@ const InventoryList = () => {
             inventory.map((item) => (
               <div
                 key={`${item.category.name}-${item.id}`}
+                role="button"
+                tabIndex={0}
+                onKeyDown={onKeyActivate(() => handleItemClick(item))}
                 onClick={() => handleItemClick(item)}
               >
                 <InventoryCard

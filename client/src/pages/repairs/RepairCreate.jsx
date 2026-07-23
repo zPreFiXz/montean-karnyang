@@ -22,6 +22,7 @@ import { repairSchema } from "@/utils/schemas";
 import { provinces } from "@/constants/provinces";
 import { formatCurrency } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
+import { onKeyActivate } from "@/utils/a11y";
 
 const RepairCreate = () => {
   const navigate = useNavigate();
@@ -546,6 +547,8 @@ const RepairCreate = () => {
                   >
                     <div
                       role="button"
+                      tabIndex={0}
+                      onKeyDown={onKeyActivate(() => handlePriceClick(index, item))}
                       onClick={() => handlePriceClick(index, item)}
                       className="shadow-primary bg-surface flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] px-[8px]"
                     >
@@ -590,7 +593,7 @@ const RepairCreate = () => {
                                   handleDecreaseQuantity(index);
                                 }}
                                 disabled={item.quantity <= 1}
-                                className="flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
+                                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
                               >
                                 <Minus className="h-4 w-4" />
                               </button>
@@ -608,7 +611,7 @@ const RepairCreate = () => {
                                     ? item.quantity >= (item.quantity || 0)
                                     : false
                                 }
-                                className="border-primary/30 text-primary bg-primary/10 flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
+                                className="border-primary/30 text-primary bg-primary/10 flex h-11 w-11 cursor-pointer items-center justify-center rounded-[8px] border disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
                               >
                                 <Plus className="h-4 w-4" />
                               </button>
@@ -626,7 +629,7 @@ const RepairCreate = () => {
                       }
                       className="text-surface cursor-pointer"
                     >
-                      <div className="bg-destructive flex h-[32px] w-[32px] items-center justify-center rounded-full">
+                      <div className="bg-destructive flex h-11 w-11 items-center justify-center rounded-full">
                         <Trash className="h-[18px] w-[18px]" />
                       </div>
                     </button>
@@ -700,6 +703,8 @@ const RepairCreate = () => {
                 >
                   <div
                     role="button"
+                    tabIndex={0}
+                    onKeyDown={onKeyActivate(() => handlePriceClick(index, item))}
                     onClick={() => handlePriceClick(index, item)}
                     className="shadow-primary bg-surface flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] px-[8px]"
                   >
@@ -742,7 +747,7 @@ const RepairCreate = () => {
                                 handleDecreaseQuantity(index);
                               }}
                               disabled={item.quantity <= 1}
-                              className="flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
+                              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
                             >
                               <Minus className="h-4 w-4" />
                             </button>
@@ -760,7 +765,7 @@ const RepairCreate = () => {
                                   ? item.quantity >= (item.quantity || 0)
                                   : false
                               }
-                              className="border-primary/30 text-primary bg-primary/10 flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
+                              className="border-primary/30 text-primary bg-primary/10 flex h-11 w-11 cursor-pointer items-center justify-center rounded-[8px] border disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
                             >
                               <Plus className="h-4 w-4" />
                             </button>
@@ -778,7 +783,7 @@ const RepairCreate = () => {
                     }
                     className="text-surface cursor-pointer"
                   >
-                    <div className="bg-destructive flex h-[32px] w-[32px] items-center justify-center rounded-full">
+                    <div className="bg-destructive flex h-11 w-11 items-center justify-center rounded-full">
                       <Trash className="h-[18px] w-[18px]" />
                     </div>
                   </button>
