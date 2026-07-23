@@ -43,13 +43,22 @@ const createEmployeeCache = (prisma) => {
   return { warm, find };
 };
 
+// แปลงนาทีเป็นข้อความ "X ชม. Y นาที" (ต่ำกว่า 60 นาทีแสดงแค่นาที)
+const formatDuration = (totalMinutes) => {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours <= 0) return `${minutes} นาที`;
+  if (minutes === 0) return `${hours} ชม.`;
+  return `${hours} ชม. ${minutes} นาที`;
+};
+
 const lunchReturnStatus = (eventTime, lunchOutTime) => {
   // นาทีหน้าปัด (ตัดวินาที): ออก 12:00:30 กลับ 13:00:10 = 60 นาที ไม่ใช่ 59
   const restMin = Math.max(0, getMinuteOfDay(eventTime) - getMinuteOfDay(lunchOutTime));
   const lateMin = Math.max(0, restMin - rules.lunchBreakMinutes);
   return lateMin > 0
-    ? { type: STATUS.LUNCH_RETURN_LATE, text: `กลับจากพักเที่ยง (พักเกิน ${lateMin} นาที)` }
-    : { type: STATUS.LUNCH_RETURN, text: `กลับจากพักเที่ยง (พัก ${restMin} นาที)` };
+    ? { type: STATUS.LUNCH_RETURN_LATE, text: `กลับจากพักเที่ยง (พักเกิน ${formatDuration(lateMin)})` }
+    : { type: STATUS.LUNCH_RETURN, text: `กลับจากพักเที่ยง (พัก ${formatDuration(restMin)})` };
 };
 
 // สถานะอิงจำนวนสแกนที่มีแล้ววันนี้: 0=เข้างาน 1=ออกพัก 2=กลับพัก 3+=เลิกงาน
@@ -65,7 +74,7 @@ const resolveStatus = async (prisma, employeeId, recordTime) => {
   if (!records.length) {
     const late = getMinuteOfDay(eventTime) - rules.lateAfterMinutes;
     return late > 0
-      ? { type: STATUS.CLOCK_IN_LATE, text: `เข้างาน (สาย ${late} นาที)` }
+      ? { type: STATUS.CLOCK_IN_LATE, text: `เข้างาน (สาย ${formatDuration(late)})` }
       : { type: STATUS.CLOCK_IN, text: rules.stepStatuses[0] };
   }
   if (records.length === 1) return { type: STATUS.LUNCH_OUT, text: rules.stepStatuses[1] };
