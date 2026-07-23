@@ -36,6 +36,7 @@ const FormInput = ({
       <div className="relative">
         <Input
           {...(register ? register(name, rules) : {})}
+          id={name}
           type={type}
           placeholder={placeholder}
           aria-invalid={errors[name] ? "true" : "false"}

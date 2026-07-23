@@ -160,7 +160,7 @@ const AttendanceReport = () => {
                       </p>
                     </div>
                     <div
-                      className={`rounded-[999px] px-[10px] py-[4px] text-[13px] font-semibold ${
+                      className={`rounded-[999px] px-[10px] py-[4px] text-sm font-semibold ${
                         item.completed
                           ? "bg-green-100 text-green-700"
                           : "bg-orange-100 text-orange-700"
@@ -188,7 +188,7 @@ const AttendanceReport = () => {
                               <p className="text-normal text-base font-medium">
                                 {formatTime(slotData.scannedAt)} น.
                               </p>
-                              <p className="text-subtle-dark text-[13px]">
+                              <p className="text-subtle-dark text-sm">
                                 {slotData.status}
                               </p>
                             </>
