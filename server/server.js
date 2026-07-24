@@ -30,6 +30,8 @@ app.use(
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
         "img-src": ["'self'", "data:", "https://res.cloudinary.com"],
+        // รันแบบ HTTP ล้วนในวง LAN จึงเอา directive นี้ออก ไม่งั้นเบราว์เซอร์อัป asset เป็น https แล้วโหลดไม่ได้
+        "upgrade-insecure-requests": null,
       },
     },
   }),
