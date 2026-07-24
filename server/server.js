@@ -24,6 +24,8 @@ const app = express();
 app.disable("x-powered-by");
 app.use(
   helmet({
+    // รันในวง LAN แบบ HTTP (ไม่มี SSL) จึงปิด HSTS ไม่งั้นเบราว์เซอร์บังคับ https แล้วโหลด asset ไม่ได้
+    strictTransportSecurity: false,
     contentSecurityPolicy: {
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),

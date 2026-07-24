@@ -27,7 +27,7 @@ const FormInput = ({
       <Label
         htmlFor={name}
         className={`mb-[8px] font-medium ${
-          textSize ? textSize : "text-[22px] md:text-2xl"
+          textSize ? textSize : "text-lg md:text-xl"
         } ${getTextColor()}`}
       >
         {label}

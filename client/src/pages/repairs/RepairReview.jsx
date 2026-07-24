@@ -57,7 +57,6 @@ const RepairReview = () => {
   const handleConfirmRepair = async () => {
     setIsSubmitting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       const repair = {
         name: repairData.name,
         address: repairData.address,

@@ -91,7 +91,6 @@ const Dashboard = () => {
     setIsLoggingOut(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       localStorage.setItem("justLoggedOut", "true");
       await logout();
       navigate("/login", { replace: true });
@@ -101,6 +100,67 @@ const Dashboard = () => {
       setIsLoggingOut(false);
     }
   };
+
+  const openItem = (item) => {
+    setSelectedItem(item);
+    setIsItemDetailOpen(true);
+  };
+
+  const renderStockCard = (item, keyPrefix) => (
+    <div
+      key={`${keyPrefix}-${item.id}`}
+      role="button"
+      tabIndex={0}
+      onKeyDown={onKeyActivate(() => openItem(item))}
+      onClick={() => openItem(item)}
+    >
+      <InventoryCard
+        item={item}
+        brand={item.brand}
+        name={item.name}
+        unit={item.unit}
+        sellingPrice={item.sellingPrice}
+        quantity={item.stockQuantity}
+        minStockLevel={item.minStockLevel}
+        attributes={item.attributes}
+        secureUrl={item.secureUrl}
+        category={item.category?.name}
+      />
+    </div>
+  );
+
+  const renderRepairColumn = (repairs, bg, iconColor, timeKey) => (
+    <div className="flex flex-col gap-[12px]">
+      {repairs.length > 0 ? (
+        repairs.map((repair) => (
+          <Link key={repair.id} to={`/repairs/${repair.id}`}>
+            <CarCard
+              bg={bg}
+              icon={
+                <BrandIcons
+                  brand={repair.vehicle?.vehicleModel?.brand}
+                  color={iconColor}
+                />
+              }
+              licensePlate={
+                repair.vehicle?.licensePlate?.plateNumber &&
+                repair.vehicle?.licensePlate?.province
+                  ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
+                  : "ไม่ระบุทะเบียนรถ"
+              }
+              brand={getDisplayBrand(repair.vehicle?.vehicleModel)}
+              time={repair[timeKey] && formatTime(repair[timeKey])}
+              price={parseFloat(repair.totalPrice)}
+            />
+          </Link>
+        ))
+      ) : (
+        <p className="text-subtle-light py-[24px] text-center text-xl">
+          ไม่มีรายการซ่อม
+        </p>
+      )}
+    </div>
+  );
 
   return (
     <div className="w-full">
@@ -142,102 +202,19 @@ const Dashboard = () => {
 
           {/* รายการซ่อมล่าสุด */}
           <div className="mt-[16px] grid grid-cols-3 gap-[16px]">
-            {/* กำลังซ่อม */}
-            <div className="flex flex-col gap-[12px]">
-              {inProgressRepairs.length > 0 ? (
-                inProgressRepairs.map((repair) => (
-                  <Link key={repair.id} to={`/repairs/${repair.id}`}>
-                    <CarCard
-                      bg="progress"
-                      icon={
-                        <BrandIcons
-                          brand={repair.vehicle?.vehicleModel?.brand}
-                          color="#ffb000"
-                        />
-                      }
-                      licensePlate={
-                        repair.vehicle?.licensePlate?.plateNumber &&
-                        repair.vehicle?.licensePlate?.province
-                          ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
-                          : "ไม่ระบุทะเบียนรถ"
-                      }
-                      brand={getDisplayBrand(repair.vehicle?.vehicleModel)}
-                      time={repair.createdAt && formatTime(repair.createdAt)}
-                      price={parseFloat(repair.totalPrice)}
-                    />
-                  </Link>
-                ))
-              ) : (
-                <p className="text-subtle-light py-[24px] text-center text-xl">
-                  ไม่มีรายการซ่อม
-                </p>
-              )}
-            </div>
-
-            {/* ซ่อมเสร็จสิ้น */}
-            <div className="flex flex-col gap-[12px]">
-              {completedRepairs.length > 0 ? (
-                completedRepairs.map((repair) => (
-                  <Link key={repair.id} to={`/repairs/${repair.id}`}>
-                    <CarCard
-                      bg="completed"
-                      icon={
-                        <BrandIcons
-                          brand={repair.vehicle?.vehicleModel?.brand}
-                          color="#22c55e"
-                        />
-                      }
-                      licensePlate={
-                        repair.vehicle?.licensePlate?.plateNumber &&
-                        repair.vehicle?.licensePlate?.province
-                          ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
-                          : "ไม่ระบุทะเบียนรถ"
-                      }
-                      brand={getDisplayBrand(repair.vehicle?.vehicleModel)}
-                      time={
-                        repair.completedAt && formatTime(repair.completedAt)
-                      }
-                      price={parseFloat(repair.totalPrice)}
-                    />
-                  </Link>
-                ))
-              ) : (
-                <p className="text-subtle-light py-[24px] text-center text-xl">
-                  ไม่มีรายการซ่อม
-                </p>
-              )}
-            </div>
-
-            {/* ชำระเงินแล้ว */}
-            <div className="flex flex-col gap-[12px]">
-              {paidRepairs.length > 0 ? (
-                paidRepairs.map((repair) => (
-                  <Link key={repair.id} to={`/repairs/${repair.id}`}>
-                    <CarCard
-                      bg="paid"
-                      icon={
-                        <BrandIcons
-                          brand={repair.vehicle?.vehicleModel?.brand}
-                        />
-                      }
-                      licensePlate={
-                        repair.vehicle?.licensePlate?.plateNumber &&
-                        repair.vehicle?.licensePlate?.province
-                          ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
-                          : "ไม่ระบุทะเบียนรถ"
-                      }
-                      brand={getDisplayBrand(repair.vehicle?.vehicleModel)}
-                      time={repair.paidAt && formatTime(repair.paidAt)}
-                      price={parseFloat(repair.totalPrice)}
-                    />
-                  </Link>
-                ))
-              ) : (
-                <p className="text-subtle-light py-[24px] text-center text-xl">
-                  ไม่มีรายการซ่อม
-                </p>
-              )}
-            </div>
+            {renderRepairColumn(
+              inProgressRepairs,
+              "progress",
+              "#ffb000",
+              "createdAt",
+            )}
+            {renderRepairColumn(
+              completedRepairs,
+              "completed",
+              "#22c55e",
+              "completedAt",
+            )}
+            {renderRepairColumn(paidRepairs, "paid", undefined, "paidAt")}
           </div>
         </div>
 
@@ -249,62 +226,12 @@ const Dashboard = () => {
             </p>
             <div className="mt-[16px]">
               <div>
-                {outOfStockItems.slice(0, 5).map((item) => (
-                  <div
-                    key={`desk-out-${item.id}`}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={onKeyActivate(() => {
-                      setSelectedItem(item);
-                      setIsItemDetailOpen(true);
-                    })}
-                    onClick={() => {
-                      setSelectedItem(item);
-                      setIsItemDetailOpen(true);
-                    }}
-                  >
-                    <InventoryCard
-                      item={item}
-                      brand={item.brand}
-                      name={item.name}
-                      unit={item.unit}
-                      sellingPrice={item.sellingPrice}
-                      quantity={item.stockQuantity}
-                      minStockLevel={item.minStockLevel}
-                      attributes={item.attributes}
-                      secureUrl={item.secureUrl}
-                      category={item.category?.name}
-                    />
-                  </div>
-                ))}
-                {lowStockItems.slice(0, 5).map((item) => (
-                  <div
-                    key={`desk-low-${item.id}`}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={onKeyActivate(() => {
-                      setSelectedItem(item);
-                      setIsItemDetailOpen(true);
-                    })}
-                    onClick={() => {
-                      setSelectedItem(item);
-                      setIsItemDetailOpen(true);
-                    }}
-                  >
-                    <InventoryCard
-                      item={item}
-                      brand={item.brand}
-                      name={item.name}
-                      unit={item.unit}
-                      sellingPrice={item.sellingPrice}
-                      quantity={item.stockQuantity}
-                      minStockLevel={item.minStockLevel}
-                      attributes={item.attributes}
-                      secureUrl={item.secureUrl}
-                      category={item.category?.name}
-                    />
-                  </div>
-                ))}
+                {outOfStockItems
+                  .slice(0, 5)
+                  .map((item) => renderStockCard(item, "desk-out"))}
+                {lowStockItems
+                  .slice(0, 5)
+                  .map((item) => renderStockCard(item, "desk-low"))}
               </div>
             </div>
           </div>
@@ -484,62 +411,12 @@ const Dashboard = () => {
               <p className="text-normal pt-[8px] text-[22px] font-semibold md:text-2xl">
                 แจ้งเตือนสต็อก
               </p>
-              {outOfStockItems.slice(0, 5).map((item) => (
-                <div
-                  key={`m-out-${item.id}`}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={onKeyActivate(() => {
-                    setSelectedItem(item);
-                    setIsItemDetailOpen(true);
-                  })}
-                  onClick={() => {
-                    setSelectedItem(item);
-                    setIsItemDetailOpen(true);
-                  }}
-                >
-                  <InventoryCard
-                    item={item}
-                    brand={item.brand}
-                    name={item.name}
-                    unit={item.unit}
-                    sellingPrice={item.sellingPrice}
-                    quantity={item.stockQuantity}
-                    minStockLevel={item.minStockLevel}
-                    attributes={item.attributes}
-                    secureUrl={item.secureUrl}
-                    category={item.category?.name}
-                  />
-                </div>
-              ))}
-              {lowStockItems.slice(0, 5).map((item) => (
-                <div
-                  key={`m-low-${item.id}`}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={onKeyActivate(() => {
-                    setSelectedItem(item);
-                    setIsItemDetailOpen(true);
-                  })}
-                  onClick={() => {
-                    setSelectedItem(item);
-                    setIsItemDetailOpen(true);
-                  }}
-                >
-                  <InventoryCard
-                    item={item}
-                    brand={item.brand}
-                    name={item.name}
-                    unit={item.unit}
-                    sellingPrice={item.sellingPrice}
-                    quantity={item.stockQuantity}
-                    minStockLevel={item.minStockLevel}
-                    attributes={item.attributes}
-                    secureUrl={item.secureUrl}
-                    category={item.category?.name}
-                  />
-                </div>
-              ))}
+              {outOfStockItems
+                .slice(0, 5)
+                .map((item) => renderStockCard(item, "m-out"))}
+              {lowStockItems
+                .slice(0, 5)
+                .map((item) => renderStockCard(item, "m-low"))}
             </div>
           )}
         </div>

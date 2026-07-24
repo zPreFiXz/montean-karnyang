@@ -120,7 +120,6 @@ const RepairItemDetailDialog = ({
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       await updatePartStock(currentItem.id, {
         quantity: Number(data.quantity),
       });

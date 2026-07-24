@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { loginSchema } from "@/utils/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import FormButton from "@/components/forms/FormButton";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Mail,
   Lock,
@@ -17,6 +17,8 @@ import {
   Settings,
   Gauge,
   Warehouse,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 const Login = () => {
@@ -26,6 +28,7 @@ const Login = () => {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
   const { errors } = formState;
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const isLoggedOut = localStorage.getItem("justLoggedOut");
@@ -94,7 +97,7 @@ const Login = () => {
             <FormInput
               register={register}
               name="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               label={
                 <div className="flex items-center gap-2">
                   <Lock className="text-primary h-5 w-5" />
@@ -105,6 +108,21 @@ const Login = () => {
               color="primary"
               errors={errors}
               customClass="px-0"
+              rightSlot={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+                  aria-pressed={showPassword}
+                  className="text-subtle-dark hover:text-primary flex h-6 w-6 cursor-pointer items-center justify-center transition-colors duration-200"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              }
             />
 
             <FormButton

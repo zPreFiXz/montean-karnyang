@@ -16,7 +16,7 @@ const Layout = () => {
           <LeftSidebar />
         </div>
 
-        <main className="bg-gradient-primary flex-1 lg:max-h-[calc(100vh-73px)] lg:overflow-y-auto">
+        <main className="bg-surface-muted flex-1 lg:max-h-[calc(100vh-73px)] lg:overflow-y-auto">
           <Outlet />
         </main>
 

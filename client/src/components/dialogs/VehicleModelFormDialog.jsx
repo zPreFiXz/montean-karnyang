@@ -46,7 +46,6 @@ const VehicleModelFormDialog = ({
 
   const handleAddVehicleModel = async (data) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       await createVehicleModel({
         brand: data.brand,
         model: data.model,
@@ -61,7 +60,6 @@ const VehicleModelFormDialog = ({
 
   const handleEditVehicleModel = async (data) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       await updateVehicleModel(editingItem.id, {
         brand: data.brand,
         model: data.model,

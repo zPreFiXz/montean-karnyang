@@ -3,8 +3,10 @@ import { toast } from "sonner";
 import useAuthStore from "@/stores/useAuthStore";
 
 // axios instance กลาง: ใส่ token ให้อัตโนมัติ และจัดการ session หมดอายุที่เดียว
+// prod: เว็บถูกเสิร์ฟจาก server เดียวกับ API → เรียกแบบ same-origin ด้วย path relative
+// dev: Vite proxy /api ไปหา Express (ดู vite.config.js) จึงใช้ "/api" ได้ทั้งสองโหมด
 const apiClient = axios.create({
-  baseURL: `${import.meta.env.VITE_API_URL}/api`,
+  baseURL: "/api",
 });
 
 apiClient.interceptors.request.use((config) => {

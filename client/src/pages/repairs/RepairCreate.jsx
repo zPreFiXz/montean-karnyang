@@ -152,7 +152,6 @@ const RepairCreate = () => {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       navigate("/repairs/review", {
         state: {

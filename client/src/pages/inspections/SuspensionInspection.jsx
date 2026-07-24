@@ -560,7 +560,6 @@ const SuspensionInspection = () => {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const allRepairItems = [
         ...Array.from(selectedLeftParts)

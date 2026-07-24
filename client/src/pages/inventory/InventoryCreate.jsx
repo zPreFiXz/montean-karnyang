@@ -152,7 +152,6 @@ const InventoryCreate = () => {
           secureUrl: res.data?.secureUrl,
         };
       } else if (!isServiceCategory()) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
       if (!isServiceCategory()) {

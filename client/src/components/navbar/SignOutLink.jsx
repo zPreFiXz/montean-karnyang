@@ -16,7 +16,6 @@ const SignOutLink = ({ onLoggingOut }) => {
     setIsLoggingOut(true);
     onLoggingOut?.(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       await logout();
       toast.success("ออกจากระบบเรียบร้อยแล้ว");
       navigate("/login");

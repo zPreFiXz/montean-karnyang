@@ -101,35 +101,29 @@
 }
 
 @layer utilities {
+  /* น้ำเงินแบรนด์แบบเบาลง: near-solid ไล่เฉดบางๆ ไม่ฉูดฉาด */
   .bg-gradient-primary {
-    background: linear-gradient(135deg, #0d47a1 0%, #1976d2 55%, #2196f3 100%);
+    background: linear-gradient(180deg, #2280d8 0%, #1f77cf 100%);
   }
 
-  /* เงาการ์ดแบบ layered ให้ดูลอยและทันสมัยขึ้น (แทนเงา blur เดียวแบบเดิม) */
+  /* การ์ดมินิมอล: เส้นขอบบาง 1px แทนเงาหนา (flat) */
   .shadow-primary {
-    box-shadow:
-      0 1px 2px 0 rgba(15, 23, 42, 0.04),
-      0 8px 24px -8px rgba(15, 23, 42, 0.12);
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.08);
   }
 
-  /* เงาแถบ tab ล่าง ให้ลอยเด่นชัดขึ้น */
+  /* แถบ tab ล่าง: เส้นขอบบาง + เงานุ่มบางๆ ให้แยกจากเนื้อหาพอมองออก */
   .shadow-tab {
     box-shadow:
-      0 -1px 2px 0 rgba(15, 23, 42, 0.03),
-      0 10px 34px -6px rgba(15, 23, 42, 0.18);
+      0 0 0 1px rgba(15, 23, 42, 0.06),
+      0 6px 20px -12px rgba(15, 23, 42, 0.18);
   }
 
-  /* ยกการ์ดขึ้นเล็กน้อยเมื่อ hover สำหรับองค์ประกอบที่คลิกได้ */
+  /* hover แบบ flat: เน้นเส้นขอบเข้มขึ้น ไม่ยกการ์ด (ไม่ขยับ layout) */
   .card-interactive {
-    transition:
-      transform 200ms ease,
-      box-shadow 200ms ease;
+    transition: box-shadow 200ms ease;
   }
   .card-interactive:hover {
-    transform: translateY(-2px);
-    box-shadow:
-      0 2px 4px 0 rgba(15, 23, 42, 0.05),
-      0 16px 32px -10px rgba(25, 118, 210, 0.22);
+    box-shadow: 0 0 0 1px rgba(25, 118, 210, 0.45);
   }
 }
 

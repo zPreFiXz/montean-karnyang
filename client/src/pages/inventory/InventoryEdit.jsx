@@ -271,7 +271,6 @@ const InventoryEdit = () => {
         };
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       if (isServiceCategory()) {
         await updateService(id, serviceData);

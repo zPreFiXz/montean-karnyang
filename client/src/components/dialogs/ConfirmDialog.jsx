@@ -23,7 +23,6 @@ const ConfirmDialog = ({
   const handleConfirm = async () => {
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       await onConfirm();
     } catch (error) {
       toastError(error);
