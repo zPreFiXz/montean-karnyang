@@ -4,13 +4,13 @@ const MAX_RETRIES = 1;
 const NETWORK_ERROR_CODES = new Set(["ENOTFOUND", "ECONNREFUSED", "ECONNRESET"]);
 
 // ห้าม retry timeout: sendMessage ไม่ idempotent จะแจ้งเตือนซ้ำ
-const isRetryable = (error) => NETWORK_ERROR_CODES.has(error?.code);
+const isRetryable = (err) => NETWORK_ERROR_CODES.has(err?.code);
 
 const sendToChat = async (chatId, text, attempt = 0) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), config.telegram.requestTimeoutMs);
   try {
-    const res = await fetch(
+    const response = await fetch(
       `https://api.telegram.org/bot${config.telegram.botToken}/sendMessage`,
       {
         method: "POST",
@@ -19,10 +19,12 @@ const sendToChat = async (chatId, text, attempt = 0) => {
         body: JSON.stringify({ chat_id: chatId, text }),
       },
     );
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  } catch (error) {
-    if (attempt < MAX_RETRIES && isRetryable(error)) return sendToChat(chatId, text, attempt + 1);
-    throw error;
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${(await response.text()).slice(0, 200)}`);
+    }
+  } catch (err) {
+    if (attempt < MAX_RETRIES && isRetryable(err)) return sendToChat(chatId, text, attempt + 1);
+    throw err;
   } finally {
     clearTimeout(timer);
   }

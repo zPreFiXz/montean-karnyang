@@ -6,6 +6,7 @@ const {
   scanMessage,
   dayStartMessage,
   allClockedInMessage,
+  allLunchReturnedMessage,
   dailySummary,
 } = require("./formatter");
 const telegram = require("./telegram");
@@ -35,11 +36,25 @@ const startZktecoService = async (prisma) => {
   let lastDayStartDate = "";
   let lastSummaryDate = "";
   let lastAllInDate = "";
+  let lastAllLunchDate = "";
 
   const countPresent = async (dateKey) => {
     const { start, end } = getDayRange(dateKey);
     const scanned = await prisma.attendance.findMany({
       where: { scannedAt: { gte: start, lte: end } },
+      distinct: ["employeeId"],
+      select: { employeeId: true },
+    });
+    return scanned.length;
+  };
+
+  const countLunchReturned = async (dateKey) => {
+    const { start, end } = getDayRange(dateKey);
+    const scanned = await prisma.attendance.findMany({
+      where: {
+        type: { in: ["LUNCH_RETURN", "LUNCH_RETURN_LATE"] },
+        scannedAt: { gte: start, lte: end },
+      },
       distinct: ["employeeId"],
       select: { employeeId: true },
     });
@@ -66,6 +81,10 @@ const startZktecoService = async (prisma) => {
     const total = await prisma.employee.count();
     if (total && (await countPresent(dateKey)) >= total) {
       lastAllInDate = dateKey;
+    }
+    const present = await countPresent(dateKey);
+    if (present && (await countLunchReturned(dateKey)) >= present) {
+      lastAllLunchDate = dateKey;
     }
   };
 
@@ -97,6 +116,38 @@ const startZktecoService = async (prisma) => {
     } catch (err) {
       lastAllInDate = ""; // ให้รอบถัดไปลองส่งใหม่
       console.error("[Telegram] All clocked-in message failed:", err);
+    }
+  };
+
+  const checkAllLunchReturned = async (recordTime) => {
+    const dateKey = getDateKey(recordTime);
+    if (lastAllLunchDate === dateKey) return;
+
+    // นับเฉพาะคนที่มาทำงานวันนั้น (มีสแกนแล้ว) ไม่รวมคนขาด/ลา
+    const present = await countPresent(dateKey);
+    if (!present) return;
+    if ((await countLunchReturned(dateKey)) < present) return;
+
+    const { start, end } = getDayRange(dateKey);
+    const lateScans = await prisma.attendance.findMany({
+      where: {
+        type: "LUNCH_RETURN_LATE",
+        scannedAt: { gte: start, lte: end },
+      },
+      select: { statusLabel: true, employee: { select: { name: true } } },
+      orderBy: { scannedAt: "asc" },
+    });
+    const lateEmployees = lateScans.map((s) => ({
+      name: s.employee.name,
+      statusLabel: s.statusLabel,
+    }));
+
+    lastAllLunchDate = dateKey;
+    try {
+      await telegram.send(allLunchReturnedMessage(lateEmployees));
+    } catch (err) {
+      lastAllLunchDate = ""; // ให้รอบถัดไปลองส่งใหม่
+      console.error("[Telegram] All lunch-returned message failed:", err);
     }
   };
 
@@ -204,6 +255,7 @@ const startZktecoService = async (prisma) => {
     try {
       await flushScanNotifications();
       await checkAllClockedIn(new Date());
+      await checkAllLunchReturned(new Date());
     } catch (err) {
       console.error("[Notify] Flush pending notifications failed:", err);
     }

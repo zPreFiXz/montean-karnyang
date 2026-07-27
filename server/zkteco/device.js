@@ -18,22 +18,22 @@ const withTimeout = (promise, ms, code) => {
 const createDevice = () => {
   const { ip, port, socketTimeoutMs, connectionTimeoutMs, connectTimeoutMs, fetchTimeoutMs } =
     config.device;
-  let zk = null;
+  let connection = null;
 
   const disconnect = async () => {
-    if (!zk) return;
+    if (!connection) return;
     try {
-      await zk.disconnect();
+      await connection.disconnect();
     } catch {}
-    zk = null;
+    connection = null;
   };
 
   const connect = async () => {
     await disconnect();
 
-    zk = new ZKLib(ip, port, socketTimeoutMs, connectionTimeoutMs);
+    connection = new ZKLib(ip, port, socketTimeoutMs, connectionTimeoutMs);
     try {
-      await withTimeout(zk.createSocket(), connectTimeoutMs, "CONNECT_TIMEOUT");
+      await withTimeout(connection.createSocket(), connectTimeoutMs, "CONNECT_TIMEOUT");
     } catch (err) {
       await disconnect();
       throw err;
@@ -42,9 +42,9 @@ const createDevice = () => {
   };
 
   const fetchLogs = async () => {
-    if (!zk) throw new Error("ZKLib not connected");
-    const data = await withTimeout(zk.getAttendances(), fetchTimeoutMs, "FETCH_TIMEOUT");
-    return data?.data || [];
+    if (!connection) throw new Error("ZKLib not connected");
+    const result = await withTimeout(connection.getAttendances(), fetchTimeoutMs, "FETCH_TIMEOUT");
+    return result?.data || [];
   };
 
   return { connect, disconnect, fetchLogs };

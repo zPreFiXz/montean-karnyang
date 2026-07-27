@@ -1,6 +1,7 @@
 const path = require("path");
 require("dotenv").config({ path: path.resolve(__dirname, ".env") });
 
+// prisma + node-zklib ผูก listener หลายตัวบน process/socket — ยกเพดานกัน warning "possible memory leak" หลอก
 require("events").EventEmitter.defaultMaxListeners = 20;
 
 const { PrismaClient } = require("@prisma/client");
@@ -11,8 +12,9 @@ const prisma = new PrismaClient();
 const shutdown = async (stop) => {
   console.log("[ZKTeco] Shutting down gracefully...");
 
-  const force = setTimeout(() => process.exit(1), 5_000);
-  force.unref();
+  // กันค้าง: ถ้า cleanup ไม่จบใน 5 วิ บังคับออก — unref ไม่ให้ตัว timer เองกันไม่ให้ process ปิด
+  const forceExitTimer = setTimeout(() => process.exit(1), 5_000);
+  forceExitTimer.unref();
 
   stop?.();
   await prisma.$disconnect();

@@ -2,20 +2,16 @@ const config = require("./config");
 const { STATUS } = require("./attendance");
 const { formatThaiDate, formatThaiTime, getDayRange } = require("./time");
 
-const displayName = (emp) => emp?.name ?? "ไม่ทราบชื่อ";
+const displayName = (emp) => emp?.name ?? "ไม่ระบุชื่อ";
 
-const bulletList = (items, max = 15) => {
-  const lines = items.slice(0, max).map((n) => `• ${n}`);
-  if (items.length > max) lines.push(`• …และอีก ${items.length - max} คน`);
-  return lines.join("\n");
-};
+const bulletList = (items) => items.map((name) => `• ${name}`).join("\n");
 
 const LUNCH_TYPES = new Set([STATUS.LUNCH_OUT, STATUS.LUNCH_RETURN, STATUS.LUNCH_RETURN_LATE]);
 
 const scanMessage = (empName, empId, type, statusLabel, recordTime) => {
   const header = LUNCH_TYPES.has(type)
-    ? "🍱 บันทึกเวลาพักเที่ยง"
-    : "⏰ บันทึกเวลาเข้า-ออกงาน";
+    ? "🍱 แจ้งเตือนพักเที่ยง"
+    : "⏰ แจ้งเตือนเข้า-ออกงาน";
   return [
     header,
     "",
@@ -33,6 +29,17 @@ const dayStartMessage = (date) => `🌅 วันที่ ${formatThaiDate(date
 // lateEmployees: [{ name, statusLabel }] — คนสายไม่ได้ค่าข้าวเที่ยงของวันนั้น
 const allClockedInMessage = (lateEmployees = []) => {
   const header = "✅ พนักงานเข้างานครบแล้ว";
+  if (!lateEmployees.length) return header;
+
+  return [
+    header,
+    bulletList(lateEmployees.map((e) => `${e.name} ${lateNote(e.statusLabel)}`)),
+  ].join("\n");
+};
+
+// lateEmployees: [{ name, statusLabel }] — คนที่กลับจากพักเที่ยงช้ากว่ากำหนด
+const allLunchReturnedMessage = (lateEmployees = []) => {
+  const header = "✅ พนักงานกลับจากพักเที่ยงครบแล้ว";
   if (!lateEmployees.length) return header;
 
   return [
@@ -69,7 +76,7 @@ const dailySummary = async (prisma, dateKey) => {
   const grouped = new Map(employees.map((e) => [e.id, { ...e, scans: [] }]));
   for (const att of attendances) grouped.get(att.employeeId)?.scans.push(att);
 
-  const stats = { onTime: [], absent: [], halfDay: [], late: [], lunchOvertime: [], forgotScan: [] };
+  const stats = { onTime: [], absent: [], halfDay: [], late: [], lunchOvertime: [], incompleteScan: [] };
 
   for (const emp of grouped.values()) {
     const name = displayName(emp);
@@ -96,8 +103,8 @@ const dailySummary = async (prisma, dateKey) => {
       if (lunchOTScan) stats.lunchOvertime.push(`${name} ${lateNote(lunchOTScan.statusLabel)}`);
       if (scans.length < 4) {
         const missing = config.attendance.stepStatuses.slice(scans.length, 4);
-        stats.forgotScan.push(
-          missing.length ? `${name} (ไม่ได้สแกน: ${missing.join(", ")})` : name,
+        stats.incompleteScan.push(
+          missing.length ? `${name} (ไม่ได้สแกน ${missing.join(", ")})` : name,
         );
       }
     }
@@ -113,10 +120,10 @@ const dailySummary = async (prisma, dateKey) => {
   const sections = [
     ["✅ ตรงเวลา", stats.onTime],
     ["❌ ขาด/ลา", stats.absent],
-    ["🌤️ ลาครึ่งวัน", stats.halfDay],
+    ["🌗 ลาครึ่งวัน", stats.halfDay],
     ["⏱️ มาสาย", stats.late],
     ["🍱 พักเกินเวลา", stats.lunchOvertime],
-    ["⚠️ ลืมสแกน", stats.forgotScan],
+    ["⚠️ สแกนไม่ครบ", stats.incompleteScan],
   ];
   for (const [label, list] of sections) {
     if (list.length) message.push("", `${label} (${list.length} คน)`, bulletList(list));
@@ -130,5 +137,6 @@ module.exports = {
   scanMessage,
   dayStartMessage,
   allClockedInMessage,
+  allLunchReturnedMessage,
   dailySummary,
 };
