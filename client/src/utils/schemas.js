@@ -126,14 +126,11 @@ export const partServiceSchema = z
       .array(
         z.object({
           dotCode: z.string().optional(),
-          // ค่าว่าง "" → undefined ก่อน coerce กัน NaN (ค่อยเช็ค > 0 ใน superRefine)
-          quantity: z.preprocess(
-            (v) =>
-              v === "" || v === null || v === undefined || Number.isNaN(v)
-                ? undefined
-                : v,
-            z.coerce.number().optional(),
-          ),
+          // อะไรก็ตามที่ไม่ใช่ตัวเลขจริง (รวม "", "null", NaN) → undefined กัน "Expected number, received NaN"
+          quantity: z.preprocess((v) => {
+            const n = Number(v);
+            return Number.isFinite(n) ? n : undefined;
+          }, z.number().optional()),
         }),
       )
       .optional(),

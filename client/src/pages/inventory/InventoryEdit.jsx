@@ -130,8 +130,8 @@ const InventoryEdit = () => {
             setValue(
               "tireLots",
               item.tireLots.map((lot) => ({
-                dotCode: lot.dotCode,
-                quantity: String(lot.quantity),
+                dotCode: lot.dotCode ?? "",
+                quantity: lot.quantity == null ? "" : String(lot.quantity),
               })),
             );
           }
