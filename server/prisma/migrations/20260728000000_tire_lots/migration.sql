@@ -16,3 +16,4 @@ CREATE TABLE `TireLot` (
 
 -- AddForeignKey
 ALTER TABLE `TireLot` ADD CONSTRAINT `TireLot_partId_fkey` FOREIGN KEY (`partId`) REFERENCES `Part`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
