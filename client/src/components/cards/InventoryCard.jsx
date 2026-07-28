@@ -11,7 +11,6 @@ const InventoryCard = ({
   attributes,
   secureUrl,
   category,
-  tireLots,
 }) => {
   const isTire = category === "ยาง";
   const isService = category === "บริการ";
@@ -65,12 +64,6 @@ const InventoryCard = ({
 
           <div className="flex flex-col">
             {renderProductInfo()}
-
-            {isTire && tireLots?.length > 0 && (
-              <p className="text-subtle-light line-clamp-1 text-sm font-medium md:text-base">
-                DOT: {tireLots.map((lot) => `${lot.dotCode}×${lot.quantity}`).join(", ")}
-              </p>
-            )}
 
             {!isService &&
               (quantity === 0 ? (
