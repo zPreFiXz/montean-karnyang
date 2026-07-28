@@ -97,6 +97,21 @@ model Part {
   category           Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   categoryId         Int
   repairItems        RepairItem[]
+  tireLots           TireLot[]
+}
+
+// ล็อตยางแยกตาม DOT (สัปดาห์/ปีผลิต) — 1 Part มีได้หลายล็อต
+// Part.stockQuantity ยังเป็นตัวเลขหลัก ล็อตเก็บรายละเอียด DOT + จำนวนของแต่ละล็อต
+model TireLot {
+  id        Int      @id @default(autoincrement())
+  dotCode   String
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  part      Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
+  partId    Int
+
+  @@index([partId])
 }
 
 model Service {
@@ -153,6 +168,7 @@ model RepairItem {
   partName    String?
   serviceName String?
   customName  String?
+  dotCode     String?
   side        Side?
   unitPrice   Int
   quantity    Int      @default(1)

@@ -45,6 +45,61 @@ const resolveCustomer = async (tx, { name, address, phoneNumber }) => {
   return null;
 };
 
+// เรียงล็อตเก่าสุดก่อน (FIFO): DOT รูปแบบ WWYY → เทียบปี(YY) ก่อน แล้วสัปดาห์(WW)
+// ล็อต "ไม่ระบุ" (backfill) หรือรูปแบบผิด ถือว่าเก่าสุด ขายออกก่อน
+const dotOrderKey = (dotCode) => {
+  const matched = /^(\d{2})(\d{2})$/.exec(dotCode || "");
+  if (!matched) return -1;
+  const [, week, year] = matched;
+  return Number(year) * 100 + Number(week);
+};
+
+// ตัดสต็อกยางแบบ FIFO ข้ามหลายล็อตได้ คืนข้อความสรุป DOT ที่ตัด เช่น "0126×2, 0226×1"
+// คืน null ถ้า Part ไม่มีล็อต (ไม่ใช่ยางที่ track ล็อต) → ให้ผู้เรียกตัด stockQuantity แบบเดิม
+const deductTireLotsFifo = async (tx, partId, quantity) => {
+  const lots = await tx.tireLot.findMany({ where: { partId } });
+  if (!lots.length) return null;
+
+  lots.sort((a, b) => dotOrderKey(a.dotCode) - dotOrderKey(b.dotCode));
+
+  let remaining = quantity;
+  const consumed = [];
+  for (const lot of lots) {
+    if (remaining <= 0) break;
+    const take = Math.min(lot.quantity, remaining);
+    if (take <= 0) continue;
+    remaining -= take;
+    consumed.push(`${lot.dotCode}×${take}`);
+    const left = lot.quantity - take;
+    if (left <= 0) {
+      await tx.tireLot.delete({ where: { id: lot.id } });
+    } else {
+      await tx.tireLot.update({ where: { id: lot.id }, data: { quantity: left } });
+    }
+  }
+  return consumed.join(", ") || null;
+};
+
+// คืนล็อตยางกลับตอนแก้/ยกเลิกบิล จากข้อความ DOT ที่บันทึกไว้ (เช่น "0126×2, 0226×1")
+const restoreTireLotsFromDotCode = async (tx, partId, dotCode) => {
+  if (!dotCode) return;
+  for (const chunk of dotCode.split(",")) {
+    const matched = /^\s*(.+?)×(\d+)\s*$/.exec(chunk);
+    if (!matched) continue;
+    const dot = matched[1].trim();
+    const qty = Number(matched[2]);
+    const existing = await tx.tireLot.findFirst({ where: { partId, dotCode: dot } });
+    if (existing) {
+      await tx.tireLot.update({
+        where: { id: existing.id },
+        data: { quantity: existing.quantity + qty },
+      });
+    } else {
+      await tx.tireLot.create({ data: { partId, dotCode: dot, quantity: qty } });
+    }
+  }
+};
+
 // บันทึกรายการซ่อมย่อยชุดใหม่ พร้อมตัดสต็อกอะไหล่ที่ใช้
 const createRepairItemsAndDecrementStock = async (tx, repairId, repairItems) => {
   // snapshot ชื่ออะไหล่/บริการ ณ วันซ่อม เผื่ออะไหล่ถูกลบภายหลัง ประวัติจะยังมีชื่อ
@@ -63,27 +118,31 @@ const createRepairItemsAndDecrementStock = async (tx, repairId, repairItems) => 
   const partNameById = new Map(parts.map((p) => [p.id, p.name]));
   const serviceNameById = new Map(services.map((s) => [s.id, s.name]));
 
-  await tx.repairItem.createMany({
-    data: repairItems.map((item) => ({
-      customName: item.customName || null,
-      side: item.side || null,
-      unitPrice: item.unitPrice,
-      quantity: item.quantity,
-      repairId,
-      partId: item.partId,
-      serviceId: item.serviceId,
-      partName: item.partId ? partNameById.get(item.partId) || null : null,
-      serviceName: item.serviceId ? serviceNameById.get(item.serviceId) || null : null,
-    })),
-  });
-
+  // สร้างทีละรายการ: ยางต้องตัดล็อต FIFO ก่อนเพื่อรู้ DOT ที่ขาย แล้วบันทึกลง RepairItem
   for (const item of repairItems) {
+    let dotCode = null;
     if (item.partId) {
+      dotCode = await deductTireLotsFifo(tx, item.partId, item.quantity);
       await tx.part.update({
         where: { id: item.partId },
         data: { stockQuantity: { decrement: item.quantity } },
       });
     }
+
+    await tx.repairItem.create({
+      data: {
+        customName: item.customName || null,
+        side: item.side || null,
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+        dotCode,
+        repairId,
+        partId: item.partId,
+        serviceId: item.serviceId,
+        partName: item.partId ? partNameById.get(item.partId) || null : null,
+        serviceName: item.serviceId ? serviceNameById.get(item.serviceId) || null : null,
+      },
+    });
   }
 };
 
@@ -346,6 +405,7 @@ exports.updateRepair = async (req, res, next) => {
             where: { id: item.partId },
             data: { stockQuantity: { increment: item.quantity } },
           });
+          await restoreTireLotsFromDotCode(tx, item.partId, item.dotCode);
         }
       }
 

@@ -60,7 +60,10 @@ exports.listInventory = async (req, res, next) => {
     const [parts, services] = await Promise.all([
       prisma.part.findMany({
         where: partFilter,
-        include: { category: true },
+        include: {
+          category: true,
+          tireLots: { orderBy: { createdAt: "asc" } },
+        },
       }),
       prisma.service.findMany({
         where: serviceFilter,
@@ -108,7 +111,10 @@ exports.getInventory = async (req, res, next) => {
     if (type === "part") {
       inventory = await prisma.part.findUnique({
         where: { id: Number(id) },
-        include: { category: true },
+        include: {
+          category: true,
+          tireLots: { orderBy: { createdAt: "asc" } },
+        },
       });
 
       if (inventory) {

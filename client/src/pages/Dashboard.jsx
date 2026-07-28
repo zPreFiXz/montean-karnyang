@@ -123,6 +123,7 @@ const Dashboard = () => {
         quantity={item.stockQuantity}
         minStockLevel={item.minStockLevel}
         attributes={item.attributes}
+        tireLots={item.tireLots}
         secureUrl={item.secureUrl}
         category={item.category?.name}
       />

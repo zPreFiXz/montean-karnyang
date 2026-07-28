@@ -11,6 +11,7 @@ import FormUploadImage from "@/components/forms/FormUploadImage";
 import { resizeImage } from "@/utils/resizeImage";
 import { uploadImage } from "@/api/uploadImage";
 import VehicleCompatibilityInput from "@/components/forms/VehicleCompatibilityInput";
+import TireLotInput from "@/components/forms/TireLotInput";
 import { useNavigate } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { partServiceSchema } from "@/utils/schemas";
@@ -30,6 +31,7 @@ const InventoryCreate = () => {
     setValue,
     watch,
     reset,
+    control,
     formState,
     trigger,
     clearErrors,
@@ -106,6 +108,7 @@ const InventoryCreate = () => {
       "width",
       "aspectRatio",
       "rimDiameter",
+      "tireLots",
       "suspensionType",
     ]);
     trigger("categoryId");
@@ -162,7 +165,8 @@ const InventoryCreate = () => {
           costPrice: data.costPrice,
           sellingPrice: data.sellingPrice,
           unit: data.unit,
-          stockQuantity: data.stockQuantity,
+          // ยาง: สต็อกมาจากผลรวมล็อต (backend คำนวณ) ไม่ต้องส่ง stockQuantity
+          stockQuantity: isTireCategory() ? undefined : data.stockQuantity,
           minStockLevel: data.minStockLevel,
           attributes: isTireCategory()
             ? {
@@ -175,6 +179,12 @@ const InventoryCreate = () => {
                   suspensionType: data.suspensionType,
                 }
               : undefined,
+          tireLots: isTireCategory()
+            ? (data.tireLots || []).map((lot) => ({
+                dotCode: lot.dotCode,
+                quantity: Number(lot.quantity) || 0,
+              }))
+            : undefined,
           compatibleVehicles: watch("compatibleVehicles") || undefined,
           image,
           categoryId: data.categoryId,
@@ -439,20 +449,29 @@ const InventoryCreate = () => {
                   value={watch("unit") || ""}
                 />
               </div>
-              <FormInput
-                register={register}
-                name="stockQuantity"
-                label="จำนวนสต็อก"
-                type="number"
-                placeholder="เช่น 4"
-                color="subtle-dark"
-                errors={errors}
-                inputMode="numeric"
-                onWheel={(e) => e.target.blur()}
-                onInput={(e) => {
-                  e.target.value = e.target.value.replace(/[^0-9]/g, "");
-                }}
-              />
+              {isTireCategory() ? (
+                <TireLotInput
+                  control={control}
+                  register={register}
+                  watch={watch}
+                  errors={errors}
+                />
+              ) : (
+                <FormInput
+                  register={register}
+                  name="stockQuantity"
+                  label="จำนวนสต็อก"
+                  type="number"
+                  placeholder="เช่น 4"
+                  color="subtle-dark"
+                  errors={errors}
+                  inputMode="numeric"
+                  onWheel={(e) => e.target.blur()}
+                  onInput={(e) => {
+                    e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                  }}
+                />
+              )}
 
               <FormInput
                 register={register}

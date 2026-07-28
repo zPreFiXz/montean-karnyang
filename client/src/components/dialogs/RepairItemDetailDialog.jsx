@@ -118,10 +118,17 @@ const RepairItemDetailDialog = ({
   };
 
   const onSubmit = async (data) => {
+    const dotCode = String(data.dotCode || "").trim();
+    if (isTire && !/^\d{4}$/.test(dotCode)) {
+      toast.error("กรุณากรอก DOT เป็นเลข 4 หลัก เช่น 0126");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await updatePartStock(currentItem.id, {
         quantity: Number(data.quantity),
+        dotCode: isTire ? dotCode : undefined,
       });
       toast.success("เพิ่มสต็อกเรียบร้อยแล้ว");
       setIsAddStockVisible(false);
@@ -371,6 +378,27 @@ const RepairItemDetailDialog = ({
                       onSubmit={handleSubmit(onSubmit)}
                       className="space-y-[16px]"
                     >
+                      {isTire && (
+                        <FormInput
+                          register={register}
+                          name="dotCode"
+                          label="สัปดาห์/ปีผลิต (DOT)"
+                          type="text"
+                          placeholder="เช่น 0126"
+                          textSize="text-lg md:text-xl"
+                          color="subtle-dark"
+                          errors={errors}
+                          inputMode="numeric"
+                          onWheel={(e) => e.target.blur()}
+                          onInput={(e) => {
+                            e.target.value = e.target.value
+                              .replace(/[^0-9]/g, "")
+                              .slice(0, 4);
+                          }}
+                          customClass="px-0 pt-[16px]"
+                        />
+                      )}
+
                       <FormInput
                         register={register}
                         name="quantity"

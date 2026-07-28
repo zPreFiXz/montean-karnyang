@@ -122,6 +122,14 @@ export const partServiceSchema = z
     width: z.string().optional(),
     aspectRatio: z.string().optional(),
     rimDiameter: z.string().optional(),
+    tireLots: z
+      .array(
+        z.object({
+          dotCode: z.string().optional(),
+          quantity: z.coerce.number().optional(),
+        }),
+      )
+      .optional(),
 
     // ช่วงล่าง
     suspensionType: z.string().optional(),
@@ -191,6 +199,37 @@ export const partServiceSchema = z
           path: ["rimDiameter"],
         });
       }
+
+      const lots = data.tireLots || [];
+      if (lots.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "กรุณาเพิ่มล็อตยางอย่างน้อย 1 ล็อต",
+          path: ["tireLots"],
+        });
+      }
+      lots.forEach((lot, index) => {
+        if (!lot.dotCode || String(lot.dotCode).trim() === "") {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "กรุณากรอก DOT",
+            path: ["tireLots", index, "dotCode"],
+          });
+        } else if (!/^\d{4}$/.test(String(lot.dotCode).trim())) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "DOT ต้องเป็นเลข 4 หลัก",
+            path: ["tireLots", index, "dotCode"],
+          });
+        }
+        if (!lot.quantity || Number(lot.quantity) < 1) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "จำนวนต้องมากกว่า 0",
+            path: ["tireLots", index, "quantity"],
+          });
+        }
+      });
 
       if (!data.unit || data.unit.trim() === "") {
         ctx.addIssue({
@@ -280,6 +319,7 @@ export const editNamePriceSchema = z.object({
 
 export const updatePartStockSchema = z.object({
   quantity: z.coerce.number().min(1, "กรุณากรอกจำนวน"),
+  dotCode: z.string().optional(), // เฉพาะยาง — ตรวจ 4 หลักในฟอร์ม
 });
 
 export const vehicleModelSchema = z.object({

@@ -11,6 +11,7 @@ import FormUploadImage from "@/components/forms/FormUploadImage";
 import { resizeImage } from "@/utils/resizeImage";
 import { deleteImage, uploadImage } from "@/api/uploadImage";
 import VehicleCompatibilityInput from "@/components/forms/VehicleCompatibilityInput";
+import TireLotInput from "@/components/forms/TireLotInput";
 import { useNavigate } from "react-router";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,6 +35,7 @@ const InventoryEdit = () => {
     setValue,
     watch,
     reset,
+    control,
     formState,
     trigger,
     clearErrors,
@@ -123,6 +125,17 @@ const InventoryEdit = () => {
             });
           }
 
+          // prefill ล็อตยางเดิม (แปลง quantity เป็น string ให้ input text แสดงถูก)
+          if (item.tireLots?.length) {
+            setValue(
+              "tireLots",
+              item.tireLots.map((lot) => ({
+                dotCode: lot.dotCode,
+                quantity: String(lot.quantity),
+              })),
+            );
+          }
+
           if (item.compatibleVehicles) {
             setValue("compatibleVehicles", item.compatibleVehicles);
           }
@@ -190,6 +203,7 @@ const InventoryEdit = () => {
       "width",
       "aspectRatio",
       "rimDiameter",
+      "tireLots",
       "suspensionType",
     ]);
     trigger("categoryId");
@@ -246,7 +260,8 @@ const InventoryEdit = () => {
           costPrice: data.costPrice,
           sellingPrice: data.sellingPrice,
           unit: data.unit,
-          stockQuantity: data.stockQuantity,
+          // ยาง: สต็อกมาจากผลรวมล็อต (backend คำนวณ) ไม่ต้องส่ง stockQuantity
+          stockQuantity: isTireCategory() ? undefined : data.stockQuantity,
           minStockLevel: data.minStockLevel,
           attributes: isTireCategory()
             ? {
@@ -259,6 +274,12 @@ const InventoryEdit = () => {
                   suspensionType: data.suspensionType,
                 }
               : undefined,
+          tireLots: isTireCategory()
+            ? (data.tireLots || []).map((lot) => ({
+                dotCode: lot.dotCode,
+                quantity: Number(lot.quantity) || 0,
+              }))
+            : undefined,
           compatibleVehicles: watch("compatibleVehicles"),
           image,
           categoryId: data.categoryId,
@@ -537,20 +558,29 @@ const InventoryEdit = () => {
                     value={watch("unit") || ""}
                   />
                 </div>
-                <FormInput
-                  register={register}
-                  name="stockQuantity"
-                  label="จำนวนสต็อก"
-                  type="number"
-                  placeholder="เช่น 10"
-                  color="subtle-dark"
-                  errors={errors}
-                  inputMode="numeric"
-                  onWheel={(e) => e.target.blur()}
-                  onInput={(e) => {
-                    e.target.value = e.target.value.replace(/[^0-9]/g, "");
-                  }}
-                />
+                {isTireCategory() ? (
+                  <TireLotInput
+                    control={control}
+                    register={register}
+                    watch={watch}
+                    errors={errors}
+                  />
+                ) : (
+                  <FormInput
+                    register={register}
+                    name="stockQuantity"
+                    label="จำนวนสต็อก"
+                    type="number"
+                    placeholder="เช่น 10"
+                    color="subtle-dark"
+                    errors={errors}
+                    inputMode="numeric"
+                    onWheel={(e) => e.target.blur()}
+                    onInput={(e) => {
+                      e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                    }}
+                  />
+                )}
 
                 <FormInput
                   register={register}

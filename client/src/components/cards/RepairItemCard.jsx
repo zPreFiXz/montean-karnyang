@@ -109,6 +109,11 @@ const RepairItemCard = ({ item, variant }) => {
 
           <div className="flex flex-col">
             {renderProductInfo(item)}
+            {variant === "detail" && item.dotCode && (
+              <p className="text-subtle-light line-clamp-1 text-sm font-medium md:text-base">
+                DOT: {item.dotCode}
+              </p>
+            )}
             <p className="text-subtle-dark line-clamp-1 text-base font-semibold md:text-lg">
               {formatCurrency(unitPrice)} × {item.quantity} {unit}
             </p>
