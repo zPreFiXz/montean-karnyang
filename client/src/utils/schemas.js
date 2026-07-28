@@ -213,13 +213,15 @@ export const partServiceSchema = z
         });
       }
       lots.forEach((lot, index) => {
-        if (!lot.dotCode || String(lot.dotCode).trim() === "") {
+        const dot = String(lot.dotCode ?? "").trim();
+        // "ไม่ระบุ" = ยางเก่าที่ backfill มา (ไม่รู้ DOT) — ยอมรับได้ ไม่ต้องบังคับ 4 หลัก
+        if (dot === "") {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: "กรุณากรอก DOT",
             path: ["tireLots", index, "dotCode"],
           });
-        } else if (!/^\d{4}$/.test(String(lot.dotCode).trim())) {
+        } else if (dot !== "ไม่ระบุ" && !/^\d{4}$/.test(dot)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: "DOT ต้องเป็นเลข 4 หลัก",
