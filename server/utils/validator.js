@@ -74,20 +74,43 @@ exports.repairSchema = z.object({
     .optional(),
 });
 
-exports.partSchema = z.object({
-  partNumber: z.string().min(1, "กรุณากรอกรหัสอะไหล่"),
-  brand: z.string().min(1, "กรุณากรอกยี่ห้อ"),
-  name: z.string().min(1, "กรุณากรอกชื่ออะไหล่"),
-  costPrice: z.coerce.number().optional(),
-  sellingPrice: z.coerce.number(),
-  unit: z.string().min(1, "กรุณาเลือกหน่วย"),
-  stockQuantity: z.coerce.number(),
-  minStockLevel: z.coerce.number(),
-  attributes: z.any().optional(),
-  compatibleVehicles: z.any().optional(),
-  image: z.any().optional(),
-  categoryId: z.coerce.number(),
-});
+exports.partSchema = z
+  .object({
+    partNumber: z.string().min(1, "กรุณากรอกรหัสอะไหล่"),
+    brand: z.string().min(1, "กรุณากรอกยี่ห้อ"),
+    name: z.string().min(1, "กรุณากรอกชื่ออะไหล่"),
+    costPrice: z.coerce.number().optional(),
+    sellingPrice: z.coerce.number(),
+    unit: z.string().min(1, "กรุณาเลือกหน่วย"),
+    // ยาง: ไม่ส่ง stockQuantity มา — คอนโทรลเลอร์คำนวณจากผลรวมล็อตแทน
+    stockQuantity: z.coerce.number().optional(),
+    minStockLevel: z.coerce.number(),
+    attributes: z.any().optional(),
+    compatibleVehicles: z.any().optional(),
+    image: z.any().optional(),
+    categoryId: z.coerce.number(),
+    // ล็อตยาง (DOT + จำนวน) — ต้องอยู่ในสคีมา ไม่งั้น validate() จะตัดทิ้งก่อนถึงคอนโทรลเลอร์
+    tireLots: z
+      .array(
+        z.object({
+          dotCode: z.string().min(1, "กรุณากรอก DOT"),
+          quantity: z.coerce
+            .number()
+            .int("จำนวนล็อตต้องเป็นจำนวนเต็ม")
+            .min(0, "จำนวนล็อตต้องไม่ติดลบ"),
+        }),
+      )
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.tireLots && data.stockQuantity === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        message: "กรุณากรอกจำนวนสต็อก",
+        path: ["stockQuantity"],
+      });
+    }
+  });
 
 exports.serviceSchema = z.object({
   name: z.string().min(1, "กรุณากรอกชื่อบริการ"),
@@ -110,6 +133,8 @@ exports.updateRepairStatusSchema = z.object({
 
 exports.updatePartStockSchema = z.object({
   quantity: z.coerce.number().min(1, "กรุณากรอกจำนวน"),
+  // เฉพาะยาง: DOT ของล็อตที่เติมเข้ามา (ตรวจ 4 หลักที่ฟอร์ม) — ถ้าไม่รับตรงนี้จะถูกตัดทิ้ง ล็อตจะไม่ถูกบันทึก
+  dotCode: z.string().optional(),
 });
 
 exports.vehicleModelSchema = z.object({
