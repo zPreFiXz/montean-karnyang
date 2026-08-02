@@ -100,8 +100,6 @@ model Part {
   tireLots           TireLot[]
 }
 
-// ล็อตยางแยกตาม DOT (สัปดาห์/ปีผลิต) — 1 Part มีได้หลายล็อต
-// Part.stockQuantity ยังเป็นตัวเลขหลัก ล็อตเก็บรายละเอียด DOT + จำนวนของแต่ละล็อต
 model TireLot {
   id        Int      @id @default(autoincrement())
   dotCode   String

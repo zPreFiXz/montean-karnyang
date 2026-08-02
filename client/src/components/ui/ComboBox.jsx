@@ -28,6 +28,7 @@ const ComboBox = ({
   name,
   disabled = false,
   customClass = "",
+  searchable = true,
 }) => {
   const [open, setOpen] = useState(false);
   const [triggerWidth, setTriggerWidth] = useState(0);
@@ -130,14 +131,16 @@ const ComboBox = ({
             sticky="partial"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
-            <Command className="max-h-[300px]">
-              <CommandInput
-                ref={inputRef}
-                placeholder="ค้นหา..."
-                className={`font-athiti text-normal h-9 font-medium ${
-                  customClass || "text-lg md:text-xl"
-                }`}
-              />
+            <Command className="max-h-[300px]" shouldFilter={searchable}>
+              {searchable && (
+                <CommandInput
+                  ref={inputRef}
+                  placeholder="ค้นหา..."
+                  className={`font-athiti text-normal h-9 font-medium ${
+                    customClass || "text-lg md:text-xl"
+                  }`}
+                />
+              )}
               <CommandEmpty>
                 <p
                   className={`font-athiti text-subtle-dark font-medium ${

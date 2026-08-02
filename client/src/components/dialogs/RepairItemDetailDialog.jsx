@@ -20,6 +20,21 @@ import useAuthStore from "@/stores/useAuthStore";
 import { formatCurrency } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 
+// สะท้อนสิ่งที่ backend ทำตอนเพิ่มสต็อก: DOT เดิมบวกทับล็อตเดิม ไม่งั้นสร้างล็อตใหม่
+const mergeTireLot = (lots = [], dotCode, quantity) => {
+  const list = lots || [];
+  const index = list.findIndex(
+    (lot) => String(lot.dotCode ?? "").trim() === dotCode,
+  );
+  if (index === -1) return [...list, { dotCode, quantity }];
+
+  return list.map((lot, i) =>
+    i === index
+      ? { ...lot, quantity: (Number(lot.quantity) || 0) + quantity }
+      : lot,
+  );
+};
+
 const RepairItemDetailDialog = ({
   item,
   open,
@@ -70,6 +85,31 @@ const RepairItemDetailDialog = ({
 
   const isService = currentItem.type === "service";
   const isTire = currentItem.category?.name === "ยาง";
+
+  // DOT 4 หลักคือ WWYY (สัปดาห์+ปี ค.ศ. 2 หลักท้าย) เช่น 0126 = สัปดาห์ 1 ปี 2026
+  const tireLotSummary = (() => {
+    if (!isTire) return [];
+
+    const rows = new Map();
+    for (const lot of currentItem.tireLots || []) {
+      const label = String(lot.dotCode ?? "").trim() || "ไม่ระบุ";
+      const quantity = Number(lot.quantity) || 0;
+      const match = /^(\d{2})(\d{2})$/.exec(label);
+      // เรียงเก่าไปใหม่ด้วย YYWW ค่าที่ไม่ใช่ 4 หลักไปอยู่ล่างสุด
+      const sortKey = match
+        ? Number(match[2] + match[1])
+        : Number.MAX_SAFE_INTEGER;
+
+      const current = rows.get(label);
+      if (current) {
+        current.quantity += quantity;
+      } else {
+        rows.set(label, { key: label, label, quantity, sortKey });
+      }
+    }
+
+    return [...rows.values()].sort((a, b) => a.sortKey - b.sortKey);
+  })();
 
   const itemDisplayName = (() => {
     if (isService) return `${currentItem.name}`;
@@ -137,6 +177,9 @@ const RepairItemDetailDialog = ({
       const updatedItem = {
         ...currentItem,
         stockQuantity: currentItem.stockQuantity + Number(data.quantity),
+        tireLots: isTire
+          ? mergeTireLot(currentItem.tireLots, dotCode, Number(data.quantity))
+          : currentItem.tireLots,
       };
       setCurrentItem(updatedItem);
 
@@ -205,7 +248,8 @@ const RepairItemDetailDialog = ({
                         สต็อกหมด - จำนวน {currentItem.stockQuantity}{" "}
                         {currentItem.unit}
                       </div>
-                    ) : currentItem.stockQuantity <= currentItem.minStockLevel ? (
+                    ) : currentItem.stockQuantity <=
+                      currentItem.minStockLevel ? (
                       <div className="text-surface bg-status-progress flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-base font-semibold md:text-lg">
                         <AlertTriangle className="h-4 w-4" />
                         สต็อกต่ำ - จำนวน {currentItem.stockQuantity}{" "}
@@ -342,6 +386,24 @@ const RepairItemDetailDialog = ({
                           {currentItem.minStockLevel} {currentItem.unit}
                         </p>
                       </div>
+
+                      {isTire && tireLotSummary.length > 0 && (
+                        <div className="space-y-[8px] border-t border-gray-200 pt-[8px]">
+                          <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                            ปียาง:
+                          </p>
+                          {tireLotSummary.map((row) => (
+                            <div key={row.key} className="flex justify-between">
+                              <p className="text-subtle-dark pl-[12px] text-lg font-medium md:text-xl">
+                                • {row.label}
+                              </p>
+                              <p className="text-normal text-lg font-semibold md:text-xl">
+                                {row.quantity} {currentItem.unit}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

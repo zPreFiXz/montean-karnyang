@@ -12,7 +12,7 @@ import { resizeImage } from "@/utils/resizeImage";
 import { uploadImage } from "@/api/uploadImage";
 import VehicleCompatibilityInput from "@/components/forms/VehicleCompatibilityInput";
 import TireLotInput from "@/components/forms/TireLotInput";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { partServiceSchema } from "@/utils/schemas";
 import { units } from "@/constants/units";
@@ -47,7 +47,9 @@ const InventoryCreate = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [vehicleKey, setVehicleKey] = useState(0);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { errors } = formState;
+  const presetCategory = searchParams.get("category");
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -64,9 +66,20 @@ const InventoryCreate = () => {
     try {
       const res = await listCategories();
       setCategory(res.data);
+
+      // เปิดจากหน้ารายการโดยเลือกหมวดหมู่ไว้ -> เลือกให้เลย
+      const preset = res.data?.find((cat) => cat.name === presetCategory);
+      if (preset) setValue("categoryId", preset.id);
     } catch (error) {
       toastError(error);
     }
+  };
+
+  const inventoryPathFor = (categoryId) => {
+    const name = category.find((cat) => cat.id === categoryId)?.name;
+    return name
+      ? `/inventory?category=${encodeURIComponent(name)}`
+      : "/inventory";
   };
 
   const isServiceCategory = () => {
@@ -200,12 +213,11 @@ const InventoryCreate = () => {
       if (isServiceCategory()) {
         await createService(serviceData);
         toast.success("เพิ่มบริการเรียบร้อยแล้ว");
-        navigate("/inventory");
       } else {
         await createPart(partData);
         toast.success("เพิ่มอะไหล่เรียบร้อยแล้ว");
-        navigate("/inventory");
       }
+      navigate(inventoryPathFor(data.categoryId));
 
       reset();
       setSelectedImage(null);
