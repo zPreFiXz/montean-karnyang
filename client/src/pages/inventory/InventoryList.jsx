@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useSearchParams, Link } from "react-router";
 import { useDebouncedCallback } from "use-debounce";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, RotateCcw } from "lucide-react";
 import InventoryCard from "@/components/cards/InventoryCard";
 import SearchBar from "@/components/forms/SearchBar";
 import CategoryList from "@/components/CategoryList";
@@ -9,6 +9,7 @@ import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog"
 import ComboBox from "@/components/ui/ComboBox";
 import { listInventory } from "@/api/inventory";
 import { listParts } from "@/api/part";
+import { listCategories } from "@/api/category";
 import { BoxSearch } from "@/components/icons/Icons";
 import { toastError } from "@/utils/handleError";
 import { onKeyActivate } from "@/utils/a11y";
@@ -21,6 +22,7 @@ const InventoryList = () => {
   const [aspectRatio, setAspectRatio] = useState("");
   const [rimDiameter, setRimDiameter] = useState("");
   const [partsList, setPartsList] = useState([]);
+  const [categoryOrder, setCategoryOrder] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedItem, setSelectedItem] = useState(null);
@@ -41,63 +43,55 @@ const InventoryList = () => {
   }, 500);
 
   const uniqSorted = (arr = []) =>
-    Array.from(new Set(arr)).sort((a, b) => a.localeCompare(b));
+    Array.from(new Set(arr)).sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true }),
+    );
 
   const isTirePart = (p) => p?.category?.name === "ยาง";
 
-  const widthOptions = useMemo(() => {
-    return uniqSorted(
-      partsList
-        .filter(isTirePart)
-        .map((p) => (p.attributes?.width ?? "").toString().trim())
-        .filter((v) => v !== ""),
-    );
-  }, [partsList]);
+  // ตัวเลือกของแต่ละช่องกรองด้วย "ช่องอื่นทั้งหมด" ยกเว้นตัวเอง เพื่อให้เลือกช่องไหนก่อนก็ได้
+  const tireParts = useMemo(() => partsList.filter(isTirePart), [partsList]);
 
-  const aspectRatioOptions = useMemo(() => {
-    return uniqSorted(
-      partsList
-        .filter(
-          (p) =>
-            isTirePart(p) &&
-            (!width || String(p.attributes?.width) === String(width)),
-        )
-        .map((p) => (p.attributes?.aspectRatio ?? "").toString().trim())
-        .filter((v) => v !== ""),
-    );
-  }, [partsList, width]);
+  const matchesExcept = (p, except, sel) =>
+    (except === "width" ||
+      !sel.width ||
+      String(p.attributes?.width) === String(sel.width)) &&
+    (except === "aspectRatio" ||
+      !sel.aspectRatio ||
+      String(p.attributes?.aspectRatio) === String(sel.aspectRatio)) &&
+    (except === "rimDiameter" ||
+      !sel.rimDiameter ||
+      String(p.attributes?.rimDiameter) === String(sel.rimDiameter)) &&
+    (except === "brand" ||
+      !sel.brand ||
+      String(p.brand || "").trim() === String(sel.brand));
 
-  const rimDiameterOptions = useMemo(() => {
-    return uniqSorted(
-      partsList
-        .filter(
-          (p) =>
-            isTirePart(p) &&
-            (!width || String(p.attributes?.width) === String(width)) &&
-            (!aspectRatio ||
-              String(p.attributes?.aspectRatio) === String(aspectRatio)),
-        )
-        .map((p) => (p.attributes?.rimDiameter ?? "").toString().trim())
-        .filter((v) => v !== ""),
-    );
-  }, [partsList, width, aspectRatio]);
+  const {
+    widthOptions,
+    aspectRatioOptions,
+    rimDiameterOptions,
+    availableTireBrands,
+  } = useMemo(() => {
+    const sel = { width, aspectRatio, rimDiameter, brand: tireBrand };
+    const optionsFor = (field) =>
+      uniqSorted(
+        tireParts
+          .filter((p) => matchesExcept(p, field, sel))
+          .map((p) =>
+            ((field === "brand" ? p.brand : p.attributes?.[field]) ?? "")
+              .toString()
+              .trim(),
+          )
+          .filter((v) => v !== ""),
+      );
 
-  const availableTireBrands = useMemo(() => {
-    const brands = partsList
-      .filter(
-        (p) =>
-          isTirePart(p) &&
-          (!width || String(p.attributes?.width) === String(width)) &&
-          (!aspectRatio ||
-            String(p.attributes?.aspectRatio) === String(aspectRatio)) &&
-          (!rimDiameter ||
-            String(p.attributes?.rimDiameter) === String(rimDiameter)),
-      )
-      .map((p) => (p.brand || "").toString().trim())
-      .filter((b) => !!b);
-
-    return uniqSorted(brands);
-  }, [partsList, width, aspectRatio, rimDiameter]);
+    return {
+      widthOptions: optionsFor("width"),
+      aspectRatioOptions: optionsFor("aspectRatio"),
+      rimDiameterOptions: optionsFor("rimDiameter"),
+      availableTireBrands: optionsFor("brand"),
+    };
+  }, [tireParts, width, aspectRatio, rimDiameter, tireBrand]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -105,10 +99,15 @@ const InventoryList = () => {
     if (isInitializing.current) return;
     isInitializing.current = true;
 
-    const params = new URLSearchParams();
-    setSearchParams(params);
-    setActiveCategory("ทั้งหมด");
-    handleFilter(null, null);
+    // กลับมาจากหน้าเพิ่ม/แก้ไขพร้อม ?category= -> คงหมวดหมู่เดิมไว้
+    if (category) {
+      setActiveCategory(category);
+      handleFilter(category, null);
+    } else {
+      setSearchParams(new URLSearchParams());
+      setActiveCategory("ทั้งหมด");
+      handleFilter(null, null);
+    }
 
     setTimeout(() => {
       isInitializing.current = false;
@@ -150,9 +149,17 @@ const InventoryList = () => {
     let mounted = true;
     (async () => {
       try {
-        const partsRes = await listParts();
+        const [partsRes, categoriesRes] = await Promise.all([
+          listParts(),
+          listCategories(),
+        ]);
         if (!mounted) return;
         setPartsList(partsRes.data || []);
+        setCategoryOrder(
+          [...(categoriesRes.data || [])]
+            .sort((a, b) => a.id - b.id)
+            .map((c) => c.name),
+        );
       } catch (error) {
         toastError(error, "โหลดรายการอะไหล่ไม่สำเร็จ");
         setPartsList([]);
@@ -163,6 +170,27 @@ const InventoryList = () => {
     };
   }, []);
 
+  // หมวด "ทั้งหมด" แยกหัวข้อตามหมวดหมู่ เรียงกลุ่มให้ตรงกับแถบหมวดหมู่ด้านบน
+  const inventoryGroups = useMemo(() => {
+    if (activeCategory !== "ทั้งหมด") return null;
+
+    const groups = new Map();
+    for (const item of inventory) {
+      const name = item.category?.name || "อื่นๆ";
+      if (!groups.has(name)) groups.set(name, []);
+      groups.get(name).push(item);
+    }
+
+    const rank = (name) => {
+      const i = categoryOrder.indexOf(name);
+      return i === -1 ? categoryOrder.length : i;
+    };
+
+    return [...groups.entries()]
+      .map(([name, items]) => ({ name, items }))
+      .sort((a, b) => rank(a.name) - rank(b.name));
+  }, [inventory, activeCategory, categoryOrder]);
+
   const handleStockUpdate = () => {
     const filterParams =
       activeCategory === "ยาง"
@@ -171,10 +199,51 @@ const InventoryList = () => {
     handleFilter(category, search, filterParams);
   };
 
+  const hasTireFilter = !!(width || aspectRatio || rimDiameter || tireBrand);
+
+  const handleResetTireFilter = () => {
+    debouncedFilter.cancel();
+    setWidth("");
+    setAspectRatio("");
+    setRimDiameter("");
+    setTireBrand("");
+    handleFilter(category, search, {
+      width: "",
+      aspectRatio: "",
+      rimDiameter: "",
+      brand: "",
+    });
+  };
+
   const handleItemClick = (item) => {
     setSelectedItem(item);
     setIsItemDetailOpen(true);
   };
+
+  const renderItem = (item) => (
+    <div
+      key={`${item.category.name}-${item.id}`}
+      role="button"
+      tabIndex={0}
+      onKeyDown={onKeyActivate(() => handleItemClick(item))}
+      onClick={() => handleItemClick(item)}
+    >
+      <InventoryCard
+        item={item}
+        brand={item.brand}
+        name={item.name}
+        unit={item.unit}
+        sellingPrice={item.sellingPrice}
+        quantity={item.stockQuantity}
+        minStockLevel={item.minStockLevel}
+        attributes={item.attributes}
+        tireLots={item.tireLots}
+        secureUrl={item.secureUrl}
+        category={item.category.name}
+        onStockUpdate={handleStockUpdate}
+      />
+    </div>
+  );
 
   return (
     <div className="bg-gradient-primary shadow-primary h-[87px] w-full">
@@ -201,73 +270,94 @@ const InventoryList = () => {
           />
 
           {activeCategory === "ยาง" && (
-            <div className="mt-[16px] flex items-center">
-              <div className="flex w-full flex-col gap-[16px]">
-                <div className="w-full">
-                  <ComboBox
-                    label="หน้ายาง (มม.)"
-                    options={[...widthOptions.map((p) => ({ name: p }))]}
-                    value={width}
-                    onChange={(v) => {
-                      setWidth(v);
-                      debouncedFilter();
-                    }}
-                    placeholder="-- เลือกหน้ายาง --"
-                    customClass="text-lg md:text-xl"
-                    labelClass="text-xl md:text-[22px]"
-                  />
+            <div className="mt-[16px] flex w-full flex-col gap-[12px]">
+              <div>
+                <div className="mb-[8px] flex items-center justify-between">
+                  <span className="text-xl font-medium md:text-[22px]">
+                    ยี่ห้อ
+                  </span>
+                  {hasTireFilter && (
+                    <button
+                      type="button"
+                      onClick={handleResetTireFilter}
+                      className="text-destructive flex cursor-pointer items-center gap-[4px] text-lg font-semibold md:text-xl"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      ล้างตัวกรอง
+                    </button>
+                  )}
                 </div>
-                <div className="w-full">
-                  <ComboBox
-                    label="แก้มยาง (%)"
-                    options={[...aspectRatioOptions.map((p) => ({ name: p }))]}
-                    value={aspectRatio}
-                    onChange={(v) => {
-                      setAspectRatio(v);
-                      debouncedFilter();
-                    }}
-                    placeholder="-- เลือกแก้มยาง --"
-                    customClass="text-lg md:text-xl"
-                    labelClass="text-xl md:text-[22px]"
-                  />
-                </div>
-                <div className="w-full">
-                  <ComboBox
-                    label="ขอบ (นิ้ว)"
-                    options={[...rimDiameterOptions.map((p) => ({ name: p }))]}
-                    value={rimDiameter}
-                    onChange={(v) => {
-                      setRimDiameter(v);
-                      debouncedFilter();
-                    }}
-                    placeholder="-- เลือกขอบ --"
-                    customClass="text-lg md:text-xl"
-                    labelClass="text-xl md:text-[22px]"
-                  />
-                </div>
-                <div className="w-full">
-                  <ComboBox
-                    label="ยี่ห้อ"
-                    options={[...availableTireBrands.map((b) => ({ name: b }))]}
-                    value={tireBrand}
-                    onChange={(v) => {
-                      setTireBrand(v);
-                      debouncedFilter();
-                    }}
-                    placeholder="-- เลือกยี่ห้อ --"
-                    customClass="text-lg md:text-xl"
-                    labelClass="text-xl md:text-[22px]"
-                  />
-                </div>
+                <ComboBox
+                  options={[...availableTireBrands.map((b) => ({ name: b }))]}
+                  value={tireBrand}
+                  onChange={(v) => {
+                    setTireBrand(v);
+                    debouncedFilter();
+                  }}
+                  placeholder="-- เลือกยี่ห้อ --"
+                  customClass="text-lg md:text-xl"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-[8px]">
+                <ComboBox
+                  label="หน้ายาง"
+                  options={[...widthOptions.map((p) => ({ name: p }))]}
+                  value={width}
+                  onChange={(v) => {
+                    setWidth(v);
+                    debouncedFilter();
+                  }}
+                  placeholder="มม."
+                  searchable={false}
+                  customClass="text-lg md:text-xl"
+                  labelClass="text-xl md:text-[22px]"
+                />
+                <ComboBox
+                  label="แก้มยาง"
+                  options={[...aspectRatioOptions.map((p) => ({ name: p }))]}
+                  value={aspectRatio}
+                  onChange={(v) => {
+                    setAspectRatio(v);
+                    debouncedFilter();
+                  }}
+                  placeholder="%"
+                  searchable={false}
+                  customClass="text-lg md:text-xl"
+                  labelClass="text-xl md:text-[22px]"
+                />
+                <ComboBox
+                  label="ขอบ"
+                  options={[...rimDiameterOptions.map((p) => ({ name: p }))]}
+                  value={rimDiameter}
+                  onChange={(v) => {
+                    setRimDiameter(v);
+                    debouncedFilter();
+                  }}
+                  placeholder="นิ้ว"
+                  searchable={false}
+                  customClass="text-lg md:text-xl"
+                  labelClass="text-xl md:text-[22px]"
+                />
               </div>
             </div>
           )}
-          <div className="mt-[16px] flex items-center justify-between">
+          <div className="mt-[16px] flex items-center justify-between gap-[8px]">
             <p className="text-xl font-semibold md:text-[22px]">
-              รายการอะไหล่และบริการ
+              {activeCategory === "ทั้งหมด"
+                ? "รายการอะไหล่และบริการ"
+                : activeCategory}
+              {!isLoading && (
+                <span className="text-subtle-light ml-[6px] font-medium">
+                  ({inventory.length})
+                </span>
+              )}
             </p>
             <Link
-              to="/inventory/new"
+              to={
+                activeCategory && activeCategory !== "ทั้งหมด"
+                  ? `/inventory/new?category=${encodeURIComponent(activeCategory)}`
+                  : "/inventory/new"
+              }
               className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]"
             >
               + เพิ่มรายการ
@@ -285,31 +375,23 @@ const InventoryList = () => {
                 ไม่พบอะไหล่และบริการ
               </p>
             </div>
-          ) : (
-            inventory.map((item) => (
-              <div
-                key={`${item.category.name}-${item.id}`}
-                role="button"
-                tabIndex={0}
-                onKeyDown={onKeyActivate(() => handleItemClick(item))}
-                onClick={() => handleItemClick(item)}
-              >
-                <InventoryCard
-                  item={item}
-                  brand={item.brand}
-                  name={item.name}
-                  unit={item.unit}
-                  sellingPrice={item.sellingPrice}
-                  quantity={item.stockQuantity}
-                  minStockLevel={item.minStockLevel}
-                  attributes={item.attributes}
-                  tireLots={item.tireLots}
-                  secureUrl={item.secureUrl}
-                  category={item.category.name}
-                  onStockUpdate={handleStockUpdate}
-                />
+          ) : inventoryGroups ? (
+            inventoryGroups.map((group) => (
+              <div key={group.name}>
+                <div className="mt-[16px] flex items-center gap-[8px]">
+                  <p className="text-subtle-dark text-lg font-semibold md:text-xl">
+                    {group.name}
+                  </p>
+                  <span className="text-subtle-light text-lg md:text-xl">
+                    ({group.items.length})
+                  </span>
+                  <div className="bg-subtle-light/40 h-px flex-1" />
+                </div>
+                {group.items.map(renderItem)}
               </div>
             ))
+          ) : (
+            inventory.map(renderItem)
           )}
         </div>
       </div>

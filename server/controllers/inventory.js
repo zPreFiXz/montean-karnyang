@@ -18,6 +18,30 @@ const mapServiceToInventoryItem = (service) => ({
   category: { name: service.category.name },
 });
 
+// เรียงไทย/อังกฤษ/ตัวเลขให้ถูกหลักภาษา (localeCompare เปล่าๆ เรียงสระนำภาษาไทยผิด)
+const collator = new Intl.Collator("th", {
+  numeric: true,
+  sensitivity: "base",
+});
+
+// ยาง: ยี่ห้อ -> หน้ายาง -> แก้มยาง -> ขอบ -> รุ่น
+// อื่นๆ: attributes ว่าง จึงเทียบเท่ากันแล้วตกไปเรียงด้วยชื่อตามปกติ
+const bySize = (a, b, key) => {
+  const x = Number(a.attributes?.[key]);
+  const y = Number(b.attributes?.[key]);
+  if (Number.isNaN(x) && Number.isNaN(y)) return 0;
+  if (Number.isNaN(x)) return 1;
+  if (Number.isNaN(y)) return -1;
+  return x - y;
+};
+
+const compareInventory = (a, b) =>
+  collator.compare(a.brand || "", b.brand || "") ||
+  bySize(a, b, "width") ||
+  bySize(a, b, "aspectRatio") ||
+  bySize(a, b, "rimDiameter") ||
+  collator.compare(a.name || "", b.name || "");
+
 exports.listInventory = async (req, res, next) => {
   try {
     const { category, search, width, aspectRatio, rimDiameter, brand } =
@@ -93,7 +117,7 @@ exports.listInventory = async (req, res, next) => {
         category: { name: item.category.name },
       })),
       ...services.map(mapServiceToInventoryItem),
-    ];
+    ].sort(compareInventory);
 
     res.json(inventory);
   } catch (error) {

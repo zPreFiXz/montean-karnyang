@@ -152,6 +152,13 @@ const InventoryEdit = () => {
     }
   };
 
+  const inventoryPathFor = (categoryId) => {
+    const name = category.find((cat) => cat.id === categoryId)?.name;
+    return name
+      ? `/inventory?category=${encodeURIComponent(name)}`
+      : "/inventory";
+  };
+
   const isServiceCategory = () => {
     if (inventory) {
       return inventory.type === "service";
@@ -292,16 +299,14 @@ const InventoryEdit = () => {
         };
       }
 
-
       if (isServiceCategory()) {
         await updateService(id, serviceData);
         toast.success("แก้ไขบริการเรียบร้อยแล้ว");
-        navigate("/inventory");
       } else {
         await updatePart(id, partData);
         toast.success("แก้ไขอะไหล่เรียบร้อยแล้ว");
-        navigate("/inventory");
       }
+      navigate(inventoryPathFor(data.categoryId));
 
       reset();
       setSelectedImage(null);

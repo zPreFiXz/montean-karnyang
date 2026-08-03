@@ -4,6 +4,8 @@ const { formatThaiDate, formatThaiTime, getDayRange } = require("./time");
 
 const displayName = (emp) => emp?.name ?? "ไม่ระบุชื่อ";
 
+const SHOW_CLOCK_IN_TIME = new Set(config.attendance.showClockInTimeUserIds.map(String));
+
 const bulletList = (items) => items.map((name) => `• ${name}`).join("\n");
 
 const LUNCH_TYPES = new Set([STATUS.LUNCH_OUT, STATUS.LUNCH_RETURN, STATUS.LUNCH_RETURN_LATE]);
@@ -79,13 +81,16 @@ const dailySummary = async (prisma, dateKey) => {
   const stats = { onTime: [], absent: [], halfDay: [], late: [], lunchOvertime: [], incompleteScan: [] };
 
   for (const emp of grouped.values()) {
-    const name = displayName(emp);
     const { scans } = emp;
 
     if (!scans.length) {
-      stats.absent.push(name);
+      stats.absent.push(displayName(emp));
       continue;
     }
+
+    const name = SHOW_CLOCK_IN_TIME.has(String(emp.zkUserId))
+      ? `${displayName(emp)} (เข้างาน ${formatThaiTime(scans[0].scannedAt)} น.)`
+      : displayName(emp);
 
     const lateScan = scans.find((s) => s.type === STATUS.CLOCK_IN_LATE);
     const lunchOTScan = scans.find((s) => s.type === STATUS.LUNCH_RETURN_LATE);
