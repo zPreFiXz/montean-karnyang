@@ -119,7 +119,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
 
   return (
     <div className="space-y-[16px] px-[20px] pt-[16px]">
-      <Label className="text-subtle-dark text-[22px] font-medium md:text-2xl">
+      <Label className="text-subtle-dark text-lg font-medium md:text-xl">
         รถที่รองรับ
       </Label>
 
@@ -188,11 +188,11 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
           </div>
         </div>
       ))}
-      
+
       <button
         type="button"
         onClick={handleAddVehicle}
-        className="text-subtle-light mb-[16px] flex w-full cursor-pointer items-center justify-center gap-[8px] rounded-lg border-2 border-dashed border-gray-300 py-3 text-lg font-medium transition-colors hover:border-gray-400 hover:bg-gray-50 md:text-xl"
+        className="text-subtle-light mb-[16px] flex h-[41px] w-full cursor-pointer items-center justify-center gap-[8px] rounded-[12px] border-2 border-dashed border-gray-300 text-lg font-medium transition-colors duration-200 hover:border-gray-400 hover:bg-gray-50 md:text-xl"
       >
         <Plus className="h-5 w-5" />
         เพิ่มรถรุ่นอื่น

@@ -155,7 +155,7 @@ const FormUploadImage = ({
     <div className="w-full justify-center px-[20px] pt-[16px]">
       <Label
         htmlFor={inputId}
-        className="text-subtle-dark text-[22px] font-medium md:text-2xl"
+        className="text-subtle-dark text-lg font-medium md:text-xl"
       >
         {label}
       </Label>
@@ -169,7 +169,7 @@ const FormUploadImage = ({
           id={inputId}
           disabled={isDeleting}
         />
-        
+
         <label
           htmlFor={isDeleting ? undefined : inputId}
           onDragEnter={handleDragEnter}

@@ -288,7 +288,7 @@ const RepairCreate = () => {
   };
 
   return (
-    <div className="shadow-primary flex min-h-[100svh] flex-col xl:min-h-[calc(100vh-73px)] xl:flex-row xl:items-start xl:gap-[16px] xl:bg-transparent xl:px-[16px] xl:pt-[24px] xl:pb-[24px] xl:shadow-none">
+    <div className="bg-gradient-primary shadow-primary flex min-h-[100svh] flex-col xl:min-h-[calc(100vh-73px)] xl:flex-row xl:items-start xl:gap-[16px] xl:bg-transparent xl:px-[16px] xl:pt-[24px] xl:pb-[24px] xl:shadow-none">
       <div className="xl:shadow-primary flex flex-1 flex-col xl:h-fit xl:w-1/2 xl:flex-initial xl:rounded-2xl xl:bg-white">
         <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
           <div className="bg-surface/20 xl:bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">

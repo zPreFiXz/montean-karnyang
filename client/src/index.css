@@ -2,6 +2,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* แอปมีธีมเดียว (ไม่มีบล็อก .dark) — ผูก dark: กับคลาส .dark แทน prefers-color-scheme
+   ไม่งั้นคลาส dark: ที่ติดมากับ shadcn (เช่น dark:bg-input/30) จะทำงานเองเมื่อเครื่องอยู่โหมดมืด
+   แล้วทับพื้นหลังขาวของ input จนอ่านไม่ออก */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-athiti: "Athiti", sans-serif;
   --color-primary: #1976d2;

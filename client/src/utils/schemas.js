@@ -208,7 +208,7 @@ export const partServiceSchema = z
       if (lots.length === 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "กรุณาเพิ่มล็อตยางอย่างน้อย 1 ล็อต",
+          message: "กรุณาเพิ่มปียางอย่างน้อย 1 รายการ",
           path: ["tireLots"],
         });
       }
@@ -218,20 +218,28 @@ export const partServiceSchema = z
         if (dot === "") {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "กรุณากรอก DOT",
+            message: "กรุณากรอกปียาง",
             path: ["tireLots", index, "dotCode"],
           });
         } else if (dot !== "ไม่ระบุ" && !/^\d{4}$/.test(dot)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "DOT ต้องเป็นเลข 4 หลัก",
+            message: "ปียางต้องเป็นเลข 4 หลัก",
             path: ["tireLots", index, "dotCode"],
           });
         }
-        if (!lot.quantity || Number(lot.quantity) < 1) {
+        // 0 ได้ (ล็อตที่ขายหมดแต่ยังอยากเก็บ DOT ไว้) แต่ต้องกรอก ห้ามเว้นว่าง
+        const quantity = Number(lot.quantity);
+        if (lot.quantity === undefined || !Number.isFinite(quantity)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "จำนวนต้องมากกว่า 0",
+            message: "กรุณากรอกจำนวน",
+            path: ["tireLots", index, "quantity"],
+          });
+        } else if (quantity < 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "จำนวนต้องไม่ติดลบ",
             path: ["tireLots", index, "quantity"],
           });
         }

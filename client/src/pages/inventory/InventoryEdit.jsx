@@ -17,6 +17,7 @@ import { useNavigate } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { partServiceSchema } from "@/utils/schemas";
 import { units } from "@/constants/units";
+import { VEHICLE_COMPATIBLE_CATEGORIES } from "@/constants/categories";
 import { ChevronLeft, LoaderCircle } from "lucide-react";
 import { getInventory } from "@/api/inventory";
 import { useParams, useSearchParams } from "react-router";
@@ -195,6 +196,15 @@ const InventoryEdit = () => {
     return selectedCategory?.name === "ช่วงล่าง";
   };
 
+  const hasVehicleCompatibility = () => {
+    const selectedCategoryId = watch("categoryId");
+    const selectedCategory = category.find(
+      (cat) => cat.id === selectedCategoryId,
+    );
+    const name = selectedCategory?.name ?? inventory?.category?.name;
+    return VEHICLE_COMPATIBLE_CATEGORIES.includes(name);
+  };
+
   const handleCategoryChange = (value) => {
     setValue("categoryId", value);
     clearErrors([
@@ -287,7 +297,9 @@ const InventoryEdit = () => {
                 quantity: Number(lot.quantity) || 0,
               }))
             : undefined,
-          compatibleVehicles: watch("compatibleVehicles"),
+          compatibleVehicles: hasVehicleCompatibility()
+            ? watch("compatibleVehicles")
+            : undefined,
           image,
           categoryId: data.categoryId,
         };
@@ -342,6 +354,7 @@ const InventoryEdit = () => {
               <ComboBox
                 label="หมวดหมู่"
                 color="text-subtle-dark"
+                labelClass="text-lg md:text-xl"
                 options={category}
                 value={watch("categoryId")}
                 onChange={handleCategoryChange}
@@ -489,6 +502,7 @@ const InventoryEdit = () => {
                     <ComboBox
                       label="ประเภทช่วงล่าง"
                       color="text-subtle-dark"
+                      labelClass="text-lg md:text-xl"
                       options={SUSPENSION_TYPES}
                       value={watch("suspensionType")}
                       onChange={(value) =>
@@ -545,6 +559,7 @@ const InventoryEdit = () => {
                   <ComboBox
                     label="หน่วย"
                     color="text-subtle-dark"
+                    labelClass="text-lg md:text-xl"
                     options={units}
                     value={watch("unit")}
                     onChange={(value) =>
@@ -601,14 +616,16 @@ const InventoryEdit = () => {
                     e.target.value = e.target.value.replace(/[^0-9]/g, "");
                   }}
                 />
-                <VehicleCompatibilityInput
-                  setValue={setValue}
-                  watch={watch}
-                  initialData={inventory?.compatibleVehicles}
-                />
+                {hasVehicleCompatibility() && (
+                  <VehicleCompatibilityInput
+                    setValue={setValue}
+                    watch={watch}
+                    initialData={inventory?.compatibleVehicles}
+                  />
+                )}
               </div>
             )}
-            <div className="flex justify-center pb-[112px] xl:pb-[16px]">
+            <div className="mt-[24px] flex justify-center pb-[112px] xl:pb-[16px]">
               <FormButton label="บันทึก" isLoading={isSubmitting} />
             </div>
           </form>

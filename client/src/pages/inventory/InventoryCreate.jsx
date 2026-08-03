@@ -16,6 +16,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { partServiceSchema } from "@/utils/schemas";
 import { units } from "@/constants/units";
+import { VEHICLE_COMPATIBLE_CATEGORIES } from "@/constants/categories";
 import { ChevronLeft } from "lucide-react";
 import { toastError } from "@/utils/handleError";
 
@@ -104,6 +105,14 @@ const InventoryCreate = () => {
       (cat) => cat.id === selectedCategoryId,
     );
     return selectedCategory?.name === "ช่วงล่าง";
+  };
+
+  const hasVehicleCompatibility = () => {
+    const selectedCategoryId = watch("categoryId");
+    const selectedCategory = category.find(
+      (cat) => cat.id === selectedCategoryId,
+    );
+    return VEHICLE_COMPATIBLE_CATEGORIES.includes(selectedCategory?.name);
   };
 
   const handleCategoryChange = (value) => {
@@ -198,7 +207,9 @@ const InventoryCreate = () => {
                 quantity: Number(lot.quantity) || 0,
               }))
             : undefined,
-          compatibleVehicles: watch("compatibleVehicles") || undefined,
+          compatibleVehicles: hasVehicleCompatibility()
+            ? watch("compatibleVehicles") || undefined
+            : undefined,
           image,
           categoryId: data.categoryId,
         };
@@ -245,6 +256,7 @@ const InventoryCreate = () => {
             <ComboBox
               label="หมวดหมู่"
               color="text-subtle-dark"
+              labelClass="text-lg md:text-xl"
               options={category}
               value={watch("categoryId")}
               onChange={handleCategoryChange}
@@ -389,6 +401,7 @@ const InventoryCreate = () => {
                   <ComboBox
                     label="ประเภทช่วงล่าง"
                     color="text-subtle-dark"
+                    labelClass="text-lg md:text-xl"
                     options={SUSPENSION_TYPES}
                     value={watch("suspensionType")}
                     onChange={(value) =>
@@ -443,6 +456,7 @@ const InventoryCreate = () => {
                 <ComboBox
                   label="หน่วย"
                   color="text-subtle-dark"
+                  labelClass="text-lg md:text-xl"
                   options={units}
                   value={watch("unit")}
                   onChange={(value) =>
@@ -500,14 +514,16 @@ const InventoryCreate = () => {
                 }}
               />
 
-              <VehicleCompatibilityInput
-                key={vehicleKey}
-                setValue={setValue}
-                watch={watch}
-              />
+              {hasVehicleCompatibility() && (
+                <VehicleCompatibilityInput
+                  key={vehicleKey}
+                  setValue={setValue}
+                  watch={watch}
+                />
+              )}
             </div>
           )}
-          <div className="flex justify-center pb-[112px]">
+          <div className="mt-[24px] flex justify-center pb-[112px]">
             <FormButton
               label={isServiceCategory() ? "เพิ่มบริการ" : "เพิ่มอะไหล่"}
               isLoading={isSubmitting}
