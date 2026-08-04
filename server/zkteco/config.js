@@ -20,7 +20,7 @@ const config = {
         .map((id) => id.trim())
         .filter(Boolean),
     )],
-    requestTimeoutMs: 5_000,
+    requestTimeoutMs: 15_000,
     textLimit: 4_096,
   },
 
@@ -29,12 +29,12 @@ const config = {
     lunchBreakMinutes: 60,
     minScanGapMinutes: 5,
     stepStatuses: ["เข้างาน", "พักเที่ยง", "กลับจากพักเที่ยง", "เลิกงาน"],
-    // zkUserId ของคนที่เข้ากะไม่คงที่ (07:00 หรือ 08:00 แล้วแต่วัน) — สรุปรายวันต่อเวลาเข้าจริงท้ายชื่อ
     showClockInTimeUserIds: ["6"],
     employeeCacheTtlMs: 5 * 60 * 1_000,
     dayStartAtMinutes: 6 * 60 + 30,
     summaryAtMinutes: 18 * 60,
     scheduleCheckIntervalMs: 60_000,
+    noticeGraceMinutes: 5,
   },
 };
 

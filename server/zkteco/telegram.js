@@ -6,6 +6,9 @@ const NETWORK_ERROR_CODES = new Set(["ENOTFOUND", "ECONNREFUSED", "ECONNRESET"])
 // ห้าม retry timeout: sendMessage ไม่ idempotent จะแจ้งเตือนซ้ำ
 const isRetryable = (err) => NETWORK_ERROR_CODES.has(err?.code);
 
+// timeout = ไม่รู้ว่า Telegram รับไปแล้วหรือยัง ผู้เรียกต้องไม่ลองส่งใหม่ ไม่งั้นได้ข้อความซ้ำ
+const isAmbiguous = (err) => err?.name === "AbortError" || err?.ambiguous === true;
+
 const sendToChat = async (chatId, text, attempt = 0) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), config.telegram.requestTimeoutMs);
@@ -75,9 +78,12 @@ const send = async (message) => {
     .map((r) => r.reason?.message || String(r.reason));
 
   if (failures.length) {
-    throw new Error(
+    const error = new Error(
       `Send failed (${chatIds.length - failures.length}/${chatIds.length} succeeded): ${failures.join(" | ")}`,
     );
+    // ส่งไม่สำเร็จแบบไม่รู้ผล -> ผู้เรียกต้องถือว่าส่งไปแล้ว กันแจ้งซ้ำ
+    error.ambiguous = results.some((r) => r.status === "rejected" && isAmbiguous(r.reason));
+    throw error;
   }
 };
 

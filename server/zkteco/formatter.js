@@ -8,6 +8,11 @@ const SHOW_CLOCK_IN_TIME = new Set(config.attendance.showClockInTimeUserIds.map(
 
 const bulletList = (items) => items.map((name) => `• ${name}`).join("\n");
 
+// statusLabel เก็บทั้งประโยค ("เข้างาน (สาย 22 นาที)") — หมวดในสรุปเอาเฉพาะส่วนในวงเล็บ
+const lateNote = (status) => status.match(/\(.*\)/)?.[0] ?? status;
+
+const withNote = (name, statusLabel) => `${name} ${lateNote(statusLabel)}`;
+
 const LUNCH_TYPES = new Set([STATUS.LUNCH_OUT, STATUS.LUNCH_RETURN, STATUS.LUNCH_RETURN_LATE]);
 
 const scanMessage = (empName, empId, type, statusLabel, recordTime) => {
@@ -28,29 +33,17 @@ const scanMessage = (empName, empId, type, statusLabel, recordTime) => {
 
 const dayStartMessage = (date) => `🌅 วันที่ ${formatThaiDate(date)}`;
 
-// lateEmployees: [{ name, statusLabel }] — คนสายไม่ได้ค่าข้าวเที่ยงของวันนั้น
-const allClockedInMessage = (lateEmployees = []) => {
-  const header = "✅ พนักงานเข้างานครบแล้ว";
-  if (!lateEmployees.length) return header;
+// lateEmployees: [{ name, statusLabel }] — ต่อท้ายหัวข้อเฉพาะเมื่อมีคนสาย/พักเกิน
+const rosterCompleteMessage = (header, lateEmployees = []) =>
+  lateEmployees.length
+    ? [header, bulletList(lateEmployees.map((e) => withNote(e.name, e.statusLabel)))].join("\n")
+    : header;
 
-  return [
-    header,
-    bulletList(lateEmployees.map((e) => `${e.name} ${lateNote(e.statusLabel)}`)),
-  ].join("\n");
-};
+const allClockedInMessage = (lateEmployees) =>
+  rosterCompleteMessage("✅ พนักงานเข้างานครบแล้ว", lateEmployees);
 
-// lateEmployees: [{ name, statusLabel }] — คนที่กลับจากพักเที่ยงช้ากว่ากำหนด
-const allLunchReturnedMessage = (lateEmployees = []) => {
-  const header = "✅ พนักงานกลับจากพักเที่ยงครบแล้ว";
-  if (!lateEmployees.length) return header;
-
-  return [
-    header,
-    bulletList(lateEmployees.map((e) => `${e.name} ${lateNote(e.statusLabel)}`)),
-  ].join("\n");
-};
-
-const lateNote = (status) => status.match(/\(.*\)/)?.[0] ?? status;
+const allLunchReturnedMessage = (lateEmployees) =>
+  rosterCompleteMessage("✅ พนักงานกลับจากพักเที่ยงครบแล้ว", lateEmployees);
 
 const dailySummary = async (prisma, dateKey) => {
   const { start, end } = getDayRange(dateKey);
@@ -88,28 +81,30 @@ const dailySummary = async (prisma, dateKey) => {
       continue;
     }
 
-    const name = SHOW_CLOCK_IN_TIME.has(String(emp.zkUserId))
-      ? `${displayName(emp)} (เข้างาน ${formatThaiTime(scans[0].scannedAt)} น.)`
-      : displayName(emp);
+    const name = displayName(emp);
+
+    const nameWithClockIn = SHOW_CLOCK_IN_TIME.has(String(emp.zkUserId))
+      ? `${name} (เข้างาน ${formatThaiTime(scans[0].scannedAt)} น.)`
+      : name;
 
     const lateScan = scans.find((s) => s.type === STATUS.CLOCK_IN_LATE);
     const lunchOTScan = scans.find((s) => s.type === STATUS.LUNCH_RETURN_LATE);
 
     if (scans.length >= 4 && !lateScan && !lunchOTScan) {
-      stats.onTime.push(name);
+      stats.onTime.push(nameWithClockIn);
     } else if (
       scans.length === 2 &&
       (scans[0].type === STATUS.CLOCK_IN || scans[0].type === STATUS.CLOCK_IN_LATE) &&
       scans[1].type === STATUS.LUNCH_OUT
     ) {
-      stats.halfDay.push(lateScan ? `${name} ${lateNote(lateScan.statusLabel)}` : name);
+      stats.halfDay.push(lateScan ? withNote(name, lateScan.statusLabel) : name);
     } else {
-      if (lateScan) stats.late.push(`${name} ${lateNote(lateScan.statusLabel)}`);
-      if (lunchOTScan) stats.lunchOvertime.push(`${name} ${lateNote(lunchOTScan.statusLabel)}`);
+      if (lateScan) stats.late.push(withNote(name, lateScan.statusLabel));
+      if (lunchOTScan) stats.lunchOvertime.push(withNote(name, lunchOTScan.statusLabel));
       if (scans.length < 4) {
         const missing = config.attendance.stepStatuses.slice(scans.length, 4);
         stats.incompleteScan.push(
-          missing.length ? `${name} (ไม่ได้สแกน ${missing.join(", ")})` : name,
+          missing.length ? `${name} (ไม่ได้สแกน: ${missing.join(", ")})` : name,
         );
       }
     }
