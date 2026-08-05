@@ -1,6 +1,6 @@
 const path = require("path");
 const dotenv = require("dotenv");
-dotenv.config({ path: path.join(__dirname, ".env") });
+dotenv.config({ path: path.join(__dirname, ".env"), quiet: true });
 
 const REQUIRED_ENV = ["DATABASE_URL", "JWT_SECRET"];
 const missingEnv = REQUIRED_ENV.filter((name) => !process.env[name]);
