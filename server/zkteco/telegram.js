@@ -1,4 +1,5 @@
 const config = require("./config");
+const { log } = require("./log");
 
 const MAX_RETRIES = 1;
 const NETWORK_ERROR_CODES = new Set(["ENOTFOUND", "ECONNREFUSED", "ECONNRESET"]);
@@ -61,7 +62,7 @@ const splitText = (text) => {
 const send = async (message) => {
   const { botToken, chatIds } = config.telegram;
   if (!botToken || !chatIds.length) {
-    console.warn("[Telegram] Skipped: BOT_TOKEN or CHAT_IDS not configured");
+    log.warn("Telegram", "Skipped: BOT_TOKEN or CHAT_IDS not configured");
     return;
   }
 

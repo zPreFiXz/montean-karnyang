@@ -1,6 +1,7 @@
 const config = require("./config");
 const { resolveStatus, save } = require("./attendance");
 const { getDateKey, getDayRange } = require("./time");
+const { log } = require("./log");
 
 const { attendance: attCfg } = config;
 
@@ -9,8 +10,8 @@ const scanKey = (employeeId, scannedAt) => `${employeeId}-${new Date(scannedAt).
 // log จากเครื่องถูกดึงมาทั้งหมดทุกรอบ จึงต้องกรองเหลือเฉพาะของวันนี้แล้วเรียงเก่า -> ใหม่
 const todayLogsOf = (logs, start, end) =>
   logs
-    .filter((log) => {
-      const t = new Date(log?.recordTime);
+    .filter((entry) => {
+      const t = new Date(entry?.recordTime);
       return t >= start && t <= end;
     })
     .sort((a, b) => new Date(a.recordTime) - new Date(b.recordTime));
@@ -41,13 +42,13 @@ const createSync = ({ prisma, employees }) => {
     const lastScan = lastScanOf(existing);
     const minGapMs = attCfg.minScanGapMinutes * 60_000;
 
-    for (const log of todayLogs) {
-      const zkUserId = String(log?.deviceUserId || "");
-      const recordTime = new Date(log?.recordTime);
+    for (const entry of todayLogs) {
+      const zkUserId = String(entry?.deviceUserId || "");
+      const recordTime = new Date(entry?.recordTime);
       const emp = await employees.find(zkUserId);
 
       if (!emp) {
-        console.warn(`[ZKTeco] Scan from unknown zkUserId=${zkUserId} — ignored`);
+        log.warn("ZKTeco", `Scan from unknown zkUserId=${zkUserId} — ignored`);
         continue;
       }
 
@@ -64,7 +65,7 @@ const createSync = ({ prisma, employees }) => {
         seen.add(key);
         lastScan.set(emp.id, recordTime.getTime());
       } catch (err) {
-        console.error("[DB] Save attendance failed:", err);
+        log.error("DB", "Save attendance failed:", err);
         continue; // ยังไม่บันทึก = ยังไม่แจ้ง ไว้รอบหน้า
       }
     }

@@ -4,7 +4,9 @@ const { formatThaiDate, formatThaiTime, getDayRange } = require("./time");
 
 const displayName = (emp) => emp?.name ?? "ไม่ระบุชื่อ";
 
-const SHOW_CLOCK_IN_TIME = new Set(config.attendance.showClockInTimeUserIds.map(String));
+const SHOW_CLOCK_IN_TIME = new Set(
+  config.attendance.showClockInTimeUserIds.map(String),
+);
 
 const bulletList = (items) => items.map((name) => `• ${name}`).join("\n");
 
@@ -13,7 +15,11 @@ const lateNote = (status) => status.match(/\(.*\)/)?.[0] ?? status;
 
 const withNote = (name, statusLabel) => `${name} ${lateNote(statusLabel)}`;
 
-const LUNCH_TYPES = new Set([STATUS.LUNCH_OUT, STATUS.LUNCH_RETURN, STATUS.LUNCH_RETURN_LATE]);
+const LUNCH_TYPES = new Set([
+  STATUS.LUNCH_OUT,
+  STATUS.LUNCH_RETURN,
+  STATUS.LUNCH_RETURN_LATE,
+]);
 
 const scanMessage = (empName, empId, type, statusLabel, recordTime) => {
   const header = LUNCH_TYPES.has(type)
@@ -33,10 +39,19 @@ const scanMessage = (empName, empId, type, statusLabel, recordTime) => {
 
 const dayStartMessage = (date) => `🌅 วันที่ ${formatThaiDate(date)}`;
 
+const deviceLogFullMessage = ({ logCounts, logCapacity, percent }) =>
+  [
+    "⚠️ หน่วยความจำเครื่องสแกนใกล้เต็ม",
+    `📦 ใช้ไป ${logCounts.toLocaleString("th-TH")} / ${logCapacity.toLocaleString("th-TH")} (${percent}%)`,
+  ].join("\n");
+
 // lateEmployees: [{ name, statusLabel }] — ต่อท้ายหัวข้อเฉพาะเมื่อมีคนสาย/พักเกิน
 const rosterCompleteMessage = (header, lateEmployees = []) =>
   lateEmployees.length
-    ? [header, bulletList(lateEmployees.map((e) => withNote(e.name, e.statusLabel)))].join("\n")
+    ? [
+        header,
+        bulletList(lateEmployees.map((e) => withNote(e.name, e.statusLabel))),
+      ].join("\n")
     : header;
 
 const allClockedInMessage = (lateEmployees) =>
@@ -64,14 +79,26 @@ const dailySummary = async (prisma, dateKey) => {
       employeeId: { in: employees.map((e) => e.id) },
       scannedAt: { gte: start, lte: end },
     },
-    select: { employeeId: true, type: true, statusLabel: true, scannedAt: true },
+    select: {
+      employeeId: true,
+      type: true,
+      statusLabel: true,
+      scannedAt: true,
+    },
     orderBy: { scannedAt: "asc" },
   });
 
   const grouped = new Map(employees.map((e) => [e.id, { ...e, scans: [] }]));
   for (const att of attendances) grouped.get(att.employeeId)?.scans.push(att);
 
-  const stats = { onTime: [], absent: [], halfDay: [], late: [], lunchOvertime: [], incompleteScan: [] };
+  const stats = {
+    onTime: [],
+    absent: [],
+    halfDay: [],
+    late: [],
+    lunchOvertime: [],
+    incompleteScan: [],
+  };
 
   for (const emp of grouped.values()) {
     const { scans } = emp;
@@ -94,13 +121,17 @@ const dailySummary = async (prisma, dateKey) => {
       stats.onTime.push(nameWithClockIn);
     } else if (
       scans.length === 2 &&
-      (scans[0].type === STATUS.CLOCK_IN || scans[0].type === STATUS.CLOCK_IN_LATE) &&
+      (scans[0].type === STATUS.CLOCK_IN ||
+        scans[0].type === STATUS.CLOCK_IN_LATE) &&
       scans[1].type === STATUS.LUNCH_OUT
     ) {
-      stats.halfDay.push(lateScan ? withNote(name, lateScan.statusLabel) : name);
+      stats.halfDay.push(
+        lateScan ? withNote(name, lateScan.statusLabel) : name,
+      );
     } else {
       if (lateScan) stats.late.push(withNote(name, lateScan.statusLabel));
-      if (lunchOTScan) stats.lunchOvertime.push(withNote(name, lunchOTScan.statusLabel));
+      if (lunchOTScan)
+        stats.lunchOvertime.push(withNote(name, lunchOTScan.statusLabel));
       if (scans.length < 4) {
         const missing = config.attendance.stepStatuses.slice(scans.length, 4);
         stats.incompleteScan.push(
@@ -126,7 +157,8 @@ const dailySummary = async (prisma, dateKey) => {
     ["⚠️ สแกนไม่ครบ", stats.incompleteScan],
   ];
   for (const [label, list] of sections) {
-    if (list.length) message.push("", `${label} (${list.length} คน)`, bulletList(list));
+    if (list.length)
+      message.push("", `${label} (${list.length} คน)`, bulletList(list));
   }
 
   return message.join("\n");
@@ -136,6 +168,7 @@ module.exports = {
   displayName,
   scanMessage,
   dayStartMessage,
+  deviceLogFullMessage,
   allClockedInMessage,
   allLunchReturnedMessage,
   dailySummary,

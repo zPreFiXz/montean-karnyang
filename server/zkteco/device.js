@@ -1,5 +1,6 @@
 const ZKLib = require("node-zklib");
 const config = require("./config");
+const { log } = require("./log");
 
 const withTimeout = (promise, ms, code) => {
   let timer;
@@ -38,7 +39,7 @@ const createDevice = () => {
       await disconnect();
       throw err;
     }
-    console.log(`[ZKTeco] Connected to ${ip}:${port}`);
+    log.info("ZKTeco", `Connected to ${ip}:${port}`);
   };
 
   const fetchLogs = async () => {
@@ -47,7 +48,13 @@ const createDevice = () => {
     return result?.data || [];
   };
 
-  return { connect, disconnect, fetchLogs };
+  // { userCounts, logCounts, logCapacity } — อ่านอย่างเดียว ใช้ดูว่าหน่วยความจำเครื่องใกล้เต็มหรือยัง
+  const getInfo = async () => {
+    if (!connection) throw new Error("ZKLib not connected");
+    return withTimeout(connection.getInfo(), connectTimeoutMs, "INFO_TIMEOUT");
+  };
+
+  return { connect, disconnect, fetchLogs, getInfo };
 };
 
 module.exports = { createDevice };

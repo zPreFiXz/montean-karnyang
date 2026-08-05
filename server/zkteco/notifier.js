@@ -3,11 +3,13 @@ const {
   displayName,
   scanMessage,
   dayStartMessage,
+  deviceLogFullMessage,
   allClockedInMessage,
   allLunchReturnedMessage,
   dailySummary,
 } = require("./formatter");
 const telegram = require("./telegram");
+const { log } = require("./log");
 const { getDateKey, getDayRange, getMinuteOfDay } = require("./time");
 
 const { attendance: attCfg } = config;
@@ -24,6 +26,7 @@ const createNotifier = ({ prisma }) => {
     summary: "",
     allClockedIn: "",
     allLunchReturned: "",
+    deviceLogFull: "",
   };
 
   const countDistinctEmployees = async (dateKey, where = {}) => {
@@ -60,11 +63,11 @@ const createNotifier = ({ prisma }) => {
     } catch (err) {
       if (err?.ambiguous) {
         // timeout: Telegram อาจรับไปแล้ว คงธงไว้กันส่งซ้ำ — ข้อมูลยังเปิดดูได้ที่หน้ารายงาน
-        console.error(`[Telegram] ${errorLabel} timed out — treated as sent:`, err);
+        log.error("Telegram", `${errorLabel} timed out — treated as sent:`, err);
         return;
       }
       sentOn[kind] = "";
-      console.error(`[Telegram] ${errorLabel} failed:`, err);
+      log.error("Telegram", `${errorLabel} failed:`, err);
     }
   };
 
@@ -121,6 +124,23 @@ const createNotifier = ({ prisma }) => {
     );
   };
 
+  // เตือนเมื่อ log ในเครื่องใกล้เต็ม — ตัวเลขมาจาก getInfo() ซึ่งบางรุ่นอาจคืนค่าเพี้ยน
+  // จึงตรวจความสมเหตุสมผลก่อน ไม่งั้นจะเตือนหลอกทุกวัน
+  const checkDeviceLog = async ({ logCounts, logCapacity } = {}) => {
+    if (!Number.isFinite(logCounts) || !Number.isFinite(logCapacity)) return;
+    if (logCapacity <= 0 || logCounts < 0 || logCounts > logCapacity) return;
+
+    const percent = (logCounts / logCapacity) * 100;
+    if (percent < attCfg.deviceLogWarnPercent) return;
+
+    await sendOnce(
+      "deviceLogFull",
+      getDateKey(new Date()),
+      async () => deviceLogFullMessage({ logCounts, logCapacity, percent: percent.toFixed(1) }),
+      "Device log warning",
+    );
+  };
+
   const checkDayStart = async () => {
     const now = new Date();
     if (!isDue(getMinuteOfDay(now), attCfg.dayStartAtMinutes)) return;
@@ -171,14 +191,14 @@ const createNotifier = ({ prisma }) => {
       } catch (err) {
         if (err?.ambiguous) {
           // timeout: Telegram อาจรับไปแล้ว ถ้าคืนสิทธิ์จะกลายเป็นแจ้งซ้ำ ยอมเสี่ยงตกหล่นดีกว่า
-          console.error("[Telegram] Send timed out — treated as sent (may be missing):", err);
+          log.error("Telegram", "Send timed out — treated as sent (may be missing):", err);
           continue;
         }
         // คืนสิทธิ์ให้รอบหน้าลองใหม่
         await prisma.attendance
           .update({ where: { id: att.id }, data: { notifiedAt: null } })
           .catch(() => {});
-        console.error("[Telegram] Send notification failed (will retry):", err);
+        log.error("Telegram", "Send notification failed (will retry):", err);
         break; // หยุดทั้งคิวเพื่อรักษาลำดับ ไว้ลองรอบหน้า
       }
     }
@@ -186,6 +206,7 @@ const createNotifier = ({ prisma }) => {
 
   return {
     initDailyFlags,
+    checkDeviceLog,
     flushScanNotifications,
     checkAllClockedIn,
     checkAllLunchReturned,
