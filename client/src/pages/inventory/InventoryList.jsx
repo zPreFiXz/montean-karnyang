@@ -355,23 +355,26 @@ const InventoryList = () => {
             </div>
           )}
           <div className="mt-[16px] flex items-center justify-between gap-[8px]">
-            <p className="text-xl font-semibold md:text-[22px]">
-              {activeCategory === "ทั้งหมด"
-                ? "รายการอะไหล่และบริการ"
-                : activeCategory}
+            {/* min-w-0 + truncate: จอแคบให้หัวข้อย่อด้วย ... ไม่ใช่ไปดันปุ่มขวาให้ตกบรรทัด */}
+            <div className="flex min-w-0 items-center gap-[6px]">
+              <p className="truncate text-xl font-semibold md:text-[22px]">
+                {activeCategory === "ทั้งหมด"
+                  ? "รายการอะไหล่และบริการ"
+                  : activeCategory}
+              </p>
               {!isLoading && (
-                <span className="text-subtle-light ml-[6px] font-medium">
+                <span className="text-subtle-light shrink-0 font-medium">
                   ({inventory.length})
                 </span>
               )}
-            </p>
+            </div>
             <Link
               to={
                 activeCategory && activeCategory !== "ทั้งหมด"
                   ? `/inventory/new?category=${encodeURIComponent(activeCategory)}`
                   : "/inventory/new"
               }
-              className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]"
+              className="text-primary shrink-0 cursor-pointer text-xl font-semibold whitespace-nowrap md:text-[22px]"
             >
               + เพิ่มรายการ
             </Link>
