@@ -73,7 +73,7 @@ const Dashboard = () => {
   const lowStockItems = stockItems.filter((i) => {
     const qty = Number(i?.stockQuantity || 0);
     const min = Number(i?.minStockLevel || 0);
-    return qty > 0 && min > 0 && qty <= min;
+    return qty > 0 && min > 0 && qty < min;
   });
 
   // แสดงยี่ห้อ+รุ่น หรือแค่รุ่นถ้ายี่ห้อเป็น "อื่นๆ"

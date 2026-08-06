@@ -54,7 +54,7 @@ const VehicleList = () => {
   };
 
   return (
-    <div className="bg-gradient-primary shadow-primary h-[87px] w-full">
+    <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-[8px] pt-[16px] pl-[20px]">
         <div className="bg-surface/20 flex h-[40px] w-[40px] items-center justify-center rounded-full">
           <Document color="#ffffff" />
@@ -65,19 +65,19 @@ const VehicleList = () => {
           </p>
         </div>
       </div>
-      <div className="bg-surface shadow-primary mt-[16px] min-h-[calc(100vh-65px)] w-full rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
-        <div className="px-[20px] pt-[16px]">
+      <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
+        <div className="flex flex-1 flex-col px-[20px] pt-[16px]">
           {/* แถบค้นหา */}
           <SearchBar placeholder="ค้นหาทะเบียน, จังหวัด, ยี่ห้อ, รุ่นรถ" />
 
           {/* รายการรถ */}
           {isLoading ? (
-            <div className="flex h-[490px] items-center justify-center">
+            <div className="flex flex-1 items-center justify-center">
               <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
             </div>
           ) : vehicles.length === 0 ? (
-            <div className="flex h-[490px] items-center justify-center">
-              <p className="text-subtle-light text-xl md:text-[22px]">
+            <div className="flex flex-1 items-center justify-center">
+              <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">
                 ไม่พบลูกค้า
               </p>
             </div>

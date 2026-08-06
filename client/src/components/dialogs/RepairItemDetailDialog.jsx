@@ -111,6 +111,34 @@ const RepairItemDetailDialog = ({
     return [...rows.values()].sort((a, b) => a.sortKey - b.sortKey);
   })();
 
+  // ป้ายสถานะสต็อก: หมด/ต่ำ/ปกติ — กรณีหมดไม่ต้องบอกจำนวน เพราะคำว่าหมดสื่ออยู่แล้วว่า 0
+  // "สต็อกขั้นต่ำ" = จำนวนที่ต้องมีอยู่เสมอ จึงเตือนเมื่อ "ต่ำกว่า" ไม่ใช่ "เท่ากับ"
+  // (เกณฑ์นี้ต้องตรงกับ InventoryCard และ Dashboard)
+  const stockStatus = (() => {
+    const quantity = Number(currentItem.stockQuantity) || 0;
+    const amount = `${quantity} ${currentItem.unit || ""}`.trim();
+
+    if (quantity === 0) {
+      return {
+        color: "bg-destructive",
+        Icon: AlertTriangle,
+        label: "สต็อกหมด",
+      };
+    }
+    if (quantity < Number(currentItem.minStockLevel)) {
+      return {
+        color: "bg-status-progress",
+        Icon: AlertTriangle,
+        label: `สต็อกต่ำ · ${amount}`,
+      };
+    }
+    return {
+      color: "bg-status-completed",
+      Icon: Check,
+      label: `สต็อกปกติ · ${amount}`,
+    };
+  })();
+
   const itemDisplayName = (() => {
     if (isService) return `${currentItem.name}`;
     if (isTire && currentItem.attributes) {
@@ -209,8 +237,8 @@ const RepairItemDetailDialog = ({
     <div>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
-          className={`flex w-full flex-col ${!isService ? "max-h-[650px]" : "max-h-[337px]"} p-0`}
-          style={{ height: !isService ? "650px" : "350px" }}
+          // สูงเท่าเนื้อหา แต่ไม่เกิน 85% ของจอ (เกินแล้วให้ส่วนเนื้อหาเลื่อนเอง)
+          className="flex max-h-[85svh] w-full flex-col p-0"
           showCloseButton={false}
           onOpenAutoFocus={(e) => {
             e.preventDefault();
@@ -242,26 +270,12 @@ const RepairItemDetailDialog = ({
 
                 {!isService && currentItem.partNumber && (
                   <div className="mt-[16px] flex justify-center">
-                    {currentItem.stockQuantity === 0 ? (
-                      <div className="text-surface bg-destructive flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-base font-semibold md:text-lg">
-                        <AlertTriangle className="h-4 w-4" />
-                        สต็อกหมด - จำนวน {currentItem.stockQuantity}{" "}
-                        {currentItem.unit}
-                      </div>
-                    ) : currentItem.stockQuantity <=
-                      currentItem.minStockLevel ? (
-                      <div className="text-surface bg-status-progress flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-base font-semibold md:text-lg">
-                        <AlertTriangle className="h-4 w-4" />
-                        สต็อกต่ำ - จำนวน {currentItem.stockQuantity}{" "}
-                        {currentItem.unit}
-                      </div>
-                    ) : (
-                      <div className="text-surface bg-status-completed flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-7 pr-8 text-base font-semibold md:text-lg">
-                        <Check className="h-4 w-4" />
-                        สต็อกปกติ - จำนวน {currentItem.stockQuantity}{" "}
-                        {currentItem.unit}
-                      </div>
-                    )}
+                    <div
+                      className={`text-surface ${stockStatus.color} flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-[24px] text-base font-semibold md:text-lg`}
+                    >
+                      <stockStatus.Icon className="h-4 w-4" />
+                      {stockStatus.label}
+                    </div>
                   </div>
                 )}
               </div>
@@ -356,7 +370,8 @@ const RepairItemDetailDialog = ({
                 </div>
 
                 {!isService && (
-                  <div>
+                  // ต้องมี space-y เอง เพราะ space-y ของกล่องแม่ไม่ทะลุเข้ามาในตัวห่อชั้นนี้
+                  <div className="space-y-[8px]">
                     <p className="font-athiti text-normal mt-[16px] text-[22px] font-semibold md:text-2xl">
                       ข้อมูลสต็อก
                     </p>

@@ -155,7 +155,7 @@ const AddRepairItemDialog = ({
           <div className="flex flex-shrink-0 flex-col px-[20px]">
             <div className="mt-[4px]">
               <SearchBar
-                placeholder="ค้นหารหัส, ยี่ห้อ, ชื่ออะไหล่"
+                placeholder="ค้นหารหัส, ยี่ห้อ, ชื่อ"
                 onSearch={(value) => {
                   setSearchValue(value);
                   debouncedSearch(value);
@@ -165,7 +165,7 @@ const AddRepairItemDialog = ({
               />
             </div>
 
-            <div className="font-athiti -mx-[20px] mt-[14px] overflow-x-auto px-[20px]">
+            <div className="scrollbar-hide font-athiti -mx-[20px] mt-[14px] overflow-x-auto px-[20px]">
               <div className="flex gap-[8px] py-[2px]">
                 <button
                   onClick={() => handleCategoryChange("ทั้งหมด")}

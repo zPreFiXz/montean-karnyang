@@ -130,26 +130,40 @@
   .card-interactive:hover {
     box-shadow: 0 0 0 1px rgba(25, 118, 210, 0.45);
   }
+
+  /* ซ่อนแถบเลื่อน — ใช้เฉพาะแถวเลื่อนแนวนอนที่มีชิปถูกตัดที่ขอบเป็นตัวบอกว่าเลื่อนได้อยู่แล้ว
+     ห้ามใช้กับพื้นที่เลื่อนแนวตั้ง เพราะจะไม่มีอะไรบอกผู้ใช้ว่ายังมีเนื้อหาต่อ */
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE / Edge เก่า */
+    scrollbar-width: none; /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Chrome / Safari */
+  }
 }
 
-/* Scrollbar แบบบางทันสมัย แทนการซ่อนทั้งหมด (ซ่อนหมดเป็น anti-pattern) */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
-}
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.35);
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.55);
+/* Scrollbar แบบบางทันสมัย แทนการซ่อนทั้งหมด (ซ่อนหมดเป็น anti-pattern)
+   ต้องอยู่ใน @layer base: ถ้าเขียนลอยๆ นอก layer จะทับคลาสใน @layer utilities
+   (เช่น .scrollbar-hide) เพราะสไตล์นอก layer ชนะสไตล์ใน layer เสมอ */
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.35);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.55);
+  }
 }
 
 /* เคารพผู้ใช้ที่ปิดแอนิเมชันในระบบ */

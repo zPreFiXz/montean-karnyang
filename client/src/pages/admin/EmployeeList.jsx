@@ -72,7 +72,7 @@ const EmployeeList = () => {
   const sortedEmployees = [...filteredEmployees].sort((a, b) => a.id - b.id);
 
   return (
-    <div className="bg-gradient-primary shadow-primary h-[87px] w-full">
+    <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
         <Link to="/dashboard" className="text-surface mt-[2px]">
           <ChevronLeft />
@@ -81,16 +81,16 @@ const EmployeeList = () => {
           จัดการพนักงาน
         </p>
       </div>
-      <div className="bg-surface shadow-primary mt-[16px] min-h-[calc(100vh-65px)] w-full rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
+      <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
         {isLoading ? (
-          <div className="flex h-[502px] items-center justify-center">
+          <div className="flex flex-1 items-center justify-center">
             <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : (
           <div className="px-[20px] py-[16px] pb-[112px]">
             <div className="w-full">
               <SearchBar
-                placeholder="ค้นหารหัสพนักงาน, ชื่อ หรือเบอร์โทร"
+                placeholder="ค้นหารหัสพนักงาน, ชื่อ"
                 value={searchTerm}
                 onSearch={setSearchTerm}
               />

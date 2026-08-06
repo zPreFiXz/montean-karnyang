@@ -4,6 +4,9 @@ import { useDebouncedCallback } from "use-debounce";
 import { useState, useEffect } from "react";
 import { Input } from "../ui/input";
 
+// คำค้นถูกเอาไปแสดงในข้อความ "ไม่พบรายการที่ตรงกับ ..." ด้วย จึงจำกัดความยาวไว้ที่ต้นทาง
+const MAX_SEARCH_LENGTH = 40;
+
 const SearchBar = ({
   placeholder,
   onSearch = null,
@@ -69,6 +72,7 @@ const SearchBar = ({
         placeholder={placeholder}
         autoFocus={autoFocus}
         inputMode={inputMode}
+        maxLength={MAX_SEARCH_LENGTH}
         onTouchStart={(e) => {
           if (inputMode === "none") {
             e.target.inputMode = "text";
@@ -95,7 +99,7 @@ const SearchBar = ({
           e.target.style.boxShadow = "";
         }}
       />
-      
+
       {inputValue && (
         <button
           onClick={handleClear}

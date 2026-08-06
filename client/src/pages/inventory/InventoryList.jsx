@@ -215,6 +215,19 @@ const InventoryList = () => {
     });
   };
 
+  // บอกให้ตรงกับสิ่งที่ผู้ใช้กำลังหาอยู่ ไม่งั้นจะเข้าใจผิดว่าคลังว่างทั้งที่แค่คำค้น/ตัวกรองไม่ตรง
+  const getEmptyMessage = () => {
+    if (search) {
+      // ตัดกันตกบรรทัด — คำค้นอาจยาวเกินได้ถ้าใส่มาทาง URL ตรงๆ
+      const term = search.length > 20 ? `${search.slice(0, 20)}…` : search;
+      return `ไม่พบรายการที่ตรงกับ "${term}"`;
+    }
+    if (hasTireFilter) return "ไม่พบยางที่ตรงกับตัวกรอง";
+    // ไม่เอาชื่อหมวดมาต่อ: หัวข้อด้านบนบอกอยู่แล้ว และหมวดชื่อยาวจะทำให้ข้อความตกบรรทัด
+    if (activeCategory !== "ทั้งหมด") return "ไม่มีรายการในหมวดนี้";
+    return "ไม่มีอะไหล่และบริการ";
+  };
+
   const handleItemClick = (item) => {
     setSelectedItem(item);
     setIsItemDetailOpen(true);
@@ -246,7 +259,7 @@ const InventoryList = () => {
   );
 
   return (
-    <div className="bg-gradient-primary shadow-primary h-[87px] w-full">
+    <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-[8px] pt-[16px] pl-[20px]">
         <div className="bg-surface/20 flex h-[40px] w-[40px] items-center justify-center rounded-full">
           <BoxSearch color="#ffffff" />
@@ -258,10 +271,10 @@ const InventoryList = () => {
         </div>
       </div>
 
-      <div className="bg-surface shadow-primary mt-[16px] min-h-[calc(100vh-65px)] w-full rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
-        <div className="px-[20px] pt-[16px]">
+      <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
+        <div className="flex flex-1 flex-col px-[20px] pt-[16px]">
           {/* แถบค้นหา */}
-          <SearchBar placeholder="ค้นหารหัส, ยี่ห้อ, ชื่ออะไหล่" />
+          <SearchBar placeholder="ค้นหารหัส, ยี่ห้อ, ชื่อ" />
 
           {/* แถบหมวดหมู่ */}
           <CategoryList
@@ -366,13 +379,13 @@ const InventoryList = () => {
 
           {/* รายการอะไหล่และบริการ */}
           {isLoading ? (
-            <div className="flex h-[346px] items-center justify-center">
+            <div className="flex flex-1 items-center justify-center">
               <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
             </div>
           ) : inventory.length === 0 ? (
-            <div className="flex h-[346px] items-center justify-center">
-              <p className="text-subtle-light text-xl font-medium md:text-[22px]">
-                ไม่พบอะไหล่และบริการ
+            <div className="flex flex-1 items-center justify-center">
+              <p className="text-subtle-light px-[20px] text-center text-xl font-medium text-balance md:text-[22px]">
+                {getEmptyMessage()}
               </p>
             </div>
           ) : inventoryGroups ? (

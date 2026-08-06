@@ -6,7 +6,7 @@ import BottomNav from "@/components/BottomNav";
 // breakpoint เดียวทั้งระบบ: จอ lg ขึ้นไปใช้ Navbar + Sidebar, ต่ำกว่านั้นใช้ BottomNav
 const Layout = () => {
   return (
-    <div className="font-athiti flex min-h-screen flex-col">
+    <div className="font-athiti flex min-h-svh flex-col">
       <div className="sticky top-0 z-40 hidden w-full bg-transparent lg:block">
         <Navbar />
       </div>

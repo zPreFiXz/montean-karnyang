@@ -241,7 +241,7 @@ const InventoryCreate = () => {
   };
 
   return (
-    <div className="bg-gradient-primary shadow-primary h-[87px] w-full">
+    <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
         <button onClick={() => navigate(-1)} className="text-surface mt-[2px]">
           <ChevronLeft />
@@ -250,7 +250,7 @@ const InventoryCreate = () => {
           เพิ่มรายการ
         </p>
       </div>
-      <div className="bg-surface shadow-primary mt-[16px] min-h-[calc(100svh-65px)] w-full rounded-tl-2xl rounded-tr-2xl sm:min-h-[calc(100vh-65px)]">
+      <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl">
         <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
           <div className="px-[20px] pt-[16px]">
             <ComboBox

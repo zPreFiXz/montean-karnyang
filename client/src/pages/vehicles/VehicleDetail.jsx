@@ -31,7 +31,7 @@ const VehicleDetail = () => {
   };
 
   return (
-    <div className="bg-gradient-primary shadow-primary h-[87px] w-full">
+    <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-[8px] px-[20px] py-[18px]">
         <button
           onClick={() => navigate("/vehicles")}
@@ -43,9 +43,9 @@ const VehicleDetail = () => {
           ประวัติลูกค้า
         </p>
       </div>
-      <div className="bg-surface shadow-primary min-h-[calc(100vh-65px)] rounded-tl-2xl rounded-tr-2xl pt-[16px] pb-[96px]">
+      <div className="bg-surface shadow-primary flex flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pt-[16px] pb-[96px]">
         {isLoading ? (
-          <div className="flex h-[530px] items-center justify-center">
+          <div className="flex flex-1 items-center justify-center">
             <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : (

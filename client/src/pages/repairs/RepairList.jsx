@@ -122,7 +122,7 @@ const RepairList = () => {
   };
 
   return (
-    <div className="bg-gradient-primary shadow-primary h-[142px] w-full">
+    <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
         <button
           onClick={() => navigate("/dashboard")}
@@ -166,17 +166,17 @@ const RepairList = () => {
           ชำระเงินแล้ว
         </Link>
       </div>
-      <div className="bg-surface shadow-primary mt-[16px] min-h-[calc(100vh-126px)] w-full rounded-tl-2xl rounded-tr-2xl px-[20px] pb-[112px]">
+      <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl px-[20px] pb-[112px]">
         <p className="text-normal pt-[16px] text-[22px] font-semibold md:text-2xl">
           {getStatusTitle()}
         </p>
         {isLoading ? (
-          <div className="flex h-[435px] items-center justify-center">
+          <div className="flex flex-1 items-center justify-center">
             <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : currentRepairs.length === 0 ? (
-          <div className="flex h-[435px] items-center justify-center">
-            <p className="text-subtle-light text-xl md:text-[22px]">
+          <div className="flex flex-1 items-center justify-center">
+            <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">
               {getEmptyMessage()}
             </p>
           </div>
