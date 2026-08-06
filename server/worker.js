@@ -1,7 +1,6 @@
 const path = require("path");
 require("dotenv").config({ path: path.resolve(__dirname, ".env"), quiet: true });
 
-// prisma + node-zklib ผูก listener หลายตัวบน process/socket — ยกเพดานกัน warning "possible memory leak" หลอก
 require("events").EventEmitter.defaultMaxListeners = 20;
 
 const { PrismaClient } = require("@prisma/client");
