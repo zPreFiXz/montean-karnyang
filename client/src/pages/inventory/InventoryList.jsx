@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useSearchParams, Link } from "react-router";
 import { useDebouncedCallback } from "use-debounce";
-import { LoaderCircle, RotateCcw } from "lucide-react";
+import { LoaderCircle, X } from "lucide-react";
 import InventoryCard from "@/components/cards/InventoryCard";
 import SearchBar from "@/components/forms/SearchBar";
 import CategoryList from "@/components/CategoryList";
@@ -201,6 +201,10 @@ const InventoryList = () => {
 
   const hasTireFilter = !!(width || aspectRatio || rimDiameter || tireBrand);
 
+  // ไม่มีตัวเลือกให้เลือก = ปิดช่องไว้ (เช่น 195R14 ไม่มีแก้มยาง) แต่ถ้าเลือกค่าไว้แล้ว
+  // ต้องเปิดไว้เสมอ ไม่งั้นผู้ใช้จะแก้หรือล้างค่านั้นไม่ได้
+  const isFilterLocked = (options, value) => options.length === 0 && !value;
+
   const handleResetTireFilter = () => {
     debouncedFilter.cancel();
     setWidth("");
@@ -295,7 +299,7 @@ const InventoryList = () => {
                       onClick={handleResetTireFilter}
                       className="text-destructive flex cursor-pointer items-center gap-[4px] text-lg font-semibold md:text-xl"
                     >
-                      <RotateCcw className="h-4 w-4" />
+                      <X className="h-4 w-4" />
                       ล้างตัวกรอง
                     </button>
                   )}
@@ -308,6 +312,7 @@ const InventoryList = () => {
                     debouncedFilter();
                   }}
                   placeholder="-- เลือกยี่ห้อ --"
+                  disabled={isFilterLocked(availableTireBrands, tireBrand)}
                   customClass="text-lg md:text-xl"
                 />
               </div>
@@ -322,6 +327,7 @@ const InventoryList = () => {
                   }}
                   placeholder="มม."
                   searchable={false}
+                  disabled={isFilterLocked(widthOptions, width)}
                   customClass="text-lg md:text-xl"
                   labelClass="text-xl md:text-[22px]"
                 />
@@ -335,6 +341,7 @@ const InventoryList = () => {
                   }}
                   placeholder="%"
                   searchable={false}
+                  disabled={isFilterLocked(aspectRatioOptions, aspectRatio)}
                   customClass="text-lg md:text-xl"
                   labelClass="text-xl md:text-[22px]"
                 />
@@ -348,6 +355,7 @@ const InventoryList = () => {
                   }}
                   placeholder="นิ้ว"
                   searchable={false}
+                  disabled={isFilterLocked(rimDiameterOptions, rimDiameter)}
                   customClass="text-lg md:text-xl"
                   labelClass="text-xl md:text-[22px]"
                 />
@@ -387,7 +395,7 @@ const InventoryList = () => {
             </div>
           ) : inventory.length === 0 ? (
             <div className="flex flex-1 items-center justify-center">
-              <p className="text-subtle-light px-[20px] text-center text-xl font-medium text-balance md:text-[22px]">
+              <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">
                 {getEmptyMessage()}
               </p>
             </div>

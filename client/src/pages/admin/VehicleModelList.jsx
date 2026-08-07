@@ -137,8 +137,7 @@ const VehicleModelList = () => {
               isOpen={isDeleteDialogOpen}
               onClose={handleDeleteCancel}
               onConfirm={handleDeleteConfirm}
-              title="ยืนยันการลบ"
-              message="ต้องการลบยี่ห้อและรุ่นรถนี้หรือไม่?"
+              title="ยืนยันการลบยี่ห้อและรุ่นรถ"
               itemName={
                 deletingItem?.brand !== "อื่นๆ"
                   ? `${deletingItem?.brand} ${deletingItem?.model}`

@@ -14,7 +14,8 @@ const ConfirmDialog = ({
   onClose,
   onConfirm,
   title = "ยืนยันการลบ",
-  message = "ต้องการลบข้อมูลนี้หรือไม่?",
+  // หัวเรื่องบอกว่าลบอะไร ชิปบอกว่าลบตัวไหน เนื้อหาบอกผลที่ตามมา — ไม่ซ้ำกัน
+  message = "การลบไม่สามารถกู้คืนได้",
   itemName = "",
 }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -34,7 +35,7 @@ const ConfirmDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="flex w-full flex-col p-0"
+        className="flex max-h-[85svh] w-full flex-col p-0"
         showCloseButton={false}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
@@ -66,14 +67,16 @@ const ConfirmDialog = ({
           </button>
         </div>
 
-        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px] py-[16px]">
+        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px]">
           <div className="text-center">
-            <p className="text-subtle-dark text-lg font-medium md:text-xl">
+            {/* คำเตือนอยู่ก่อน: ข้อความเทาตัวเล็กถ้าไปอยู่ล่างสุดติดปุ่มจะถูกกวาดตาข้าม
+                ส่วนชิปมีพื้นสีเด่นอยู่แล้ว วางท้ายก็ยังเห็น และอยู่ติดปุ่มพอดีตอนจะกด */}
+            <p className="text-subtle-light text-base font-medium md:text-lg">
               {message}
             </p>
 
             {itemName && (
-              <div className="mt-4 flex items-center justify-center">
+              <div className="mt-[12px] flex items-center justify-center">
                 <span className="text-primary bg-primary/10 inline-block rounded-[10px] px-4 py-2 text-lg font-semibold md:text-xl">
                   {itemName}
                 </span>
@@ -88,7 +91,7 @@ const ConfirmDialog = ({
               type="button"
               disabled={isLoading}
               onClick={onClose}
-              className="font-athiti text-subtle-dark flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] bg-gray-100 text-lg font-semibold md:text-xl"
+              className="font-athiti border-subtle-light bg-surface text-subtle-dark flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
               ref={cancelButtonRef}
             >
               ยกเลิก

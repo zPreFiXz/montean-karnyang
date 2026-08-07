@@ -201,8 +201,7 @@ const UserList = () => {
         isOpen={isDeleteDialogOpen}
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
-        title="ยืนยันการลบ"
-        message="ต้องการลบบัญชีผู้ใช้งานนี้หรือไม่?"
+        title="ยืนยันการลบบัญชีผู้ใช้งาน"
         itemName={deletingUser?.name || deletingUser?.email || ""}
       />
     </div>

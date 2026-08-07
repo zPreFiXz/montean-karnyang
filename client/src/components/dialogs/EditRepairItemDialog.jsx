@@ -123,7 +123,6 @@ const EditRepairItemDialog = ({
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-[8px]">
                 <div className="space-y-[16px] rounded-[10px] bg-gray-50 p-[16px]">
-                  
                   {isNameEditable && (
                     <FormInput
                       register={register}
@@ -165,7 +164,7 @@ const EditRepairItemDialog = ({
             <button
               type="button"
               onClick={handleCancel}
-              className="font-athiti text-subtle-dark flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] bg-gray-100 text-lg font-semibold md:text-xl"
+              className="font-athiti border-subtle-light bg-surface text-subtle-dark flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
             >
               ยกเลิก
             </button>

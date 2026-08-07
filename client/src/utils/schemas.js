@@ -208,7 +208,7 @@ export const partServiceSchema = z
       if (lots.length === 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "กรุณาเพิ่มปียางอย่างน้อย 1 รายการ",
+          message: "กรุณาเพิ่มอย่างน้อย 1 รายการ",
           path: ["tireLots"],
         });
       }
@@ -218,13 +218,13 @@ export const partServiceSchema = z
         if (dot === "") {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "กรุณากรอกปียาง",
+            message: "กรุณากรอกสัปดาห์/ปีผลิต",
             path: ["tireLots", index, "dotCode"],
           });
         } else if (dot !== "ไม่ระบุ" && !/^\d{4}$/.test(dot)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "ปียางต้องเป็นเลข 4 หลัก",
+            message: "สัปดาห์/ปีผลิตต้องเป็นเลข 4 หลัก",
             path: ["tireLots", index, "dotCode"],
           });
         }
@@ -333,7 +333,16 @@ export const editNamePriceSchema = z.object({
 
 export const updatePartStockSchema = z.object({
   quantity: z.coerce.number().min(1, "กรุณากรอกจำนวน"),
-  dotCode: z.string().optional(), // เฉพาะยาง — ตรวจ 4 หลักในฟอร์ม
+  dotCode: z.string().optional(),
+});
+
+// ยางต้องระบุสัปดาห์/ปีผลิตเสมอ เพื่อให้สต็อกเข้าล็อตที่ถูกต้อง
+// ตรวจใน schema ไม่ใช่ในตัว submit handler ไม่งั้นจะถูกกักไว้หลังด่านของช่องอื่น
+export const updateTireStockSchema = updatePartStockSchema.extend({
+  dotCode: z
+    .string()
+    .min(1, "กรุณากรอกสัปดาห์/ปีผลิต")
+    .regex(/^\d{4}$/, "สัปดาห์/ปีผลิตต้องเป็นเลข 4 หลัก"),
 });
 
 export const vehicleModelSchema = z.object({

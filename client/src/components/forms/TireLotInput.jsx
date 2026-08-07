@@ -1,7 +1,7 @@
 import { useFieldArray } from "react-hook-form";
 import { Plus, Trash2 } from "lucide-react";
 
-// ปียาง: แต่ละแถวคือ DOT (สัปดาห์/ปีผลิต 4 หลัก) + จำนวน — สต็อกรวม = ผลรวมทุกแถว
+// สัปดาห์/ปีผลิต: แต่ละแถวคือ DOT (WWYY 4 หลัก) + จำนวน — สต็อกรวม = ผลรวมทุกแถว
 const TireLotInput = ({ control, register, watch, errors }) => {
   const { fields, append, remove } = useFieldArray({
     control,
@@ -18,7 +18,9 @@ const TireLotInput = ({ control, register, watch, errors }) => {
   return (
     <div className="mt-[16px] px-[20px]">
       <div className="mb-[8px] flex items-center justify-between">
-        <p className="text-subtle-dark text-lg font-medium md:text-xl">ปียาง</p>
+        <p className="text-subtle-dark text-lg font-medium md:text-xl">
+          สัปดาห์/ปีผลิต
+        </p>
         <p className="text-subtle-dark text-base font-medium md:text-lg">
           รวม {total} เส้น
         </p>
@@ -34,8 +36,8 @@ const TireLotInput = ({ control, register, watch, errors }) => {
                   {...register(`tireLots.${index}.dotCode`)}
                   type="text"
                   inputMode="numeric"
-                  placeholder="ปียาง เช่น 0126"
-                  aria-label={`ปียางรายการที่ ${index + 1}`}
+                  placeholder="เช่น 0126"
+                  aria-label={`สัปดาห์/ปีผลิตรายการที่ ${index + 1}`}
                   onInput={(e) => {
                     e.target.value = e.target.value
                       .replace(/[^0-9]/g, "")
@@ -95,7 +97,7 @@ const TireLotInput = ({ control, register, watch, errors }) => {
         className="text-subtle-light mt-[12px] flex h-[41px] w-full cursor-pointer items-center justify-center gap-[8px] rounded-[12px] border-2 border-dashed border-gray-300 text-lg font-medium transition-colors duration-200 hover:border-gray-400 hover:bg-gray-50 md:text-xl"
       >
         <Plus className="h-5 w-5" />
-        เพิ่มปียาง
+        เพิ่มรายการ
       </button>
     </div>
   );

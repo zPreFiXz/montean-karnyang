@@ -169,8 +169,7 @@ const EmployeeList = () => {
         isOpen={isDeleteDialogOpen}
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
-        title="ยืนยันการลบ"
-        message="ต้องการลบพนักงานนี้หรือไม่?"
+        title="ยืนยันการลบพนักงาน"
         itemName={deletingEmployee?.name || ""}
       />
     </div>

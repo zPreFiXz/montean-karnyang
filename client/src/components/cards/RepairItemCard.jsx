@@ -6,11 +6,7 @@ const RepairItemCard = ({ item, variant }) => {
     if (variant === "detail") {
       const isTire = item.part?.category?.name === "ยาง";
 
-      if (
-        isTire &&
-        item.part?.attributes &&
-        item.part.attributes.aspectRatio
-      ) {
+      if (isTire && item.part?.attributes && item.part.attributes.aspectRatio) {
         return (
           <p className="text-normal line-clamp-2 text-base font-semibold md:text-lg">
             {item.part.brand} {item.part.attributes.width}/
@@ -46,8 +42,7 @@ const RepairItemCard = ({ item, variant }) => {
     if (isTire && item.attributes && item.attributes.aspectRatio) {
       return (
         <p className="text-normal line-clamp-2 text-base font-semibold md:text-lg">
-          {item.brand} {item.attributes.width}/
-          {item.attributes.aspectRatio}R
+          {item.brand} {item.attributes.width}/{item.attributes.aspectRatio}R
           {item.attributes.rimDiameter} {item.name}
         </p>
       );
@@ -56,8 +51,8 @@ const RepairItemCard = ({ item, variant }) => {
     if (isTire && item.attributes) {
       return (
         <p className="text-normal line-clamp-2 text-base font-semibold md:text-lg">
-          {item.brand} {item.attributes.width}R
-          {item.attributes.rimDiameter} {item.name}
+          {item.brand} {item.attributes.width}R{item.attributes.rimDiameter}{" "}
+          {item.name}
         </p>
       );
     }
@@ -72,7 +67,10 @@ const RepairItemCard = ({ item, variant }) => {
   const imageUrl = variant === "detail" ? item.part?.secureUrl : item.secureUrl;
   const itemName =
     variant === "detail"
-      ? item.part?.name || item.service?.name || item.partName || item.serviceName
+      ? item.part?.name ||
+        item.service?.name ||
+        item.partName ||
+        item.serviceName
       : item.name;
   const unitPrice =
     variant === "detail" ? Number(item.unitPrice) : Number(item.sellingPrice);
@@ -87,7 +85,6 @@ const RepairItemCard = ({ item, variant }) => {
       <div className="shadow-primary bg-surface flex h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] px-[8px]">
         <div className="flex items-center gap-[8px]">
           <div className="border-subtle-light shadow-primary bg-surface flex items-center justify-center rounded-[10px] border">
-            
             {imageUrl ? (
               <div className="h-[60px] w-[60px]">
                 <img
@@ -111,7 +108,7 @@ const RepairItemCard = ({ item, variant }) => {
             {renderProductInfo(item)}
             {variant === "detail" && item.dotCode && (
               <p className="text-subtle-light line-clamp-1 text-sm font-medium md:text-base">
-                DOT: {item.dotCode}
+                สัปดาห์/ปีผลิต: {item.dotCode}
               </p>
             )}
             <p className="text-subtle-dark line-clamp-1 text-base font-semibold md:text-lg">

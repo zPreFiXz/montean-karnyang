@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { updatePartStock, deletePart } from "@/api/part";
 import { deleteService } from "@/api/service";
 import { useNavigate } from "react-router";
-import { updatePartStockSchema } from "@/utils/schemas";
+import { updatePartStockSchema, updateTireStockSchema } from "@/utils/schemas";
 import useAuthStore from "@/stores/useAuthStore";
 import { formatCurrency } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
@@ -45,6 +45,7 @@ const RepairItemDetailDialog = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(item);
+  const isTire = currentItem?.category?.name === "ยาง";
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const {
@@ -53,7 +54,9 @@ const RepairItemDetailDialog = ({
     reset,
     formState: { errors },
   } = useForm({
-    resolver: zodResolver(updatePartStockSchema),
+    resolver: zodResolver(
+      isTire ? updateTireStockSchema : updatePartStockSchema,
+    ),
     mode: "onChange",
   });
 
@@ -68,23 +71,32 @@ const RepairItemDetailDialog = ({
     setCurrentItem(item);
   }, [item]);
 
+  // จำกัดขอบเขตในไดอะล็อกเสมอ ไม่งั้นอาจไปเจอพื้นที่เลื่อนอื่นในหน้าที่ใช้คลาสเดียวกัน
+  const dialogScroller = () =>
+    document
+      .querySelector('[role="dialog"]')
+      ?.querySelector(".overflow-y-auto");
+
+  // รอ 1 เฟรมให้ฟอร์มถูกวาดก่อน ค่อยเลื่อนไปหา
+  const scrollDialogTo = (top) => {
+    setTimeout(() => {
+      dialogScroller()?.scrollTo({ top, behavior: "smooth" });
+    }, 200);
+  };
+
   const handleShowAddStock = () => {
     setIsAddStockVisible(true);
-    setTimeout(() => {
-      const scrollContainer = document.querySelector(".overflow-y-auto");
-      if (scrollContainer) {
-        scrollContainer.scrollTo({
-          top: scrollContainer.scrollHeight,
-          behavior: "smooth",
-        });
-      }
-    }, 200);
+    scrollDialogTo(Number.MAX_SAFE_INTEGER);
+  };
+
+  const handleCancelAddStock = () => {
+    setIsAddStockVisible(false);
+    reset();
   };
 
   if (!currentItem) return null;
 
   const isService = currentItem.type === "service";
-  const isTire = currentItem.category?.name === "ยาง";
 
   // DOT 4 หลักคือ WWYY (สัปดาห์+ปี ค.ศ. 2 หลักท้าย) เช่น 0126 = สัปดาห์ 1 ปี 2026
   const tireLotSummary = (() => {
@@ -121,6 +133,7 @@ const RepairItemDetailDialog = ({
     if (quantity === 0) {
       return {
         color: "bg-destructive",
+        textColor: "text-destructive",
         Icon: AlertTriangle,
         label: "สต็อกหมด",
       };
@@ -128,12 +141,14 @@ const RepairItemDetailDialog = ({
     if (quantity < Number(currentItem.minStockLevel)) {
       return {
         color: "bg-status-progress",
+        textColor: "text-status-progress",
         Icon: AlertTriangle,
         label: `สต็อกต่ำ · ${amount}`,
       };
     }
     return {
       color: "bg-status-completed",
+      textColor: "text-status-completed",
       Icon: Check,
       label: `สต็อกปกติ · ${amount}`,
     };
@@ -187,10 +202,6 @@ const RepairItemDetailDialog = ({
 
   const onSubmit = async (data) => {
     const dotCode = String(data.dotCode || "").trim();
-    if (isTire && !/^\d{4}$/.test(dotCode)) {
-      toast.error("กรุณากรอก DOT เป็นเลข 4 หลัก เช่น 0126");
-      return;
-    }
 
     setIsSubmitting(true);
     try {
@@ -211,17 +222,7 @@ const RepairItemDetailDialog = ({
       };
       setCurrentItem(updatedItem);
 
-      setTimeout(() => {
-        const dialog = document.querySelector('[role="dialog"]');
-        const scrollContainer = dialog?.querySelector(".overflow-y-auto");
-
-        if (scrollContainer) {
-          scrollContainer.scrollTo({
-            top: 0,
-            behavior: "smooth",
-          });
-        }
-      }, 200);
+      scrollDialogTo(0);
 
       if (onStockUpdate) {
         onStockUpdate();
@@ -381,14 +382,7 @@ const RepairItemDetailDialog = ({
                           จำนวนสต็อก:
                         </p>
                         <p
-                          className={`text-lg font-semibold md:text-xl ${
-                            currentItem.stockQuantity === 0
-                              ? "text-destructive"
-                              : currentItem.stockQuantity <=
-                                  currentItem.minStockLevel
-                                ? "text-status-progress"
-                                : "text-status-completed"
-                          }`}
+                          className={`text-lg font-semibold md:text-xl ${stockStatus.textColor}`}
                         >
                           {currentItem.stockQuantity} {currentItem.unit}
                         </p>
@@ -405,7 +399,7 @@ const RepairItemDetailDialog = ({
                       {isTire && tireLotSummary.length > 0 && (
                         <div className="space-y-[8px] border-t border-gray-200 pt-[8px]">
                           <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                            ปียาง:
+                            สัปดาห์/ปีผลิต:
                           </p>
                           {tireLotSummary.map((row) => (
                             <div key={row.key} className="flex justify-between">
@@ -444,8 +438,17 @@ const RepairItemDetailDialog = ({
                   </div>
                 )}
 
-              {!isService && isAddStockVisible && (
-                <div>
+              {!isService && (
+                // ย่อ/ขยายด้วย CSS แทนการถอดออกจาก DOM ทันที ไม่งั้นไดอะล็อกหดวูบ
+                // inert กันไม่ให้ Tab เข้าไปในช่องที่ถูกซ่อนอยู่
+                <div
+                  inert={!isAddStockVisible}
+                  className={`overflow-hidden transition-all duration-200 ${
+                    isAddStockVisible
+                      ? "max-h-[600px] opacity-100"
+                      : "max-h-0 opacity-0"
+                  }`}
+                >
                   <p className="font-athiti text-normal mt-[16px] mb-[8px] text-[22px] font-semibold md:text-2xl">
                     เพิ่มสต็อก
                   </p>
@@ -459,7 +462,7 @@ const RepairItemDetailDialog = ({
                         <FormInput
                           register={register}
                           name="dotCode"
-                          label="สัปดาห์/ปีผลิต (DOT)"
+                          label="สัปดาห์/ปีผลิต"
                           type="text"
                           placeholder="เช่น 0126"
                           textSize="text-lg md:text-xl"
@@ -496,20 +499,34 @@ const RepairItemDetailDialog = ({
                         customClass="px-0 pt-[16px]"
                       />
 
-                      <FormButton
-                        label={
-                          isSubmitting ? (
-                            "เพิ่มสต็อก"
-                          ) : (
-                            <div className="flex cursor-pointer items-center justify-center gap-[8px]">
-                              <Plus className="h-4 w-4" />
-                              เพิ่มสต็อก
-                            </div>
-                          )
-                        }
-                        isLoading={isSubmitting}
-                        className="bg-gradient-primary ml-0"
-                      />
+                      {/* เผยฟอร์มแล้วต้องมีทางถอย — ปุ่มยกเลิกใช้สไตล์เดียวกับไดอะล็อกอื่น
+                          (ขาว+ขอบ ไม่ใช่พื้นเทา เพราะกล่องฟอร์มเป็น bg-gray-50 จะกลืนกัน) */}
+                      <div className="flex items-center gap-[16px]">
+                        <button
+                          type="button"
+                          disabled={isSubmitting}
+                          onClick={handleCancelAddStock}
+                          // พื้นขาว+ขอบ ไม่ใช่พื้นเทา เพราะกล่องฟอร์มเป็น bg-gray-50 อยู่แล้วจะกลืนกัน
+                          className="font-athiti border-subtle-light bg-surface text-subtle-dark flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
+                        >
+                          ยกเลิก
+                        </button>
+
+                        <FormButton
+                          label={
+                            isSubmitting ? (
+                              "เพิ่มสต็อก"
+                            ) : (
+                              <div className="flex items-center justify-center gap-[8px]">
+                                <Plus className="h-4 w-4" />
+                                เพิ่มสต็อก
+                              </div>
+                            )
+                          }
+                          isLoading={isSubmitting}
+                          className="font-athiti bg-gradient-primary mr-0 ml-0 flex-1"
+                        />
+                      </div>
                     </form>
                   </div>
                 </div>
@@ -522,7 +539,7 @@ const RepairItemDetailDialog = ({
               {!isService && !isAddStockVisible && (
                 <button
                   onClick={handleShowAddStock}
-                  className="font-athiti text-surface bg-gradient-primary flex h-[41px] flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] text-lg font-semibold md:text-xl"
+                  className="font-athiti text-surface bg-gradient-primary flex h-11 flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] text-lg font-semibold md:text-xl"
                 >
                   <Plus className="h-4 w-4" />
                   เพิ่มสต็อก
@@ -531,17 +548,14 @@ const RepairItemDetailDialog = ({
               <button
                 onClick={handleEdit}
                 autoFocus={false}
-                className="font-athiti text-surface bg-status-progress flex h-[41px] flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] text-lg font-semibold md:text-xl"
+                className="font-athiti text-surface bg-status-progress flex h-11 flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] text-lg font-semibold md:text-xl"
               >
                 <Edit className="h-4 w-4" />
                 แก้ไข
               </button>
               <button
-                onClick={() => {
-                  onOpenChange(false);
-                  setTimeout(() => setIsDeleteConfirmOpen(true), 150);
-                }}
-                className="font-athiti text-surface bg-destructive flex h-[41px] w-[44px] cursor-pointer items-center justify-center rounded-[20px] text-lg font-semibold md:text-xl"
+                onClick={() => setIsDeleteConfirmOpen(true)}
+                className="font-athiti text-surface bg-destructive flex h-11 w-11 cursor-pointer items-center justify-center rounded-[20px] text-lg font-semibold md:text-xl"
                 aria-label="ลบ"
               >
                 <Trash className="h-4 w-4" />
@@ -555,12 +569,7 @@ const RepairItemDetailDialog = ({
         isOpen={isDeleteConfirmOpen}
         onClose={() => setIsDeleteConfirmOpen(false)}
         itemName={itemDisplayName}
-        title="ยืนยันการลบ"
-        message={
-          isService
-            ? "ต้องการลบบริการนี้หรือไม่?"
-            : "ต้องการลบอะไหล่นี้หรือไม่?"
-        }
+        title={isService ? "ยืนยันการลบบริการ" : "ยืนยันการลบอะไหล่"}
         onConfirm={async () => {
           try {
             if (isService) {
@@ -572,9 +581,12 @@ const RepairItemDetailDialog = ({
               isService ? "ลบบริการเรียบร้อยแล้ว" : "ลบอะไหล่เรียบร้อยแล้ว",
             );
             if (onStockUpdate) onStockUpdate();
+            // ของถูกลบแล้ว ไดอะล็อกรายละเอียดไม่มีอะไรให้ดูต่อ ปิดทั้งสองชั้น
+            setIsDeleteConfirmOpen(false);
+            onOpenChange(false);
           } catch (error) {
+            // ลบไม่สำเร็จ: ปิดแค่ตัวยืนยัน ให้ผู้ใช้ยังเห็นรายละเอียดและลองใหม่ได้
             toastError(error);
-          } finally {
             setIsDeleteConfirmOpen(false);
           }
         }}
