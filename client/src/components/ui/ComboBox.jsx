@@ -16,6 +16,9 @@ import { Check, ChevronsUpDown, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@radix-ui/react-label";
 
+const SEARCH_THRESHOLD = 10;
+const POPOVER_MAX_HEIGHT = "min(300px, 50svh)";
+
 const ComboBox = ({
   label,
   labelClass = "",
@@ -28,8 +31,12 @@ const ComboBox = ({
   name,
   disabled = false,
   customClass = "",
-  searchable = true,
+  searchable,
 }) => {
+  // เกิน 10 ตัวเลือกค่อยมีช่องค้นหา — น้อยกว่านั้นกวาดตาหาเร็วกว่าพิมพ์
+  // ส่งค่า searchable มาเองได้ถ้าต้องการบังคับ
+  const showSearch = searchable ?? options.length > SEARCH_THRESHOLD;
+
   const [open, setOpen] = useState(false);
   const [triggerWidth, setTriggerWidth] = useState(0);
   const triggerRef = useRef(null);
@@ -60,10 +67,7 @@ const ComboBox = ({
       {label && (
         <Label
           className={`mb-[8px] block font-medium ${
-            labelClass ||
-            (customClass
-              ? "text-lg md:text-xl"
-              : "text-[22px] md:text-2xl")
+            labelClass || (customClass ? "text-xl" : "text-[22px] md:text-2xl")
           } ${color}`}
         >
           {label}
@@ -92,7 +96,9 @@ const ComboBox = ({
                 disabled && "cursor-not-allowed opacity-50",
               )}
               style={{
-                "--tw-ring-color": hasError ? "var(--color-destructive)" : "var(--color-primary)",
+                "--tw-ring-color": hasError
+                  ? "var(--color-destructive)"
+                  : "var(--color-primary)",
                 "--tw-border-opacity": "1",
               }}
               onFocus={(e) => {
@@ -122,7 +128,9 @@ const ComboBox = ({
             className="z-50 my-[4px] p-0"
             style={{
               width: triggerWidth > 0 ? `${triggerWidth}px` : "auto",
-              maxHeight: "300px",
+              // 300px = ช่องค้นหา + รายการ 6 ตัวครึ่ง (ตัวที่โผล่ครึ่งใบคือสัญญาณว่าเลื่อนได้อีก)
+              // หดตามจอเมื่อที่ไม่พอ เช่นจอเตี้ยหรือตอนคีย์บอร์ดเด้งขึ้นมา
+              maxHeight: POPOVER_MAX_HEIGHT,
             }}
             side="bottom"
             align="start"
@@ -131,8 +139,12 @@ const ComboBox = ({
             sticky="partial"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
-            <Command className="max-h-[300px]" shouldFilter={searchable}>
-              {searchable && (
+            <Command
+              className="flex flex-col"
+              style={{ maxHeight: POPOVER_MAX_HEIGHT }}
+              shouldFilter={showSearch}
+            >
+              {showSearch && (
                 <CommandInput
                   ref={inputRef}
                   placeholder="ค้นหา..."
@@ -150,7 +162,8 @@ const ComboBox = ({
                   ไม่พบข้อมูล
                 </p>
               </CommandEmpty>
-              <CommandGroup className="max-h-[250px] overflow-y-auto">
+              {/* min-h-0 จำเป็นกับลูกของ flex ไม่งั้นมันจะไม่ยอมหดต่ำกว่าความสูงเนื้อหา แล้วล้นออกนอกกรอบ */}
+              <CommandGroup className="min-h-0 flex-1 overflow-y-auto">
                 {options.map((item) => {
                   const identifier = getIdentifier(item);
                   return (

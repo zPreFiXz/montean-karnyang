@@ -326,7 +326,6 @@ const InventoryList = () => {
                     debouncedFilter();
                   }}
                   placeholder="มม."
-                  searchable={false}
                   disabled={isFilterLocked(widthOptions, width)}
                   customClass="text-lg md:text-xl"
                   labelClass="text-xl md:text-[22px]"
@@ -340,7 +339,6 @@ const InventoryList = () => {
                     debouncedFilter();
                   }}
                   placeholder="%"
-                  searchable={false}
                   disabled={isFilterLocked(aspectRatioOptions, aspectRatio)}
                   customClass="text-lg md:text-xl"
                   labelClass="text-xl md:text-[22px]"
@@ -354,7 +352,6 @@ const InventoryList = () => {
                     debouncedFilter();
                   }}
                   placeholder="นิ้ว"
-                  searchable={false}
                   disabled={isFilterLocked(rimDiameterOptions, rimDiameter)}
                   customClass="text-lg md:text-xl"
                   labelClass="text-xl md:text-[22px]"

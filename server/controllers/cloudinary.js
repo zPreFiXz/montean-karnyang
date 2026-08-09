@@ -18,7 +18,7 @@ exports.createImage = async (req, res, next) => {
     const { image } = req.body;
 
     if (typeof image !== "string" || !IMAGE_DATA_URI_REGEX.test(image)) {
-      createError(400, "รูปภาพไม่ถูกต้อง รองรับเฉพาะไฟล์ PNG, JPG หรือ WebP");
+      createError(400, "รูปภาพไม่ถูกต้อง รองรับเฉพาะไฟล์ PNG, JPG, WEBP");
     }
 
     if (image.length > MAX_IMAGE_BASE64_LENGTH) {

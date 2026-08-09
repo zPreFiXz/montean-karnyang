@@ -119,7 +119,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
 
   return (
     <div className="space-y-[16px] px-[20px] pt-[16px]">
-      <Label className="text-subtle-dark text-lg font-medium md:text-xl">
+      <Label className="text-subtle-dark text-xl font-medium">
         รถที่รองรับ
       </Label>
 

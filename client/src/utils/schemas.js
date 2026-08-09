@@ -126,8 +126,11 @@ export const partServiceSchema = z
       .array(
         z.object({
           dotCode: z.string().optional(),
-          // อะไรก็ตามที่ไม่ใช่ตัวเลขจริง (รวม "", "null", NaN) → undefined กัน "Expected number, received NaN"
+          // อะไรก็ตามที่ไม่ใช่ตัวเลขจริง (รวม "null", NaN) → undefined กัน "Expected number, received NaN"
+          // ช่องว่างต้องดักแยกก่อน เพราะ Number("") = 0 จะกลายเป็นยอด 0 ที่ผ่านการตรวจไปเฉยๆ
           quantity: z.preprocess((v) => {
+            if (typeof v === "string" && v.trim() === "") return undefined;
+            if (v === null) return undefined;
             const n = Number(v);
             return Number.isFinite(n) ? n : undefined;
           }, z.number().optional()),
@@ -204,14 +207,9 @@ export const partServiceSchema = z
         });
       }
 
+      // ไม่ต้องเช็คว่ามีอย่างน้อย 1 แถว — TireLotInput เตรียมแถวแรกให้เสมอ
+      // และปิดปุ่มลบเมื่อเหลือแถวเดียว จำนวนแถวจึงเป็น 0 ไม่ได้
       const lots = data.tireLots || [];
-      if (lots.length === 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณาเพิ่มอย่างน้อย 1 รายการ",
-          path: ["tireLots"],
-        });
-      }
       lots.forEach((lot, index) => {
         const dot = String(lot.dotCode ?? "").trim();
         // "ไม่ระบุ" = ยางเก่าที่ backfill มา (ไม่รู้ DOT) — ยอมรับได้ ไม่ต้องบังคับ 4 หลัก

@@ -4,7 +4,11 @@ import { useEffect, useState, useId, useCallback } from "react";
 import { ImageIcon, X, Upload } from "lucide-react";
 import { toast } from "sonner";
 
-const MAX_FILE_SIZE = 1 * 1024 * 1024;
+// เพดานของ "ไฟล์ต้นฉบับที่ผู้ใช้เลือก" — กันแค่ไฟล์ใหญ่ผิดปกติ
+// รูปถูกย่อเหลือ 720x720 ก่อนส่ง (resizeImage) เหลือราว 100-250KB
+// ถ้าตั้งไว้ที่ 1MB รูปจากกล้องมือถือ (2-5MB) จะถูกปฏิเสธตั้งแต่ยังไม่ทันได้ย่อ
+// หมายเหตุ: server มีเพดานของตัวเองที่ ~5MB แต่วัด "หลังย่อ" จึงเป็นคนละค่ากันโดยตั้งใจ
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 const FormUploadImage = ({
@@ -55,7 +59,7 @@ const FormUploadImage = ({
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      toast.error("ไฟล์ใหญ่เกิน 1MB กรุณาเลือกไฟล์ที่เล็กกว่า");
+      toast.error("ไฟล์ใหญ่เกิน 10MB กรุณาเลือกไฟล์ที่เล็กกว่า");
       return false;
     }
 
@@ -152,11 +156,8 @@ const FormUploadImage = ({
   };
 
   return (
-    <div className="w-full justify-center px-[20px] pt-[16px]">
-      <Label
-        htmlFor={inputId}
-        className="text-subtle-dark text-lg font-medium md:text-xl"
-      >
+    <div className="w-full px-[20px] pt-[16px]">
+      <Label htmlFor={inputId} className="text-subtle-dark text-xl font-medium">
         {label}
       </Label>
 
@@ -176,10 +177,13 @@ const FormUploadImage = ({
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          className={`group bg-surface relative flex aspect-square w-full max-w-[280px] flex-col items-center justify-center rounded-[20px] border-2 border-dashed transition-colors ${
+          // เส้นประ = ที่ว่างรอไฟล์ พอมีรูปแล้วเปลี่ยนเป็นเส้นทึบเพราะไม่ใช่ที่ว่างอีก
+          className={`group bg-surface relative flex aspect-square w-full max-w-[280px] flex-col items-center justify-center overflow-hidden rounded-[20px] border-2 transition-colors ${
             isDragging
-              ? "border-primary bg-primary/5"
-              : "border-gray-300 hover:border-gray-400"
+              ? "border-primary bg-primary/5 border-dashed"
+              : previewImage
+                ? "border-input border-solid"
+                : "border-dashed border-gray-300 hover:border-gray-400"
           } ${isDeleting ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
         >
           {previewImage ? (
@@ -187,7 +191,7 @@ const FormUploadImage = ({
               <img
                 src={previewImage}
                 alt="Preview"
-                className="h-full w-full rounded-[20px] object-contain"
+                className="h-full w-full object-contain"
               />
               <button
                 type="button"
@@ -209,15 +213,14 @@ const FormUploadImage = ({
                 </>
               ) : (
                 <>
-                  <ImageIcon className="text-subtle-light mb-[8px] h-[48px] w-[48px]" />
-                  <p className="text-subtle-light mb-[4px] text-base font-medium md:text-lg">
+                  {/* ไอคอนกับข้อความใช้สีหลักคู่กันเป็นก้อนเดียว = "ตรงนี้กดได้"
+                      ส่วนข้อจำกัดคงสีจางไว้ ได้ลำดับชั้น 3 ระดับในกรอบเดียว */}
+                  <ImageIcon className="text-primary mb-[8px] h-[48px] w-[48px]" />
+                  <p className="text-primary mb-[4px] text-lg font-semibold md:text-xl">
                     {placeholder}
                   </p>
                   <p className="text-subtle-light text-sm md:text-base">
-                    PNG, JPG, WEBP ขนาดไม่เกิน 1MB
-                  </p>
-                  <p className="text-subtle-light mt-[4px] text-sm md:text-base">
-                    หรือลากวางไฟล์ที่นี่
+                    รองรับ PNG, JPG, WEBP
                   </p>
                 </>
               )}

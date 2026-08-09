@@ -14,6 +14,9 @@ const FormInput = ({
   customClass,
   rightSlot,
   rules,
+  // ช่องแคบๆ ที่วางเรียงเป็นคอลัมน์ ข้อความ error จะตัดบรรทัดจนแถวสูงไม่เท่ากัน
+  // เปิดตัวนี้เพื่อคงกรอบแดงกับไอคอนไว้ แล้วให้หน้าที่เรียกใช้ไปแสดงข้อความรวมเองใต้แถว
+  hideErrorMessage = false,
   ...props
 }) => {
   const getTextColor = () => {
@@ -27,7 +30,7 @@ const FormInput = ({
       <Label
         htmlFor={name}
         className={`mb-[8px] font-medium ${
-          textSize ? textSize : "text-lg md:text-xl"
+          textSize ? textSize : "text-xl"
         } ${getTextColor()}`}
       >
         {label}
@@ -72,8 +75,8 @@ const FormInput = ({
           </div>
         )}
       </div>
-      
-      {errors[name] && (
+
+      {errors[name] && !hideErrorMessage && (
         <div className="mt-[6px] flex items-center gap-[4px] px-[4px]">
           <AlertCircle className="text-destructive h-4 w-4 flex-shrink-0" />
           <p className="text-destructive text-lg font-medium md:text-xl">

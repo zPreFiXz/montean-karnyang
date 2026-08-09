@@ -283,11 +283,11 @@ const RepairItemDetailDialog = ({
 
               {currentItem.secureUrl && (
                 <div className="mb-[16px] flex justify-center">
-                  <div className="border-subtle-light flex aspect-square w-full max-w-[250px] items-center justify-center overflow-hidden rounded-[20px] border-2">
+                  <div className="border-input flex aspect-square w-full max-w-[280px] items-center justify-center overflow-hidden rounded-[20px] border-2">
                     <img
                       src={currentItem.secureUrl}
                       alt={currentItem.name}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                     />
                   </div>
                 </div>

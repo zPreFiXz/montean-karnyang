@@ -15,9 +15,10 @@ import TireLotInput from "@/components/forms/TireLotInput";
 import { useNavigate, useSearchParams } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { partServiceSchema } from "@/utils/schemas";
-import { units } from "@/constants/units";
+import { units, TIRE_UNIT } from "@/constants/units";
 import { VEHICLE_COMPATIBLE_CATEGORIES } from "@/constants/categories";
 import { ChevronLeft } from "lucide-react";
+import FieldErrorList from "@/components/forms/FieldErrorList";
 import { toastError } from "@/utils/handleError";
 
 const SUSPENSION_TYPES = [
@@ -70,7 +71,10 @@ const InventoryCreate = () => {
 
       // เปิดจากหน้ารายการโดยเลือกหมวดหมู่ไว้ -> เลือกให้เลย
       const preset = res.data?.find((cat) => cat.name === presetCategory);
-      if (preset) setValue("categoryId", preset.id);
+      if (preset) {
+        setValue("categoryId", preset.id);
+        if (preset.name === "ยาง") setValue("unit", TIRE_UNIT);
+      }
     } catch (error) {
       toastError(error);
     }
@@ -117,6 +121,12 @@ const InventoryCreate = () => {
 
   const handleCategoryChange = (value) => {
     setValue("categoryId", value);
+
+    // ยางนับเป็นเส้นเสมอ เลยซ่อนช่องหน่วยแล้วกรอกให้แทน
+    // สลับออกจากยางต้องล้างค่าคืน ไม่งั้นอะไหล่จะติดหน่วย "เส้น" มาโดยไม่ได้เลือกเอง
+    const isTire = category.find((cat) => cat.id === value)?.name === "ยาง";
+    setValue("unit", isTire ? TIRE_UNIT : "");
+
     clearErrors([
       "name",
       "price",
@@ -256,7 +266,7 @@ const InventoryCreate = () => {
             <ComboBox
               label="หมวดหมู่"
               color="text-subtle-dark"
-              labelClass="text-lg md:text-xl"
+              labelClass="text-xl"
               options={category}
               value={watch("categoryId")}
               onChange={handleCategoryChange}
@@ -274,7 +284,7 @@ const InventoryCreate = () => {
                 name="name"
                 label="ชื่อบริการ"
                 type="text"
-                placeholder="เช่น ตั้งศูนย์, ถ่วงล้อ, เปลี่ยนน้ำมันเครื่อง"
+                placeholder="เช่น ตั้งศูนย์"
                 color="subtle-dark"
                 errors={errors}
               />
@@ -306,7 +316,7 @@ const InventoryCreate = () => {
                 name="partNumber"
                 label="รหัสอะไหล่"
                 type="text"
-                placeholder="เช่น BS19514LEO677"
+                placeholder="เช่น LL1855515GMHP010"
                 color="subtle-dark"
                 errors={errors}
               />
@@ -317,9 +327,7 @@ const InventoryCreate = () => {
                 label="ยี่ห้อ"
                 type="text"
                 placeholder={
-                  isTireCategory()
-                    ? "เช่น LINGLONG, MAXXIS, BRIDGESTONE"
-                    : "เช่น 333, 555, VALVOLINE"
+                  isTireCategory() ? "เช่น LINGLONG" : "เช่น VALVOLINE"
                 }
                 color="subtle-dark"
                 errors={errors}
@@ -332,7 +340,7 @@ const InventoryCreate = () => {
                 type="text"
                 placeholder={
                   isTireCategory()
-                    ? "เช่น CROSSWIND HP010, DURAVIS R624"
+                    ? "เช่น GREEN-Max HP010"
                     : "เช่น ลูกหมากปีกนกบน Revo"
                 }
                 color="subtle-dark"
@@ -341,56 +349,73 @@ const InventoryCreate = () => {
 
               {/* ยาง */}
               {isTireCategory() && (
-                <div className="space-y-4">
-                  <FormInput
-                    register={register}
-                    name="width"
-                    label="หน้ายาง (มม.)"
-                    type="text"
-                    placeholder="เช่น 195, 205, 215"
-                    color="subtle-dark"
-                    errors={errors}
-                    inputMode="numeric"
-                    onWheel={(e) => e.target.blur()}
-                    onInput={(e) => {
-                      e.target.value = e.target.value
-                        .replace(/[^0-9]/g, "")
-                        .slice(0, 3);
-                    }}
-                  />
+                <div className="mt-[16px] px-[20px]">
+                  <div className="grid grid-cols-3 gap-[8px]">
+                    <FormInput
+                      register={register}
+                      name="width"
+                      label="หน้ายาง"
+                      type="text"
+                      placeholder="มม."
+                      color="subtle-dark"
+                      customClass="w-full"
+                      errors={errors}
+                      hideErrorMessage
+                      inputMode="numeric"
+                      onWheel={(e) => e.target.blur()}
+                      onInput={(e) => {
+                        e.target.value = e.target.value
+                          .replace(/[^0-9]/g, "")
+                          .slice(0, 3);
+                      }}
+                    />
 
-                  <FormInput
-                    register={register}
-                    name="aspectRatio"
-                    label="แก้มยาง (%)"
-                    type="text"
-                    placeholder="เช่น 55, 60, 65"
-                    color="subtle-dark"
-                    errors={errors}
-                    inputMode="numeric"
-                    onWheel={(e) => e.target.blur()}
-                    onInput={(e) => {
-                      e.target.value = e.target.value
-                        .replace(/[^0-9]/g, "")
-                        .slice(0, 2);
-                    }}
-                  />
+                    <FormInput
+                      register={register}
+                      name="aspectRatio"
+                      label="แก้มยาง"
+                      type="text"
+                      placeholder="%"
+                      color="subtle-dark"
+                      customClass="w-full"
+                      errors={errors}
+                      hideErrorMessage
+                      inputMode="numeric"
+                      onWheel={(e) => e.target.blur()}
+                      onInput={(e) => {
+                        e.target.value = e.target.value
+                          .replace(/[^0-9]/g, "")
+                          .slice(0, 2);
+                      }}
+                    />
 
-                  <FormInput
-                    register={register}
-                    name="rimDiameter"
-                    label="ขอบ (นิ้ว)"
-                    type="text"
-                    placeholder="เช่น 15, 16, 17"
-                    color="subtle-dark"
-                    errors={errors}
-                    inputMode="numeric"
-                    onWheel={(e) => e.target.blur()}
-                    onInput={(e) => {
-                      e.target.value = e.target.value
-                        .replace(/[^0-9]/g, "")
-                        .slice(0, 2);
-                    }}
+                    <FormInput
+                      register={register}
+                      name="rimDiameter"
+                      label="ขอบ"
+                      type="text"
+                      placeholder="นิ้ว"
+                      color="subtle-dark"
+                      customClass="w-full"
+                      errors={errors}
+                      hideErrorMessage
+                      inputMode="numeric"
+                      onWheel={(e) => e.target.blur()}
+                      onInput={(e) => {
+                        e.target.value = e.target.value
+                          .replace(/[^0-9]/g, "")
+                          .slice(0, 2);
+                      }}
+                    />
+                  </div>
+
+                  <FieldErrorList
+                    className="mt-[6px]"
+                    messages={[
+                      errors.width?.message,
+                      errors.aspectRatio?.message,
+                      errors.rimDiameter?.message,
+                    ]}
                   />
                 </div>
               )}
@@ -401,7 +426,7 @@ const InventoryCreate = () => {
                   <ComboBox
                     label="ประเภทช่วงล่าง"
                     color="text-subtle-dark"
-                    labelClass="text-lg md:text-xl"
+                    labelClass="text-xl"
                     options={SUSPENSION_TYPES}
                     value={watch("suspensionType")}
                     onChange={(value) =>
@@ -422,97 +447,136 @@ const InventoryCreate = () => {
                 </div>
               )}
 
-              <FormInput
-                register={register}
-                name="costPrice"
-                label="ราคาต้นทุน (บาท)"
-                type="number"
-                placeholder="เช่น 2500"
-                color="subtle-dark"
-                errors={errors}
-                inputMode="numeric"
-                onWheel={(e) => e.target.blur()}
-                onInput={(e) => {
-                  e.target.value = e.target.value.replace(/[^0-9.]/g, "");
-                }}
-              />
-
-              <FormInput
-                register={register}
-                name="sellingPrice"
-                label="ราคาขาย (บาท)"
-                type="number"
-                placeholder="เช่น 2850"
-                color="subtle-dark"
-                errors={errors}
-                inputMode="numeric"
-                onWheel={(e) => e.target.blur()}
-                onInput={(e) => {
-                  e.target.value = e.target.value.replace(/[^0-9.]/g, "");
-                }}
-              />
-
-              <div className="my-[16px] px-[20px]">
-                <ComboBox
-                  label="หน่วย"
-                  color="text-subtle-dark"
-                  labelClass="text-lg md:text-xl"
-                  options={units}
-                  value={watch("unit")}
-                  onChange={(value) =>
-                    setValue("unit", value, {
-                      shouldValidate: true,
-                      shouldTouch: true,
-                    })
-                  }
-                  placeholder="-- เลือกหน่วย --"
-                  errors={errors}
-                  name="unit"
-                />
-                <input
-                  {...register("unit")}
-                  type="hidden"
-                  value={watch("unit") || ""}
-                />
-              </div>
-              {isTireCategory() ? (
-                <TireLotInput
-                  control={control}
-                  register={register}
-                  watch={watch}
-                  errors={errors}
-                />
-              ) : (
+              <div className="mt-[16px] grid grid-cols-2 gap-[8px] px-[20px]">
                 <FormInput
                   register={register}
-                  name="stockQuantity"
-                  label="จำนวนสต็อก"
+                  name="costPrice"
+                  label="ราคาต้นทุน (บาท)"
                   type="number"
-                  placeholder="เช่น 4"
+                  placeholder="เช่น 2500"
                   color="subtle-dark"
+                  customClass="w-full"
                   errors={errors}
                   inputMode="numeric"
                   onWheel={(e) => e.target.blur()}
                   onInput={(e) => {
-                    e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                    e.target.value = e.target.value.replace(/[^0-9.]/g, "");
                   }}
                 />
-              )}
 
-              <FormInput
-                register={register}
-                name="minStockLevel"
-                label="สต็อกขั้นต่ำ"
-                type="number"
-                placeholder="เช่น 2"
-                color="subtle-dark"
-                errors={errors}
-                inputMode="numeric"
-                onWheel={(e) => e.target.blur()}
-                onInput={(e) => {
-                  e.target.value = e.target.value.replace(/[^0-9]/g, "");
-                }}
+                <FormInput
+                  register={register}
+                  name="sellingPrice"
+                  label="ราคาขาย (บาท)"
+                  type="number"
+                  placeholder="เช่น 2850"
+                  color="subtle-dark"
+                  customClass="w-full"
+                  errors={errors}
+                  inputMode="numeric"
+                  onWheel={(e) => e.target.blur()}
+                  onInput={(e) => {
+                    e.target.value = e.target.value.replace(/[^0-9.]/g, "");
+                  }}
+                />
+              </div>
+
+              {!isTireCategory() && (
+                <div className="my-[16px] px-[20px]">
+                  <ComboBox
+                    label="หน่วย"
+                    color="text-subtle-dark"
+                    labelClass="text-xl"
+                    options={units}
+                    value={watch("unit")}
+                    onChange={(value) =>
+                      setValue("unit", value, {
+                        shouldValidate: true,
+                        shouldTouch: true,
+                      })
+                    }
+                    placeholder="-- เลือกหน่วย --"
+                    errors={errors}
+                    name="unit"
+                  />
+                </div>
+              )}
+              <input
+                {...register("unit")}
+                type="hidden"
+                value={watch("unit") || ""}
               />
+              {/* ยางไม่มีช่องจำนวนสต็อก (คิดจากผลรวมล็อต) สต็อกขั้นต่ำจึงอยู่เต็มแถวไปเลย */}
+              {isTireCategory() ? (
+                <>
+                  <TireLotInput
+                    control={control}
+                    register={register}
+                    watch={watch}
+                    errors={errors}
+                  />
+                  <FormInput
+                    register={register}
+                    name="minStockLevel"
+                    label="สต็อกขั้นต่ำ"
+                    type="number"
+                    placeholder="เช่น 2"
+                    color="subtle-dark"
+                    errors={errors}
+                    inputMode="numeric"
+                    onWheel={(e) => e.target.blur()}
+                    onInput={(e) => {
+                      e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                    }}
+                  />
+                </>
+              ) : (
+                <div className="mt-[16px] px-[20px]">
+                  <div className="grid grid-cols-2 gap-[8px]">
+                    <FormInput
+                      register={register}
+                      name="stockQuantity"
+                      label="จำนวนสต็อก"
+                      type="number"
+                      placeholder="เช่น 4"
+                      color="subtle-dark"
+                      customClass="w-full"
+                      errors={errors}
+                      hideErrorMessage
+                      inputMode="numeric"
+                      onWheel={(e) => e.target.blur()}
+                      onInput={(e) => {
+                        e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                      }}
+                    />
+
+                    <FormInput
+                      register={register}
+                      name="minStockLevel"
+                      label="สต็อกขั้นต่ำ"
+                      type="number"
+                      placeholder="เช่น 2"
+                      color="subtle-dark"
+                      customClass="w-full"
+                      errors={errors}
+                      hideErrorMessage
+                      inputMode="numeric"
+                      onWheel={(e) => e.target.blur()}
+                      onInput={(e) => {
+                        e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                      }}
+                    />
+                  </div>
+
+                  <FieldErrorList
+                    className="mt-[6px]"
+                    messages={[
+                      errors.stockQuantity?.message,
+                      errors.minStockLevel?.message,
+                    ]}
+                  />
+                </div>
+              )}
 
               {hasVehicleCompatibility() && (
                 <VehicleCompatibilityInput
