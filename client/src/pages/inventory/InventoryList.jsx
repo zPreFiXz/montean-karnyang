@@ -316,46 +316,60 @@ const InventoryList = () => {
                   customClass="text-lg md:text-xl"
                 />
               </div>
-              <div className="grid grid-cols-3 gap-[8px]">
-                <ComboBox
-                  label="หน้ายาง"
-                  options={[...widthOptions.map((p) => ({ name: p }))]}
-                  value={width}
-                  onChange={(v) => {
-                    setWidth(v);
-                    debouncedFilter();
-                  }}
-                  placeholder="มม."
-                  disabled={isFilterLocked(widthOptions, width)}
-                  customClass="text-lg md:text-xl"
-                  labelClass="text-xl md:text-[22px]"
-                />
-                <ComboBox
-                  label="แก้มยาง"
-                  options={[...aspectRatioOptions.map((p) => ({ name: p }))]}
-                  value={aspectRatio}
-                  onChange={(v) => {
-                    setAspectRatio(v);
-                    debouncedFilter();
-                  }}
-                  placeholder="%"
-                  disabled={isFilterLocked(aspectRatioOptions, aspectRatio)}
-                  customClass="text-lg md:text-xl"
-                  labelClass="text-xl md:text-[22px]"
-                />
-                <ComboBox
-                  label="ขอบ"
-                  options={[...rimDiameterOptions.map((p) => ({ name: p }))]}
-                  value={rimDiameter}
-                  onChange={(v) => {
-                    setRimDiameter(v);
-                    debouncedFilter();
-                  }}
-                  placeholder="นิ้ว"
-                  disabled={isFilterLocked(rimDiameterOptions, rimDiameter)}
-                  customClass="text-lg md:text-xl"
-                  labelClass="text-xl md:text-[22px]"
-                />
+              <div className="flex items-end gap-[8px]">
+                <div className="min-w-0 flex-1">
+                  <ComboBox
+                    label="หน้ายาง"
+                    options={[...widthOptions.map((p) => ({ name: p }))]}
+                    value={width}
+                    onChange={(v) => {
+                      setWidth(v);
+                      debouncedFilter();
+                    }}
+                    placeholder="มม."
+                    disabled={isFilterLocked(widthOptions, width)}
+                    customClass="text-lg md:text-xl"
+                    labelClass="text-xl md:text-[22px]"
+                  />
+                </div>
+                <span className="text-subtle-dark flex h-[41px] shrink-0 items-center text-xl font-medium md:text-[22px]">
+                  /
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <ComboBox
+                    label="แก้มยาง"
+                    options={[...aspectRatioOptions.map((p) => ({ name: p }))]}
+                    value={aspectRatio}
+                    onChange={(v) => {
+                      setAspectRatio(v);
+                      debouncedFilter();
+                    }}
+                    placeholder="%"
+                    disabled={isFilterLocked(aspectRatioOptions, aspectRatio)}
+                    customClass="text-lg md:text-xl"
+                    labelClass="text-xl md:text-[22px]"
+                  />
+                </div>
+                <span className="text-subtle-dark flex h-[41px] shrink-0 items-center text-xl font-medium md:text-[22px]">
+                  R
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <ComboBox
+                    label="ขอบ"
+                    options={[...rimDiameterOptions.map((p) => ({ name: p }))]}
+                    value={rimDiameter}
+                    onChange={(v) => {
+                      setRimDiameter(v);
+                      debouncedFilter();
+                    }}
+                    placeholder="นิ้ว"
+                    disabled={isFilterLocked(rimDiameterOptions, rimDiameter)}
+                    customClass="text-lg md:text-xl"
+                    labelClass="text-xl md:text-[22px]"
+                  />
+                </div>
               </div>
             </div>
           )}

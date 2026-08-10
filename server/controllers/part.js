@@ -9,10 +9,12 @@ const normalizeLots = (tireLots) =>
           dotCode: String(lot.dotCode || "").trim(),
           quantity: Math.max(0, Number(lot.quantity) || 0),
         }))
-        .filter((lot) => lot.dotCode)
+        // จำนวน 0 = ล็อตที่ไม่มีของแล้ว ตัดทิ้งเหมือนไม่ได้กรอก (เทียบเท่ากับที่ตัดสต็อกจนหมดแล้วลบล็อต)
+        .filter((lot) => lot.dotCode && lot.quantity > 0)
     : null;
 
-const sumLotQuantity = (lots) => lots.reduce((total, lot) => total + lot.quantity, 0);
+const sumLotQuantity = (lots) =>
+  lots.reduce((total, lot) => total + lot.quantity, 0);
 
 exports.listParts = async (req, res, next) => {
   try {
@@ -145,11 +147,20 @@ exports.updatePart = async (req, res, next) => {
 exports.updatePartStock = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { quantity, dotCode } = req.body; // จำนวนที่เพิ่มเข้าสต็อก + DOT (เฉพาะยาง)
+    // ยางส่ง lots มาได้หลายล็อตในครั้งเดียว ส่วนอะไหล่ทั่วไปส่ง quantity เดี่ยว
+    const { quantity, dotCode, lots: rawLots } = req.body;
     const partId = Number(id);
-    const addQty = Number(quantity);
-    const dot = String(dotCode || "").trim();
 
+    const lots =
+      normalizeLots(rawLots) || normalizeLots([{ dotCode, quantity }]);
+    // อะไหล่ทั่วไปไม่มี DOT จึงไม่เหลือล็อตหลังกรอง ให้ใช้ quantity ตรงๆ
+    const addQty = lots.length ? sumLotQuantity(lots) : Number(quantity) || 0;
+
+    if (addQty <= 0) {
+      createError(400, "จำนวนที่เพิ่มต้องมากกว่า 0");
+    }
+
+    // ทั้งชุดอยู่ใน transaction เดียว ถ้าล็อตใดพลาดจะไม่มีอะไรเข้าเลย ไม่ใช่เข้าครึ่งเดียว
     await prisma.$transaction(async (tx) => {
       await tx.part.update({
         where: { id: partId },
@@ -157,18 +168,18 @@ exports.updatePartStock = async (req, res, next) => {
       });
 
       // ยาง: merge เข้าล็อต DOT เดิม หรือสร้างล็อตใหม่ ให้ผลรวมล็อตตรงกับ stockQuantity
-      if (dot) {
+      for (const lot of lots) {
         const existingLot = await tx.tireLot.findFirst({
-          where: { partId, dotCode: dot },
+          where: { partId, dotCode: lot.dotCode },
         });
         if (existingLot) {
           await tx.tireLot.update({
             where: { id: existingLot.id },
-            data: { quantity: existingLot.quantity + addQty },
+            data: { quantity: existingLot.quantity + lot.quantity },
           });
         } else {
           await tx.tireLot.create({
-            data: { partId, dotCode: dot, quantity: addQty },
+            data: { partId, dotCode: lot.dotCode, quantity: lot.quantity },
           });
         }
       }

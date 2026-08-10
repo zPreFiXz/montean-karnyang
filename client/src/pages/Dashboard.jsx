@@ -21,6 +21,7 @@ import { Success, Wrench, Paid } from "@/components/icons/Icons";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { toastError } from "@/utils/handleError";
 import { onKeyActivate } from "@/utils/a11y";
+import { tracksStock } from "@/utils/stock";
 
 const Dashboard = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -67,8 +68,9 @@ const Dashboard = () => {
 
   // กรองสินค้าที่ไม่ใช่บริการ
   const stockItems = inventory.filter((i) => i?.category?.name !== "บริการ");
+  // อะไหล่ที่ไม่ได้สต็อกไว้ (ขั้นต่ำ = 0) เหลือ 0 เป็นเรื่องปกติ ไม่นับว่าของหมด
   const outOfStockItems = stockItems.filter(
-    (i) => Number(i?.stockQuantity || 0) <= 0,
+    (i) => tracksStock(i?.minStockLevel) && Number(i?.stockQuantity || 0) <= 0,
   );
   const lowStockItems = stockItems.filter((i) => {
     const qty = Number(i?.stockQuantity || 0);

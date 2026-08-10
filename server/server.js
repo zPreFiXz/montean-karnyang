@@ -29,7 +29,8 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-        "img-src": ["'self'", "data:", "https://res.cloudinary.com"],
+        // blob: จำเป็นสำหรับรูปตัวอย่างก่อนอัปโหลด (URL.createObjectURL) ไม่งั้นขึ้นแต่ alt text
+        "img-src": ["'self'", "data:", "blob:", "https://res.cloudinary.com"],
         // รันแบบ HTTP ล้วนในวง LAN จึงเอา directive นี้ออก ไม่งั้นเบราว์เซอร์อัป asset เป็น https แล้วโหลดไม่ได้
         "upgrade-insecure-requests": null,
       },

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Edit, Plus, X, AlertTriangle, Check, Trash } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Edit, Plus, X, AlertTriangle, Check, Info, Trash } from "lucide-react";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import {
   Dialog,
@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import FormInput from "@/components/forms/FormInput";
+import TireLotInput from "@/components/forms/TireLotInput";
 import FormButton from "@/components/forms/FormButton";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,21 +20,24 @@ import { updatePartStockSchema, updateTireStockSchema } from "@/utils/schemas";
 import useAuthStore from "@/stores/useAuthStore";
 import { formatCurrency } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
+import { tracksStock } from "@/utils/stock";
+import { dotOrderKey } from "@/utils/tireLot";
 
 // สะท้อนสิ่งที่ backend ทำตอนเพิ่มสต็อก: DOT เดิมบวกทับล็อตเดิม ไม่งั้นสร้างล็อตใหม่
-const mergeTireLot = (lots = [], dotCode, quantity) => {
-  const list = lots || [];
-  const index = list.findIndex(
-    (lot) => String(lot.dotCode ?? "").trim() === dotCode,
-  );
-  if (index === -1) return [...list, { dotCode, quantity }];
+// (คำนวณฝั่งนี้ด้วยเพื่อให้ไดอะล็อกอัปเดตทันทีโดยไม่ต้องดึงข้อมูลใหม่)
+const mergeTireLots = (lots = [], added = []) =>
+  added.reduce((list, { dotCode, quantity }) => {
+    const index = list.findIndex(
+      (lot) => String(lot.dotCode ?? "").trim() === dotCode,
+    );
+    if (index === -1) return [...list, { dotCode, quantity }];
 
-  return list.map((lot, i) =>
-    i === index
-      ? { ...lot, quantity: (Number(lot.quantity) || 0) + quantity }
-      : lot,
-  );
-};
+    return list.map((lot, i) =>
+      i === index
+        ? { ...lot, quantity: (Number(lot.quantity) || 0) + quantity }
+        : lot,
+    );
+  }, lots || []);
 
 const RepairItemDetailDialog = ({
   item,
@@ -52,6 +56,8 @@ const RepairItemDetailDialog = ({
     register,
     handleSubmit,
     reset,
+    control,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(
@@ -60,12 +66,18 @@ const RepairItemDetailDialog = ({
     mode: "onChange",
   });
 
+  // reset() เปล่าๆ จะล้างแถวยางจนหมดแล้วไม่งอกกลับ เพราะ TireLotInput ไม่ได้ถูก unmount
+  // (ฟอร์มแค่ยุบด้วย CSS) ตัวสร้างแถวแรกจึงทำงานไปแล้วครั้งเดียว — ต้องคืนแถวว่างให้เอง
+  const resetStockForm = useCallback(() => {
+    reset(isTire ? { tireLots: [{ dotCode: "", quantity: "" }] } : {});
+  }, [reset, isTire]);
+
   useEffect(() => {
     if (!open) {
       setIsAddStockVisible(false);
-      reset();
+      resetStockForm();
     }
-  }, [open, reset]);
+  }, [open, resetStockForm]);
 
   useEffect(() => {
     setCurrentItem(item);
@@ -86,12 +98,22 @@ const RepairItemDetailDialog = ({
 
   const handleShowAddStock = () => {
     setIsAddStockVisible(true);
-    scrollDialogTo(Number.MAX_SAFE_INTEGER);
+  };
+
+  // เลื่อนหลังฟอร์มขยายเสร็จจริง ไม่ใช่เดาเวลาให้ตรงกับ transition
+  // ถ้าเลื่อนระหว่างที่ยังขยายอยู่ ปลายทางจะถูกคำนวณจากความสูงที่ยังไม่เต็ม แล้วเนื้อหางอกตามทีหลัง = กระตุก
+  const handleAddStockTransitionEnd = (e) => {
+    if (e.propertyName !== "grid-template-rows") return;
+    if (!isAddStockVisible) return;
+    dialogScroller()?.scrollTo({
+      top: Number.MAX_SAFE_INTEGER,
+      behavior: "smooth",
+    });
   };
 
   const handleCancelAddStock = () => {
     setIsAddStockVisible(false);
-    reset();
+    resetStockForm();
   };
 
   if (!currentItem) return null;
@@ -106,11 +128,7 @@ const RepairItemDetailDialog = ({
     for (const lot of currentItem.tireLots || []) {
       const label = String(lot.dotCode ?? "").trim() || "ไม่ระบุ";
       const quantity = Number(lot.quantity) || 0;
-      const match = /^(\d{2})(\d{2})$/.exec(label);
-      // เรียงเก่าไปใหม่ด้วย YYWW ค่าที่ไม่ใช่ 4 หลักไปอยู่ล่างสุด
-      const sortKey = match
-        ? Number(match[2] + match[1])
-        : Number.MAX_SAFE_INTEGER;
+      const sortKey = dotOrderKey(label);
 
       const current = rows.get(label);
       if (current) {
@@ -130,6 +148,15 @@ const RepairItemDetailDialog = ({
     const quantity = Number(currentItem.stockQuantity) || 0;
     const amount = `${quantity} ${currentItem.unit || ""}`.trim();
 
+    // ไม่ได้สต็อกไว้ → เหลือเท่าไหร่ก็ปกติ ไม่มีเกณฑ์ให้เทียบ
+    if (!tracksStock(currentItem.minStockLevel)) {
+      return {
+        color: "bg-subtle-light",
+        textColor: "text-subtle-dark",
+        Icon: Info,
+        label: `ไม่เก็บสต็อก · จำนวน ${amount}`,
+      };
+    }
     if (quantity === 0) {
       return {
         color: "bg-destructive",
@@ -143,14 +170,14 @@ const RepairItemDetailDialog = ({
         color: "bg-status-progress",
         textColor: "text-status-progress",
         Icon: AlertTriangle,
-        label: `สต็อกต่ำ · ${amount}`,
+        label: `สต็อกต่ำ · จำนวน ${amount}`,
       };
     }
     return {
       color: "bg-status-completed",
       textColor: "text-status-completed",
       Icon: Check,
-      label: `สต็อกปกติ · ${amount}`,
+      label: `สต็อกปกติ · จำนวน ${amount}`,
     };
   })();
 
@@ -201,23 +228,31 @@ const RepairItemDetailDialog = ({
   };
 
   const onSubmit = async (data) => {
-    const dotCode = String(data.dotCode || "").trim();
+    const addedLots = isTire
+      ? (data.tireLots || []).map((lot) => ({
+          dotCode: String(lot.dotCode || "").trim(),
+          quantity: Number(lot.quantity) || 0,
+        }))
+      : [];
+    const addedQuantity = isTire
+      ? addedLots.reduce((sum, lot) => sum + lot.quantity, 0)
+      : Number(data.quantity);
 
     setIsSubmitting(true);
     try {
       await updatePartStock(currentItem.id, {
-        quantity: Number(data.quantity),
-        dotCode: isTire ? dotCode : undefined,
+        quantity: isTire ? undefined : addedQuantity,
+        lots: isTire ? addedLots : undefined,
       });
       toast.success("เพิ่มสต็อกเรียบร้อยแล้ว");
       setIsAddStockVisible(false);
-      reset();
+      resetStockForm();
 
       const updatedItem = {
         ...currentItem,
-        stockQuantity: currentItem.stockQuantity + Number(data.quantity),
+        stockQuantity: currentItem.stockQuantity + addedQuantity,
         tireLots: isTire
-          ? mergeTireLot(currentItem.tireLots, dotCode, Number(data.quantity))
+          ? mergeTireLots(currentItem.tireLots, addedLots)
           : currentItem.tireLots,
       };
       setCurrentItem(updatedItem);
@@ -423,7 +458,7 @@ const RepairItemDetailDialog = ({
                 currentItem.compatibleVehicles.length > 0 && (
                   <div className="mt-[16px]">
                     <p className="font-athiti text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
-                      รถที่รองรับ
+                      รถที่ใช้ได้
                     </p>
                     <div className="flex flex-wrap gap-[6px]">
                       {currentItem.compatibleVehicles.map((vehicle, index) => (
@@ -443,91 +478,90 @@ const RepairItemDetailDialog = ({
                 // inert กันไม่ให้ Tab เข้าไปในช่องที่ถูกซ่อนอยู่
                 <div
                   inert={!isAddStockVisible}
-                  className={`overflow-hidden transition-all duration-200 ${
+                  onTransitionEnd={handleAddStockTransitionEnd}
+                  // grid-rows 0fr→1fr ขยายไปหา "ความสูงจริงของเนื้อหา" ไม่ต้องเดาเป็นตัวเลข
+                  // (max-h ตายตัวจะตัดแถวที่เกินทิ้ง พอกรอกได้หลายล็อตแล้วเกินง่ายมาก)
+                  className={`grid transition-all duration-200 ${
                     isAddStockVisible
-                      ? "max-h-[600px] opacity-100"
-                      : "max-h-0 opacity-0"
+                      ? "grid-rows-[1fr] opacity-100"
+                      : "grid-rows-[0fr] opacity-0"
                   }`}
                 >
-                  <p className="font-athiti text-normal mt-[16px] mb-[8px] text-[22px] font-semibold md:text-2xl">
-                    เพิ่มสต็อก
-                  </p>
+                  <div className="overflow-hidden">
+                    <p className="font-athiti text-normal mt-[16px] mb-[8px] text-[22px] font-semibold md:text-2xl">
+                      เพิ่มสต็อก
+                    </p>
 
-                  <div className="rounded-[10px] bg-gray-50 px-[16px] pb-[16px]">
-                    <form
-                      onSubmit={handleSubmit(onSubmit)}
-                      className="space-y-[16px]"
-                    >
-                      {isTire && (
-                        <FormInput
-                          register={register}
-                          name="dotCode"
-                          label="สัปดาห์/ปีผลิต"
-                          type="text"
-                          placeholder="เช่น 0126"
-                          textSize="text-lg md:text-xl"
-                          color="subtle-dark"
-                          errors={errors}
-                          inputMode="numeric"
-                          onWheel={(e) => e.target.blur()}
-                          onInput={(e) => {
-                            e.target.value = e.target.value
-                              .replace(/[^0-9]/g, "")
-                              .slice(0, 4);
-                          }}
-                          customClass="px-0 pt-[16px]"
-                        />
-                      )}
+                    <div className="rounded-[10px] bg-gray-50 px-[16px] pb-[16px]">
+                      <form
+                        onSubmit={handleSubmit(onSubmit)}
+                        className="space-y-[16px]"
+                      >
+                        {/* ยางรับเข้าทีละหลาย DOT ได้ ใช้ตัวกรอกชุดเดียวกับฟอร์มเพิ่ม/แก้ไขรายการ */}
+                        {isTire ? (
+                          <TireLotInput
+                            control={control}
+                            register={register}
+                            watch={watch}
+                            errors={errors}
+                            unit={currentItem.unit}
+                            heading="สัปดาห์/ปีผลิต"
+                            headingClass="text-lg md:text-xl"
+                            className="pt-[16px]"
+                          />
+                        ) : (
+                          <FormInput
+                            register={register}
+                            name="quantity"
+                            label={`จำนวน (${currentItem.unit})`}
+                            type="number"
+                            placeholder="เช่น 2"
+                            textSize="text-lg md:text-xl"
+                            color="subtle-dark"
+                            errors={errors}
+                            inputMode="numeric"
+                            onWheel={(e) => e.target.blur()}
+                            onInput={(e) => {
+                              e.target.value = e.target.value.replace(
+                                /[^0-9]/g,
+                                "",
+                              );
+                            }}
+                            customClass="px-0 pt-[16px]"
+                          />
+                        )}
 
-                      <FormInput
-                        register={register}
-                        name="quantity"
-                        label={`จำนวน (${currentItem.unit})`}
-                        type="number"
-                        placeholder="เช่น 2"
-                        textSize="text-lg md:text-xl"
-                        color="subtle-dark"
-                        errors={errors}
-                        inputMode="numeric"
-                        onWheel={(e) => e.target.blur()}
-                        onInput={(e) => {
-                          e.target.value = e.target.value.replace(
-                            /[^0-9]/g,
-                            "",
-                          );
-                        }}
-                        customClass="px-0 pt-[16px]"
-                      />
-
-                      {/* เผยฟอร์มแล้วต้องมีทางถอย — ปุ่มยกเลิกใช้สไตล์เดียวกับไดอะล็อกอื่น
+                        {/* เผยฟอร์มแล้วต้องมีทางถอย — ปุ่มยกเลิกใช้สไตล์เดียวกับไดอะล็อกอื่น
                           (ขาว+ขอบ ไม่ใช่พื้นเทา เพราะกล่องฟอร์มเป็น bg-gray-50 จะกลืนกัน) */}
-                      <div className="flex items-center gap-[16px]">
-                        <button
-                          type="button"
-                          disabled={isSubmitting}
-                          onClick={handleCancelAddStock}
-                          // พื้นขาว+ขอบ ไม่ใช่พื้นเทา เพราะกล่องฟอร์มเป็น bg-gray-50 อยู่แล้วจะกลืนกัน
-                          className="font-athiti border-subtle-light bg-surface text-subtle-dark flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
-                        >
-                          ยกเลิก
-                        </button>
+                        <div className="flex items-center gap-[16px]">
+                          <button
+                            type="button"
+                            disabled={isSubmitting}
+                            onClick={handleCancelAddStock}
+                            // พื้นขาว+ขอบ ไม่ใช่พื้นเทา เพราะกล่องฟอร์มเป็น bg-gray-50 อยู่แล้วจะกลืนกัน
+                            // กว้างครึ่งเดียวของปุ่มหลัก — เป็นทางถอย ไม่ใช่สิ่งที่ตั้งใจมากด
+                            className="font-athiti border-subtle-light bg-surface text-subtle-dark flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
+                          >
+                            ยกเลิก
+                          </button>
 
-                        <FormButton
-                          label={
-                            isSubmitting ? (
-                              "เพิ่มสต็อก"
-                            ) : (
-                              <div className="flex items-center justify-center gap-[8px]">
-                                <Plus className="h-4 w-4" />
-                                เพิ่มสต็อก
-                              </div>
-                            )
-                          }
-                          isLoading={isSubmitting}
-                          className="font-athiti bg-gradient-primary mr-0 ml-0 flex-1"
-                        />
-                      </div>
-                    </form>
+                          <FormButton
+                            label={
+                              isSubmitting ? (
+                                "เพิ่มสต็อก"
+                              ) : (
+                                <div className="flex items-center justify-center gap-[8px]">
+                                  <Plus className="h-4 w-4" />
+                                  เพิ่มสต็อก
+                                </div>
+                              )
+                            }
+                            isLoading={isSubmitting}
+                            className="font-athiti bg-gradient-primary mr-0 ml-0 flex-[2]"
+                          />
+                        </div>
+                      </form>
+                    </div>
                   </div>
                 </div>
               )}

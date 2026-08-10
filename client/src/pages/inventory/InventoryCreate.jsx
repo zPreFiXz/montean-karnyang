@@ -316,7 +316,9 @@ const InventoryCreate = () => {
                 name="partNumber"
                 label="รหัสอะไหล่"
                 type="text"
-                placeholder="เช่น LL1855515GMHP010"
+                placeholder={
+                  isTireCategory() ? "เช่น LL1855515GMHP010" : "เช่น VVLSC5W30"
+                }
                 color="subtle-dark"
                 errors={errors}
               />
@@ -341,7 +343,7 @@ const InventoryCreate = () => {
                 placeholder={
                   isTireCategory()
                     ? "เช่น GREEN-Max HP010"
-                    : "เช่น ลูกหมากปีกนกบน Revo"
+                    : "เช่น SYNTHETIC COMMONRAIL 5W-30"
                 }
                 color="subtle-dark"
                 errors={errors}
@@ -350,7 +352,7 @@ const InventoryCreate = () => {
               {/* ยาง */}
               {isTireCategory() && (
                 <div className="mt-[16px] px-[20px]">
-                  <div className="grid grid-cols-3 gap-[8px]">
+                  <div className="flex items-end gap-[8px]">
                     <FormInput
                       register={register}
                       name="width"
@@ -358,7 +360,7 @@ const InventoryCreate = () => {
                       type="text"
                       placeholder="มม."
                       color="subtle-dark"
-                      customClass="w-full"
+                      customClass="w-full min-w-0 flex-1"
                       errors={errors}
                       hideErrorMessage
                       inputMode="numeric"
@@ -370,6 +372,10 @@ const InventoryCreate = () => {
                       }}
                     />
 
+                    <span className="text-subtle-dark flex h-[41px] shrink-0 items-center text-xl font-medium md:text-[22px]">
+                      /
+                    </span>
+
                     <FormInput
                       register={register}
                       name="aspectRatio"
@@ -377,7 +383,7 @@ const InventoryCreate = () => {
                       type="text"
                       placeholder="%"
                       color="subtle-dark"
-                      customClass="w-full"
+                      customClass="w-full min-w-0 flex-1"
                       errors={errors}
                       hideErrorMessage
                       inputMode="numeric"
@@ -389,6 +395,10 @@ const InventoryCreate = () => {
                       }}
                     />
 
+                    <span className="text-subtle-dark flex h-[41px] shrink-0 items-center text-xl font-medium md:text-[22px]">
+                      R
+                    </span>
+
                     <FormInput
                       register={register}
                       name="rimDiameter"
@@ -396,7 +406,7 @@ const InventoryCreate = () => {
                       type="text"
                       placeholder="นิ้ว"
                       color="subtle-dark"
-                      customClass="w-full"
+                      customClass="w-full min-w-0 flex-1"
                       errors={errors}
                       hideErrorMessage
                       inputMode="numeric"
@@ -587,7 +597,7 @@ const InventoryCreate = () => {
               )}
             </div>
           )}
-          <div className="mt-[24px] flex justify-center pb-[112px]">
+          <div className="mt-[16px] flex justify-center pb-[112px]">
             <FormButton
               label={isServiceCategory() ? "เพิ่มบริการ" : "เพิ่มอะไหล่"}
               isLoading={isSubmitting}

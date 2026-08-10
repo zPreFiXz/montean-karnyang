@@ -207,7 +207,8 @@ const FormUploadImage = ({
               {isDragging ? (
                 <>
                   <Upload className="text-primary mb-[8px] h-[48px] w-[48px]" />
-                  <p className="text-primary mb-[4px] text-base font-medium md:text-lg">
+                  {/* ต้องขนาด/ความหนาเท่ากับ "เลือกรูปภาพ" เพราะสลับที่กันตรงตำแหน่งเดิม */}
+                  <p className="text-primary mb-[4px] text-lg font-semibold md:text-xl">
                     วางรูปภาพที่นี่
                   </p>
                 </>

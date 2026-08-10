@@ -1,5 +1,6 @@
 import { Image, Wrench, AlertTriangle } from "lucide-react";
 import { formatCurrency } from "@/utils/formats";
+import { tracksStock } from "@/utils/stock";
 
 const InventoryCard = ({
   brand,
@@ -66,7 +67,11 @@ const InventoryCard = ({
             {renderProductInfo()}
 
             {!isService &&
-              (quantity === 0 ? (
+              (!tracksStock(minStockLevel) ? (
+                <p className="text-subtle-dark text-base font-semibold md:text-lg">
+                  {`จำนวน: ${quantity} ${unit}`}
+                </p>
+              ) : quantity === 0 ? (
                 <div className="text-destructive flex items-center gap-[4px] text-base font-semibold md:text-lg">
                   <AlertTriangle className="text-destructive h-5 w-5" />
                   <p>สต็อกหมด</p>

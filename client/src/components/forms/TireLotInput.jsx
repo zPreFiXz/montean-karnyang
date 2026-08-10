@@ -5,27 +5,40 @@ import { Input } from "../ui/input";
 import FieldErrorList from "./FieldErrorList";
 
 // สัปดาห์/ปีผลิต: แต่ละแถวคือ DOT (WWYY 4 หลัก) + จำนวน — สต็อกรวม = ผลรวมทุกแถว
-const TireLotInput = ({ control, register, watch, errors }) => {
+// allowEmpty: ยางที่ขายหมดแล้วไม่มีล็อตเหลืออยู่จริง (backend ลบล็อตทิ้งเมื่อตัดสต็อกจนหมด)
+// จึงต้องยอมให้ไม่มีแถวเลย ไม่งั้นจะแก้ราคาหรือชื่อรุ่นไม่ได้จนกว่าจะกรอก DOT ปลอม
+const TireLotInput = ({
+  control,
+  register,
+  watch,
+  errors,
+  allowEmpty,
+  unit: unitProp,
+  heading = "สัปดาห์/ปีผลิต",
+  // ค่าเริ่มต้นเท่ากับหัวข้อช่องอื่นในฟอร์มหน้าเต็ม ไดอะล็อกใช้ขนาดเล็กกว่าจึงส่งมาทับ
+  headingClass = "text-xl",
+  className = "mt-[16px] px-[20px]",
+}) => {
   const { fields, append, remove } = useFieldArray({
     control,
     name: "tireLots",
   });
 
-  // ฟิลด์นี้บังคับอย่างน้อย 1 แถว จึงเตรียมแถวว่างไว้ให้เลย ผู้ใช้จะได้ไม่เจอ
+  // ปกติบังคับอย่างน้อย 1 แถว จึงเตรียมแถวว่างไว้ให้เลย ผู้ใช้จะได้ไม่เจอ
   // "กรุณาเพิ่มอย่างน้อย 1 รายการ" ทั้งที่ยังไม่มีอะไรให้กรอก
   // (หน้าแก้ไขโหลดข้อมูลเสร็จก่อนคอมโพเนนต์นี้ถูกวาด แถวเดิมจึงอยู่ครบแล้ว ไม่งอกเกิน)
   const didInit = useRef(false);
   useEffect(() => {
     if (didInit.current) return;
     didInit.current = true;
-    if (fields.length === 0) {
+    if (fields.length === 0 && !allowEmpty) {
       append({ dotCode: "", quantity: "" }, { shouldFocus: false });
     }
-  }, [fields.length, append]);
+  }, [fields.length, append, allowEmpty]);
 
   const lots = watch("tireLots") || [];
-  // อ่านจากฟอร์มแทนที่จะฝัง "เส้น" ตายตัว — หน้าเพิ่ม/แก้ไขเป็นคนกำหนดค่าให้ (TIRE_UNIT)
-  const unit = watch("unit");
+  // หน้าเพิ่ม/แก้ไขรายการมีช่องหน่วยอยู่ในฟอร์ม ส่วนไดอะล็อกเพิ่มสต็อกไม่มี จึงส่งมาทาง prop แทน
+  const unit = unitProp ?? watch("unit");
   const total = lots.reduce(
     (sum, lot) => sum + (Number(lot?.quantity) || 0),
     0,
@@ -33,10 +46,12 @@ const TireLotInput = ({ control, register, watch, errors }) => {
   const lotErrors = errors?.tireLots;
 
   return (
-    <div className="mt-[16px] px-[20px]">
+    <div className={className}>
       <div className="mb-[8px] flex items-center justify-between">
-        <p className="text-subtle-dark text-xl font-medium">สัปดาห์/ปีผลิต</p>
-        <p className="text-subtle-dark text-xl font-medium">
+        <p className={`text-subtle-dark font-medium ${headingClass}`}>
+          {heading}
+        </p>
+        <p className={`text-subtle-dark font-medium ${headingClass}`}>
           รวม {total} {unit}
         </p>
       </div>
@@ -68,7 +83,9 @@ const TireLotInput = ({ control, register, watch, errors }) => {
                   {...register(`tireLots.${index}.quantity`)}
                   type="text"
                   inputMode="numeric"
-                  placeholder="เช่น 2"
+                  // ข้อยกเว้นของธรรมเนียม "เช่น ..." — ช่องนี้ไม่มีหัวข้อกำกับ
+                  // placeholder จึงต้องทำหน้าที่เป็นป้ายชื่อคอลัมน์แทน
+                  placeholder="จำนวน"
                   aria-label={`จำนวนรายการที่ ${index + 1}`}
                   onInput={(e) => {
                     e.target.value = e.target.value
@@ -81,15 +98,10 @@ const TireLotInput = ({ control, register, watch, errors }) => {
                       : "focus-visible:!border-primary focus-visible:!ring-primary/35 focus-visible:!border-2"
                   }`}
                 />
-                {unit && (
-                  <span className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
-                    {unit}
-                  </span>
-                )}
                 <button
                   type="button"
                   onClick={() => remove(index)}
-                  disabled={fields.length === 1}
+                  disabled={fields.length === 1 && !allowEmpty}
                   aria-label={`ลบรายการที่ ${index + 1}`}
                   className="text-destructive hover:bg-destructive/10 flex h-[41px] w-[41px] shrink-0 cursor-pointer items-center justify-center rounded-[20px] transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
                 >

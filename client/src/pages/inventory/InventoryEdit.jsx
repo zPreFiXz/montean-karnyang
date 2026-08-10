@@ -24,6 +24,7 @@ import { getInventory } from "@/api/inventory";
 import { useParams, useSearchParams } from "react-router";
 import useAuthStore from "@/stores/useAuthStore";
 import { toastError } from "@/utils/handleError";
+import { sortTireLots } from "@/utils/tireLot";
 
 const SUSPENSION_TYPES = [
   { id: "left-right", name: "ซ้าย-ขวา" },
@@ -131,11 +132,12 @@ const InventoryEdit = () => {
             });
           }
 
-          // prefill ล็อตยางเดิม (แปลง quantity เป็น string ให้ input text แสดงถูก)
+          // prefill ล็อตยางเดิม เรียงเก่า→ใหม่ (แปลง quantity เป็น string ให้ input text แสดงถูก)
+          // เรียงตอนโหลดครั้งเดียว ไม่เรียงระหว่างพิมพ์ ไม่งั้นแถวจะสลับที่ใต้เคอร์เซอร์
           if (item.tireLots?.length) {
             setValue(
               "tireLots",
-              item.tireLots.map((lot) => ({
+              sortTireLots(item.tireLots).map((lot) => ({
                 dotCode: lot.dotCode ?? "",
                 quantity: lot.quantity == null ? "" : String(lot.quantity),
               })),
@@ -418,7 +420,11 @@ const InventoryEdit = () => {
                   name="partNumber"
                   label="รหัสอะไหล่"
                   type="text"
-                  placeholder="เช่น LL1855515GMHP010"
+                  placeholder={
+                    isTireCategory()
+                      ? "เช่น LL1855515GMHP010"
+                      : "เช่น VVLSC5W30"
+                  }
                   color="subtle-dark"
                   errors={errors}
                 />
@@ -443,7 +449,7 @@ const InventoryEdit = () => {
                   placeholder={
                     isTireCategory()
                       ? "เช่น GREEN-Max HP010"
-                      : "เช่น ลูกหมากปีกนกบน Revo"
+                      : "เช่น SYNTHETIC COMMONRAIL 5W-30"
                   }
                   color="subtle-dark"
                   errors={errors}
@@ -452,7 +458,7 @@ const InventoryEdit = () => {
                 {/* ยาง */}
                 {isTireCategory() && (
                   <div className="mt-[16px] px-[20px]">
-                    <div className="grid grid-cols-3 gap-[8px]">
+                    <div className="flex items-end gap-[8px]">
                       <FormInput
                         register={register}
                         name="width"
@@ -460,7 +466,7 @@ const InventoryEdit = () => {
                         type="text"
                         placeholder="มม."
                         color="subtle-dark"
-                        customClass="w-full"
+                        customClass="w-full min-w-0 flex-1"
                         errors={errors}
                         hideErrorMessage
                         inputMode="numeric"
@@ -472,6 +478,10 @@ const InventoryEdit = () => {
                         }}
                       />
 
+                      <span className="text-subtle-dark flex h-[41px] shrink-0 items-center text-xl font-medium md:text-[22px]">
+                        /
+                      </span>
+
                       <FormInput
                         register={register}
                         name="aspectRatio"
@@ -479,7 +489,7 @@ const InventoryEdit = () => {
                         type="text"
                         placeholder="%"
                         color="subtle-dark"
-                        customClass="w-full"
+                        customClass="w-full min-w-0 flex-1"
                         errors={errors}
                         hideErrorMessage
                         inputMode="numeric"
@@ -491,6 +501,10 @@ const InventoryEdit = () => {
                         }}
                       />
 
+                      <span className="text-subtle-dark flex h-[41px] shrink-0 items-center text-xl font-medium md:text-[22px]">
+                        R
+                      </span>
+
                       <FormInput
                         register={register}
                         name="rimDiameter"
@@ -498,7 +512,7 @@ const InventoryEdit = () => {
                         type="text"
                         placeholder="นิ้ว"
                         color="subtle-dark"
-                        customClass="w-full"
+                        customClass="w-full min-w-0 flex-1"
                         errors={errors}
                         hideErrorMessage
                         inputMode="numeric"
@@ -623,6 +637,9 @@ const InventoryEdit = () => {
                       register={register}
                       watch={watch}
                       errors={errors}
+                      // หน้าแก้ไขยอมให้ไม่มีล็อตได้ ทั้งยางที่ขายหมด (backend ลบล็อตทิ้งไปแล้ว)
+                      // และกรณีล้างล็อตเองจนเหลือ 0 — ต่างจากหน้าเพิ่มที่ยังบังคับอย่างน้อย 1 แถว
+                      allowEmpty
                     />
                     <FormInput
                       register={register}
@@ -701,7 +718,7 @@ const InventoryEdit = () => {
                 )}
               </div>
             )}
-            <div className="mt-[24px] flex justify-center pb-[112px] xl:pb-[16px]">
+            <div className="mt-[16px] flex justify-center pb-[112px] xl:pb-[16px]">
               <FormButton label="บันทึก" isLoading={isSubmitting} />
             </div>
           </form>

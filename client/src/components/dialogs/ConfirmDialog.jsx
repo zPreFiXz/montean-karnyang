@@ -14,8 +14,7 @@ const ConfirmDialog = ({
   onClose,
   onConfirm,
   title = "ยืนยันการลบ",
-  // หัวเรื่องบอกว่าลบอะไร ชิปบอกว่าลบตัวไหน เนื้อหาบอกผลที่ตามมา — ไม่ซ้ำกัน
-  message = "การลบไม่สามารถกู้คืนได้",
+  // หัวเรื่องบอกว่าลบอะไร ชิปบอกว่าลบตัวไหน — พอแล้ว ไม่ต้องอธิบายว่ากู้คืนไม่ได้
   itemName = "",
 }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -54,7 +53,7 @@ const ConfirmDialog = ({
             {title}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            {`${title}: ${message} ${itemName}`}
+            {`${title} ${itemName}`.trim()}
           </DialogDescription>
           <button
             onClick={onClose}
@@ -67,22 +66,13 @@ const ConfirmDialog = ({
           </button>
         </div>
 
-        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px]">
-          <div className="text-center">
-            {/* คำเตือนอยู่ก่อน: ข้อความเทาตัวเล็กถ้าไปอยู่ล่างสุดติดปุ่มจะถูกกวาดตาข้าม
-                ส่วนชิปมีพื้นสีเด่นอยู่แล้ว วางท้ายก็ยังเห็น และอยู่ติดปุ่มพอดีตอนจะกด */}
-            <p className="text-subtle-light text-base font-medium md:text-lg">
-              {message}
-            </p>
-
-            {itemName && (
-              <div className="mt-[12px] flex items-center justify-center">
-                <span className="text-primary bg-primary/10 inline-block rounded-[10px] px-4 py-2 text-lg font-semibold md:text-xl">
-                  {itemName}
-                </span>
-              </div>
-            )}
-          </div>
+        {/* ระยะบน-ล่างเท่ากัน ชิปจึงลอยกลางระหว่างหัวเรื่องกับปุ่ม */}
+        <div className="font-athiti flex flex-1 flex-col items-center justify-center overflow-y-auto px-[20px] py-[16px]">
+          {itemName && (
+            <span className="text-primary bg-primary/10 inline-block rounded-[10px] px-4 py-2 text-center text-lg font-semibold md:text-xl">
+              {itemName}
+            </span>
+          )}
         </div>
 
         <div className="flex-shrink-0 px-[16px] pb-[16px]">

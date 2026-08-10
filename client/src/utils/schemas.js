@@ -226,7 +226,7 @@ export const partServiceSchema = z
             path: ["tireLots", index, "dotCode"],
           });
         }
-        // 0 ได้ (ล็อตที่ขายหมดแต่ยังอยากเก็บ DOT ไว้) แต่ต้องกรอก ห้ามเว้นว่าง
+        // 0 ได้ แต่ต้องกรอก ห้ามเว้นว่าง — ล็อตที่จำนวนเป็น 0 จะถูกตัดทิ้งตอนบันทึก (normalizeLots)
         const quantity = Number(lot.quantity);
         if (lot.quantity === undefined || !Number.isFinite(quantity)) {
           ctx.addIssue({
@@ -334,14 +334,58 @@ export const updatePartStockSchema = z.object({
   dotCode: z.string().optional(),
 });
 
-// ยางต้องระบุสัปดาห์/ปีผลิตเสมอ เพื่อให้สต็อกเข้าล็อตที่ถูกต้อง
+// ยางรับเข้าทีละหลายล็อตได้ (สั่งครั้งหนึ่งมักได้หลาย DOT) จึงกรอกเป็นแถวเหมือนฟอร์มเพิ่มรายการ
 // ตรวจใน schema ไม่ใช่ในตัว submit handler ไม่งั้นจะถูกกักไว้หลังด่านของช่องอื่น
-export const updateTireStockSchema = updatePartStockSchema.extend({
-  dotCode: z
-    .string()
-    .min(1, "กรุณากรอกสัปดาห์/ปีผลิต")
-    .regex(/^\d{4}$/, "สัปดาห์/ปีผลิตต้องเป็นเลข 4 หลัก"),
-});
+export const updateTireStockSchema = z
+  .object({
+    tireLots: z
+      .array(
+        z.object({
+          dotCode: z.string().optional(),
+          quantity: z.preprocess((v) => {
+            if (typeof v === "string" && v.trim() === "") return undefined;
+            if (v === null) return undefined;
+            const n = Number(v);
+            return Number.isFinite(n) ? n : undefined;
+          }, z.number().optional()),
+        }),
+      )
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    (data.tireLots || []).forEach((lot, index) => {
+      const dot = String(lot.dotCode ?? "").trim();
+      if (dot === "") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "กรุณากรอกสัปดาห์/ปีผลิต",
+          path: ["tireLots", index, "dotCode"],
+        });
+      } else if (!/^\d{4}$/.test(dot)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "สัปดาห์/ปีผลิตต้องเป็นเลข 4 หลัก",
+          path: ["tireLots", index, "dotCode"],
+        });
+      }
+
+      // ต่างจากฟอร์มแก้ไขรายการตรงที่นี่คือ "จำนวนที่รับเข้า" กรอก 0 ไม่มีความหมาย
+      const quantity = Number(lot.quantity);
+      if (lot.quantity === undefined || !Number.isFinite(quantity)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "กรุณากรอกจำนวน",
+          path: ["tireLots", index, "quantity"],
+        });
+      } else if (quantity < 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "จำนวนต้องมากกว่า 0",
+          path: ["tireLots", index, "quantity"],
+        });
+      }
+    });
+  });
 
 export const vehicleModelSchema = z.object({
   brand: z.string().min(1, "กรุณากรอกยี่ห้อรถ"),

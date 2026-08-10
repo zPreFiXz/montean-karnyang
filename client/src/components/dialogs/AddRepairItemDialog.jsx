@@ -16,6 +16,7 @@ import { listInventory } from "@/api/inventory";
 import { listCategories } from "@/api/category";
 import { toastError } from "@/utils/handleError";
 import { onKeyActivate } from "@/utils/a11y";
+import { tracksStock } from "@/utils/stock";
 
 const AddRepairItemDialog = ({
   children,
@@ -113,7 +114,13 @@ const AddRepairItemDialog = ({
 
     const remainingAddable = (displayStock || 0) - selectedQuantity;
 
-    if (item.partNumber && item.brand && remainingAddable <= 0) {
+    // อะไหล่ที่ไม่ได้สต็อกไว้ (ขั้นต่ำ = 0) สต็อกเป็น 0 ตลอด แต่ต้องเบิกลงบิลได้ ไม่งั้นกดเลือกไม่ได้เลย
+    if (
+      item.partNumber &&
+      item.brand &&
+      tracksStock(item.minStockLevel) &&
+      remainingAddable <= 0
+    ) {
       return;
     }
 
@@ -253,14 +260,19 @@ const AddRepairItemDialog = ({
                     (displayStock || 0) - selectedQuantity;
 
                   const isDisabled =
-                    item.partNumber && item.brand && remainingAddable <= 0;
+                    item.partNumber &&
+                    item.brand &&
+                    tracksStock(item.minStockLevel) &&
+                    remainingAddable <= 0;
 
                   return (
                     <div
                       key={index}
                       role="button"
                       tabIndex={0}
-                      onKeyDown={onKeyActivate(() => handleAddItemToRepair(item))}
+                      onKeyDown={onKeyActivate(() =>
+                        handleAddItemToRepair(item),
+                      )}
                       onClick={() => handleAddItemToRepair(item)}
                       className={`font-athiti rounded-lg ${
                         isDisabled

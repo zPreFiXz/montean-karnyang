@@ -120,7 +120,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   return (
     <div className="space-y-[16px] px-[20px] pt-[16px]">
       <Label className="text-subtle-dark text-xl font-medium">
-        รถที่รองรับ
+        รถที่ใช้ได้
       </Label>
 
       {vehicles.map((vehicle, index) => (
@@ -158,7 +158,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
               )}
             </div>
           </div>
-          <div>
+          <div className="grid grid-cols-2 gap-[8px]">
             <div>
               <ComboBox
                 label="ยี่ห้อ"
@@ -166,20 +166,20 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                 options={brands}
                 value={vehicle.brand}
                 onChange={(value) => handleUpdateVehicle(index, "brand", value)}
-                placeholder="-- เลือกยี่ห้อรถ --"
+                placeholder="-- เลือกยี่ห้อ --"
                 name="brand"
                 customClass="text-lg md:text-xl"
               />
             </div>
 
-            <div className="mt-[12px]">
+            <div>
               <ComboBox
                 label="รุ่น"
                 color="text-subtle-dark"
                 options={getAvailableModels(vehicle.brand)}
                 value={vehicle.model}
                 onChange={(value) => handleUpdateVehicle(index, "model", value)}
-                placeholder="-- เลือกรุ่นรถ --"
+                placeholder="-- เลือกรุ่น --"
                 name="model"
                 disabled={!vehicle.brand}
                 customClass="text-lg md:text-xl"
@@ -192,7 +192,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
       <button
         type="button"
         onClick={handleAddVehicle}
-        className="text-subtle-light mb-[16px] flex h-[41px] w-full cursor-pointer items-center justify-center gap-[8px] rounded-[12px] border-2 border-dashed border-gray-300 text-lg font-medium transition-colors duration-200 hover:border-gray-400 hover:bg-gray-50 md:text-xl"
+        className="text-subtle-light mb-[16px] flex h-[41px] w-full cursor-pointer items-center justify-center gap-[8px] rounded-[20px] border-2 border-dashed border-gray-300 text-lg font-medium transition-colors duration-200 hover:border-gray-400 hover:bg-gray-50 md:text-xl"
       >
         <Plus className="h-5 w-5" />
         เพิ่มรถรุ่นอื่น

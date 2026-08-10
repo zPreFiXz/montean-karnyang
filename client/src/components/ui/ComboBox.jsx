@@ -120,7 +120,8 @@ const ComboBox = ({
                 e.target.style.boxShadow = "";
               }}
             >
-              {selectedLabel || placeholder}
+              {/* ตัดคำแทนที่จะดันลูกศรทะลุขอบ เวลาช่องแคบกว่าข้อความ (เช่นวางสองช่องในบรรทัดเดียว) */}
+              <span className="truncate">{selectedLabel || placeholder}</span>
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
