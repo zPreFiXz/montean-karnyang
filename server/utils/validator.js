@@ -47,7 +47,9 @@ exports.repairSchema = z.object({
       .min(0, "เลขกิโลเมตรต้องไม่ติดลบ")
       .optional(),
   ),
-  type: z.enum(["GENERAL", "SUSPENSION"], { message: "ประเภทงานซ่อมไม่ถูกต้อง" }),
+  type: z.enum(["GENERAL", "SUSPENSION"], {
+    message: "ประเภทงานซ่อมไม่ถูกต้อง",
+  }),
   totalPrice: z.coerce.number(),
   repairItems: z
     .array(
@@ -61,7 +63,9 @@ exports.repairSchema = z.object({
           side: z.preprocess(
             (v) => (typeof v === "string" ? v.toUpperCase() : v),
             z
-              .enum(["LEFT", "RIGHT", "OTHER"], { message: "ตำแหน่งข้างไม่ถูกต้อง" })
+              .enum(["LEFT", "RIGHT", "OTHER"], {
+                message: "ตำแหน่งข้างไม่ถูกต้อง",
+              })
               .nullable()
               .optional(),
           ),
@@ -131,11 +135,42 @@ exports.updateRepairStatusSchema = z.object({
     .optional(),
 });
 
-exports.updatePartStockSchema = z.object({
-  quantity: z.coerce.number().min(1, "กรุณากรอกจำนวน"),
-  // เฉพาะยาง: DOT ของล็อตที่เติมเข้ามา (ตรวจ 4 หลักที่ฟอร์ม) — ถ้าไม่รับตรงนี้จะถูกตัดทิ้ง ล็อตจะไม่ถูกบันทึก
-  dotCode: z.string().optional(),
-});
+// เพิ่มสต็อกได้สองรูปแบบ: อะไหล่ทั่วไปส่ง quantity เดี่ยว ส่วนยางส่ง lots ได้หลายล็อตในครั้งเดียว
+// (ต้องรับ lots ที่นี่ด้วย ไม่งั้นยางจะติดด่าน quantity ที่ไม่มีค่า แล้วกลายเป็น NaN)
+exports.updatePartStockSchema = z
+  .object({
+    quantity: z.coerce.number().optional(),
+    // เฉพาะยาง: DOT ของล็อตที่เติมเข้ามา (ตรวจ 4 หลักที่ฟอร์ม) — ถ้าไม่รับตรงนี้จะถูกตัดทิ้ง ล็อตจะไม่ถูกบันทึก
+    dotCode: z.string().optional(),
+    lots: z
+      .array(
+        z.object({
+          dotCode: z.string().min(1, "กรุณากรอกสัปดาห์/ปีผลิต"),
+          quantity: z.coerce.number().min(1, "จำนวนต้องมากกว่า 0"),
+        }),
+      )
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (Array.isArray(data.lots)) {
+      if (data.lots.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "กรุณาเพิ่มอย่างน้อย 1 รายการ",
+          path: ["lots"],
+        });
+      }
+      return;
+    }
+
+    if (!Number.isFinite(data.quantity) || data.quantity < 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "กรุณากรอกจำนวน",
+        path: ["quantity"],
+      });
+    }
+  });
 
 exports.vehicleModelSchema = z.object({
   brand: z.string().min(1, "กรุณากรอกยี่ห้อรถ"),

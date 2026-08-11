@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { updatePartStock, deletePart } from "@/api/part";
 import { deleteService } from "@/api/service";
 import { useNavigate } from "react-router";
-import { updatePartStockSchema, updateTireStockSchema } from "@/utils/schemas";
+import { updateStockSchema } from "@/utils/schemas";
 import useAuthStore from "@/stores/useAuthStore";
 import { formatCurrency } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
@@ -60,9 +60,7 @@ const RepairItemDetailDialog = ({
     watch,
     formState: { errors },
   } = useForm({
-    resolver: zodResolver(
-      isTire ? updateTireStockSchema : updatePartStockSchema,
-    ),
+    resolver: zodResolver(updateStockSchema),
     mode: "onChange",
   });
 

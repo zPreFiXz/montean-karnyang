@@ -77,6 +77,8 @@ const Dashboard = () => {
     const min = Number(i?.minStockLevel || 0);
     return qty > 0 && min > 0 && qty < min;
   });
+  // แสดงครบทุกรายการ ไม่ตัดจำนวน — การเตือนที่ซ่อนของบางส่วนไว้ทำให้เชื่อผิดว่าเห็นครบแล้ว
+  const stockAlertCount = outOfStockItems.length + lowStockItems.length;
 
   // แสดงยี่ห้อ+รุ่น หรือแค่รุ่นถ้ายี่ห้อเป็น "อื่นๆ"
   const getDisplayBrand = (vehicleModel) => {
@@ -225,16 +227,14 @@ const Dashboard = () => {
         {(outOfStockItems.length > 0 || lowStockItems.length > 0) && (
           <div className="bg-surface shadow-primary mb-[16px] w-full rounded-[10px] p-[16px]">
             <p className="text-subtle-dark flex items-center gap-2 text-[22px] font-medium">
-              แจ้งเตือนสต็อก
+              แจ้งเตือนสต็อก ({stockAlertCount})
             </p>
             <div className="mt-[16px]">
               <div>
-                {outOfStockItems
-                  .slice(0, 5)
-                  .map((item) => renderStockCard(item, "desk-out"))}
-                {lowStockItems
-                  .slice(0, 5)
-                  .map((item) => renderStockCard(item, "desk-low"))}
+                {outOfStockItems.map((item) =>
+                  renderStockCard(item, "desk-out"),
+                )}
+                {lowStockItems.map((item) => renderStockCard(item, "desk-low"))}
               </div>
             </div>
           </div>
@@ -412,14 +412,10 @@ const Dashboard = () => {
           {(outOfStockItems.length > 0 || lowStockItems.length > 0) && (
             <div className="pb-[16px]">
               <p className="text-normal pt-[8px] text-[22px] font-semibold md:text-2xl">
-                แจ้งเตือนสต็อก
+                แจ้งเตือนสต็อก ({stockAlertCount})
               </p>
-              {outOfStockItems
-                .slice(0, 5)
-                .map((item) => renderStockCard(item, "m-out"))}
-              {lowStockItems
-                .slice(0, 5)
-                .map((item) => renderStockCard(item, "m-low"))}
+              {outOfStockItems.map((item) => renderStockCard(item, "m-out"))}
+              {lowStockItems.map((item) => renderStockCard(item, "m-low"))}
             </div>
           )}
         </div>

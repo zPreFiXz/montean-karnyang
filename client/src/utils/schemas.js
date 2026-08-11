@@ -329,62 +329,87 @@ export const editNamePriceSchema = z.object({
   price: z.coerce.number().min(1, "กรุณากรอกราคาต่อหน่วย"),
 });
 
-export const updatePartStockSchema = z.object({
-  quantity: z.coerce.number().min(1, "กรุณากรอกจำนวน"),
-  dotCode: z.string().optional(),
-});
+// ฟอร์มเพิ่มสต็อกใช้ schema เดียวสำหรับทั้งอะไหล่และยาง แล้วดูจากรูปร่างข้อมูลว่าเป็นแบบไหน
+// (เคยแยกสอง schema แล้วเลือกด้วย isTire ตอนสร้างฟอร์ม แต่ตอนเรนเดอร์แรกยังไม่มีข้อมูลสินค้า
+//  resolver เลยถูกผูกกับ schema ผิดตัวค้างไว้ ยางจึงโดนบังคับกรอก quantity ที่ไม่มีในฟอร์ม)
+const toOptionalNumber = (v) => {
+  if (typeof v === "string" && v.trim() === "") return undefined;
+  if (v === null) return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+};
 
-// ยางรับเข้าทีละหลายล็อตได้ (สั่งครั้งหนึ่งมักได้หลาย DOT) จึงกรอกเป็นแถวเหมือนฟอร์มเพิ่มรายการ
-// ตรวจใน schema ไม่ใช่ในตัว submit handler ไม่งั้นจะถูกกักไว้หลังด่านของช่องอื่น
-export const updateTireStockSchema = z
+export const updateStockSchema = z
   .object({
+    quantity: z.preprocess(toOptionalNumber, z.number().optional()),
     tireLots: z
       .array(
         z.object({
           dotCode: z.string().optional(),
-          quantity: z.preprocess((v) => {
-            if (typeof v === "string" && v.trim() === "") return undefined;
-            if (v === null) return undefined;
-            const n = Number(v);
-            return Number.isFinite(n) ? n : undefined;
-          }, z.number().optional()),
+          quantity: z.preprocess(toOptionalNumber, z.number().optional()),
         }),
       )
       .optional(),
   })
   .superRefine((data, ctx) => {
-    (data.tireLots || []).forEach((lot, index) => {
-      const dot = String(lot.dotCode ?? "").trim();
-      if (dot === "") {
+    // ยาง: กรอกเป็นแถว ล็อตละ DOT + จำนวน
+    if (Array.isArray(data.tireLots)) {
+      if (data.tireLots.length === 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกสัปดาห์/ปีผลิต",
-          path: ["tireLots", index, "dotCode"],
-        });
-      } else if (!/^\d{4}$/.test(dot)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "สัปดาห์/ปีผลิตต้องเป็นเลข 4 หลัก",
-          path: ["tireLots", index, "dotCode"],
+          message: "กรุณาเพิ่มอย่างน้อย 1 รายการ",
+          path: ["tireLots"],
         });
       }
 
-      // ต่างจากฟอร์มแก้ไขรายการตรงที่นี่คือ "จำนวนที่รับเข้า" กรอก 0 ไม่มีความหมาย
-      const quantity = Number(lot.quantity);
-      if (lot.quantity === undefined || !Number.isFinite(quantity)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกจำนวน",
-          path: ["tireLots", index, "quantity"],
-        });
-      } else if (quantity < 1) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "จำนวนต้องมากกว่า 0",
-          path: ["tireLots", index, "quantity"],
-        });
-      }
-    });
+      data.tireLots.forEach((lot, index) => {
+        const dot = String(lot.dotCode ?? "").trim();
+        if (dot === "") {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "กรุณากรอกสัปดาห์/ปีผลิต",
+            path: ["tireLots", index, "dotCode"],
+          });
+        } else if (!/^\d{4}$/.test(dot)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "สัปดาห์/ปีผลิตต้องเป็นเลข 4 หลัก",
+            path: ["tireLots", index, "dotCode"],
+          });
+        }
+
+        // ต่างจากฟอร์มแก้ไขรายการตรงที่นี่คือ "จำนวนที่รับเข้า" กรอก 0 ไม่มีความหมาย
+        if (lot.quantity === undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "กรุณากรอกจำนวน",
+            path: ["tireLots", index, "quantity"],
+          });
+        } else if (lot.quantity < 1) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "จำนวนต้องมากกว่า 0",
+            path: ["tireLots", index, "quantity"],
+          });
+        }
+      });
+      return;
+    }
+
+    // อะไหล่ทั่วไป: ช่องจำนวนเดี่ยว
+    if (data.quantity === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "กรุณากรอกจำนวน",
+        path: ["quantity"],
+      });
+    } else if (data.quantity < 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "จำนวนต้องมากกว่า 0",
+        path: ["quantity"],
+      });
+    }
   });
 
 export const vehicleModelSchema = z.object({
