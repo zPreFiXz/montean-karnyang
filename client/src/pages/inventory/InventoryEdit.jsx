@@ -160,7 +160,14 @@ const InventoryEdit = () => {
     }
   };
 
+  // บันทึกเสร็จแล้วกลับไปหน้าที่กดแก้ไขมา (?from=) ถ้าไม่ได้ระบุมาจึงค่อยกลับหมวดหมู่ของรายการ
+  // รับเฉพาะเส้นทางภายในที่ขึ้นต้นด้วย / เดี่ยว กัน //ภายนอก ที่เบราว์เซอร์ตีความเป็นเว็บอื่น
   const inventoryPathFor = (categoryId) => {
+    const from = searchParams.get("from");
+    if (from && from.startsWith("/") && !from.startsWith("//")) {
+      return from;
+    }
+
     const name = category.find((cat) => cat.id === categoryId)?.name;
     return name
       ? `/inventory?category=${encodeURIComponent(name)}`

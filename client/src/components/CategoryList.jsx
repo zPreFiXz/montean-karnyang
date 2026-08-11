@@ -5,7 +5,12 @@ import { ICON_MAP, DEFAULT_ICON } from "@/components/icons/categoryIcons";
 import { LoaderCircle } from "lucide-react";
 import { toastError } from "@/utils/handleError";
 
-const CategoryList = ({ activeCategory, setActiveCategory }) => {
+// syncUrl=false สำหรับที่ที่ไม่ควรแตะ URL เช่นไดอะล็อกที่เปิดทับหน้าอื่นอยู่
+const CategoryList = ({
+  activeCategory,
+  setActiveCategory,
+  syncUrl = true,
+}) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [category, setCategory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -15,6 +20,7 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
   }, []);
 
   const handleFilter = (category) => {
+    if (!syncUrl) return;
     const params = new URLSearchParams(searchParams);
     params.set("category", category);
     setSearchParams(params);
@@ -49,9 +55,10 @@ const CategoryList = ({ activeCategory, setActiveCategory }) => {
           {/* หมวดหมู่ทั้งหมด */}
           <button
             onClick={() => {
+              setActiveCategory("ทั้งหมด");
+              if (!syncUrl) return;
               const params = new URLSearchParams(searchParams);
               params.delete("category");
-              setActiveCategory("ทั้งหมด");
               setSearchParams(params);
             }}
             className={`flex h-[80px] w-[80px] cursor-pointer flex-col items-center justify-center rounded-[10px] border px-[20px] py-[12px] duration-300 ${

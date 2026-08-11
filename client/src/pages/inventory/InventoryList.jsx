@@ -1,266 +1,21 @@
-import { useEffect, useState, useRef, useMemo } from "react";
-import { useSearchParams, Link } from "react-router";
-import { useDebouncedCallback } from "use-debounce";
-import { LoaderCircle, X } from "lucide-react";
-import InventoryCard from "@/components/cards/InventoryCard";
-import SearchBar from "@/components/forms/SearchBar";
-import CategoryList from "@/components/CategoryList";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router";
+import InventoryBrowser from "@/components/inventory/InventoryBrowser";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
-import ComboBox from "@/components/ui/ComboBox";
-import { listInventory } from "@/api/inventory";
-import { listParts } from "@/api/part";
-import { listCategories } from "@/api/category";
 import { BoxSearch } from "@/components/icons/Icons";
-import { toastError } from "@/utils/handleError";
-import { onKeyActivate } from "@/utils/a11y";
 
 const InventoryList = () => {
-  const [activeCategory, setActiveCategory] = useState("ทั้งหมด");
-  const [inventory, setInventory] = useState([]);
-  const [tireBrand, setTireBrand] = useState("");
-  const [width, setWidth] = useState("");
-  const [aspectRatio, setAspectRatio] = useState("");
-  const [rimDiameter, setRimDiameter] = useState("");
-  const [partsList, setPartsList] = useState([]);
-  const [categoryOrder, setCategoryOrder] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [selectedItem, setSelectedItem] = useState(null);
   const [isItemDetailOpen, setIsItemDetailOpen] = useState(false);
-  const isInitializing = useRef(false);
+  // เปลี่ยนค่านี้เพื่อสั่งให้รายการโหลดใหม่หลังแก้สต็อกจากไดอะล็อก
+  const [reloadToken, setReloadToken] = useState(0);
 
-  const category = searchParams.get("category");
-  const search = searchParams.get("search");
-
-  const buildFilterParams = () =>
-    activeCategory === "ยาง"
-      ? { width, aspectRatio, rimDiameter, brand: tireBrand }
-      : {};
-
-  const debouncedFilter = useDebouncedCallback(() => {
-    const params = buildFilterParams();
-    handleFilter(category, search, params);
-  }, 500);
-
-  const uniqSorted = (arr = []) =>
-    Array.from(new Set(arr)).sort((a, b) =>
-      a.localeCompare(b, undefined, { numeric: true }),
-    );
-
-  const isTirePart = (p) => p?.category?.name === "ยาง";
-
-  // ตัวเลือกของแต่ละช่องกรองด้วย "ช่องอื่นทั้งหมด" ยกเว้นตัวเอง เพื่อให้เลือกช่องไหนก่อนก็ได้
-  const tireParts = useMemo(() => partsList.filter(isTirePart), [partsList]);
-
-  const matchesExcept = (p, except, sel) =>
-    (except === "width" ||
-      !sel.width ||
-      String(p.attributes?.width) === String(sel.width)) &&
-    (except === "aspectRatio" ||
-      !sel.aspectRatio ||
-      String(p.attributes?.aspectRatio) === String(sel.aspectRatio)) &&
-    (except === "rimDiameter" ||
-      !sel.rimDiameter ||
-      String(p.attributes?.rimDiameter) === String(sel.rimDiameter)) &&
-    (except === "brand" ||
-      !sel.brand ||
-      String(p.brand || "").trim() === String(sel.brand));
-
-  const {
-    widthOptions,
-    aspectRatioOptions,
-    rimDiameterOptions,
-    availableTireBrands,
-  } = useMemo(() => {
-    const sel = { width, aspectRatio, rimDiameter, brand: tireBrand };
-    const optionsFor = (field) =>
-      uniqSorted(
-        tireParts
-          .filter((p) => matchesExcept(p, field, sel))
-          .map((p) =>
-            ((field === "brand" ? p.brand : p.attributes?.[field]) ?? "")
-              .toString()
-              .trim(),
-          )
-          .filter((v) => v !== ""),
-      );
-
-    return {
-      widthOptions: optionsFor("width"),
-      aspectRatioOptions: optionsFor("aspectRatio"),
-      rimDiameterOptions: optionsFor("rimDiameter"),
-      availableTireBrands: optionsFor("brand"),
-    };
-  }, [tireParts, width, aspectRatio, rimDiameter, tireBrand]);
+  const activeCategory = searchParams.get("category");
 
   useEffect(() => {
     window.scrollTo(0, 0);
-
-    if (isInitializing.current) return;
-    isInitializing.current = true;
-
-    // กลับมาจากหน้าเพิ่ม/แก้ไขพร้อม ?category= -> คงหมวดหมู่เดิมไว้
-    if (category) {
-      setActiveCategory(category);
-      handleFilter(category, null);
-    } else {
-      setSearchParams(new URLSearchParams());
-      setActiveCategory("ทั้งหมด");
-      handleFilter(null, null);
-    }
-
-    setTimeout(() => {
-      isInitializing.current = false;
-    }, 200);
   }, []);
-
-  useEffect(() => {
-    if (isInitializing.current) return;
-
-    if (activeCategory !== "ยาง") {
-      setTireBrand("");
-      setWidth("");
-      setAspectRatio("");
-      setRimDiameter("");
-    }
-
-    if (activeCategory === "ยาง") {
-      debouncedFilter();
-    } else {
-      handleFilter(category || null, search || null, {});
-    }
-  }, [category, search]);
-
-  const handleFilter = async (category, search, filterParams = {}) => {
-    setIsLoading(true);
-    try {
-      const res = await listInventory(category, search, filterParams);
-      const data = res.data || [];
-
-      setInventory(data);
-    } catch (error) {
-      toastError(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const [partsRes, categoriesRes] = await Promise.all([
-          listParts(),
-          listCategories(),
-        ]);
-        if (!mounted) return;
-        setPartsList(partsRes.data || []);
-        setCategoryOrder(
-          [...(categoriesRes.data || [])]
-            .sort((a, b) => a.id - b.id)
-            .map((c) => c.name),
-        );
-      } catch (error) {
-        toastError(error, "โหลดรายการอะไหล่ไม่สำเร็จ");
-        setPartsList([]);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  // หมวด "ทั้งหมด" แยกหัวข้อตามหมวดหมู่ เรียงกลุ่มให้ตรงกับแถบหมวดหมู่ด้านบน
-  const inventoryGroups = useMemo(() => {
-    if (activeCategory !== "ทั้งหมด") return null;
-
-    const groups = new Map();
-    for (const item of inventory) {
-      const name = item.category?.name || "อื่นๆ";
-      if (!groups.has(name)) groups.set(name, []);
-      groups.get(name).push(item);
-    }
-
-    const rank = (name) => {
-      const i = categoryOrder.indexOf(name);
-      return i === -1 ? categoryOrder.length : i;
-    };
-
-    return [...groups.entries()]
-      .map(([name, items]) => ({ name, items }))
-      .sort((a, b) => rank(a.name) - rank(b.name));
-  }, [inventory, activeCategory, categoryOrder]);
-
-  const handleStockUpdate = () => {
-    const filterParams =
-      activeCategory === "ยาง"
-        ? { width, aspectRatio, rimDiameter, brand: tireBrand }
-        : {};
-    handleFilter(category, search, filterParams);
-  };
-
-  const hasTireFilter = !!(width || aspectRatio || rimDiameter || tireBrand);
-
-  // ไม่มีตัวเลือกให้เลือก = ปิดช่องไว้ (เช่น 195R14 ไม่มีแก้มยาง) แต่ถ้าเลือกค่าไว้แล้ว
-  // ต้องเปิดไว้เสมอ ไม่งั้นผู้ใช้จะแก้หรือล้างค่านั้นไม่ได้
-  const isFilterLocked = (options, value) => options.length === 0 && !value;
-
-  const handleResetTireFilter = () => {
-    debouncedFilter.cancel();
-    setWidth("");
-    setAspectRatio("");
-    setRimDiameter("");
-    setTireBrand("");
-    handleFilter(category, search, {
-      width: "",
-      aspectRatio: "",
-      rimDiameter: "",
-      brand: "",
-    });
-  };
-
-  // บอกให้ตรงกับสิ่งที่ผู้ใช้กำลังหาอยู่ ไม่งั้นจะเข้าใจผิดว่าคลังว่างทั้งที่แค่คำค้น/ตัวกรองไม่ตรง
-  const getEmptyMessage = () => {
-    if (search) {
-      // ตัดกันตกบรรทัด — คำค้นอาจยาวเกินได้ถ้าใส่มาทาง URL ตรงๆ
-      const term = search.length > 20 ? `${search.slice(0, 20)}…` : search;
-      return `ไม่พบรายการที่ตรงกับ "${term}"`;
-    }
-    if (hasTireFilter) return "ไม่พบยางที่ตรงกับตัวกรอง";
-    // ไม่เอาชื่อหมวดมาต่อ: หัวข้อด้านบนบอกอยู่แล้ว และหมวดชื่อยาวจะทำให้ข้อความตกบรรทัด
-    if (activeCategory !== "ทั้งหมด") return "ไม่มีรายการในหมวดนี้";
-    return "ไม่มีอะไหล่และบริการ";
-  };
-
-  const handleItemClick = (item) => {
-    setSelectedItem(item);
-    setIsItemDetailOpen(true);
-  };
-
-  const renderItem = (item) => (
-    <div
-      key={`${item.category.name}-${item.id}`}
-      role="button"
-      tabIndex={0}
-      onKeyDown={onKeyActivate(() => handleItemClick(item))}
-      onClick={() => handleItemClick(item)}
-    >
-      <InventoryCard
-        item={item}
-        brand={item.brand}
-        name={item.name}
-        unit={item.unit}
-        sellingPrice={item.sellingPrice}
-        quantity={item.stockQuantity}
-        minStockLevel={item.minStockLevel}
-        attributes={item.attributes}
-        tireLots={item.tireLots}
-        secureUrl={item.secureUrl}
-        category={item.category.name}
-        onStockUpdate={handleStockUpdate}
-      />
-    </div>
-  );
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
@@ -277,164 +32,34 @@ const InventoryList = () => {
 
       <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
         <div className="flex flex-1 flex-col px-[20px] pt-[16px]">
-          {/* แถบค้นหา */}
-          <SearchBar placeholder="ค้นหารหัส, ยี่ห้อ, ชื่อ" />
-
-          {/* แถบหมวดหมู่ */}
-          <CategoryList
-            activeCategory={activeCategory}
-            setActiveCategory={setActiveCategory}
+          <InventoryBrowser
+            syncUrl
+            reloadToken={reloadToken}
+            onItemClick={(item) => {
+              setSelectedItem(item);
+              setIsItemDetailOpen(true);
+            }}
+            headerAction={
+              <Link
+                to={
+                  activeCategory && activeCategory !== "ทั้งหมด"
+                    ? `/inventory/new?category=${encodeURIComponent(activeCategory)}`
+                    : "/inventory/new"
+                }
+                className="text-primary shrink-0 cursor-pointer text-xl font-semibold whitespace-nowrap md:text-[22px]"
+              >
+                + เพิ่มรายการ
+              </Link>
+            }
           />
-
-          {activeCategory === "ยาง" && (
-            <div className="mt-[16px] flex w-full flex-col gap-[12px]">
-              <div>
-                <div className="mb-[8px] flex items-center justify-between">
-                  <span className="text-xl font-medium md:text-[22px]">
-                    ยี่ห้อ
-                  </span>
-                  {hasTireFilter && (
-                    <button
-                      type="button"
-                      onClick={handleResetTireFilter}
-                      className="text-destructive flex cursor-pointer items-center gap-[4px] text-lg font-semibold md:text-xl"
-                    >
-                      <X className="h-4 w-4" />
-                      ล้างตัวกรอง
-                    </button>
-                  )}
-                </div>
-                <ComboBox
-                  options={[...availableTireBrands.map((b) => ({ name: b }))]}
-                  value={tireBrand}
-                  onChange={(v) => {
-                    setTireBrand(v);
-                    debouncedFilter();
-                  }}
-                  placeholder="-- เลือกยี่ห้อ --"
-                  disabled={isFilterLocked(availableTireBrands, tireBrand)}
-                  customClass="text-lg md:text-xl"
-                />
-              </div>
-              <div className="flex items-end gap-[8px]">
-                <div className="min-w-0 flex-1">
-                  <ComboBox
-                    label="หน้ายาง"
-                    options={[...widthOptions.map((p) => ({ name: p }))]}
-                    value={width}
-                    onChange={(v) => {
-                      setWidth(v);
-                      debouncedFilter();
-                    }}
-                    placeholder="มม."
-                    disabled={isFilterLocked(widthOptions, width)}
-                    customClass="text-lg md:text-xl"
-                    labelClass="text-xl md:text-[22px]"
-                  />
-                </div>
-                <span className="text-subtle-dark flex h-[41px] shrink-0 items-center text-xl font-medium md:text-[22px]">
-                  /
-                </span>
-
-                <div className="min-w-0 flex-1">
-                  <ComboBox
-                    label="แก้มยาง"
-                    options={[...aspectRatioOptions.map((p) => ({ name: p }))]}
-                    value={aspectRatio}
-                    onChange={(v) => {
-                      setAspectRatio(v);
-                      debouncedFilter();
-                    }}
-                    placeholder="%"
-                    disabled={isFilterLocked(aspectRatioOptions, aspectRatio)}
-                    customClass="text-lg md:text-xl"
-                    labelClass="text-xl md:text-[22px]"
-                  />
-                </div>
-                <span className="text-subtle-dark flex h-[41px] shrink-0 items-center text-xl font-medium md:text-[22px]">
-                  R
-                </span>
-
-                <div className="min-w-0 flex-1">
-                  <ComboBox
-                    label="ขอบ"
-                    options={[...rimDiameterOptions.map((p) => ({ name: p }))]}
-                    value={rimDiameter}
-                    onChange={(v) => {
-                      setRimDiameter(v);
-                      debouncedFilter();
-                    }}
-                    placeholder="นิ้ว"
-                    disabled={isFilterLocked(rimDiameterOptions, rimDiameter)}
-                    customClass="text-lg md:text-xl"
-                    labelClass="text-xl md:text-[22px]"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-          <div className="mt-[16px] flex items-center justify-between gap-[8px]">
-            {/* min-w-0 + truncate: จอแคบให้หัวข้อย่อด้วย ... ไม่ใช่ไปดันปุ่มขวาให้ตกบรรทัด */}
-            <div className="flex min-w-0 items-center gap-[6px]">
-              <p className="truncate text-xl font-semibold md:text-[22px]">
-                {activeCategory === "ทั้งหมด"
-                  ? "รายการอะไหล่และบริการ"
-                  : activeCategory}
-              </p>
-              {!isLoading && (
-                <span className="text-subtle-light shrink-0 font-medium">
-                  ({inventory.length})
-                </span>
-              )}
-            </div>
-            <Link
-              to={
-                activeCategory && activeCategory !== "ทั้งหมด"
-                  ? `/inventory/new?category=${encodeURIComponent(activeCategory)}`
-                  : "/inventory/new"
-              }
-              className="text-primary shrink-0 cursor-pointer text-xl font-semibold whitespace-nowrap md:text-[22px]"
-            >
-              + เพิ่มรายการ
-            </Link>
-          </div>
-
-          {/* รายการอะไหล่และบริการ */}
-          {isLoading ? (
-            <div className="flex flex-1 items-center justify-center">
-              <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
-            </div>
-          ) : inventory.length === 0 ? (
-            <div className="flex flex-1 items-center justify-center">
-              <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">
-                {getEmptyMessage()}
-              </p>
-            </div>
-          ) : inventoryGroups ? (
-            inventoryGroups.map((group) => (
-              <div key={group.name}>
-                <div className="mt-[16px] flex items-center gap-[8px]">
-                  <p className="text-subtle-dark text-lg font-semibold md:text-xl">
-                    {group.name}
-                  </p>
-                  <span className="text-subtle-light text-lg md:text-xl">
-                    ({group.items.length})
-                  </span>
-                  <div className="bg-subtle-light/40 h-px flex-1" />
-                </div>
-                {group.items.map(renderItem)}
-              </div>
-            ))
-          ) : (
-            inventory.map(renderItem)
-          )}
         </div>
       </div>
+
       <RepairItemDetailDialog
         item={selectedItem}
         open={isItemDetailOpen}
         onOpenChange={setIsItemDetailOpen}
-        onStockUpdate={handleStockUpdate}
+        onStockUpdate={() => setReloadToken((n) => n + 1)}
       />
     </div>
   );

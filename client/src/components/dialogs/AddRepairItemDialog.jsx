@@ -1,6 +1,5 @@
 import { useState, useRef } from "react";
-import InventoryCard from "@/components/cards/InventoryCard";
-import SearchBar from "@/components/forms/SearchBar";
+import InventoryBrowser from "@/components/inventory/InventoryBrowser";
 import {
   Dialog,
   DialogContent,
@@ -9,14 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { LoaderCircle, X } from "lucide-react";
-import { ICON_MAP, DEFAULT_ICON } from "@/components/icons/categoryIcons";
-import { useDebouncedCallback } from "use-debounce";
-import { listInventory } from "@/api/inventory";
-import { listCategories } from "@/api/category";
-import { toastError } from "@/utils/handleError";
-import { onKeyActivate } from "@/utils/a11y";
-import { tracksStock } from "@/utils/stock";
+import { X } from "lucide-react";
 
 const AddRepairItemDialog = ({
   children,
@@ -24,80 +16,16 @@ const AddRepairItemDialog = ({
   selectedItems = [],
   restoredStockMap = {},
 }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [inventory, setInventory] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState("ทั้งหมด");
-  const [category, setCategory] = useState([]);
-  const [searchValue, setSearchValue] = useState("");
+  const [reloadToken, setReloadToken] = useState(0);
   const restoredStockMapRef = useRef({});
 
   const buildPartKey = (item) =>
     `${item.partNumber || ""}|${item.brand || ""}|${item.name || ""}`;
 
-  const handleFilter = async (category, search) => {
-    setIsLoading(true);
-    try {
-      const res = await listInventory(category, search);
-      setInventory(res.data);
-    } catch (error) {
-      toastError(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchCategory = async () => {
-    try {
-      const res = await listCategories();
-      const categoryWithIcons = res.data
-        .map((item) => ({
-          ...item,
-          icon: ICON_MAP[item.name] || DEFAULT_ICON,
-        }))
-        .sort((a, b) => a.id - b.id);
-      setCategory(categoryWithIcons);
-    } catch (error) {
-      toastError(error);
-    }
-  };
-
-  const debouncedSearch = useDebouncedCallback((value) => {
-    const category = activeCategory === "ทั้งหมด" ? null : activeCategory;
-    handleFilter(category, value || null);
-  }, 500);
-
-  const handleCategoryChange = (category) => {
-    setActiveCategory(category);
-    const categoryParam = category === "ทั้งหมด" ? null : category;
-    const searchParam = searchValue || null;
-    handleFilter(categoryParam, searchParam);
-  };
-
-  const handleOpenDialog = () => {
-    setIsDialogOpen(true);
-    const baseline = { ...restoredStockMap };
-    for (const selected of selectedItems) {
-      if (selected.partNumber && selected.brand) {
-        const key = buildPartKey(selected);
-        if (typeof selected.quantity === "number") {
-          baseline[key] = Math.max(baseline[key] || 0, selected.quantity);
-        }
-      }
-    }
-
-    restoredStockMapRef.current = baseline;
-
-    if (category.length === 0) {
-      fetchCategory();
-    }
-
-    handleFilter(null, null);
-    setActiveCategory("ทั้งหมด");
-    setSearchValue("");
-  };
-
-  const handleAddItemToRepair = (item) => {
+  // เบิกได้ = สต็อกในคลัง + ของที่บิลนี้เคยเบิกไปแล้ว − ของที่อยู่ในบิลตอนนี้
+  const getStockInfo = (item) => {
+    const key = buildPartKey(item);
     const selectedQuantity = selectedItems.reduce((sum, selected) => {
       const isSamePart =
         selected.partNumber === item.partNumber &&
@@ -106,23 +34,24 @@ const AddRepairItemDialog = ({
       return isSamePart ? sum + (selected.quantity || 0) : sum;
     }, 0);
 
-    const key = buildPartKey(item);
     const displayStock =
-      typeof restoredStockMapRef.current[key] === "number"
-        ? restoredStockMapRef.current[key]
-        : item.stockQuantity || 0;
+      (item.stockQuantity || 0) + (restoredStockMapRef.current[key] || 0);
 
-    const remainingAddable = (displayStock || 0) - selectedQuantity;
+    return { displayStock, remainingAddable: displayStock - selectedQuantity };
+  };
 
-    // อะไหล่ที่ไม่ได้สต็อกไว้ (ขั้นต่ำ = 0) สต็อกเป็น 0 ตลอด แต่ต้องเบิกลงบิลได้ ไม่งั้นกดเลือกไม่ได้เลย
-    if (
-      item.partNumber &&
-      item.brand &&
-      tracksStock(item.minStockLevel) &&
-      remainingAddable <= 0
-    ) {
-      return;
-    }
+  const handleOpenDialog = () => {
+    setIsDialogOpen(true);
+    // เก็บภาพ ณ ตอนเปิด: จำนวนที่บิลนี้เคยเบิกไปแล้วและถูกหักออกจากคลังไปแล้ว (เฉพาะบิลที่บันทึกแล้ว)
+    restoredStockMapRef.current = { ...restoredStockMap };
+    setReloadToken((n) => n + 1);
+  };
+
+  const handleAddItemToRepair = (item) => {
+    const { displayStock, remainingAddable } = getStockInfo(item);
+
+    // กันไว้อีกชั้นเผื่อกดผ่านคีย์บอร์ด — เกณฑ์เดียวกับที่ใช้ปิดการ์ด
+    if (item.partNumber && item.brand && remainingAddable <= 0) return;
 
     onAddItem({ ...item, quantity: displayStock });
     setIsDialogOpen(false);
@@ -158,147 +87,21 @@ const AddRepairItemDialog = ({
           </button>
         </DialogHeader>
 
-        <div className="flex flex-1 flex-col overflow-y-auto">
-          <div className="flex flex-shrink-0 flex-col px-[20px]">
-            <div className="mt-[4px]">
-              <SearchBar
-                placeholder="ค้นหารหัส, ยี่ห้อ, ชื่อ"
-                onSearch={(value) => {
-                  setSearchValue(value);
-                  debouncedSearch(value);
-                }}
-                value={searchValue}
-                inputMode="none"
-              />
-            </div>
-
-            <div className="scrollbar-hide font-athiti -mx-[20px] mt-[14px] overflow-x-auto px-[20px]">
-              <div className="flex gap-[8px] py-[2px]">
-                <button
-                  onClick={() => handleCategoryChange("ทั้งหมด")}
-                  tabIndex={-1}
-                  className={`flex h-[80px] w-[80px] cursor-pointer flex-col items-center justify-center rounded-[10px] border px-[20px] py-[12px] duration-300 ${
-                    activeCategory === "ทั้งหมด"
-                      ? "text-surface bg-gradient-primary border-transparent "
-                      : "border-subtle-light text-subtle-dark bg-surface"
-                  }`}
-                >
-                  <div className="text-sm font-semibold text-nowrap md:text-base">
-                    ทั้งหมด
-                  </div>
-                </button>
-
-                {category.map((item, index) => {
-                  const IconComponent = item.icon;
-                  const isActive = activeCategory === item.name;
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => handleCategoryChange(item.name)}
-                      tabIndex={-1}
-                      className={`flex h-[80px] w-[80px] cursor-pointer flex-col items-center justify-center rounded-[10px] border px-[20px] py-[12px] duration-300 ${
-                        isActive
-                          ? "text-surface bg-gradient-primary border-transparent"
-                          : "border-subtle-light text-subtle-dark bg-surface"
-                      }`}
-                    >
-                      <div
-                        className={`flex h-[45px] w-[45px] items-center justify-center ${
-                          isActive ? "text-surface" : "text-subtle-dark"
-                        }`}
-                      >
-                        <IconComponent />
-                      </div>
-                      <div className="text-sm font-semibold text-nowrap md:text-base">
-                        {item.name}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="mt-[14px] flex items-center justify-between">
-              <p className="font-athiti text-xl font-semibold md:text-[22px]">
-                รายการอะไหล่และบริการ
-              </p>
-            </div>
-          </div>
-
-          <div className="flex-1 px-[20px] pb-[16px]">
-            {isLoading ? (
-              <div className="flex h-full items-center justify-center">
-                <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
-              </div>
-            ) : inventory.length === 0 ? (
-              <div className="flex h-full items-center justify-center">
-                <p className="font-athiti text-subtle-light text-xl font-medium md:text-[22px]">
-                  ไม่พบอะไหล่และบริการ
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col">
-                {inventory.map((item, index) => {
-                  const selectedQuantity = selectedItems.reduce(
-                    (sum, selected) => {
-                      const isSamePart =
-                        selected.partNumber === item.partNumber &&
-                        selected.brand === item.brand &&
-                        selected.name === item.name;
-                      return isSamePart ? sum + (selected.quantity || 0) : sum;
-                    },
-                    0,
-                  );
-
-                  const key = buildPartKey(item);
-                  const displayStock =
-                    typeof restoredStockMapRef.current[key] === "number"
-                      ? restoredStockMapRef.current[key]
-                      : item.stockQuantity || 0;
-
-                  const remainingAddable =
-                    (displayStock || 0) - selectedQuantity;
-
-                  const isDisabled =
-                    item.partNumber &&
-                    item.brand &&
-                    tracksStock(item.minStockLevel) &&
-                    remainingAddable <= 0;
-
-                  return (
-                    <div
-                      key={index}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={onKeyActivate(() =>
-                        handleAddItemToRepair(item),
-                      )}
-                      onClick={() => handleAddItemToRepair(item)}
-                      className={`font-athiti rounded-lg ${
-                        isDisabled
-                          ? "cursor-not-allowed opacity-50"
-                          : "cursor-pointer"
-                      }`}
-                    >
-                      <InventoryCard
-                        brand={item.brand}
-                        name={item.name}
-                        unit={item.unit}
-                        sellingPrice={item.sellingPrice}
-                        quantity={Math.max(remainingAddable, 0)}
-                        minStockLevel={item.minStockLevel}
-                        attributes={item.attributes}
-                        tireLots={item.tireLots}
-                        secureUrl={item.secureUrl}
-                        category={item.category.name}
-                        disabled={isDisabled}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px] pt-[4px] pb-[16px]">
+          <InventoryBrowser
+            reloadToken={reloadToken}
+            onItemClick={handleAddItemToRepair}
+            getCardProps={(item) => {
+              const { remainingAddable } = getStockInfo(item);
+              return {
+                // การ์ดในไดอะล็อกบอก "เบิกได้อีกเท่าไหร่" ไม่ใช่ "คลังมีเท่าไหร่"
+                quantity: Math.max(remainingAddable, 0),
+                alwaysWarnEmpty: true,
+                disabled:
+                  !!item.partNumber && !!item.brand && remainingAddable <= 0,
+              };
+            }}
+          />
         </div>
       </DialogContent>
     </Dialog>

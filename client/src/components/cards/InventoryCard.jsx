@@ -12,6 +12,9 @@ const InventoryCard = ({
   attributes,
   secureUrl,
   category,
+  // หน้าจอที่ยึดสต็อกจริงล้วน (เช่นไดอะล็อกเลือกอะไหล่ลงบิล) ให้เตือน "สต็อกหมด" เมื่อเหลือ 0
+  // แม้อะไหล่ตัวนั้นจะตั้งไม่เก็บสต็อกไว้ก็ตาม เพราะเบิกไม่ได้อยู่ดี
+  alwaysWarnEmpty = false,
 }) => {
   const isTire = category === "ยาง";
   const isService = category === "บริการ";
@@ -67,7 +70,7 @@ const InventoryCard = ({
             {renderProductInfo()}
 
             {!isService &&
-              (!tracksStock(minStockLevel) ? (
+              (!alwaysWarnEmpty && !tracksStock(minStockLevel) ? (
                 <p className="text-subtle-dark text-base font-semibold md:text-lg">
                   {`จำนวน: ${quantity} ${unit}`}
                 </p>

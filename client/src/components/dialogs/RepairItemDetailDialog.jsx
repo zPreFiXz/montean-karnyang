@@ -222,7 +222,14 @@ const RepairItemDetailDialog = ({
 
   const handleEdit = () => {
     onOpenChange(false);
-    navigate(`/inventory/${currentItem.id}?type=${currentItem.type}`);
+    // แนบต้นทางไปด้วย เพื่อให้บันทึกเสร็จแล้วกลับมาหน้าที่กดมา ไม่ใช่หน้าที่ระบบเดาว่าเกี่ยวข้อง
+    // (เปิดจากหน้าหลักมักกำลังไล่เคลียร์รายการแจ้งเตือนสต็อกอยู่)
+    const from = encodeURIComponent(
+      `${window.location.pathname}${window.location.search}`,
+    );
+    navigate(
+      `/inventory/${currentItem.id}?type=${currentItem.type}&from=${from}`,
+    );
   };
 
   const onSubmit = async (data) => {

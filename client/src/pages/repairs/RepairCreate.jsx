@@ -4,7 +4,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Image,
-  Trash,
   Plus,
   Minus,
   ChevronDown,
@@ -15,6 +14,7 @@ import FormInput from "@/components/forms/FormInput";
 import LicensePlateInput from "@/components/forms/LicensePlateInput";
 import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
 import EditPriceDialog from "@/components/dialogs/EditRepairItemDialog";
+import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import FormButton from "@/components/forms/FormButton";
 import ComboBox from "@/components/ui/ComboBox";
 import { listVehicleModels } from "@/api/vehicleModel";
@@ -39,6 +39,7 @@ const RepairCreate = () => {
   const [restoredStockMap, setRestoredStockMap] = useState({});
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [removingIndex, setRemovingIndex] = useState(null);
   const { errors } = formState;
 
   useEffect(() => {
@@ -57,16 +58,34 @@ const RepairCreate = () => {
       }
 
       if (savedItems && savedItems.length > 0) {
-        setRepairItems(savedItems);
-
+        // เฉพาะบิลที่บันทึกแล้ว (แก้ไขบิลเดิม) — ของถูกหักจากคลังไปแล้ว ต้องบวกคืนตอนคำนวณว่าเบิกได้เท่าไหร่
+        // ถ้าแค่ย้อนกลับมาจากหน้ายืนยัน คลังยังไม่ถูกหัก ถ้าบวกคืนจะกลายเป็นมีของมากกว่าความจริง
         const map = {};
-        for (const it of savedItems) {
-          if (it?.partNumber && it?.brand && typeof it.quantity === "number") {
-            const key = `${it.partNumber}|${it.brand}|${it.name || ""}`;
-            map[key] = Math.max(map[key] || 0, it.quantity);
+        if (location.state?.editRepairId) {
+          for (const it of savedItems) {
+            if (
+              it?.partNumber &&
+              it?.brand &&
+              typeof it.quantity === "number"
+            ) {
+              const key = `${it.partNumber}|${it.brand}|${it.name || ""}`;
+              map[key] = (map[key] || 0) + it.quantity;
+            }
           }
         }
         setRestoredStockMap(map);
+
+        // รายการที่กู้คืนมาไม่ได้ผ่านไดอะล็อก จึงยังไม่มีเพดานของปุ่มบวกติดมาด้วย
+        setRepairItems(
+          savedItems.map((it) => {
+            if (it.availableStock !== undefined) return it;
+            const key = `${it.partNumber}|${it.brand}|${it.name || ""}`;
+            return {
+              ...it,
+              availableStock: (it.stockQuantity || 0) + (map[key] || 0),
+            };
+          }),
+        );
       }
 
       if (location.state.scrollToBottom) {
@@ -126,8 +145,7 @@ const RepairCreate = () => {
     if (isTire && item.attributes && item.attributes.aspectRatio) {
       return (
         <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
-          {item.brand} {item.attributes.width}/
-          {item.attributes.aspectRatio}R
+          {item.brand} {item.attributes.width}/{item.attributes.aspectRatio}R
           {item.attributes.rimDiameter} {item.name}
         </p>
       );
@@ -136,8 +154,8 @@ const RepairCreate = () => {
     if (isTire && item.attributes) {
       return (
         <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
-          {item.brand} {item.attributes.width}R
-          {item.attributes.rimDiameter} {item.name}
+          {item.brand} {item.attributes.width}R{item.attributes.rimDiameter}{" "}
+          {item.name}
         </p>
       );
     }
@@ -152,7 +170,6 @@ const RepairCreate = () => {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-
       navigate("/repairs/review", {
         state: {
           repairData: { ...data, type: "GENERAL" },
@@ -203,19 +220,26 @@ const RepairCreate = () => {
           i.name === item.name,
       );
       if (index !== -1) {
-        return prev.map((i, idx) =>
-          idx === index
-            ? {
-                ...i,
-                quantity: i.quantity + 1,
-              }
-            : i,
-        );
+        return prev.map((i, idx) => {
+          if (idx !== index) return i;
+
+          // เลือกซ้ำจากไดอะล็อกไม่ได้ผ่านปุ่มบวก จึงต้องกันเพดานตรงนี้ด้วย
+          const limit = i.availableStock ?? i.stockQuantity ?? 0;
+          const capped =
+            i.partNumber && i.brand
+              ? Math.min(i.quantity + 1, limit)
+              : i.quantity + 1;
+
+          return { ...i, quantity: capped };
+        });
       } else {
         return [
           ...prev,
           {
             ...item,
+            // ไดอะล็อกส่งสต็อกที่เบิกได้จริงมาทาง quantity (คิดสต็อกที่คืนจากบิลเดิมแล้ว)
+            // เก็บไว้ก่อนถูกทับเป็น 1 เพื่อใช้เป็นเพดานของปุ่มบวก
+            availableStock: item.quantity,
             quantity: 1,
             sellingPrice: item.sellingPrice,
           },
@@ -229,6 +253,16 @@ const RepairCreate = () => {
         behavior: "smooth",
       });
     }, 200);
+  };
+
+  // เบิกได้ไม่เกินสต็อกที่มีอยู่จริง ไม่เกี่ยวกับสต็อกขั้นต่ำ
+  // availableStock มาจากไดอะล็อกเลือกอะไหล่ (คิดของที่คืนจากบิลเดิมแล้ว) ส่วนรายการที่กู้คืน
+  // กลับมาจากหน้าอื่นไม่ได้ผ่านไดอะล็อก จึงถอยไปใช้สต็อกที่ติดมากับตัวอะไหล่
+  // บริการและรายการที่พิมพ์ชื่อเองไม่มีสต็อก จึงไม่จำกัด
+  const isAtStockLimit = (item) => {
+    if (!item.partNumber || !item.brand) return false;
+    const limit = item.availableStock ?? item.stockQuantity ?? 0;
+    return item.quantity >= limit;
   };
 
   const handleIncreaseQuantity = (index) => {
@@ -247,6 +281,12 @@ const RepairCreate = () => {
           : item,
       ),
     );
+  };
+
+  // จำนวนเหลือ 1 แล้วกด − = เอารายการออก จึงถามยืนยันก่อน เพราะกดพลาดแล้วหายทั้งรายการ
+  const handleRemoveItem = () => {
+    setRepairItems((prev) => prev.filter((_, i) => i !== removingIndex));
+    setRemovingIndex(null);
   };
 
   const handlePriceClick = (index, item) => {
@@ -547,12 +587,14 @@ const RepairCreate = () => {
                     <div
                       role="button"
                       tabIndex={0}
-                      onKeyDown={onKeyActivate(() => handlePriceClick(index, item))}
+                      onKeyDown={onKeyActivate(() =>
+                        handlePriceClick(index, item),
+                      )}
                       onClick={() => handlePriceClick(index, item)}
-                      className="shadow-primary bg-surface flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] px-[8px]"
+                      className="shadow-primary bg-surface flex h-[92px] min-w-0 flex-1 cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
                     >
-                      <div className="flex flex-1 items-center gap-[8px]">
-                        <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
+                      <div className="flex min-w-0 flex-1 items-center gap-[8px]">
+                        <div className="border-subtle-light shadow-primary bg-surface flex h-[60px] w-[60px] items-center justify-center rounded-[10px] border">
                           {item.secureUrl ? (
                             <img
                               src={item.secureUrl}
@@ -560,39 +602,44 @@ const RepairCreate = () => {
                               className="h-full w-full rounded-[10px] object-cover"
                             />
                           ) : (
-                            <div className="text-subtle-light flex h-[70px] w-[70px] items-center justify-center">
+                            <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
                               <Image className="h-8 w-8" />
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-1 flex-col">
+                        <div className="flex min-w-0 flex-1 flex-col">
                           {renderProductInfo(item)}
-                          <div className="flex items-center gap-[4px]">
-                            <p className="text-subtle-dark text-base leading-tight font-medium md:text-lg">
-                              ราคาต่อหน่วย:
-                            </p>
-                            <p className="text-primary text-base font-medium md:text-lg">
-                              {formatCurrency(Number(item.sellingPrice))}
-                            </p>
-                          </div>
+                          <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
+                            {/* บริการไม่มีหน่วย จึงเหลือแค่ราคา */}
+                            {formatCurrency(Number(item.sellingPrice))}
+                            {item.unit ? `/${item.unit}` : ""}
+                          </p>
                           <div className="flex w-full items-center justify-between">
-                            <p className="text-primary line-clamp-1 text-xl leading-tight font-semibold md:text-[22px]">
+                            <p className="text-primary text-xl leading-tight font-semibold text-nowrap md:text-[22px]">
                               {formatCurrency(
                                 item.quantity * item.sellingPrice,
                               )}
                             </p>
                             <div
-                              className="flex items-center gap-[8px]"
+                              className="flex shrink-0 items-center gap-[8px]"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  if (item.quantity <= 1) {
+                                    setRemovingIndex(index);
+                                    return;
+                                  }
                                   handleDecreaseQuantity(index);
                                 }}
-                                disabled={item.quantity <= 1}
-                                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
+                                aria-label={
+                                  item.quantity <= 1
+                                    ? "เอารายการออก"
+                                    : "ลดจำนวน"
+                                }
+                                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100"
                               >
                                 <Minus className="h-4 w-4" />
                               </button>
@@ -605,12 +652,8 @@ const RepairCreate = () => {
                                   e.stopPropagation();
                                   handleIncreaseQuantity(index);
                                 }}
-                                disabled={
-                                  item.partNumber && item.brand
-                                    ? item.quantity >= (item.quantity || 0)
-                                    : false
-                                }
-                                className="border-primary/30 text-primary bg-primary/10 flex h-11 w-11 cursor-pointer items-center justify-center rounded-[8px] border disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
+                                disabled={isAtStockLimit(item)}
+                                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
                               >
                                 <Plus className="h-4 w-4" />
                               </button>
@@ -619,19 +662,6 @@ const RepairCreate = () => {
                         </div>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setRepairItems((prev) =>
-                          prev.filter((_, i) => i !== index),
-                        )
-                      }
-                      className="text-surface cursor-pointer"
-                    >
-                      <div className="bg-destructive flex h-11 w-11 items-center justify-center rounded-full">
-                        <Trash className="h-[18px] w-[18px]" />
-                      </div>
-                    </button>
                   </div>
                 ))}
                 <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] my-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
@@ -703,12 +733,14 @@ const RepairCreate = () => {
                   <div
                     role="button"
                     tabIndex={0}
-                    onKeyDown={onKeyActivate(() => handlePriceClick(index, item))}
+                    onKeyDown={onKeyActivate(() =>
+                      handlePriceClick(index, item),
+                    )}
                     onClick={() => handlePriceClick(index, item)}
-                    className="shadow-primary bg-surface flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] px-[8px]"
+                    className="shadow-primary bg-surface flex h-[92px] min-w-0 flex-1 cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
                   >
-                    <div className="flex flex-1 items-center gap-[8px]">
-                      <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
+                    <div className="flex min-w-0 flex-1 items-center gap-[8px]">
+                      <div className="border-subtle-light shadow-primary bg-surface flex h-[60px] w-[60px] items-center justify-center rounded-[10px] border">
                         {item.secureUrl ? (
                           <img
                             src={item.secureUrl}
@@ -716,37 +748,40 @@ const RepairCreate = () => {
                             className="h-full w-full rounded-[10px] object-cover"
                           />
                         ) : (
-                          <div className="text-subtle-light flex h-[70px] w-[70px] items-center justify-center">
+                          <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
                             <Image className="h-8 w-8" />
                           </div>
                         )}
                       </div>
-                      <div className="flex flex-1 flex-col">
+                      <div className="flex min-w-0 flex-1 flex-col">
                         {renderProductInfo(item)}
-                        <div className="flex items-center gap-[4px]">
-                          <p className="text-subtle-dark text-base leading-tight font-medium md:text-lg">
-                            ราคาต่อหน่วย:
-                          </p>
-                          <p className="text-primary text-base font-medium md:text-lg">
-                            {formatCurrency(Number(item.sellingPrice))}
-                          </p>
-                        </div>
+                        <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
+                          {/* บริการไม่มีหน่วย จึงเหลือแค่ราคา */}
+                          {formatCurrency(Number(item.sellingPrice))}
+                          {item.unit ? `/${item.unit}` : ""}
+                        </p>
                         <div className="flex w-full items-center justify-between">
-                          <p className="text-primary line-clamp-1 text-xl leading-tight font-semibold md:text-[22px]">
+                          <p className="text-primary text-xl leading-tight font-semibold text-nowrap md:text-[22px]">
                             {formatCurrency(item.quantity * item.sellingPrice)}
                           </p>
                           <div
-                            className="flex items-center gap-[8px]"
+                            className="flex shrink-0 items-center gap-[8px]"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                if (item.quantity <= 1) {
+                                  setRemovingIndex(index);
+                                  return;
+                                }
                                 handleDecreaseQuantity(index);
                               }}
-                              disabled={item.quantity <= 1}
-                              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
+                              aria-label={
+                                item.quantity <= 1 ? "เอารายการออก" : "ลดจำนวน"
+                              }
+                              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100"
                             >
                               <Minus className="h-4 w-4" />
                             </button>
@@ -759,12 +794,8 @@ const RepairCreate = () => {
                                 e.stopPropagation();
                                 handleIncreaseQuantity(index);
                               }}
-                              disabled={
-                                item.partNumber && item.brand
-                                  ? item.quantity >= (item.quantity || 0)
-                                  : false
-                              }
-                              className="border-primary/30 text-primary bg-primary/10 flex h-11 w-11 cursor-pointer items-center justify-center rounded-[8px] border disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
+                              disabled={isAtStockLimit(item)}
+                              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
                             >
                               <Plus className="h-4 w-4" />
                             </button>
@@ -773,19 +804,6 @@ const RepairCreate = () => {
                       </div>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setRepairItems((prev) =>
-                        prev.filter((_, i) => i !== index),
-                      )
-                    }
-                    className="text-surface cursor-pointer"
-                  >
-                    <div className="bg-destructive flex h-11 w-11 items-center justify-center rounded-full">
-                      <Trash className="h-[18px] w-[18px]" />
-                    </div>
-                  </button>
                 </div>
               ))}
 
@@ -833,6 +851,18 @@ const RepairCreate = () => {
         canEditName={
           editingItem?.category?.name === "บริการ" &&
           (editingItem?.id === 1 || editingItem?.service?.id === 1)
+        }
+      />
+
+      <ConfirmDialog
+        isOpen={removingIndex !== null}
+        onClose={() => setRemovingIndex(null)}
+        onConfirm={handleRemoveItem}
+        title="ยืนยันการเอารายการออก"
+        itemName={
+          removingIndex !== null && repairItems[removingIndex]
+            ? getProductName(repairItems[removingIndex])
+            : ""
         }
       />
     </div>
