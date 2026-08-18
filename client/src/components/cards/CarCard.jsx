@@ -61,7 +61,7 @@ const CarCard = ({
           </div>
         )}
       </div>
-      
+
       <div
         className={`shrink-0 font-semibold ${
           price ? "text-[22px] md:text-2xl" : "text-[32px] md:text-[34px]"

@@ -20,7 +20,7 @@ exports.createService = async (req, res, next) => {
     });
 
     if (service) {
-      createError(400, "บริการนี้มีอยู่ในระบบแล้ว");
+      createError(400, "ชื่อบริการนี้มีอยู่ในระบบแล้ว");
     }
 
     await prisma.service.create({
@@ -48,7 +48,7 @@ exports.updateService = async (req, res, next) => {
     });
 
     if (service && service.id !== Number(id)) {
-      createError(400, "บริการนี้มีอยู่ในระบบแล้ว");
+      createError(400, "ชื่อบริการนี้มีอยู่ในระบบแล้ว");
     }
 
     await prisma.service.update({

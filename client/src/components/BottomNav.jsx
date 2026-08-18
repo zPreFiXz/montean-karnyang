@@ -44,8 +44,8 @@ const BottomNav = () => {
         {renderItem(home)}
         {renderItem(inspection)}
 
-        {/* รายการซ่อมใหม่ */}
-        <Link to="/repairs/new" aria-label="รายการซ่อมใหม่">
+        {/* งานซ่อมใหม่ */}
+        <Link to="/repairs/new" aria-label="งานซ่อมใหม่">
           <div className="bg-gradient-primary flex h-[45px] w-[75px] items-center justify-center rounded-2xl">
             <Plus size="md" />
           </div>

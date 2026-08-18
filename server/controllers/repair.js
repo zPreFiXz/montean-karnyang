@@ -1,5 +1,9 @@
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
+const {
+  buildPartItemName,
+  buildServiceItemName,
+} = require("../utils/repairItemName");
 
 // หา/สร้างรุ่นรถตามยี่ห้อ+รุ่น (ใช้ทั้งตอนสร้างและแก้ไขรายการซ่อม)
 const findOrCreateVehicleModel = async (tx, brand, model) => {
@@ -54,7 +58,7 @@ const dotOrderKey = (dotCode) => {
   return Number(year) * 100 + Number(week);
 };
 
-// ตัดสต็อกยางแบบ FIFO ข้ามหลายล็อตได้ คืนข้อความสรุป DOT ที่ตัด เช่น "0126×2, 0226×1"
+// ตัดสต็อกยางแบบ FIFO ข้ามหลายล็อตได้ คืนล็อตที่ตัด [{ dotCode, quantity }]
 // คืน null ถ้า Part ไม่มีล็อต (ไม่ใช่ยางที่ track ล็อต) → ให้ผู้เรียกตัด stockQuantity แบบเดิม
 const deductTireLotsFifo = async (tx, partId, quantity) => {
   const lots = await tx.tireLot.findMany({ where: { partId } });
@@ -69,60 +73,83 @@ const deductTireLotsFifo = async (tx, partId, quantity) => {
     const take = Math.min(lot.quantity, remaining);
     if (take <= 0) continue;
     remaining -= take;
-    consumed.push(`${lot.dotCode}×${take}`);
+    consumed.push({ dotCode: lot.dotCode, quantity: take });
     const left = lot.quantity - take;
     if (left <= 0) {
       await tx.tireLot.delete({ where: { id: lot.id } });
     } else {
-      await tx.tireLot.update({ where: { id: lot.id }, data: { quantity: left } });
+      await tx.tireLot.update({
+        where: { id: lot.id },
+        data: { quantity: left },
+      });
     }
   }
-  return consumed.join(", ") || null;
+  return consumed.length ? consumed : null;
 };
 
-// คืนล็อตยางกลับตอนแก้/ยกเลิกบิล จากข้อความ DOT ที่บันทึกไว้ (เช่น "0126×2, 0226×1")
-const restoreTireLotsFromDotCode = async (tx, partId, dotCode) => {
-  if (!dotCode) return;
-  for (const chunk of dotCode.split(",")) {
-    const matched = /^\s*(.+?)×(\d+)\s*$/.exec(chunk);
-    if (!matched) continue;
-    const dot = matched[1].trim();
-    const qty = Number(matched[2]);
-    const existing = await tx.tireLot.findFirst({ where: { partId, dotCode: dot } });
+// คืนล็อตยางกลับตอนแก้/ยกเลิกบิล จากล็อตที่บันทึกไว้ [{ dotCode, quantity }]
+const restoreTireLotsFromSoldLots = async (tx, partId, soldLots) => {
+  if (!Array.isArray(soldLots)) return;
+  for (const lot of soldLots) {
+    const dot = String(lot?.dotCode ?? "").trim();
+    const qty = Number(lot?.quantity);
+    if (!dot || !Number.isFinite(qty) || qty <= 0) continue;
+
+    const existing = await tx.tireLot.findFirst({
+      where: { partId, dotCode: dot },
+    });
     if (existing) {
       await tx.tireLot.update({
         where: { id: existing.id },
         data: { quantity: existing.quantity + qty },
       });
     } else {
-      await tx.tireLot.create({ data: { partId, dotCode: dot, quantity: qty } });
+      await tx.tireLot.create({
+        data: { partId, dotCode: dot, quantity: qty },
+      });
     }
   }
 };
 
 // บันทึกรายการซ่อมย่อยชุดใหม่ พร้อมตัดสต็อกอะไหล่ที่ใช้
-const createRepairItemsAndDecrementStock = async (tx, repairId, repairItems) => {
-  // snapshot ชื่ออะไหล่/บริการ ณ วันซ่อม เผื่ออะไหล่ถูกลบภายหลัง ประวัติจะยังมีชื่อ
+const createRepairItemsAndDecrementStock = async (
+  tx,
+  repairId,
+  repairItems,
+) => {
+  // snapshot ชื่อ ณ วันซ่อม เผื่ออะไหล่ถูกลบภายหลัง ประวัติจะยังมีชื่อ
   const partIds = repairItems.map((i) => i.partId).filter(Boolean);
   const serviceIds = repairItems.map((i) => i.serviceId).filter(Boolean);
 
   const [parts, services] = await Promise.all([
     partIds.length
-      ? tx.part.findMany({ where: { id: { in: partIds } }, select: { id: true, name: true } })
+      ? tx.part.findMany({
+          where: { id: { in: partIds } },
+          select: {
+            id: true,
+            brand: true,
+            name: true,
+            attributes: true,
+            category: { select: { name: true } },
+          },
+        })
       : [],
     serviceIds.length
-      ? tx.service.findMany({ where: { id: { in: serviceIds } }, select: { id: true, name: true } })
+      ? tx.service.findMany({
+          where: { id: { in: serviceIds } },
+          select: { id: true, name: true },
+        })
       : [],
   ]);
 
-  const partNameById = new Map(parts.map((p) => [p.id, p.name]));
-  const serviceNameById = new Map(services.map((s) => [s.id, s.name]));
+  const partById = new Map(parts.map((p) => [p.id, p]));
+  const serviceById = new Map(services.map((s) => [s.id, s]));
 
   // สร้างทีละรายการ: ยางต้องตัดล็อต FIFO ก่อนเพื่อรู้ DOT ที่ขาย แล้วบันทึกลง RepairItem
   for (const item of repairItems) {
-    let dotCode = null;
+    let soldLots = null;
     if (item.partId) {
-      dotCode = await deductTireLotsFifo(tx, item.partId, item.quantity);
+      soldLots = await deductTireLotsFifo(tx, item.partId, item.quantity);
       await tx.part.update({
         where: { id: item.partId },
         data: { stockQuantity: { decrement: item.quantity } },
@@ -131,16 +158,16 @@ const createRepairItemsAndDecrementStock = async (tx, repairId, repairItems) => 
 
     await tx.repairItem.create({
       data: {
-        customName: item.customName || null,
         side: item.side || null,
         unitPrice: item.unitPrice,
         quantity: item.quantity,
-        dotCode,
+        soldLots,
         repairId,
         partId: item.partId,
         serviceId: item.serviceId,
-        partName: item.partId ? partNameById.get(item.partId) || null : null,
-        serviceName: item.serviceId ? serviceNameById.get(item.serviceId) || null : null,
+        itemName: item.partId
+          ? buildPartItemName(partById.get(item.partId))
+          : buildServiceItemName(serviceById.get(item.serviceId)),
       },
     });
   }
@@ -303,7 +330,11 @@ exports.createRepair = async (req, res, next) => {
         }
       }
 
-      const customer = await resolveCustomer(tx, { name, address, phoneNumber });
+      const customer = await resolveCustomer(tx, {
+        name,
+        address,
+        phoneNumber,
+      });
 
       const repair = await tx.repair.create({
         data: {
@@ -392,7 +423,11 @@ exports.updateRepair = async (req, res, next) => {
         }
       }
 
-      const customer = await resolveCustomer(tx, { name, address, phoneNumber });
+      const customer = await resolveCustomer(tx, {
+        name,
+        address,
+        phoneNumber,
+      });
 
       // คืนสต็อกจากรายการเดิม ก่อนลบทิ้ง
       const existingItems = await tx.repairItem.findMany({
@@ -405,7 +440,7 @@ exports.updateRepair = async (req, res, next) => {
             where: { id: item.partId },
             data: { stockQuantity: { increment: item.quantity } },
           });
-          await restoreTireLotsFromDotCode(tx, item.partId, item.dotCode);
+          await restoreTireLotsFromSoldLots(tx, item.partId, item.soldLots);
         }
       }
 

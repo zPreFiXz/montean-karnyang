@@ -34,6 +34,7 @@ import {
 import { toast } from "sonner";
 import RepairItemCard from "@/components/cards/RepairItemCard";
 import { toastError } from "@/utils/handleError";
+import { isPerSide } from "@/utils/suspension";
 
 const RepairDetail = () => {
   const { id } = useParams();
@@ -196,7 +197,8 @@ const RepairDetail = () => {
     if (!repair) return;
 
     const plate = repair?.vehicle?.licensePlate?.plateNumber || "";
-    const [plateLetters = "", plateNumbers = ""] = plate.split("-");
+    // รองรับขีดด้วยเผื่อมีข้อมูลที่บันทึกด้วยรูปแบบเดิมหลงเหลืออยู่
+    const [plateLetters = "", plateNumbers = ""] = plate.split(/[\s-]+/);
     const provinceName = repair?.vehicle?.licensePlate?.province || "";
 
     const repairData = {
@@ -241,7 +243,7 @@ const RepairDetail = () => {
       return {
         id: ri.service?.id,
         brand: "",
-        name: ri.customName || ri.service?.name || ri.serviceName || ri.partName || "",
+        name: ri.service?.name || ri.itemName || "",
         sellingPrice: Number(ri.unitPrice),
         category: ri.service?.category,
         secureUrl: null,
@@ -256,7 +258,7 @@ const RepairDetail = () => {
       const lrGroups = {};
 
       normalizedItems.forEach((item) => {
-        const st = item?.attributes?.suspensionType;
+        const st = item?.category?.name === "ช่วงล่าง";
         const itemSide = item.side;
 
         if (!st || itemSide === null) {
@@ -273,20 +275,12 @@ const RepairDetail = () => {
           return;
         }
 
-        if (st === "left-right") {
+        if (isPerSide(item?.attributes)) {
           const key = `${item.id}-${item.sellingPrice}`;
           if (!lrGroups[key]) {
             lrGroups[key] = { base: item, count: 0 };
           }
           lrGroups[key].count += item.quantity || 1;
-          return;
-        }
-
-        if (["left", "right", "other"].includes(st)) {
-          const count = item.quantity || 1;
-          for (let i = 0; i < count; i++) {
-            savedItems.push({ ...item, quantity: 1, side: st });
-          }
           return;
         }
 
@@ -357,9 +351,10 @@ const RepairDetail = () => {
       <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
         <button
           onClick={handleGoBack}
-          className="text-surface mt-[2px] cursor-pointer"
+          aria-label="ย้อนกลับ"
+          className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
         >
-          <ChevronLeft />
+          <ChevronLeft className="text-surface" />
         </button>
         <p className="text-surface text-2xl font-semibold md:text-[26px]">
           รายละเอียดการซ่อม
@@ -488,12 +483,11 @@ const RepairDetail = () => {
                     {(() => {
                       const suspensionItems = (repair.repairItems || []).filter(
                         (ri) =>
-                          ri.part?.attributes?.suspensionType || ri.side,
+                          ri.part?.category?.name === "ช่วงล่าง" || ri.side,
                       );
                       const generalItems = (repair.repairItems || []).filter(
                         (ri) =>
-                          !ri.part?.attributes?.suspensionType &&
-                          !ri.side,
+                          ri.part?.category?.name !== "ช่วงล่าง" && !ri.side,
                       );
 
                       const leftItems = [];
@@ -516,9 +510,8 @@ const RepairDetail = () => {
                           return;
                         }
 
-                        const st = ri.part.attributes.suspensionType;
                         const qty = ri.quantity || 1;
-                        if (st === "left-right") {
+                        if (isPerSide(ri.part.attributes)) {
                           const key = `${ri.part.id}-${ri.unitPrice}`;
                           if (!lrGroups[key]) {
                             lrGroups[key] = { base: ri, count: 0 };
@@ -526,18 +519,7 @@ const RepairDetail = () => {
                           lrGroups[key].count += qty;
                           return;
                         }
-                        if (st === "left") {
-                          leftItems.push(ri);
-                          return;
-                        }
-                        if (st === "right") {
-                          rightItems.push(ri);
-                          return;
-                        }
-                        if (st === "other") {
-                          otherItems.push(ri);
-                          return;
-                        }
+                        // ไม่แยกข้าง และไม่ได้ระบุตำแหน่งมา -> เข้าช่องอื่นๆ
                         otherItems.push(ri);
                       });
 
@@ -646,7 +628,7 @@ const RepairDetail = () => {
                 )}
               </div>
             )}
-            <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mb-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
+            <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mb-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                   <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">

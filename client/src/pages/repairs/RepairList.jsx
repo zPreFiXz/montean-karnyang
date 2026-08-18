@@ -126,9 +126,10 @@ const RepairList = () => {
       <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
         <button
           onClick={() => navigate("/dashboard")}
-          className="text-surface mt-[2px] cursor-pointer"
+          aria-label="ย้อนกลับ"
+          className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
         >
-          <ChevronLeft />
+          <ChevronLeft className="text-surface" />
         </button>
         <p className="text-surface text-2xl font-semibold md:text-[26px]">
           สถานะการซ่อม

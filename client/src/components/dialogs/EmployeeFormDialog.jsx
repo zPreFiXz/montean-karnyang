@@ -94,8 +94,8 @@ const EmployeeFormDialog = ({
           e.preventDefault();
         }}
       >
-        <div className="relative flex-shrink-0 pt-[16px]">
-          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-2xl">
+        <div className="relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]">
+          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
             {editingItem ? "แก้ไขพนักงาน" : "เพิ่มพนักงาน"}
           </DialogTitle>
           <DialogDescription className="sr-only">
@@ -104,11 +104,10 @@ const EmployeeFormDialog = ({
           <button
             onClick={handleClose}
             autoFocus={false}
-            tabIndex={-1}
             aria-label="ปิดหน้าต่าง"
-            className="absolute top-[16px] right-[20px] flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-black/5"
+            className="absolute top-1/2 right-[20px] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/5"
           >
-            <X size={18} className="text-subtle-dark" />
+            <X size={20} className="text-subtle-dark" />
           </button>
         </div>
 

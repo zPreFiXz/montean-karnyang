@@ -38,6 +38,11 @@ const RepairReview = () => {
     return null;
   }
 
+  // ข้อมูลลูกค้าไม่บังคับกรอก — ถ้าไม่มีสักช่องก็ไม่ต้องแสดงส่วนนี้ในเอกสาร
+  const hasCustomerInfo = Boolean(
+    repairData.name || repairData.address || repairData.phoneNumber,
+  );
+
   const totalPrice = repairItems.reduce(
     (total, item) => total + item.sellingPrice * item.quantity,
     0,
@@ -63,7 +68,8 @@ const RepairReview = () => {
         phoneNumber: repairData.phoneNumber,
         brand: repairData.brand,
         model: repairData.model,
-        plate: `${repairData.plateLetters}-${repairData.plateNumbers}`,
+        // ทะเบียนไทยเขียนเว้นวรรค ไม่ใช่ขีด — ต้องตรงกับที่ RepairDetail แยกกลับตอนกดแก้ไข
+        plate: `${repairData.plateLetters} ${repairData.plateNumbers}`,
         province: getProvinceName(repairData.province),
         description: repairData.description,
         ...(repairData.mileage ? { mileage: Number(repairData.mileage) } : {}),
@@ -76,14 +82,13 @@ const RepairReview = () => {
             unitPrice: Number(item.sellingPrice),
             quantity: item.quantity,
             ...(item.side ? { side: item.side } : {}),
-            ...(!isPart && item.name ? { customName: item.name } : {}),
           };
         }),
       };
 
       if (editRepairId) {
         await updateRepair(editRepairId, repair);
-        toast.success("แก้ไขรายการซ่อมเรียบร้อยแล้ว");
+        toast.success("แก้ไขงานซ่อมเรียบร้อยแล้ว");
         if (statusSlug) {
           navigate(`/repairs?status=${statusSlug}`);
         } else if (vehicleId) {
@@ -95,7 +100,7 @@ const RepairReview = () => {
         }
       } else {
         await createRepair(repair);
-        toast.success("สร้างรายการซ่อมเรียบร้อยแล้ว");
+        toast.success("สร้างงานซ่อมเรียบร้อยแล้ว");
         const isDesktop = window.innerWidth >= 1280;
         navigate(isDesktop ? "/" : "/repairs?status=in-progress");
       }
@@ -142,46 +147,49 @@ const RepairReview = () => {
           </button>
           <div>
             <p className="text-surface xl:text-primary text-2xl font-semibold md:text-[26px]">
-              สรุปรายการซ่อม
+              สรุปงานซ่อม
             </p>
           </div>
         </div>
 
         {/* Mobile */}
         <div className="bg-surface mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pt-[16px] xl:mt-0 xl:rounded-none xl:bg-transparent xl:shadow-none">
-          {/* ข้อมูลลูกค้า */}
+          {/* ข้อมูลลูกค้าไม่บังคับกรอก — กรอกมาบ้างก็แสดงครบทุกช่อง (ที่ว่างขึ้น "ไม่ระบุ")
+              เพื่อให้เห็นว่าอะไรยังขาด แต่ถ้าไม่กรอกเลยก็ไม่ต้องมีส่วนนี้ */}
           <div className="px-[20px]">
-            <div className="mb-[16px]">
-              <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
-                ข้อมูลลูกค้า
-              </p>
-              <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
-                <div className="flex justify-between">
-                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                    ชื่อลูกค้า:
-                  </p>
-                  <p className="text-normal text-lg font-semibold md:text-xl">
-                    {repairData.name || "ไม่ระบุ"}
-                  </p>
-                </div>
-                <div className="flex justify-between">
-                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                    ที่อยู่:
-                  </p>
-                  <p className="text-normal max-w-[250px] text-right text-lg font-semibold break-words md:text-xl">
-                    {repairData.address || "ไม่ระบุ"}
-                  </p>
-                </div>
-                <div className="flex justify-between">
-                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                    หมายเลขโทรศัพท์:
-                  </p>
-                  <p className="text-normal text-lg font-semibold md:text-xl">
-                    {repairData.phoneNumber || "ไม่ระบุ"}
-                  </p>
+            {hasCustomerInfo && (
+              <div className="mb-[16px]">
+                <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
+                  ข้อมูลลูกค้า
+                </p>
+                <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
+                  <div className="flex justify-between">
+                    <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                      ชื่อลูกค้า:
+                    </p>
+                    <p className="text-normal text-lg font-semibold md:text-xl">
+                      {repairData.name || "ไม่ระบุ"}
+                    </p>
+                  </div>
+                  <div className="flex justify-between">
+                    <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                      ที่อยู่:
+                    </p>
+                    <p className="text-normal max-w-[250px] text-right text-lg font-semibold break-words md:text-xl">
+                      {repairData.address || "ไม่ระบุ"}
+                    </p>
+                  </div>
+                  <div className="flex justify-between">
+                    <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                      เบอร์โทรศัพท์:
+                    </p>
+                    <p className="text-normal text-lg font-semibold md:text-xl">
+                      {repairData.phoneNumber || "ไม่ระบุ"}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* ข้อมูลรถยนต์ */}
             <div className="mb-[16px]">
@@ -205,7 +213,7 @@ const RepairReview = () => {
                     {repairData.plateLetters &&
                     repairData.plateNumbers &&
                     getProvinceName(repairData.province)
-                      ? `${repairData.plateLetters}-${
+                      ? `${repairData.plateLetters} ${
                           repairData.plateNumbers
                         } ${getProvinceName(repairData.province)}`
                       : "ไม่ระบุ"}
@@ -329,7 +337,7 @@ const RepairReview = () => {
             </div>
 
             {/* สรุปยอดรวม */}
-            <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] my-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
+            <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] my-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                   <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
@@ -345,7 +353,7 @@ const RepairReview = () => {
             </div>
             <div className="flex justify-center pb-[112px]">
               <FormButton
-                label={editRepairId ? "บันทึก" : "สร้างรายการซ่อม"}
+                label={editRepairId ? "บันทึก" : "สร้างงานซ่อม"}
                 isLoading={isSubmitting}
                 onClick={handleConfirmRepair}
               />
@@ -457,7 +465,7 @@ const RepairReview = () => {
           </div>
 
           {/* Desktop: สรุปยอดรวม */}
-          <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] my-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
+          <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] my-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
                 <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
@@ -473,7 +481,7 @@ const RepairReview = () => {
           </div>
           <div className="flex justify-center pb-[16px]">
             <FormButton
-              label={editRepairId ? "บันทึก" : "สร้างรายการซ่อม"}
+              label={editRepairId ? "บันทึก" : "สร้างงานซ่อม"}
               isLoading={isSubmitting}
               onClick={handleConfirmRepair}
             />

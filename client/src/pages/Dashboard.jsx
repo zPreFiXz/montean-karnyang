@@ -117,6 +117,7 @@ const Dashboard = () => {
       tabIndex={0}
       onKeyDown={onKeyActivate(() => openItem(item))}
       onClick={() => openItem(item)}
+      className="mt-[16px] cursor-pointer rounded-[10px]"
     >
       <InventoryCard
         item={item}
@@ -306,7 +307,7 @@ const Dashboard = () => {
                     <Link
                       to="/vehicles/models"
                       onClick={() => setIsMenuOpen(false)}
-                      className="bg-surface shadow-primary mb-[16px] flex w-full items-center gap-[16px] rounded-[12px] p-[16px] duration-300"
+                      className="bg-surface shadow-primary mb-[16px] flex w-full items-center gap-[16px] rounded-[10px] p-[16px] duration-300"
                     >
                       <div className="bg-primary flex h-[48px] w-[48px] items-center justify-center rounded-[10px]">
                         <CarFront className="text-surface h-6 w-6" />
@@ -321,7 +322,7 @@ const Dashboard = () => {
                       <Link
                         to="/admin/employees"
                         onClick={() => setIsMenuOpen(false)}
-                        className="bg-surface shadow-primary mb-[16px] flex w-full items-center gap-[16px] rounded-[12px] p-[16px] duration-300"
+                        className="bg-surface shadow-primary mb-[16px] flex w-full items-center gap-[16px] rounded-[10px] p-[16px] duration-300"
                       >
                         <div className="bg-status-completed flex h-[48px] w-[48px] items-center justify-center rounded-[10px]">
                           <Users className="text-surface h-6 w-6" />
@@ -337,7 +338,7 @@ const Dashboard = () => {
                   <button
                     onClick={handleLogout}
                     disabled={isLoggingOut}
-                    className={`bg-surface shadow-primary flex w-full items-center gap-[16px] rounded-[12px] p-[16px] duration-300 ${
+                    className={`bg-surface shadow-primary flex w-full items-center gap-[16px] rounded-[10px] p-[16px] duration-300 ${
                       isLoggingOut ? "cursor-not-allowed opacity-50" : ""
                     }`}
                   >

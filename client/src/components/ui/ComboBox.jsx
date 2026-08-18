@@ -66,9 +66,8 @@ const ComboBox = ({
     <div>
       {label && (
         <Label
-          className={`mb-[8px] block font-medium ${
-            labelClass || (customClass ? "text-xl" : "text-[22px] md:text-2xl")
-          } ${color}`}
+          // ขนาดเดียวกับป้ายชื่อของ FormInput เพื่อให้ฟอร์มเดียวกันดูเป็นชุดเดียว
+          className={`mb-[8px] block font-medium ${labelClass || "text-xl"} ${color}`}
         >
           {label}
         </Label>
@@ -148,7 +147,7 @@ const ComboBox = ({
               {showSearch && (
                 <CommandInput
                   ref={inputRef}
-                  placeholder="ค้นหา..."
+                  placeholder="ค้นหา"
                   className={`font-athiti text-normal h-9 font-medium ${
                     customClass || "text-lg md:text-xl"
                   }`}
@@ -160,7 +159,7 @@ const ComboBox = ({
                     customClass || "text-lg md:text-xl"
                   }`}
                 >
-                  ไม่พบข้อมูล
+                  ไม่พบรายการ
                 </p>
               </CommandEmpty>
               {/* min-h-0 จำเป็นกับลูกของ flex ไม่งั้นมันจะไม่ยอมหดต่ำกว่าความสูงเนื้อหา แล้วล้นออกนอกกรอบ */}

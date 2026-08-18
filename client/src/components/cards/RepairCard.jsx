@@ -17,7 +17,7 @@ const RepairCard = ({ icon: Icon, repairId, itemCount }) => {
           </p>
         </div>
       </div>
-      
+
       <div className="text-subtle-light flex h-[32px] w-[32px] items-center justify-center rounded-full bg-[#F6F6F6]">
         <ChevronRight />
       </div>

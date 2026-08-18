@@ -1,11 +1,36 @@
-import { BoxSearch, CarRepair, DashboardBar, Document } from "@/components/icons/Icons";
+import {
+  BoxSearch,
+  CarRepair,
+  DashboardBar,
+  Document,
+} from "@/components/icons/Icons";
 
 // เมนูหลักที่ใช้ร่วมกันระหว่าง sidebar (desktop) และ bottom nav (mobile)
 export const MENU_ITEMS = [
-  { path: "/dashboard", label: "หน้าหลัก", shortLabel: "หน้าหลัก", icon: DashboardBar },
-  { path: "/inspections/suspension", label: "เช็กช่วงล่าง", shortLabel: "เช็กช่วงล่าง", icon: CarRepair },
-  { path: "/vehicles", label: "ประวัติลูกค้า", shortLabel: "ประวัติลูกค้า", icon: Document },
-  { path: "/inventory", label: "สต็อกอะไหล่", shortLabel: "สต็อก", icon: BoxSearch },
+  {
+    path: "/dashboard",
+    label: "หน้าหลัก",
+    shortLabel: "หน้าหลัก",
+    icon: DashboardBar,
+  },
+  {
+    path: "/inspections/suspension",
+    label: "เช็กช่วงล่าง",
+    shortLabel: "เช็กช่วงล่าง",
+    icon: CarRepair,
+  },
+  {
+    path: "/vehicles",
+    label: "ประวัติลูกค้า",
+    shortLabel: "ประวัติลูกค้า",
+    icon: Document,
+  },
+  {
+    path: "/inventory",
+    label: "สต็อกอะไหล่",
+    shortLabel: "สต็อก",
+    icon: BoxSearch,
+  },
 ];
 
 // เช็คว่าเมนูควรแสดงสถานะ active หรือไม่
@@ -16,10 +41,9 @@ export const isActivePath = (path, pathname) => {
   }
 
   if (path === "/vehicles") {
-    const isRepairDetail =
-      pathname.startsWith("/repairs/") &&
-      !pathname.includes("/new") &&
-      !pathname.includes("/summary");
+    // ระบุรูปแบบของหน้ารายละเอียดโดยตรง (/repairs/<id>) แทนการไล่ยกเว้นทีละหน้า
+    // ไม่งั้นหน้าใหม่ใต้ /repairs/ ทุกหน้าจะเข้าเงื่อนไขนี้จนกว่าจะมีคนนึกได้ว่าต้องเพิ่มข้อยกเว้น
+    const isRepairDetail = /^\/repairs\/\d+$/.test(pathname);
     return (
       pathname === path || pathname.startsWith(path + "/") || isRepairDetail
     );

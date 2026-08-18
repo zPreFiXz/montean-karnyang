@@ -20,7 +20,7 @@ import {
   SquarePen,
   ChevronDown,
   AlertTriangle,
-  User,
+  ContactRound,
   ClipboardList,
 } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
@@ -29,6 +29,10 @@ import { repairSchema } from "@/utils/schemas";
 import { CarRepair } from "@/components/icons/Icons";
 import { toastError } from "@/utils/handleError";
 import { onKeyActivate } from "@/utils/a11y";
+import { isPerSide } from "@/utils/suspension";
+import { withOtherBrandLast } from "@/utils/vehicleBrand";
+
+const CUSTOMER_FIELDS = ["name", "address", "phoneNumber"];
 
 const SuspensionInspection = () => {
   const navigate = useNavigate();
@@ -38,7 +42,7 @@ const SuspensionInspection = () => {
     handleSubmit,
     setValue,
     watch,
-    setFocus,
+    getValues,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(repairSchema),
@@ -193,8 +197,8 @@ const SuspensionInspection = () => {
         );
         if (hasHiddenValue) setIsMoreFieldsVisible(true);
       } catch {
-      // ไม่ต้องทำอะไร: เป็นการ blur/focus เสริม ถ้าพลาดก็ไม่กระทบการทำงาน
-    }
+        // ไม่ต้องทำอะไร: เป็นการ blur/focus เสริม ถ้าพลาดก็ไม่กระทบการทำงาน
+      }
     }
 
     const preserved = {
@@ -220,7 +224,9 @@ const SuspensionInspection = () => {
       const res = await listVehicleModels();
       setVehicleModels(res.data);
 
-      const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
+      const uniqueBrands = withOtherBrandLast([
+        ...new Set(res.data.map((item) => item.brand)),
+      ]);
       setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
     } catch (error) {
       toastError(error);
@@ -251,21 +257,12 @@ const SuspensionInspection = () => {
 
   const getPartsForSide = (side) => {
     return compatibleParts.filter((part) => {
-      if (!part.attributes || !part.attributes.suspensionType) {
-        return true;
-      }
+      // อะไหล่นอกหมวดช่วงล่าง (เช่นน้ำมัน) ไม่ผูกกับข้าง ให้เลือกได้ทุกช่อง
+      if (part.category?.name !== "ช่วงล่าง") return true;
 
-      const suspensionType = part.attributes.suspensionType;
-
-      if (suspensionType === "left-right") {
-        return side === "left" || side === "right";
-      }
-
-      if (suspensionType === "other") {
-        return side === "other";
-      }
-
-      return true;
+      return isPerSide(part.attributes)
+        ? side === "left" || side === "right"
+        : side === "other";
     });
   };
 
@@ -293,8 +290,7 @@ const SuspensionInspection = () => {
     if (isTire && item.attributes && item.attributes.aspectRatio) {
       return (
         <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
-          {item.brand} {item.attributes.width}/
-          {item.attributes.aspectRatio}R
+          {item.brand} {item.attributes.width}/{item.attributes.aspectRatio}R
           {item.attributes.rimDiameter} {item.name}
         </p>
       );
@@ -303,8 +299,8 @@ const SuspensionInspection = () => {
     if (isTire && item.attributes) {
       return (
         <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
-          {item.brand} {item.attributes.width}R
-          {item.attributes.rimDiameter} {item.name}
+          {item.brand} {item.attributes.width}R{item.attributes.rimDiameter}{" "}
+          {item.name}
         </p>
       );
     }
@@ -345,6 +341,8 @@ const SuspensionInspection = () => {
             ...itemWithSide,
             quantity: 1,
             sellingPrice: itemWithSide.sellingPrice,
+            // ราคาตั้งต้นจากคลัง ไว้เทียบตอนแก้ราคา (sellingPrice จะถูกทับเมื่อปรับราคา)
+            basePrice: itemWithSide.sellingPrice,
           },
         ];
       }
@@ -423,7 +421,8 @@ const SuspensionInspection = () => {
     if (isTire && item.attributes) {
       return `${item.brand} ${item.attributes.width}R${item.attributes.rimDiameter} ${item.name}`;
     }
-    return `${item.brand} ${item.name}`;
+    // บริการไม่มียี่ห้อ (null) — ต่อสตริงตรงๆ จะได้คำว่า "null" ติดมาหน้าชื่อ
+    return [item.brand, item.name].filter(Boolean).join(" ");
   };
 
   const getPriceForPart = (part) => {
@@ -444,6 +443,7 @@ const SuspensionInspection = () => {
       source: "compatible",
       partId: part.id,
       sellingPrice: getPriceForPart(part),
+      basePrice: part.sellingPrice,
       name: part.name,
       brand: part.brand,
       secureUrl: part.secureUrl,
@@ -462,7 +462,7 @@ const SuspensionInspection = () => {
       typeof part?.stockQuantity === "number"
         ? Math.max(part.stockQuantity, 0)
         : Infinity;
-    const isSuspensionPart = Boolean(part?.attributes?.suspensionType);
+    const isSuspensionPart = part?.category?.name === "ช่วงล่าง";
     const initialCount = isSuspensionPart
       ? Number(initialSelectedRef.current.left.has(part.id)) +
         Number(initialSelectedRef.current.right.has(part.id)) +
@@ -481,10 +481,9 @@ const SuspensionInspection = () => {
   };
 
   const handlePartSelection = (part, isSelected, side) => {
-    const suspensionType = part?.attributes?.suspensionType;
     const _stockQty =
       typeof part?.stockQuantity === "number" ? part.stockQuantity : Infinity;
-    const isLeftRight = suspensionType === "left-right";
+    const isLeftRight = isPerSide(part?.attributes);
     const allowedUnits = getAllowedUnitsForPart(part);
 
     if (side === "left") {
@@ -536,31 +535,32 @@ const SuspensionInspection = () => {
     const firstErrorField = Object.keys(errs || {})[0];
     if (!firstErrorField) return;
 
-    try {
-      setFocus(firstErrorField, { shouldSelect: true });
-    } catch {
-      // ไม่ต้องทำอะไร: เป็นการ blur/focus เสริม ถ้าพลาดก็ไม่กระทบการทำงาน
+    // ช่องที่ผิดอาจอยู่ในกล่องข้อมูลลูกค้าที่พับไว้ ถ้าไม่กางออกก่อน
+    // การโฟกัสจะไม่เห็นอะไรเลย คนใช้จะงงว่ากดปุ่มแล้วไม่มีอะไรเกิดขึ้น
+    if (CUSTOMER_FIELDS.includes(firstErrorField)) {
+      setIsCustomerInfoOpen(true);
     }
 
     setTimeout(() => {
-      let el = document.querySelector(`[name="${firstErrorField}"]`);
-      let target = el;
-      if (!el || el.type === "hidden" || el.offsetParent === null) {
-        target = el?.parentElement || null;
-      }
-      if (target && typeof target.scrollIntoView === "function") {
-        target.scrollIntoView({
-          block: "nearest",
-          inline: "nearest",
-        });
-      }
+      const el = document.querySelector(`[name="${firstErrorField}"]`);
+      const isVisible = el && el.type !== "hidden" && el.offsetParent !== null;
+      const target = isVisible ? el : el?.parentElement || null;
+      if (!target) return;
+
+      // preventScroll สำคัญ — โดยปริยาย focus() จะกระโดดไปหาช่องทันที
+      // แล้วการเลื่อนแบบนุ่มที่ตามมาก็ไม่เหลืออะไรให้เลื่อน ภาพที่เห็นคือเด้งพรึบ
+      if (isVisible) el.focus?.({ preventScroll: true });
+      target.scrollIntoView({
+        block: "center",
+        inline: "nearest",
+        behavior: "smooth",
+      });
     }, 200);
   };
 
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-
       const allRepairItems = [
         ...Array.from(selectedLeftParts)
           .map((id) => getPartsForSide("left").find((p) => p.id === id))
@@ -608,140 +608,175 @@ const SuspensionInspection = () => {
     }
   };
 
+  const hasVehicleSelected = Boolean(watch("brand") && watch("model"));
+  // รถรุ่นนี้ยังไม่ได้ผูกอะไหล่ = ตรวจตามตำแหน่งไม่ได้ ต้องไปทำเป็นงานซ่อมทั่วไป
+  const hasNoCompatibleParts =
+    hasVehicleSelected && compatibleParts.length === 0;
+
+  // ยกข้อมูลที่กรอกไว้ไปด้วย ไม่ต้องพิมพ์ใหม่ทั้งชุดตอนรถจอดรออยู่
+  const handleSwitchToGeneralRepair = () => {
+    navigate("/repairs/new", {
+      state: {
+        repairData: getValues(),
+        repairItems,
+        origin: location.state?.from,
+        statusSlug: location.state?.statusSlug,
+        vehicleId: location.state?.vehicleId,
+      },
+    });
+  };
 
   // แผงเลือกอะไหล่ตามฝั่ง (ซ้าย/ขวา/อื่นๆ) ใช้ร่วมกันทั้ง mobile และ desktop
+  // อนิเมชันมีไว้บอกว่าเนื้อหาเปลี่ยนตอนสลับแท็บ จึงใส่เฉพาะตอนมีรายการจริง
+  // ข้อความว่างเปล่าอยู่นิ่งเหมือนหน้าอื่นในระบบ ไม่ต้องเด้งเข้ามา
   const renderPartPanel = (side) => (
-                    <div
-                      key={`panel-${side}`}
-                      className="animate-in fade-in zoom-in-95 w-full duration-200"
-                    >
-                      {getPartsForSide(side).length === 0 ? (
-                        <div className="flex h-[120px] items-center justify-center">
-                          <p className="text-subtle-light text-lg md:text-xl">
-                            ไม่มีอะไหล่ที่รองรับ
-                          </p>
-                        </div>
-                      ) : (
-                        getPartsForSide(side).map((part) => {
-                          const selectedThis = isPartSelected(part.id, side);
-                          const allowedUnits = getAllowedUnitsForPart(part);
-                          const currentSelectedAll =
-                            getCurrentSelectedCountForPart(part);
-                          const isDisabled =
-                            !selectedThis && currentSelectedAll >= allowedUnits;
-                          return (
-                            <div
-                              key={`${side}-${part.id}`}
-                              className={`mt-[16px] flex items-center gap-[16px] px-[20px] ${
-                                isDisabled
-                                  ? "cursor-not-allowed opacity-50"
-                                  : ""
-                              }`}
-                            >
-                              <div
-                                className={`shadow-primary flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] border-2 px-[8px] duration-300 ${
-                                  isPartSelected(part.id, side)
-                                    ? "bg-primary/5 border-primary scale-[1.02]"
-                                    : "bg-surface border-transparent"
-                                }`}
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={onKeyActivate(() => {
-                                  if (isDisabled) return;
-                                  handlePartSelection(
-                                    part,
-                                    !isPartSelected(part.id, side),
-                                    side,
-                                  );
-                                })}
-                                onClick={() => {
-                                  if (isDisabled) return;
-                                  handlePartSelection(
-                                    part,
-                                    !isPartSelected(part.id, side),
-                                    side,
-                                  );
-                                }}
-                              >
-                                <div className="flex flex-1 items-center gap-[8px]">
-                                  <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
-                                    {part.secureUrl ? (
-                                      <img
-                                        src={part.secureUrl}
-                                        alt={part.name}
-                                        className="h-full w-full rounded-[10px] object-cover"
-                                      />
-                                    ) : (
-                                      <div className="text-subtle-light flex h-[70px] w-[70px] items-center justify-center">
-                                        <Image className="h-8 w-8" />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-1 flex-col">
-                                    {renderProductInfo(part)}
-                                    <div className="flex items-center gap-2">
-                                      <p
-                                        className={`text-xl leading-tight font-semibold duration-300 md:text-[22px] ${
-                                          isPartSelected(part.id, side)
-                                            ? "text-primary"
-                                            : "text-subtle-dark"
-                                        }`}
-                                      >
-                                        {formatCurrency(getPriceForPart(part))}
-                                      </p>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleEditCompatiblePrice(part);
-                                        }}
-                                        aria-label="แก้ไขราคา"
-                                        className="text-primary mt-[2px] flex cursor-pointer items-center justify-center"
-                                      >
-                                        <SquarePen className="h-5 w-5" />
-                                      </button>
-                                    </div>
-                                    {isDisabled && (
-                                      <p className="text-destructive flex items-center gap-[4px] text-base leading-tight font-semibold md:text-lg">
-                                        <AlertTriangle className="text-destructive h-5 w-5" />
-                                        <span>สต็อกหมด</span>
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                              <div
-                                className={`flex h-[32px] w-[32px] min-w-[32px] cursor-pointer items-center justify-center rounded-full duration-300 ${
-                                  isPartSelected(part.id, side)
-                                    ? "bg-gradient-primary text-surface scale-110 shadow-lg"
-                                    : "bg-subtle-light text-surface"
-                                }`}
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={onKeyActivate(() => {
-                                  if (isDisabled) return;
-                                  handlePartSelection(
-                                    part,
-                                    !isPartSelected(part.id, side),
-                                    side,
-                                  );
-                                })}
-                                onClick={() => {
-                                  if (isDisabled) return;
-                                  handlePartSelection(
-                                    part,
-                                    !isPartSelected(part.id, side),
-                                    side,
-                                  );
-                                }}
-                              >
-                                <Check className="h-[18px] w-[18px]" />
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
+    <div
+      key={`panel-${side}`}
+      className={`w-full ${
+        getPartsForSide(side).length === 0
+          ? ""
+          : "animate-in fade-in zoom-in-95 duration-200"
+      }`}
+    >
+      {getPartsForSide(side).length === 0 ? (
+        <div className="flex h-[228px] flex-col items-center justify-center gap-[16px] px-[20px]">
+          {/* แยกให้รู้ว่าต้องเลือกรถก่อน กดแท็บอื่นดู หรือรถรุ่นนี้ตรวจตามตำแหน่งไม่ได้ */}
+          <p className="text-subtle-light text-center text-xl text-balance md:text-[22px]">
+            {!hasVehicleSelected
+              ? "กรุณาเลือกยี่ห้อและรุ่นรถ"
+              : compatibleParts.length === 0
+                ? "ไม่พบอะไหล่ของรถรุ่นนี้"
+                : "ไม่พบอะไหล่ในตำแหน่งนี้"}
+          </p>
+
+          {hasNoCompatibleParts && (
+            <button
+              type="button"
+              onClick={handleSwitchToGeneralRepair}
+              className="border-primary text-primary bg-surface flex h-[41px] cursor-pointer items-center justify-center rounded-[20px] border px-[20px] text-lg font-semibold md:text-xl"
+            >
+              ทำเป็นงานซ่อมทั่วไป
+            </button>
+          )}
+        </div>
+      ) : (
+        getPartsForSide(side).map((part) => {
+          const selectedThis = isPartSelected(part.id, side);
+          const allowedUnits = getAllowedUnitsForPart(part);
+          const currentSelectedAll = getCurrentSelectedCountForPart(part);
+          const isDisabled =
+            !selectedThis && currentSelectedAll >= allowedUnits;
+          return (
+            <div
+              key={`${side}-${part.id}`}
+              className={`mt-[16px] flex items-center gap-[16px] px-[20px] ${
+                isDisabled ? "cursor-not-allowed opacity-50" : ""
+              }`}
+            >
+              <div
+                className={`shadow-primary flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] border-2 px-[8px] duration-300 ${
+                  isPartSelected(part.id, side)
+                    ? "bg-primary/5 border-primary scale-[1.02]"
+                    : "bg-surface border-transparent"
+                }`}
+                role="button"
+                tabIndex={0}
+                onKeyDown={onKeyActivate(() => {
+                  if (isDisabled) return;
+                  handlePartSelection(
+                    part,
+                    !isPartSelected(part.id, side),
+                    side,
+                  );
+                })}
+                onClick={() => {
+                  if (isDisabled) return;
+                  handlePartSelection(
+                    part,
+                    !isPartSelected(part.id, side),
+                    side,
+                  );
+                }}
+              >
+                <div className="flex flex-1 items-center gap-[8px]">
+                  <div className="shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border border-gray-200">
+                    {part.secureUrl ? (
+                      <img
+                        src={part.secureUrl}
+                        alt={part.name}
+                        className="h-full w-full rounded-[10px] object-cover"
+                      />
+                    ) : (
+                      <div className="text-subtle-light flex h-[70px] w-[70px] items-center justify-center">
+                        <Image className="h-8 w-8" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-1 flex-col">
+                    {renderProductInfo(part)}
+                    <div className="flex items-center gap-2">
+                      <p
+                        className={`text-xl leading-tight font-semibold duration-300 md:text-[22px] ${
+                          isPartSelected(part.id, side)
+                            ? "text-primary"
+                            : "text-subtle-dark"
+                        }`}
+                      >
+                        {formatCurrency(getPriceForPart(part))}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditCompatiblePrice(part);
+                        }}
+                        aria-label="แก้ไขราคา"
+                        className="text-primary mt-[2px] flex cursor-pointer items-center justify-center"
+                      >
+                        <SquarePen className="h-5 w-5" />
+                      </button>
                     </div>
+                    {isDisabled && (
+                      <p className="text-destructive flex items-center gap-[4px] text-base leading-tight font-semibold md:text-lg">
+                        <AlertTriangle className="text-destructive h-5 w-5" />
+                        <span>สต็อกหมด</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div
+                className={`flex h-[32px] w-[32px] min-w-[32px] cursor-pointer items-center justify-center rounded-full duration-300 ${
+                  isPartSelected(part.id, side)
+                    ? "bg-gradient-primary text-surface scale-110 shadow-lg"
+                    : "bg-subtle-light text-surface"
+                }`}
+                role="button"
+                tabIndex={0}
+                onKeyDown={onKeyActivate(() => {
+                  if (isDisabled) return;
+                  handlePartSelection(
+                    part,
+                    !isPartSelected(part.id, side),
+                    side,
+                  );
+                })}
+                onClick={() => {
+                  if (isDisabled) return;
+                  handlePartSelection(
+                    part,
+                    !isPartSelected(part.id, side),
+                    side,
+                  );
+                }}
+              >
+                <Check className="h-[18px] w-[18px]" />
+              </div>
+            </div>
+          );
+        })
+      )}
+    </div>
   );
 
   return (
@@ -764,22 +799,26 @@ const SuspensionInspection = () => {
             className="xl:[&_label]:text-normal xl:[&_.text-surface]:text-normal flex flex-1 flex-col"
             onSubmit={handleSubmit(onSubmit, onInvalid)}
           >
-            <div className="mx-[20px] mt-[16px]">
+            {/* ข้อมูลลูกค้า */}
+            <div className="bg-surface mx-[20px] mt-[16px] overflow-hidden rounded-[10px]">
               <button
                 type="button"
                 onClick={() => setIsCustomerInfoOpen(!isCustomerInfoOpen)}
-                className="bg-surface/10 flex w-full cursor-pointer items-center justify-between rounded-[12px] px-[16px] py-[12px] transition-colors xl:bg-gray-50 xl:hover:bg-gray-100"
+                aria-expanded={isCustomerInfoOpen}
+                aria-controls="customer-info-panel"
+                className="focus-visible:ring-primary/50 flex w-full cursor-pointer items-center justify-between px-[16px] py-[12px] outline-none focus-visible:ring-2 focus-visible:ring-inset"
               >
                 <div className="flex items-center gap-[12px]">
-                  <div className="bg-surface/20 xl:bg-primary/10 flex h-[36px] w-[36px] items-center justify-center rounded-full">
-                    <User className="text-surface xl:text-primary h-[18px] w-[18px]" />
+                  <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
+                    <ContactRound className="text-primary h-6 w-6" />
                   </div>
-                  <div className="text-left">
-                    <p className="text-surface xl:text-normal text-lg font-medium md:text-xl">
+                  {/* ความสูงคงที่ ไม่งั้นหัวข้อจะขยับตอนพิมพ์ชื่อ — ไม่มีชื่อก็ให้หัวข้ออยู่กลางแทน */}
+                  <div className="flex min-h-[56px] flex-col justify-center text-left">
+                    <p className="text-normal text-xl font-medium">
                       ข้อมูลลูกค้า
                     </p>
                     {watch("name") && (
-                      <p className="text-surface/80 xl:text-subtle-dark line-clamp-1 text-sm md:text-base">
+                      <p className="text-subtle-dark line-clamp-1 text-lg md:text-xl">
                         {watch("name")}
                         {watch("phoneNumber") && ` • ${watch("phoneNumber")}`}
                       </p>
@@ -787,52 +826,62 @@ const SuspensionInspection = () => {
                   </div>
                 </div>
                 <ChevronDown
-                  className={`text-surface xl:text-subtle-dark h-6 w-6 transition-transform duration-200 ${isCustomerInfoOpen ? "rotate-180" : ""}`}
+                  className={`text-subtle-dark h-6 w-6 transition-transform duration-200 motion-reduce:transition-none ${isCustomerInfoOpen ? "rotate-180" : ""}`}
                 />
               </button>
               <div
-                className={`overflow-hidden transition-all duration-200 ${isCustomerInfoOpen ? "mt-[12px] max-h-[500px] opacity-100" : "max-h-0 opacity-0"}`}
+                inert={!isCustomerInfoOpen}
+                // grid-rows 0fr→1fr ขยายไปหาความสูงจริง ไม่ต้องเดาเป็นตัวเลข
+                // (max-h ตายตัวจะตัดเนื้อหาทิ้งเมื่อทุกช่องขึ้นข้อความ error พร้อมกัน)
+                id="customer-info-panel"
+                className={`grid transition-all duration-200 motion-reduce:transition-none ${
+                  isCustomerInfoOpen
+                    ? "grid-rows-[1fr] opacity-100"
+                    : "grid-rows-[0fr] opacity-0"
+                }`}
               >
-                <div className="space-y-[4px]">
-                  <FormInput
-                    register={register}
-                    name="name"
-                    label="ชื่อลูกค้า"
-                    type="text"
-                    placeholder="เช่น สมชาย ใจดี"
-                    color="surface"
-                    errors={errors}
-                    customClass="mt-[12px]"
-                  />
+                <div className="overflow-hidden">
+                  <div className="space-y-[12px] px-[16px] pb-[16px]">
+                    <FormInput
+                      register={register}
+                      name="name"
+                      label="ชื่อลูกค้า"
+                      type="text"
+                      placeholder="เช่น สมชาย ใจดี"
+                      color="subtle-dark"
+                      errors={errors}
+                      customClass="w-full"
+                    />
 
-                  <FormInput
-                    register={register}
-                    name="address"
-                    label="ที่อยู่"
-                    type="text"
-                    placeholder="เช่น 543 หมู่ 5 ต.น้ำอ้อม อ.กันทรลักษ์ จ.ศรีสะเกษ 33110"
-                    color="surface"
-                    errors={errors}
-                    customClass="mt-[12px]"
-                  />
+                    <FormInput
+                      register={register}
+                      name="address"
+                      label="ที่อยู่"
+                      type="text"
+                      placeholder="เช่น 543 หมู่ 5 ต.น้ำอ้อม อ.กันทรลักษ์ จ.ศรีสะเกษ 33110"
+                      color="subtle-dark"
+                      errors={errors}
+                      customClass="w-full"
+                    />
 
-                  <FormInput
-                    register={register}
-                    name="phoneNumber"
-                    label="หมายเลขโทรศัพท์"
-                    type="text"
-                    placeholder="เช่น 0812345678"
-                    color="surface"
-                    maxLength={10}
-                    errors={errors}
-                    inputMode="numeric"
-                    onInput={(e) => {
-                      e.target.value = e.target.value
-                        .replace(/[^0-9]/g, "")
-                        .slice(0, 10);
-                    }}
-                    customClass="mt-[12px]"
-                  />
+                    <FormInput
+                      register={register}
+                      name="phoneNumber"
+                      label="เบอร์โทรศัพท์"
+                      type="text"
+                      placeholder="เช่น 0812345678"
+                      color="subtle-dark"
+                      maxLength={10}
+                      errors={errors}
+                      inputMode="numeric"
+                      onInput={(e) => {
+                        e.target.value = e.target.value
+                          .replace(/[^0-9]/g, "")
+                          .slice(0, 10);
+                      }}
+                      customClass="w-full"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -886,10 +935,10 @@ const SuspensionInspection = () => {
               />
             </div>
             <div className="px-[20px] pt-[16px]">
-              <p className="text-surface mb-[8px] text-[22px] font-medium md:text-2xl">
+              <p className="text-surface mb-[8px] text-xl font-medium">
                 ทะเบียนรถ
               </p>
-              <div className="flex items-start gap-[4px]">
+              <div className="flex items-start gap-[8px]">
                 <div className="w-[70px]">
                   <LicensePlateInput
                     register={register}
@@ -904,9 +953,6 @@ const SuspensionInspection = () => {
                     }}
                   />
                 </div>
-                <p className="text-surface pt-[8px] text-lg font-medium">
-                  -
-                </p>
                 <div className="w-[80px]">
                   <LicensePlateInput
                     register={register}
@@ -947,20 +993,20 @@ const SuspensionInspection = () => {
 
             <FormInput
               register={register}
-              name="description"
-              label="รายละเอียดการซ่อม"
-              type="text"
-              placeholder="เช่น เบรคติด, สตาร์ทไม่ติด, มีเสียงดังจากล้อหน้า"
+              name="mileage"
+              label="เลขกิโลเมตร"
+              type="number"
+              placeholder="เช่น 120000"
               color="surface"
               errors={errors}
             />
 
             <FormInput
               register={register}
-              name="mileage"
-              label="เลขกิโลเมตร (กม.)"
-              type="number"
-              placeholder="เช่น 85000"
+              name="description"
+              label="รายละเอียดการซ่อม"
+              type="text"
+              placeholder="เช่น ค้างตั้งศูนย์, รอสั่งอะไหล่"
               color="surface"
               errors={errors}
             />
@@ -976,95 +1022,74 @@ const SuspensionInspection = () => {
                   รายการซ่อมช่วงล่าง
                 </p>
               </div>
-              <div className="mx-[20px] mt-[16px] flex justify-center">
-                <div className="relative flex w-full max-w-sm rounded-[10px] bg-gray-100 p-1">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("left")}
-                    className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
-                      activeTab === "left"
-                        ? "scale-105 transform text-white"
-                        : "text-subtle-dark"
-                    }`}
-                  >
-                    <p className="relative z-10">ซ้าย</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("right")}
-                    className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
-                      activeTab === "right"
-                        ? "scale-105 transform text-white"
-                        : "text-subtle-dark"
-                    }`}
-                  >
-                    <p className="relative z-10">ขวา</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("other")}
-                    className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
-                      activeTab === "other"
-                        ? "scale-105 transform text-white"
-                        : "text-subtle-dark"
-                    }`}
-                  >
-                    <p className="relative z-10">อื่นๆ</p>
-                  </button>
-                  <div
-                    className={`bg-gradient-primary absolute flex h-[40px] justify-center rounded-[10px] shadow-lg duration-300 ease-out ${
-                      activeTab === "left"
-                        ? "left-1 w-[calc(33.33%-4px)]"
-                        : activeTab === "right"
-                          ? "left-[33.33%] w-[calc(33.33%-4px)]"
-                          : "left-[66.66%] w-[calc(33.33%-4px)]"
-                    }`}
-                  />
-                </div>
-              </div>
+              {/* แท็บตำแหน่งมีไว้เลือกอะไหล่ ถ้าไม่มีอะไหล่ให้เลือกก็ไม่ต้องแสดง */}
               {compatibleParts.length > 0 && (
-                <div>
-                  {renderPartPanel(activeTab)}
+                <div className="mx-[20px] mt-[16px] flex justify-center">
+                  <div className="relative flex w-full max-w-sm rounded-[10px] bg-gray-100 p-1">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("left")}
+                      className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
+                        activeTab === "left"
+                          ? "scale-105 transform text-white"
+                          : "text-subtle-dark"
+                      }`}
+                    >
+                      <p className="relative z-10">ซ้าย</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("right")}
+                      className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
+                        activeTab === "right"
+                          ? "scale-105 transform text-white"
+                          : "text-subtle-dark"
+                      }`}
+                    >
+                      <p className="relative z-10">ขวา</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("other")}
+                      className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
+                        activeTab === "other"
+                          ? "scale-105 transform text-white"
+                          : "text-subtle-dark"
+                      }`}
+                    >
+                      <p className="relative z-10">อื่นๆ</p>
+                    </button>
+                    <div
+                      className={`bg-gradient-primary absolute flex h-[40px] justify-center rounded-[10px] shadow-lg duration-300 ease-out ${
+                        activeTab === "left"
+                          ? "left-1 w-[calc(33.33%-4px)]"
+                          : activeTab === "right"
+                            ? "left-[33.33%] w-[calc(33.33%-4px)]"
+                            : "left-[66.66%] w-[calc(33.33%-4px)]"
+                      }`}
+                    />
+                  </div>
                 </div>
               )}
-              {watch("brand") &&
-                watch("model") &&
-                compatibleParts.length === 0 && (
-                  <div className="flex h-[228px] items-center justify-center">
-                    <p className="text-subtle-light text-xl md:text-[22px]">
-                      ไม่พบอะไหล่ที่รองรับ
+              <div>{renderPartPanel(activeTab)}</div>
+              {hasVehicleSelected && !hasNoCompatibleParts && (
+                <div className="flex items-center justify-between px-[20px] pt-[16px]">
+                  <p className="text-[22px] font-semibold md:text-2xl">
+                    รายการซ่อมเพิ่มเติม
+                  </p>
+                  <AddRepairItemDialog
+                    onAddItem={handleAddItemToRepair}
+                    selectedItems={repairItems}
+                    restoredStockMap={restoredStockMap}
+                  >
+                    <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
+                      + เพิ่มรายการซ่อม
                     </p>
-                  </div>
-                )}
-              {watch("brand") &&
-                watch("model") &&
-                compatibleParts.length > 0 && (
-                  <div className="flex items-center justify-between px-[20px] pt-[16px]">
-                    <p className="text-[22px] font-semibold md:text-2xl">
-                      รายการซ่อมเพิ่มเติม
-                    </p>
-                    <AddRepairItemDialog
-                      onAddItem={handleAddItemToRepair}
-                      selectedItems={repairItems}
-                      restoredStockMap={restoredStockMap}
-                    >
-                      <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
-                        + เพิ่มรายการซ่อม
-                      </p>
-                    </AddRepairItemDialog>
-                  </div>
-                )}
-              {repairItems.length === 0 && compatibleParts.length === 0 ? (
-                <div>
-                  {(!watch("brand") || !watch("model")) && (
-                    <div className="flex h-[228px] items-center justify-center">
-                      <p className="text-subtle-light text-xl md:text-[22px]">
-                        กรุณาเลือกยี่ห้อและรุ่นรถ
-                      </p>
-                    </div>
-                  )}
-                  <div className="h-[96px] lg:h-0"></div>
+                  </AddRepairItemDialog>
                 </div>
+              )}
+              {repairItems.length === 0 && compatibleParts.length === 0 ? (
+                <div className="h-[96px] lg:h-0"></div>
               ) : repairItems.length > 0 ? (
                 <div className="pb-[96px] xl:pb-0">
                   {repairItems.map((item, index) => (
@@ -1075,12 +1100,14 @@ const SuspensionInspection = () => {
                       <div
                         role="button"
                         tabIndex={0}
-                        onKeyDown={onKeyActivate(() => handlePriceClick(index, item))}
+                        onKeyDown={onKeyActivate(() =>
+                          handlePriceClick(index, item),
+                        )}
                         onClick={() => handlePriceClick(index, item)}
                         className="shadow-primary bg-surface flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] px-[8px]"
                       >
                         <div className="flex flex-1 items-center gap-[8px]">
-                          <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
+                          <div className="shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border border-gray-200">
                             {item.secureUrl ? (
                               <img
                                 src={item.secureUrl}
@@ -1157,7 +1184,7 @@ const SuspensionInspection = () => {
                     </div>
                   ))}
                   {compatibleParts.length > 0 && (
-                    <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
+                    <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col">
                           <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
@@ -1254,7 +1281,7 @@ const SuspensionInspection = () => {
                 </div>
               ) : (
                 <div>
-                  <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
+                  <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col">
                         <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
@@ -1350,95 +1377,75 @@ const SuspensionInspection = () => {
               </p>
             </div>
             <div>
-              <div className="mx-[20px] mt-[16px] flex justify-center">
-                <div className="relative flex w-full max-w-sm rounded-[10px] bg-gray-100 p-1">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("left")}
-                    className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
-                      activeTab === "left"
-                        ? "scale-105 transform text-white"
-                        : "text-subtle-dark"
-                    }`}
-                  >
-                    <p className="relative z-10">ซ้าย</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("right")}
-                    className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
-                      activeTab === "right"
-                        ? "scale-105 transform text-white"
-                        : "text-subtle-dark"
-                    }`}
-                  >
-                    <p className="relative z-10">ขวา</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("other")}
-                    className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
-                      activeTab === "other"
-                        ? "scale-105 transform text-white"
-                        : "text-subtle-dark"
-                    }`}
-                  >
-                    <p className="relative z-10">อื่นๆ</p>
-                  </button>
-
-                  <div
-                    className={`bg-gradient-primary absolute flex h-[40px] justify-center rounded-[10px] shadow-lg duration-300 ease-out ${
-                      activeTab === "left"
-                        ? "left-1 w-[calc(33.33%-4px)]"
-                        : activeTab === "right"
-                          ? "left-[33.33%] w-[calc(33.33%-4px)]"
-                          : "left-[66.66%] w-[calc(33.33%-4px)]"
-                    }`}
-                  />
-                </div>
-              </div>
+              {/* แท็บตำแหน่งมีไว้เลือกอะไหล่ ถ้าไม่มีอะไหล่ให้เลือกก็ไม่ต้องแสดง */}
               {compatibleParts.length > 0 && (
-                <div>
-                  {renderPartPanel(activeTab)}
+                <div className="mx-[20px] mt-[16px] flex justify-center">
+                  <div className="relative flex w-full max-w-sm rounded-[10px] bg-gray-100 p-1">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("left")}
+                      className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
+                        activeTab === "left"
+                          ? "scale-105 transform text-white"
+                          : "text-subtle-dark"
+                      }`}
+                    >
+                      <p className="relative z-10">ซ้าย</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("right")}
+                      className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
+                        activeTab === "right"
+                          ? "scale-105 transform text-white"
+                          : "text-subtle-dark"
+                      }`}
+                    >
+                      <p className="relative z-10">ขวา</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("other")}
+                      className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
+                        activeTab === "other"
+                          ? "scale-105 transform text-white"
+                          : "text-subtle-dark"
+                      }`}
+                    >
+                      <p className="relative z-10">อื่นๆ</p>
+                    </button>
+
+                    <div
+                      className={`bg-gradient-primary absolute flex h-[40px] justify-center rounded-[10px] shadow-lg duration-300 ease-out ${
+                        activeTab === "left"
+                          ? "left-1 w-[calc(33.33%-4px)]"
+                          : activeTab === "right"
+                            ? "left-[33.33%] w-[calc(33.33%-4px)]"
+                            : "left-[66.66%] w-[calc(33.33%-4px)]"
+                      }`}
+                    />
+                  </div>
                 </div>
               )}
-              {watch("brand") &&
-                watch("model") &&
-                compatibleParts.length === 0 && (
-                  <div className="flex h-[228px] items-center justify-center">
-                    <p className="text-subtle-light text-xl md:text-[22px]">
-                      ไม่พบอะไหล่ที่รองรับ
+              <div>{renderPartPanel(activeTab)}</div>
+              {hasVehicleSelected && !hasNoCompatibleParts && (
+                <div className="flex items-center justify-between px-[20px] pt-[16px]">
+                  <p className="text-[22px] font-semibold md:text-2xl">
+                    รายการซ่อมเพิ่มเติม
+                  </p>
+                  <AddRepairItemDialog
+                    onAddItem={handleAddItemToRepair}
+                    selectedItems={repairItems}
+                    restoredStockMap={restoredStockMap}
+                  >
+                    <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
+                      + เพิ่มรายการซ่อม
                     </p>
-                  </div>
-                )}
-              {watch("brand") &&
-                watch("model") &&
-                compatibleParts.length > 0 && (
-                  <div className="flex items-center justify-between px-[20px] pt-[16px]">
-                    <p className="text-[22px] font-semibold md:text-2xl">
-                      รายการซ่อมเพิ่มเติม
-                    </p>
-                    <AddRepairItemDialog
-                      onAddItem={handleAddItemToRepair}
-                      selectedItems={repairItems}
-                      restoredStockMap={restoredStockMap}
-                    >
-                      <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
-                        + เพิ่มรายการซ่อม
-                      </p>
-                    </AddRepairItemDialog>
-                  </div>
-                )}
-              {repairItems.length === 0 && compatibleParts.length === 0 ? (
-                <div>
-                  {(!watch("brand") || !watch("model")) && (
-                    <div className="flex h-[228px] items-center justify-center">
-                      <p className="text-subtle-light text-xl md:text-[22px]">
-                        กรุณาเลือกยี่ห้อและรุ่นรถ
-                      </p>
-                    </div>
-                  )}
+                  </AddRepairItemDialog>
                 </div>
+              )}
+              {repairItems.length === 0 && compatibleParts.length === 0 ? (
+                <div />
               ) : repairItems.length > 0 ? (
                 <div className="pb-[16px]">
                   {repairItems.map((item, index) => (
@@ -1449,12 +1456,14 @@ const SuspensionInspection = () => {
                       <div
                         role="button"
                         tabIndex={0}
-                        onKeyDown={onKeyActivate(() => handlePriceClick(index, item))}
+                        onKeyDown={onKeyActivate(() =>
+                          handlePriceClick(index, item),
+                        )}
                         onClick={() => handlePriceClick(index, item)}
                         className="shadow-primary bg-surface flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] px-[8px]"
                       >
                         <div className="flex flex-1 items-center gap-[8px]">
-                          <div className="border-subtle-light shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border">
+                          <div className="shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border border-gray-200">
                             {item.secureUrl ? (
                               <img
                                 src={item.secureUrl}
@@ -1531,7 +1540,7 @@ const SuspensionInspection = () => {
                     </div>
                   ))}
                   {compatibleParts.length > 0 && (
-                    <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
+                    <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col">
                           <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
@@ -1629,7 +1638,7 @@ const SuspensionInspection = () => {
                 </div>
               ) : (
                 <div>
-                  <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
+                  <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col">
                         <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
@@ -1721,6 +1730,7 @@ const SuspensionInspection = () => {
         onClose={() => setPriceDialogOpen(false)}
         onConfirm={handlePriceConfirm}
         currentPrice={editingItem?.sellingPrice || 0}
+        originalPrice={editingItem?.basePrice}
         productName={editingItem ? getProductName(editingItem) : ""}
         productImage={editingItem?.secureUrl}
         isService={editingItem?.category?.name === "บริการ"}

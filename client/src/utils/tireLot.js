@@ -8,3 +8,13 @@ export const dotOrderKey = (dotCode) => {
 
 export const sortTireLots = (lots = []) =>
   [...lots].sort((a, b) => dotOrderKey(a.dotCode) - dotOrderKey(b.dotCode));
+
+// ล็อตที่ขายไปในบิล (RepairItem.soldLots) → "0126×3, 0626×1"
+// รูปแบบข้อความอยู่ที่นี่ที่เดียว เปลี่ยนได้อิสระเพราะฐานข้อมูลเก็บเป็น JSON ไม่ใช่ข้อความนี้
+export const formatSoldLots = (soldLots) => {
+  if (!Array.isArray(soldLots)) return "";
+  return sortTireLots(soldLots)
+    .filter((lot) => lot?.dotCode)
+    .map((lot) => `${lot.dotCode}×${lot.quantity}`)
+    .join(", ");
+};

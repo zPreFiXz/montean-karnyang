@@ -45,7 +45,7 @@ const DropdownListMenu = () => {
           </Button>
         </div>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="font-athiti bg-surface w-[220px] rounded-[12px] border border-gray-100 p-[8px] shadow-[0px_10px_40px_0_rgba(0,0,0,0.15)]">
+      <DropdownMenuContent className="font-athiti bg-surface w-[220px] rounded-[10px] border border-gray-100 p-[8px] shadow-[0px_10px_40px_0_rgba(0,0,0,0.15)]">
         {publicLinks.map((item, index) => {
           const Icon = item.icon;
           return (

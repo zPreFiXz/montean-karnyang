@@ -2,8 +2,11 @@ import { Label } from "@radix-ui/react-label";
 import { useState, useEffect, useRef } from "react";
 import { Plus, Trash, X } from "lucide-react";
 import ComboBox from "../ui/ComboBox";
+import CollapsibleRow from "../ui/CollapsibleRow";
+import { scrollToNewRow } from "@/utils/scrollToNewRow";
 import { listVehicleModels } from "@/api/vehicleModel";
 import { toastError } from "@/utils/handleError";
+import { withOtherBrandLast } from "@/utils/vehicleBrand";
 
 const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   const [vehicles, setVehicles] = useState([{ brand: "", model: "" }]);
@@ -11,6 +14,8 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   const [vehicleModels, setVehicleModels] = useState([]);
   const [brands, setBrands] = useState([]);
   const vehicleRefs = useRef([]);
+  // การ์ดที่กำลังยุบตัวก่อนหายจริง (ดู CollapsibleRow)
+  const [leavingIndex, setLeavingIndex] = useState(null);
 
   useEffect(() => {
     fetchVehicleModels();
@@ -43,7 +48,9 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
       const res = await listVehicleModels();
       setVehicleModels(res.data);
 
-      const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
+      const uniqueBrands = withOtherBrandLast([
+        ...new Set(res.data.map((item) => item.brand)),
+      ]);
       setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
     } catch (error) {
       toastError(error);
@@ -60,10 +67,20 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
     return modelsForBrand;
   };
 
+  // เรียงให้ตรงกับลำดับในลิสต์แม่ (ยี่ห้อ/รุ่นเรียงตามที่จัดไว้ในฐานข้อมูล เล็กไปใหญ่ เก่าไปใหม่)
+  // เรียงตอนบันทึกอย่างเดียว ไม่เรียงการ์ดบนหน้าจอระหว่างกรอก ไม่งั้นการ์ดจะสลับที่ใต้มือ
+  const masterRank = (vehicle) => {
+    const index = vehicleModels.findIndex(
+      (item) => item.brand === vehicle.brand && item.model === vehicle.model,
+    );
+    return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+  };
+
   const updateFormValue = (vehicleList) => {
     const validVehicles = vehicleList
       .filter((v) => v.brand.trim() && v.model.trim())
-      .map((v) => ({ brand: v.brand.trim(), model: v.model.trim() }));
+      .map((v) => ({ brand: v.brand.trim(), model: v.model.trim() }))
+      .sort((a, b) => masterRank(a) - masterRank(b));
 
     setValue(
       "compatibleVehicles",
@@ -74,16 +91,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   const handleAddVehicle = () => {
     const newVehicles = [...vehicles, { brand: "", model: "" }];
     setVehicles(newVehicles);
-
-    setTimeout(() => {
-      const newIndex = newVehicles.length - 1;
-      if (vehicleRefs.current[newIndex]) {
-        vehicleRefs.current[newIndex].scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-      }
-    }, 200);
+    scrollToNewRow(() => vehicleRefs.current[newVehicles.length - 1]);
   };
 
   const handleClearVehicle = (index) => {
@@ -100,6 +108,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
     const newVehicles = vehicles.filter((_, i) => i !== index);
     setVehicles(newVehicles);
     updateFormValue(newVehicles);
+    setLeavingIndex(null);
   };
 
   const handleUpdateVehicle = (index, field, value) => {
@@ -120,73 +129,82 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   return (
     <div className="space-y-[16px] px-[20px] pt-[16px]">
       <Label className="text-subtle-dark text-xl font-medium">
-        รถที่ใช้ได้
+        รุ่นรถที่ใส่ได้
       </Label>
 
       {vehicles.map((vehicle, index) => (
-        <div
+        <CollapsibleRow
           key={index}
-          ref={(el) => (vehicleRefs.current[index] = el)}
-          className="mt-[8px] rounded-[10px] border p-[16px]"
+          leaving={leavingIndex === index}
+          onLeaveEnd={() => handleRemoveVehicle(index)}
         >
-          <div className="mb-[8px] flex items-center justify-between">
-            <p className="text-subtle-dark text-xl font-medium md:text-[22px]">
-              รถคันที่ {index + 1}
-            </p>
+          <div
+            ref={(el) => (vehicleRefs.current[index] = el)}
+            className="mt-[8px] rounded-[10px] border p-[16px]"
+          >
+            <div className="mb-[8px] flex items-center justify-between">
+              <p className="text-subtle-dark text-xl font-medium md:text-[22px]">
+                รถคันที่ {index + 1}
+              </p>
 
-            <div className="flex">
-              {vehicles.length === 1 && (vehicle.brand || vehicle.model) && (
-                <button
-                  type="button"
-                  onClick={() => handleClearVehicle(index)}
-                  className="text-destructive flex cursor-pointer items-center text-lg font-medium md:text-xl"
-                >
-                  <X className="mr-[4px] h-4 w-4" />
-                  ล้างข้อมูล
-                </button>
-              )}
+              <div className="flex">
+                {vehicles.length === 1 && (vehicle.brand || vehicle.model) && (
+                  <button
+                    type="button"
+                    onClick={() => handleClearVehicle(index)}
+                    className="text-destructive flex cursor-pointer items-center text-lg font-medium md:text-xl"
+                  >
+                    <X className="mr-[4px] h-4 w-4" />
+                    ล้างข้อมูล
+                  </button>
+                )}
 
-              {vehicles.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => handleRemoveVehicle(index)}
-                  className="text-destructive flex cursor-pointer items-center text-lg font-medium md:text-xl"
-                >
-                  <Trash className="mr-[4px] h-4 w-4" />
-                  ลบ
-                </button>
-              )}
+                {vehicles.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setLeavingIndex(index)}
+                    className="text-destructive flex cursor-pointer items-center text-lg font-medium md:text-xl"
+                  >
+                    <Trash className="mr-[4px] h-4 w-4" />
+                    ลบ
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-[8px]">
+              <div>
+                <ComboBox
+                  label="ยี่ห้อ"
+                  color="text-subtle-dark"
+                  options={brands}
+                  value={vehicle.brand}
+                  onChange={(value) =>
+                    handleUpdateVehicle(index, "brand", value)
+                  }
+                  placeholder="-- เลือกยี่ห้อ --"
+                  name="brand"
+                  customClass="text-lg md:text-xl"
+                />
+              </div>
+
+              <div>
+                <ComboBox
+                  label="รุ่น"
+                  color="text-subtle-dark"
+                  options={getAvailableModels(vehicle.brand)}
+                  value={vehicle.model}
+                  onChange={(value) =>
+                    handleUpdateVehicle(index, "model", value)
+                  }
+                  placeholder="-- เลือกรุ่น --"
+                  name="model"
+                  disabled={!vehicle.brand}
+                  customClass="text-lg md:text-xl"
+                />
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-[8px]">
-            <div>
-              <ComboBox
-                label="ยี่ห้อ"
-                color="text-subtle-dark"
-                options={brands}
-                value={vehicle.brand}
-                onChange={(value) => handleUpdateVehicle(index, "brand", value)}
-                placeholder="-- เลือกยี่ห้อ --"
-                name="brand"
-                customClass="text-lg md:text-xl"
-              />
-            </div>
-
-            <div>
-              <ComboBox
-                label="รุ่น"
-                color="text-subtle-dark"
-                options={getAvailableModels(vehicle.brand)}
-                value={vehicle.model}
-                onChange={(value) => handleUpdateVehicle(index, "model", value)}
-                placeholder="-- เลือกรุ่น --"
-                name="model"
-                disabled={!vehicle.brand}
-                customClass="text-lg md:text-xl"
-              />
-            </div>
-          </div>
-        </div>
+        </CollapsibleRow>
       ))}
 
       <button

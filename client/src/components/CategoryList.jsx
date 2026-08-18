@@ -64,7 +64,7 @@ const CategoryList = ({
             className={`flex h-[80px] w-[80px] cursor-pointer flex-col items-center justify-center rounded-[10px] border px-[20px] py-[12px] duration-300 ${
               activeCategory === "ทั้งหมด"
                 ? "text-surface bg-gradient-primary border-transparent"
-                : "border-subtle-light text-subtle-dark bg-surface"
+                : "text-subtle-dark bg-surface border-slate-500"
             }`}
           >
             <div className="text-sm font-semibold text-nowrap md:text-base">
@@ -86,7 +86,7 @@ const CategoryList = ({
                 className={`flex h-[80px] w-[80px] cursor-pointer flex-col items-center justify-center rounded-[10px] border px-[20px] py-[12px] duration-300 ${
                   isActive
                     ? "text-surface bg-gradient-primary border-transparent"
-                    : "bg-surface border-subtle-light text-subtle-dark"
+                    : "bg-surface text-subtle-dark border-slate-500"
                 }`}
               >
                 <div

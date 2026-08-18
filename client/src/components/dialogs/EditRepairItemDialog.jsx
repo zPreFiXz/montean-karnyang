@@ -10,12 +10,14 @@ import FormInput from "@/components/forms/FormInput";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { editNamePriceSchema } from "@/utils/schemas";
+import { formatCurrency } from "@/utils/formats";
 
 const EditRepairItemDialog = ({
   isOpen,
   onClose,
   onConfirm,
   currentPrice,
+  originalPrice,
   productName,
   productImage,
   isService = false,
@@ -41,6 +43,8 @@ const EditRepairItemDialog = ({
   const price = watchedPrice || currentPrice?.toString() || "0";
   const isNameEditable =
     typeof canEditName === "boolean" ? canEditName : isService;
+  const hasAdjustedPrice =
+    originalPrice != null && Number(originalPrice) !== Number(currentPrice);
 
   useEffect(() => {
     if (isOpen) {
@@ -80,23 +84,24 @@ const EditRepairItemDialog = ({
           e.preventDefault();
         }}
       >
-        <div className="relative flex-shrink-0 pt-[16px]">
-          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-2xl">
-            {isService ? "แก้ไขรายการบริการ" : "แก้ไขราคาอะไหล่"}
+        {/* mt แทน pt เพื่อให้กล่องนี้สูงเท่าปุ่มพอดี ปุ่ม X ที่จัดกึ่งกลางจะได้ตรงกับหัวเรื่องจริงๆ
+            (ถ้าใช้ pt ปุ่มจะเยื้องลงครึ่งหนึ่งของ padding) */}
+        <div className="relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]">
+          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
+            {isNameEditable ? "แก้ไขชื่อและราคา" : "แก้ไขราคา"}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            {isService
-              ? `แก้ไขราคาบริการ ${currentName || productName}`
-              : `แก้ไขราคาอะไหล่ ${productName}`}
+            {isNameEditable
+              ? `แก้ไขชื่อและราคา ${currentName || productName}`
+              : `แก้ไขราคา ${currentName || productName}`}
           </DialogDescription>
           <button
             onClick={handleCancel}
             autoFocus={false}
-            tabIndex={-1}
             aria-label="ปิดหน้าต่าง"
-            className="absolute top-[16px] right-[20px] flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-black/5"
+            className="absolute top-1/2 right-[20px] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/5"
           >
-            <X size={18} className="text-subtle-dark" />
+            <X size={20} className="text-subtle-dark" />
           </button>
         </div>
 
@@ -138,6 +143,19 @@ const EditRepairItemDialog = ({
                     />
                   )}
 
+                  {/* ราคาตั้งต้นจากคลัง แสดงเมื่อราคาถูกปรับไปแล้ว เพื่อให้รู้ว่าลดไปเท่าไหร่
+                      ถ้ายังไม่ปรับก็ไม่ต้องบอก เพราะเท่ากับเลขในช่องข้างล่างอยู่แล้ว */}
+                  {hasAdjustedPrice && (
+                    <div className="flex items-center justify-between">
+                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                        ราคาปกติ:
+                      </p>
+                      <p className="text-subtle-dark text-lg font-medium line-through md:text-xl">
+                        {formatCurrency(Number(originalPrice))}
+                      </p>
+                    </div>
+                  )}
+
                   <FormInput
                     register={register}
                     name="price"
@@ -164,7 +182,7 @@ const EditRepairItemDialog = ({
             <button
               type="button"
               onClick={handleCancel}
-              className="font-athiti border-subtle-light bg-surface text-subtle-dark flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
+              className="font-athiti bg-surface text-subtle-dark border-subtle-light flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
             >
               ยกเลิก
             </button>

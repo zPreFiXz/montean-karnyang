@@ -25,11 +25,7 @@ import { useParams, useSearchParams } from "react-router";
 import useAuthStore from "@/stores/useAuthStore";
 import { toastError } from "@/utils/handleError";
 import { sortTireLots } from "@/utils/tireLot";
-
-const SUSPENSION_TYPES = [
-  { id: "left-right", name: "ซ้าย-ขวา" },
-  { id: "other", name: "อื่นๆ" },
-];
+import { SIDE_OPTIONS, toPerSide, toSideOptionId } from "@/utils/suspension";
 
 const InventoryEdit = () => {
   const {
@@ -74,9 +70,11 @@ const InventoryEdit = () => {
     }
   }, [category, id, type]);
 
+  // หมวดหมู่เป็น ComboBox ที่ไม่มี input ให้ onInvalid ค้นหาเจอ จึงพาขึ้นบนสุดแทน
+  // (หมวดหมู่เป็นช่องแรกของฟอร์มอยู่แล้ว) — เลื่อนแบบนุ่มให้เหมือนช่องอื่น
   useEffect(() => {
     if (errors.categoryId) {
-      window.scrollTo(0, 0);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [errors.categoryId]);
 
@@ -126,7 +124,8 @@ const InventoryEdit = () => {
             setValue("width", item.attributes.width);
             setValue("aspectRatio", item.attributes.aspectRatio || "");
             setValue("rimDiameter", item.attributes.rimDiameter);
-            setValue("suspensionType", item.attributes.suspensionType, {
+            // แปลงค่าที่เก็บ (perSide) กลับเป็นตัวเลือกในฟอร์ม รองรับข้อมูลเก่าที่ยังไม่ได้ย้ายด้วย
+            setValue("suspensionType", toSideOptionId(item.attributes), {
               shouldValidate: true,
               shouldTouch: true,
             });
@@ -246,6 +245,33 @@ const InventoryEdit = () => {
     trigger("categoryId");
   };
 
+  // กดบันทึกแล้วช่องที่ผิดอาจอยู่นอกจอ ต้องพาไปหาไม่งั้นดูเหมือนกดแล้วไม่มีอะไรเกิดขึ้น
+  const onInvalid = (errs) => {
+    if (!errs) return;
+
+    const fields = Object.keys(errs);
+    const errorElements = fields
+      .map((field) => document.querySelector(`[name="${field}"]`))
+      .filter((el) => el && el.offsetParent !== null);
+
+    if (errorElements.length === 0) return;
+
+    const firstErrorEl = errorElements.reduce((prev, curr) =>
+      prev.getBoundingClientRect().top < curr.getBoundingClientRect().top
+        ? prev
+        : curr,
+    );
+
+    // preventScroll สำคัญ — โดยปริยาย focus() จะกระโดดไปหาช่องทันที
+    // แล้ว scrollIntoView ที่ตามมาก็ไม่เหลืออะไรให้เลื่อน ภาพที่เห็นคือเด้งพรึบ
+    firstErrorEl.focus?.({ preventScroll: true });
+    firstErrorEl.scrollIntoView({
+      block: "center",
+      inline: "nearest",
+      behavior: "smooth",
+    });
+  };
+
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
@@ -308,7 +334,7 @@ const InventoryEdit = () => {
               }
             : isSuspensionCategory()
               ? {
-                  suspensionType: data.suspensionType,
+                  perSide: toPerSide(data.suspensionType),
                 }
               : undefined,
           tireLots: isTireCategory()
@@ -355,9 +381,10 @@ const InventoryEdit = () => {
       <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
         <button
           onClick={() => navigate(-1)}
-          className="text-surface mt-[2px] cursor-pointer"
+          aria-label="ย้อนกลับ"
+          className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
         >
-          <ChevronLeft />
+          <ChevronLeft className="text-surface" />
         </button>
         <p className="text-surface text-2xl font-semibold md:text-[26px]">
           {isServiceCategory() ? "แก้ไขบริการ" : "แก้ไขอะไหล่"}
@@ -369,7 +396,7 @@ const InventoryEdit = () => {
             <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)}>
+          <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
             <div className="px-[20px] pt-[16px]">
               <ComboBox
                 label="หมวดหมู่"
@@ -476,16 +503,24 @@ const InventoryEdit = () => {
                         customClass="w-full min-w-0 flex-1"
                         errors={errors}
                         hideErrorMessage
-                        inputMode="numeric"
+                        inputMode="decimal"
                         onWheel={(e) => e.target.blur()}
                         onInput={(e) => {
+                          // ยางบรรทุกใช้หน่วยนิ้วและมีจุดทศนิยม (7.50R16)
+                          // ต่างจากยางเก๋งที่เป็นมิลลิเมตรจำนวนเต็ม (195/55R15)
                           e.target.value = e.target.value
-                            .replace(/[^0-9]/g, "")
-                            .slice(0, 3);
+                            .replace(/[^0-9.]/g, "")
+                            .replace(/(\..*)\./g, "$1")
+                            .slice(0, 5);
                         }}
                       />
 
-                      <span className="text-subtle-dark flex h-[41px] shrink-0 items-center text-xl font-medium md:text-[22px]">
+                      {/* ยางบรรทุกไม่มีแก้มยาง (7.50R16) ตัวคั่นจึงไม่ควรค้างอยู่เมื่อช่องกลางว่าง */}
+                      <span
+                        className={`text-subtle-dark flex h-[41px] shrink-0 items-center text-xl font-medium md:text-[22px] ${
+                          watch("aspectRatio") ? "" : "opacity-0"
+                        }`}
+                      >
                         /
                       </span>
 
@@ -547,10 +582,10 @@ const InventoryEdit = () => {
                 {isSuspensionCategory() && (
                   <div className="my-[16px] px-[20px]">
                     <ComboBox
-                      label="ประเภทช่วงล่าง"
+                      label="การติดตั้ง"
                       color="text-subtle-dark"
                       labelClass="text-xl"
-                      options={SUSPENSION_TYPES}
+                      options={SIDE_OPTIONS}
                       value={watch("suspensionType")}
                       onChange={(value) =>
                         setValue("suspensionType", value, {

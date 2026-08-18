@@ -44,7 +44,7 @@ const UserList = () => {
     if (!deletingUser) return;
     try {
       await deleteUser(deletingUser.id);
-      toast.success("ลบบัญชีผู้ใช้งานสำเร็จ");
+      toast.success("ลบบัญชีผู้ใช้งานเรียบร้อยแล้ว");
       setIsDeleteDialogOpen(false);
       setDeletingUser(null);
       fetchUsers();
@@ -101,8 +101,12 @@ const UserList = () => {
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
-        <Link to="/dashboard" className="text-surface mt-[2px]">
-          <ChevronLeft />
+        <Link
+          to="/dashboard"
+          aria-label="ย้อนกลับ"
+          className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+        >
+          <ChevronLeft className="text-surface" />
         </Link>
         <p className="text-surface text-2xl font-semibold md:text-[26px]">
           จัดการบัญชีผู้ใช้งาน

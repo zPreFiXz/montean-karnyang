@@ -22,6 +22,7 @@ import { formatCurrency } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 import { tracksStock } from "@/utils/stock";
 import { dotOrderKey } from "@/utils/tireLot";
+import { isPerSide } from "@/utils/suspension";
 
 // สะท้อนสิ่งที่ backend ทำตอนเพิ่มสต็อก: DOT เดิมบวกทับล็อตเดิม ไม่งั้นสร้างล็อตใหม่
 // (คำนวณฝั่งนี้ด้วยเพื่อให้ไดอะล็อกอัปเดตทันทีโดยไม่ต้องดึงข้อมูลใหม่)
@@ -139,6 +140,17 @@ const RepairItemDetailDialog = ({
     return [...rows.values()].sort((a, b) => a.sortKey - b.sortKey);
   })();
 
+  // รวมรุ่นของยี่ห้อเดียวกันไว้ด้วยกัน คงลำดับเดิมที่บันทึกมา (เรียงตามลิสต์แม่แล้ว)
+  const vehiclesByBrand = (() => {
+    const groups = new Map();
+    for (const vehicle of currentItem.compatibleVehicles || []) {
+      const brand = vehicle.brand || "ไม่ระบุ";
+      if (!groups.has(brand)) groups.set(brand, []);
+      groups.get(brand).push(vehicle.model);
+    }
+    return [...groups.entries()].map(([brand, models]) => ({ brand, models }));
+  })();
+
   // ป้ายสถานะสต็อก: หมด/ต่ำ/ปกติ — กรณีหมดไม่ต้องบอกจำนวน เพราะคำว่าหมดสื่ออยู่แล้วว่า 0
   // "สต็อกขั้นต่ำ" = จำนวนที่ต้องมีอยู่เสมอ จึงเตือนเมื่อ "ต่ำกว่า" ไม่ใช่ "เท่ากับ"
   // (เกณฑ์นี้ต้องตรงกับ InventoryCard และ Dashboard)
@@ -152,7 +164,7 @@ const RepairItemDetailDialog = ({
         color: "bg-subtle-light",
         textColor: "text-subtle-dark",
         Icon: Info,
-        label: `ไม่เก็บสต็อก · จำนวน ${amount}`,
+        label: `ไม่แจ้งเตือนสต็อก · จำนวน ${amount}`,
       };
     }
     if (quantity === 0) {
@@ -285,8 +297,8 @@ const RepairItemDetailDialog = ({
             e.preventDefault();
           }}
         >
-          <div className="relative flex-shrink-0 pt-[16px]">
-            <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-semibold md:text-2xl">
+          <div className="relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]">
+            <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
               รายละเอียด{isService ? "บริการ" : "อะไหล่"}
             </DialogTitle>
             <DialogDescription className="sr-only">
@@ -296,11 +308,10 @@ const RepairItemDetailDialog = ({
             <button
               onClick={() => onOpenChange(false)}
               autoFocus={false}
-              tabIndex={-1}
               aria-label="ปิดหน้าต่าง"
-              className="absolute top-[16px] right-[20px] flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-black/5"
+              className="absolute top-1/2 right-[20px] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/5"
             >
-              <X size={18} className="text-subtle-dark" />
+              <X size={20} className="text-subtle-dark" />
             </button>
           </div>
 
@@ -360,20 +371,18 @@ const RepairItemDetailDialog = ({
                     </p>
                   </div>
 
-                  {currentItem.category?.name === "ช่วงล่าง" &&
-                    currentItem.attributes?.suspensionType && (
-                      <div className="flex justify-between">
-                        <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                          ประเภทช่วงล่าง:
-                        </p>
-                        <p className="text-normal text-lg font-semibold md:text-xl">
-                          {currentItem.attributes.suspensionType ===
-                          "left-right"
-                            ? "ซ้าย-ขวา"
-                            : "อื่นๆ"}
-                        </p>
-                      </div>
-                    )}
+                  {currentItem.category?.name === "ช่วงล่าง" && (
+                    <div className="flex justify-between">
+                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                        การติดตั้ง:
+                      </p>
+                      <p className="text-normal text-lg font-semibold md:text-xl">
+                        {isPerSide(currentItem.attributes)
+                          ? "แยกซ้าย-ขวา"
+                          : "ไม่แยกข้าง"}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {!isService && (
@@ -463,16 +472,37 @@ const RepairItemDetailDialog = ({
                 currentItem.compatibleVehicles.length > 0 && (
                   <div className="mt-[16px]">
                     <p className="font-athiti text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
-                      รถที่ใช้ได้
+                      รุ่นรถที่ใส่ได้
                     </p>
-                    <div className="flex flex-wrap gap-[6px]">
-                      {currentItem.compatibleVehicles.map((vehicle, index) => (
-                        <p
-                          key={index}
-                          className="text-subtle-dark rounded-[10px] bg-gray-100 px-[10px] py-[4px] text-lg font-medium"
+                    {/* ตารางยี่ห้อ-รุ่น เข้าชุดกับคู่ ชื่อ-ค่า ในส่วนอื่นของไดอะล็อก
+                        (ข้อมูลถูกเรียงให้ยี่ห้อรวมกลุ่มกันแล้วตั้งแต่ตอนบันทึก)
+                        รุ่นครอบเป็นป้ายทีละอัน เพราะชื่อรุ่นมีเว้นวรรคในตัว (Pajero Sport)
+                        ถ้าคั่นด้วยจุลภาคเฉยๆ จะแยกไม่ออกว่าอันไหนจบตรงไหน */}
+                    <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
+                      {vehiclesByBrand.map((group, groupIndex) => (
+                        <div
+                          key={group.brand}
+                          // เส้นคั่นเฉพาะระหว่างยี่ห้อ ไม่ใส่เหนือแถวแรก
+                          className={`flex gap-[12px] ${
+                            groupIndex > 0
+                              ? "border-t border-gray-200 pt-[8px]"
+                              : ""
+                          }`}
                         >
-                          {vehicle.brand} {vehicle.model}
-                        </p>
+                          <p className="text-subtle-dark w-[110px] shrink-0 pt-[2px] text-lg font-medium md:text-xl">
+                            {group.brand}
+                          </p>
+                          <div className="flex min-w-0 flex-1 flex-wrap gap-[6px]">
+                            {group.models.map((model, index) => (
+                              <p
+                                key={`${model}-${index}`}
+                                className="text-normal bg-surface rounded-[8px] border border-gray-200 px-[8px] py-[2px] text-lg font-medium"
+                              >
+                                {model}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -545,7 +575,7 @@ const RepairItemDetailDialog = ({
                             onClick={handleCancelAddStock}
                             // พื้นขาว+ขอบ ไม่ใช่พื้นเทา เพราะกล่องฟอร์มเป็น bg-gray-50 อยู่แล้วจะกลืนกัน
                             // กว้างครึ่งเดียวของปุ่มหลัก — เป็นทางถอย ไม่ใช่สิ่งที่ตั้งใจมากด
-                            className="font-athiti border-subtle-light bg-surface text-subtle-dark flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
+                            className="font-athiti bg-surface text-subtle-dark border-subtle-light flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
                           >
                             ยกเลิก
                           </button>

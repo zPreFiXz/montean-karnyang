@@ -13,7 +13,7 @@ const InventoryCard = ({
   secureUrl,
   category,
   // หน้าจอที่ยึดสต็อกจริงล้วน (เช่นไดอะล็อกเลือกอะไหล่ลงบิล) ให้เตือน "สต็อกหมด" เมื่อเหลือ 0
-  // แม้อะไหล่ตัวนั้นจะตั้งไม่เก็บสต็อกไว้ก็ตาม เพราะเบิกไม่ได้อยู่ดี
+  // แม้อะไหล่ตัวนั้นจะตั้งไม่แจ้งเตือนสต็อกไว้ก็ตาม เพราะเบิกไม่ได้อยู่ดี
   alwaysWarnEmpty = false,
 }) => {
   const isTire = category === "ยาง";
@@ -43,10 +43,11 @@ const InventoryCard = ({
   };
 
   return (
-    <div className="mt-[16px] flex cursor-pointer items-center gap-[16px]">
+    // ระยะห่างระหว่างการ์ดอยู่บนตัวที่รับคลิก ไม่ใช่ที่นี่ ไม่งั้นช่องว่างจะกดได้ด้วย
+    <div className="flex items-center gap-[16px]">
       <div className="shadow-primary bg-surface flex h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] px-[8px]">
         <div className="flex items-center gap-[8px]">
-          <div className="border-subtle-light shadow-primary bg-surface flex items-center justify-center rounded-[10px] border">
+          <div className="shadow-primary bg-surface flex items-center justify-center rounded-[10px] border border-gray-200">
             {secureUrl ? (
               <div className="h-[60px] w-[60px]">
                 <img

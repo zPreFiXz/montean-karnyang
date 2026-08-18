@@ -69,10 +69,10 @@ exports.repairSchema = z.object({
               .nullable()
               .optional(),
           ),
-          customName: z.string().optional(),
         })
-        .refine((item) => item.partId || item.serviceId || item.customName, {
-          message: "แต่ละรายการต้องมีอะไหล่ บริการ หรือชื่อรายการอย่างน้อย 1",
+        // ชื่อไม่รับจาก client — เซิร์ฟเวอร์ประกอบเองจากอะไหล่/บริการที่อ้างถึง
+        .refine((item) => item.partId || item.serviceId, {
+          message: "แต่ละรายการต้องระบุอะไหล่หรือบริการ",
         }),
     )
     .optional(),

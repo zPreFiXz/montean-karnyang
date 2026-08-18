@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,7 +7,7 @@ import {
   Plus,
   Minus,
   ChevronDown,
-  User,
+  ContactRound,
   ClipboardList,
 } from "lucide-react";
 import FormInput from "@/components/forms/FormInput";
@@ -15,6 +15,8 @@ import LicensePlateInput from "@/components/forms/LicensePlateInput";
 import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
 import EditPriceDialog from "@/components/dialogs/EditRepairItemDialog";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
+import CollapsibleRow from "@/components/ui/CollapsibleRow";
+import { scrollToNewRow } from "@/utils/scrollToNewRow";
 import FormButton from "@/components/forms/FormButton";
 import ComboBox from "@/components/ui/ComboBox";
 import { listVehicleModels } from "@/api/vehicleModel";
@@ -23,14 +25,17 @@ import { provinces } from "@/constants/provinces";
 import { formatCurrency } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 import { onKeyActivate } from "@/utils/a11y";
+import { withOtherBrandLast } from "@/utils/vehicleBrand";
+
+const CUSTOMER_FIELDS = ["name", "address", "phoneNumber"];
+const SUBMIT_FEEDBACK_MS = 400;
 
 const RepairCreate = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { register, handleSubmit, formState, setValue, watch, setFocus } =
-    useForm({
-      resolver: zodResolver(repairSchema),
-    });
+  const { register, handleSubmit, formState, setValue, watch } = useForm({
+    resolver: zodResolver(repairSchema),
+  });
   const [isCustomerInfoOpen, setIsCustomerInfoOpen] = useState(false);
   const [repairItems, setRepairItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,6 +45,9 @@ const RepairCreate = () => {
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [removingIndex, setRemovingIndex] = useState(null);
+  // แถวที่กำลังยุบตัวก่อนหายจริง (ดู CollapsibleRow)
+  const [leavingIndex, setLeavingIndex] = useState(null);
+  const leaveHandledRef = useRef(false);
   const { errors } = formState;
 
   useEffect(() => {
@@ -83,6 +91,7 @@ const RepairCreate = () => {
             return {
               ...it,
               availableStock: (it.stockQuantity || 0) + (map[key] || 0),
+              basePrice: it.basePrice ?? it.sellingPrice,
             };
           }),
         );
@@ -123,7 +132,9 @@ const RepairCreate = () => {
       const res = await listVehicleModels();
       setVehicleModels(res.data);
 
-      const uniqueBrands = [...new Set(res.data.map((item) => item.brand))];
+      const uniqueBrands = withOtherBrandLast([
+        ...new Set(res.data.map((item) => item.brand)),
+      ]);
       setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
     } catch (error) {
       toastError(error);
@@ -170,6 +181,10 @@ const RepairCreate = () => {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
+      // หน่วงสั้นๆ ให้เห็นตัวหมุนก่อนหน้าจอเปลี่ยน ไม่งั้นกดแล้วหน้าเปลี่ยนทันที
+      // จนไม่มีอะไรยืนยันว่ากดติด (ไม่ได้รอเซิร์ฟเวอร์ ข้อมูลส่งต่อผ่าน state ล้วน)
+      await new Promise((resolve) => setTimeout(resolve, SUBMIT_FEEDBACK_MS));
+
       navigate("/repairs/review", {
         state: {
           repairData: { ...data, type: "GENERAL" },
@@ -190,24 +205,26 @@ const RepairCreate = () => {
     const firstErrorField = Object.keys(errs || {})[0];
     if (!firstErrorField) return;
 
-    try {
-      setFocus(firstErrorField, { shouldSelect: true });
-    } catch {
-      // ไม่ต้องทำอะไร: เป็นการ blur/focus เสริม ถ้าพลาดก็ไม่กระทบการทำงาน
+    // ช่องที่ผิดอาจอยู่ในกล่องข้อมูลลูกค้าที่พับไว้ ถ้าไม่กางออกก่อน
+    // การโฟกัสจะไม่เห็นอะไรเลย คนใช้จะงงว่ากดปุ่มแล้วไม่มีอะไรเกิดขึ้น
+    if (CUSTOMER_FIELDS.includes(firstErrorField)) {
+      setIsCustomerInfoOpen(true);
     }
 
     setTimeout(() => {
-      let el = document.querySelector(`[name="${firstErrorField}"]`);
-      let target = el;
-      if (!el || el.type === "hidden" || el.offsetParent === null) {
-        target = el?.parentElement || null;
-      }
-      if (target && typeof target.scrollIntoView === "function") {
-        target.scrollIntoView({
-          block: "nearest",
-          inline: "nearest",
-        });
-      }
+      const el = document.querySelector(`[name="${firstErrorField}"]`);
+      const isVisible = el && el.type !== "hidden" && el.offsetParent !== null;
+      const target = isVisible ? el : el?.parentElement || null;
+      if (!target) return;
+
+      // preventScroll สำคัญ — โดยปริยาย focus() จะกระโดดไปหาช่องทันที
+      // แล้วการเลื่อนแบบนุ่มที่ตามมาก็ไม่เหลืออะไรให้เลื่อน ภาพที่เห็นคือเด้งพรึบ
+      if (isVisible) el.focus?.({ preventScroll: true });
+      target.scrollIntoView({
+        block: "center",
+        inline: "nearest",
+        behavior: "smooth",
+      });
     }, 200);
   };
 
@@ -242,17 +259,20 @@ const RepairCreate = () => {
             availableStock: item.quantity,
             quantity: 1,
             sellingPrice: item.sellingPrice,
+            // ราคาตั้งต้นจากคลัง ไว้เทียบตอนแก้ราคา — sellingPrice จะถูกทับเมื่อปรับราคาให้ลูกค้า
+            basePrice: item.sellingPrice,
           },
         ];
       }
     });
 
-    setTimeout(() => {
-      window.scrollTo({
-        top: document.body.scrollHeight,
-        behavior: "smooth",
-      });
-    }, 200);
+    // เลื่อนไปหารายการที่เพิ่งเพิ่ม/เพิ่งเพิ่มจำนวน แทนการกระโดดลงล่างสุดของหน้า
+    // (รายการถูกวาดสองชุดสำหรับมือถือ/เดสก์ท็อป จึงต้องหยิบชุดที่แสดงอยู่จริง)
+    scrollToNewRow(() => {
+      const rows = document.querySelectorAll("[data-repair-row]");
+      const visible = [...rows].filter((el) => el.offsetParent !== null);
+      return visible[visible.length - 1];
+    });
   };
 
   // เบิกได้ไม่เกินสต็อกที่มีอยู่จริง ไม่เกี่ยวกับสต็อกขั้นต่ำ
@@ -285,8 +305,18 @@ const RepairCreate = () => {
 
   // จำนวนเหลือ 1 แล้วกด − = เอารายการออก จึงถามยืนยันก่อน เพราะกดพลาดแล้วหายทั้งรายการ
   const handleRemoveItem = () => {
-    setRepairItems((prev) => prev.filter((_, i) => i !== removingIndex));
+    leaveHandledRef.current = false;
+    setLeavingIndex(removingIndex);
     setRemovingIndex(null);
+  };
+
+  // รายการถูกวาดสองชุด (มือถือ/เดสก์ท็อป) ทั้งคู่จึงเรียกตัวนี้เมื่อยุบเสร็จ
+  // ถ้าไม่กันไว้ ครั้งที่สองจะไปลบรายการถัดไปที่เลื่อนขึ้นมาแทนที่
+  const handleLeaveEnd = () => {
+    if (leaveHandledRef.current) return;
+    leaveHandledRef.current = true;
+    setRepairItems((prev) => prev.filter((_, i) => i !== leavingIndex));
+    setLeavingIndex(null);
   };
 
   const handlePriceClick = (index, item) => {
@@ -313,6 +343,8 @@ const RepairCreate = () => {
     }
   };
 
+  // บริการไม่มียี่ห้อ (null) — ต่อสตริงตรงๆ จะได้คำว่า "null" ติดมาหน้าชื่อ
+  // ต่างจากการ์ดบนหน้าจอที่เขียนเป็น JSX ซึ่ง React ข้าม null ให้เอง
   const getProductName = (item) => {
     const isTire = item.category?.name === "ยาง";
 
@@ -324,7 +356,7 @@ const RepairCreate = () => {
       return `${item.brand} ${item.attributes.width}R${item.attributes.rimDiameter} ${item.name}`;
     }
 
-    return `${item.brand} ${item.name}`;
+    return [item.brand, item.name].filter(Boolean).join(" ");
   };
 
   return (
@@ -337,7 +369,7 @@ const RepairCreate = () => {
           </div>
           <div>
             <p className="text-surface xl:text-primary text-2xl font-semibold md:text-[26px]">
-              รายการซ่อมใหม่
+              งานซ่อมใหม่
             </p>
           </div>
         </div>
@@ -347,22 +379,25 @@ const RepairCreate = () => {
           onSubmit={handleSubmit(onSubmit, onInvalid)}
         >
           {/* ข้อมูลลูกค้า */}
-          <div className="mx-[20px] mt-[16px]">
+          <div className="bg-surface mx-[20px] mt-[16px] overflow-hidden rounded-[10px]">
             <button
               type="button"
               onClick={() => setIsCustomerInfoOpen(!isCustomerInfoOpen)}
-              className="bg-surface/10 flex w-full cursor-pointer items-center justify-between rounded-[12px] px-[16px] py-[12px] transition-colors xl:bg-gray-50 xl:hover:bg-gray-100"
+              aria-expanded={isCustomerInfoOpen}
+              aria-controls="customer-info-panel"
+              className="focus-visible:ring-primary/50 flex w-full cursor-pointer items-center justify-between px-[16px] py-[12px] outline-none focus-visible:ring-2 focus-visible:ring-inset"
             >
               <div className="flex items-center gap-[12px]">
-                <div className="bg-surface/20 xl:bg-primary/10 flex h-[36px] w-[36px] items-center justify-center rounded-full">
-                  <User className="text-surface xl:text-primary h-[18px] w-[18px]" />
+                <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
+                  <ContactRound className="text-primary h-6 w-6" />
                 </div>
-                <div className="text-left">
-                  <p className="text-surface xl:text-normal text-lg font-medium md:text-xl">
+                {/* ความสูงคงที่ ไม่งั้นหัวข้อจะขยับตอนพิมพ์ชื่อ — ไม่มีชื่อก็ให้หัวข้ออยู่กลางแทน */}
+                <div className="flex min-h-[56px] flex-col justify-center text-left">
+                  <p className="text-normal text-xl font-medium">
                     ข้อมูลลูกค้า
                   </p>
                   {watch("name") && (
-                    <p className="text-surface/80 xl:text-subtle-dark line-clamp-1 text-sm md:text-base">
+                    <p className="text-subtle-dark line-clamp-1 text-lg md:text-xl">
                       {watch("name")}
                       {watch("phoneNumber") && ` • ${watch("phoneNumber")}`}
                     </p>
@@ -370,54 +405,64 @@ const RepairCreate = () => {
                 </div>
               </div>
               <ChevronDown
-                className={`text-surface xl:text-subtle-dark h-6 w-6 transition-transform duration-200 ${isCustomerInfoOpen ? "rotate-180" : ""}`}
+                className={`text-subtle-dark h-6 w-6 transition-transform duration-200 motion-reduce:transition-none ${isCustomerInfoOpen ? "rotate-180" : ""}`}
               />
             </button>
 
             {/* ข้อมูลลูกค้า ที่ซ่อน/แสดง */}
             <div
-              className={`overflow-hidden transition-all duration-200 ${isCustomerInfoOpen ? "mt-[12px] max-h-[500px] opacity-100" : "max-h-0 opacity-0"}`}
+              inert={!isCustomerInfoOpen}
+              // grid-rows 0fr→1fr ขยายไปหาความสูงจริง ไม่ต้องเดาเป็นตัวเลข
+              // (max-h ตายตัวจะตัดเนื้อหาทิ้งเมื่อทุกช่องขึ้นข้อความ error พร้อมกัน)
+              id="customer-info-panel"
+              className={`grid transition-all duration-200 motion-reduce:transition-none ${
+                isCustomerInfoOpen
+                  ? "grid-rows-[1fr] opacity-100"
+                  : "grid-rows-[0fr] opacity-0"
+              }`}
             >
-              <div className="space-y-[4px]">
-                <FormInput
-                  register={register}
-                  name="name"
-                  label="ชื่อลูกค้า"
-                  type="text"
-                  placeholder="เช่น สมชาย ใจดี"
-                  color="surface"
-                  errors={errors}
-                  customClass="mt-[12px]"
-                />
+              <div className="overflow-hidden">
+                <div className="space-y-[12px] px-[16px] pb-[16px]">
+                  <FormInput
+                    register={register}
+                    name="name"
+                    label="ชื่อลูกค้า"
+                    type="text"
+                    placeholder="เช่น สมชาย ใจดี"
+                    color="subtle-dark"
+                    errors={errors}
+                    customClass="w-full"
+                  />
 
-                <FormInput
-                  register={register}
-                  name="address"
-                  label="ที่อยู่"
-                  type="text"
-                  placeholder="เช่น 543 หมู่ 5 ต.น้ำอ้อม อ.กันทรลักษ์ จ.ศรีสะเกษ 33110"
-                  color="surface"
-                  errors={errors}
-                  customClass="mt-[12px]"
-                />
+                  <FormInput
+                    register={register}
+                    name="address"
+                    label="ที่อยู่"
+                    type="text"
+                    placeholder="เช่น 543 หมู่ 5 ต.น้ำอ้อม อ.กันทรลักษ์ จ.ศรีสะเกษ 33110"
+                    color="subtle-dark"
+                    errors={errors}
+                    customClass="w-full"
+                  />
 
-                <FormInput
-                  register={register}
-                  name="phoneNumber"
-                  label="หมายเลขโทรศัพท์"
-                  type="text"
-                  placeholder="เช่น 0812345678"
-                  color="surface"
-                  maxLength={10}
-                  errors={errors}
-                  inputMode="numeric"
-                  onInput={(e) => {
-                    e.target.value = e.target.value
-                      .replace(/[^0-9]/g, "")
-                      .slice(0, 10);
-                  }}
-                  customClass="mt-[12px]"
-                />
+                  <FormInput
+                    register={register}
+                    name="phoneNumber"
+                    label="เบอร์โทรศัพท์"
+                    type="text"
+                    placeholder="เช่น 0812345678"
+                    color="subtle-dark"
+                    maxLength={10}
+                    errors={errors}
+                    inputMode="numeric"
+                    onInput={(e) => {
+                      e.target.value = e.target.value
+                        .replace(/[^0-9]/g, "")
+                        .slice(0, 10);
+                    }}
+                    customClass="w-full"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -474,10 +519,10 @@ const RepairCreate = () => {
 
           {/* ป้ายทะเบียนรถ */}
           <div className="xl:[&_.text-surface]:text-normal px-[20px] pt-[16px]">
-            <p className="text-surface mb-[8px] text-[22px] font-medium md:text-2xl">
+            <p className="text-surface mb-[8px] text-xl font-medium">
               ทะเบียนรถ
             </p>
-            <div className="flex items-start gap-[4px]">
+            <div className="flex items-start gap-[8px]">
               <div className="w-[70px]">
                 <LicensePlateInput
                   register={register}
@@ -493,7 +538,6 @@ const RepairCreate = () => {
                   }}
                 />
               </div>
-              <p className="text-surface pt-[8px] text-lg font-medium">-</p>
               <div className="w-[80px]">
                 <LicensePlateInput
                   register={register}
@@ -533,19 +577,19 @@ const RepairCreate = () => {
           </div>
           <FormInput
             register={register}
-            name="description"
-            label="รายละเอียดการซ่อม"
-            type="text"
-            placeholder="เช่น เบรคติด, สตาร์ทไม่ติด, มีเสียงดังจากล้อหน้า"
+            name="mileage"
+            label="เลขกิโลเมตร"
+            type="number"
+            placeholder="เช่น 120000"
             color="surface"
             errors={errors}
           />
           <FormInput
             register={register}
-            name="mileage"
-            label="เลขกิโลเมตร (กม.)"
-            type="number"
-            placeholder="เช่น 85000"
+            name="description"
+            label="รายละเอียดการซ่อม"
+            type="text"
+            placeholder="เช่น ค้างตั้งศูนย์, รอสั่งอะไหล่"
             color="surface"
             errors={errors}
           />
@@ -555,9 +599,14 @@ const RepairCreate = () => {
           {/* Mobile: รายการซ่อม */}
           <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl xl:hidden">
             <div className="flex items-center justify-between px-[20px] pt-[16px]">
-              <p className="text-[22px] font-semibold md:text-2xl">
-                รายการซ่อม
-              </p>
+              <div className="flex items-center gap-[8px]">
+                <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
+                  <ClipboardList className="text-primary h-6 w-6" />
+                </div>
+                <p className="text-[22px] font-semibold md:text-2xl">
+                  รายการซ่อม
+                </p>
+              </div>
               <AddRepairItemDialog
                 onAddItem={handleAddItemToRepair}
                 selectedItems={repairItems}
@@ -580,8 +629,165 @@ const RepairCreate = () => {
             ) : (
               <div className="pb-[20px]">
                 {repairItems.map((item, index) => (
-                  <div
+                  <CollapsibleRow
                     key={index}
+                    leaving={leavingIndex === index}
+                    onLeaveEnd={handleLeaveEnd}
+                  >
+                    <div
+                      data-repair-row={index}
+                      className="mt-[16px] flex items-center gap-[16px] px-[20px]"
+                    >
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={onKeyActivate(() =>
+                          handlePriceClick(index, item),
+                        )}
+                        onClick={() => handlePriceClick(index, item)}
+                        className="shadow-primary bg-surface flex h-[92px] min-w-0 flex-1 cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
+                      >
+                        <div className="flex min-w-0 flex-1 items-center gap-[8px]">
+                          <div className="shadow-primary bg-surface flex h-[60px] w-[60px] items-center justify-center rounded-[10px] border border-gray-200">
+                            {item.secureUrl ? (
+                              <img
+                                src={item.secureUrl}
+                                alt={item.name}
+                                className="h-full w-full rounded-[10px] object-cover"
+                              />
+                            ) : (
+                              <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
+                                <Image className="h-8 w-8" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex min-w-0 flex-1 flex-col">
+                            {renderProductInfo(item)}
+                            <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
+                              {/* บริการไม่มีหน่วย จึงเหลือแค่ราคา */}
+                              {formatCurrency(Number(item.sellingPrice))}
+                              {item.unit ? `/${item.unit}` : ""}
+                            </p>
+                            <div className="flex w-full items-center justify-between">
+                              <p className="text-primary text-xl leading-tight font-semibold text-nowrap md:text-[22px]">
+                                {formatCurrency(
+                                  item.quantity * item.sellingPrice,
+                                )}
+                              </p>
+                              <div
+                                className="flex shrink-0 items-center gap-[8px]"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (item.quantity <= 1) {
+                                      setRemovingIndex(index);
+                                      return;
+                                    }
+                                    handleDecreaseQuantity(index);
+                                  }}
+                                  aria-label={
+                                    item.quantity <= 1
+                                      ? "เอารายการออก"
+                                      : "ลดจำนวน"
+                                  }
+                                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100"
+                                >
+                                  <Minus className="h-4 w-4" />
+                                </button>
+                                <p className="text-primary text-lg font-semibold md:text-xl">
+                                  {item.quantity}
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleIncreaseQuantity(index);
+                                  }}
+                                  disabled={isAtStockLimit(item)}
+                                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CollapsibleRow>
+                ))}
+                <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] my-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
+                        รวม {repairItems.length} รายการ
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <p className="text-primary text-2xl font-semibold md:text-[26px]">
+                        {formatCurrency(
+                          repairItems.reduce(
+                            (total, item) =>
+                              total + item.sellingPrice * item.quantity,
+                            0,
+                          ),
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-center pb-[92px]">
+                  <FormButton label="ถัดไป" isLoading={isLoading} />
+                </div>
+              </div>
+            )}
+          </div>
+        </form>
+      </div>
+
+      {/* Desktop: รายการซ่อม */}
+      <div className="hidden w-1/2 xl:block">
+        <div className="bg-surface shadow-primary h-fit rounded-2xl">
+          <div className="flex items-center justify-between px-[20px] pt-[16px]">
+            <div className="flex items-center gap-[8px]">
+              <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
+                <ClipboardList className="text-primary h-6 w-6" />
+              </div>
+              <p className="text-[22px] font-semibold md:text-2xl">
+                รายการซ่อม
+              </p>
+            </div>
+            <AddRepairItemDialog
+              onAddItem={handleAddItemToRepair}
+              selectedItems={repairItems}
+              restoredStockMap={restoredStockMap}
+            >
+              <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
+                + เพิ่มรายการซ่อม
+              </p>
+            </AddRepairItemDialog>
+          </div>
+          {repairItems.length === 0 ? (
+            <div>
+              <div className="flex h-[228px] items-center justify-center">
+                <p className="text-subtle-light text-xl md:text-[22px]">
+                  กรุณาเพิ่มรายการซ่อม
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div>
+              {repairItems.map((item, index) => (
+                <CollapsibleRow
+                  key={index}
+                  leaving={leavingIndex === index}
+                  onLeaveEnd={handleLeaveEnd}
+                >
+                  <div
+                    data-repair-row={index}
                     className="mt-[16px] flex items-center gap-[16px] px-[20px]"
                   >
                     <div
@@ -594,7 +800,7 @@ const RepairCreate = () => {
                       className="shadow-primary bg-surface flex h-[92px] min-w-0 flex-1 cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
                     >
                       <div className="flex min-w-0 flex-1 items-center gap-[8px]">
-                        <div className="border-subtle-light shadow-primary bg-surface flex h-[60px] w-[60px] items-center justify-center rounded-[10px] border">
+                        <div className="shadow-primary bg-surface flex h-[60px] w-[60px] items-center justify-center rounded-[10px] border border-gray-200">
                           {item.secureUrl ? (
                             <img
                               src={item.secureUrl}
@@ -663,152 +869,11 @@ const RepairCreate = () => {
                       </div>
                     </div>
                   </div>
-                ))}
-                <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] my-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
-                        รวม {repairItems.length} รายการ
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <p className="text-primary text-2xl font-semibold md:text-[26px]">
-                        {formatCurrency(
-                          repairItems.reduce(
-                            (total, item) =>
-                              total + item.sellingPrice * item.quantity,
-                            0,
-                          ),
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex justify-center pb-[92px]">
-                  <FormButton label="ถัดไป" isLoading={isLoading} />
-                </div>
-              </div>
-            )}
-          </div>
-        </form>
-      </div>
-
-      {/* Desktop: รายการซ่อม */}
-      <div className="hidden w-1/2 xl:block">
-        <div className="bg-surface shadow-primary h-fit rounded-2xl">
-          <div className="flex items-center justify-between px-[20px] pt-[16px]">
-            <div className="flex items-center gap-[8px]">
-              <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
-                <ClipboardList className="text-primary h-6 w-6" />
-              </div>
-              <p className="text-[22px] font-semibold md:text-2xl">
-                รายการซ่อม
-              </p>
-            </div>
-            <AddRepairItemDialog
-              onAddItem={handleAddItemToRepair}
-              selectedItems={repairItems}
-              restoredStockMap={restoredStockMap}
-            >
-              <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
-                + เพิ่มรายการซ่อม
-              </p>
-            </AddRepairItemDialog>
-          </div>
-          {repairItems.length === 0 ? (
-            <div>
-              <div className="flex h-[228px] items-center justify-center">
-                <p className="text-subtle-light text-xl md:text-[22px]">
-                  กรุณาเพิ่มรายการซ่อม
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div>
-              {repairItems.map((item, index) => (
-                <div
-                  key={index}
-                  className="mt-[16px] flex items-center gap-[16px] px-[20px]"
-                >
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={onKeyActivate(() =>
-                      handlePriceClick(index, item),
-                    )}
-                    onClick={() => handlePriceClick(index, item)}
-                    className="shadow-primary bg-surface flex h-[92px] min-w-0 flex-1 cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
-                  >
-                    <div className="flex min-w-0 flex-1 items-center gap-[8px]">
-                      <div className="border-subtle-light shadow-primary bg-surface flex h-[60px] w-[60px] items-center justify-center rounded-[10px] border">
-                        {item.secureUrl ? (
-                          <img
-                            src={item.secureUrl}
-                            alt={item.name}
-                            className="h-full w-full rounded-[10px] object-cover"
-                          />
-                        ) : (
-                          <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
-                            <Image className="h-8 w-8" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex min-w-0 flex-1 flex-col">
-                        {renderProductInfo(item)}
-                        <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
-                          {/* บริการไม่มีหน่วย จึงเหลือแค่ราคา */}
-                          {formatCurrency(Number(item.sellingPrice))}
-                          {item.unit ? `/${item.unit}` : ""}
-                        </p>
-                        <div className="flex w-full items-center justify-between">
-                          <p className="text-primary text-xl leading-tight font-semibold text-nowrap md:text-[22px]">
-                            {formatCurrency(item.quantity * item.sellingPrice)}
-                          </p>
-                          <div
-                            className="flex shrink-0 items-center gap-[8px]"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (item.quantity <= 1) {
-                                  setRemovingIndex(index);
-                                  return;
-                                }
-                                handleDecreaseQuantity(index);
-                              }}
-                              aria-label={
-                                item.quantity <= 1 ? "เอารายการออก" : "ลดจำนวน"
-                              }
-                              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100"
-                            >
-                              <Minus className="h-4 w-4" />
-                            </button>
-                            <p className="text-primary text-lg font-semibold md:text-xl">
-                              {item.quantity}
-                            </p>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleIncreaseQuantity(index);
-                              }}
-                              disabled={isAtStockLimit(item)}
-                              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
-                            >
-                              <Plus className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                </CollapsibleRow>
               ))}
 
               {/* Desktop: สรุปยอดรวม */}
-              <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] my-[16px] rounded-[12px] border bg-gradient-to-r p-[16px]">
+              <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] my-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
                     <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
@@ -844,6 +909,7 @@ const RepairCreate = () => {
         onClose={() => setPriceDialogOpen(false)}
         onConfirm={handlePriceConfirm}
         currentPrice={editingItem?.sellingPrice || 0}
+        originalPrice={editingItem?.basePrice}
         productName={editingItem ? getProductName(editingItem) : ""}
         productImage={editingItem?.secureUrl}
         isService={editingItem?.category?.name === "บริการ"}

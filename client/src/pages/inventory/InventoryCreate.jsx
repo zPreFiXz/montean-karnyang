@@ -20,11 +20,7 @@ import { VEHICLE_COMPATIBLE_CATEGORIES } from "@/constants/categories";
 import { ChevronLeft } from "lucide-react";
 import FieldErrorList from "@/components/forms/FieldErrorList";
 import { toastError } from "@/utils/handleError";
-
-const SUSPENSION_TYPES = [
-  { id: "left-right", name: "ซ้าย-ขวา" },
-  { id: "other", name: "อื่นๆ" },
-];
+import { SIDE_OPTIONS, toPerSide } from "@/utils/suspension";
 
 const InventoryCreate = () => {
   const {
@@ -58,9 +54,11 @@ const InventoryCreate = () => {
     fetchCategory();
   }, []);
 
+  // หมวดหมู่เป็น ComboBox ที่ไม่มี input ให้ onInvalid ค้นหาเจอ จึงพาขึ้นบนสุดแทน
+  // (หมวดหมู่เป็นช่องแรกของฟอร์มอยู่แล้ว) — เลื่อนแบบนุ่มให้เหมือนช่องอื่น
   useEffect(() => {
     if (errors.categoryId) {
-      window.scrollTo(0, 0);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [errors.categoryId]);
 
@@ -163,7 +161,9 @@ const InventoryCreate = () => {
         : curr,
     );
 
-    firstErrorEl.focus?.();
+    // preventScroll สำคัญ — โดยปริยาย focus() จะกระโดดไปหาช่องทันที
+    // แล้ว scrollIntoView ที่ตามมาก็ไม่เหลืออะไรให้เลื่อน ภาพที่เห็นคือเด้งพรึบ
+    firstErrorEl.focus?.({ preventScroll: true });
     firstErrorEl.scrollIntoView({
       block: "center",
       inline: "nearest",
@@ -208,7 +208,7 @@ const InventoryCreate = () => {
               }
             : isSuspensionCategory()
               ? {
-                  suspensionType: data.suspensionType,
+                  perSide: toPerSide(data.suspensionType),
                 }
               : undefined,
           tireLots: isTireCategory()
@@ -253,8 +253,12 @@ const InventoryCreate = () => {
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
-        <button onClick={() => navigate(-1)} className="text-surface mt-[2px]">
-          <ChevronLeft />
+        <button
+          onClick={() => navigate(-1)}
+          aria-label="ย้อนกลับ"
+          className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+        >
+          <ChevronLeft className="text-surface" />
         </button>
         <p className="text-surface text-2xl font-semibold md:text-[26px]">
           เพิ่มรายการ
@@ -363,16 +367,24 @@ const InventoryCreate = () => {
                       customClass="w-full min-w-0 flex-1"
                       errors={errors}
                       hideErrorMessage
-                      inputMode="numeric"
+                      inputMode="decimal"
                       onWheel={(e) => e.target.blur()}
                       onInput={(e) => {
+                        // ยางบรรทุกใช้หน่วยนิ้วและมีจุดทศนิยม (7.50R16)
+                        // ต่างจากยางเก๋งที่เป็นมิลลิเมตรจำนวนเต็ม (195/55R15)
                         e.target.value = e.target.value
-                          .replace(/[^0-9]/g, "")
-                          .slice(0, 3);
+                          .replace(/[^0-9.]/g, "")
+                          .replace(/(\..*)\./g, "$1")
+                          .slice(0, 5);
                       }}
                     />
 
-                    <span className="text-subtle-dark flex h-[41px] shrink-0 items-center text-xl font-medium md:text-[22px]">
+                    {/* ยางบรรทุกไม่มีแก้มยาง (7.50R16) ตัวคั่นจึงไม่ควรค้างอยู่เมื่อช่องกลางว่าง */}
+                    <span
+                      className={`text-subtle-dark flex h-[41px] shrink-0 items-center text-xl font-medium md:text-[22px] ${
+                        watch("aspectRatio") ? "" : "opacity-0"
+                      }`}
+                    >
                       /
                     </span>
 
@@ -434,10 +446,10 @@ const InventoryCreate = () => {
               {isSuspensionCategory() && (
                 <div className="my-[16px] px-[20px]">
                   <ComboBox
-                    label="ประเภทช่วงล่าง"
+                    label="การติดตั้ง"
                     color="text-subtle-dark"
                     labelClass="text-xl"
-                    options={SUSPENSION_TYPES}
+                    options={SIDE_OPTIONS}
                     value={watch("suspensionType")}
                     onChange={(value) =>
                       setValue("suspensionType", value, {

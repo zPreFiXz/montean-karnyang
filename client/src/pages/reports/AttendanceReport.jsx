@@ -67,8 +67,12 @@ const AttendanceReport = () => {
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
-        <Link to="/dashboard" className="text-surface mt-[2px]">
-          <ChevronLeft />
+        <Link
+          to="/dashboard"
+          aria-label="ย้อนกลับ"
+          className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+        >
+          <ChevronLeft className="text-surface" />
         </Link>
         <p className="text-surface text-2xl font-semibold md:text-[26px]">
           รายงานสแกนรายวัน
@@ -135,9 +139,7 @@ const AttendanceReport = () => {
                 </p>
               </div>
               <div className="bg-surface shadow-primary rounded-[10px] p-[12px]">
-                <p className="text-subtle-dark text-sm">
-                  สแกนไม่ผูกพนักงาน
-                </p>
+                <p className="text-subtle-dark text-sm">สแกนไม่ผูกพนักงาน</p>
                 <p className="text-primary text-[22px] font-semibold">
                   {summaryData?.unknownScanCount || 0}
                 </p>

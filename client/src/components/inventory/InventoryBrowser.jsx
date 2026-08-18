@@ -220,9 +220,9 @@ const InventoryBrowser = ({
         aria-disabled={disabled || undefined}
         onKeyDown={onKeyActivate(() => !disabled && onItemClick?.(item))}
         onClick={() => !disabled && onItemClick?.(item)}
-        className={
+        className={`mt-[16px] rounded-[10px] ${
           disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-        }
+        }`}
       >
         <InventoryCard
           item={item}
@@ -269,7 +269,7 @@ const InventoryBrowser = ({
   return (
     <div className="flex flex-1 flex-col">
       <SearchBar
-        placeholder="ค้นหารหัส, ยี่ห้อ, ชื่อ"
+        placeholder="ค้นหายี่ห้อ, ชื่อ, รหัส"
         {...(syncUrl
           ? {}
           : {

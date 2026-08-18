@@ -8,6 +8,7 @@ import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import { deleteVehicleModel, listVehicleModels } from "@/api/vehicleModel";
 import FormButton from "@/components/forms/FormButton";
 import { toastError } from "@/utils/handleError";
+import { withOtherBrandLast } from "@/utils/vehicleBrand";
 
 const VehicleModelList = () => {
   const [vehicleModels, setVehicleModels] = useState([]);
@@ -73,7 +74,9 @@ const VehicleModelList = () => {
     setEditingItem(null);
   };
 
-  const uniqueBrands = [...new Set(vehicleModels.map((item) => item.brand))];
+  const uniqueBrands = withOtherBrandLast([
+    ...new Set(vehicleModels.map((item) => item.brand)),
+  ]);
   const brandOptions = [
     { id: "", name: "ทั้งหมด" },
     ...uniqueBrands.map((brand) => ({ id: brand, name: brand })),
@@ -98,8 +101,12 @@ const VehicleModelList = () => {
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
-        <Link to="/dashboard" className="text-surface mt-[2px]">
-          <ChevronLeft />
+        <Link
+          to="/dashboard"
+          aria-label="ย้อนกลับ"
+          className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+        >
+          <ChevronLeft className="text-surface" />
         </Link>
         <p className="text-surface text-2xl font-semibold md:text-[26px]">
           จัดการยี่ห้อและรุ่นรถ
