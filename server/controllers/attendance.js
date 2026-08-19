@@ -36,14 +36,15 @@ const normalizeDateKey = (value) => {
   return dateKey;
 };
 
-const mapStatusToSlotKey = (status) => {
-  const text = String(status || "").trim();
-
-  if (text.startsWith("เข้างาน")) return "inWork";
-  if (text.startsWith("พักเที่ยง")) return "lunchOut";
-  if (text.startsWith("กลับจากพักเที่ยง")) return "lunchIn";
-  if (text.startsWith("เลิกงาน")) return "offWork";
-  return null;
+// map จาก enum ไม่ใช่ statusLabel: label เป็นข้อความสำหรับคนอ่านและมีส่วนที่ผันแปร
+// ("เข้างาน (สาย 22 นาที)") ถ้าถ้อยคำเปลี่ยนเมื่อไหร่ slot จะว่างเงียบ ๆ โดยไม่มี error
+const SLOT_KEY_BY_TYPE = {
+  CLOCK_IN: "inWork",
+  CLOCK_IN_LATE: "inWork",
+  LUNCH_OUT: "lunchOut",
+  LUNCH_RETURN: "lunchIn",
+  LUNCH_RETURN_LATE: "lunchIn",
+  CLOCK_OUT: "offWork",
 };
 
 exports.getAttendanceSummary = async (req, res, next) => {
@@ -73,6 +74,7 @@ exports.getAttendanceSummary = async (req, res, next) => {
           },
           select: {
             employeeId: true,
+            type: true,
             statusLabel: true,
             scannedAt: true,
           },
@@ -104,7 +106,7 @@ exports.getAttendanceSummary = async (req, res, next) => {
 
       item.scanCount += 1;
 
-      const slotKey = mapStatusToSlotKey(attendance.statusLabel);
+      const slotKey = SLOT_KEY_BY_TYPE[attendance.type];
       if (!slotKey) continue;
 
       if (!item.slots[slotKey]) {
