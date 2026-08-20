@@ -111,12 +111,14 @@ const RepairReview = () => {
     }
   };
 
-  const handleGoBack = () => {
+  // ปุ่มย้อนกลับ = กลับไปหน้าเดิมเฉยๆ (scrollToItems = false)
+  // ปุ่มแก้ไขรายการซ่อม = ตั้งใจไปที่ส่วนรายการ จึงพาไปที่หัวข้อของส่วนนั้น
+  const handleGoBack = (scrollToItems = false) => {
     const from = location.state?.from;
     const backState = {
       repairData,
       repairItems,
-      scrollToBottom: true,
+      scrollToItems,
       editRepairId,
       origin,
       statusSlug,
@@ -249,7 +251,7 @@ const RepairReview = () => {
                   รายการซ่อม
                 </p>
                 <button
-                  onClick={() => handleGoBack()}
+                  onClick={() => handleGoBack(true)}
                   className="text-primary flex cursor-pointer items-center gap-[4px] text-xl font-semibold md:text-[22px]"
                 >
                   <Edit className="h-5 w-5" />
@@ -259,7 +261,7 @@ const RepairReview = () => {
 
               {/* รายการฝั่งซ้าย */}
               {leftItems.length > 0 && (
-                <div className="mb-[16px]">
+                <div className="mb-[16px] px-[20px]">
                   <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                     <SquareArrowLeft className="mt-[2px]" />
                     รายการซ่อมฝั่งซ้าย
@@ -278,7 +280,7 @@ const RepairReview = () => {
 
               {/* รายการฝั่งขวา */}
               {rightItems.length > 0 && (
-                <div className="mb-[16px]">
+                <div className="mb-[16px] px-[20px]">
                   <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                     <SquareArrowRight className="mt-[2px]" />
                     รายการซ่อมฝั่งขวา
@@ -297,7 +299,7 @@ const RepairReview = () => {
 
               {/* รายการอื่นๆ */}
               {otherItems.length > 0 && (
-                <div className="mb-[16px]">
+                <div className="mb-[16px] px-[20px]">
                   <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                     <CircleEllipsis className="mt-[2px]" />
                     รายการซ่อมอื่นๆ
@@ -377,7 +379,7 @@ const RepairReview = () => {
               </p>
             </div>
             <button
-              onClick={() => handleGoBack()}
+              onClick={() => handleGoBack(true)}
               className="text-primary flex cursor-pointer items-center gap-[4px] text-xl font-semibold md:text-[22px]"
             >
               <Edit className="h-5 w-5" />

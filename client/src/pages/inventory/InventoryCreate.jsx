@@ -457,7 +457,7 @@ const InventoryCreate = () => {
                         shouldTouch: true,
                       })
                     }
-                    placeholder="-- เลือกประเภท --"
+                    placeholder="-- เลือกการติดตั้ง --"
                     errors={errors}
                     name="suspensionType"
                   />

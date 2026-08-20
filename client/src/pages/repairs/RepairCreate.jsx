@@ -97,13 +97,13 @@ const RepairCreate = () => {
         );
       }
 
-      if (location.state.scrollToBottom) {
-        setTimeout(() => {
-          window.scrollTo({
-            top: document.body.scrollHeight,
-            behavior: "smooth",
-          });
-        }, 200);
+      // มาจากปุ่มแก้ไขรายการซ่อม -> พาไปที่หัวข้อของส่วนนั้น ไม่ใช่ล่างสุดของหน้า
+      // เพราะปุ่ม "+ เพิ่มรายการซ่อม" อยู่ที่หัวข้อ ถ้ามีหลายรายการจะต้องเลื่อนกลับขึ้นมาเอง
+      if (location.state.scrollToItems) {
+        scrollToNewRow(() => {
+          const headers = document.querySelectorAll("[data-repair-items-top]");
+          return [...headers].find((el) => el.offsetParent !== null);
+        }, "start");
       }
 
       const preserved = {
@@ -315,6 +315,7 @@ const RepairCreate = () => {
   const handleLeaveEnd = () => {
     if (leaveHandledRef.current) return;
     leaveHandledRef.current = true;
+
     setRepairItems((prev) => prev.filter((_, i) => i !== leavingIndex));
     setLeavingIndex(null);
   };
@@ -598,7 +599,10 @@ const RepairCreate = () => {
 
           {/* Mobile: รายการซ่อม */}
           <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl xl:hidden">
-            <div className="flex items-center justify-between px-[20px] pt-[16px]">
+            <div
+              data-repair-items-top
+              className="flex items-center justify-between px-[20px] pt-[16px]"
+            >
               <div className="flex items-center gap-[8px]">
                 <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
                   <ClipboardList className="text-primary h-6 w-6" />
@@ -751,7 +755,10 @@ const RepairCreate = () => {
       {/* Desktop: รายการซ่อม */}
       <div className="hidden w-1/2 xl:block">
         <div className="bg-surface shadow-primary h-fit rounded-2xl">
-          <div className="flex items-center justify-between px-[20px] pt-[16px]">
+          <div
+            data-repair-items-top
+            className="flex items-center justify-between px-[20px] pt-[16px]"
+          >
             <div className="flex items-center gap-[8px]">
               <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
                 <ClipboardList className="text-primary h-6 w-6" />

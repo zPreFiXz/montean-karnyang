@@ -323,7 +323,7 @@ const RepairDetail = () => {
       state: {
         repairData: { ...repairData },
         repairItems: normalizedItems,
-        scrollToBottom: true,
+        scrollToItems: true,
         editRepairId: repair.id,
         from: location.state?.from,
         statusSlug: location.state?.statusSlug,

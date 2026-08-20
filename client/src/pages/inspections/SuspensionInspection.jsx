@@ -12,7 +12,6 @@ import LicensePlateInput from "@/components/forms/LicensePlateInput";
 import { formatCurrency } from "@/utils/formats";
 import {
   Image,
-  Trash,
   Plus,
   Minus,
   Check,
@@ -30,10 +29,21 @@ import { CarRepair } from "@/components/icons/Icons";
 import { toastError } from "@/utils/handleError";
 import { onKeyActivate } from "@/utils/a11y";
 import { isPerSide } from "@/utils/suspension";
+import { scrollToNewRow } from "@/utils/scrollToNewRow";
+import CollapsibleRow from "@/components/ui/CollapsibleRow";
+import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import { withOtherBrandLast } from "@/utils/vehicleBrand";
 
 const CUSTOMER_FIELDS = ["name", "address", "phoneNumber"];
 
+// ตัวเรียงภาษาไทย ก-ฮ และเลขเรียงตามค่า ไม่ใช่ตามตัวอักษร (2 มาก่อน 10)
+const thaiCollator = new Intl.Collator("th", { numeric: true });
+const byPartName = (a, b) => thaiCollator.compare(a?.name || "", b?.name || "");
+
+const TAB_ORDER = ["left", "right", "other"];
+// หน่วงสั้นๆ ให้เห็นตัวหมุนก่อนหน้าจอเปลี่ยน (ไม่ได้รอเซิร์ฟเวอร์ ข้อมูลส่งต่อผ่าน state ล้วน)
+const SUBMIT_FEEDBACK_MS = 400;
+const TAB_LABELS = { left: "ซ้าย", right: "ขวา", other: "อื่นๆ" };
 const SuspensionInspection = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -56,6 +66,12 @@ const SuspensionInspection = () => {
   const [selectedRightParts, setSelectedRightParts] = useState(new Set());
   const [selectedOtherParts, setSelectedOtherParts] = useState(new Set());
   const [activeTab, setActiveTab] = useState("left");
+  // ทิศที่เนื้อหาเลื่อนเข้ามา อิงจากตำแหน่งแท็บเดิม กดไปทางขวาก็เลื่อนเข้าจากขวา
+  const [slideFrom, setSlideFrom] = useState("right");
+  const [removingIndex, setRemovingIndex] = useState(null);
+  // แถวที่กำลังยุบตัวก่อนหายจริง (ดู CollapsibleRow)
+  const [leavingIndex, setLeavingIndex] = useState(null);
+  const leaveHandledRef = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
   const [restoredStockMap, setRestoredStockMap] = useState({});
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
@@ -141,7 +157,16 @@ const SuspensionInspection = () => {
       repairItems: savedItems,
       editRepairId,
       hideMoreFields,
+      scrollToItems,
     } = location.state;
+
+    // มาจากปุ่มแก้ไขรายการซ่อม -> พาไปที่หัวข้อของส่วนรายการ ไม่ใช่ล่างสุดของหน้า
+    if (scrollToItems) {
+      scrollToNewRow(() => {
+        const headers = document.querySelectorAll("[data-repair-items-top]");
+        return [...headers].find((el) => el.offsetParent !== null);
+      }, "start");
+    }
 
     if (repairData) {
       Object.keys(repairData).forEach((key) => {
@@ -161,7 +186,6 @@ const SuspensionInspection = () => {
         .filter((i) => i.side === "other")
         .map((i) => i.id);
 
-      setRepairItems(manualItems);
       const leftSet = new Set(leftIds);
       const rightSet = new Set(rightIds);
       const otherSet = new Set(otherIds);
@@ -174,14 +198,30 @@ const SuspensionInspection = () => {
         other: otherSet,
       };
 
+      // เฉพาะบิลที่บันทึกแล้ว (แก้ไขบิลเดิม) — ของถูกหักจากคลังไปแล้ว ต้องบวกคืนตอนคำนวณว่าเบิกได้เท่าไหร่
+      // ถ้าแค่ย้อนกลับมาจากหน้าสรุป คลังยังไม่ถูกหัก ถ้าบวกคืนจะกลายเป็นมีของมากกว่าความจริง
       const map = {};
-      for (const it of savedItems) {
-        if (it?.partNumber && it?.brand && typeof it.quantity === "number") {
-          const key = `${it.partNumber}|${it.brand}|${it.name || ""}`;
-          map[key] = Math.max(map[key] || 0, it.quantity);
+      if (editRepairId) {
+        for (const it of savedItems) {
+          if (it?.partNumber && it?.brand && typeof it.quantity === "number") {
+            const key = `${it.partNumber}|${it.brand}|${it.name || ""}`;
+            map[key] = (map[key] || 0) + it.quantity;
+          }
         }
       }
       setRestoredStockMap(map);
+
+      // รายการที่กู้คืนมาไม่ได้ผ่านไดอะล็อก จึงยังไม่มีเพดานของปุ่มบวกติดมาด้วย
+      setRepairItems(
+        manualItems.map((it) => {
+          if (it.availableStock !== undefined) return it;
+          const key = `${it.partNumber}|${it.brand}|${it.name || ""}`;
+          return {
+            ...it,
+            availableStock: (it.stockQuantity || 0) + (map[key] || 0),
+          };
+        }),
+      );
       restoredRef.current = true;
     }
 
@@ -246,7 +286,9 @@ const SuspensionInspection = () => {
         );
       });
 
-      setCompatibleParts(compatible);
+      // เรียงตามชื่อ — ชื่ออะไหล่ไทยขึ้นต้นด้วยชนิดของมันเสมอ (ลูกหมาก..., บูช..., คันส่ง...)
+      // ของชนิดเดียวกันจึงมาอยู่ติดกันเองโดยไม่ต้องมีฟิลด์แยกชนิด
+      setCompatibleParts(compatible.sort(byPartName));
     } catch (error) {
       toastError(error);
       setCompatibleParts([]);
@@ -255,14 +297,14 @@ const SuspensionInspection = () => {
     }
   };
 
+  // อะไหล่นอกหมวดช่วงล่าง (เช่นน้ำมัน) ไม่มีข้างซ้าย-ขวา จึงอยู่ช่องอื่นๆ เหมือนของที่ไม่แยกข้าง
+  // ถ้าให้เลือกได้ทุกช่องจะเผลอบันทึกว่าติดตั้งข้างซ้าย/ขวา ซึ่งไม่มีความหมายและติดไปกับบิล
   const getPartsForSide = (side) => {
     return compatibleParts.filter((part) => {
-      // อะไหล่นอกหมวดช่วงล่าง (เช่นน้ำมัน) ไม่ผูกกับข้าง ให้เลือกได้ทุกช่อง
-      if (part.category?.name !== "ช่วงล่าง") return true;
+      const perSide =
+        part.category?.name === "ช่วงล่าง" && isPerSide(part.attributes);
 
-      return isPerSide(part.attributes)
-        ? side === "left" || side === "right"
-        : side === "other";
+      return perSide ? side === "left" || side === "right" : side === "other";
     });
   };
 
@@ -354,6 +396,51 @@ const SuspensionInspection = () => {
         behavior: "smooth",
       });
     }, 200);
+  };
+
+  // จำนวนที่ติ๊กไว้ในแท็บทั้งสามฝั่ง (นับเฉพาะที่ยังอยู่ในรายการอะไหล่ที่ใช้ได้)
+  const countSelectedInTabs = () =>
+    Array.from(selectedLeftParts).filter((id) =>
+      getPartsForSide("left").some((part) => part.id === id),
+    ).length +
+    Array.from(selectedRightParts).filter((id) =>
+      getPartsForSide("right").some((part) => part.id === id),
+    ).length +
+    Array.from(selectedOtherParts).filter((id) =>
+      getPartsForSide("other").some((part) => part.id === id),
+    ).length;
+
+  const getTabSelectedCountForItem = (item) => {
+    const part = compatibleParts.find((p) => isSamePart(item, p));
+    if (!part) return 0;
+    return (
+      Number(selectedLeftParts.has(part.id)) +
+      Number(selectedRightParts.has(part.id)) +
+      Number(selectedOtherParts.has(part.id))
+    );
+  };
+
+  // เบิกได้ไม่เกินสต็อกที่มีอยู่จริง — บริการ (เช่นค่าแรง) และรายการที่พิมพ์ชื่อเองไม่มีสต็อก จึงไม่จำกัด
+  // ต้องหักของชิ้นเดียวกันที่ติ๊กไว้ในแท็บออกด้วย เพราะใช้สต็อกก้อนเดียวกัน
+  // (availableStock เป็นค่า ณ ตอนหยิบเข้ามา ไม่อัปเดตตามการติ๊กแท็บทีหลัง)
+  const isAtStockLimit = (item) => {
+    if (!item.partNumber || !item.brand) return false;
+    const stock = item.availableStock ?? item.stockQuantity ?? 0;
+    return item.quantity >= stock - getTabSelectedCountForItem(item);
+  };
+
+  const handleRemoveItem = () => {
+    leaveHandledRef.current = false;
+    setLeavingIndex(removingIndex);
+    setRemovingIndex(null);
+  };
+
+  // รายการถูกวาดสองชุด (มือถือ/เดสก์ท็อป) ทั้งคู่จึงเรียกตัวนี้เมื่อยุบเสร็จ
+  const handleLeaveEnd = () => {
+    if (leaveHandledRef.current) return;
+    leaveHandledRef.current = true;
+    setRepairItems((prev) => prev.filter((_, i) => i !== leavingIndex));
+    setLeavingIndex(null);
   };
 
   const handleIncreaseQuantity = (index) => {
@@ -472,13 +559,37 @@ const SuspensionInspection = () => {
     return Math.max(stockQty, initialCount);
   };
 
-  const getCurrentSelectedCountForPart = (part) => {
-    return (
-      Number(selectedLeftParts.has(part.id)) +
-      Number(selectedRightParts.has(part.id)) +
-      Number(selectedOtherParts.has(part.id))
+  const isSamePart = (item, part) =>
+    !!item?.partNumber &&
+    (item.id === part.id ||
+      (item.partNumber === part.partNumber &&
+        item.brand === part.brand &&
+        item.name === part.name));
+
+  // ของชิ้นเดียวกันอาจถูกหยิบจาก "รายการซ่อมเพิ่มเติม" ด้วย ต้องนับรวมกัน
+  // ไม่งั้นสองที่จะแย่งสต็อกก้อนเดียวกันโดยไม่รู้ตัว
+  const getExtraItemsCountForPart = (part) =>
+    repairItems.reduce(
+      (sum, item) =>
+        isSamePart(item, part) ? sum + (item.quantity || 0) : sum,
+      0,
     );
-  };
+
+  const getCurrentSelectedCountForPart = (part) =>
+    Number(selectedLeftParts.has(part.id)) +
+    Number(selectedRightParts.has(part.id)) +
+    Number(selectedOtherParts.has(part.id)) +
+    getExtraItemsCountForPart(part);
+
+  // ส่งของที่ติ๊กจากแท็บให้ไดอะล็อกรู้ด้วย จะได้หักสต็อกจากก้อนเดียวกัน
+  const getSelectedTabItems = () =>
+    compatibleParts.flatMap((part) => {
+      const count =
+        Number(selectedLeftParts.has(part.id)) +
+        Number(selectedRightParts.has(part.id)) +
+        Number(selectedOtherParts.has(part.id));
+      return count > 0 ? [{ ...part, quantity: count }] : [];
+    });
 
   const handlePartSelection = (part, isSelected, side) => {
     const _stockQty =
@@ -561,6 +672,8 @@ const SuspensionInspection = () => {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
+      await new Promise((resolve) => setTimeout(resolve, SUBMIT_FEEDBACK_MS));
+
       const allRepairItems = [
         ...Array.from(selectedLeftParts)
           .map((id) => getPartsForSide("left").find((p) => p.id === id))
@@ -609,7 +722,7 @@ const SuspensionInspection = () => {
   };
 
   const hasVehicleSelected = Boolean(watch("brand") && watch("model"));
-  // รถรุ่นนี้ยังไม่ได้ผูกอะไหล่ = ตรวจตามตำแหน่งไม่ได้ ต้องไปทำเป็นงานซ่อมทั่วไป
+  // รถรุ่นนี้ยังไม่ได้ผูกอะไหล่ = เช็กตามตำแหน่งไม่ได้ ต้องไปทำเป็นงานซ่อมทั่วไป
   const hasNoCompatibleParts =
     hasVehicleSelected && compatibleParts.length === 0;
 
@@ -626,21 +739,66 @@ const SuspensionInspection = () => {
     });
   };
 
+  // แถบเลื่อนวางด้วย translateX ตามลำดับที่ ไม่คิดเปอร์เซ็นต์จากความกว้างเต็ม
+  // เพราะกล่องมีขอบใน 4px ปุ่มจึงกว้าง (100% - 8px)/3 ถ้าคิดเป็น 33.33% แถบจะเยื้อง
+  const renderTabs = () => (
+    <div className="mx-[20px] mt-[16px] flex justify-center">
+      <div
+        role="tablist"
+        className="relative flex w-full max-w-sm rounded-[10px] bg-gray-100 p-1"
+      >
+        <div
+          aria-hidden="true"
+          className="bg-gradient-primary absolute top-1 bottom-1 left-1 w-[calc((100%-8px)/3)] rounded-[10px] shadow-lg duration-300 ease-out"
+          style={{
+            transform: `translateX(${TAB_ORDER.indexOf(activeTab) * 100}%)`,
+          }}
+        />
+        {TAB_ORDER.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab}
+            onClick={() => goToTab(tab)}
+            className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
+              activeTab === tab ? "text-white" : "text-subtle-dark"
+            }`}
+          >
+            {TAB_LABELS[tab]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const goToTab = (next) => {
+    if (next === activeTab) return;
+    setSlideFrom(
+      TAB_ORDER.indexOf(next) > TAB_ORDER.indexOf(activeTab) ? "right" : "left",
+    );
+    setActiveTab(next);
+  };
+
   // แผงเลือกอะไหล่ตามฝั่ง (ซ้าย/ขวา/อื่นๆ) ใช้ร่วมกันทั้ง mobile และ desktop
   // อนิเมชันมีไว้บอกว่าเนื้อหาเปลี่ยนตอนสลับแท็บ จึงใส่เฉพาะตอนมีรายการจริง
   // ข้อความว่างเปล่าอยู่นิ่งเหมือนหน้าอื่นในระบบ ไม่ต้องเด้งเข้ามา
   const renderPartPanel = (side) => (
     <div
-      key={`panel-${side}`}
+      key={`panel-${side}-${slideFrom}`}
       className={`w-full ${
         getPartsForSide(side).length === 0
           ? ""
-          : "animate-in fade-in zoom-in-95 duration-200"
+          : `animate-in fade-in duration-200 ${
+              slideFrom === "right"
+                ? "slide-in-from-right-8"
+                : "slide-in-from-left-8"
+            }`
       }`}
     >
       {getPartsForSide(side).length === 0 ? (
         <div className="flex h-[228px] flex-col items-center justify-center gap-[16px] px-[20px]">
-          {/* แยกให้รู้ว่าต้องเลือกรถก่อน กดแท็บอื่นดู หรือรถรุ่นนี้ตรวจตามตำแหน่งไม่ได้ */}
+          {/* แยกให้รู้ว่าต้องเลือกรถก่อน กดแท็บอื่นดู หรือรถรุ่นนี้เช็กตามตำแหน่งไม่ได้ */}
           <p className="text-subtle-light text-center text-xl text-balance md:text-[22px]">
             {!hasVehicleSelected
               ? "กรุณาเลือกยี่ห้อและรุ่นรถ"
@@ -666,40 +824,29 @@ const SuspensionInspection = () => {
           const currentSelectedAll = getCurrentSelectedCountForPart(part);
           const isDisabled =
             !selectedThis && currentSelectedAll >= allowedUnits;
+          const toggle = () => {
+            if (isDisabled) return;
+            handlePartSelection(part, !selectedThis, side);
+          };
+
           return (
-            <div
-              key={`${side}-${part.id}`}
-              className={`mt-[16px] flex items-center gap-[16px] px-[20px] ${
-                isDisabled ? "cursor-not-allowed opacity-50" : ""
-              }`}
-            >
+            <div key={`${side}-${part.id}`} className="mt-[16px] px-[20px]">
               <div
-                className={`shadow-primary flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] border-2 px-[8px] duration-300 ${
-                  isPartSelected(part.id, side)
-                    ? "bg-primary/5 border-primary scale-[1.02]"
-                    : "bg-surface border-transparent"
-                }`}
                 role="button"
-                tabIndex={0}
-                onKeyDown={onKeyActivate(() => {
-                  if (isDisabled) return;
-                  handlePartSelection(
-                    part,
-                    !isPartSelected(part.id, side),
-                    side,
-                  );
-                })}
-                onClick={() => {
-                  if (isDisabled) return;
-                  handlePartSelection(
-                    part,
-                    !isPartSelected(part.id, side),
-                    side,
-                  );
-                }}
+                tabIndex={isDisabled ? -1 : 0}
+                aria-pressed={selectedThis}
+                aria-disabled={isDisabled || undefined}
+                onKeyDown={onKeyActivate(toggle)}
+                onClick={toggle}
+                // ปกติสูงเท่าการ์ดอื่นในระบบ แต่ยอมให้ยืดได้เมื่อมีบรรทัด "สต็อกหมด" เพิ่มเข้ามา
+                className={`shadow-primary flex min-h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] border-2 px-[8px] py-[8px] transition-colors duration-200 ${
+                  selectedThis
+                    ? "bg-primary/5 border-primary"
+                    : "bg-surface border-transparent"
+                } ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
               >
-                <div className="flex flex-1 items-center gap-[8px]">
-                  <div className="shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border border-gray-200">
+                <div className="flex min-w-0 flex-1 items-center gap-[8px]">
+                  <div className="shadow-primary bg-surface flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[10px] border border-gray-200">
                     {part.secureUrl ? (
                       <img
                         src={part.secureUrl}
@@ -707,35 +854,35 @@ const SuspensionInspection = () => {
                         className="h-full w-full rounded-[10px] object-cover"
                       />
                     ) : (
-                      <div className="text-subtle-light flex h-[70px] w-[70px] items-center justify-center">
+                      <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
                         <Image className="h-8 w-8" />
                       </div>
                     )}
                   </div>
-                  <div className="flex flex-1 flex-col">
+
+                  <div className="flex min-w-0 flex-1 flex-col">
                     {renderProductInfo(part)}
-                    <div className="flex items-center gap-2">
-                      <p
-                        className={`text-xl leading-tight font-semibold duration-300 md:text-[22px] ${
-                          isPartSelected(part.id, side)
-                            ? "text-primary"
-                            : "text-subtle-dark"
+                    {/* ราคากับดินสอเป็นปุ่มเดียวกัน สูง 44px ตามขนาดขั้นต่ำของเป้ากดบนมือถือ
+                        (ระยะขอบในติดลบชดเชยไม่ให้การ์ดสูงขึ้น) — กดพลาดที่นี่ = ติ๊กเลือกอะไหล่
+                        โดยไม่ตั้งใจ จึงต้องกดง่ายกว่าไอคอนเปล่าๆ 20px */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditCompatiblePrice(part);
+                      }}
+                      aria-label={`แก้ไขราคา ${part.name}`}
+                      className="-my-[8px] flex h-[44px] w-fit cursor-pointer items-center gap-2 self-start"
+                    >
+                      <span
+                        className={`text-xl leading-tight font-semibold duration-200 md:text-[22px] ${
+                          selectedThis ? "text-primary" : "text-subtle-dark"
                         }`}
                       >
                         {formatCurrency(getPriceForPart(part))}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditCompatiblePrice(part);
-                        }}
-                        aria-label="แก้ไขราคา"
-                        className="text-primary mt-[2px] flex cursor-pointer items-center justify-center"
-                      >
-                        <SquarePen className="h-5 w-5" />
-                      </button>
-                    </div>
+                      </span>
+                      <SquarePen className="text-primary h-5 w-5 shrink-0" />
+                    </button>
                     {isDisabled && (
                       <p className="text-destructive flex items-center gap-[4px] text-base leading-tight font-semibold md:text-lg">
                         <AlertTriangle className="text-destructive h-5 w-5" />
@@ -744,33 +891,18 @@ const SuspensionInspection = () => {
                     )}
                   </div>
                 </div>
-              </div>
-              <div
-                className={`flex h-[32px] w-[32px] min-w-[32px] cursor-pointer items-center justify-center rounded-full duration-300 ${
-                  isPartSelected(part.id, side)
-                    ? "bg-gradient-primary text-surface scale-110 shadow-lg"
-                    : "bg-subtle-light text-surface"
-                }`}
-                role="button"
-                tabIndex={0}
-                onKeyDown={onKeyActivate(() => {
-                  if (isDisabled) return;
-                  handlePartSelection(
-                    part,
-                    !isPartSelected(part.id, side),
-                    side,
-                  );
-                })}
-                onClick={() => {
-                  if (isDisabled) return;
-                  handlePartSelection(
-                    part,
-                    !isPartSelected(part.id, side),
-                    side,
-                  );
-                }}
-              >
-                <Check className="h-[18px] w-[18px]" />
+
+                {/* ยังไม่เลือก = วงกลมเปล่ามีเส้นขอบ / เลือกแล้ว = ทึบมีเครื่องหมายถูก
+                    เป็นส่วนหนึ่งของการ์ด ไม่ใช่ปุ่มแยก เพราะกดที่ไหนในการ์ดก็เลือกได้อยู่แล้ว */}
+                <div
+                  className={`flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-200 ${
+                    selectedThis
+                      ? "bg-gradient-primary text-surface border-transparent"
+                      : "border-subtle-dark text-transparent"
+                  }`}
+                >
+                  <Check className="h-[16px] w-[16px]" />
+                </div>
               </div>
             </div>
           );
@@ -1014,7 +1146,10 @@ const SuspensionInspection = () => {
             <div className="hidden pb-[24px] xl:block" />
 
             <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl xl:hidden">
-              <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
+              <div
+                data-repair-items-top
+                className="flex items-center gap-[8px] px-[20px] pt-[16px]"
+              >
                 <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
                   <ClipboardList className="text-primary h-6 w-6" />
                 </div>
@@ -1023,63 +1158,20 @@ const SuspensionInspection = () => {
                 </p>
               </div>
               {/* แท็บตำแหน่งมีไว้เลือกอะไหล่ ถ้าไม่มีอะไหล่ให้เลือกก็ไม่ต้องแสดง */}
-              {compatibleParts.length > 0 && (
-                <div className="mx-[20px] mt-[16px] flex justify-center">
-                  <div className="relative flex w-full max-w-sm rounded-[10px] bg-gray-100 p-1">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("left")}
-                      className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
-                        activeTab === "left"
-                          ? "scale-105 transform text-white"
-                          : "text-subtle-dark"
-                      }`}
-                    >
-                      <p className="relative z-10">ซ้าย</p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("right")}
-                      className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
-                        activeTab === "right"
-                          ? "scale-105 transform text-white"
-                          : "text-subtle-dark"
-                      }`}
-                    >
-                      <p className="relative z-10">ขวา</p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("other")}
-                      className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
-                        activeTab === "other"
-                          ? "scale-105 transform text-white"
-                          : "text-subtle-dark"
-                      }`}
-                    >
-                      <p className="relative z-10">อื่นๆ</p>
-                    </button>
-                    <div
-                      className={`bg-gradient-primary absolute flex h-[40px] justify-center rounded-[10px] shadow-lg duration-300 ease-out ${
-                        activeTab === "left"
-                          ? "left-1 w-[calc(33.33%-4px)]"
-                          : activeTab === "right"
-                            ? "left-[33.33%] w-[calc(33.33%-4px)]"
-                            : "left-[66.66%] w-[calc(33.33%-4px)]"
-                      }`}
-                    />
-                  </div>
-                </div>
-              )}
-              <div>{renderPartPanel(activeTab)}</div>
+              {compatibleParts.length > 0 && renderTabs()}
+              {/* กันการล้นตอนแผงไถลเข้ามา ไม่งั้นหน้าจะกว้างขึ้นชั่วขณะแล้วจัดตำแหน่งใหม่ทั้งหน้า */}
+              <div className="overflow-x-hidden">
+                {renderPartPanel(activeTab)}
+              </div>
               {hasVehicleSelected && !hasNoCompatibleParts && (
                 <div className="flex items-center justify-between px-[20px] pt-[16px]">
-                  <p className="text-[22px] font-semibold md:text-2xl">
+                  {/* หัวข้อย่อยใต้ "รายการซ่อมช่วงล่าง" จึงเล็กกว่าหนึ่งขั้น */}
+                  <p className="text-xl font-semibold md:text-[22px]">
                     รายการซ่อมเพิ่มเติม
                   </p>
                   <AddRepairItemDialog
                     onAddItem={handleAddItemToRepair}
-                    selectedItems={repairItems}
+                    selectedItems={[...repairItems, ...getSelectedTabItems()]}
                     restoredStockMap={restoredStockMap}
                   >
                     <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
@@ -1093,95 +1185,96 @@ const SuspensionInspection = () => {
               ) : repairItems.length > 0 ? (
                 <div className="pb-[96px] xl:pb-0">
                   {repairItems.map((item, index) => (
-                    <div
+                    <CollapsibleRow
                       key={index}
-                      className="mt-[16px] flex items-center gap-[16px] px-[20px]"
+                      leaving={leavingIndex === index}
+                      onLeaveEnd={handleLeaveEnd}
                     >
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={onKeyActivate(() =>
-                          handlePriceClick(index, item),
-                        )}
-                        onClick={() => handlePriceClick(index, item)}
-                        className="shadow-primary bg-surface flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] px-[8px]"
-                      >
-                        <div className="flex flex-1 items-center gap-[8px]">
-                          <div className="shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border border-gray-200">
-                            {item.secureUrl ? (
-                              <img
-                                src={item.secureUrl}
-                                alt={item.name}
-                                className="h-full w-full rounded-[10px] object-cover"
-                              />
-                            ) : (
-                              <div className="text-subtle-light flex h-[70px] w-[70px] items-center justify-center">
-                                {item.partNumber && item.brand ? (
-                                  <Image className="h-8 w-8" />
-                                ) : (
-                                  <Wrench className="h-8 w-8" />
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex flex-1 flex-col">
-                            {renderProductInfo(item)}
-                            <p className="text-subtle-dark text-base leading-tight font-medium md:text-lg">
-                              ราคาต่อหน่วย:{" "}
-                              {formatCurrency(Number(item.sellingPrice))}
-                            </p>
-                            <div className="flex w-full items-center justify-between">
-                              <p className="text-primary text-xl leading-tight font-semibold md:text-[22px]">
-                                {formatCurrency(
-                                  item.quantity * item.sellingPrice,
-                                )}
+                      <div className="mt-[16px] px-[20px]">
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={onKeyActivate(() =>
+                            handlePriceClick(index, item),
+                          )}
+                          onClick={() => handlePriceClick(index, item)}
+                          className="shadow-primary bg-surface flex h-[92px] w-full cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
+                        >
+                          <div className="flex min-w-0 flex-1 items-center gap-[8px]">
+                            <div className="shadow-primary bg-surface flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[10px] border border-gray-200">
+                              {item.secureUrl ? (
+                                <img
+                                  src={item.secureUrl}
+                                  alt={item.name}
+                                  className="h-full w-full rounded-[10px] object-cover"
+                                />
+                              ) : (
+                                <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
+                                  {item.partNumber && item.brand ? (
+                                    <Image className="h-8 w-8" />
+                                  ) : (
+                                    <Wrench className="h-8 w-8" />
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex min-w-0 flex-1 flex-col">
+                              {renderProductInfo(item)}
+                              <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
+                                {formatCurrency(Number(item.sellingPrice))}
+                                {item.unit ? `/${item.unit}` : ""}
                               </p>
-                              <div
-                                className="flex items-center gap-[8px]"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => handleDecreaseQuantity(index)}
-                                  disabled={item.quantity <= 1}
-                                  className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
-                                >
-                                  <Minus className="h-4 w-4" />
-                                </button>
-                                <p className="text-primary text-lg font-semibold md:text-xl">
-                                  {item.quantity}
+                              <div className="flex w-full items-center justify-between">
+                                <p className="text-primary text-xl leading-tight font-semibold text-nowrap md:text-[22px]">
+                                  {formatCurrency(
+                                    item.quantity * item.sellingPrice,
+                                  )}
                                 </p>
-                                <button
-                                  type="button"
-                                  onClick={() => handleIncreaseQuantity(index)}
-                                  disabled={
-                                    item.partNumber && item.brand
-                                      ? item.quantity >= (item.quantity || 0)
-                                      : false
-                                  }
-                                  className="border-primary/30 text-primary bg-primary/10 flex h-11 w-11 cursor-pointer items-center justify-center rounded-[8px] border disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
+                                <div
+                                  className="flex shrink-0 items-center gap-[8px]"
+                                  onClick={(e) => e.stopPropagation()}
                                 >
-                                  <Plus className="h-4 w-4" />
-                                </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (item.quantity <= 1) {
+                                        setRemovingIndex(index);
+                                        return;
+                                      }
+                                      handleDecreaseQuantity(index);
+                                    }}
+                                    aria-label={
+                                      item.quantity <= 1
+                                        ? "เอารายการออก"
+                                        : "ลดจำนวน"
+                                    }
+                                    className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100"
+                                  >
+                                    <Minus className="h-4 w-4" />
+                                  </button>
+                                  <p className="text-primary text-lg font-semibold md:text-xl">
+                                    {item.quantity}
+                                  </p>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleIncreaseQuantity(index);
+                                    }}
+                                    disabled={isAtStockLimit(item)}
+                                    className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setRepairItems((prev) =>
-                            prev.filter((_, i) => i !== index),
-                          )
-                        }
-                        className="text-surface cursor-pointer"
-                      >
-                        <div className="bg-destructive flex h-11 w-11 items-center justify-center rounded-full">
-                          <Trash className="h-[18px] w-[18px]" />
-                        </div>
-                      </button>
-                    </div>
+                    </CollapsibleRow>
                   ))}
                   {compatibleParts.length > 0 && (
                     <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
@@ -1258,22 +1351,7 @@ const SuspensionInspection = () => {
                         label="ถัดไป"
                         isLoading={isLoading}
                         disabled={
-                          Array.from(selectedLeftParts).filter((id) =>
-                            getPartsForSide("left").some(
-                              (part) => part.id === id,
-                            ),
-                          ).length +
-                            Array.from(selectedRightParts).filter((id) =>
-                              getPartsForSide("right").some(
-                                (part) => part.id === id,
-                              ),
-                            ).length +
-                            Array.from(selectedOtherParts).filter((id) =>
-                              getPartsForSide("other").some(
-                                (part) => part.id === id,
-                              ),
-                            ).length ===
-                          0
+                          countSelectedInTabs() + repairItems.length === 0
                         }
                       />
                     </div>
@@ -1341,23 +1419,7 @@ const SuspensionInspection = () => {
                       label="ถัดไป"
                       isLoading={isLoading}
                       disabled={
-                        Array.from(selectedLeftParts).filter((id) =>
-                          getPartsForSide("left").some(
-                            (part) => part.id === id,
-                          ),
-                        ).length +
-                          Array.from(selectedRightParts).filter((id) =>
-                            getPartsForSide("right").some(
-                              (part) => part.id === id,
-                            ),
-                          ).length +
-                          Array.from(selectedOtherParts).filter((id) =>
-                            getPartsForSide("other").some(
-                              (part) => part.id === id,
-                            ),
-                          ).length +
-                          getRepairItemsCountExcludingLabor() ===
-                        0
+                        countSelectedInTabs() + repairItems.length === 0
                       }
                     />
                   </div>
@@ -1368,7 +1430,10 @@ const SuspensionInspection = () => {
         </div>
         <div className="hidden w-1/2 xl:block">
           <div className="bg-surface shadow-primary h-fit rounded-2xl">
-            <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
+            <div
+              data-repair-items-top
+              className="flex items-center gap-[8px] px-[20px] pt-[16px]"
+            >
               <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
                 <ClipboardList className="text-primary h-6 w-6" />
               </div>
@@ -1376,83 +1441,40 @@ const SuspensionInspection = () => {
                 รายการซ่อมช่วงล่าง
               </p>
             </div>
-            <div>
-              {/* แท็บตำแหน่งมีไว้เลือกอะไหล่ ถ้าไม่มีอะไหล่ให้เลือกก็ไม่ต้องแสดง */}
-              {compatibleParts.length > 0 && (
-                <div className="mx-[20px] mt-[16px] flex justify-center">
-                  <div className="relative flex w-full max-w-sm rounded-[10px] bg-gray-100 p-1">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("left")}
-                      className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
-                        activeTab === "left"
-                          ? "scale-105 transform text-white"
-                          : "text-subtle-dark"
-                      }`}
-                    >
-                      <p className="relative z-10">ซ้าย</p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("right")}
-                      className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
-                        activeTab === "right"
-                          ? "scale-105 transform text-white"
-                          : "text-subtle-dark"
-                      }`}
-                    >
-                      <p className="relative z-10">ขวา</p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("other")}
-                      className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-[10px] text-lg font-semibold duration-300 ease-out md:text-xl ${
-                        activeTab === "other"
-                          ? "scale-105 transform text-white"
-                          : "text-subtle-dark"
-                      }`}
-                    >
-                      <p className="relative z-10">อื่นๆ</p>
-                    </button>
-
-                    <div
-                      className={`bg-gradient-primary absolute flex h-[40px] justify-center rounded-[10px] shadow-lg duration-300 ease-out ${
-                        activeTab === "left"
-                          ? "left-1 w-[calc(33.33%-4px)]"
-                          : activeTab === "right"
-                            ? "left-[33.33%] w-[calc(33.33%-4px)]"
-                            : "left-[66.66%] w-[calc(33.33%-4px)]"
-                      }`}
-                    />
-                  </div>
-                </div>
-              )}
-              <div>{renderPartPanel(activeTab)}</div>
-              {hasVehicleSelected && !hasNoCompatibleParts && (
-                <div className="flex items-center justify-between px-[20px] pt-[16px]">
-                  <p className="text-[22px] font-semibold md:text-2xl">
-                    รายการซ่อมเพิ่มเติม
+            {/* แท็บตำแหน่งมีไว้เลือกอะไหล่ ถ้าไม่มีอะไหล่ให้เลือกก็ไม่ต้องแสดง */}
+            {compatibleParts.length > 0 && renderTabs()}
+            {/* กันการล้นตอนแผงไถลเข้ามา ไม่งั้นหน้าจะกว้างขึ้นชั่วขณะแล้วจัดตำแหน่งใหม่ทั้งหน้า */}
+            <div className="overflow-x-hidden">
+              {renderPartPanel(activeTab)}
+            </div>
+            {hasVehicleSelected && !hasNoCompatibleParts && (
+              <div className="flex items-center justify-between px-[20px] pt-[16px]">
+                {/* หัวข้อย่อยใต้ "รายการซ่อมช่วงล่าง" จึงเล็กกว่าหนึ่งขั้น */}
+                <p className="text-xl font-semibold md:text-[22px]">
+                  รายการซ่อมเพิ่มเติม
+                </p>
+                <AddRepairItemDialog
+                  onAddItem={handleAddItemToRepair}
+                  selectedItems={[...repairItems, ...getSelectedTabItems()]}
+                  restoredStockMap={restoredStockMap}
+                >
+                  <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
+                    + เพิ่มรายการซ่อม
                   </p>
-                  <AddRepairItemDialog
-                    onAddItem={handleAddItemToRepair}
-                    selectedItems={repairItems}
-                    restoredStockMap={restoredStockMap}
+                </AddRepairItemDialog>
+              </div>
+            )}
+            {repairItems.length === 0 && compatibleParts.length === 0 ? (
+              <div />
+            ) : repairItems.length > 0 ? (
+              <div className="pb-[16px]">
+                {repairItems.map((item, index) => (
+                  <CollapsibleRow
+                    key={index}
+                    leaving={leavingIndex === index}
+                    onLeaveEnd={handleLeaveEnd}
                   >
-                    <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
-                      + เพิ่มรายการซ่อม
-                    </p>
-                  </AddRepairItemDialog>
-                </div>
-              )}
-              {repairItems.length === 0 && compatibleParts.length === 0 ? (
-                <div />
-              ) : repairItems.length > 0 ? (
-                <div className="pb-[16px]">
-                  {repairItems.map((item, index) => (
-                    <div
-                      key={`desktop-item-${index}`}
-                      className="mt-[16px] flex items-center gap-[16px] px-[20px]"
-                    >
+                    <div className="mt-[16px] px-[20px]">
                       <div
                         role="button"
                         tabIndex={0}
@@ -1460,10 +1482,10 @@ const SuspensionInspection = () => {
                           handlePriceClick(index, item),
                         )}
                         onClick={() => handlePriceClick(index, item)}
-                        className="shadow-primary bg-surface flex h-[92px] w-full cursor-pointer items-center justify-between rounded-[10px] px-[8px]"
+                        className="shadow-primary bg-surface flex h-[92px] w-full cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
                       >
-                        <div className="flex flex-1 items-center gap-[8px]">
-                          <div className="shadow-primary bg-surface flex h-[70px] w-[70px] items-center justify-center rounded-[10px] border border-gray-200">
+                        <div className="flex min-w-0 flex-1 items-center gap-[8px]">
+                          <div className="shadow-primary bg-surface flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[10px] border border-gray-200">
                             {item.secureUrl ? (
                               <img
                                 src={item.secureUrl}
@@ -1471,7 +1493,7 @@ const SuspensionInspection = () => {
                                 className="h-full w-full rounded-[10px] object-cover"
                               />
                             ) : (
-                              <div className="text-subtle-light flex h-[70px] w-[70px] items-center justify-center">
+                              <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
                                 {item.partNumber && item.brand ? (
                                   <Image className="h-8 w-8" />
                                 ) : (
@@ -1480,27 +1502,39 @@ const SuspensionInspection = () => {
                               </div>
                             )}
                           </div>
-                          <div className="flex flex-1 flex-col">
+
+                          <div className="flex min-w-0 flex-1 flex-col">
                             {renderProductInfo(item)}
-                            <p className="text-subtle-dark text-base leading-tight font-medium md:text-lg">
-                              ราคาต่อหน่วย:{" "}
+                            <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
                               {formatCurrency(Number(item.sellingPrice))}
+                              {item.unit ? `/${item.unit}` : ""}
                             </p>
                             <div className="flex w-full items-center justify-between">
-                              <p className="text-primary text-xl leading-tight font-semibold md:text-[22px]">
+                              <p className="text-primary text-xl leading-tight font-semibold text-nowrap md:text-[22px]">
                                 {formatCurrency(
                                   item.quantity * item.sellingPrice,
                                 )}
                               </p>
                               <div
-                                className="flex items-center gap-[8px]"
+                                className="flex shrink-0 items-center gap-[8px]"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <button
                                   type="button"
-                                  onClick={() => handleDecreaseQuantity(index)}
-                                  disabled={item.quantity <= 1}
-                                  className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (item.quantity <= 1) {
+                                      setRemovingIndex(index);
+                                      return;
+                                    }
+                                    handleDecreaseQuantity(index);
+                                  }}
+                                  aria-label={
+                                    item.quantity <= 1
+                                      ? "เอารายการออก"
+                                      : "ลดจำนวน"
+                                  }
+                                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100"
                                 >
                                   <Minus className="h-4 w-4" />
                                 </button>
@@ -1509,13 +1543,12 @@ const SuspensionInspection = () => {
                                 </p>
                                 <button
                                   type="button"
-                                  onClick={() => handleIncreaseQuantity(index)}
-                                  disabled={
-                                    item.partNumber && item.brand
-                                      ? item.quantity >= (item.quantity || 0)
-                                      : false
-                                  }
-                                  className="border-primary/30 text-primary bg-primary/10 flex h-11 w-11 cursor-pointer items-center justify-center rounded-[8px] border disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-300"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleIncreaseQuantity(index);
+                                  }}
+                                  disabled={isAtStockLimit(item)}
+                                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
                                 >
                                   <Plus className="h-4 w-4" />
                                 </button>
@@ -1524,120 +1557,10 @@ const SuspensionInspection = () => {
                           </div>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setRepairItems((prev) =>
-                            prev.filter((_, i) => i !== index),
-                          )
-                        }
-                        className="text-surface cursor-pointer"
-                      >
-                        <div className="bg-destructive flex h-11 w-11 items-center justify-center rounded-full">
-                          <Trash className="h-[18px] w-[18px]" />
-                        </div>
-                      </button>
                     </div>
-                  ))}
-                  {compatibleParts.length > 0 && (
-                    <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-col">
-                          <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
-                            รวม{" "}
-                            {Array.from(selectedLeftParts).filter((id) =>
-                              getPartsForSide("left").some(
-                                (part) => part.id === id,
-                              ),
-                            ).length +
-                              Array.from(selectedRightParts).filter((id) =>
-                                getPartsForSide("right").some(
-                                  (part) => part.id === id,
-                                ),
-                              ).length +
-                              Array.from(selectedOtherParts).filter((id) =>
-                                getPartsForSide("other").some(
-                                  (part) => part.id === id,
-                                ),
-                              ).length +
-                              getRepairItemsCountExcludingLabor()}{" "}
-                            รายการ
-                          </p>
-                        </div>
-                        <div className="flex flex-col items-end">
-                          <p className="text-primary text-2xl font-semibold md:text-[26px]">
-                            {formatCurrency(
-                              getPartsForSide("left").reduce((total, part) => {
-                                return (
-                                  total +
-                                  (selectedLeftParts.has(part.id)
-                                    ? getPriceForPart(part)
-                                    : 0)
-                                );
-                              }, 0) +
-                                getPartsForSide("right").reduce(
-                                  (total, part) => {
-                                    return (
-                                      total +
-                                      (selectedRightParts.has(part.id)
-                                        ? getPriceForPart(part)
-                                        : 0)
-                                    );
-                                  },
-                                  0,
-                                ) +
-                                getPartsForSide("other").reduce(
-                                  (total, part) => {
-                                    return (
-                                      total +
-                                      (selectedOtherParts.has(part.id)
-                                        ? getPriceForPart(part)
-                                        : 0)
-                                    );
-                                  },
-                                  0,
-                                ) +
-                                repairItems.reduce(
-                                  (total, item) =>
-                                    total + item.sellingPrice * item.quantity,
-                                  0,
-                                ),
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {compatibleParts.length > 0 && (
-                    <div className="flex justify-center pb-[16px]">
-                      <FormButton
-                        label="ถัดไป"
-                        isLoading={isLoading}
-                        form="suspension-form"
-                        disabled={
-                          Array.from(selectedLeftParts).filter((id) =>
-                            getPartsForSide("left").some(
-                              (part) => part.id === id,
-                            ),
-                          ).length +
-                            Array.from(selectedRightParts).filter((id) =>
-                              getPartsForSide("right").some(
-                                (part) => part.id === id,
-                              ),
-                            ).length +
-                            Array.from(selectedOtherParts).filter((id) =>
-                              getPartsForSide("other").some(
-                                (part) => part.id === id,
-                              ),
-                            ).length ===
-                          0
-                        }
-                      />
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div>
+                  </CollapsibleRow>
+                ))}
+                {compatibleParts.length > 0 && (
                   <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col">
@@ -1657,7 +1580,8 @@ const SuspensionInspection = () => {
                               getPartsForSide("other").some(
                                 (part) => part.id === id,
                               ),
-                            ).length}{" "}
+                            ).length +
+                            getRepairItemsCountExcludingLabor()}{" "}
                           รายการ
                         </p>
                       </div>
@@ -1687,19 +1611,38 @@ const SuspensionInspection = () => {
                                     ? getPriceForPart(part)
                                     : 0)
                                 );
-                              }, 0),
+                              }, 0) +
+                              repairItems.reduce(
+                                (total, item) =>
+                                  total + item.sellingPrice * item.quantity,
+                                0,
+                              ),
                           )}
                         </p>
                       </div>
                     </div>
                   </div>
+                )}
+                {compatibleParts.length > 0 && (
                   <div className="flex justify-center pb-[16px]">
                     <FormButton
                       label="ถัดไป"
                       isLoading={isLoading}
-                      form="suspension-form"
                       disabled={
-                        Array.from(selectedLeftParts).filter((id) =>
+                        countSelectedInTabs() + repairItems.length === 0
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div>
+                <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mt-[16px] mb-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
+                        รวม{" "}
+                        {Array.from(selectedLeftParts).filter((id) =>
                           getPartsForSide("left").some(
                             (part) => part.id === id,
                           ),
@@ -1713,15 +1656,52 @@ const SuspensionInspection = () => {
                             getPartsForSide("other").some(
                               (part) => part.id === id,
                             ),
-                          ).length +
-                          getRepairItemsCountExcludingLabor() ===
-                        0
-                      }
-                    />
+                          ).length}{" "}
+                        รายการ
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <p className="text-primary text-2xl font-semibold md:text-[26px]">
+                        {formatCurrency(
+                          getPartsForSide("left").reduce((total, part) => {
+                            return (
+                              total +
+                              (selectedLeftParts.has(part.id)
+                                ? getPriceForPart(part)
+                                : 0)
+                            );
+                          }, 0) +
+                            getPartsForSide("right").reduce((total, part) => {
+                              return (
+                                total +
+                                (selectedRightParts.has(part.id)
+                                  ? getPriceForPart(part)
+                                  : 0)
+                              );
+                            }, 0) +
+                            getPartsForSide("other").reduce((total, part) => {
+                              return (
+                                total +
+                                (selectedOtherParts.has(part.id)
+                                  ? getPriceForPart(part)
+                                  : 0)
+                              );
+                            }, 0),
+                        )}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
+                <div className="flex justify-center pb-[16px]">
+                  <FormButton
+                    label="ถัดไป"
+                    isLoading={isLoading}
+                    form="suspension-form"
+                    disabled={countSelectedInTabs() + repairItems.length === 0}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1738,6 +1718,18 @@ const SuspensionInspection = () => {
         canEditName={
           editingItem?.category?.name === "บริการ" &&
           (editingItem?.id === 1 || editingItem?.service?.id === 1)
+        }
+      />
+
+      <ConfirmDialog
+        isOpen={removingIndex !== null}
+        onClose={() => setRemovingIndex(null)}
+        onConfirm={handleRemoveItem}
+        title="ยืนยันการเอารายการออก"
+        itemName={
+          removingIndex !== null && repairItems[removingIndex]
+            ? getProductName(repairItems[removingIndex])
+            : ""
         }
       />
     </div>
