@@ -41,7 +41,7 @@ const VehicleDetail = () => {
           <ChevronLeft className="text-surface" />
         </button>
         <p className="text-surface text-2xl font-semibold md:text-[26px]">
-          ประวัติลูกค้า
+          ประวัติรถ
         </p>
       </div>
       <div className="bg-surface shadow-primary flex flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pt-[16px] pb-[96px]">

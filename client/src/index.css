@@ -13,6 +13,9 @@
   --color-primary-dark: #0d47a1;
   --color-primary-soft: #e8f1fc;
   --color-subtle-dark: #475569;
+  /* ขั้นกลางระหว่าง dark กับ light — สำหรับเส้นขอบของตัวควบคุมที่ต้องผ่านเกณฑ์ 3:1
+     แต่ไม่ควรเข้มเท่าตัวหนังสือ (เช่นวงกลมติ๊กตอนยังไม่เลือก) */
+  --color-subtle-mid: #64748b;
   --color-subtle-light: #94a3b8;
   --color-normal: #0f172a;
   --color-surface: #ffffff;
@@ -95,7 +98,6 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -122,14 +124,6 @@
     box-shadow:
       0 0 0 1px rgba(15, 23, 42, 0.06),
       0 6px 20px -12px rgba(15, 23, 42, 0.18);
-  }
-
-  /* hover แบบ flat: เน้นเส้นขอบเข้มขึ้น ไม่ยกการ์ด (ไม่ขยับ layout) */
-  .card-interactive {
-    transition: box-shadow 200ms ease;
-  }
-  .card-interactive:hover {
-    box-shadow: 0 0 0 1px rgba(25, 118, 210, 0.45);
   }
 
   /* ซ่อนแถบเลื่อน — ใช้เฉพาะแถวเลื่อนแนวนอนที่มีชิปถูกตัดที่ขอบเป็นตัวบอกว่าเลื่อนได้อยู่แล้ว
@@ -165,6 +159,37 @@
   ::-webkit-scrollbar-thumb:hover {
     background: rgba(100, 116, 139, 0.55);
   }
+}
+
+/* สลับลำดับรายการ (จัดลำดับยี่ห้อและรุ่นรถ)
+   ค่าเริ่มต้นของเบราว์เซอร์คือเฟดภาพเก่าซ้อนภาพใหม่ระหว่างเลื่อน — ของที่หน้าตาเหมือนกันเป๊ะ
+   สองภาพซ้อนกันแบบ plus-lighter จะสว่างวาบตรงกลางทาง เห็นเป็นกะพริบ
+   ปิดการเฟดทิ้ง เหลือแค่การเลื่อนตำแหน่งซึ่งเป็นสิ่งที่ต้องการจริงๆ */
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-image-pair(*) {
+  isolation: auto;
+}
+
+/* ทั้งหน้าที่ไม่ได้ตั้งชื่อไว้ถือเป็นภาพเดียวชื่อ root — ทิ้งภาพเก่าไปเลย เหลือภาพใหม่ค้างไว้เต็มที่
+   ห้ามซ่อนทั้งคู่ เพราะจะไม่มีอะไรวาดหัวเรื่องกับแท็บระหว่างเปลี่ยน กลายเป็นหายวับแล้วโผล่กลับ */
+::view-transition-old(root) {
+  display: none;
+}
+
+::view-transition-new(root) {
+  animation: none;
+  opacity: 1;
+}
+
+/* แท็บล่างไม่ได้ขยับ ตั้งชื่อไว้เพื่อกันมันหลุดไปอยู่ในภาพนิ่งของทั้งหน้าเท่านั้น
+   ต้องปิดแอนิเมชันของกลุ่มด้วย ไม่งั้นเบราว์เซอร์จะไล่ตำแหน่งให้ แล้วเงาใต้แท็บขยับตาม เห็นเป็นยกตัวขึ้น */
+::view-transition-group(bottom-nav) {
+  animation: none;
 }
 
 /* เคารพผู้ใช้ที่ปิดแอนิเมชันในระบบ */

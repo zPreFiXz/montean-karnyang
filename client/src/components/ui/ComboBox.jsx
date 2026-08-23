@@ -162,37 +162,40 @@ const ComboBox = ({
                   ไม่พบรายการ
                 </p>
               </CommandEmpty>
-              {/* min-h-0 จำเป็นกับลูกของ flex ไม่งั้นมันจะไม่ยอมหดต่ำกว่าความสูงเนื้อหา แล้วล้นออกนอกกรอบ */}
-              <CommandGroup className="min-h-0 flex-1 overflow-y-auto">
-                {options.map((item) => {
-                  const identifier = getIdentifier(item);
-                  return (
-                    <CommandItem
-                      key={identifier}
-                      value={item.name}
-                      onSelect={() => {
-                        onChange(identifier);
-                        setOpen(false);
+              {/* min-h-0 จำเป็นกับลูกของ flex ไม่งั้นมันจะไม่ยอมหดต่ำกว่าความสูงเนื้อหา แล้วล้นออกนอกกรอบ
+                  ไม่วาดตอนไม่มีรายการ เพราะ padding ของกลุ่มจะค้างเป็นช่องว่าง 8px ใต้ข้อความ "ไม่พบรายการ" */}
+              {options.length > 0 && (
+                <CommandGroup className="min-h-0 flex-1 overflow-y-auto">
+                  {options.map((item) => {
+                    const identifier = getIdentifier(item);
+                    return (
+                      <CommandItem
+                        key={identifier}
+                        value={item.name}
+                        onSelect={() => {
+                          onChange(identifier);
+                          setOpen(false);
 
-                        if (inputRef.current) {
-                          inputRef.current.blur();
-                        }
-                      }}
-                      className={`font-athiti text-normal cursor-pointer font-medium ${
-                        customClass || "text-lg md:text-xl"
-                      }`}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          value === identifier ? "opacity-100" : "opacity-0",
-                        )}
-                      />
-                      {item.name}
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
+                          if (inputRef.current) {
+                            inputRef.current.blur();
+                          }
+                        }}
+                        className={`font-athiti text-normal cursor-pointer font-medium ${
+                          customClass || "text-lg md:text-xl"
+                        }`}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            value === identifier ? "opacity-100" : "opacity-0",
+                          )}
+                        />
+                        {item.name}
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              )}
             </Command>
           </PopoverContent>
         </Popover>

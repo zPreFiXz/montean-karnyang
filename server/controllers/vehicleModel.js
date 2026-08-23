@@ -4,10 +4,35 @@ const createError = require("../utils/createError");
 exports.listVehicleModels = async (req, res, next) => {
   try {
     const vehicleModels = await prisma.vehicleModel.findMany({
-      orderBy: { id: "asc" },
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     });
 
     res.json(vehicleModels);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// รับลำดับใหม่ทั้งชุดจากหน้าจัดการ แล้วเขียนทับใน transaction เดียว
+// ส่งมาทั้งชุดเสมอ ไม่ใช่ส่งเฉพาะตัวที่ขยับ เพราะการเลื่อนหนึ่งตัวทำให้ลำดับของตัวอื่นเปลี่ยนตามอยู่แล้ว
+exports.reorderVehicleModels = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      createError(400, "ไม่พบลำดับที่ต้องการบันทึก");
+    }
+
+    await prisma.$transaction(
+      ids.map((id, index) =>
+        prisma.vehicleModel.update({
+          where: { id: Number(id) },
+          data: { sortOrder: index + 1 },
+        }),
+      ),
+    );
+
+    res.json({ message: "บันทึกลำดับเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }
@@ -30,10 +55,17 @@ exports.createVehicleModel = async (req, res, next) => {
       createError(400, "ยี่ห้อและรุ่นรถนี้มีอยู่ในระบบแล้ว");
     }
 
+    // ต่อท้ายลิสต์เสมอ ไม่ไปแทรกกลางลำดับที่จัดไว้
+    const last = await prisma.vehicleModel.findFirst({
+      orderBy: { sortOrder: "desc" },
+      select: { sortOrder: true },
+    });
+
     vehicleModel = await prisma.vehicleModel.create({
       data: {
         brand,
         model,
+        sortOrder: (last?.sortOrder || 0) + 1,
       },
     });
 

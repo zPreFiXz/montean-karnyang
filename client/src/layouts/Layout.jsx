@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { Outlet } from "react-router";
+import { LoaderCircle } from "lucide-react";
 import Navbar from "@/components/navbar/Navbar";
 import LeftSidebar from "@/components/LeftSidebar";
 import BottomNav from "@/components/BottomNav";
@@ -16,11 +18,26 @@ const Layout = () => {
           <LeftSidebar />
         </div>
 
-        <main className="bg-surface-muted flex-1 lg:max-h-[calc(100vh-73px)] lg:overflow-y-auto">
-          <Outlet />
+        {/* Suspense อยู่ตรงนี้ ไม่ใช่ครอบทั้ง <Routes> ไม่งั้นตอนโหลดโค้ดของหน้า
+            โครงหน้า (navbar, แท็บล่าง) จะถูกล้างทิ้งแล้วโผล่กลับมา เห็นเป็นกระพริบ */}
+        <main className="bg-surface-muted flex min-h-svh flex-1 flex-col lg:max-h-[calc(100vh-73px)] lg:min-h-0 lg:overflow-y-auto">
+          <Suspense
+            fallback={
+              <div className="flex flex-1 items-center justify-center">
+                <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
 
-        <div className="fixed right-0 bottom-0 left-0 z-50 lg:hidden">
+        {/* ตั้งชื่อ view transition ไว้ ไม่งั้นแท็บล่างจะถูกรวมอยู่ในภาพนิ่งของทั้งหน้า
+            ซึ่งวางตามตำแหน่งในหน้าที่เลื่อนได้ ไม่ใช่ตำแหน่ง fixed จริง แล้วจะกระตุกทุกครั้งที่มี transition */}
+        <div
+          style={{ viewTransitionName: "bottom-nav" }}
+          className="fixed right-0 bottom-0 left-0 z-50 lg:hidden"
+        >
           <BottomNav />
         </div>
       </div>

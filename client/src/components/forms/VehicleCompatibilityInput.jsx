@@ -174,7 +174,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
             <div className="grid grid-cols-2 gap-[8px]">
               <div>
                 <ComboBox
-                  label="ยี่ห้อ"
+                  label="ยี่ห้อรถ"
                   color="text-subtle-dark"
                   options={brands}
                   value={vehicle.brand}
@@ -189,7 +189,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
 
               <div>
                 <ComboBox
-                  label="รุ่น"
+                  label="รุ่นรถ"
                   color="text-subtle-dark"
                   options={getAvailableModels(vehicle.brand)}
                   value={vehicle.model}

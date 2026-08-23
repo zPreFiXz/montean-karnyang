@@ -9,7 +9,17 @@ const apiClient = axios.create({
   baseURL: "/api",
 });
 
-apiClient.interceptors.request.use((config) => {
+// เครื่องมือตรวจงานระหว่างพัฒนา: หน่วงคำขอทุกอันเพื่อดูสถานะกำลังโหลดของแต่ละหน้าได้นานพอจะเทียบกัน
+// เปิดด้วย VITE_API_DELAY_MS=999999 npm run dev — ปิดสนิทใน production เพราะ import.meta.env.DEV เป็น false
+const apiDelayMs = import.meta.env.DEV
+  ? Number(import.meta.env.VITE_API_DELAY_MS) || 0
+  : 0;
+
+apiClient.interceptors.request.use(async (config) => {
+  if (apiDelayMs > 0) {
+    await new Promise((resolve) => setTimeout(resolve, apiDelayMs));
+  }
+
   const { token } = useAuthStore.getState();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -33,7 +43,8 @@ apiClient.interceptors.response.use(
         if (!sessionExpiredNotified) {
           sessionExpiredNotified = true;
           toast.error(
-            error.response?.data?.message || "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่",
+            error.response?.data?.message ||
+              "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่",
           );
           setTimeout(() => {
             sessionExpiredNotified = false;

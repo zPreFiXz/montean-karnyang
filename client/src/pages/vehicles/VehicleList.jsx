@@ -16,6 +16,10 @@ const VehicleList = () => {
 
   const search = searchParams.get("search");
 
+  // ตัดกันตกบรรทัด — คำค้นอาจยาวเกินได้ถ้าใส่มาทาง URL ตรงๆ
+  const searchTerm =
+    search && search.length > 20 ? `${search.slice(0, 20)}…` : search;
+
   useEffect(() => {
     window.scrollTo(0, 0);
 
@@ -61,7 +65,7 @@ const VehicleList = () => {
         </div>
         <div>
           <p className="text-surface text-2xl font-semibold md:text-[26px]">
-            ประวัติลูกค้า
+            ประวัติรถ
           </p>
         </div>
       </div>
@@ -78,7 +82,7 @@ const VehicleList = () => {
           ) : vehicles.length === 0 ? (
             <div className="flex flex-1 items-center justify-center">
               <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">
-                ไม่พบลูกค้า
+                {search ? `ไม่พบ "${searchTerm}"` : "ไม่มีประวัติรถ"}
               </p>
             </div>
           ) : (

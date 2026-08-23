@@ -19,6 +19,7 @@ const EditRepairItemDialog = ({
   currentPrice,
   originalPrice,
   productName,
+  partNumber,
   productImage,
   isService = false,
   currentName = "",
@@ -143,6 +144,19 @@ const EditRepairItemDialog = ({
                     />
                   )}
 
+                  {/* รหัสอะไหล่ไว้เทียบกับของจริงในมือก่อนแก้ราคา
+                      วางเป็นแถวข้อมูลในกล่องเทาแบบเดียวกับหน้าต่างรายละเอียดอะไหล่ */}
+                  {!isService && partNumber && (
+                    <div className="flex items-center justify-between">
+                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                        รหัสอะไหล่:
+                      </p>
+                      <p className="text-normal text-lg font-semibold md:text-xl">
+                        {partNumber}
+                      </p>
+                    </div>
+                  )}
+
                   {/* ราคาตั้งต้นจากคลัง แสดงเมื่อราคาถูกปรับไปแล้ว เพื่อให้รู้ว่าลดไปเท่าไหร่
                       ถ้ายังไม่ปรับก็ไม่ต้องบอก เพราะเท่ากับเลขในช่องข้างล่างอยู่แล้ว */}
                   {hasAdjustedPrice && (
@@ -150,7 +164,7 @@ const EditRepairItemDialog = ({
                       <p className="text-subtle-dark text-lg font-medium md:text-xl">
                         ราคาปกติ:
                       </p>
-                      <p className="text-subtle-dark text-lg font-medium line-through md:text-xl">
+                      <p className="text-primary text-lg font-semibold md:text-xl">
                         {formatCurrency(Number(originalPrice))}
                       </p>
                     </div>

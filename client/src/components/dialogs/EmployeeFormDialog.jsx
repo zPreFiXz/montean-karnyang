@@ -88,7 +88,7 @@ const EmployeeFormDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent
-        className="flex h-[90vh] max-h-[650px] w-full flex-col p-0"
+        className="flex max-h-[90svh] w-full flex-col p-0"
         showCloseButton={false}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
@@ -132,9 +132,9 @@ const EmployeeFormDialog = ({
                 register={register}
                 name="name"
                 label="ชื่อ"
-                placeholder="เช่น สมชาย ใจดี"
+                placeholder="เช่น ภูมิ"
                 errors={errors}
-                customClass="px-0 pb-[16px]"
+                customClass="px-0 mb-[4px]"
                 color="subtle-dark"
                 autoFocus={false}
               />

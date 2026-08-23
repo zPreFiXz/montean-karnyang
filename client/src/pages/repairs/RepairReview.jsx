@@ -1,5 +1,7 @@
 import { useLocation, useNavigate } from "react-router";
 import { toastError } from "@/utils/handleError";
+import { withMinDuration } from "@/utils/withMinDuration";
+import { groupBySidePairs } from "@/utils/repairItemGroups";
 import { useEffect, useState } from "react";
 import FormButton from "@/components/forms/FormButton";
 import RepairItemCard from "@/components/cards/RepairItemCard";
@@ -9,9 +11,10 @@ import { toast } from "sonner";
 import {
   Edit,
   ChevronLeft,
-  SquareArrowLeft,
-  SquareArrowRight,
-  CircleEllipsis,
+  ArrowLeftRight,
+  ArrowLeft,
+  ArrowRight,
+  Ellipsis,
   Wrench,
   ClipboardList,
 } from "lucide-react";
@@ -52,8 +55,11 @@ const RepairReview = () => {
     return repairItems.filter((item) => item.side === side);
   };
 
-  const leftItems = getItemsBySide("left");
-  const rightItems = getItemsBySide("right");
+  // ของที่เปลี่ยนทั้งสองข้างยุบเป็นบรรทัดเดียว ที่เหลือแยกฝั่งตามเดิม
+  const { bothSides, leftOnly, rightOnly } = groupBySidePairs(
+    getItemsBySide("left"),
+    getItemsBySide("right"),
+  );
   const otherItems = getItemsBySide("other");
   const generalItems = repairItems.filter(
     (item) => !item.side || item.side === "general",
@@ -87,7 +93,7 @@ const RepairReview = () => {
       };
 
       if (editRepairId) {
-        await updateRepair(editRepairId, repair);
+        await withMinDuration(() => updateRepair(editRepairId, repair));
         toast.success("แก้ไขงานซ่อมเรียบร้อยแล้ว");
         if (statusSlug) {
           navigate(`/repairs?status=${statusSlug}`);
@@ -99,7 +105,7 @@ const RepairReview = () => {
           navigate(`/repairs/${editRepairId}`);
         }
       } else {
-        await createRepair(repair);
+        await withMinDuration(() => createRepair(repair));
         toast.success("สร้างงานซ่อมเรียบร้อยแล้ว");
         const isDesktop = window.innerWidth >= 1280;
         navigate(isDesktop ? "/" : "/repairs?status=in-progress");
@@ -259,15 +265,34 @@ const RepairReview = () => {
                 </button>
               </div>
 
-              {/* รายการฝั่งซ้าย */}
-              {leftItems.length > 0 && (
+              {/* เปลี่ยนทั้งสองข้าง — ยุบเป็นบรรทัดเดียว */}
+              {bothSides.length > 0 && (
                 <div className="mb-[16px] px-[20px]">
                   <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                    <SquareArrowLeft className="mt-[2px]" />
+                    <ArrowLeftRight className="mt-[2px]" />
+                    รายการซ่อมฝั่งซ้าย-ขวา
+                  </p>
+                  <div className="space-y-[12px]">
+                    {bothSides.map((item, index) => (
+                      <RepairItemCard
+                        key={`both-m-${index}`}
+                        item={item}
+                        variant="summary"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* รายการฝั่งซ้าย */}
+              {leftOnly.length > 0 && (
+                <div className="mb-[16px] px-[20px]">
+                  <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
+                    <ArrowLeft className="mt-[2px]" />
                     รายการซ่อมฝั่งซ้าย
                   </p>
                   <div className="space-y-[12px]">
-                    {leftItems.map((item, index) => (
+                    {leftOnly.map((item, index) => (
                       <RepairItemCard
                         key={`left-${index}`}
                         item={item}
@@ -279,14 +304,14 @@ const RepairReview = () => {
               )}
 
               {/* รายการฝั่งขวา */}
-              {rightItems.length > 0 && (
+              {rightOnly.length > 0 && (
                 <div className="mb-[16px] px-[20px]">
                   <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                    <SquareArrowRight className="mt-[2px]" />
+                    <ArrowRight className="mt-[2px]" />
                     รายการซ่อมฝั่งขวา
                   </p>
                   <div className="space-y-[12px]">
-                    {rightItems.map((item, index) => (
+                    {rightOnly.map((item, index) => (
                       <RepairItemCard
                         key={`right-${index}`}
                         item={item}
@@ -301,7 +326,7 @@ const RepairReview = () => {
               {otherItems.length > 0 && (
                 <div className="mb-[16px] px-[20px]">
                   <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                    <CircleEllipsis className="mt-[2px]" />
+                    <Ellipsis className="mt-[2px]" />
                     รายการซ่อมอื่นๆ
                   </p>
                   <div className="space-y-[12px]">
@@ -387,15 +412,34 @@ const RepairReview = () => {
             </button>
           </div>
           <div className="px-[20px] pt-[16px]">
+            {/* เปลี่ยนทั้งสองข้าง — ยุบเป็นบรรทัดเดียว */}
+            {bothSides.length > 0 && (
+              <div className="mb-[16px] px-[20px]">
+                <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
+                  <ArrowLeftRight className="mt-[2px]" />
+                  รายการซ่อมฝั่งซ้าย-ขวา
+                </p>
+                <div className="space-y-[12px]">
+                  {bothSides.map((item, index) => (
+                    <RepairItemCard
+                      key={`both-d-${index}`}
+                      item={item}
+                      variant="summary"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* รายการฝั่งซ้าย */}
-            {leftItems.length > 0 && (
+            {leftOnly.length > 0 && (
               <div className="mb-[16px]">
                 <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                  <SquareArrowLeft className="mt-[2px]" />
+                  <ArrowLeft className="mt-[2px]" />
                   รายการซ่อมฝั่งซ้าย
                 </p>
                 <div className="space-y-[12px]">
-                  {leftItems.map((item, index) => (
+                  {leftOnly.map((item, index) => (
                     <RepairItemCard
                       key={`left-${index}`}
                       item={item}
@@ -407,14 +451,14 @@ const RepairReview = () => {
             )}
 
             {/* รายการฝั่งขวา */}
-            {rightItems.length > 0 && (
+            {rightOnly.length > 0 && (
               <div className="mb-[16px]">
                 <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                  <SquareArrowRight className="mt-[2px]" />
+                  <ArrowRight className="mt-[2px]" />
                   รายการซ่อมฝั่งขวา
                 </p>
                 <div className="space-y-[12px]">
-                  {rightItems.map((item, index) => (
+                  {rightOnly.map((item, index) => (
                     <RepairItemCard
                       key={`right-${index}`}
                       item={item}
@@ -429,7 +473,7 @@ const RepairReview = () => {
             {otherItems.length > 0 && (
               <div className="mb-[16px]">
                 <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                  <CircleEllipsis className="mt-[2px]" />
+                  <Ellipsis className="mt-[2px]" />
                   รายการซ่อมอื่นๆ
                 </p>
                 <div className="space-y-[12px]">

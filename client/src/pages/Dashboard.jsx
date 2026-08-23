@@ -1,14 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import {
-  Menu,
-  CircleUserRound,
-  LogOut,
-  X,
-  CarFront,
-  Users,
-  LoaderCircle,
-} from "lucide-react";
+import { Menu, CircleUserRound, LogOut, X, LoaderCircle } from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
 import InventoryCard from "@/components/cards/InventoryCard";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
@@ -22,6 +14,8 @@ import BrandIcons from "@/components/icons/BrandIcons";
 import { toastError } from "@/utils/handleError";
 import { onKeyActivate } from "@/utils/a11y";
 import { tracksStock } from "@/utils/stock";
+import { publicLinks, privateLinks } from "@/utils/links";
+import { roleLabel } from "@/utils/role";
 
 const Dashboard = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -277,16 +271,16 @@ const Dashboard = () => {
               >
                 <div className="bg-gradient-primary h-[104px] px-[20px] py-[16px]">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center justify-center gap-[16px]">
-                      <div className="bg-surface/20 flex h-12 w-12 items-center justify-center rounded-full">
+                    <div className="flex min-w-0 items-center gap-[16px]">
+                      <div className="bg-surface/20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
                         <CircleUserRound className="text-surface h-7 w-7" />
                       </div>
-                      <div>
-                        <p className="text-surface text-xl font-semibold md:text-[22px]">
+                      <div className="min-w-0">
+                        <p className="text-surface truncate text-xl font-semibold md:text-[22px]">
                           {user?.name}
                         </p>
-                        <p className="text-surface text-lg md:text-xl">
-                          {user?.role === "ADMIN" ? "แอดมิน" : "พนักงาน"}
+                        <p className="text-surface/80 text-lg md:text-xl">
+                          {roleLabel(user?.role)}
                         </p>
                       </div>
                     </div>
@@ -303,35 +297,30 @@ const Dashboard = () => {
                 </div>
                 <div className="bg-surface -mt-[16px] rounded-tl-2xl rounded-tr-2xl px-[20px] py-[16px]">
                   <div>
-                    {/* จัดการยี่ห้อและรุ่นรถ */}
-                    <Link
-                      to="/vehicles/models"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="bg-surface shadow-primary mb-[16px] flex w-full items-center gap-[16px] rounded-[10px] p-[16px] duration-300"
-                    >
-                      <div className="bg-primary flex h-[48px] w-[48px] items-center justify-center rounded-[10px]">
-                        <CarFront className="text-surface h-6 w-6" />
-                      </div>
-                      <p className="text-normal text-lg font-semibold md:text-xl">
-                        จัดการยี่ห้อและรุ่นรถ
-                      </p>
-                    </Link>
-
-                    {/* จัดการบัญชีพนักงาน */}
-                    {user?.role === "ADMIN" && (
-                      <Link
-                        to="/admin/employees"
-                        onClick={() => setIsMenuOpen(false)}
-                        className="bg-surface shadow-primary mb-[16px] flex w-full items-center gap-[16px] rounded-[10px] p-[16px] duration-300"
-                      >
-                        <div className="bg-status-completed flex h-[48px] w-[48px] items-center justify-center rounded-[10px]">
-                          <Users className="text-surface h-6 w-6" />
-                        </div>
-                        <p className="text-normal text-lg font-semibold md:text-xl">
-                          จัดการบัญชีพนักงาน
-                        </p>
-                      </Link>
-                    )}
+                    {/* วนจาก links.js ชุดเดียวกับเมนูบนจอใหญ่ เพิ่มเมนูใหม่ที่เดียวแล้วขึ้นทั้งสองที่ */}
+                    {[
+                      ...publicLinks,
+                      ...(user?.role === "ADMIN" ? privateLinks : []),
+                    ].map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <Link
+                          key={item.href}
+                          to={item.href}
+                          onClick={() => setIsMenuOpen(false)}
+                          className="bg-surface shadow-primary mb-[16px] flex w-full items-center gap-[16px] rounded-[10px] p-[16px] duration-300"
+                        >
+                          <div
+                            className={`${item.tileClass} flex h-[48px] w-[48px] items-center justify-center rounded-[10px]`}
+                          >
+                            <Icon className="text-surface h-6 w-6" />
+                          </div>
+                          <p className="text-normal text-lg font-semibold md:text-xl">
+                            {item.label}
+                          </p>
+                        </Link>
+                      );
+                    })}
                   </div>
 
                   {/* ออกจากระบบ */}

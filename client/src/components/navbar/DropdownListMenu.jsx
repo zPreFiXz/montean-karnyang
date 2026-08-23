@@ -11,6 +11,7 @@ import useAuthStore from "@/stores/useAuthStore";
 import { Link } from "react-router";
 import { useState } from "react";
 import { publicLinks, privateLinks } from "@/utils/links";
+import { roleLabel } from "@/utils/role";
 import SignOutLink from "./SignOutLink";
 import UserIcon from "./UserIcon";
 
@@ -34,7 +35,7 @@ const DropdownListMenu = () => {
               {user?.name}
             </p>
             <p className="text-subtle-dark text-sm leading-tight font-medium">
-              {user?.role === "ADMIN" ? "แอดมิน" : user?.role ? "พนักงาน" : ""}
+              {roleLabel(user?.role)}
             </p>
           </div>
           <Button

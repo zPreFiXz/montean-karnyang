@@ -24,6 +24,7 @@ import { getInventory } from "@/api/inventory";
 import { useParams, useSearchParams } from "react-router";
 import useAuthStore from "@/stores/useAuthStore";
 import { toastError } from "@/utils/handleError";
+import { withMinDuration } from "@/utils/withMinDuration";
 import { sortTireLots } from "@/utils/tireLot";
 import { SIDE_OPTIONS, toPerSide, toSideOptionId } from "@/utils/suspension";
 
@@ -358,10 +359,10 @@ const InventoryEdit = () => {
       }
 
       if (isServiceCategory()) {
-        await updateService(id, serviceData);
+        await withMinDuration(() => updateService(id, serviceData));
         toast.success("แก้ไขบริการเรียบร้อยแล้ว");
       } else {
-        await updatePart(id, partData);
+        await withMinDuration(() => updatePart(id, partData));
         toast.success("แก้ไขอะไหล่เรียบร้อยแล้ว");
       }
       navigate(inventoryPathFor(data.categoryId));

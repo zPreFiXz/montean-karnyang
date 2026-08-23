@@ -11,6 +11,7 @@ const {
   createVehicleModel,
   updateVehicleModel,
   deleteVehicleModel,
+  reorderVehicleModels,
 } = require("../controllers/vehicleModel");
 
 router.get("/vehicles/models", authCheck, listVehicleModels);
@@ -20,6 +21,7 @@ router.post(
   validate(vehicleModelSchema),
   createVehicleModel,
 );
+router.patch("/vehicles/models/reorder", authCheck, reorderVehicleModels);
 router.put(
   "/vehicles/models/:id",
   authCheck,

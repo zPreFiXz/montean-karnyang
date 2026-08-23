@@ -22,7 +22,7 @@ exports.authCheck = async (req, res, next) => {
     });
 
     if (!user) {
-      createError(401, "ไม่พบบัญชีผู้ใช้ กรุณาเข้าสู่ระบบใหม่");
+      createError(401, "ไม่พบบัญชีผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่");
     }
 
     req.user = user;

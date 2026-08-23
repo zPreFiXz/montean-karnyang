@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Image,
+  Wrench,
   Plus,
   Minus,
   ChevronDown,
@@ -661,7 +662,11 @@ const RepairCreate = () => {
                               />
                             ) : (
                               <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
-                                <Image className="h-8 w-8" />
+                                {item.category?.name === "บริการ" ? (
+                                  <Wrench className="h-8 w-8" />
+                                ) : (
+                                  <Image className="h-8 w-8" />
+                                )}
                               </div>
                             )}
                           </div>
@@ -816,7 +821,11 @@ const RepairCreate = () => {
                             />
                           ) : (
                             <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
-                              <Image className="h-8 w-8" />
+                              {item.category?.name === "บริการ" ? (
+                                <Wrench className="h-8 w-8" />
+                              ) : (
+                                <Image className="h-8 w-8" />
+                              )}
                             </div>
                           )}
                         </div>
@@ -918,6 +927,7 @@ const RepairCreate = () => {
         currentPrice={editingItem?.sellingPrice || 0}
         originalPrice={editingItem?.basePrice}
         productName={editingItem ? getProductName(editingItem) : ""}
+        partNumber={editingItem?.partNumber}
         productImage={editingItem?.secureUrl}
         isService={editingItem?.category?.name === "บริการ"}
         currentName={editingItem?.name || ""}

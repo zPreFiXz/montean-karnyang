@@ -20,6 +20,7 @@ import { VEHICLE_COMPATIBLE_CATEGORIES } from "@/constants/categories";
 import { ChevronLeft } from "lucide-react";
 import FieldErrorList from "@/components/forms/FieldErrorList";
 import { toastError } from "@/utils/handleError";
+import { withMinDuration } from "@/utils/withMinDuration";
 import { SIDE_OPTIONS, toPerSide } from "@/utils/suspension";
 
 const InventoryCreate = () => {
@@ -186,7 +187,6 @@ const InventoryCreate = () => {
           publicId: res.data?.publicId,
           secureUrl: res.data?.secureUrl,
         };
-      } else if (!isServiceCategory()) {
       }
 
       if (!isServiceCategory()) {
@@ -232,10 +232,10 @@ const InventoryCreate = () => {
       }
 
       if (isServiceCategory()) {
-        await createService(serviceData);
+        await withMinDuration(() => createService(serviceData));
         toast.success("เพิ่มบริการเรียบร้อยแล้ว");
       } else {
-        await createPart(partData);
+        await withMinDuration(() => createPart(partData));
         toast.success("เพิ่มอะไหล่เรียบร้อยแล้ว");
       }
       navigate(inventoryPathFor(data.categoryId));

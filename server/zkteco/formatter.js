@@ -142,7 +142,7 @@ const dailySummary = async (prisma, dateKey) => {
   }
 
   const message = [
-    "📊 สรุปเวลาเข้า-ออกงานประจำวัน",
+    "📊 สรุปเวลาเข้า-ออกงาน",
     "",
     `📅 วันที่ ${formatThaiDate(start)}`,
     `👥 พนักงานทั้งหมด ${employees.length} คน`,

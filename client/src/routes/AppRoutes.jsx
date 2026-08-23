@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import { LoaderCircle } from "lucide-react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import Layout from "@/layouts/Layout";
 import ProtectRouteUser from "./ProtectRouteUser";
@@ -9,7 +10,9 @@ import ProtectRouteGuest from "./ProtectRouteGuest";
 const Login = lazy(() => import("@/pages/auth/Login"));
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const VehicleModelList = lazy(() => import("@/pages/admin/VehicleModelList"));
-const SuspensionInspection = lazy(() => import("@/pages/inspections/SuspensionInspection"));
+const SuspensionInspection = lazy(
+  () => import("@/pages/inspections/SuspensionInspection"),
+);
 const RepairCreate = lazy(() => import("@/pages/repairs/RepairCreate"));
 const RepairReview = lazy(() => import("@/pages/repairs/RepairReview"));
 const RepairList = lazy(() => import("@/pages/repairs/RepairList"));
@@ -26,66 +29,75 @@ const AttendanceReport = lazy(() => import("@/pages/reports/AttendanceReport"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const RouteFallback = () => (
-  <div className="flex min-h-screen items-center justify-center">
-    <div className="border-primary h-8 w-8 animate-spin rounded-full border-3 border-t-transparent" />
+  <div className="flex min-h-svh items-center justify-center">
+    <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
   </div>
 );
 
 const AppRoutes = () => {
   return (
     <BrowserRouter>
-      <Suspense fallback={<RouteFallback />}>
-        <Routes>
-          {/* Public */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
+      <Routes>
+        {/* Public */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route
+          path="login"
+          element={
+            <Suspense fallback={<RouteFallback />}>
+              <ProtectRouteGuest element={<Login />} />
+            </Suspense>
+          }
+        />
+
+        {/* Private User */}
+        <Route element={<ProtectRouteUser element={<Layout />} />}>
+          <Route path="dashboard" element={<Dashboard />} />
+
+          {/* Inspection */}
           <Route
-            path="login"
-            element={<ProtectRouteGuest element={<Login />} />}
+            path="inspections/suspension"
+            element={<SuspensionInspection />}
           />
 
-          {/* Private User */}
-          <Route element={<ProtectRouteUser element={<Layout />} />}>
-            <Route path="dashboard" element={<Dashboard />} />
+          {/* Repair */}
+          <Route path="repairs" element={<RepairList />} />
+          <Route path="repairs/new" element={<RepairCreate />} />
+          <Route path="repairs/review" element={<RepairReview />} />
+          <Route path="repairs/:id" element={<RepairDetail />} />
 
-            {/* Inspection */}
-            <Route
-              path="inspections/suspension"
-              element={<SuspensionInspection />}
-            />
+          {/* Inventory */}
+          <Route path="inventory" element={<InventoryList />} />
+          <Route path="inventory/new" element={<InventoryCreate />} />
+          <Route path="inventory/:id" element={<InventoryEdit />} />
 
-            {/* Repair */}
-            <Route path="repairs" element={<RepairList />} />
-            <Route path="repairs/new" element={<RepairCreate />} />
-            <Route path="repairs/review" element={<RepairReview />} />
-            <Route path="repairs/:id" element={<RepairDetail />} />
+          {/* Vehicle */}
+          <Route path="vehicles" element={<VehicleList />} />
+          <Route path="vehicles/models" element={<VehicleModelList />} />
+          <Route path="vehicles/:id" element={<VehicleDetail />} />
+        </Route>
 
-            {/* Inventory */}
-            <Route path="inventory" element={<InventoryList />} />
-            <Route path="inventory/new" element={<InventoryCreate />} />
-            <Route path="inventory/:id" element={<InventoryEdit />} />
+        {/* Private Admin */}
+        <Route
+          path="admin"
+          element={<ProtectRouteAdmin element={<Layout />} />}
+        >
+          <Route index element={<Dashboard />} />
+          <Route path="users" element={<UserList />} />
+          <Route path="employees" element={<EmployeeList />} />
+          <Route path="reports/sales" element={<SalesReport />} />
+          <Route path="reports/attendance" element={<AttendanceReport />} />
+        </Route>
 
-            {/* Vehicle */}
-            <Route path="vehicles" element={<VehicleList />} />
-            <Route path="vehicles/models" element={<VehicleModelList />} />
-            <Route path="vehicles/:id" element={<VehicleDetail />} />
-          </Route>
-
-          {/* Private Admin */}
-          <Route
-            path="admin"
-            element={<ProtectRouteAdmin element={<Layout />} />}
-          >
-            <Route index element={<Dashboard />} />
-            <Route path="users" element={<UserList />} />
-            <Route path="employees" element={<EmployeeList />} />
-            <Route path="reports/sales" element={<SalesReport />} />
-            <Route path="reports/attendance" element={<AttendanceReport />} />
-          </Route>
-
-          {/* Not Found */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Suspense>
+        {/* Not Found */}
+        <Route
+          path="*"
+          element={
+            <Suspense fallback={<RouteFallback />}>
+              <NotFound />
+            </Suspense>
+          }
+        />
+      </Routes>
     </BrowserRouter>
   );
 };

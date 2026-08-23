@@ -17,8 +17,10 @@ import {
   MapPin,
   Phone,
   Edit,
-  SquareArrowLeft,
-  SquareArrowRight,
+  ArrowLeftRight,
+  ArrowLeft,
+  ArrowRight,
+  Ellipsis,
   CircleEllipsis,
   Wrench,
 } from "lucide-react";
@@ -34,6 +36,7 @@ import {
 import { toast } from "sonner";
 import RepairItemCard from "@/components/cards/RepairItemCard";
 import { toastError } from "@/utils/handleError";
+import { groupBySidePairs } from "@/utils/repairItemGroups";
 import { isPerSide } from "@/utils/suspension";
 
 const RepairDetail = () => {
@@ -541,16 +544,37 @@ const RepairDetail = () => {
                         }
                       });
 
+                      // ของที่เปลี่ยนทั้งสองข้างยุบเป็นบรรทัดเดียว ให้ตรงกับหน้าสรุปก่อนบันทึก
+                      const { bothSides, leftOnly, rightOnly } =
+                        groupBySidePairs(leftItems, rightItems);
+
                       return (
                         <div>
-                          {leftItems.length > 0 && (
+                          {bothSides.length > 0 && (
                             <div className="mb-[8px]">
                               <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                                <SquareArrowLeft className="mt-[2px]" />
+                                <ArrowLeftRight className="mt-[2px]" />
+                                รายการซ่อมฝั่งซ้าย-ขวา
+                              </p>
+                              <div className="space-y-[12px]">
+                                {bothSides.map((item, idx) => (
+                                  <RepairItemCard
+                                    key={`both-${idx}`}
+                                    item={item}
+                                    variant="detail"
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {leftOnly.length > 0 && (
+                            <div className="mb-[8px]">
+                              <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
+                                <ArrowLeft className="mt-[2px]" />
                                 รายการซ่อมฝั่งซ้าย
                               </p>
                               <div className="space-y-[12px]">
-                                {leftItems.map((item, idx) => (
+                                {leftOnly.map((item, idx) => (
                                   <RepairItemCard
                                     key={`left-${idx}`}
                                     item={item}
@@ -560,14 +584,14 @@ const RepairDetail = () => {
                               </div>
                             </div>
                           )}
-                          {rightItems.length > 0 && (
+                          {rightOnly.length > 0 && (
                             <div className="mb-[8px]">
                               <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                                <SquareArrowRight className="mt-[2px]" />
+                                <ArrowRight className="mt-[2px]" />
                                 รายการซ่อมฝั่งขวา
                               </p>
                               <div className="space-y-[12px]">
-                                {rightItems.map((item, idx) => (
+                                {rightOnly.map((item, idx) => (
                                   <RepairItemCard
                                     key={`right-${idx}`}
                                     item={item}
@@ -580,7 +604,7 @@ const RepairDetail = () => {
                           {otherItems.length > 0 && (
                             <div className="mb-[8px]">
                               <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                                <CircleEllipsis className="mt-[2px]" />
+                                <Ellipsis className="mt-[2px]" />
                                 รายการซ่อมอื่นๆ
                               </p>
                               <div className="space-y-[12px]">
@@ -718,10 +742,10 @@ const RepairDetail = () => {
                     className={`text-lg font-semibold md:text-xl ${
                       repair.paidAt
                         ? "text-status-paid"
-                        : "text-status-progress"
+                        : "text-status-completed"
                     }`}
                   >
-                    {repair.paidAt ? "ชำระเงินแล้ว" : "รอชำระเงิน"}
+                    {repair.paidAt ? "ชำระเงินแล้ว" : "ซ่อมเสร็จสิ้น"}
                   </p>
                 </div>
               </div>

@@ -41,6 +41,15 @@ const thaiCollator = new Intl.Collator("th", { numeric: true });
 const byPartName = (a, b) => thaiCollator.compare(a?.name || "", b?.name || "");
 
 const TAB_ORDER = ["left", "right", "other"];
+
+// ลำดับที่ช่างไล่ตรวจช่วงล่างจริง ไม่ใช่ตามตัวอักษร — ชนิดที่ไม่อยู่ในลิสต์ตกไปท้ายสุด
+const PART_TYPE_ORDER = [
+  "ลูกหมากล่าง",
+  "ลูกหมากแร็ค",
+  "คันชักนอก",
+  "ลูกหมากบน",
+  "ลูกหมากกันโคลง",
+];
 // หน่วงสั้นๆ ให้เห็นตัวหมุนก่อนหน้าจอเปลี่ยน (ไม่ได้รอเซิร์ฟเวอร์ ข้อมูลส่งต่อผ่าน state ล้วน)
 const SUBMIT_FEEDBACK_MS = 400;
 const TAB_LABELS = { left: "ซ้าย", right: "ขวา", other: "อื่นๆ" };
@@ -185,6 +194,16 @@ const SuspensionInspection = () => {
       const otherIds = savedItems
         .filter((i) => i.side === "other")
         .map((i) => i.id);
+
+      // ราคาที่แก้ไว้ติดมากับรายการที่กู้คืน ต้องดึงกลับเข้า priceOverrides
+      // ไม่งั้นราคาจะเด้งกลับเป็นราคาตั้งต้นทุกครั้งที่ย้อนกลับมาจากหน้าสรุป
+      const restoredPrices = {};
+      for (const it of savedItems) {
+        if (it?.side && it?.id != null && it?.sellingPrice != null) {
+          restoredPrices[it.id] = Number(it.sellingPrice);
+        }
+      }
+      setPriceOverrides((prev) => ({ ...prev, ...restoredPrices }));
 
       const leftSet = new Set(leftIds);
       const rightSet = new Set(rightIds);
@@ -532,6 +551,7 @@ const SuspensionInspection = () => {
       sellingPrice: getPriceForPart(part),
       basePrice: part.sellingPrice,
       name: part.name,
+      partNumber: part.partNumber,
       brand: part.brand,
       secureUrl: part.secureUrl,
       category: part.category,
@@ -582,6 +602,33 @@ const SuspensionInspection = () => {
     getExtraItemsCountForPart(part);
 
   // ส่งของที่ติ๊กจากแท็บให้ไดอะล็อกรู้ด้วย จะได้หักสต็อกจากก้อนเดียวกัน
+  // ชื่ออะไหล่ไทยขึ้นต้นด้วยชนิดของมันเสมอ (ลูกหมากล่าง, ลูกหมากบน, คันส่งกลาง)
+  // จึงใช้คำแรกเป็นหัวข้อกลุ่มได้โดยไม่ต้องเพิ่มฟิลด์ใหม่
+  // ข้อแลกเปลี่ยน: ถ้าตั้งชื่อไม่ตามแบบแผน อะไหล่ตัวนั้นจะกลายเป็นกลุ่มของตัวเอง
+  const groupPartsByType = (parts) => {
+    const groups = new Map();
+    for (const part of parts) {
+      const type =
+        String(part.name || "")
+          .trim()
+          .split(/\s+/)[0] || "อื่นๆ";
+      if (!groups.has(type)) groups.set(type, []);
+      groups.get(type).push(part);
+    }
+    // เรียงกลุ่มตามลำดับที่ช่างไล่ตรวจ ชนิดที่ไม่อยู่ในลิสต์ตกไปท้ายสุดเรียงตามตัวอักษร
+    const rank = (type) => {
+      const index = PART_TYPE_ORDER.indexOf(type);
+      return index === -1 ? PART_TYPE_ORDER.length : index;
+    };
+
+    return [...groups.entries()]
+      .map(([type, items]) => ({ type, items }))
+      .sort(
+        (a, b) =>
+          rank(a.type) - rank(b.type) || thaiCollator.compare(a.type, b.type),
+      );
+  };
+
   const getSelectedTabItems = () =>
     compatibleParts.flatMap((part) => {
       const count =
@@ -818,95 +865,117 @@ const SuspensionInspection = () => {
           )}
         </div>
       ) : (
-        getPartsForSide(side).map((part) => {
-          const selectedThis = isPartSelected(part.id, side);
-          const allowedUnits = getAllowedUnitsForPart(part);
-          const currentSelectedAll = getCurrentSelectedCountForPart(part);
-          const isDisabled =
-            !selectedThis && currentSelectedAll >= allowedUnits;
-          const toggle = () => {
-            if (isDisabled) return;
-            handlePartSelection(part, !selectedThis, side);
-          };
+        groupPartsByType(getPartsForSide(side)).map((group) => (
+          <div key={`${side}-${group.type}`}>
+            <div className="mt-[16px] flex items-center gap-[8px] px-[20px]">
+              <p className="text-subtle-dark text-lg font-semibold md:text-xl">
+                {group.type}
+              </p>
+              <span className="text-subtle-light text-lg md:text-xl">
+                ({group.items.length})
+              </span>
+              <div className="bg-subtle-light/40 h-px flex-1" />
+            </div>
+            {group.items.map((part) => {
+              const selectedThis = isPartSelected(part.id, side);
+              const allowedUnits = getAllowedUnitsForPart(part);
+              const currentSelectedAll = getCurrentSelectedCountForPart(part);
+              const isDisabled =
+                !selectedThis && currentSelectedAll >= allowedUnits;
+              const toggle = () => {
+                if (isDisabled) return;
+                handlePartSelection(part, !selectedThis, side);
+              };
 
-          return (
-            <div key={`${side}-${part.id}`} className="mt-[16px] px-[20px]">
-              <div
-                role="button"
-                tabIndex={isDisabled ? -1 : 0}
-                aria-pressed={selectedThis}
-                aria-disabled={isDisabled || undefined}
-                onKeyDown={onKeyActivate(toggle)}
-                onClick={toggle}
-                // ปกติสูงเท่าการ์ดอื่นในระบบ แต่ยอมให้ยืดได้เมื่อมีบรรทัด "สต็อกหมด" เพิ่มเข้ามา
-                className={`shadow-primary flex min-h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] border-2 px-[8px] py-[8px] transition-colors duration-200 ${
-                  selectedThis
-                    ? "bg-primary/5 border-primary"
-                    : "bg-surface border-transparent"
-                } ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
-              >
-                <div className="flex min-w-0 flex-1 items-center gap-[8px]">
-                  <div className="shadow-primary bg-surface flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[10px] border border-gray-200">
-                    {part.secureUrl ? (
-                      <img
-                        src={part.secureUrl}
-                        alt={part.name}
-                        className="h-full w-full rounded-[10px] object-cover"
-                      />
-                    ) : (
-                      <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
-                        <Image className="h-8 w-8" />
-                      </div>
-                    )}
-                  </div>
+              return (
+                <div key={`${side}-${part.id}`} className="mt-[16px] px-[20px]">
+                  <div
+                    role="button"
+                    tabIndex={isDisabled ? -1 : 0}
+                    aria-pressed={selectedThis}
+                    aria-disabled={isDisabled || undefined}
+                    onKeyDown={onKeyActivate(toggle)}
+                    onClick={toggle}
+                    // ปกติสูงเท่าการ์ดอื่นในระบบ แต่ยอมให้ยืดได้เมื่อมีบรรทัด "สต็อกหมด" เพิ่มเข้ามา
+                    className={`shadow-primary flex min-h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] border-2 px-[8px] py-[8px] transition-colors duration-200 ${
+                      selectedThis
+                        ? "bg-primary/5 border-primary"
+                        : "bg-surface border-transparent"
+                    } ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-[8px]">
+                      {/* กดที่รูปเปิดหน้าต่างแก้ราคาเหมือนกดที่ตัวเลขราคา — เป็นสองจุดที่คนมักลองกด */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditCompatiblePrice(part);
+                        }}
+                        aria-label={`แก้ไขราคา ${part.name}`}
+                        className="shadow-primary bg-surface flex h-[60px] w-[60px] shrink-0 cursor-pointer items-center justify-center rounded-[10px] border border-gray-200"
+                      >
+                        {part.secureUrl ? (
+                          <img
+                            src={part.secureUrl}
+                            alt={part.name}
+                            className="h-full w-full rounded-[10px] object-cover"
+                          />
+                        ) : (
+                          <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
+                            <Image className="h-8 w-8" />
+                          </div>
+                        )}
+                      </button>
 
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    {renderProductInfo(part)}
-                    {/* ราคากับดินสอเป็นปุ่มเดียวกัน สูง 44px ตามขนาดขั้นต่ำของเป้ากดบนมือถือ
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        {renderProductInfo(part)}
+                        {/* ราคากับดินสอเป็นปุ่มเดียวกัน สูง 44px ตามขนาดขั้นต่ำของเป้ากดบนมือถือ
                         (ระยะขอบในติดลบชดเชยไม่ให้การ์ดสูงขึ้น) — กดพลาดที่นี่ = ติ๊กเลือกอะไหล่
                         โดยไม่ตั้งใจ จึงต้องกดง่ายกว่าไอคอนเปล่าๆ 20px */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditCompatiblePrice(part);
-                      }}
-                      aria-label={`แก้ไขราคา ${part.name}`}
-                      className="-my-[8px] flex h-[44px] w-fit cursor-pointer items-center gap-2 self-start"
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditCompatiblePrice(part);
+                          }}
+                          aria-label={`แก้ไขราคา ${part.name}`}
+                          className="-my-[8px] flex h-[44px] w-fit cursor-pointer items-center gap-2 self-start"
+                        >
+                          <span
+                            className={`text-xl leading-tight font-semibold duration-200 md:text-[22px] ${
+                              selectedThis ? "text-primary" : "text-subtle-dark"
+                            }`}
+                          >
+                            {formatCurrency(getPriceForPart(part))}
+                          </span>
+                          <SquarePen className="text-primary h-5 w-5 shrink-0" />
+                        </button>
+                        {isDisabled && (
+                          <p className="text-destructive flex items-center gap-[4px] text-base leading-tight font-semibold md:text-lg">
+                            <AlertTriangle className="text-destructive h-5 w-5" />
+                            <span>สต็อกหมด</span>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* ยังไม่เลือก = วงกลมเปล่ามีเส้นขอบ / เลือกแล้ว = ทึบมีเครื่องหมายถูก
+                    เป็นส่วนหนึ่งของการ์ด ไม่ใช่ปุ่มแยก เพราะกดที่ไหนในการ์ดก็เลือกได้อยู่แล้ว */}
+                    <div
+                      className={`flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-200 ${
+                        selectedThis
+                          ? "bg-gradient-primary text-surface border-transparent"
+                          : "border-subtle-mid text-transparent"
+                      }`}
                     >
-                      <span
-                        className={`text-xl leading-tight font-semibold duration-200 md:text-[22px] ${
-                          selectedThis ? "text-primary" : "text-subtle-dark"
-                        }`}
-                      >
-                        {formatCurrency(getPriceForPart(part))}
-                      </span>
-                      <SquarePen className="text-primary h-5 w-5 shrink-0" />
-                    </button>
-                    {isDisabled && (
-                      <p className="text-destructive flex items-center gap-[4px] text-base leading-tight font-semibold md:text-lg">
-                        <AlertTriangle className="text-destructive h-5 w-5" />
-                        <span>สต็อกหมด</span>
-                      </p>
-                    )}
+                      <Check className="h-[16px] w-[16px]" />
+                    </div>
                   </div>
                 </div>
-
-                {/* ยังไม่เลือก = วงกลมเปล่ามีเส้นขอบ / เลือกแล้ว = ทึบมีเครื่องหมายถูก
-                    เป็นส่วนหนึ่งของการ์ด ไม่ใช่ปุ่มแยก เพราะกดที่ไหนในการ์ดก็เลือกได้อยู่แล้ว */}
-                <div
-                  className={`flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-200 ${
-                    selectedThis
-                      ? "bg-gradient-primary text-surface border-transparent"
-                      : "border-subtle-dark text-transparent"
-                  }`}
-                >
-                  <Check className="h-[16px] w-[16px]" />
-                </div>
-              </div>
-            </div>
-          );
-        })
+              );
+            })}
+          </div>
+        ))
       )}
     </div>
   );
@@ -1159,8 +1228,9 @@ const SuspensionInspection = () => {
               </div>
               {/* แท็บตำแหน่งมีไว้เลือกอะไหล่ ถ้าไม่มีอะไหล่ให้เลือกก็ไม่ต้องแสดง */}
               {compatibleParts.length > 0 && renderTabs()}
-              {/* กันการล้นตอนแผงไถลเข้ามา ไม่งั้นหน้าจะกว้างขึ้นชั่วขณะแล้วจัดตำแหน่งใหม่ทั้งหน้า */}
-              <div className="overflow-x-hidden">
+              {/* กันการล้นตอนแผงไถลเข้ามา ไม่งั้นหน้าจะกว้างขึ้นชั่วขณะแล้วจัดตำแหน่งใหม่ทั้งหน้า
+                  ใช้ clip ไม่ใช่ hidden — hidden จะบังคับแกนตั้งเป็น auto ด้วย แล้วไปตัดเงาการ์ดที่ขอบล่าง */}
+              <div className="overflow-x-clip">
                 {renderPartPanel(activeTab)}
               </div>
               {hasVehicleSelected && !hasNoCompatibleParts && (
@@ -1444,9 +1514,7 @@ const SuspensionInspection = () => {
             {/* แท็บตำแหน่งมีไว้เลือกอะไหล่ ถ้าไม่มีอะไหล่ให้เลือกก็ไม่ต้องแสดง */}
             {compatibleParts.length > 0 && renderTabs()}
             {/* กันการล้นตอนแผงไถลเข้ามา ไม่งั้นหน้าจะกว้างขึ้นชั่วขณะแล้วจัดตำแหน่งใหม่ทั้งหน้า */}
-            <div className="overflow-x-hidden">
-              {renderPartPanel(activeTab)}
-            </div>
+            <div className="overflow-x-clip">{renderPartPanel(activeTab)}</div>
             {hasVehicleSelected && !hasNoCompatibleParts && (
               <div className="flex items-center justify-between px-[20px] pt-[16px]">
                 {/* หัวข้อย่อยใต้ "รายการซ่อมช่วงล่าง" จึงเล็กกว่าหนึ่งขั้น */}
@@ -1712,6 +1780,7 @@ const SuspensionInspection = () => {
         currentPrice={editingItem?.sellingPrice || 0}
         originalPrice={editingItem?.basePrice}
         productName={editingItem ? getProductName(editingItem) : ""}
+        partNumber={editingItem?.partNumber}
         productImage={editingItem?.secureUrl}
         isService={editingItem?.category?.name === "บริการ"}
         currentName={editingItem?.name || ""}

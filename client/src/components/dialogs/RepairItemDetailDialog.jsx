@@ -20,6 +20,7 @@ import { updateStockSchema } from "@/utils/schemas";
 import useAuthStore from "@/stores/useAuthStore";
 import { formatCurrency } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
+import { withMinDuration } from "@/utils/withMinDuration";
 import { tracksStock } from "@/utils/stock";
 import { dotOrderKey } from "@/utils/tireLot";
 import { isPerSide } from "@/utils/suspension";
@@ -164,7 +165,7 @@ const RepairItemDetailDialog = ({
         color: "bg-subtle-light",
         textColor: "text-subtle-dark",
         Icon: Info,
-        label: `ไม่แจ้งเตือนสต็อก · จำนวน ${amount}`,
+        label: `ไม่ได้ตั้งขั้นต่ำ · จำนวน ${amount}`,
       };
     }
     if (quantity === 0) {
@@ -257,10 +258,12 @@ const RepairItemDetailDialog = ({
 
     setIsSubmitting(true);
     try {
-      await updatePartStock(currentItem.id, {
-        quantity: isTire ? undefined : addedQuantity,
-        lots: isTire ? addedLots : undefined,
-      });
+      await withMinDuration(() =>
+        updatePartStock(currentItem.id, {
+          quantity: isTire ? undefined : addedQuantity,
+          lots: isTire ? addedLots : undefined,
+        }),
+      );
       toast.success("เพิ่มสต็อกเรียบร้อยแล้ว");
       setIsAddStockVisible(false);
       resetStockForm();
@@ -617,7 +620,7 @@ const RepairItemDetailDialog = ({
               <button
                 onClick={handleEdit}
                 autoFocus={false}
-                className="font-athiti text-surface bg-status-progress flex h-11 flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] text-lg font-semibold md:text-xl"
+                className="font-athiti text-primary border-primary bg-surface flex h-11 flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] border text-lg font-semibold md:text-xl"
               >
                 <Edit className="h-4 w-4" />
                 แก้ไข

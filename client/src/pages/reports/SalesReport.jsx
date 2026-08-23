@@ -18,6 +18,7 @@ import {
 } from "@/utils/formats";
 import useRepairStore from "@/stores/useRepairStore";
 import BrandIcons from "@/components/icons/BrandIcons";
+import { Paid } from "@/components/icons/Icons";
 import { CalendarYear } from "@/components/ui/CalendarYear";
 import {
   Popover,
@@ -401,22 +402,23 @@ const SalesReport = () => {
           </button>
         </div>
       </div>
-      <div className="bg-surface -mt-[16px] flex min-h-[calc(100vh-249px)] w-full flex-col rounded-tl-2xl rounded-tr-2xl px-[20px] md:min-h-[calc(100vh-269px)]">
-        <div className="pt-[16px]">
+      <div className="bg-surface -mt-[16px] flex min-h-[calc(100vh-249px)] w-full flex-col rounded-tl-2xl rounded-tr-2xl px-[20px] pb-[112px] md:min-h-[calc(100vh-269px)] xl:pb-[16px]">
+        <div className="flex items-center gap-[8px] pt-[16px]">
+          <div className="bg-status-paid flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full">
+            <Paid />
+          </div>
           <p className="text-normal text-[22px] font-semibold md:text-2xl">
             {periodRepairs.length > 0
-              ? `รายการซ่อม (${periodRepairs.length} รายการ)`
-              : "รายการซ่อม"}
+              ? `งานซ่อม (${periodRepairs.length} รายการ)`
+              : "งานซ่อม"}
           </p>
         </div>
         {isLoading ? (
-          <div className="flex h-[256px] items-center justify-center">
+          <div className="flex flex-1 items-center justify-center">
             <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : periodRepairs.length > 0 ? (
-          <div
-            className={`${periodType === "daily" ? "pt-[16px]" : "pt-[8px]"} pb-[96px]`}
-          >
+          <div className={periodType === "daily" ? "pt-[16px]" : "pt-[8px]"}>
             {periodType === "daily"
               ? periodRepairs.map((repair, index) => {
                   const carData = getCarCardData(repair);
@@ -483,9 +485,9 @@ const SalesReport = () => {
                 )}
           </div>
         ) : (
-          <div className="flex h-[256px] flex-col items-center justify-center text-center">
-            <p className="text-subtle-light text-xl md:text-[22px]">
-              ไม่มีรายการซ่อม
+          <div className="flex flex-1 items-center justify-center">
+            <p className="text-subtle-light text-center text-xl text-balance md:text-[22px]">
+              ไม่มีงานซ่อม
             </p>
           </div>
         )}

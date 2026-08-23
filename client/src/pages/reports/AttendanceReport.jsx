@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { ChevronLeft, LoaderCircle } from "lucide-react";
-import SearchBar from "@/components/forms/SearchBar";
+import FormInput from "@/components/forms/FormInput";
 import { getAttendanceSummary } from "@/api/attendance";
 import { formatTime } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
@@ -23,7 +23,6 @@ const getTodayDateKey = () =>
 
 const AttendanceReport = () => {
   const [dateKey, setDateKey] = useState(getTodayDateKey());
-  const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [summaryData, setSummaryData] = useState(null);
 
@@ -50,19 +49,7 @@ const AttendanceReport = () => {
     await fetchSummary(newDate);
   };
 
-  const filteredSummary = useMemo(() => {
-    const items = summaryData?.summary || [];
-    const query = searchTerm.trim().toLowerCase();
-
-    if (!query) return items;
-
-    return items.filter((item) => {
-      return (
-        item.name?.toLowerCase().includes(query) ||
-        item.zkUserId?.toLowerCase().includes(query)
-      );
-    });
-  }, [summaryData, searchTerm]);
+  const summaryItems = summaryData?.summary || [];
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
@@ -75,7 +62,7 @@ const AttendanceReport = () => {
           <ChevronLeft className="text-surface" />
         </Link>
         <p className="text-surface text-2xl font-semibold md:text-[26px]">
-          รายงานสแกนรายวัน
+          รายงานเวลาเข้า-ออกงาน
         </p>
       </div>
 
@@ -85,74 +72,29 @@ const AttendanceReport = () => {
             <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : (
-          <div className="px-[20px] py-[16px] pb-[112px]">
-            <div className="mb-[12px] flex flex-wrap items-center gap-[8px]">
-              <Link
-                to="/admin/reports/sales"
-                className="text-primary border-primary rounded-[10px] border px-[12px] py-[8px] text-sm font-semibold"
-              >
-                รายงานยอดขาย
-              </Link>
-              <Link
-                to="/admin/reports/attendance"
-                className="bg-primary text-surface rounded-[10px] px-[12px] py-[8px] text-sm font-semibold"
-              >
-                รายงานสแกนรายวัน
-              </Link>
-            </div>
+          <div className="flex flex-1 flex-col px-[20px] pt-[16px]">
+            <FormInput
+              name="date"
+              label="วันที่"
+              type="date"
+              color="subtle-dark"
+              errors={{}}
+              value={dateKey}
+              onChange={handleDateChange}
+              customClass="mb-[16px]"
+            />
 
-            <div className="mb-[12px] grid gap-[12px] md:grid-cols-2">
-              <div className="w-full">
-                <SearchBar
-                  placeholder="ค้นหาชื่อ, รหัสพนักงาน"
-                  value={searchTerm}
-                  onSearch={setSearchTerm}
-                />
-              </div>
+            <p className="text-subtle-dark mb-[16px] text-lg font-semibold md:text-xl">
+              พนักงานทั้งหมด {summaryData?.totalEmployees || 0} คน
+            </p>
 
-              <div className="flex items-end">
-                <div className="w-full">
-                  <p className="text-subtle-dark mb-[8px] text-lg font-medium md:text-xl">
-                    วันที่
-                  </p>
-                  <input
-                    type="date"
-                    value={dateKey}
-                    onChange={handleDateChange}
-                    className="border-input bg-surface h-[41px] w-full rounded-[20px] border px-[12px] text-lg font-medium md:text-xl"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-[12px] grid gap-[8px] md:grid-cols-3">
-              <div className="bg-surface shadow-primary rounded-[10px] p-[12px]">
-                <p className="text-subtle-dark text-sm">พนักงานทั้งหมด</p>
-                <p className="text-primary text-[22px] font-semibold">
-                  {summaryData?.totalEmployees || 0}
-                </p>
-              </div>
-              <div className="bg-surface shadow-primary rounded-[10px] p-[12px]">
-                <p className="text-subtle-dark text-sm">สแกนครบ 4 ครั้ง</p>
-                <p className="text-primary text-[22px] font-semibold">
-                  {summaryData?.completeEmployees || 0}
-                </p>
-              </div>
-              <div className="bg-surface shadow-primary rounded-[10px] p-[12px]">
-                <p className="text-subtle-dark text-sm">สแกนไม่ผูกพนักงาน</p>
-                <p className="text-primary text-[22px] font-semibold">
-                  {summaryData?.unknownScanCount || 0}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-[12px]">
-              {filteredSummary.map((item) => (
+            <div className="flex flex-1 flex-col gap-[16px]">
+              {summaryItems.map((item) => (
                 <div
                   key={item.employeeId}
-                  className="bg-surface shadow-primary rounded-[10px] p-[12px]"
+                  className="bg-surface shadow-primary rounded-[10px] p-[16px]"
                 >
-                  <div className="mb-[10px] flex flex-wrap items-center justify-between gap-[8px] border-b border-gray-100 pb-[10px]">
+                  <div className="mb-[16px] flex flex-wrap items-center justify-between gap-[8px] border-b border-gray-100 pb-[16px]">
                     <div className="min-w-0 flex-1">
                       <p className="text-normal truncate text-lg font-semibold md:text-xl">
                         {item.name}
@@ -162,10 +104,10 @@ const AttendanceReport = () => {
                       </p>
                     </div>
                     <div
-                      className={`rounded-[999px] px-[10px] py-[4px] text-sm font-semibold ${
+                      className={`text-surface rounded-[999px] px-[12px] py-[4px] text-sm font-semibold ${
                         item.completed
-                          ? "bg-green-100 text-green-700"
-                          : "bg-orange-100 text-orange-700"
+                          ? "bg-status-completed"
+                          : "bg-status-progress"
                       }`}
                     >
                       {item.completed
@@ -180,7 +122,7 @@ const AttendanceReport = () => {
                       return (
                         <div
                           key={slot.key}
-                          className="rounded-[8px] bg-gray-50 px-[10px] py-[8px]"
+                          className="rounded-[8px] bg-gray-50 p-[8px]"
                         >
                           <p className="text-subtle-dark text-sm">
                             {slot.label}
@@ -206,9 +148,11 @@ const AttendanceReport = () => {
                 </div>
               ))}
 
-              {!filteredSummary.length && (
-                <div className="py-[24px] text-center">
-                  <p className="text-subtle-light">ไม่พบข้อมูลพนักงาน</p>
+              {!summaryItems.length && (
+                <div className="flex flex-1 items-center justify-center">
+                  <p className="text-subtle-light text-center text-xl text-balance md:text-[22px]">
+                    ไม่มีพนักงาน
+                  </p>
                 </div>
               )}
             </div>

@@ -91,7 +91,7 @@ const EmployeeList = () => {
             <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : (
-          <div className="px-[20px] py-[16px] pb-[112px]">
+          <div className="flex flex-1 flex-col px-[20px] pt-[16px]">
             <div className="w-full">
               <SearchBar
                 placeholder="ค้นหารหัสพนักงาน, ชื่อ"
@@ -119,7 +119,13 @@ const EmployeeList = () => {
               onSuccess={fetchEmployees}
             />
 
-            <div className="space-y-[16px]">
+            {filteredEmployees.length === 0 ? (
+              <div className="flex flex-1 items-center justify-center">
+                <p className="text-subtle-light text-center text-xl text-balance md:text-[22px]">
+                  {searchTerm ? `ไม่พบ "${searchTerm}"` : "ไม่มีพนักงาน"}
+                </p>
+              </div>
+            ) : (
               <div className="bg-surface shadow-primary rounded-[10px] p-[16px]">
                 <div className="mb-[16px] flex items-center gap-[8px] border-b border-gray-100 pb-[16px]">
                   <p className="text-primary text-xl font-semibold md:text-[22px]">
@@ -137,35 +143,30 @@ const EmployeeList = () => {
                           {employee.name}
                         </p>
                         <p className="text-subtle-dark truncate text-sm md:text-base">
-                          รหัสเครื่องสแกน: {employee.zkUserId}
+                          รหัสพนักงาน: {employee.zkUserId}
                         </p>
                       </div>
                       <div className="flex flex-shrink-0 gap-[8px]">
                         <button
                           onClick={() => handleEditClick(employee)}
-                          className="text-surface bg-gradient-primary flex cursor-pointer items-center gap-[4px] rounded-[10px] px-[12px] py-[6px] text-sm font-medium"
+                          aria-label="แก้ไขพนักงาน"
+                          className="text-surface bg-gradient-primary flex h-[36px] w-[36px] shrink-0 cursor-pointer items-center justify-center rounded-[10px]"
                         >
-                          <Edit className="h-[14px] w-[14px]" />
-                          <p className="font-semibold">แก้ไข</p>
+                          <Edit className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteClick(employee)}
-                          className="text-surface bg-destructive flex cursor-pointer items-center gap-[4px] rounded-[10px] px-[12px] py-[6px] text-sm font-medium"
+                          aria-label="ลบพนักงาน"
+                          className="text-surface bg-destructive flex h-[36px] w-[36px] shrink-0 cursor-pointer items-center justify-center rounded-[10px]"
                         >
-                          <Trash2 className="h-[14px] w-[14px]" />
-                          <p className="font-semibold">ลบ</p>
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-              {filteredEmployees.length === 0 && (
-                <div className="py-[24px] text-center">
-                  <p className="text-subtle-light">ไม่พบข้อมูลพนักงาน</p>
-                </div>
-              )}
-            </div>
+            )}
           </div>
         )}
       </div>

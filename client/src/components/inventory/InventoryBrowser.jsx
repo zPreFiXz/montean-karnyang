@@ -202,9 +202,10 @@ const InventoryBrowser = ({
     if (search) {
       // ตัดกันตกบรรทัด — คำค้นอาจยาวเกินได้ถ้าใส่มาทาง URL ตรงๆ
       const term = search.length > 20 ? `${search.slice(0, 20)}…` : search;
-      return `ไม่พบรายการที่ตรงกับ "${term}"`;
+      return `ไม่พบ "${term}"`;
     }
-    if (hasTireFilter) return "ไม่พบยางที่ตรงกับตัวกรอง";
+    // ตัวเลือกยางไล่กรองกันเอง เลือกจากดรอปดาวน์ยังไงก็เจอเสมอ — เหลือไว้เผื่อเปิดจาก URL ที่ระบุค่ามาเอง
+    if (hasTireFilter) return "ไม่พบยางตามเงื่อนไขที่เลือก";
     // ไม่เอาชื่อหมวดมาต่อ: หัวข้อด้านบนบอกอยู่แล้ว และหมวดชื่อยาวจะทำให้ข้อความตกบรรทัด
     if (activeCategory !== "ทั้งหมด") return "ไม่มีรายการในหมวดนี้";
     return "ไม่มีอะไหล่และบริการ";
@@ -269,7 +270,7 @@ const InventoryBrowser = ({
   return (
     <div className="flex flex-1 flex-col">
       <SearchBar
-        placeholder="ค้นหายี่ห้อ, ชื่อ, รหัส"
+        placeholder="ค้นหารหัส, ชื่อ, ยี่ห้อ"
         {...(syncUrl
           ? {}
           : {

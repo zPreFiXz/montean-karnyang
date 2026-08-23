@@ -5,6 +5,7 @@ import CarCard from "@/components/cards/CarCard";
 import { listRepairs } from "@/api/repair";
 import { formatTime } from "@/utils/formats";
 import BrandIcons from "@/components/icons/BrandIcons";
+import { Success, Wrench, Paid } from "@/components/icons/Icons";
 import { toastError } from "@/utils/handleError";
 
 const getDisplayBrand = (vehicleModel) => {
@@ -108,6 +109,20 @@ const RepairList = () => {
     }
   };
 
+  // ไอคอนชุดเดียวกับการ์ดสถานะบนหน้าหลัก กดการ์ดไหนเข้ามาก็เจอไอคอนตัวเดิมรออยู่
+  const getStatusIcon = () => {
+    switch (status) {
+      case "in-progress":
+        return { Icon: Wrench, bg: "bg-status-progress" };
+      case "completed":
+        return { Icon: Success, bg: "bg-status-completed" };
+      case "paid":
+        return { Icon: Paid, bg: "bg-status-paid" };
+      default:
+        return null;
+    }
+  };
+
   const getEmptyMessage = () => {
     switch (status) {
       case "in-progress":
@@ -120,6 +135,8 @@ const RepairList = () => {
         return null;
     }
   };
+
+  const statusIcon = getStatusIcon();
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
@@ -168,9 +185,18 @@ const RepairList = () => {
         </Link>
       </div>
       <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl px-[20px] pb-[112px]">
-        <p className="text-normal pt-[16px] text-[22px] font-semibold md:text-2xl">
-          {getStatusTitle()}
-        </p>
+        <div className="flex items-center gap-[8px] pt-[16px]">
+          {statusIcon && (
+            <div
+              className={`${statusIcon.bg} flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full`}
+            >
+              <statusIcon.Icon />
+            </div>
+          )}
+          <p className="text-normal text-[22px] font-semibold md:text-2xl">
+            {getStatusTitle()}
+          </p>
+        </div>
         {isLoading ? (
           <div className="flex flex-1 items-center justify-center">
             <LoaderCircle className="text-primary h-8 w-8 animate-spin" />

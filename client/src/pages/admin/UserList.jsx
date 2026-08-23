@@ -118,10 +118,10 @@ const UserList = () => {
             <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : (
-          <div className="px-[20px] py-[16px] pb-[112px]">
+          <div className="flex flex-1 flex-col px-[20px] pt-[16px]">
             <div className="w-full">
               <SearchBar
-                placeholder="ค้นหาชื่อ-นามสกุล, อีเมล"
+                placeholder="ค้นหาชื่อ, อีเมล"
                 value={searchTerm}
                 onSearch={setSearchTerm}
               />
@@ -146,7 +146,7 @@ const UserList = () => {
               onSuccess={fetchUsers}
             />
 
-            <div className="space-y-[16px]">
+            <div className="flex flex-1 flex-col gap-[16px]">
               {sortedRoles.map((role) => (
                 <div
                   key={role}
@@ -174,17 +174,17 @@ const UserList = () => {
                         <div className="flex flex-shrink-0 gap-[8px]">
                           <button
                             onClick={() => handleEditClick(user)}
-                            className="text-surface bg-gradient-primary flex cursor-pointer items-center gap-[4px] rounded-[10px] px-[12px] py-[6px] text-sm font-medium"
+                            aria-label="แก้ไขบัญชีผู้ใช้งาน"
+                            className="text-surface bg-gradient-primary flex h-[36px] w-[36px] shrink-0 cursor-pointer items-center justify-center rounded-[10px]"
                           >
-                            <Edit className="h-[14px] w-[14px]" />
-                            <p className="font-semibold">แก้ไข</p>
+                            <Edit className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteClick(user)}
-                            className="text-surface bg-destructive flex cursor-pointer items-center gap-[4px] rounded-[10px] px-[12px] py-[6px] text-sm font-medium"
+                            aria-label="ลบบัญชีผู้ใช้งาน"
+                            className="text-surface bg-destructive flex h-[36px] w-[36px] shrink-0 cursor-pointer items-center justify-center rounded-[10px]"
                           >
-                            <Trash2 className="h-[14px] w-[14px]" />
-                            <p className="font-semibold">ลบ</p>
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
@@ -193,8 +193,12 @@ const UserList = () => {
                 </div>
               ))}
               {filteredUsers.length === 0 && (
-                <div className="py-[24px] text-center">
-                  <p className="text-subtle-light">ไม่พบข้อมูลบัญชีผู้ใช้งาน</p>
+                <div className="flex flex-1 items-center justify-center">
+                  <p className="text-subtle-light text-center text-xl text-balance md:text-[22px]">
+                    {searchTerm
+                      ? `ไม่พบ "${searchTerm}"`
+                      : "ไม่มีบัญชีผู้ใช้งาน"}
+                  </p>
                 </div>
               )}
             </div>
