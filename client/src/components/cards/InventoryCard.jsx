@@ -22,21 +22,21 @@ const InventoryCard = ({
   const renderProductInfo = () => {
     if (isTire && attributes && attributes.aspectRatio) {
       return (
-        <p className="text-normal line-clamp-2 overflow-hidden text-base font-semibold md:text-lg">
+        <p className="text-normal line-clamp-2 overflow-hidden text-base font-semibold break-words md:text-lg">
           {brand} {attributes.width}/{attributes.aspectRatio}R
           {attributes.rimDiameter} {name}
         </p>
       );
     } else if (isTire && attributes) {
       return (
-        <p className="text-normal line-clamp-2 overflow-hidden text-base font-semibold md:text-lg">
+        <p className="text-normal line-clamp-2 overflow-hidden text-base font-semibold break-words md:text-lg">
           {brand} {attributes.width}R{attributes.rimDiameter} {name}
         </p>
       );
     }
 
     return (
-      <p className="text-normal line-clamp-2 overflow-hidden text-base font-semibold md:text-lg">
+      <p className="text-normal line-clamp-2 overflow-hidden text-base font-semibold break-words md:text-lg">
         {brand} {name}
       </p>
     );
@@ -46,8 +46,8 @@ const InventoryCard = ({
     // ระยะห่างระหว่างการ์ดอยู่บนตัวที่รับคลิก ไม่ใช่ที่นี่ ไม่งั้นช่องว่างจะกดได้ด้วย
     <div className="flex items-center gap-[16px]">
       <div className="shadow-primary bg-surface flex h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] px-[8px]">
-        <div className="flex items-center gap-[8px]">
-          <div className="shadow-primary bg-surface flex items-center justify-center rounded-[10px] border border-gray-200">
+        <div className="flex min-w-0 flex-1 items-center gap-[8px]">
+          <div className="shadow-primary bg-surface flex shrink-0 items-center justify-center rounded-[10px] border border-gray-200">
             {secureUrl ? (
               <div className="h-[60px] w-[60px]">
                 <img
@@ -67,7 +67,7 @@ const InventoryCard = ({
             )}
           </div>
 
-          <div className="flex flex-col">
+          <div className="flex min-w-0 flex-col">
             {renderProductInfo()}
 
             {!isService &&
@@ -95,7 +95,7 @@ const InventoryCard = ({
           </div>
         </div>
 
-        <p className="text-primary text-[22px] font-semibold text-nowrap md:text-2xl">
+        <p className="text-primary shrink-0 text-[22px] font-semibold text-nowrap md:text-2xl">
           {formatCurrency(Number(sellingPrice))}
         </p>
       </div>

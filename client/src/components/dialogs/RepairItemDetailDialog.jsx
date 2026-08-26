@@ -211,7 +211,7 @@ const RepairItemDetailDialog = ({
       currentItem.attributes.aspectRatio
     ) {
       return (
-        <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold md:text-2xl">
+        <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">
           {currentItem.brand} {currentItem.attributes.width}/
           {currentItem.attributes.aspectRatio}R
           {currentItem.attributes.rimDiameter} {currentItem.name}
@@ -219,7 +219,7 @@ const RepairItemDetailDialog = ({
       );
     } else if (isTire && currentItem.attributes) {
       return (
-        <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold md:text-2xl">
+        <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">
           {currentItem.brand} {currentItem.attributes.width}R
           {currentItem.attributes.rimDiameter} {currentItem.name}
         </h2>
@@ -227,7 +227,7 @@ const RepairItemDetailDialog = ({
     }
 
     return (
-      <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold md:text-2xl">
+      <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">
         {currentItem.brand} {currentItem.name}
       </h2>
     );
