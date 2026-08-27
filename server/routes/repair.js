@@ -16,12 +16,14 @@ const {
   createRepair,
   updateRepair,
   updateRepairStatus,
+  deleteRepair,
 } = require("../controllers/repair");
 
 router.get("/repairs", authCheck, listRepairs);
 router.get("/repairs/:id", authCheck, getRepair);
 router.post("/repairs", authCheck, validate(repairSchema), createRepair);
 router.put("/repairs/:id", authCheck, validate(repairSchema), updateRepair);
+router.delete("/repairs/:id", authCheck, deleteRepair);
 router.patch(
   "/repairs/:id/status",
   authCheck,

@@ -16,6 +16,8 @@ const ConfirmDialog = ({
   title = "ยืนยันการลบ",
   // หัวเรื่องบอกว่าลบอะไร ชิปบอกว่าลบตัวไหน — พอแล้ว ไม่ต้องอธิบายว่ากู้คืนไม่ได้
   itemName = "",
+  // บรรทัดขยายใต้ชิป สำหรับกรณีที่ชื่ออย่างเดียวยังระบุตัวไม่ชัด (เช่น ทะเบียนรถ ต้องรู้ยี่ห้อรุ่นด้วย)
+  itemDetail = "",
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const cancelButtonRef = useRef(null);
@@ -53,7 +55,7 @@ const ConfirmDialog = ({
             {title}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            {`${title} ${itemName}`.trim()}
+            {`${title} ${itemName} ${itemDetail}`.trim()}
           </DialogDescription>
           <button
             onClick={onClose}
@@ -70,6 +72,12 @@ const ConfirmDialog = ({
           {itemName && (
             <span className="text-primary bg-primary/10 inline-block rounded-[10px] px-4 py-2 text-center text-lg font-semibold md:text-xl">
               {itemName}
+              {itemDetail && (
+                <>
+                  <br />
+                  {itemDetail}
+                </>
+              )}
             </span>
           )}
         </div>

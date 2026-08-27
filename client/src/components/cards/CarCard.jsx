@@ -7,6 +7,8 @@ const CarCard = ({
   licensePlate,
   brand,
   time,
+  // ข้อความต่อท้ายแบบไม่มีหน่วยเวลา เช่น ชื่อลูกค้าที่ตรงกับคำค้น
+  note,
   price,
   amount,
   status,
@@ -41,12 +43,18 @@ const CarCard = ({
             >
               {licensePlate}
             </p>
-            <p className="text-subtle-dark truncate text-sm font-medium md:text-base">
+            <p className="text-subtle-dark truncate text-base font-medium md:text-lg">
               {brand}
               {time && (
                 <span className="text-subtle-dark">
                   <span className="text-subtle-light"> | </span>
                   <span>{time} น.</span>
+                </span>
+              )}
+              {note && (
+                <span className="text-subtle-dark">
+                  <span className="text-subtle-light"> | </span>
+                  <span>{note}</span>
                 </span>
               )}
             </p>

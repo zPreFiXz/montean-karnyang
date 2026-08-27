@@ -358,14 +358,30 @@ const InventoryEdit = () => {
         };
       }
 
-      if (isServiceCategory()) {
+      const itemType = isServiceCategory() ? "service" : "part";
+
+      if (itemType === "service") {
         await withMinDuration(() => updateService(id, serviceData));
         toast.success("แก้ไขบริการเรียบร้อยแล้ว");
       } else {
         await withMinDuration(() => updatePart(id, partData));
         toast.success("แก้ไขอะไหล่เรียบร้อยแล้ว");
       }
-      navigate(inventoryPathFor(data.categoryId));
+
+      // ดึงข้อมูลหลังแก้มาตั้งแต่ตอนนี้ ระหว่างที่ปุ่มยังหมุนอยู่ แล้วส่งติดไปกับหน้าถัดไป
+      // เพื่อให้ไดอะล็อกเปิดได้ตั้งแต่เฟรมแรก ไม่ต้องรอยิง API อีกรอบหลังเปลี่ยนหน้า
+      let openItem = null;
+      try {
+        const res = await getInventory(Number(id), itemType);
+        openItem = res.data || null;
+      } catch {
+        // ดึงไม่ได้ก็แค่ไม่เปิดไดอะล็อกต่อ การบันทึกสำเร็จไปแล้ว ไม่ต้องแจ้งซ้ำ
+      }
+
+      // กลับไปหน้าเดิมแล้วเปิดไดอะล็อกของรายการนี้ค้างไว้ ให้เห็นผลที่เพิ่งแก้ทันที
+      navigate(inventoryPathFor(data.categoryId), {
+        state: openItem ? { openItem } : null,
+      });
 
       reset();
       setSelectedImage(null);

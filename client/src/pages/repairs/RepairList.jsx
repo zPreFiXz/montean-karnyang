@@ -6,17 +6,13 @@ import { listRepairs } from "@/api/repair";
 import { formatTime } from "@/utils/formats";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { Success, Wrench, Paid } from "@/components/icons/Icons";
+import { ShoppingBag } from "lucide-react";
+import {
+  isSaleRepair,
+  getRepairTitle,
+  getRepairSubtitle,
+} from "@/utils/repairDisplay";
 import { toastError } from "@/utils/handleError";
-
-const getDisplayBrand = (vehicleModel) => {
-  const brand = vehicleModel?.brand || "";
-  const model = vehicleModel?.model || "";
-
-  if (brand === "อื่นๆ" || brand === "อื่น ๆ") {
-    return model;
-  }
-  return `${brand} ${model}`.trim();
-};
 
 const RepairList = () => {
   const [searchParams] = useSearchParams();
@@ -218,18 +214,17 @@ const RepairList = () => {
               <CarCard
                 bg={getStatusBg(item.status)}
                 icon={
-                  <BrandIcons
-                    brand={item.vehicle.vehicleModel.brand}
-                    color={getStatusColor(item.status)}
-                  />
+                  isSaleRepair(item) ? (
+                    <ShoppingBag className="text-surface h-6 w-6" />
+                  ) : (
+                    <BrandIcons
+                      brand={item.vehicle.vehicleModel.brand}
+                      color={getStatusColor(item.status)}
+                    />
+                  )
                 }
-                licensePlate={
-                  item.vehicle.licensePlate?.plateNumber &&
-                  item.vehicle.licensePlate?.province
-                    ? `${item.vehicle.licensePlate.plateNumber} ${item.vehicle.licensePlate.province}`
-                    : "ไม่ระบุทะเบียนรถ"
-                }
-                brand={getDisplayBrand(item.vehicle.vehicleModel)}
+                licensePlate={getRepairTitle(item)}
+                brand={getRepairSubtitle(item)}
                 time={item.createdAt && formatTime(item.createdAt)}
                 price={Number(item.totalPrice) || 0}
               />

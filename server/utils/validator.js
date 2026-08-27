@@ -24,59 +24,85 @@ exports.editUserAccountSchema = z.object({
   role: z.enum(["EMPLOYEE", "ADMIN"], { message: "กรุณาเลือกบทบาท" }),
 });
 
-exports.repairSchema = z.object({
-  name: z.string().optional(),
-  address: z.string().optional(),
-  phoneNumber: z.preprocess(
-    (v) => (v === "" || v == null ? undefined : v),
-    z
-      .string()
-      .regex(/^[0-9]{10}$/, "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก")
-      .optional(),
-  ),
-  brand: z.string().min(1, "กรุณาเลือกยี่ห้อรถ"),
-  model: z.string().min(1, "กรุณาเลือกรุ่นรถ"),
-  plate: z.string().optional(),
-  province: z.string().optional(),
-  description: z.string().optional(),
-  mileage: z.preprocess(
-    (v) => (v === "" || v == null ? undefined : v),
-    z.coerce
-      .number({ message: "เลขกิโลเมตรต้องเป็นตัวเลข" })
-      .int("เลขกิโลเมตรต้องเป็นจำนวนเต็ม")
-      .min(0, "เลขกิโลเมตรต้องไม่ติดลบ")
-      .optional(),
-  ),
-  type: z.enum(["GENERAL", "SUSPENSION"], {
-    message: "ประเภทงานซ่อมไม่ถูกต้อง",
-  }),
-  totalPrice: z.coerce.number(),
-  repairItems: z
-    .array(
+exports.repairSchema = z
+  .object({
+    name: z.string().optional(),
+    address: z.string().optional(),
+    phoneNumber: z.preprocess(
+      (v) => (v === "" || v == null ? undefined : v),
       z
-        .object({
-          partId: z.number().optional(),
-          serviceId: z.number().optional(),
-          unitPrice: z.coerce.number(),
-          quantity: z.coerce.number().min(1, "จำนวนอย่างน้อย 1"),
-          // client ส่งตัวพิมพ์เล็ก (UI state) → แปลงเป็นตัวใหญ่ให้ตรง enum Side ใน DB
-          side: z.preprocess(
-            (v) => (typeof v === "string" ? v.toUpperCase() : v),
-            z
-              .enum(["LEFT", "RIGHT", "OTHER"], {
-                message: "ตำแหน่งข้างไม่ถูกต้อง",
-              })
-              .nullable()
-              .optional(),
-          ),
-        })
-        // ชื่อไม่รับจาก client — เซิร์ฟเวอร์ประกอบเองจากอะไหล่/บริการที่อ้างถึง
-        .refine((item) => item.partId || item.serviceId, {
-          message: "แต่ละรายการต้องระบุอะไหล่หรือบริการ",
-        }),
-    )
-    .optional(),
-});
+        .string()
+        .regex(/^[0-9]{10}$/, "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก")
+        .optional(),
+    ),
+    brand: z.string().optional(),
+    model: z.string().optional(),
+    plate: z.string().optional(),
+    province: z.string().optional(),
+    description: z.string().optional(),
+    mileage: z.preprocess(
+      (v) => (v === "" || v == null ? undefined : v),
+      z.coerce
+        .number({ message: "เลขกิโลเมตรต้องเป็นตัวเลข" })
+        .int("เลขกิโลเมตรต้องเป็นจำนวนเต็ม")
+        .min(0, "เลขกิโลเมตรต้องไม่ติดลบ")
+        .optional(),
+    ),
+    type: z.enum(["GENERAL", "SUSPENSION", "SALE"], {
+      message: "ประเภทงานซ่อมไม่ถูกต้อง",
+    }),
+    // ใช้เฉพาะบิลขายหน้าร้าน ซึ่งเก็บเงินตอนสร้างบิลเลย
+    paymentMethod: z
+      .enum(["CASH", "CREDIT_CARD", "QR_CODE"], {
+        message: "วิธีชำระเงินไม่ถูกต้อง",
+      })
+      .optional(),
+    totalPrice: z.coerce.number(),
+    repairItems: z
+      .array(
+        z
+          .object({
+            partId: z.number().optional(),
+            serviceId: z.number().optional(),
+            unitPrice: z.coerce.number(),
+            quantity: z.coerce.number().min(1, "จำนวนอย่างน้อย 1"),
+            // client ส่งตัวพิมพ์เล็ก (UI state) → แปลงเป็นตัวใหญ่ให้ตรง enum Side ใน DB
+            side: z.preprocess(
+              (v) => (typeof v === "string" ? v.toUpperCase() : v),
+              z
+                .enum(["LEFT", "RIGHT", "OTHER"], {
+                  message: "ตำแหน่งข้างไม่ถูกต้อง",
+                })
+                .nullable()
+                .optional(),
+            ),
+          })
+          // ชื่อไม่รับจาก client — เซิร์ฟเวอร์ประกอบเองจากอะไหล่/บริการที่อ้างถึง
+          .refine((item) => item.partId || item.serviceId, {
+            message: "แต่ละรายการต้องระบุอะไหล่หรือบริการ",
+          }),
+      )
+      .optional(),
+  })
+  // งานซ่อมต้องผูกกับรถเสมอ ส่วนบิลขายอะไหล่หน้าร้าน (SALE) ลูกค้าไม่ได้เอารถมา
+  .superRefine((data, ctx) => {
+    if (data.type === "SALE") return;
+
+    if (!data.brand) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["brand"],
+        message: "กรุณาเลือกยี่ห้อรถ",
+      });
+    }
+    if (!data.model) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["model"],
+        message: "กรุณาเลือกรุ่นรถ",
+      });
+    }
+  });
 
 exports.partSchema = z
   .object({

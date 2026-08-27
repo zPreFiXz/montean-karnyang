@@ -1,22 +1,35 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router";
-import { ChevronLeft, LoaderCircle, Wrench } from "lucide-react";
+import { ChevronLeft, LoaderCircle, Trash2, Wrench } from "lucide-react";
 import BrandIcons from "@/components/icons/BrandIcons";
-import { getVehicle } from "@/api/vehicle";
-import { formatDate, formatTime } from "@/utils/formats";
+import { getVehicle, deleteVehicle } from "@/api/vehicle";
+import { formatDateShort, formatTime } from "@/utils/formats";
 import RepairCard from "@/components/cards/RepairCard";
 import { toastError } from "@/utils/handleError";
+import { toast } from "sonner";
+import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
+import { getDisplayBrand } from "@/utils/repairDisplay";
 
 const VehicleDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [vehicle, setVehicle] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+
+  const hasRepairs = !!vehicle?.repairs?.length;
 
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchVehicleDetail();
   }, [id]);
+
+  const handleDeleteVehicle = async () => {
+    await deleteVehicle(id);
+    toast.success("ลบรถเรียบร้อยแล้ว");
+    setIsDeleteConfirmOpen(false);
+    navigate("/vehicles");
+  };
 
   const fetchVehicleDetail = async () => {
     setIsLoading(true);
@@ -40,9 +53,19 @@ const VehicleDetail = () => {
         >
           <ChevronLeft className="text-surface" />
         </button>
-        <p className="text-surface text-2xl font-semibold md:text-[26px]">
+        <p className="text-surface min-w-0 flex-1 truncate text-2xl font-semibold md:text-[26px]">
           ประวัติรถ
         </p>
+        {/* ลบได้เฉพาะรถที่ไม่เหลือบิลแล้ว เช่นเผลอสร้างบิลผิดทะเบียนแล้วลบบิลทิ้ง */}
+        {!isLoading && !hasRepairs && (
+          <button
+            onClick={() => setIsDeleteConfirmOpen(true)}
+            aria-label="ลบรถ"
+            className="bg-destructive flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+          >
+            <Trash2 className="text-surface h-5 w-5" />
+          </button>
+        )}
       </div>
       <div className="bg-surface shadow-primary flex flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pt-[16px] pb-[96px]">
         {isLoading ? (
@@ -50,7 +73,7 @@ const VehicleDetail = () => {
             <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : (
-          <div>
+          <div className="flex flex-1 flex-col">
             <div className="mb-[16px] flex items-center gap-[8px] px-[20px]">
               <div className="bg-primary flex h-[45px] w-[45px] items-center justify-center rounded-full">
                 <BrandIcons brand={vehicle?.vehicleModel.brand} />
@@ -63,42 +86,61 @@ const VehicleDetail = () => {
                     : "ไม่ระบุทะเบียนรถ"}
                 </p>
                 <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                  {vehicle?.vehicleModel.brand} {vehicle?.vehicleModel.model}
+                  {getDisplayBrand(vehicle?.vehicleModel)}
                 </p>
               </div>
             </div>
-            {vehicle.repairs && (
-              <div className="mb-[16px] px-[20px]">
-                <div className="mb-[8px] flex items-center justify-between">
-                  <p className="text-normal text-[22px] font-semibold md:text-2xl">
-                    ประวัติการซ่อม
+            <div className="mb-[16px] flex flex-1 flex-col px-[20px]">
+              <div className="mb-[8px] flex items-center justify-between">
+                <p className="text-normal text-[22px] font-semibold md:text-2xl">
+                  ประวัติการซ่อม
+                </p>
+              </div>
+              {/* ลบบิลใบสุดท้ายทิ้งได้ รถยังอยู่ในระบบ ต้องบอกว่าไม่มีประวัติ ไม่ใช่ปล่อยว่าง */}
+              {!vehicle.repairs?.length ? (
+                <div className="flex flex-1 items-center justify-center">
+                  <p className="text-subtle-light text-center text-xl text-balance md:text-[22px]">
+                    ไม่มีประวัติการซ่อม
                   </p>
                 </div>
+              ) : (
                 <div className="space-y-[16px]">
-                  {vehicle.repairs.map((item, index) => (
-                    <div key={index} className="flex flex-col gap-[8px]">
-                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                        {formatDate(item.createdAt)} |{" "}
-                        {formatTime(item.createdAt)} น.
-                      </p>
-                      <Link
-                        to={`/repairs/${item.id}`}
-                        state={{ from: "vehicle-detail", vehicleId: id }}
-                      >
-                        <RepairCard
-                          icon={Wrench}
-                          repairId={item.id}
-                          itemCount={item.repairItems?.length}
-                        />
-                      </Link>
-                    </div>
+                  {vehicle.repairs.map((item) => (
+                    <Link
+                      key={item.id}
+                      to={`/repairs/${item.id}`}
+                      state={{ from: "vehicle-detail", vehicleId: id }}
+                      className="block"
+                    >
+                      <RepairCard
+                        icon={Wrench}
+                        itemCount={item.repairItems?.length}
+                        customerName={item.customer?.name}
+                        dateText={`${formatDateShort(item.createdAt)} | ${formatTime(item.createdAt)} น.`}
+                        price={Number(item.totalPrice) || 0}
+                        status={item.status}
+                      />
+                    </Link>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={handleDeleteVehicle}
+        title="ยืนยันการลบรถ"
+        itemName={
+          vehicle?.licensePlate?.plateNumber
+            ? `${vehicle.licensePlate.plateNumber} ${vehicle.licensePlate.province}`
+            : "ไม่ระบุทะเบียนรถ"
+        }
+        itemDetail={getDisplayBrand(vehicle?.vehicleModel)}
+      />
     </div>
   );
 };

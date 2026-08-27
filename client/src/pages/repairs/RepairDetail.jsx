@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
-import { getRepair, updateRepairStatus } from "@/api/repair";
-import {
-  formatDate,
-  formatTime,
-  formatCurrency,
-  getProvinceIdByName,
-} from "@/utils/formats";
+import { getRepair, updateRepairStatus, deleteRepair } from "@/api/repair";
+import { formatDate, formatTime, formatCurrency } from "@/utils/formats";
 import {
   ChevronLeft,
   CreditCard,
@@ -23,9 +18,12 @@ import {
   Ellipsis,
   CircleEllipsis,
   Wrench,
+  ShoppingBag,
+  Trash2,
 } from "lucide-react";
 import BrandIcons from "@/components/icons/BrandIcons";
 import FormButton from "@/components/forms/FormButton";
+import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import {
   Select,
   SelectContent,
@@ -38,6 +36,15 @@ import RepairItemCard from "@/components/cards/RepairItemCard";
 import { toastError } from "@/utils/handleError";
 import { groupBySidePairs } from "@/utils/repairItemGroups";
 import { isPerSide } from "@/utils/suspension";
+import {
+  PAYMENT_METHODS,
+  getPaymentMethodText,
+} from "@/constants/paymentMethods";
+import {
+  isSaleRepair,
+  getRepairTitle,
+  getRepairSubtitle,
+} from "@/utils/repairDisplay";
 
 const RepairDetail = () => {
   const { id } = useParams();
@@ -47,6 +54,7 @@ const RepairDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUpdatingSkip, setIsUpdatingSkip] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
 
   useEffect(() => {
@@ -72,6 +80,9 @@ const RepairDetail = () => {
     text: "ไม่ทราบสถานะ",
     color: "text-subtle-dark",
     bg: "bg-gray-200",
+    // สีจางสำหรับพื้นกับขอบของกล่องยอดรวม
+    softBorder: "border-gray-300",
+    softBg: "from-gray-200/60 to-gray-100/40",
     iconColor: "#6b7280",
     icon: CircleEllipsis,
   };
@@ -83,6 +94,8 @@ const RepairDetail = () => {
           text: "กำลังซ่อม",
           color: "text-status-progress",
           bg: "bg-status-progress",
+          softBorder: "border-status-progress/30",
+          softBg: "from-status-progress/10 to-status-progress/5",
           iconColor: "#ffb000",
           icon: Clock,
         };
@@ -91,6 +104,8 @@ const RepairDetail = () => {
           text: "ซ่อมเสร็จสิ้น",
           color: "text-status-completed",
           bg: "bg-status-completed",
+          softBorder: "border-status-completed/30",
+          softBg: "from-status-completed/10 to-status-completed/5",
           iconColor: "#22c55e",
           icon: CheckCircle2,
         };
@@ -99,22 +114,13 @@ const RepairDetail = () => {
           text: "ชำระเงินแล้ว",
           color: "text-status-paid",
           bg: "bg-status-paid",
+          softBorder: "border-status-paid/30",
+          softBg: "from-status-paid/10 to-status-paid/5",
           iconColor: "#1976d2",
           icon: CreditCard,
         };
     }
     return DEFAULT_STATUS_INFO;
-  };
-
-  const getPaymentMethodText = (method) => {
-    switch (method) {
-      case "CASH":
-        return "เงินสด";
-      case "QR_CODE":
-        return "สแกนจ่าย";
-      case "CREDIT_CARD":
-        return "บัตรเครดิต";
-    }
   };
 
   const getNextStatus = (currentStatus) => {
@@ -212,9 +218,11 @@ const RepairDetail = () => {
       model: repair?.vehicle?.vehicleModel?.model || "",
       plateLetters,
       plateNumbers,
-      province: getProvinceIdByName(provinceName),
+      // ฟอร์มงานซ่อมเก็บจังหวัดเป็นชื่อ ไม่ใช่ id — ส่ง id ไปดรอปดาวน์จะหาค่าไม่เจอแล้วช่องว่าง
+      province: provinceName,
       description: repair?.description || "",
       mileage: repair?.mileage != null ? String(repair.mileage) : "",
+      type: repair?.type || "GENERAL",
     };
 
     const usedQtyByPartId = (repair?.repairItems || []).reduce((acc, ri) => {
@@ -336,6 +344,13 @@ const RepairDetail = () => {
     });
   };
 
+  const handleDeleteRepair = async () => {
+    await deleteRepair(repair.id);
+    toast.success("ลบงานซ่อมเรียบร้อยแล้ว");
+    setIsDeleteConfirmOpen(false);
+    handleGoBack();
+  };
+
   const handleGoBack = () => {
     if (
       location.state?.returnTo &&
@@ -359,9 +374,17 @@ const RepairDetail = () => {
         >
           <ChevronLeft className="text-surface" />
         </button>
-        <p className="text-surface text-2xl font-semibold md:text-[26px]">
+        <p className="text-surface min-w-0 flex-1 truncate text-2xl font-semibold md:text-[26px]">
           รายละเอียดการซ่อม
         </p>
+        {/* วางแยกจากปุ่มหลักด้านล่าง เพื่อไม่ให้นิ้วพลาดไปโดนตอนกดเปลี่ยนสถานะ */}
+        <button
+          onClick={() => setIsDeleteConfirmOpen(true)}
+          aria-label="ลบงานซ่อม"
+          className="bg-destructive flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+        >
+          <Trash2 className="text-surface h-5 w-5" />
+        </button>
       </div>
       <div className="bg-surface shadow-primary mt-[16px] flex flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pt-[16px] pb-[112px] xl:pb-[16px]">
         {isLoading ? (
@@ -391,23 +414,23 @@ const RepairDetail = () => {
               <div
                 className={`flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full ${statusInfo.bg}`}
               >
-                <BrandIcons
-                  brand={repair.vehicle?.vehicleModel.brand}
-                  color={statusInfo.iconColor}
-                />
+                {isSaleRepair(repair) ? (
+                  <ShoppingBag className="text-surface h-6 w-6" />
+                ) : (
+                  <BrandIcons
+                    brand={repair.vehicle?.vehicleModel?.brand}
+                    color={statusInfo.iconColor}
+                  />
+                )}
               </div>
               <div className="flex flex-col">
                 <p
                   className={`text-[22px] font-semibold md:text-2xl ${statusInfo.color} leading-tight`}
                 >
-                  {repair?.vehicle?.licensePlate?.plateNumber &&
-                  repair?.vehicle?.licensePlate?.province
-                    ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
-                    : "ไม่ระบุทะเบียนรถ"}
+                  {getRepairTitle(repair)}
                 </p>
                 <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                  {repair.vehicle?.vehicleModel.brand}{" "}
-                  {repair.vehicle?.vehicleModel.model}
+                  {getRepairSubtitle(repair)}
                 </p>
               </div>
             </div>
@@ -652,7 +675,10 @@ const RepairDetail = () => {
                 )}
               </div>
             )}
-            <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] mb-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
+            {/* ยอดรวมเปลี่ยนสีตามสถานะ — จำนวนเงินที่ยังไม่ได้เก็บกับที่เก็บแล้วคนละความหมายกัน */}
+            <div
+              className={`${statusInfo.softBorder} ${statusInfo.softBg} mx-[20px] mb-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]`}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                   <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
@@ -660,7 +686,9 @@ const RepairDetail = () => {
                   </p>
                 </div>
                 <div className="flex flex-col items-end">
-                  <p className="text-primary text-2xl font-semibold md:text-[26px]">
+                  <p
+                    className={`text-2xl font-semibold md:text-[26px] ${statusInfo.color}`}
+                  >
                     {formatCurrency(Number(repair.totalPrice))}
                   </p>
                 </div>
@@ -708,24 +736,15 @@ const RepairDetail = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="font-athiti font-medium">
-                        <SelectItem
-                          className="cursor-pointer text-lg md:text-xl"
-                          value="CASH"
-                        >
-                          เงินสด
-                        </SelectItem>
-                        <SelectItem
-                          className="cursor-pointer text-lg md:text-xl"
-                          value="QR_CODE"
-                        >
-                          สแกนจ่าย
-                        </SelectItem>
-                        <SelectItem
-                          className="cursor-pointer text-lg md:text-xl"
-                          value="CREDIT_CARD"
-                        >
-                          บัตรเครดิต
-                        </SelectItem>
+                        {PAYMENT_METHODS.map((method) => (
+                          <SelectItem
+                            key={method.id}
+                            className="cursor-pointer text-lg md:text-xl"
+                            value={method.id}
+                          >
+                            {method.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   ) : (
@@ -752,33 +771,38 @@ const RepairDetail = () => {
             </div>
             <div className="mb-[16px] px-[20px]">
               <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
-                เวลาดำเนินการ
+                {isSaleRepair(repair) ? "เวลาชำระเงิน" : "เวลาดำเนินการ"}
               </p>
               <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
-                <div className="flex justify-between">
-                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                    เริ่มซ่อม:
-                  </p>
-                  <p className="text-normal text-lg font-medium md:text-xl">
-                    {formatDate(repair.createdAt)} |{" "}
-                    {formatTime(repair.createdAt)} น.
-                  </p>
-                </div>
-                {repair.completedAt && (
-                  <div className="flex justify-between">
-                    <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                      ซ่อมเสร็จ:
-                    </p>
-                    <p className="text-normal text-lg font-medium md:text-xl">
-                      {formatDate(repair.completedAt)} |{" "}
-                      {formatTime(repair.completedAt)} น.
-                    </p>
-                  </div>
+                {/* บิลขายหน้าร้านเกิดและจบพร้อมกัน ไม่มีช่วงซ่อม แสดงเวลาชำระเงินอย่างเดียว */}
+                {!isSaleRepair(repair) && (
+                  <>
+                    <div className="flex justify-between">
+                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                        เริ่มซ่อม:
+                      </p>
+                      <p className="text-normal text-lg font-medium md:text-xl">
+                        {formatDate(repair.createdAt)} |{" "}
+                        {formatTime(repair.createdAt)} น.
+                      </p>
+                    </div>
+                    {repair.completedAt && (
+                      <div className="flex justify-between">
+                        <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                          ซ่อมเสร็จ:
+                        </p>
+                        <p className="text-normal text-lg font-medium md:text-xl">
+                          {formatDate(repair.completedAt)} |{" "}
+                          {formatTime(repair.completedAt)} น.
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
                 {repair.paidAt && (
                   <div className="flex justify-between">
                     <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                      ชำระเงิน:
+                      {isSaleRepair(repair) ? "วันเวลา:" : "ชำระเงิน:"}
                     </p>
                     <p className="text-normal text-lg font-medium md:text-xl">
                       {formatDate(repair.paidAt)} | {formatTime(repair.paidAt)}{" "}
@@ -823,6 +847,15 @@ const RepairDetail = () => {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={handleDeleteRepair}
+        title="ยืนยันการลบงานซ่อม"
+        itemName={getRepairTitle(repair)}
+        itemDetail={getRepairSubtitle(repair)}
+      />
     </div>
   );
 };

@@ -1,13 +1,19 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router";
+import { Link, useLocation, useSearchParams } from "react-router";
 import InventoryBrowser from "@/components/inventory/InventoryBrowser";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
 import { BoxSearch } from "@/components/icons/Icons";
 
 const InventoryList = () => {
   const [searchParams] = useSearchParams();
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [isItemDetailOpen, setIsItemDetailOpen] = useState(false);
+  const location = useLocation();
+
+  const [selectedItem, setSelectedItem] = useState(
+    location.state?.openItem ?? null,
+  );
+  const [isItemDetailOpen, setIsItemDetailOpen] = useState(
+    !!location.state?.openItem,
+  );
   // เปลี่ยนค่านี้เพื่อสั่งให้รายการโหลดใหม่หลังแก้สต็อกจากไดอะล็อก
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -16,6 +22,14 @@ const InventoryList = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // มาจากหน้าแก้ไข: ข้อมูลหลังแก้ติดมากับ state แล้ว จึงเปิดได้ตั้งแต่เฟรมแรก
+  // ล้าง state ทิ้งทันที ไม่งั้นกดย้อนกลับมาหน้านี้อีกครั้งไดอะล็อกจะเด้งขึ้นมาเองซ้ำ
+  useEffect(() => {
+    if (location.state?.openItem) {
+      window.history.replaceState(null, document.title, window.location.href);
+    }
+  }, [location.state]);
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">

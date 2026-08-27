@@ -11,6 +11,18 @@ export function formatDate(dateString) {
   });
 }
 
+// แบบย่อสำหรับที่แคบ เช่น การ์ดที่มีราคาอยู่ข้างๆ — "25 ส.ค. 2569"
+export function formatDateShort(dateString) {
+  if (!dateString) return "ไม่ระบุ";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "ไม่ระบุ";
+  return date.toLocaleDateString("th-TH", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export function formatTime(dateString) {
   if (!dateString) return "ไม่ระบุ";
   const date = new Date(dateString);
@@ -30,9 +42,4 @@ export function formatCurrency(amount) {
 export function getProvinceName(provinceId) {
   const province = provinces.find((p) => p.id === provinceId);
   return province ? province.name : provinceId;
-}
-
-export function getProvinceIdByName(name) {
-  const found = provinces.find((p) => p.name === name);
-  return found ? found.id : "";
 }

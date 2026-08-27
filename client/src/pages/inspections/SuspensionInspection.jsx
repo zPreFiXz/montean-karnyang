@@ -1,4 +1,5 @@
 import FormInput from "@/components/forms/FormInput";
+import CustomerNameInput from "@/components/forms/CustomerNameInput";
 import ComboBox from "@/components/ui/ComboBox";
 import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
 import EditPriceDialog from "@/components/dialogs/EditRepairItemDialog";
@@ -371,6 +372,15 @@ const SuspensionInspection = () => {
         {item.brand} {item.name}
       </p>
     );
+  };
+
+  // เลือกลูกค้าที่เคยบันทึกไว้ — เติมทั้งสามช่องให้ตรงกับที่เก็บไว้ แก้ทับได้ตามปกติ
+  const handleSelectCustomer = (customer) => {
+    setValue("name", customer.name || "", { shouldValidate: true });
+    setValue("phoneNumber", customer.phoneNumber || "", {
+      shouldValidate: true,
+    });
+    setValue("address", customer.address || "");
   };
 
   const handleAddItemToRepair = (item) => {
@@ -1043,15 +1053,11 @@ const SuspensionInspection = () => {
               >
                 <div className="overflow-hidden">
                   <div className="space-y-[12px] px-[16px] pb-[16px]">
-                    <FormInput
+                    <CustomerNameInput
                       register={register}
-                      name="name"
-                      label="ชื่อลูกค้า"
-                      type="text"
-                      placeholder="เช่น สมชาย ใจดี"
-                      color="subtle-dark"
                       errors={errors}
-                      customClass="w-full"
+                      value={watch("name")}
+                      onSelect={handleSelectCustomer}
                     />
 
                     <FormInput

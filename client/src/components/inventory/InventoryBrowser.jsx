@@ -25,7 +25,7 @@ const InventoryBrowser = ({
   getCardProps = () => ({}),
   reloadToken,
 }) => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [localCategory, setLocalCategory] = useState("ทั้งหมด");
   const [localSearch, setLocalSearch] = useState("");
 
@@ -34,10 +34,18 @@ const InventoryBrowser = ({
   const [categoryOrder, setCategoryOrder] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [tireBrand, setTireBrand] = useState("");
-  const [width, setWidth] = useState("");
-  const [aspectRatio, setAspectRatio] = useState("");
-  const [rimDiameter, setRimDiameter] = useState("");
+  // หน้าคลังเก็บตัวกรองยางไว้ใน URL ด้วย เพื่อให้กลับมาจากหน้าอื่น (เช่นหน้าแก้ไข) แล้วยังกรองค้างอยู่
+  const initialTireFilter = (key) =>
+    syncUrl ? searchParams.get(key) || "" : "";
+
+  const [tireBrand, setTireBrand] = useState(() => initialTireFilter("brand"));
+  const [width, setWidth] = useState(() => initialTireFilter("width"));
+  const [aspectRatio, setAspectRatio] = useState(() =>
+    initialTireFilter("aspectRatio"),
+  );
+  const [rimDiameter, setRimDiameter] = useState(() =>
+    initialTireFilter("rimDiameter"),
+  );
 
   const activeCategory = syncUrl
     ? searchParams.get("category") || "ทั้งหมด"
@@ -62,6 +70,26 @@ const InventoryBrowser = ({
     }
   };
 
+  useEffect(() => {
+    if (!syncUrl) return;
+
+    const next = new URLSearchParams(searchParams);
+    const values = { width, aspectRatio, rimDiameter, brand: tireBrand };
+
+    for (const [key, value] of Object.entries(values)) {
+      if (value && activeCategory === "ยาง") {
+        next.set(key, value);
+      } else {
+        next.delete(key);
+      }
+    }
+
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncUrl, activeCategory, width, aspectRatio, rimDiameter, tireBrand]);
+
   const debouncedFilter = useDebouncedCallback(() => {
     handleFilter(category, search, buildFilterParams());
   }, 500);
@@ -74,7 +102,12 @@ const InventoryBrowser = ({
       setAspectRatio("");
       setRimDiameter("");
     }
-    handleFilter(category, search, activeCategory === "ยาง" ? undefined : {});
+    // ส่งตัวกรองยางไปด้วยตั้งแต่โหลดครั้งแรก เผื่อกู้คืนมาจาก URL — ไม่งั้นจะเห็นยางทั้งหมดจนกว่าจะแตะตัวกรอง
+    handleFilter(
+      category,
+      search,
+      activeCategory === "ยาง" ? buildFilterParams() : {},
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, search, reloadToken]);
 
@@ -104,10 +137,18 @@ const InventoryBrowser = ({
     };
   }, []);
 
+  // ขนาดยางมีสองระบบปนกัน: ตัวเลขเต็ม (195, 205) ที่ใช้กับรถทั่วไป
+  // กับทศนิยม (6.50, 7.00) ที่เป็นระบบนิ้วของรถบรรทุก/รถโบราณ ซึ่งเจอไม่บ่อย
+  // เรียงตัวเลขเต็มขึ้นก่อนทั้งหมด แล้วดันทศนิยมไว้ท้ายสุด จะได้ไม่แทรกกลางลิสต์ที่ใช้ประจำ
+  const isDecimalSize = (value) => /^\d+\.\d+$/.test(value);
+
   const uniqSorted = (arr = []) =>
-    Array.from(new Set(arr)).sort((a, b) =>
-      a.localeCompare(b, undefined, { numeric: true }),
-    );
+    Array.from(new Set(arr)).sort((a, b) => {
+      const decimalDiff = isDecimalSize(a) - isDecimalSize(b);
+      if (decimalDiff !== 0) return decimalDiff;
+
+      return a.localeCompare(b, undefined, { numeric: true });
+    });
 
   const tireParts = useMemo(
     () => partsList.filter((p) => p?.category?.name === "ยาง"),

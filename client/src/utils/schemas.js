@@ -77,27 +77,48 @@ export const editUserAccountSchema = z
     }
   });
 
-export const repairSchema = z.object({
-  name: z.string().optional(),
-  address: z.string().optional(),
-  phoneNumber: z
-    .string()
-    .regex(/^[0-9]{10}$/, "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก")
-    .optional()
-    .or(z.literal("")),
-  brand: z.string().min(1, "กรุณาเลือกยี่ห้อรถ"),
-  model: z.string().min(1, "กรุณาเลือกรุ่นรถ"),
-  plateLetters: z.string().optional(),
-  plateNumbers: z.string().optional(),
-  province: z.string().optional(),
-  description: z.string().optional(),
-  mileage: z
-    .string()
-    .regex(/^[0-9]*$/, "เลขกิโลเมตรต้องเป็นตัวเลข")
-    .optional()
-    .or(z.literal("")),
-  type: z.enum(["GENERAL", "SUSPENSION"]).optional(),
-});
+export const repairSchema = z
+  .object({
+    name: z.string().optional(),
+    address: z.string().optional(),
+    phoneNumber: z
+      .string()
+      .regex(/^[0-9]{10}$/, "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก")
+      .optional()
+      .or(z.literal("")),
+    brand: z.string().optional(),
+    model: z.string().optional(),
+    plateLetters: z.string().optional(),
+    plateNumbers: z.string().optional(),
+    province: z.string().optional(),
+    description: z.string().optional(),
+    mileage: z
+      .string()
+      .regex(/^[0-9]*$/, "เลขกิโลเมตรต้องเป็นตัวเลข")
+      .optional()
+      .or(z.literal("")),
+    type: z.enum(["GENERAL", "SUSPENSION", "SALE"]).optional(),
+  })
+  // บิลขายอะไหล่หน้าร้าน (SALE) ไม่มีรถมาเกี่ยว จึงไม่บังคับยี่ห้อกับรุ่นรถ
+  // ต้องตรงกับ repairSchema ฝั่งเซิร์ฟเวอร์ ไม่งั้นจะผ่านหน้าเว็บแต่ไปตกที่ toast
+  .superRefine((data, ctx) => {
+    if (data.type === "SALE") return;
+
+    if (!data.brand) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["brand"],
+        message: "กรุณาเลือกยี่ห้อรถ",
+      });
+    }
+    if (!data.model) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["model"],
+        message: "กรุณาเลือกรุ่นรถ",
+      });
+    }
+  });
 
 export const partServiceSchema = z
   .object({

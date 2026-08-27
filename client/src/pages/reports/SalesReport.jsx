@@ -19,6 +19,13 @@ import {
 import useRepairStore from "@/stores/useRepairStore";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { Paid } from "@/components/icons/Icons";
+import { ShoppingBag } from "lucide-react";
+import { PAYMENT_METHODS } from "@/constants/paymentMethods";
+import {
+  isSaleRepair,
+  getRepairTitle,
+  getRepairSubtitle,
+} from "@/utils/repairDisplay";
 import { CalendarYear } from "@/components/ui/CalendarYear";
 import {
   Popover,
@@ -152,19 +159,11 @@ const SalesReport = () => {
   };
 
   const getCarCardData = (repair) => {
-    const vehicle = repair.vehicle;
-    const licensePlate =
-      vehicle?.licensePlate?.plateNumber && vehicle?.licensePlate?.province
-        ? `${vehicle.licensePlate.plateNumber} ${getProvinceName(vehicle.licensePlate.province)}`
-        : "ไม่ระบุทะเบียนรถ";
-
-    const brand = `${vehicle.vehicleModel.brand} ${vehicle.vehicleModel.model}`;
-
     const paidTime = repair.paidAt ? formatTime(repair.paidAt) : "";
 
     return {
-      licensePlate,
-      brand,
+      licensePlate: getRepairTitle(repair, getProvinceName),
+      brand: getRepairSubtitle(repair),
       time: paidTime,
       price: parseFloat(repair.totalPrice || 0),
     };
@@ -233,6 +232,19 @@ const SalesReport = () => {
 
   const periodType = getPeriodType();
   const { totalRevenue, repairs: periodRepairs } = getReportsData();
+
+  // แยกยอดตามวิธีชำระเงิน เพื่อให้นับเงินสดในลิ้นชักตอนปิดร้านได้ตรง
+  // บิลเก่าที่ไม่มีค่านี้ถือเป็นเงินสด ซึ่งตรงกับค่าเริ่มต้นของฐานข้อมูล
+  const revenueByPaymentMethod = PAYMENT_METHODS.map((method) => ({
+    ...method,
+    total: periodRepairs.reduce(
+      (sum, repair) =>
+        (repair.paymentMethod || "CASH") === method.id
+          ? sum + Number(repair.totalPrice || 0)
+          : sum,
+      0,
+    ),
+  })).filter((method) => method.total > 0);
 
   const groupRepairsByDay = (repairsList) => {
     return repairsList.reduce((acc, r) => {
@@ -403,6 +415,21 @@ const SalesReport = () => {
         </div>
       </div>
       <div className="bg-surface -mt-[16px] flex min-h-[calc(100vh-249px)] w-full flex-col rounded-tl-2xl rounded-tr-2xl px-[20px] pb-[112px] md:min-h-[calc(100vh-269px)] xl:pb-[16px]">
+        {revenueByPaymentMethod.length > 0 && (
+          <div className="mt-[16px] space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
+            {revenueByPaymentMethod.map((method) => (
+              <div key={method.id} className="flex justify-between">
+                <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                  {method.name}
+                </p>
+                <p className="text-normal text-lg font-semibold md:text-xl">
+                  {formatCurrency(method.total)}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="flex items-center gap-[8px] pt-[16px]">
           <div className="bg-status-paid flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full">
             <Paid />
@@ -435,9 +462,13 @@ const SalesReport = () => {
                       <CarCard
                         bg="primary"
                         icon={
-                          <BrandIcons
-                            brand={repair.vehicle.vehicleModel.brand}
-                          />
+                          isSaleRepair(repair) ? (
+                            <ShoppingBag className="text-surface h-6 w-6" />
+                          ) : (
+                            <BrandIcons
+                              brand={repair.vehicle?.vehicleModel?.brand}
+                            />
+                          )
                         }
                         licensePlate={carData.licensePlate}
                         brand={carData.brand}
@@ -468,9 +499,13 @@ const SalesReport = () => {
                             <CarCard
                               bg="primary"
                               icon={
-                                <BrandIcons
-                                  brand={repair.vehicle.vehicleModel.brand}
-                                />
+                                isSaleRepair(repair) ? (
+                                  <ShoppingBag className="text-surface h-6 w-6" />
+                                ) : (
+                                  <BrandIcons
+                                    brand={repair.vehicle?.vehicleModel?.brand}
+                                  />
+                                )
                               }
                               licensePlate={carData.licensePlate}
                               brand={carData.brand}

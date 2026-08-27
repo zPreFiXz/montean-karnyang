@@ -12,6 +12,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import FormInput from "@/components/forms/FormInput";
+import CustomerNameInput from "@/components/forms/CustomerNameInput";
 import LicensePlateInput from "@/components/forms/LicensePlateInput";
 import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
 import EditPriceDialog from "@/components/dialogs/EditRepairItemDialog";
@@ -29,6 +30,14 @@ import { onKeyActivate } from "@/utils/a11y";
 import { withOtherBrandLast } from "@/utils/vehicleBrand";
 
 const CUSTOMER_FIELDS = ["name", "address", "phoneNumber"];
+const VEHICLE_FIELDS = [
+  "brand",
+  "model",
+  "plateLetters",
+  "plateNumbers",
+  "province",
+  "mileage",
+];
 const SUBMIT_FEEDBACK_MS = 400;
 
 const RepairCreate = () => {
@@ -38,6 +47,9 @@ const RepairCreate = () => {
     resolver: zodResolver(repairSchema),
   });
   const [isCustomerInfoOpen, setIsCustomerInfoOpen] = useState(false);
+  // งานซ่อม = ผูกกับรถ, ขายอะไหล่ = ลูกค้าซื้อของกลับไปเอง ไม่ได้เอารถมา
+  const [billType, setBillType] = useState("GENERAL");
+  const isSale = billType === "SALE";
   const [repairItems, setRepairItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [vehicleModels, setVehicleModels] = useState([]);
@@ -64,6 +76,8 @@ const RepairCreate = () => {
         Object.keys(repairData).forEach((key) => {
           setValue(key, repairData[key]);
         });
+        // SUSPENSION มาจากหน้าเช็กช่วงล่าง ไม่ได้แก้ในหน้านี้ จึงถือเป็นงานซ่อมเหมือนกัน
+        if (repairData.type === "SALE") setBillType("SALE");
       }
 
       if (savedItems && savedItems.length > 0) {
@@ -128,6 +142,10 @@ const RepairCreate = () => {
     }
   }, [location.state, setValue]);
 
+  useEffect(() => {
+    setValue("type", billType);
+  }, [billType, setValue]);
+
   const fetchVehicleModels = async () => {
     try {
       const res = await listVehicleModels();
@@ -179,6 +197,26 @@ const RepairCreate = () => {
     );
   };
 
+  // เลือกลูกค้าที่เคยบันทึกไว้ — เติมทั้งสามช่องให้ตรงกับที่เก็บไว้ แก้ทับได้ตามปกติ
+  const handleSelectCustomer = (customer) => {
+    setValue("name", customer.name || "", { shouldValidate: true });
+    setValue("phoneNumber", customer.phoneNumber || "", {
+      shouldValidate: true,
+    });
+    setValue("address", customer.address || "");
+  };
+
+  const handleChangeBillType = (nextType) => {
+    setBillType(nextType);
+
+    // ล้างข้อมูลรถทิ้งเมื่อสลับไปบิลขาย ไม่งั้นค่าที่กรอกค้างไว้จะถูกส่งไปสร้างรถผีในระบบ
+    if (nextType === "SALE") {
+      for (const field of VEHICLE_FIELDS) {
+        setValue(field, "", { shouldValidate: false });
+      }
+    }
+  };
+
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
@@ -188,7 +226,7 @@ const RepairCreate = () => {
 
       navigate("/repairs/review", {
         state: {
-          repairData: { ...data, type: "GENERAL" },
+          repairData: { ...data, type: billType },
           repairItems: repairItems,
           editRepairId: location.state?.editRepairId,
           origin: location.state?.origin || location.state?.from,
@@ -371,7 +409,7 @@ const RepairCreate = () => {
           </div>
           <div>
             <p className="text-surface xl:text-primary text-2xl font-semibold md:text-[26px]">
-              งานซ่อมใหม่
+              {isSale ? "ขายอะไหล่" : "งานซ่อมใหม่"}
             </p>
           </div>
         </div>
@@ -380,6 +418,28 @@ const RepairCreate = () => {
           className="xl:[&_label]:text-normal xl:[&_.text-surface]:text-normal flex flex-1 flex-col"
           onSubmit={handleSubmit(onSubmit, onInvalid)}
         >
+          {/* ประเภทบิล */}
+          <div className="mx-[20px] mt-[16px] flex gap-[8px]">
+            {[
+              { id: "GENERAL", label: "งานซ่อม" },
+              { id: "SALE", label: "ขายอะไหล่" },
+            ].map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => handleChangeBillType(option.id)}
+                aria-pressed={billType === option.id}
+                className={`h-[45px] flex-1 cursor-pointer rounded-[10px] border-2 text-lg font-semibold duration-300 md:text-xl ${
+                  billType === option.id
+                    ? "bg-surface text-primary border-white"
+                    : "text-surface xl:text-subtle-dark border-white/50 xl:border-gray-300"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
           {/* ข้อมูลลูกค้า */}
           <div className="bg-surface mx-[20px] mt-[16px] overflow-hidden rounded-[10px]">
             <button
@@ -425,15 +485,11 @@ const RepairCreate = () => {
             >
               <div className="overflow-hidden">
                 <div className="space-y-[12px] px-[16px] pb-[16px]">
-                  <FormInput
+                  <CustomerNameInput
                     register={register}
-                    name="name"
-                    label="ชื่อลูกค้า"
-                    type="text"
-                    placeholder="เช่น สมชาย ใจดี"
-                    color="subtle-dark"
                     errors={errors}
-                    customClass="w-full"
+                    value={watch("name")}
+                    onSelect={handleSelectCustomer}
                   />
 
                   <FormInput
@@ -468,130 +524,139 @@ const RepairCreate = () => {
               </div>
             </div>
           </div>
-          <div className="xl:[&_label]:text-normal mt-[16px] px-[20px]">
-            <ComboBox
-              label="ยี่ห้อรถ"
-              color="text-surface"
-              options={brands}
-              value={watch("brand")}
-              onChange={(value) => {
-                setValue("brand", value, {
-                  shouldValidate: true,
-                  shouldTouch: true,
-                });
-                setValue("model", "", {
-                  shouldValidate: true,
-                  shouldTouch: true,
-                });
-              }}
-              placeholder="-- เลือกยี่ห้อรถ --"
-              errors={errors}
-              name="brand"
-            />
-            <input
-              {...register("brand")}
-              type="hidden"
-              value={watch("brand") || ""}
-            />
-          </div>
-
-          <div className="xl:[&_label]:text-normal mt-[16px] px-[20px]">
-            <ComboBox
-              label="รุ่นรถ"
-              color="text-surface"
-              options={getAvailableModelsForBrand()}
-              value={watch("model")}
-              onChange={(value) =>
-                setValue("model", value, {
-                  shouldValidate: true,
-                  shouldTouch: true,
-                })
-              }
-              placeholder="-- เลือกรุ่นรถ --"
-              errors={errors}
-              name="model"
-              disabled={!watch("brand")}
-            />
-            <input
-              {...register("model")}
-              type="hidden"
-              value={watch("model") || ""}
-            />
-          </div>
-
-          {/* ป้ายทะเบียนรถ */}
-          <div className="xl:[&_.text-surface]:text-normal px-[20px] pt-[16px]">
-            <p className="text-surface mb-[8px] text-xl font-medium">
-              ทะเบียนรถ
-            </p>
-            <div className="flex items-start gap-[8px]">
-              <div className="w-[70px]">
-                <LicensePlateInput
-                  register={register}
-                  name="plateLetters"
-                  placeholder="กก"
-                  maxLength={3}
-                  error={errors.plateLetters}
-                  inputMode="numeric"
-                  onInput={(e) => {
-                    e.target.value = e.target.value
-                      .replace(/[^ก-ฮ0-9]/g, "")
-                      .slice(0, 3);
-                  }}
-                />
-              </div>
-              <div className="w-[80px]">
-                <LicensePlateInput
-                  register={register}
-                  name="plateNumbers"
-                  placeholder="1234"
-                  maxLength={4}
-                  error={errors.plateNumbers}
-                  onInput={(e) => {
-                    e.target.value = e.target.value
-                      .replace(/[^0-9]/g, "")
-                      .slice(0, 4);
-                  }}
-                />
-              </div>
-              <div className="flex-1">
+          {/* ข้อมูลรถ — บิลขายอะไหล่หน้าร้านไม่มีรถมาเกี่ยว จึงซ่อนทั้งก้อน */}
+          {!isSale && (
+            <>
+              <div className="xl:[&_label]:text-normal mt-[16px] px-[20px]">
                 <ComboBox
-                  label=""
+                  label="ยี่ห้อรถ"
                   color="text-surface"
-                  options={provinces}
-                  value={
-                    provinces.find((p) => p.name === watch("province"))?.id
-                  }
+                  options={brands}
+                  value={watch("brand")}
                   onChange={(value) => {
-                    const provinceName =
-                      provinces.find((p) => p.id === value)?.name || value;
-                    setValue("province", provinceName, {
+                    setValue("brand", value, {
+                      shouldValidate: true,
+                      shouldTouch: true,
+                    });
+                    setValue("model", "", {
                       shouldValidate: true,
                       shouldTouch: true,
                     });
                   }}
-                  placeholder="-- เลือกจังหวัด --"
+                  placeholder="-- เลือกยี่ห้อรถ --"
                   errors={errors}
-                  name="province"
+                  name="brand"
+                />
+                <input
+                  {...register("brand")}
+                  type="hidden"
+                  value={watch("brand") || ""}
                 />
               </div>
-            </div>
-          </div>
-          <FormInput
-            register={register}
-            name="mileage"
-            label="เลขกิโลเมตร"
-            type="number"
-            placeholder="เช่น 120000"
-            color="surface"
-            errors={errors}
-          />
+
+              <div className="xl:[&_label]:text-normal mt-[16px] px-[20px]">
+                <ComboBox
+                  label="รุ่นรถ"
+                  color="text-surface"
+                  options={getAvailableModelsForBrand()}
+                  value={watch("model")}
+                  onChange={(value) =>
+                    setValue("model", value, {
+                      shouldValidate: true,
+                      shouldTouch: true,
+                    })
+                  }
+                  placeholder="-- เลือกรุ่นรถ --"
+                  errors={errors}
+                  name="model"
+                  disabled={!watch("brand")}
+                />
+                <input
+                  {...register("model")}
+                  type="hidden"
+                  value={watch("model") || ""}
+                />
+              </div>
+
+              {/* ป้ายทะเบียนรถ */}
+              <div className="xl:[&_.text-surface]:text-normal px-[20px] pt-[16px]">
+                <p className="text-surface mb-[8px] text-xl font-medium">
+                  ทะเบียนรถ
+                </p>
+                <div className="flex items-start gap-[8px]">
+                  <div className="w-[70px]">
+                    <LicensePlateInput
+                      register={register}
+                      name="plateLetters"
+                      placeholder="กก"
+                      maxLength={3}
+                      error={errors.plateLetters}
+                      inputMode="numeric"
+                      onInput={(e) => {
+                        e.target.value = e.target.value
+                          .replace(/[^ก-ฮ0-9]/g, "")
+                          .slice(0, 3);
+                      }}
+                    />
+                  </div>
+                  <div className="w-[80px]">
+                    <LicensePlateInput
+                      register={register}
+                      name="plateNumbers"
+                      placeholder="1234"
+                      maxLength={4}
+                      error={errors.plateNumbers}
+                      onInput={(e) => {
+                        e.target.value = e.target.value
+                          .replace(/[^0-9]/g, "")
+                          .slice(0, 4);
+                      }}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <ComboBox
+                      label=""
+                      color="text-surface"
+                      options={provinces}
+                      value={
+                        provinces.find((p) => p.name === watch("province"))?.id
+                      }
+                      onChange={(value) => {
+                        const provinceName =
+                          provinces.find((p) => p.id === value)?.name || value;
+                        setValue("province", provinceName, {
+                          shouldValidate: true,
+                          shouldTouch: true,
+                        });
+                      }}
+                      placeholder="-- เลือกจังหวัด --"
+                      errors={errors}
+                      name="province"
+                    />
+                  </div>
+                </div>
+              </div>
+              <FormInput
+                register={register}
+                name="mileage"
+                label="เลขกิโลเมตร"
+                type="number"
+                placeholder="เช่น 120000"
+                color="surface"
+                errors={errors}
+              />
+            </>
+          )}
           <FormInput
             register={register}
             name="description"
-            label="รายละเอียดการซ่อม"
+            label={isSale ? "หมายเหตุ" : "รายละเอียดการซ่อม"}
             type="text"
-            placeholder="เช่น ค้างตั้งศูนย์, รอสั่งอะไหล่"
+            placeholder={
+              isSale
+                ? "เช่น สั่งของให้ลูกค้า ของถึงวันศุกร์"
+                : "เช่น ค้างตั้งศูนย์, รอสั่งอะไหล่"
+            }
             color="surface"
             errors={errors}
           />
@@ -623,8 +688,9 @@ const RepairCreate = () => {
               </AddRepairItemDialog>
             </div>
             {repairItems.length === 0 ? (
-              <div>
-                <div className="flex h-[228px] items-center justify-center xl:h-auto">
+              // ยืดตามพื้นที่ที่เหลือจริง ไม่ล็อกความสูง เพราะบิลขายอะไหล่ไม่มีข้อมูลรถ หน้าจึงสั้นกว่า
+              <div className="flex flex-1 flex-col">
+                <div className="flex flex-1 items-center justify-center">
                   <p className="text-subtle-light text-xl md:text-[22px]">
                     กรุณาเพิ่มรายการซ่อม
                   </p>

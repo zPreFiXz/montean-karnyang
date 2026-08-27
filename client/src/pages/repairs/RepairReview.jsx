@@ -18,6 +18,11 @@ import {
   Wrench,
   ClipboardList,
 } from "lucide-react";
+import ComboBox from "@/components/ui/ComboBox";
+import {
+  PAYMENT_METHODS,
+  DEFAULT_PAYMENT_METHOD,
+} from "@/constants/paymentMethods";
 
 const RepairReview = () => {
   const location = useLocation();
@@ -28,6 +33,11 @@ const RepairReview = () => {
   const origin = location.state?.origin || location.state?.from;
   const statusSlug = location.state?.statusSlug;
   const vehicleId = location.state?.vehicleId;
+  const isSale = repairData?.type === "SALE";
+  // บิลขายหน้าร้านเก็บเงินตอนสร้างบิลเลย จึงต้องรู้วิธีชำระเงินตั้งแต่ตรงนี้
+  const [paymentMethod, setPaymentMethod] = useState(
+    repairData?.paymentMethod || DEFAULT_PAYMENT_METHOD,
+  );
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -81,6 +91,7 @@ const RepairReview = () => {
         ...(repairData.mileage ? { mileage: Number(repairData.mileage) } : {}),
         totalPrice: totalPrice,
         type: repairData.type,
+        ...(isSale ? { paymentMethod } : {}),
         repairItems: repairItems.map((item) => {
           const isPart = !!(item.partNumber && item.brand);
           return {
@@ -106,9 +117,17 @@ const RepairReview = () => {
         }
       } else {
         await withMinDuration(() => createRepair(repair));
-        toast.success("สร้างงานซ่อมเรียบร้อยแล้ว");
+        toast.success(
+          isSale ? "ขายเรียบร้อยแล้ว" : "สร้างงานซ่อมเรียบร้อยแล้ว",
+        );
         const isDesktop = window.innerWidth >= 1280;
-        navigate(isDesktop ? "/" : "/repairs?status=in-progress");
+        if (isDesktop) {
+          navigate("/");
+        } else {
+          navigate(
+            isSale ? "/repairs?status=paid" : "/repairs?status=in-progress",
+          );
+        }
       }
     } catch (error) {
       toastError(error);
@@ -199,54 +218,70 @@ const RepairReview = () => {
               </div>
             )}
 
-            {/* ข้อมูลรถยนต์ */}
-            <div className="mb-[16px]">
-              <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
-                ข้อมูลรถยนต์
-              </p>
-              <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
-                <div className="flex justify-between">
-                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                    ยี่ห้อ-รุ่น:
-                  </p>
-                  <p className="text-normal text-lg font-semibold md:text-xl">
-                    {repairData.brand} {repairData.model}
-                  </p>
-                </div>
-                <div className="flex justify-between">
-                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                    ทะเบียนรถ:
-                  </p>
-                  <p className="text-normal text-lg font-semibold md:text-xl">
-                    {repairData.plateLetters &&
-                    repairData.plateNumbers &&
-                    getProvinceName(repairData.province)
-                      ? `${repairData.plateLetters} ${
-                          repairData.plateNumbers
-                        } ${getProvinceName(repairData.province)}`
-                      : "ไม่ระบุ"}
-                  </p>
-                </div>
-                <div className="flex items-start justify-between">
-                  <p className="text-subtle-dark flex-shrink-0 text-lg font-medium md:text-xl">
-                    เลขกิโลเมตร:
-                  </p>
-                  <p className="text-normal min-w-0 text-right text-lg leading-relaxed font-semibold break-words md:text-xl">
-                    {repairData.mileage
-                      ? `${Number(repairData.mileage).toLocaleString()} กม.`
-                      : "ไม่ระบุ"}
-                  </p>
-                </div>
-                <div className="flex items-start justify-between">
-                  <p className="text-subtle-dark flex-shrink-0 text-lg font-medium md:text-xl">
-                    รายละเอียดการซ่อม:
-                  </p>
-                  <p className="text-normal min-w-0 text-right text-lg leading-relaxed font-semibold break-words md:text-xl">
-                    {repairData.description || "ไม่ระบุ"}
-                  </p>
+            {/* บิลขายหน้าร้านจ่ายเงินทันที เลือกวิธีชำระเงินก่อนยืนยัน */}
+            {isSale && (
+              <div className="mb-[16px]">
+                <ComboBox
+                  label="วิธีชำระเงิน"
+                  color="text-subtle-dark"
+                  options={PAYMENT_METHODS}
+                  value={paymentMethod}
+                  onChange={setPaymentMethod}
+                  name="paymentMethod"
+                />
+              </div>
+            )}
+
+            {/* ข้อมูลรถยนต์ — บิลขายอะไหล่หน้าร้านไม่มีรถ จึงไม่ต้องแสดง */}
+            {!isSale && (
+              <div className="mb-[16px]">
+                <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
+                  ข้อมูลรถยนต์
+                </p>
+                <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
+                  <div className="flex justify-between">
+                    <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                      ยี่ห้อ-รุ่น:
+                    </p>
+                    <p className="text-normal text-lg font-semibold md:text-xl">
+                      {repairData.brand} {repairData.model}
+                    </p>
+                  </div>
+                  <div className="flex justify-between">
+                    <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                      ทะเบียนรถ:
+                    </p>
+                    <p className="text-normal text-lg font-semibold md:text-xl">
+                      {repairData.plateLetters &&
+                      repairData.plateNumbers &&
+                      getProvinceName(repairData.province)
+                        ? `${repairData.plateLetters} ${
+                            repairData.plateNumbers
+                          } ${getProvinceName(repairData.province)}`
+                        : "ไม่ระบุ"}
+                    </p>
+                  </div>
+                  <div className="flex items-start justify-between">
+                    <p className="text-subtle-dark flex-shrink-0 text-lg font-medium md:text-xl">
+                      เลขกิโลเมตร:
+                    </p>
+                    <p className="text-normal min-w-0 text-right text-lg leading-relaxed font-semibold break-words md:text-xl">
+                      {repairData.mileage
+                        ? `${Number(repairData.mileage).toLocaleString()} กม.`
+                        : "ไม่ระบุ"}
+                    </p>
+                  </div>
+                  <div className="flex items-start justify-between">
+                    <p className="text-subtle-dark flex-shrink-0 text-lg font-medium md:text-xl">
+                      รายละเอียดการซ่อม:
+                    </p>
+                    <p className="text-normal min-w-0 text-right text-lg leading-relaxed font-semibold break-words md:text-xl">
+                      {repairData.description || "ไม่ระบุ"}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* รายการซ่อม */}
@@ -380,7 +415,13 @@ const RepairReview = () => {
             </div>
             <div className="flex justify-center pb-[112px]">
               <FormButton
-                label={editRepairId ? "บันทึก" : "สร้างงานซ่อม"}
+                label={
+                  editRepairId
+                    ? "บันทึก"
+                    : isSale
+                      ? "ขายและรับเงิน"
+                      : "สร้างงานซ่อม"
+                }
                 isLoading={isSubmitting}
                 onClick={handleConfirmRepair}
               />
@@ -527,7 +568,13 @@ const RepairReview = () => {
           </div>
           <div className="flex justify-center pb-[16px]">
             <FormButton
-              label={editRepairId ? "บันทึก" : "สร้างงานซ่อม"}
+              label={
+                editRepairId
+                  ? "บันทึก"
+                  : isSale
+                    ? "ขายและรับเงิน"
+                    : "สร้างงานซ่อม"
+              }
               isLoading={isSubmitting}
               onClick={handleConfirmRepair}
             />

@@ -1,26 +1,61 @@
 import { ChevronRight } from "lucide-react";
+import { formatCurrency } from "@/utils/formats";
 
-const RepairCard = ({ icon: Icon, repairId, itemCount }) => {
+// สีตามสถานะชุดเดียวกับหน้าสถานะการซ่อม เพื่อให้จำสีได้ทั้งระบบ
+const statusStyle = {
+  IN_PROGRESS: { bg: "bg-status-progress", text: "text-status-progress" },
+  COMPLETED: { bg: "bg-status-completed", text: "text-status-completed" },
+  PAID: { bg: "bg-status-paid", text: "text-status-paid" },
+};
+
+const RepairCard = ({
+  icon: Icon,
+  itemCount,
+  customerName,
+  dateText,
+  price,
+  status,
+}) => {
+  const style = statusStyle[status] || statusStyle.IN_PROGRESS;
+
+  // ไม่ต้องมีชื่อสถานะ เพราะสีของวงกลมกับราคาบอกอยู่แล้ว
+  // คั่นด้วยจุดกลางเฉพาะส่วนที่มีจริง จะได้ไม่เหลือตัวคั่นลอยเมื่อไม่ได้กรอกลูกค้า
+  const details = [
+    itemCount ? `${itemCount} รายการ` : null,
+    customerName || null,
+  ].filter(Boolean);
+
   return (
-    <div className="bg-surface shadow-primary flex h-[80px] w-full items-center justify-between rounded-[10px] px-[16px]">
+    <div className="bg-surface shadow-primary flex h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] px-[16px]">
       <div className="flex min-w-0 flex-1 items-center gap-[8px]">
-        <div className="bg-primary flex h-[45px] w-[45px] items-center justify-center rounded-full">
+        <div
+          className={`flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-full ${style.bg}`}
+        >
           <Icon color="white" />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <p className="text-primary text-xl font-semibold md:text-[22px]">
-            รหัสการซ่อม: {repairId}
+          {/* วันเวลาเป็นบรรทัดหลัก เพราะคนไล่ประวัติด้วยวันที่ ไม่ใช่รหัสของระบบ */}
+          <p className="text-normal truncate text-lg leading-tight font-semibold md:text-xl">
+            {dateText}
           </p>
-          <p className="text-subtle-dark text-lg font-medium md:text-xl">
-            รวม {itemCount} รายการ
+          <p className="text-subtle-dark truncate text-base leading-tight font-medium md:text-lg">
+            {details.join(" · ")}
           </p>
         </div>
       </div>
 
-      <div className="text-subtle-light flex h-[32px] w-[32px] items-center justify-center rounded-full bg-[#F6F6F6]">
-        <ChevronRight />
-      </div>
+      {price ? (
+        <p
+          className={`shrink-0 text-[22px] font-semibold md:text-2xl ${style.text}`}
+        >
+          {formatCurrency(price)}
+        </p>
+      ) : (
+        <div className="text-subtle-light flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-full bg-[#F6F6F6]">
+          <ChevronRight />
+        </div>
+      )}
     </div>
   );
 };

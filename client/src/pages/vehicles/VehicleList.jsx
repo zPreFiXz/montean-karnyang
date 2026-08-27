@@ -7,6 +7,10 @@ import { listVehicles } from "@/api/vehicle";
 import { Document } from "@/components/icons/Icons";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { toastError } from "@/utils/handleError";
+import { getDisplayBrand } from "@/utils/repairDisplay";
+
+// numeric: true ให้เทียบกลุ่มตัวเลขตามค่าจริง ทะเบียน 999 จึงมาก่อน 1234
+const plateCollator = new Intl.Collator("th", { numeric: true });
 
 const VehicleList = () => {
   const [vehicles, setVehicles] = useState([]);
@@ -45,11 +49,34 @@ const VehicleList = () => {
     }
   }, [search]);
 
+  // เรียงฝั่งเบราว์เซอร์ เพราะ MySQL เรียงภาษาไทยกับตัวเลขในทะเบียนได้ไม่ตรงอย่างที่ต้องการ
+  // (ต้องอ่าน 999 ว่าน้อยกว่า 1234 ไม่ใช่เทียบทีละตัวอักษร)
+  const sortVehicles = (list = []) =>
+    [...list].sort((a, b) => {
+      const fields = [
+        [a.licensePlate?.plateNumber, b.licensePlate?.plateNumber],
+        [a.licensePlate?.province, b.licensePlate?.province],
+        [a.vehicleModel?.brand, b.vehicleModel?.brand],
+        [a.vehicleModel?.model, b.vehicleModel?.model],
+      ];
+
+      for (const [left, right] of fields) {
+        // รถที่ไม่มีทะเบียนไปอยู่ท้ายสุด ไม่ใช่แทรกอยู่ต้นลิสต์เพราะค่าว่างเรียงมาก่อนเสมอ
+        if (!left && right) return 1;
+        if (left && !right) return -1;
+
+        const result = plateCollator.compare(left || "", right || "");
+        if (result !== 0) return result;
+      }
+
+      return 0;
+    });
+
   const handleFilter = async (search) => {
     setIsLoading(true);
     try {
       const res = await listVehicles(search);
-      setVehicles(res.data);
+      setVehicles(sortVehicles(res.data));
     } catch (error) {
       toastError(error);
     } finally {
@@ -72,7 +99,7 @@ const VehicleList = () => {
       <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
         <div className="flex flex-1 flex-col px-[20px] pt-[16px]">
           {/* แถบค้นหา */}
-          <SearchBar placeholder="ค้นหาทะเบียน, จังหวัด, ยี่ห้อ, รุ่นรถ" />
+          <SearchBar placeholder="ค้นหาทะเบียน, จังหวัด, ยี่ห้อ, รุ่นรถ, ชื่อลูกค้า" />
 
           {/* รายการรถ */}
           {isLoading ? (
@@ -97,7 +124,8 @@ const VehicleList = () => {
                         ? `${item.licensePlate.plateNumber} ${item.licensePlate.province}`
                         : "ไม่ระบุทะเบียนรถ"
                     }
-                    brand={`${item.vehicleModel.brand} ${item.vehicleModel.model}`}
+                    brand={getDisplayBrand(item.vehicleModel)}
+                    note={item.repairs?.[0]?.customer?.name}
                   />
                 </Link>
               </div>

@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Menu, CircleUserRound, LogOut, X, LoaderCircle } from "lucide-react";
+import {
+  Menu,
+  CircleUserRound,
+  LogOut,
+  X,
+  LoaderCircle,
+  ShoppingBag,
+} from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
 import InventoryCard from "@/components/cards/InventoryCard";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
@@ -16,6 +23,11 @@ import { onKeyActivate } from "@/utils/a11y";
 import { tracksStock } from "@/utils/stock";
 import { publicLinks, privateLinks } from "@/utils/links";
 import { roleLabel } from "@/utils/role";
+import {
+  isSaleRepair,
+  getRepairTitle,
+  getRepairSubtitle,
+} from "@/utils/repairDisplay";
 
 const Dashboard = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -75,16 +87,6 @@ const Dashboard = () => {
   const stockAlertCount = outOfStockItems.length + lowStockItems.length;
 
   // แสดงยี่ห้อ+รุ่น หรือแค่รุ่นถ้ายี่ห้อเป็น "อื่นๆ"
-  const getDisplayBrand = (vehicleModel) => {
-    const brand = vehicleModel?.brand || "";
-    const model = vehicleModel?.model || "";
-
-    if (brand === "อื่นๆ" || brand === "อื่น ๆ") {
-      return model;
-    }
-    return `${brand} ${model}`.trim();
-  };
-
   const handleLogout = async () => {
     setIsLoggingOut(true);
 
@@ -137,18 +139,17 @@ const Dashboard = () => {
             <CarCard
               bg={bg}
               icon={
-                <BrandIcons
-                  brand={repair.vehicle?.vehicleModel?.brand}
-                  color={iconColor}
-                />
+                isSaleRepair(repair) ? (
+                  <ShoppingBag className="text-surface h-6 w-6" />
+                ) : (
+                  <BrandIcons
+                    brand={repair.vehicle?.vehicleModel?.brand}
+                    color={iconColor}
+                  />
+                )
               }
-              licensePlate={
-                repair.vehicle?.licensePlate?.plateNumber &&
-                repair.vehicle?.licensePlate?.province
-                  ? `${repair.vehicle.licensePlate.plateNumber} ${repair.vehicle.licensePlate.province}`
-                  : "ไม่ระบุทะเบียนรถ"
-              }
-              brand={getDisplayBrand(repair.vehicle?.vehicleModel)}
+              licensePlate={getRepairTitle(repair)}
+              brand={getRepairSubtitle(repair)}
               time={repair[timeKey] && formatTime(repair[timeKey])}
               price={parseFloat(repair.totalPrice)}
             />
@@ -156,7 +157,7 @@ const Dashboard = () => {
         ))
       ) : (
         <p className="text-subtle-light py-[24px] text-center text-xl">
-          ไม่มีรายการซ่อม
+          ไม่มีงานซ่อม
         </p>
       )}
     </div>

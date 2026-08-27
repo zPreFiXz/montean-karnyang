@@ -19,3 +19,7 @@ export const updateRepair = async (id, data) => {
 export const updateRepairStatus = async (id, data) => {
   return await apiClient.patch(`/repairs/${id}/status`, data);
 };
+
+export const deleteRepair = async (id) => {
+  return await apiClient.delete(`/repairs/${id}`);
+};

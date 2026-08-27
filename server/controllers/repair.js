@@ -275,17 +275,25 @@ exports.createRepair = async (req, res, next) => {
       mileage,
       totalPrice,
       type,
+      paymentMethod,
       repairItems,
     } = req.body;
 
     // ห่อทั้งหมดใน transaction: ถ้าพังกลางทางจะ rollback ไม่เหลือข้อมูลค้างครึ่ง
+    // ขายอะไหล่หน้าร้าน: ไม่มีรถมาเกี่ยว ข้ามการหา/สร้างรถกับทะเบียนทั้งหมด
+    const isSale = type === "SALE";
+
     await prisma.$transaction(async (tx) => {
-      let vehicle;
+      let vehicle = null;
       let licensePlate;
 
-      const vehicleModel = await findOrCreateVehicleModel(tx, brand, model);
+      const vehicleModel = isSale
+        ? null
+        : await findOrCreateVehicleModel(tx, brand, model);
 
-      if (plate && province) {
+      if (isSale) {
+        vehicle = null;
+      } else if (plate && province) {
         licensePlate = await tx.licensePlate.findUnique({
           where: { plateNumber_province: { plateNumber: plate, province } },
         });
@@ -336,14 +344,26 @@ exports.createRepair = async (req, res, next) => {
         phoneNumber,
       });
 
+      // ขายหน้าร้าน = เก็บเงินตรงนั้นเลย ไม่มีช่วงที่ของค้างอยู่ที่ร้าน
+      // จึงบันทึกจบในครั้งเดียว ไม่ต้องให้พนักงานไล่กดเปลี่ยนสถานะอีกสองรอบ
+      const paidNow = isSale ? new Date() : null;
+
       const repair = await tx.repair.create({
         data: {
           description: description || null,
           mileage: mileage ?? null,
           totalPrice,
           type,
+          ...(isSale
+            ? {
+                status: "PAID",
+                completedAt: paidNow,
+                paidAt: paidNow,
+                paymentMethod: paymentMethod || "CASH",
+              }
+            : {}),
           user: { connect: { id: req.user.id } },
-          vehicle: { connect: { id: vehicle.id } },
+          ...(vehicle ? { vehicle: { connect: { id: vehicle.id } } } : {}),
           ...(customer ? { customer: { connect: { id: customer.id } } } : {}),
         },
       });
@@ -374,20 +394,27 @@ exports.updateRepair = async (req, res, next) => {
       mileage,
       totalPrice,
       type,
+      paymentMethod,
       repairItems,
     } = req.body;
 
     // ห่อทั้งหมดใน transaction: คืนสต็อก + ลบ/สร้างรายการใหม่ + อัปเดตบิล ต้อง atomic
+    const isSale = type === "SALE";
+
     await prisma.$transaction(async (tx) => {
-      const vehicleModel = await findOrCreateVehicleModel(tx, brand, model);
+      const vehicleModel = isSale
+        ? null
+        : await findOrCreateVehicleModel(tx, brand, model);
 
       const currentRepair = await tx.repair.findUnique({
         where: { id: Number(id) },
         select: { vehicleId: true },
       });
 
-      let vehicle;
-      if (plate && province) {
+      let vehicle = null;
+      if (isSale) {
+        vehicle = null;
+      } else if (plate && province) {
         let licensePlate = await tx.licensePlate.findUnique({
           where: { plateNumber_province: { plateNumber: plate, province } },
         });
@@ -398,7 +425,7 @@ exports.updateRepair = async (req, res, next) => {
         }
 
         vehicle = await tx.vehicle.upsert({
-          where: { id: currentRepair.vehicleId },
+          where: { id: currentRepair.vehicleId ?? 0 },
           update: {
             vehicleModelId: vehicleModel.id,
             licensePlateId: licensePlate.id,
@@ -415,9 +442,14 @@ exports.updateRepair = async (req, res, next) => {
 
         if (existingVehicle && existingVehicle.id !== currentRepair.vehicleId) {
           vehicle = existingVehicle;
-        } else {
+        } else if (currentRepair.vehicleId) {
           vehicle = await tx.vehicle.update({
             where: { id: currentRepair.vehicleId },
+            data: { vehicleModelId: vehicleModel.id, licensePlateId: null },
+          });
+        } else {
+          // บิลเดิมเป็นการขายหน้าร้าน ยังไม่เคยมีรถผูกไว้
+          vehicle = await tx.vehicle.create({
             data: { vehicleModelId: vehicleModel.id, licensePlateId: null },
           });
         }
@@ -457,7 +489,10 @@ exports.updateRepair = async (req, res, next) => {
           mileage: mileage ?? null,
           totalPrice,
           type,
-          vehicle: { connect: { id: vehicle.id } },
+          ...(isSale && paymentMethod ? { paymentMethod } : {}),
+          ...(vehicle
+            ? { vehicle: { connect: { id: vehicle.id } } }
+            : { vehicle: { disconnect: true } }),
           ...(customer
             ? { customer: { connect: { id: customer.id } } }
             : { customer: { disconnect: true } }),
@@ -466,6 +501,45 @@ exports.updateRepair = async (req, res, next) => {
     });
 
     res.json({ message: "แก้ไขรายการซ่อมเรียบร้อยแล้ว" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ลบบิลทิ้ง: ต้องคืนสต็อกก่อนเสมอ ไม่งั้นอะไหล่จะหายจากคลังทั้งที่ไม่ได้ขายออกไป
+// ใช้ตรรกะคืนของชุดเดียวกับตอนแก้ไขบิล (คืนจำนวน + คืนล็อตยางตาม soldLots)
+exports.deleteRepair = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const repair = await prisma.repair.findUnique({
+      where: { id: Number(id) },
+    });
+
+    if (!repair) {
+      createError(404, "ไม่พบรายการซ่อม");
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const items = await tx.repairItem.findMany({
+        where: { repairId: Number(id) },
+      });
+
+      for (const item of items) {
+        if (item.partId) {
+          await tx.part.update({
+            where: { id: item.partId },
+            data: { stockQuantity: { increment: item.quantity } },
+          });
+          await restoreTireLotsFromSoldLots(tx, item.partId, item.soldLots);
+        }
+      }
+
+      await tx.repairItem.deleteMany({ where: { repairId: Number(id) } });
+      await tx.repair.delete({ where: { id: Number(id) } });
+    });
+
+    res.json({ message: "ลบรายการซ่อมเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }
