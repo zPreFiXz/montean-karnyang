@@ -51,6 +51,8 @@ exports.repairSchema = z
     type: z.enum(["GENERAL", "SUSPENSION", "SALE"], {
       message: "ประเภทงานซ่อมไม่ถูกต้อง",
     }),
+    // งานบริการที่ไม่เก็บประวัติรถ (ปะยาง เติมลม) ไม่ได้ผูกกับรถคันไหน จึงไม่ต้องมียี่ห้อ/รุ่น
+    noVehicle: z.boolean().optional(),
     // ใช้เฉพาะบิลขายหน้าร้าน ซึ่งเก็บเงินตอนสร้างบิลเลย
     paymentMethod: z
       .enum(["CASH", "CREDIT_CARD", "QR_CODE"], {
@@ -65,6 +67,7 @@ exports.repairSchema = z
             partId: z.number().optional(),
             serviceId: z.number().optional(),
             unitPrice: z.coerce.number(),
+            itemName: z.string().max(191).optional(),
             quantity: z.coerce.number().min(1, "จำนวนอย่างน้อย 1"),
             // client ส่งตัวพิมพ์เล็ก (UI state) → แปลงเป็นตัวใหญ่ให้ตรง enum Side ใน DB
             side: z.preprocess(
@@ -77,16 +80,17 @@ exports.repairSchema = z
                 .optional(),
             ),
           })
-          // ชื่อไม่รับจาก client — เซิร์ฟเวอร์ประกอบเองจากอะไหล่/บริการที่อ้างถึง
+          // ชื่ออะไหล่ไม่รับจาก client — เซิร์ฟเวอร์ประกอบเองจากของที่อ้างถึง
+          // ยกเว้นบริการที่พิมพ์ชื่อเองได้ (เช่น "ค่าแรง" ที่ระบุงานลงไปด้วย) จึงรับมาแทนได้
           .refine((item) => item.partId || item.serviceId, {
             message: "แต่ละรายการต้องระบุอะไหล่หรือบริการ",
           }),
       )
       .optional(),
   })
-  // งานซ่อมต้องผูกกับรถเสมอ ส่วนบิลขายอะไหล่หน้าร้าน (SALE) ลูกค้าไม่ได้เอารถมา
+  // งานซ่อมต้องผูกกับรถเสมอ ยกเว้นบิลขายอะไหล่หน้าร้าน (SALE) กับงานบริการที่ไม่เก็บประวัติรถ
   .superRefine((data, ctx) => {
-    if (data.type === "SALE") return;
+    if (data.type === "SALE" || data.noVehicle) return;
 
     if (!data.brand) {
       ctx.addIssue({
@@ -117,6 +121,7 @@ exports.partSchema = z
     minStockLevel: z.coerce.number(),
     attributes: z.any().optional(),
     compatibleVehicles: z.any().optional(),
+    description: z.string().optional(),
     image: z.any().optional(),
     categoryId: z.coerce.number(),
     // ล็อตยาง (DOT + จำนวน) — ต้องอยู่ในสคีมา ไม่งั้น validate() จะตัดทิ้งก่อนถึงคอนโทรลเลอร์
@@ -145,6 +150,7 @@ exports.partSchema = z
 exports.serviceSchema = z.object({
   name: z.string().min(1, "กรุณากรอกชื่อบริการ"),
   price: z.coerce.number(),
+  description: z.string().optional(),
   categoryId: z.coerce.number(),
 });
 

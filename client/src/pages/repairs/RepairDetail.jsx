@@ -42,6 +42,7 @@ import {
 } from "@/constants/paymentMethods";
 import {
   isSaleRepair,
+  isNoVehicleRepair,
   getRepairTitle,
   getRepairSubtitle,
 } from "@/utils/repairDisplay";
@@ -186,6 +187,15 @@ const RepairDetail = () => {
         toast.success("ชำระเงินเรียบร้อยแล้ว");
       }
 
+      // เปิดบิลมาจากหน้าประวัติรถ ให้กลับไปที่รถคันนั้น ไม่ใช่โยนไปแท็บสถานะที่ไม่ได้มาจากตรงนั้น
+      if (
+        location.state?.from === "vehicle-detail" &&
+        location.state?.vehicleId
+      ) {
+        navigate(`/vehicles/${location.state.vehicleId}`);
+        return;
+      }
+
       const statusSlug = nextStatus.toLowerCase().replace("_", "-");
       navigate(`/repairs?status=${statusSlug}`);
     } catch (error) {
@@ -195,6 +205,10 @@ const RepairDetail = () => {
       setIsUpdatingSkip(false);
     }
   };
+
+  // บิลขายหน้าร้านเก็บเงินตอนสร้างบิล เวลาทั้งสามช่วงจึงเป็นวินาทีเดียวกัน
+  // งานบริการเดินสถานะปกติ จึงมีเวลาแยกแต่ละช่วงเหมือนงานซ่อม
+  const paidOnCreate = isSaleRepair(repair);
 
   const statusInfo = getStatusInfo(repair?.status) ?? DEFAULT_STATUS_INFO;
   const StatusIcon = statusInfo?.icon;
@@ -223,6 +237,8 @@ const RepairDetail = () => {
       description: repair?.description || "",
       mileage: repair?.mileage != null ? String(repair.mileage) : "",
       type: repair?.type || "GENERAL",
+      // บิลที่ไม่ได้ผูกกับรถ (งานบริการ) ต้องกลับเข้าโหมดเดิม ไม่งั้นจะถูกบังคับให้เลือกรถ
+      noVehicle: !repair?.vehicle,
     };
 
     const usedQtyByPartId = (repair?.repairItems || []).reduce((acc, ri) => {
@@ -254,7 +270,8 @@ const RepairDetail = () => {
       return {
         id: ri.service?.id,
         brand: "",
-        name: ri.service?.name || ri.itemName || "",
+        // ชื่อที่บันทึกไว้มาก่อน เพราะบริการอย่างค่าแรงพิมพ์ชื่อเองได้
+        name: ri.itemName || ri.service?.name || "",
         sellingPrice: Number(ri.unitPrice),
         category: ri.service?.category,
         secureUrl: null,
@@ -320,6 +337,7 @@ const RepairDetail = () => {
         state: {
           repairData: { ...repairData },
           repairItems: savedItems,
+          scrollToItems: true,
           editRepairId: repair.id,
           from: location.state?.from,
           statusSlug: location.state?.statusSlug,
@@ -416,6 +434,9 @@ const RepairDetail = () => {
               >
                 {isSaleRepair(repair) ? (
                   <ShoppingBag className="text-surface h-6 w-6" />
+                ) : isNoVehicleRepair(repair) ? (
+                  // Wrench ของ lucide ใช้สีตามตัวหนังสือ ต้องสั่งเป็นสีขาวเองบนวงกลมสีทึบ
+                  <Wrench className="text-surface h-6 w-6" />
                 ) : (
                   <BrandIcons
                     brand={repair.vehicle?.vehicleModel?.brand}
@@ -429,9 +450,13 @@ const RepairDetail = () => {
                 >
                   {getRepairTitle(repair)}
                 </p>
-                <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                  {getRepairSubtitle(repair)}
-                </p>
+                {/* บิลที่ไม่ผูกกับรถมีกล่องข้อมูลลูกค้าแยกอยู่ข้างล่างแล้ว ไม่ต้องบอกชื่อซ้ำตรงนี้
+                    ต่างจากการ์ดในลิสต์ที่มีบรรทัดเดียว จึงต้องยัดชื่อลูกค้าไว้ในนั้น */}
+                {!isSaleRepair(repair) && !isNoVehicleRepair(repair) && (
+                  <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
+                    {getRepairSubtitle(repair)}
+                  </p>
+                )}
               </div>
             </div>
             {repair.customer && (
@@ -771,11 +796,11 @@ const RepairDetail = () => {
             </div>
             <div className="mb-[16px] px-[20px]">
               <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
-                {isSaleRepair(repair) ? "เวลาชำระเงิน" : "เวลาดำเนินการ"}
+                {paidOnCreate ? "เวลาชำระเงิน" : "เวลาดำเนินการ"}
               </p>
               <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
                 {/* บิลขายหน้าร้านเกิดและจบพร้อมกัน ไม่มีช่วงซ่อม แสดงเวลาชำระเงินอย่างเดียว */}
-                {!isSaleRepair(repair) && (
+                {!paidOnCreate && (
                   <>
                     <div className="flex justify-between">
                       <p className="text-subtle-dark text-lg font-medium md:text-xl">
@@ -802,7 +827,7 @@ const RepairDetail = () => {
                 {repair.paidAt && (
                   <div className="flex justify-between">
                     <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                      {isSaleRepair(repair) ? "วันเวลา:" : "ชำระเงิน:"}
+                      {paidOnCreate ? "วันเวลา:" : "ชำระเงิน:"}
                     </p>
                     <p className="text-normal text-lg font-medium md:text-xl">
                       {formatDate(repair.paidAt)} | {formatTime(repair.paidAt)}{" "}

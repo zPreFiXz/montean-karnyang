@@ -165,9 +165,12 @@ const createRepairItemsAndDecrementStock = async (
         repairId,
         partId: item.partId,
         serviceId: item.serviceId,
+        // บริการพิมพ์ชื่อเองได้ จึงใช้ชื่อที่ส่งมาก่อน แล้วค่อยตกไปที่ชื่อในคลัง
+        // ส่วนอะไหล่ยังประกอบจากข้อมูลจริงเสมอ ไม่รับชื่อจากหน้าเว็บ
         itemName: item.partId
           ? buildPartItemName(partById.get(item.partId))
-          : buildServiceItemName(serviceById.get(item.serviceId)),
+          : item.itemName?.trim() ||
+            buildServiceItemName(serviceById.get(item.serviceId)),
       },
     });
   }
@@ -276,22 +279,25 @@ exports.createRepair = async (req, res, next) => {
       totalPrice,
       type,
       paymentMethod,
+      noVehicle,
       repairItems,
     } = req.body;
 
     // ห่อทั้งหมดใน transaction: ถ้าพังกลางทางจะ rollback ไม่เหลือข้อมูลค้างครึ่ง
-    // ขายอะไหล่หน้าร้าน: ไม่มีรถมาเกี่ยว ข้ามการหา/สร้างรถกับทะเบียนทั้งหมด
     const isSale = type === "SALE";
+    // ไม่ผูกกับรถ: บิลขายหน้าร้าน หรืองานบริการที่ไม่เก็บประวัติรถ
+    // ข้ามการหา/สร้างรถกับทะเบียนทั้งหมด บิลจึงไม่ไปโผล่ในประวัติรถคันไหน
+    const skipVehicle = isSale || !!noVehicle;
 
     await prisma.$transaction(async (tx) => {
       let vehicle = null;
       let licensePlate;
 
-      const vehicleModel = isSale
+      const vehicleModel = skipVehicle
         ? null
         : await findOrCreateVehicleModel(tx, brand, model);
 
-      if (isSale) {
+      if (skipVehicle) {
         vehicle = null;
       } else if (plate && province) {
         licensePlate = await tx.licensePlate.findUnique({
@@ -344,8 +350,8 @@ exports.createRepair = async (req, res, next) => {
         phoneNumber,
       });
 
-      // ขายหน้าร้าน = เก็บเงินตรงนั้นเลย ไม่มีช่วงที่ของค้างอยู่ที่ร้าน
-      // จึงบันทึกจบในครั้งเดียว ไม่ต้องให้พนักงานไล่กดเปลี่ยนสถานะอีกสองรอบ
+      // ขายหน้าร้าน = ลูกค้าจ่ายแล้วเดินออกไปเลย จึงบันทึกจบในครั้งเดียว
+      // ต่างจากงานบริการที่อาจเก็บเงินทีหลัง จึงเดินสถานะปกติเหมือนงานซ่อม
       const paidNow = isSale ? new Date() : null;
 
       const repair = await tx.repair.create({
@@ -395,14 +401,16 @@ exports.updateRepair = async (req, res, next) => {
       totalPrice,
       type,
       paymentMethod,
+      noVehicle,
       repairItems,
     } = req.body;
 
     // ห่อทั้งหมดใน transaction: คืนสต็อก + ลบ/สร้างรายการใหม่ + อัปเดตบิล ต้อง atomic
     const isSale = type === "SALE";
+    const skipVehicle = isSale || !!noVehicle;
 
     await prisma.$transaction(async (tx) => {
-      const vehicleModel = isSale
+      const vehicleModel = skipVehicle
         ? null
         : await findOrCreateVehicleModel(tx, brand, model);
 
@@ -412,7 +420,7 @@ exports.updateRepair = async (req, res, next) => {
       });
 
       let vehicle = null;
-      if (isSale) {
+      if (skipVehicle) {
         vehicle = null;
       } else if (plate && province) {
         let licensePlate = await tx.licensePlate.findUnique({

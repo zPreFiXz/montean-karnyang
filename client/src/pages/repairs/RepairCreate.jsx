@@ -26,6 +26,7 @@ import { repairSchema } from "@/utils/schemas";
 import { provinces } from "@/constants/provinces";
 import { formatCurrency } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
+import { isFreeformService } from "@/constants/services";
 import { onKeyActivate } from "@/utils/a11y";
 import { withOtherBrandLast } from "@/utils/vehicleBrand";
 
@@ -43,13 +44,19 @@ const SUBMIT_FEEDBACK_MS = 400;
 const RepairCreate = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { register, handleSubmit, formState, setValue, watch } = useForm({
-    resolver: zodResolver(repairSchema),
-  });
+  const { register, handleSubmit, formState, setValue, watch, getValues } =
+    useForm({
+      resolver: zodResolver(repairSchema),
+    });
   const [isCustomerInfoOpen, setIsCustomerInfoOpen] = useState(false);
   // งานซ่อม = ผูกกับรถ, ขายอะไหล่ = ลูกค้าซื้อของกลับไปเอง ไม่ได้เอารถมา
+  // GENERAL = งานซ่อมผูกกับรถ, SERVICE = งานบริการที่ไม่ต้องเก็บประวัติรถ, SALE = ขายอะไหล่หน้าร้าน
+  // เกณฑ์ของ SERVICE คือ "ไม่ต้องเก็บประวัติรถ" ไม่ใช่ "ทำที่ไหน" — ปะยางมอเตอร์ไซค์ที่ร้านก็เข้าข่าย
+  // เป็นแค่โหมดของหน้าจอ ตอนบันทึกยังเป็นบิลประเภท GENERAL แต่ส่ง noVehicle ไปด้วย
   const [billType, setBillType] = useState("GENERAL");
   const isSale = billType === "SALE";
+  const isService = billType === "SERVICE";
+  const hasNoVehicle = isSale || isService;
   const [repairItems, setRepairItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [vehicleModels, setVehicleModels] = useState([]);
@@ -78,6 +85,7 @@ const RepairCreate = () => {
         });
         // SUSPENSION มาจากหน้าเช็กช่วงล่าง ไม่ได้แก้ในหน้านี้ จึงถือเป็นงานซ่อมเหมือนกัน
         if (repairData.type === "SALE") setBillType("SALE");
+        else if (repairData.noVehicle) setBillType("SERVICE");
       }
 
       if (savedItems && savedItems.length > 0) {
@@ -143,8 +151,9 @@ const RepairCreate = () => {
   }, [location.state, setValue]);
 
   useEffect(() => {
-    setValue("type", billType);
-  }, [billType, setValue]);
+    setValue("type", isSale ? "SALE" : "GENERAL");
+    setValue("noVehicle", hasNoVehicle);
+  }, [billType, isSale, hasNoVehicle, setValue]);
 
   const fetchVehicleModels = async () => {
     try {
@@ -206,11 +215,30 @@ const RepairCreate = () => {
     setValue("address", customer.address || "");
   };
 
+  // ลูกค้าขอเช็กช่วงล่างเพิ่มระหว่างที่เปิดบิลเปลี่ยนยางค้างไว้ — ยกทั้งข้อมูลรถและรายการที่เลือกไปด้วย
+  // จะได้อยู่ในบิลเดียวกัน ไม่ต้องเปิดบิลใหม่แล้วเก็บเงินสองรอบ (ขากลับมีอยู่แล้วที่หน้าเช็กช่วงล่าง)
+  const handleAddSuspensionCheck = () => {
+    navigate("/inspections/suspension", {
+      state: {
+        repairData: getValues(),
+        repairItems,
+        // เลื่อนลงไปที่ส่วนเลือกอะไหล่เลย เพราะข้อมูลรถกับลูกค้ายกมาแล้ว
+        // ยกเว้นยังไม่ได้เลือกรถ ซึ่งต้องกรอกด้านบนก่อน ไม่งั้นจะเลื่อนพ้นช่องที่ต้องกรอก
+        scrollToItems: !!(watch("brand") && watch("model")),
+        editRepairId: location.state?.editRepairId,
+        from: location.state?.from,
+        origin: location.state?.origin,
+        statusSlug: location.state?.statusSlug,
+        vehicleId: location.state?.vehicleId,
+      },
+    });
+  };
+
   const handleChangeBillType = (nextType) => {
     setBillType(nextType);
 
-    // ล้างข้อมูลรถทิ้งเมื่อสลับไปบิลขาย ไม่งั้นค่าที่กรอกค้างไว้จะถูกส่งไปสร้างรถผีในระบบ
-    if (nextType === "SALE") {
+    // ล้างข้อมูลรถทิ้งเมื่อสลับไปโหมดที่ไม่ผูกรถ ไม่งั้นค่าที่กรอกค้างไว้จะถูกส่งไปสร้างรถผีในระบบ
+    if (nextType === "SALE" || nextType === "SERVICE") {
       for (const field of VEHICLE_FIELDS) {
         setValue(field, "", { shouldValidate: false });
       }
@@ -226,7 +254,11 @@ const RepairCreate = () => {
 
       navigate("/repairs/review", {
         state: {
-          repairData: { ...data, type: billType },
+          repairData: {
+            ...data,
+            type: isSale ? "SALE" : "GENERAL",
+            noVehicle: hasNoVehicle,
+          },
           repairItems: repairItems,
           editRepairId: location.state?.editRepairId,
           origin: location.state?.origin || location.state?.from,
@@ -409,7 +441,7 @@ const RepairCreate = () => {
           </div>
           <div>
             <p className="text-surface xl:text-primary text-2xl font-semibold md:text-[26px]">
-              {isSale ? "ขายอะไหล่" : "งานซ่อมใหม่"}
+              {isSale ? "ขายอะไหล่" : isService ? "งานบริการ" : "งานซ่อมใหม่"}
             </p>
           </div>
         </div>
@@ -422,6 +454,7 @@ const RepairCreate = () => {
           <div className="mx-[20px] mt-[16px] flex gap-[8px]">
             {[
               { id: "GENERAL", label: "งานซ่อม" },
+              { id: "SERVICE", label: "งานบริการ" },
               { id: "SALE", label: "ขายอะไหล่" },
             ].map((option) => (
               <button
@@ -496,7 +529,7 @@ const RepairCreate = () => {
                     register={register}
                     name="address"
                     label="ที่อยู่"
-                    type="text"
+                    rows={2}
                     placeholder="เช่น 543 หมู่ 5 ต.น้ำอ้อม อ.กันทรลักษ์ จ.ศรีสะเกษ 33110"
                     color="subtle-dark"
                     errors={errors}
@@ -525,7 +558,7 @@ const RepairCreate = () => {
             </div>
           </div>
           {/* ข้อมูลรถ — บิลขายอะไหล่หน้าร้านไม่มีรถมาเกี่ยว จึงซ่อนทั้งก้อน */}
-          {!isSale && (
+          {!hasNoVehicle && (
             <>
               <div className="xl:[&_label]:text-normal mt-[16px] px-[20px]">
                 <ComboBox
@@ -644,6 +677,11 @@ const RepairCreate = () => {
                 placeholder="เช่น 120000"
                 color="surface"
                 errors={errors}
+                inputMode="numeric"
+                onWheel={(e) => e.target.blur()}
+                onInput={(e) => {
+                  e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                }}
               />
             </>
           )}
@@ -660,6 +698,18 @@ const RepairCreate = () => {
             color="surface"
             errors={errors}
           />
+
+          {!hasNoVehicle && (
+            <div className="mt-[16px] flex justify-center px-[20px]">
+              <button
+                type="button"
+                onClick={handleAddSuspensionCheck}
+                className="border-surface text-surface xl:border-primary xl:text-primary flex h-[41px] cursor-pointer items-center justify-center rounded-[20px] border px-[20px] text-lg font-semibold md:text-xl"
+              >
+                เช็กช่วงล่างต่อ
+              </button>
+            </div>
+          )}
 
           <div className="hidden pb-[24px] xl:block" />
 
@@ -681,6 +731,7 @@ const RepairCreate = () => {
                 onAddItem={handleAddItemToRepair}
                 selectedItems={repairItems}
                 restoredStockMap={restoredStockMap}
+                vehicle={{ brand: watch("brand"), model: watch("model") }}
               >
                 <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
                   + เพิ่มรายการซ่อม
@@ -688,9 +739,14 @@ const RepairCreate = () => {
               </AddRepairItemDialog>
             </div>
             {repairItems.length === 0 ? (
-              // ยืดตามพื้นที่ที่เหลือจริง ไม่ล็อกความสูง เพราะบิลขายอะไหล่ไม่มีข้อมูลรถ หน้าจึงสั้นกว่า
-              <div className="flex flex-1 flex-col">
-                <div className="flex flex-1 items-center justify-center">
+              // บิลขายไม่มีข้อมูลรถ หน้าจึงสั้นกว่า ต้องยืดตามพื้นที่ที่เหลือข้อความถึงจะอยู่กลาง
+              // ส่วนงานซ่อมใช้ความสูงตายตัวเท่าเดิม ไม่งั้นกล่องจะสูงขึ้นจากที่เคยเป็น
+              <div className={hasNoVehicle ? "flex flex-1 flex-col" : ""}>
+                <div
+                  className={`flex items-center justify-center ${
+                    hasNoVehicle ? "flex-1" : "h-[228px] xl:h-auto"
+                  }`}
+                >
                   <p className="text-subtle-light text-xl md:text-[22px]">
                     กรุณาเพิ่มรายการซ่อม
                   </p>
@@ -842,6 +898,7 @@ const RepairCreate = () => {
               onAddItem={handleAddItemToRepair}
               selectedItems={repairItems}
               restoredStockMap={restoredStockMap}
+              vehicle={{ brand: watch("brand"), model: watch("model") }}
             >
               <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
                 + เพิ่มรายการซ่อม
@@ -994,13 +1051,11 @@ const RepairCreate = () => {
         originalPrice={editingItem?.basePrice}
         productName={editingItem ? getProductName(editingItem) : ""}
         partNumber={editingItem?.partNumber}
+        description={editingItem?.description}
         productImage={editingItem?.secureUrl}
         isService={editingItem?.category?.name === "บริการ"}
         currentName={editingItem?.name || ""}
-        canEditName={
-          editingItem?.category?.name === "บริการ" &&
-          (editingItem?.id === 1 || editingItem?.service?.id === 1)
-        }
+        canEditName={isFreeformService(editingItem)}
       />
 
       <ConfirmDialog

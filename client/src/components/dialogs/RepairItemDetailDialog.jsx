@@ -89,11 +89,13 @@ const RepairItemDetailDialog = ({
       .querySelector('[role="dialog"]')
       ?.querySelector(".overflow-y-auto");
 
-  // รอ 1 เฟรมให้ฟอร์มถูกวาดก่อน ค่อยเลื่อนไปหา
-  const scrollDialogTo = (top) => {
-    setTimeout(() => {
-      dialogScroller()?.scrollTo({ top, behavior: "smooth" });
-    }, 200);
+  // delay ใช้ตอนต้องรอให้ฟอร์มถูกวาดก่อนค่อยเลื่อนไปหา
+  // ตอนเลื่อนกลับขึ้นบนสุดไม่ต้องรอ ปลายทางคือ 0 ไม่ได้ขึ้นกับความสูงของเนื้อหา
+  // ถ้าหน่วงไว้จะกลายเป็นหุบฟอร์มจบก่อนแล้วค่อยเลื่อน เห็นเป็นสองจังหวะ
+  const scrollDialogTo = (top, delay = 0) => {
+    const run = () => dialogScroller()?.scrollTo({ top, behavior: "smooth" });
+    if (delay) setTimeout(run, delay);
+    else run();
   };
 
   const handleShowAddStock = () => {
@@ -383,6 +385,19 @@ const RepairItemDetailDialog = ({
                         {isPerSide(currentItem.attributes)
                           ? "แยกซ้าย-ขวา"
                           : "ไม่แยกข้าง"}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* วางป้ายไว้บน ข้อความอยู่ล่างเต็มความกว้าง เพราะเป็นข้อความยาว
+                      ต่างจากแถวอื่นที่เป็นคู่ชื่อ-ค่าสั้นๆ วางซ้าย-ขวาได้ */}
+                  {currentItem.description && (
+                    <div className="flex justify-between gap-[12px]">
+                      <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
+                        รายละเอียด:
+                      </p>
+                      <p className="text-normal min-w-0 text-right text-lg font-semibold break-words whitespace-pre-line md:text-xl">
+                        {currentItem.description}
                       </p>
                     </div>
                   )}

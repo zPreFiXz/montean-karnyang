@@ -18,11 +18,12 @@ import {
 } from "@/utils/formats";
 import useRepairStore from "@/stores/useRepairStore";
 import BrandIcons from "@/components/icons/BrandIcons";
-import { Paid } from "@/components/icons/Icons";
+import { Paid, Wrench } from "@/components/icons/Icons";
 import { ShoppingBag } from "lucide-react";
 import { PAYMENT_METHODS } from "@/constants/paymentMethods";
 import {
   isSaleRepair,
+  isNoVehicleRepair,
   getRepairTitle,
   getRepairSubtitle,
 } from "@/utils/repairDisplay";
@@ -464,6 +465,8 @@ const SalesReport = () => {
                         icon={
                           isSaleRepair(repair) ? (
                             <ShoppingBag className="text-surface h-6 w-6" />
+                          ) : isNoVehicleRepair(repair) ? (
+                            <Wrench />
                           ) : (
                             <BrandIcons
                               brand={repair.vehicle?.vehicleModel?.brand}
@@ -501,6 +504,8 @@ const SalesReport = () => {
                               icon={
                                 isSaleRepair(repair) ? (
                                   <ShoppingBag className="text-surface h-6 w-6" />
+                                ) : isNoVehicleRepair(repair) ? (
+                                  <Wrench />
                                 ) : (
                                   <BrandIcons
                                     brand={repair.vehicle?.vehicleModel?.brand}

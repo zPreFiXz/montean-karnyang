@@ -220,6 +220,7 @@ const InventoryCreate = () => {
           compatibleVehicles: hasVehicleCompatibility()
             ? watch("compatibleVehicles") || undefined
             : undefined,
+          description: data.description || undefined,
           image,
           categoryId: data.categoryId,
         };
@@ -227,6 +228,7 @@ const InventoryCreate = () => {
         serviceData = {
           name: data.name,
           price: data.price,
+          description: data.description || undefined,
           categoryId: data.categoryId,
         };
       }
@@ -609,6 +611,17 @@ const InventoryCreate = () => {
               )}
             </div>
           )}
+
+          {/* บันทึกภายในของร้าน ไม่ได้พิมพ์ลงบิล จึงไม่บังคับกรอก */}
+          <FormInput
+            register={register}
+            name="description"
+            label="รายละเอียด"
+            type="text"
+            placeholder="เช่น ใส่แทนเบอร์เดิมได้ ต้องขันสลักใหม่"
+            color="subtle-dark"
+            errors={errors}
+          />
           <div className="mt-[16px] flex justify-center pb-[112px]">
             <FormButton
               label={isServiceCategory() ? "เพิ่มบริการ" : "เพิ่มอะไหล่"}

@@ -98,11 +98,13 @@ export const repairSchema = z
       .optional()
       .or(z.literal("")),
     type: z.enum(["GENERAL", "SUSPENSION", "SALE"]).optional(),
+    // งานบริการที่ไม่เก็บประวัติรถ — ไม่ต้องมียี่ห้อ/รุ่น เหมือนบิลขายหน้าร้าน
+    noVehicle: z.boolean().optional(),
   })
   // บิลขายอะไหล่หน้าร้าน (SALE) ไม่มีรถมาเกี่ยว จึงไม่บังคับยี่ห้อกับรุ่นรถ
   // ต้องตรงกับ repairSchema ฝั่งเซิร์ฟเวอร์ ไม่งั้นจะผ่านหน้าเว็บแต่ไปตกที่ toast
   .superRefine((data, ctx) => {
-    if (data.type === "SALE") return;
+    if (data.type === "SALE" || data.noVehicle) return;
 
     if (!data.brand) {
       ctx.addIssue({
@@ -136,6 +138,7 @@ export const partServiceSchema = z
     minStockLevel: z.coerce.number().optional().default(0),
     attributes: z.any().optional(),
     compatibleVehicles: z.any().optional(),
+    description: z.string().optional(),
     image: z.any().optional(),
     categoryId: z.number().optional(),
 

@@ -49,7 +49,7 @@ const Login = () => {
   };
 
   return (
-    <div className="font-athiti bg-surface relative min-h-screen p-[24px]">
+    <div className="font-athiti bg-surface relative min-h-svh p-[24px]">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 overflow-hidden"

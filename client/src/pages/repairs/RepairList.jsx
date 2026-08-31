@@ -9,6 +9,7 @@ import { Success, Wrench, Paid } from "@/components/icons/Icons";
 import { ShoppingBag } from "lucide-react";
 import {
   isSaleRepair,
+  isNoVehicleRepair,
   getRepairTitle,
   getRepairSubtitle,
 } from "@/utils/repairDisplay";
@@ -216,9 +217,11 @@ const RepairList = () => {
                 icon={
                   isSaleRepair(item) ? (
                     <ShoppingBag className="text-surface h-6 w-6" />
+                  ) : isNoVehicleRepair(item) ? (
+                    <Wrench />
                   ) : (
                     <BrandIcons
-                      brand={item.vehicle.vehicleModel.brand}
+                      brand={item.vehicle?.vehicleModel?.brand}
                       color={getStatusColor(item.status)}
                     />
                   )

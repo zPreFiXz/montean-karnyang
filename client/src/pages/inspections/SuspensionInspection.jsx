@@ -3,12 +3,14 @@ import CustomerNameInput from "@/components/forms/CustomerNameInput";
 import ComboBox from "@/components/ui/ComboBox";
 import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
 import EditPriceDialog from "@/components/dialogs/EditRepairItemDialog";
+import PartPreviewDialog from "@/components/dialogs/PartPreviewDialog";
 import { useForm } from "react-hook-form";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { provinces } from "@/constants/provinces";
 import { listVehicleModels } from "@/api/vehicleModel";
 import { listParts } from "@/api/part";
+import { listInventory } from "@/api/inventory";
 import LicensePlateInput from "@/components/forms/LicensePlateInput";
 import { formatCurrency } from "@/utils/formats";
 import {
@@ -28,6 +30,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
 import { CarRepair } from "@/components/icons/Icons";
 import { toastError } from "@/utils/handleError";
+import {
+  isFreeformService,
+  DEFAULT_LABOR_SERVICE_NAME,
+} from "@/constants/services";
 import { onKeyActivate } from "@/utils/a11y";
 import { isPerSide } from "@/utils/suspension";
 import { scrollToNewRow } from "@/utils/scrollToNewRow";
@@ -51,6 +57,21 @@ const PART_TYPE_ORDER = [
   "ลูกหมากบน",
   "ลูกหมากกันโคลง",
 ];
+// แท็บ "อื่นๆ" ให้เหลือเฉพาะสามชนิดนี้ตามลำดับที่ช่างไล่ตรวจ
+// จับด้วยคำขึ้นต้น ไม่ใช่ชื่อเต็ม เพราะชื่ออะไหล่มีรุ่นต่อท้าย ("โช้คหลัง PG5-4046 STD 4WD")
+const OTHER_TAB_GROUPS = [
+  { label: "คันส่งกลาง", prefixes: ["คันส่งกลาง"] },
+  { label: "โช้คหน้า", prefixes: ["โช้คหน้า"] },
+  { label: "โช้คหลัง", prefixes: ["โช้คหลัง"] },
+];
+
+const matchOtherTabGroup = (name) => {
+  const text = String(name || "").trim();
+  return OTHER_TAB_GROUPS.find((group) =>
+    group.prefixes.some((prefix) => text.startsWith(prefix)),
+  );
+};
+
 // หน่วงสั้นๆ ให้เห็นตัวหมุนก่อนหน้าจอเปลี่ยน (ไม่ได้รอเซิร์ฟเวอร์ ข้อมูลส่งต่อผ่าน state ล้วน)
 const SUBMIT_FEEDBACK_MS = 400;
 const TAB_LABELS = { left: "ซ้าย", right: "ขวา", other: "อื่นๆ" };
@@ -86,10 +107,15 @@ const SuspensionInspection = () => {
   const [restoredStockMap, setRestoredStockMap] = useState({});
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  // ดูรูปกับข้อมูลของอะไหล่ก่อนตัดสินใจเลือก
+  const [previewPart, setPreviewPart] = useState(null);
   const [priceOverrides, setPriceOverrides] = useState({});
   const restoredRef = useRef(false);
   const [_isMoreFieldsVisible, setIsMoreFieldsVisible] = useState(false);
   const [isCustomerInfoOpen, setIsCustomerInfoOpen] = useState(false);
+  // บริการเปล่าที่ใช้เป็นค่าแรงตั้งต้น — หามาจากชื่อ เพราะ id ไม่ตรงกันระหว่างเครื่อง
+  const [defaultLaborService, setDefaultLaborService] = useState(null);
+
   const initialSelectedRef = useRef({
     left: new Set(),
     right: new Set(),
@@ -111,23 +137,45 @@ const SuspensionInspection = () => {
         return prev;
       }
 
+      // ยังไม่รู้ id ของบริการเปล่า (ต่างกันแต่ละเครื่อง) ก็ยังไม่ต้องใส่
+      if (!defaultLaborService) return prev;
+
       const exists = prev.some(
-        (i) => i?.category?.name === "บริการ" && i?.id === 1,
+        (i) =>
+          i?.category?.name === "บริการ" && i?.id === defaultLaborService.id,
       );
       if (exists) return prev;
       return [
         ...prev,
         {
-          id: 1,
-          name: "ค่าแรง",
+          ...defaultLaborService,
           quantity: 1,
-          sellingPrice: 0,
-          category: { name: "บริการ" },
           side: null,
         },
       ];
     });
-  }, [compatibleParts, isPartsLoaded]);
+  }, [compatibleParts, isPartsLoaded, defaultLaborService]);
+
+  // ดึงบริการเปล่ามาไว้ใส่เป็นค่าแรงตั้งต้นของบิลช่วงล่าง
+  useEffect(() => {
+    let cancelled = false;
+
+    listInventory("บริการ", null)
+      .then((res) => {
+        if (cancelled) return;
+        const found = (res.data || []).find(
+          (item) => item.name === DEFAULT_LABOR_SERVICE_NAME,
+        );
+        if (found) setDefaultLaborService(found);
+      })
+      .catch(() => {
+        // ดึงไม่ได้ก็แค่ไม่มีบรรทัดค่าแรงตั้งต้น ช่างเพิ่มเองได้จากปุ่มเพิ่มรายการซ่อม
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const brand = watch("brand");
@@ -324,7 +372,8 @@ const SuspensionInspection = () => {
       const perSide =
         part.category?.name === "ช่วงล่าง" && isPerSide(part.attributes);
 
-      return perSide ? side === "left" || side === "right" : side === "other";
+      if (perSide) return side === "left" || side === "right";
+      return side === "other" && !!matchOtherTabGroup(part.name);
     });
   };
 
@@ -562,6 +611,7 @@ const SuspensionInspection = () => {
       basePrice: part.sellingPrice,
       name: part.name,
       partNumber: part.partNumber,
+      description: part.description,
       brand: part.brand,
       secureUrl: part.secureUrl,
       category: part.category,
@@ -615,6 +665,13 @@ const SuspensionInspection = () => {
   // ชื่ออะไหล่ไทยขึ้นต้นด้วยชนิดของมันเสมอ (ลูกหมากล่าง, ลูกหมากบน, คันส่งกลาง)
   // จึงใช้คำแรกเป็นหัวข้อกลุ่มได้โดยไม่ต้องเพิ่มฟิลด์ใหม่
   // ข้อแลกเปลี่ยน: ถ้าตั้งชื่อไม่ตามแบบแผน อะไหล่ตัวนั้นจะกลายเป็นกลุ่มของตัวเอง
+  // แท็บอื่นๆ จัดกลุ่มตามลิสต์ที่กำหนดไว้ ไม่ใช่ตามคำแรกของชื่อ
+  const groupOtherParts = (parts) =>
+    OTHER_TAB_GROUPS.map((group) => ({
+      type: group.label,
+      items: parts.filter((part) => matchOtherTabGroup(part.name) === group),
+    })).filter((group) => group.items.length > 0);
+
   const groupPartsByType = (parts) => {
     const groups = new Map();
     for (const part of parts) {
@@ -846,10 +903,10 @@ const SuspensionInspection = () => {
       className={`w-full ${
         getPartsForSide(side).length === 0
           ? ""
-          : `animate-in fade-in duration-200 ${
+          : `animate-in fade-in duration-300 ease-out ${
               slideFrom === "right"
-                ? "slide-in-from-right-8"
-                : "slide-in-from-left-8"
+                ? "slide-in-from-right-16"
+                : "slide-in-from-left-16"
             }`
       }`}
     >
@@ -875,7 +932,10 @@ const SuspensionInspection = () => {
           )}
         </div>
       ) : (
-        groupPartsByType(getPartsForSide(side)).map((group) => (
+        (side === "other"
+          ? groupOtherParts(getPartsForSide(side))
+          : groupPartsByType(getPartsForSide(side))
+        ).map((group) => (
           <div key={`${side}-${group.type}`}>
             <div className="mt-[16px] flex items-center gap-[8px] px-[20px]">
               <p className="text-subtle-dark text-lg font-semibold md:text-xl">
@@ -914,14 +974,23 @@ const SuspensionInspection = () => {
                     } ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-[8px]">
-                      {/* กดที่รูปเปิดหน้าต่างแก้ราคาเหมือนกดที่ตัวเลขราคา — เป็นสองจุดที่คนมักลองกด */}
+                      {/* ยังไม่เลือก = กดดูรูปกับข้อมูลก่อนตัดสินใจ
+                          เลือกแล้ว = กดแก้ราคา (ราคาที่แก้มีผลก็ต่อเมื่ออยู่ในบิลแล้ว) */}
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleEditCompatiblePrice(part);
+                          if (selectedThis) {
+                            handleEditCompatiblePrice(part);
+                            return;
+                          }
+                          setPreviewPart(part);
                         }}
-                        aria-label={`แก้ไขราคา ${part.name}`}
+                        aria-label={
+                          selectedThis
+                            ? `แก้ไขราคา ${part.name}`
+                            : `ดูรูป ${part.name}`
+                        }
                         className="shadow-primary bg-surface flex h-[60px] w-[60px] shrink-0 cursor-pointer items-center justify-center rounded-[10px] border border-gray-200"
                       >
                         {part.secureUrl ? (
@@ -939,16 +1008,29 @@ const SuspensionInspection = () => {
 
                       <div className="flex min-w-0 flex-1 flex-col">
                         {renderProductInfo(part)}
+                        {/* เลือกแล้วค่อยโชว์รหัส — ถ้าโชว์ทุกใบตั้งแต่แรก ลิสต์ 17 ใบจะยาวจนไล่ดูไม่ไหว
+                            ส่วนรายละเอียดยาวไม่แน่นอน ไม่เอาขึ้นการ์ด ให้ไปอ่านในหน้าต่างแทน
+                            (ยังไม่เลือก = กดที่รูป, เลือกแล้ว = กดที่ราคา) */}
+                        {selectedThis && part.partNumber && (
+                          <p className="text-subtle-dark truncate text-base leading-tight font-medium md:text-lg">
+                            รหัสอะไหล่: {part.partNumber}
+                          </p>
+                        )}
                         {/* ราคากับดินสอเป็นปุ่มเดียวกัน สูง 44px ตามขนาดขั้นต่ำของเป้ากดบนมือถือ
                         (ระยะขอบในติดลบชดเชยไม่ให้การ์ดสูงขึ้น) — กดพลาดที่นี่ = ติ๊กเลือกอะไหล่
                         โดยไม่ตั้งใจ จึงต้องกดง่ายกว่าไอคอนเปล่าๆ 20px */}
                         <button
                           type="button"
                           onClick={(e) => {
+                            if (!selectedThis) return;
                             e.stopPropagation();
                             handleEditCompatiblePrice(part);
                           }}
-                          aria-label={`แก้ไขราคา ${part.name}`}
+                          aria-label={
+                            selectedThis
+                              ? `แก้ไขราคา ${part.name}`
+                              : `ราคา ${part.name}`
+                          }
                           className="-my-[8px] flex h-[44px] w-fit cursor-pointer items-center gap-2 self-start"
                         >
                           <span
@@ -958,7 +1040,9 @@ const SuspensionInspection = () => {
                           >
                             {formatCurrency(getPriceForPart(part))}
                           </span>
-                          <SquarePen className="text-primary h-5 w-5 shrink-0" />
+                          {selectedThis && (
+                            <SquarePen className="text-primary h-5 w-5 shrink-0" />
+                          )}
                         </button>
                         {isDisabled && (
                           <p className="text-destructive flex items-center gap-[4px] text-base leading-tight font-semibold md:text-lg">
@@ -1064,7 +1148,7 @@ const SuspensionInspection = () => {
                       register={register}
                       name="address"
                       label="ที่อยู่"
-                      type="text"
+                      rows={2}
                       placeholder="เช่น 543 หมู่ 5 ต.น้ำอ้อม อ.กันทรลักษ์ จ.ศรีสะเกษ 33110"
                       color="subtle-dark"
                       errors={errors}
@@ -1206,6 +1290,11 @@ const SuspensionInspection = () => {
               placeholder="เช่น 120000"
               color="surface"
               errors={errors}
+              inputMode="numeric"
+              onWheel={(e) => e.target.blur()}
+              onInput={(e) => {
+                e.target.value = e.target.value.replace(/[^0-9]/g, "");
+              }}
             />
 
             <FormInput
@@ -1779,6 +1868,13 @@ const SuspensionInspection = () => {
           </div>
         </div>
       </div>
+      <PartPreviewDialog
+        part={previewPart}
+        price={previewPart ? getPriceForPart(previewPart) : undefined}
+        open={!!previewPart}
+        onOpenChange={(open) => !open && setPreviewPart(null)}
+      />
+
       <EditPriceDialog
         isOpen={priceDialogOpen}
         onClose={() => setPriceDialogOpen(false)}
@@ -1787,13 +1883,11 @@ const SuspensionInspection = () => {
         originalPrice={editingItem?.basePrice}
         productName={editingItem ? getProductName(editingItem) : ""}
         partNumber={editingItem?.partNumber}
+        description={editingItem?.description}
         productImage={editingItem?.secureUrl}
         isService={editingItem?.category?.name === "บริการ"}
         currentName={editingItem?.name || ""}
-        canEditName={
-          editingItem?.category?.name === "บริการ" &&
-          (editingItem?.id === 1 || editingItem?.service?.id === 1)
-        }
+        canEditName={isFreeformService(editingItem)}
       />
 
       <ConfirmDialog

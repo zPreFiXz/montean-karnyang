@@ -10,6 +10,7 @@ import {
   CommandInput,
   CommandEmpty,
   CommandGroup,
+  CommandList,
   CommandItem,
 } from "@/components/ui/command";
 import { Check, ChevronsUpDown, AlertCircle } from "lucide-react";
@@ -17,7 +18,15 @@ import { cn } from "@/lib/utils";
 import { Label } from "@radix-ui/react-label";
 
 const SEARCH_THRESHOLD = 10;
-const POPOVER_MAX_HEIGHT = "min(300px, 50svh)";
+// 300px = ช่องค้นหา + รายการ 6 ตัวครึ่ง (ตัวที่โผล่ครึ่งใบคือสัญญาณว่าเลื่อนได้อีก)
+// --radix-popover-content-available-height = ที่ว่างจริงระหว่างช่องกับขอบจอ
+// ถ้าไม่คุมด้วยค่านี้ กล่องจะยื่นเลยขอบจอลงไป แล้วรายการล่างๆ จะกดไม่ถึงเพราะป็อปอัปเป็น fixed
+// เพดานสามชั้น กันกล่องยื่นเลยขอบจอ:
+// 300px = ช่องค้นหา + รายการ 6 ตัวครึ่ง (ตัวที่โผล่ครึ่งใบคือสัญญาณว่าเลื่อนได้อีก)
+// 40svh  = เพดานตายตัวเผื่อกรณีที่ค่าจาก Radix คลาดเคลื่อน (มือถือมีแถบเบราว์เซอร์ยุบได้)
+// var()  = ที่ว่างจริงระหว่างช่องกับขอบจอที่ Radix คำนวณให้
+const POPOVER_MAX_HEIGHT =
+  "min(300px, 40svh, var(--radix-popover-content-available-height, 40svh))";
 
 const ComboBox = ({
   label,
@@ -73,7 +82,12 @@ const ComboBox = ({
         </Label>
       )}
       <div className="relative z-10">
+        {/* modal = ป็อปอัปจัดการล็อกการเลื่อนเอง
+            จำเป็นเมื่อ ComboBox อยู่ในไดอะล็อก เพราะไดอะล็อกล็อกการเลื่อนทั้งหน้าไว้
+            แล้วยอมให้เลื่อนเฉพาะของที่อยู่ในกล่องมัน ส่วนป็อปอัปถูกวาดที่ระดับ body ซึ่งอยู่นอกกล่อง
+            ถ้าไม่ตั้ง รายการยาวๆ จะเลื่อนไม่ได้เลย (หน้าที่ไม่มีไดอะล็อกครอบไม่เจอปัญหานี้) */}
         <Popover
+          modal
           open={open && !disabled}
           onOpenChange={disabled ? undefined : setOpen}
         >
@@ -128,14 +142,13 @@ const ComboBox = ({
             className="z-50 my-[4px] p-0"
             style={{
               width: triggerWidth > 0 ? `${triggerWidth}px` : "auto",
-              // 300px = ช่องค้นหา + รายการ 6 ตัวครึ่ง (ตัวที่โผล่ครึ่งใบคือสัญญาณว่าเลื่อนได้อีก)
-              // หดตามจอเมื่อที่ไม่พอ เช่นจอเตี้ยหรือตอนคีย์บอร์ดเด้งขึ้นมา
               maxHeight: POPOVER_MAX_HEIGHT,
             }}
             side="bottom"
             align="start"
             sideOffset={4}
             avoidCollisions={true}
+            collisionPadding={16}
             sticky="partial"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
@@ -153,49 +166,54 @@ const ComboBox = ({
                   }`}
                 />
               )}
-              <CommandEmpty>
-                <p
-                  className={`font-athiti text-subtle-dark font-medium ${
-                    customClass || "text-lg md:text-xl"
-                  }`}
-                >
-                  ไม่พบรายการ
-                </p>
-              </CommandEmpty>
-              {/* min-h-0 จำเป็นกับลูกของ flex ไม่งั้นมันจะไม่ยอมหดต่ำกว่าความสูงเนื้อหา แล้วล้นออกนอกกรอบ
-                  ไม่วาดตอนไม่มีรายการ เพราะ padding ของกลุ่มจะค้างเป็นช่องว่าง 8px ใต้ข้อความ "ไม่พบรายการ" */}
-              {options.length > 0 && (
-                <CommandGroup className="min-h-0 flex-1 overflow-y-auto">
-                  {options.map((item) => {
-                    const identifier = getIdentifier(item);
-                    return (
-                      <CommandItem
-                        key={identifier}
-                        value={item.name}
-                        onSelect={() => {
-                          onChange(identifier);
-                          setOpen(false);
+              {/* cmdk ใช้ CommandList เป็นตัวเลื่อนโดยเฉพาะ — ก่อนหน้านี้ไปสั่ง overflow ที่ CommandGroup
+                  ซึ่งมี overflow-hidden ติดมาในตัวอยู่แล้ว รายการยาวจึงถูกตัดทิ้งโดยเลื่อนไม่ได้ */}
+              <CommandList className="max-h-none min-h-0 flex-1">
+                <CommandEmpty>
+                  <p
+                    className={`font-athiti text-subtle-dark font-medium ${
+                      customClass || "text-lg md:text-xl"
+                    }`}
+                  >
+                    ไม่พบรายการ
+                  </p>
+                </CommandEmpty>
+                {/* ไม่วาดตอนไม่มีรายการ เพราะ padding ของกลุ่มจะค้างเป็นช่องว่าง 8px ใต้ข้อความ "ไม่พบรายการ" */}
+                {options.length > 0 && (
+                  <CommandGroup>
+                    {options.map((item) => {
+                      const identifier = getIdentifier(item);
+                      return (
+                        <CommandItem
+                          key={identifier}
+                          value={item.name}
+                          onSelect={() => {
+                            onChange(identifier);
+                            setOpen(false);
 
-                          if (inputRef.current) {
-                            inputRef.current.blur();
-                          }
-                        }}
-                        className={`font-athiti text-normal cursor-pointer font-medium ${
-                          customClass || "text-lg md:text-xl"
-                        }`}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            value === identifier ? "opacity-100" : "opacity-0",
-                          )}
-                        />
-                        {item.name}
-                      </CommandItem>
-                    );
-                  })}
-                </CommandGroup>
-              )}
+                            if (inputRef.current) {
+                              inputRef.current.blur();
+                            }
+                          }}
+                          className={`font-athiti text-normal cursor-pointer font-medium ${
+                            customClass || "text-lg md:text-xl"
+                          }`}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              value === identifier
+                                ? "opacity-100"
+                                : "opacity-0",
+                            )}
+                          />
+                          {item.name}
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                )}
+              </CommandList>
             </Command>
           </PopoverContent>
         </Popover>

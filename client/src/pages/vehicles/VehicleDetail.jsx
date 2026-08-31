@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from "react-router";
 import { ChevronLeft, LoaderCircle, Trash2, Wrench } from "lucide-react";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { getVehicle, deleteVehicle } from "@/api/vehicle";
-import { formatDateShort, formatTime } from "@/utils/formats";
+import { formatDate } from "@/utils/formats";
 import RepairCard from "@/components/cards/RepairCard";
 import { toastError } from "@/utils/handleError";
 import { toast } from "sonner";
@@ -116,7 +116,7 @@ const VehicleDetail = () => {
                         icon={Wrench}
                         itemCount={item.repairItems?.length}
                         customerName={item.customer?.name}
-                        dateText={`${formatDateShort(item.createdAt)} | ${formatTime(item.createdAt)} น.`}
+                        dateText={formatDate(item.createdAt)}
                         price={Number(item.totalPrice) || 0}
                         status={item.status}
                       />

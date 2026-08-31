@@ -20,6 +20,7 @@ const EditRepairItemDialog = ({
   originalPrice,
   productName,
   partNumber,
+  description,
   productImage,
   isService = false,
   currentName = "",
@@ -157,6 +158,19 @@ const EditRepairItemDialog = ({
                     </div>
                   )}
 
+                  {/* บันทึกของร้าน เช่น "ต้องขันสลักใหม่" — วางแบบป้ายอยู่บนข้อความอยู่ล่าง
+                      เพราะเป็นข้อความยาว ต่างจากแถวอื่นที่เป็นคู่ชื่อ-ค่าสั้นๆ */}
+                  {description && (
+                    <div className="flex justify-between gap-[12px]">
+                      <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
+                        รายละเอียด:
+                      </p>
+                      <p className="text-normal min-w-0 text-right text-lg font-semibold break-words whitespace-pre-line md:text-xl">
+                        {description}
+                      </p>
+                    </div>
+                  )}
+
                   {/* ราคาตั้งต้นจากคลัง แสดงเมื่อราคาถูกปรับไปแล้ว เพื่อให้รู้ว่าลดไปเท่าไหร่
                       ถ้ายังไม่ปรับก็ไม่ต้องบอก เพราะเท่ากับเลขในช่องข้างล่างอยู่แล้ว */}
                   {hasAdjustedPrice && (
@@ -164,7 +178,7 @@ const EditRepairItemDialog = ({
                       <p className="text-subtle-dark text-lg font-medium md:text-xl">
                         ราคาปกติ:
                       </p>
-                      <p className="text-primary text-lg font-semibold md:text-xl">
+                      <p className="text-subtle-dark text-lg font-semibold md:text-xl">
                         {formatCurrency(Number(originalPrice))}
                       </p>
                     </div>
@@ -174,13 +188,15 @@ const EditRepairItemDialog = ({
                     register={register}
                     name="price"
                     label="ราคาต่อหน่วย (บาท)"
-                    type="text"
+                    type="number"
                     textSize="text-lg md:text-xl"
                     color="subtle-dark"
                     customClass="px-0 pt-[0px]"
                     inputMode="numeric"
                     autoFocus={false}
                     errors={errors}
+                    // เลื่อนล้อเมาส์บนช่องตัวเลขจะเปลี่ยนค่าโดยไม่ตั้งใจ ตัดโฟกัสทิ้งเหมือนช่องราคาที่อื่น
+                    onWheel={(e) => e.target.blur()}
                     onInput={(e) => {
                       e.target.value = e.target.value.replace(/[^0-9.]/g, "");
                     }}

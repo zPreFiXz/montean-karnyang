@@ -1,4 +1,5 @@
 import { Input } from "../ui/input";
+import { Textarea } from "../ui/textarea";
 import { Label } from "../ui/label";
 import { AlertCircle } from "lucide-react";
 
@@ -14,6 +15,8 @@ const FormInput = ({
   customClass,
   rightSlot,
   rules,
+  // ที่อยู่และข้อความยาวใช้ช่องหลายบรรทัด จะได้เห็นทั้งก้อนโดยไม่ต้องเลื่อนไปทางขวา
+  rows,
   // ช่องแคบๆ ที่วางเรียงเป็นคอลัมน์ ข้อความ error จะตัดบรรทัดจนแถวสูงไม่เท่ากัน
   // เปิดตัวนี้เพื่อคงกรอบแดงกับไอคอนไว้ แล้วให้หน้าที่เรียกใช้ไปแสดงข้อความรวมเองใต้แถว
   hideErrorMessage = false,
@@ -37,27 +40,49 @@ const FormInput = ({
       </Label>
 
       <div className="relative">
-        <Input
-          {...(register ? register(name, rules) : {})}
-          id={name}
-          type={type}
-          placeholder={placeholder}
-          aria-invalid={errors[name] ? "true" : "false"}
-          className={`h-[41px] w-full px-[12px] ${
-            type === "date" ? "pr-[44px]" : ""
-          } bg-surface rounded-[20px] text-xl font-medium placeholder:text-lg placeholder:font-light md:text-[22px] md:placeholder:text-xl ${
-            errors[name]
-              ? "border-destructive focus-visible:!border-destructive focus-visible:!ring-destructive/30 focus-visible:!border-2"
-              : "focus-visible:!border-primary focus-visible:!ring-primary/35 focus-visible:!border-2"
-          }`}
-          style={{
-            "--tw-ring-color": errors[name]
-              ? "var(--color-destructive)"
-              : "var(--color-primary)",
-            "--tw-border-opacity": "1",
-          }}
-          {...props}
-        />
+        {rows ? (
+          <Textarea
+            {...(register ? register(name, rules) : {})}
+            id={name}
+            rows={rows}
+            placeholder={placeholder}
+            aria-invalid={errors[name] ? "true" : "false"}
+            className={`bg-surface w-full resize-none px-[12px] py-[8px] text-xl font-medium placeholder:text-lg placeholder:font-light md:text-[22px] md:placeholder:text-xl ${
+              errors[name]
+                ? "border-destructive focus-visible:!border-destructive focus-visible:!ring-destructive/30 focus-visible:!border-2"
+                : "focus-visible:!border-primary focus-visible:!ring-primary/35 focus-visible:!border-2"
+            } rounded-[20px]`}
+            style={{
+              "--tw-ring-color": errors[name]
+                ? "var(--color-destructive)"
+                : "var(--color-primary)",
+              "--tw-border-opacity": "1",
+            }}
+            {...props}
+          />
+        ) : (
+          <Input
+            {...(register ? register(name, rules) : {})}
+            id={name}
+            type={type}
+            placeholder={placeholder}
+            aria-invalid={errors[name] ? "true" : "false"}
+            className={`h-[41px] w-full px-[12px] ${
+              type === "date" ? "pr-[44px]" : ""
+            } bg-surface rounded-[20px] text-xl font-medium placeholder:text-lg placeholder:font-light md:text-[22px] md:placeholder:text-xl ${
+              errors[name]
+                ? "border-destructive focus-visible:!border-destructive focus-visible:!ring-destructive/30 focus-visible:!border-2"
+                : "focus-visible:!border-primary focus-visible:!ring-primary/35 focus-visible:!border-2"
+            }`}
+            style={{
+              "--tw-ring-color": errors[name]
+                ? "var(--color-destructive)"
+                : "var(--color-primary)",
+              "--tw-border-opacity": "1",
+            }}
+            {...props}
+          />
+        )}
 
         {rightSlot && (
           <div
@@ -70,7 +95,11 @@ const FormInput = ({
         )}
 
         {errors[name] && (
-          <div className="absolute top-1/2 right-[12px] -translate-y-1/2 transform">
+          <div
+            className={`absolute right-[12px] ${
+              rows ? "top-[12px]" : "top-1/2 -translate-y-1/2 transform"
+            }`}
+          >
             <AlertCircle className="text-destructive h-5 w-5" />
           </div>
         )}

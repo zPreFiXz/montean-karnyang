@@ -15,6 +15,7 @@ const AddRepairItemDialog = ({
   onAddItem,
   selectedItems = [],
   restoredStockMap = {},
+  vehicle = null,
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
@@ -89,6 +90,7 @@ const AddRepairItemDialog = ({
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px] pt-[4px] pb-[16px]">
           <InventoryBrowser
             reloadToken={reloadToken}
+            vehicle={vehicle}
             onItemClick={handleAddItemToRepair}
             getCardProps={(item) => {
               const { remainingAddable } = getStockInfo(item);

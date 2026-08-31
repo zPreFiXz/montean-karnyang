@@ -20,6 +20,10 @@ const RepairCard = ({
 
   // ไม่ต้องมีชื่อสถานะ เพราะสีของวงกลมกับราคาบอกอยู่แล้ว
   // คั่นด้วยจุดกลางเฉพาะส่วนที่มีจริง จะได้ไม่เหลือตัวคั่นลอยเมื่อไม่ได้กรอกลูกค้า
+  // จำนวนรายการมาก่อน เพราะสั้นและมีเสมอ ส่วนชื่อลูกค้ายาวไม่แน่นอน
+  // บรรทัดนี้ถูกตัดท้ายเมื่อยาวเกินการ์ด เรียงแบบนี้จึงเห็นข้อมูลครบกว่า
+  //
+  // ไม่ใส่เวลา — ไล่ประวัติดูแค่วันที่ ถ้าใส่จะยาวจนของอื่นโดนตัดทิ้ง (เวลาดูได้ในหน้าบิล)
   const details = [
     itemCount ? `${itemCount} รายการ` : null,
     customerName || null,
@@ -35,8 +39,11 @@ const RepairCard = ({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* วันเวลาเป็นบรรทัดหลัก เพราะคนไล่ประวัติด้วยวันที่ ไม่ใช่รหัสของระบบ */}
-          <p className="text-normal truncate text-lg leading-tight font-semibold md:text-xl">
+          {/* วันที่เป็นบรรทัดหลัก เพราะคนไล่ประวัติด้วยวันที่ ไม่ใช่รหัสของระบบ
+              ส่วนเวลาลงไปอยู่บรรทัดรอง — ไล่ประวัติไม่มีใครดูถึงนาที และบรรทัดแรกยาวจนแย่งสายตากับราคา */}
+          <p
+            className={`truncate text-lg leading-tight font-semibold md:text-xl ${style.text}`}
+          >
             {dateText}
           </p>
           <p className="text-subtle-dark truncate text-base leading-tight font-medium md:text-lg">

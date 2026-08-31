@@ -25,6 +25,7 @@ import { publicLinks, privateLinks } from "@/utils/links";
 import { roleLabel } from "@/utils/role";
 import {
   isSaleRepair,
+  isNoVehicleRepair,
   getRepairTitle,
   getRepairSubtitle,
 } from "@/utils/repairDisplay";
@@ -33,6 +34,7 @@ const Dashboard = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [inventory, setInventory] = useState([]);
+  const [isInventoryLoading, setIsInventoryLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
   const [isItemDetailOpen, setIsItemDetailOpen] = useState(false);
   const navigate = useNavigate();
@@ -51,11 +53,14 @@ const Dashboard = () => {
   }, [fetchRepairs]);
 
   const fetchInventory = async () => {
+    setIsInventoryLoading(true);
     try {
       const res = await listInventory(null, null);
       setInventory(res.data || []);
     } catch (error) {
       toastError(error);
+    } finally {
+      setIsInventoryLoading(false);
     }
   };
 
@@ -141,6 +146,8 @@ const Dashboard = () => {
               icon={
                 isSaleRepair(repair) ? (
                   <ShoppingBag className="text-surface h-6 w-6" />
+                ) : isNoVehicleRepair(repair) ? (
+                  <Wrench />
                 ) : (
                   <BrandIcons
                     brand={repair.vehicle?.vehicleModel?.brand}
@@ -219,19 +226,32 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* แจ้งเตือนสต็อก */}
-        {(outOfStockItems.length > 0 || lowStockItems.length > 0) && (
+        {/* แจ้งเตือนสต็อก — ระหว่างโหลดยังไม่รู้ว่ามีของต้องเตือนไหม จึงกันที่ไว้พร้อมตัวหมุน
+            ไม่งั้นกล่องจะโผล่มาแทรกทีหลังแล้วดันเนื้อหาข้างล่างเลื่อน */}
+        {(isInventoryLoading ||
+          outOfStockItems.length > 0 ||
+          lowStockItems.length > 0) && (
           <div className="bg-surface shadow-primary mb-[16px] w-full rounded-[10px] p-[16px]">
             <p className="text-subtle-dark flex items-center gap-2 text-[22px] font-medium">
-              แจ้งเตือนสต็อก ({stockAlertCount})
+              แจ้งเตือนสต็อก{!isInventoryLoading && ` (${stockAlertCount})`}
             </p>
-            <div className="mt-[16px]">
-              <div>
-                {outOfStockItems.map((item) =>
-                  renderStockCard(item, "desk-out"),
-                )}
-                {lowStockItems.map((item) => renderStockCard(item, "desk-low"))}
-              </div>
+            <div className={isInventoryLoading ? "" : "mt-[16px]"}>
+              {isInventoryLoading ? (
+                // ตอนโหลดไม่ใส่ระยะบน แล้วให้กล่องสูงเท่าระยะ+การ์ด (16+80)
+                // ตัวหมุนจึงอยู่กลางพื้นที่ว่างใต้หัวข้อจริงๆ เหมือนตัวหมุนหน้าอื่น
+                <div className="flex h-[96px] items-center justify-center">
+                  <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
+                </div>
+              ) : (
+                <div>
+                  {outOfStockItems.map((item) =>
+                    renderStockCard(item, "desk-out"),
+                  )}
+                  {lowStockItems.map((item) =>
+                    renderStockCard(item, "desk-low"),
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -400,13 +420,26 @@ const Dashboard = () => {
           </Link>
 
           {/* แจ้งเตือนสต็อก */}
-          {(outOfStockItems.length > 0 || lowStockItems.length > 0) && (
+          {(isInventoryLoading ||
+            outOfStockItems.length > 0 ||
+            lowStockItems.length > 0) && (
             <div className="pb-[16px]">
               <p className="text-normal pt-[8px] text-[22px] font-semibold md:text-2xl">
-                แจ้งเตือนสต็อก ({stockAlertCount})
+                แจ้งเตือนสต็อก{!isInventoryLoading && ` (${stockAlertCount})`}
               </p>
-              {outOfStockItems.map((item) => renderStockCard(item, "m-out"))}
-              {lowStockItems.map((item) => renderStockCard(item, "m-low"))}
+              {isInventoryLoading ? (
+                // เช่นเดียวกับฝั่งจอใหญ่ — กินระยะบนของการ์ดเข้ามาเป็นความสูง แล้วจัดกลาง
+                <div className="flex h-[96px] items-center justify-center">
+                  <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
+                </div>
+              ) : (
+                <>
+                  {outOfStockItems.map((item) =>
+                    renderStockCard(item, "m-out"),
+                  )}
+                  {lowStockItems.map((item) => renderStockCard(item, "m-low"))}
+                </>
+              )}
             </div>
           )}
         </div>

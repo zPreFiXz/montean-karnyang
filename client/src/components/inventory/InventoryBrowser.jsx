@@ -11,6 +11,7 @@ import { listParts } from "@/api/part";
 import { listCategories } from "@/api/category";
 import { toastError } from "@/utils/handleError";
 import { onKeyActivate } from "@/utils/a11y";
+import { sortServices } from "@/constants/services";
 
 // หน้าคลังกับไดอะล็อกเลือกอะไหล่ลงบิลคือหน้าจอเดียวกัน ต่างแค่ "กดการ์ดแล้วเกิดอะไร"
 // จึงรวมค้นหา/หมวดหมู่/ตัวกรองยาง/การจัดกลุ่ม/ข้อความว่างไว้ที่นี่ที่เดียว
@@ -24,6 +25,8 @@ const InventoryBrowser = ({
   onItemClick,
   getCardProps = () => ({}),
   reloadToken,
+  // { brand, model } ของรถในบิล — มีค่าเมื่อไหร่จะมีสวิตช์ให้กรองเฉพาะอะไหล่ที่ใส่รถคันนั้นได้
+  vehicle = null,
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [localCategory, setLocalCategory] = useState("ทั้งหมด");
@@ -37,6 +40,10 @@ const InventoryBrowser = ({
   // หน้าคลังเก็บตัวกรองยางไว้ใน URL ด้วย เพื่อให้กลับมาจากหน้าอื่น (เช่นหน้าแก้ไข) แล้วยังกรองค้างอยู่
   const initialTireFilter = (key) =>
     syncUrl ? searchParams.get(key) || "" : "";
+
+  // เปิดไว้ก่อนเมื่อรู้รุ่นรถ เพราะส่วนใหญ่ต้องการของที่ใส่ได้จริง แต่ปิดได้ตลอด
+  // (อะไหล่บางตัวใส่ข้ามรุ่นได้ แต่ยังไม่ได้บันทึกรุ่นนั้นไว้)
+  const [onlyMatchingVehicle, setOnlyMatchingVehicle] = useState(true);
 
   const [tireBrand, setTireBrand] = useState(() => initialTireFilter("brand"));
   const [width, setWidth] = useState(() => initialTireFilter("width"));
@@ -197,12 +204,41 @@ const InventoryBrowser = ({
     };
   }, [tireParts, width, aspectRatio, rimDiameter, tireBrand]);
 
+  // ซ่อนสวิตช์เมื่อของที่แสดงอยู่ไม่มีตัวไหนผูกกับรุ่นรถเลย (เช่นหมวดยาง)
+  // กดแล้วรายการเท่าเดิมจะชวนให้คิดว่าระบบเสีย
+  const hasVehicleFilter =
+    !!(vehicle?.brand && vehicle?.model) &&
+    inventory.some((item) => item.compatibleVehicles?.length > 0);
+
+  // ซ่อนเฉพาะอะไหล่ที่ "ระบุรุ่นรถไว้แล้วและไม่มีรุ่นนี้" — ของที่ยังไม่ได้ระบุจะไม่ถูกซ่อน
+  // ไม่งั้นอะไหล่ที่ยังไม่ได้กรอกข้อมูลรถ (เช่น น้ำมันเครื่อง) จะหายไปทั้งที่ใช้ได้กับทุกคัน
+  const matchesVehicle = (item) => {
+    const list = item.compatibleVehicles;
+    if (!Array.isArray(list) || list.length === 0) return true;
+
+    return list.some(
+      (v) =>
+        String(v?.brand || "").trim() === String(vehicle.brand).trim() &&
+        String(v?.model || "").trim() === String(vehicle.model).trim(),
+    );
+  };
+
+  const filteredByVehicle =
+    hasVehicleFilter && onlyMatchingVehicle
+      ? inventory.filter(matchesVehicle)
+      : inventory;
+
+  const visibleInventory =
+    activeCategory === "บริการ"
+      ? sortServices(filteredByVehicle)
+      : filteredByVehicle;
+
   // หมวด "ทั้งหมด" แยกหัวข้อตามหมวดหมู่ เรียงกลุ่มให้ตรงกับแถบหมวดหมู่ด้านบน
   const inventoryGroups = useMemo(() => {
     if (activeCategory !== "ทั้งหมด") return null;
 
     const groups = new Map();
-    for (const item of inventory) {
+    for (const item of visibleInventory) {
       const name = item.category?.name || "อื่นๆ";
       if (!groups.has(name)) groups.set(name, []);
       groups.get(name).push(item);
@@ -214,9 +250,13 @@ const InventoryBrowser = ({
     };
 
     return [...groups.entries()]
-      .map(([name, items]) => ({ name, items }))
+      .map(([name, items]) => ({
+        name,
+        // บริการเรียงตามลำดับที่ร้านหยิบใช้บ่อย ไม่ใช่ตามที่เซิร์ฟเวอร์ส่งมา
+        items: name === "บริการ" ? sortServices(items) : items,
+      }))
       .sort((a, b) => rank(a.name) - rank(b.name));
-  }, [inventory, activeCategory, categoryOrder]);
+  }, [visibleInventory, activeCategory, categoryOrder]);
 
   const hasTireFilter = !!(width || aspectRatio || rimDiameter || tireBrand);
 
@@ -240,6 +280,9 @@ const InventoryBrowser = ({
 
   // บอกให้ตรงกับสิ่งที่ผู้ใช้กำลังหาอยู่ ไม่งั้นจะเข้าใจผิดว่าคลังว่างทั้งที่แค่คำค้น/ตัวกรองไม่ตรง
   const getEmptyMessage = () => {
+    if (hasVehicleFilter && onlyMatchingVehicle) {
+      return `ไม่พบอะไหล่ที่ใส่กับ ${vehicle.brand} ${vehicle.model} ได้`;
+    }
     if (search) {
       // ตัดกันตกบรรทัด — คำค้นอาจยาวเกินได้ถ้าใส่มาทาง URL ตรงๆ
       const term = search.length > 20 ? `${search.slice(0, 20)}…` : search;
@@ -327,6 +370,34 @@ const InventoryBrowser = ({
         syncUrl={syncUrl}
       />
 
+      {hasVehicleFilter && (
+        <button
+          type="button"
+          onClick={() => setOnlyMatchingVehicle((v) => !v)}
+          aria-pressed={onlyMatchingVehicle}
+          className="mt-[16px] flex cursor-pointer items-center gap-[8px] self-start"
+        >
+          <span
+            className={`flex h-[22px] w-[38px] shrink-0 items-center rounded-full p-[3px] duration-300 ${
+              onlyMatchingVehicle ? "bg-primary" : "bg-gray-300"
+            }`}
+          >
+            <span
+              className={`bg-surface h-[16px] w-[16px] rounded-full duration-300 ${
+                onlyMatchingVehicle ? "translate-x-[16px]" : "translate-x-0"
+              }`}
+            />
+          </span>
+          <span
+            className={`truncate text-base font-medium md:text-lg ${
+              onlyMatchingVehicle ? "text-primary" : "text-subtle-dark"
+            }`}
+          >
+            เฉพาะ {vehicle.brand} {vehicle.model}
+          </span>
+        </button>
+      )}
+
       {activeCategory === "ยาง" && (
         <div className="mt-[16px] flex w-full flex-col gap-[12px]">
           <div>
@@ -388,7 +459,7 @@ const InventoryBrowser = ({
           </p>
           {!isLoading && (
             <span className="text-subtle-light shrink-0 font-medium">
-              ({inventory.length})
+              ({visibleInventory.length})
             </span>
           )}
         </div>
@@ -399,7 +470,7 @@ const InventoryBrowser = ({
         <div className="flex flex-1 items-center justify-center">
           <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
         </div>
-      ) : inventory.length === 0 ? (
+      ) : visibleInventory.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
           <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">
             {getEmptyMessage()}
@@ -421,7 +492,7 @@ const InventoryBrowser = ({
           </div>
         ))
       ) : (
-        inventory.map(renderItem)
+        visibleInventory.map(renderItem)
       )}
     </div>
   );

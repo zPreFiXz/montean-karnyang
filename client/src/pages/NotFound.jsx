@@ -2,7 +2,7 @@ import { Link } from "react-router";
 
 const NotFound = () => {
   return (
-    <div className="font-athiti flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+    <div className="font-athiti flex min-h-svh flex-col items-center justify-center gap-4 px-6 text-center">
       <p className="text-primary text-7xl font-bold">404</p>
       <p className="text-subtle-dark text-xl">ไม่พบหน้าที่คุณต้องการ</p>
       <Link

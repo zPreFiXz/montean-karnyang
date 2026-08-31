@@ -34,6 +34,8 @@ const RepairReview = () => {
   const statusSlug = location.state?.statusSlug;
   const vehicleId = location.state?.vehicleId;
   const isSale = repairData?.type === "SALE";
+  // งานบริการไม่ได้ผูกกับรถ จึงไม่มีข้อมูลรถให้สรุปเหมือนบิลขาย
+  const hasNoVehicle = isSale || !!repairData?.noVehicle;
   // บิลขายหน้าร้านเก็บเงินตอนสร้างบิลเลย จึงต้องรู้วิธีชำระเงินตั้งแต่ตรงนี้
   const [paymentMethod, setPaymentMethod] = useState(
     repairData?.paymentMethod || DEFAULT_PAYMENT_METHOD,
@@ -91,11 +93,15 @@ const RepairReview = () => {
         ...(repairData.mileage ? { mileage: Number(repairData.mileage) } : {}),
         totalPrice: totalPrice,
         type: repairData.type,
+        ...(repairData.noVehicle ? { noVehicle: true } : {}),
         ...(isSale ? { paymentMethod } : {}),
         repairItems: repairItems.map((item) => {
           const isPart = !!(item.partNumber && item.brand);
           return {
             ...(isPart ? { partId: item.id } : { serviceId: item.id }),
+            // บริการพิมพ์ชื่อเองได้ (เช่นค่าแรงที่ระบุงานลงไป) ต้องส่งชื่อไปด้วย
+            // ไม่งั้นเซิร์ฟเวอร์จะบันทึกชื่อจากคลังทับ ชื่อที่แก้ไว้จะหาย
+            ...(isPart || !item.name ? {} : { itemName: item.name }),
             unitPrice: Number(item.sellingPrice),
             quantity: item.quantity,
             ...(item.side ? { side: item.side } : {}),
@@ -218,7 +224,8 @@ const RepairReview = () => {
               </div>
             )}
 
-            {/* บิลขายหน้าร้านจ่ายเงินทันที เลือกวิธีชำระเงินก่อนยืนยัน */}
+            {/* บิลขายหน้าร้านจ่ายเงินทันที เลือกวิธีชำระเงินก่อนยืนยัน
+                งานบริการไม่ต้องเลือกตรงนี้ เพราะเก็บเงินทีหลังเหมือนงานซ่อม */}
             {isSale && (
               <div className="mb-[16px]">
                 <ComboBox
@@ -232,8 +239,8 @@ const RepairReview = () => {
               </div>
             )}
 
-            {/* ข้อมูลรถยนต์ — บิลขายอะไหล่หน้าร้านไม่มีรถ จึงไม่ต้องแสดง */}
-            {!isSale && (
+            {/* ไม่แสดงเมื่อบิลไม่ได้ผูกกับรถ (ขายหน้าร้าน / งานบริการ) */}
+            {!hasNoVehicle && (
               <div className="mb-[16px]">
                 <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
                   ข้อมูลรถยนต์
