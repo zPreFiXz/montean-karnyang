@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ContactRound,
   ClipboardList,
+  X,
 } from "lucide-react";
 import FormInput from "@/components/forms/FormInput";
 import CustomerNameInput from "@/components/forms/CustomerNameInput";
@@ -29,6 +30,14 @@ import { toastError } from "@/utils/handleError";
 import { isFreeformService } from "@/constants/services";
 import { onKeyActivate } from "@/utils/a11y";
 import { withOtherBrandLast } from "@/utils/vehicleBrand";
+import {
+  DRAFT_REPAIR,
+  DRAFT_SUSPENSION,
+  loadDraft,
+  saveDraft,
+  clearDraft,
+  isDraftWorthSaving,
+} from "@/utils/repairDraft";
 
 const CUSTOMER_FIELDS = ["name", "address", "phoneNumber"];
 const VEHICLE_FIELDS = [
@@ -44,10 +53,17 @@ const SUBMIT_FEEDBACK_MS = 400;
 const RepairCreate = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { register, handleSubmit, formState, setValue, watch, getValues } =
-    useForm({
-      resolver: zodResolver(repairSchema),
-    });
+  const {
+    register,
+    handleSubmit,
+    formState,
+    setValue,
+    watch,
+    getValues,
+    reset,
+  } = useForm({
+    resolver: zodResolver(repairSchema),
+  });
   const [isCustomerInfoOpen, setIsCustomerInfoOpen] = useState(false);
   // งานซ่อม = ผูกกับรถ, ขายอะไหล่ = ลูกค้าซื้อของกลับไปเอง ไม่ได้เอารถมา
   // GENERAL = งานซ่อมผูกกับรถ, SERVICE = งานบริการที่ไม่ต้องเก็บประวัติรถ, SALE = ขายอะไหล่หน้าร้าน
@@ -62,13 +78,20 @@ const RepairCreate = () => {
   const [vehicleModels, setVehicleModels] = useState([]);
   const [brands, setBrands] = useState([]);
   const [restoredStockMap, setRestoredStockMap] = useState({});
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [removingIndex, setRemovingIndex] = useState(null);
   // แถวที่กำลังยุบตัวก่อนหายจริง (ดู CollapsibleRow)
   const [leavingIndex, setLeavingIndex] = useState(null);
   const leaveHandledRef = useRef(false);
+  // กู้ร่างได้ครั้งเดียวตอนเปิดหน้า ไม่งั้นร่างที่บันทึกระหว่างพิมพ์จะย้อนทับสิ่งที่พิมพ์อยู่
+  const draftRestoredRef = useRef(false);
   const { errors } = formState;
+
+  // แก้บิลเดิมไม่ต้องเก็บร่าง ของจริงอยู่ในฐานข้อมูลแล้ว
+  // และร่างของบิลเก่าไม่ควรไปโผล่ตอนเปิดบิลใหม่
+  const isEditing = !!location.state?.editRepairId;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -76,8 +99,14 @@ const RepairCreate = () => {
   }, []);
 
   useEffect(() => {
-    if (location.state) {
-      const { repairData, repairItems: savedItems } = location.state;
+    // ไม่มี state แปลว่าเข้าหน้านี้ตรงๆ — ถ้ามีร่างค้างไว้ให้กู้กลับมา
+    // (ออกไปเพิ่มสต็อกกลางคัน กดย้อนกลับพลาด หรือเครื่องรีเฟรชหน้าเอง)
+    const restored =
+      location.state || (!draftRestoredRef.current && loadDraft(DRAFT_REPAIR));
+    draftRestoredRef.current = true;
+
+    if (restored) {
+      const { repairData, repairItems: savedItems } = restored;
 
       if (repairData) {
         Object.keys(repairData).forEach((key) => {
@@ -122,7 +151,7 @@ const RepairCreate = () => {
 
       // มาจากปุ่มแก้ไขรายการซ่อม -> พาไปที่หัวข้อของส่วนนั้น ไม่ใช่ล่างสุดของหน้า
       // เพราะปุ่ม "+ เพิ่มรายการซ่อม" อยู่ที่หัวข้อ ถ้ามีหลายรายการจะต้องเลื่อนกลับขึ้นมาเอง
-      if (location.state.scrollToItems) {
+      if (location.state?.scrollToItems) {
         scrollToNewRow(() => {
           const headers = document.querySelectorAll("[data-repair-items-top]");
           return [...headers].find((el) => el.offsetParent !== null);
@@ -142,11 +171,13 @@ const RepairCreate = () => {
           ? { vehicleId: location.state.vehicleId }
           : {}),
       };
-      window.history.replaceState(
-        preserved,
-        document.title,
-        window.location.pathname,
-      );
+      if (location.state) {
+        window.history.replaceState(
+          preserved,
+          document.title,
+          window.location.pathname,
+        );
+      }
     }
   }, [location.state, setValue]);
 
@@ -154,6 +185,27 @@ const RepairCreate = () => {
     setValue("type", isSale ? "SALE" : "GENERAL");
     setValue("noVehicle", hasNoVehicle);
   }, [billType, isSale, hasNoVehicle, setValue]);
+
+  // เก็บร่างไว้ระหว่างพิมพ์ จะได้ออกจากหน้าไปเพิ่มสต็อกแล้วกลับมากรอกต่อได้
+  // หน่วงไว้ก่อนเขียนเพื่อไม่ให้เขียนลงเครื่องทุกตัวอักษรที่พิมพ์
+  const watchedValues = watch();
+  const draftKey = JSON.stringify({ watchedValues, repairItems });
+
+  useEffect(() => {
+    if (isEditing || !draftRestoredRef.current) return;
+
+    const timer = setTimeout(() => {
+      const draft = { repairData: watchedValues, repairItems };
+      if (isDraftWorthSaving(draft)) saveDraft(DRAFT_REPAIR, draft);
+      // ลบทุกช่องทิ้งเอง = ตั้งใจเริ่มใหม่ ร่างเดิมไม่ควรกลับมาอีก
+      else clearDraft(DRAFT_REPAIR);
+    }, 400);
+
+    return () => clearTimeout(timer);
+    // draftKey คือค่าที่แปลงเป็นข้อความแล้วของทั้งสองตัว ใส่ซ้ำจะกลายเป็นเทียบ
+    // ที่อยู่อ้างอิงซึ่งเปลี่ยนทุกรอบเรนเดอร์ ตัวจับเวลาจะถูกตั้งใหม่ไม่หยุด
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftKey, isEditing]);
 
   const fetchVehicleModels = async () => {
     try {
@@ -218,6 +270,10 @@ const RepairCreate = () => {
   // ลูกค้าขอเช็กช่วงล่างเพิ่มระหว่างที่เปิดบิลเปลี่ยนยางค้างไว้ — ยกทั้งข้อมูลรถและรายการที่เลือกไปด้วย
   // จะได้อยู่ในบิลเดียวกัน ไม่ต้องเปิดบิลใหม่แล้วเก็บเงินสองรอบ (ขากลับมีอยู่แล้วที่หน้าเช็กช่วงล่าง)
   const handleAddSuspensionCheck = () => {
+    // บิลย้ายไปอยู่ในมือหน้าเช็กช่วงล่างแล้ว ร่างของหน้านี้จึงหมดหน้าที่
+    // ปล่อยไว้จะกลายเป็นร่างเก่าที่ไม่มีอะไหล่ช่วงล่างคอยดักอยู่
+    clearDraft(DRAFT_REPAIR);
+
     navigate("/inspections/suspension", {
       state: {
         repairData: getValues(),
@@ -234,6 +290,18 @@ const RepairCreate = () => {
     });
   };
 
+  // ล้างทุกอย่างเริ่มใหม่ เช่นลูกค้าเปลี่ยนใจ หรือกรอกผิดคันจนแก้ทีละช่องช้ากว่า
+  const handleClearForm = () => {
+    reset({});
+    setRepairItems([]);
+    setRestoredStockMap({});
+    setBillType("GENERAL");
+    setIsCustomerInfoOpen(false);
+    clearDraft(DRAFT_REPAIR);
+    setIsClearConfirmOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handleChangeBillType = (nextType) => {
     setBillType(nextType);
 
@@ -244,6 +312,10 @@ const RepairCreate = () => {
       }
     }
   };
+
+  const hasAnythingToClear =
+    repairItems.length > 0 ||
+    isDraftWorthSaving({ repairData: watchedValues, repairItems });
 
   const onSubmit = async (data) => {
     setIsLoading(true);
@@ -434,16 +506,29 @@ const RepairCreate = () => {
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-[100svh] flex-col xl:min-h-[calc(100vh-73px)] xl:flex-row xl:items-start xl:gap-[16px] xl:bg-transparent xl:px-[16px] xl:pt-[24px] xl:pb-[24px] xl:shadow-none">
       <div className="xl:shadow-primary flex flex-1 flex-col xl:h-fit xl:w-1/2 xl:flex-initial xl:rounded-2xl xl:bg-white">
-        <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
-          <div className="bg-surface/20 xl:bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
-            <Plus color="#ffffff" className="xl:hidden" />
-            <Plus className="text-primary hidden xl:block" />
+        <div className="flex items-center justify-between gap-[8px] px-[20px] pt-[16px]">
+          <div className="flex min-w-0 items-center gap-[8px]">
+            <div className="bg-surface/20 xl:bg-primary/10 flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full">
+              <Plus color="#ffffff" className="xl:hidden" />
+              <Plus className="text-primary hidden xl:block" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-surface xl:text-primary truncate text-2xl font-semibold md:text-[26px]">
+                {isSale ? "ขายอะไหล่" : isService ? "งานบริการ" : "งานซ่อมใหม่"}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-surface xl:text-primary text-2xl font-semibold md:text-[26px]">
-              {isSale ? "ขายอะไหล่" : isService ? "งานบริการ" : "งานซ่อมใหม่"}
-            </p>
-          </div>
+          {/* โผล่เฉพาะตอนมีอะไรให้ล้างจริง ไม่ใช่ปุ่มที่กดแล้วไม่เกิดอะไรค้างอยู่บนหัวเรื่อง */}
+          {hasAnythingToClear && (
+            <button
+              type="button"
+              onClick={() => setIsClearConfirmOpen(true)}
+              className="text-destructive bg-surface flex shrink-0 cursor-pointer items-center gap-[4px] rounded-full px-[10px] py-[4px] text-lg font-medium duration-300 md:text-xl xl:bg-transparent xl:px-0"
+            >
+              <X className="h-4 w-4" />
+              ล้างข้อมูล
+            </button>
+          )}
         </div>
         <form
           id="repair-form"
@@ -1056,6 +1141,14 @@ const RepairCreate = () => {
         isService={editingItem?.category?.name === "บริการ"}
         currentName={editingItem?.name || ""}
         canEditName={isFreeformService(editingItem)}
+      />
+
+      <ConfirmDialog
+        isOpen={isClearConfirmOpen}
+        onClose={() => setIsClearConfirmOpen(false)}
+        onConfirm={handleClearForm}
+        title="ยืนยันการล้างข้อมูล"
+        itemName="ข้อมูลลูกค้า รถ และรายการซ่อมทั้งหมด"
       />
 
       <ConfirmDialog

@@ -7,6 +7,7 @@ import FormButton from "@/components/forms/FormButton";
 import RepairItemCard from "@/components/cards/RepairItemCard";
 import { formatCurrency, getProvinceName } from "@/utils/formats";
 import { createRepair, updateRepair } from "@/api/repair";
+import { clearAllDrafts } from "@/utils/repairDraft";
 import { toast } from "sonner";
 import {
   Edit,
@@ -123,6 +124,8 @@ const RepairReview = () => {
         }
       } else {
         await withMinDuration(() => createRepair(repair));
+        // บิลถูกบันทึกแล้ว ร่างที่ค้างไว้หมดหน้าที่
+        clearAllDrafts();
         toast.success(
           isSale ? "ขายเรียบร้อยแล้ว" : "สร้างงานซ่อมเรียบร้อยแล้ว",
         );

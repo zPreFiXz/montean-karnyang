@@ -46,7 +46,16 @@ const ComboBox = ({
   // ส่งค่า searchable มาเองได้ถ้าต้องการบังคับ
   const showSearch = searchable ?? options.length > SEARCH_THRESHOLD;
 
+  const getIdentifier = (item) =>
+    item && (item.id !== undefined && item.id !== null ? item.id : item.name);
+
+  const selectedLabel = options.find(
+    (item) => getIdentifier(item) === value,
+  )?.name;
+
   const [open, setOpen] = useState(false);
+  // ตัวที่ถูกไฮไลท์อยู่ใน cmdk — คุมเองเพื่อไม่ให้ไปเกาะตัวแรกทุกครั้งที่เปิด
+  const [highlighted, setHighlighted] = useState("");
   const [triggerWidth, setTriggerWidth] = useState(0);
   const triggerRef = useRef(null);
   const inputRef = useRef(null);
@@ -63,12 +72,14 @@ const ComboBox = ({
     }
   }, [open]);
 
-  const getIdentifier = (item) =>
-    item && (item.id !== undefined && item.id !== null ? item.id : item.name);
+  // โดยปริยาย cmdk จะไฮไลท์ตัวแรกไว้ให้กด Enter ได้ทันที
+  // แต่บนจอสัมผัสมันดูเหมือนตัวแรกถูกเลือกไว้แล้ว ทั้งที่ยังไม่ได้เลือกอะไร
+  // จึงให้ไฮไลท์ไปเกาะตัวที่เลือกไว้จริง ถ้ายังไม่เลือกก็ไม่ต้องไฮไลท์อะไรเลย
+  // (พอเริ่มพิมพ์ค้นหา cmdk จะเลื่อนไฮไลท์ไปที่ผลลัพธ์แรกเอง ซึ่งถูกแล้วสำหรับการกด Enter)
+  useEffect(() => {
+    if (open) setHighlighted(selectedLabel || "");
+  }, [open, selectedLabel]);
 
-  const selectedLabel = options.find(
-    (item) => getIdentifier(item) === value,
-  )?.name;
   const hasError = errors && errors[name];
 
   return (
@@ -153,6 +164,8 @@ const ComboBox = ({
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
             <Command
+              value={highlighted}
+              onValueChange={setHighlighted}
               className="flex flex-col"
               style={{ maxHeight: POPOVER_MAX_HEIGHT }}
               shouldFilter={showSearch}

@@ -24,8 +24,17 @@ import {
   AlertTriangle,
   ContactRound,
   ClipboardList,
+  X,
 } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
+import {
+  DRAFT_REPAIR,
+  DRAFT_SUSPENSION,
+  loadDraft,
+  saveDraft,
+  clearDraft,
+  isDraftWorthSaving,
+} from "@/utils/repairDraft";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
 import { CarRepair } from "@/components/icons/Icons";
@@ -84,6 +93,7 @@ const SuspensionInspection = () => {
     setValue,
     watch,
     getValues,
+    reset,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(repairSchema),
@@ -113,8 +123,15 @@ const SuspensionInspection = () => {
   const restoredRef = useRef(false);
   const [_isMoreFieldsVisible, setIsMoreFieldsVisible] = useState(false);
   const [isCustomerInfoOpen, setIsCustomerInfoOpen] = useState(false);
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
+  // กู้ร่างได้ครั้งเดียวตอนเปิดหน้า ไม่งั้นร่างที่บันทึกระหว่างพิมพ์จะย้อนทับสิ่งที่พิมพ์อยู่
+  const draftRestoredRef = useRef(false);
   // บริการเปล่าที่ใช้เป็นค่าแรงตั้งต้น — หามาจากชื่อ เพราะ id ไม่ตรงกันระหว่างเครื่อง
   const [defaultLaborService, setDefaultLaborService] = useState(null);
+
+  // แก้บิลเดิมไม่ต้องเก็บร่าง ของจริงอยู่ในฐานข้อมูลแล้ว
+  // และร่างของบิลเก่าไม่ควรไปโผล่ตอนเปิดบิลใหม่
+  const isEditing = !!location.state?.editRepairId;
 
   const initialSelectedRef = useRef({
     left: new Set(),
@@ -208,7 +225,13 @@ const SuspensionInspection = () => {
   }, [compatibleParts, isPartsLoaded]);
 
   useEffect(() => {
-    if (!location.state) return;
+    // ไม่มี state แปลว่าเข้าหน้านี้ตรงๆ — ถ้ามีร่างค้างไว้ให้กู้กลับมา
+    // (ออกไปเพิ่มสต็อกกลางคัน กดย้อนกลับพลาด หรือเครื่องรีเฟรชหน้าเอง)
+    const restored =
+      location.state ||
+      (!draftRestoredRef.current && loadDraft(DRAFT_SUSPENSION));
+    draftRestoredRef.current = true;
+    if (!restored) return;
 
     const {
       repairData,
@@ -216,7 +239,7 @@ const SuspensionInspection = () => {
       editRepairId,
       hideMoreFields,
       scrollToItems,
-    } = location.state;
+    } = restored;
 
     // มาจากปุ่มแก้ไขรายการซ่อม -> พาไปที่หัวข้อของส่วนรายการ ไม่ใช่ล่างสุดของหน้า
     if (scrollToItems) {
@@ -320,11 +343,13 @@ const SuspensionInspection = () => {
         ? { vehicleId: location.state.vehicleId }
         : {}),
     };
-    window.history.replaceState(
-      preserved,
-      document.title,
-      window.location.pathname,
-    );
+    if (location.state) {
+      window.history.replaceState(
+        preserved,
+        document.title,
+        window.location.pathname,
+      );
+    }
   }, [location.state, setValue]);
 
   const fetchVehicleModels = async () => {
@@ -783,41 +808,96 @@ const SuspensionInspection = () => {
     }, 200);
   };
 
+  // อะไหล่ที่ติ๊กตามตำแหน่งเก็บไว้เป็นเซ็ตของ id ต้องคลี่กลับเป็นรายการเต็มก่อน
+  // ทั้งตอนส่งไปหน้าสรุปและตอนเก็บร่าง
+  const buildAllRepairItems = () => [
+    ...Array.from(selectedLeftParts)
+      .map((id) => getPartsForSide("left").find((p) => p.id === id))
+      .filter(Boolean)
+      .map((part) => ({
+        ...part,
+        sellingPrice: getPriceForPart(part),
+        quantity: 1,
+        side: "left",
+      })),
+    ...Array.from(selectedRightParts)
+      .map((id) => getPartsForSide("right").find((p) => p.id === id))
+      .filter(Boolean)
+      .map((part) => ({
+        ...part,
+        sellingPrice: getPriceForPart(part),
+        quantity: 1,
+        side: "right",
+      })),
+    ...Array.from(selectedOtherParts)
+      .map((id) => getPartsForSide("other").find((p) => p.id === id))
+      .filter(Boolean)
+      .map((part) => ({
+        ...part,
+        sellingPrice: getPriceForPart(part),
+        quantity: 1,
+        side: "other",
+      })),
+    ...repairItems,
+  ];
+
+  // เก็บร่างไว้ระหว่างพิมพ์ จะได้ออกจากหน้าไปเพิ่มสต็อกแล้วกลับมากรอกต่อได้
+  // หน่วงไว้ก่อนเขียนเพื่อไม่ให้เขียนลงเครื่องทุกตัวอักษรที่พิมพ์
+  const watchedValues = watch();
+  const draftItems = buildAllRepairItems();
+  const draftKey = JSON.stringify({ watchedValues, draftItems });
+
+  useEffect(() => {
+    if (isEditing || !draftRestoredRef.current) return;
+
+    // อะไหล่ที่ติ๊กไว้คลี่กลับเป็นรายการไม่ได้จนกว่ารายการอะไหล่ของรถรุ่นนั้นจะโหลดเสร็จ
+    // ถ้าเขียนร่างตอนนี้ ของที่ติ๊กไว้จะหายไปจากร่างทั้งชุด
+    if (watchedValues.brand && watchedValues.model && !isPartsLoaded) return;
+
+    const timer = setTimeout(() => {
+      const draft = { repairData: watchedValues, repairItems: draftItems };
+      if (isDraftWorthSaving(draft)) saveDraft(DRAFT_SUSPENSION, draft);
+      // ลบทุกช่องทิ้งเอง = ตั้งใจเริ่มใหม่ ร่างเดิมไม่ควรกลับมาอีก
+      else clearDraft(DRAFT_SUSPENSION);
+    }, 400);
+
+    return () => clearTimeout(timer);
+    // draftKey คือค่าที่แปลงเป็นข้อความแล้วของทั้งสองตัว ใส่ซ้ำจะกลายเป็นเทียบ
+    // ที่อยู่อ้างอิงซึ่งเปลี่ยนทุกรอบเรนเดอร์ ตัวจับเวลาจะถูกตั้งใหม่ไม่หยุด
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftKey, isEditing, isPartsLoaded]);
+
+  // ล้างทุกอย่างเริ่มใหม่ เช่นลูกค้าเปลี่ยนใจ หรือกรอกผิดคันจนแก้ทีละช่องช้ากว่า
+  const handleClearForm = () => {
+    reset({});
+    setRepairItems([]);
+    setSelectedLeftParts(new Set());
+    setSelectedRightParts(new Set());
+    setSelectedOtherParts(new Set());
+    initialSelectedRef.current = {
+      left: new Set(),
+      right: new Set(),
+      other: new Set(),
+    };
+    setPriceOverrides({});
+    setRestoredStockMap({});
+    setActiveTab("left");
+    setIsCustomerInfoOpen(false);
+    clearDraft(DRAFT_SUSPENSION);
+    setIsClearConfirmOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const hasAnythingToClear =
+    draftItems.length > 0 ||
+    isDraftWorthSaving({ repairData: watchedValues, repairItems: draftItems });
+
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, SUBMIT_FEEDBACK_MS));
 
-      const allRepairItems = [
-        ...Array.from(selectedLeftParts)
-          .map((id) => getPartsForSide("left").find((p) => p.id === id))
-          .filter(Boolean)
-          .map((part) => ({
-            ...part,
-            sellingPrice: getPriceForPart(part),
-            quantity: 1,
-            side: "left",
-          })),
-        ...Array.from(selectedRightParts)
-          .map((id) => getPartsForSide("right").find((p) => p.id === id))
-          .filter(Boolean)
-          .map((part) => ({
-            ...part,
-            sellingPrice: getPriceForPart(part),
-            quantity: 1,
-            side: "right",
-          })),
-        ...Array.from(selectedOtherParts)
-          .map((id) => getPartsForSide("other").find((p) => p.id === id))
-          .filter(Boolean)
-          .map((part) => ({
-            ...part,
-            sellingPrice: getPriceForPart(part),
-            quantity: 1,
-            side: "other",
-          })),
-        ...repairItems,
-      ];
+      const allRepairItems = buildAllRepairItems();
 
       navigate("/repairs/review", {
         state: {
@@ -842,6 +922,9 @@ const SuspensionInspection = () => {
 
   // ยกข้อมูลที่กรอกไว้ไปด้วย ไม่ต้องพิมพ์ใหม่ทั้งชุดตอนรถจอดรออยู่
   const handleSwitchToGeneralRepair = () => {
+    // บิลย้ายไปอยู่ในมือหน้างานซ่อมแล้ว ร่างของหน้านี้จึงหมดหน้าที่
+    clearDraft(DRAFT_SUSPENSION);
+
     navigate("/repairs/new", {
       state: {
         repairData: getValues(),
@@ -1078,16 +1161,32 @@ const SuspensionInspection = () => {
     <div>
       <div className="bg-gradient-primary shadow-primary flex min-h-[100svh] flex-col xl:min-h-[calc(100vh-73px)] xl:flex-row xl:items-start xl:gap-[16px] xl:bg-transparent xl:px-[16px] xl:pt-[24px] xl:pb-[24px] xl:shadow-none">
         <div className="xl:shadow-primary flex flex-1 flex-col xl:h-fit xl:w-1/2 xl:flex-initial xl:rounded-2xl xl:bg-white">
-          <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
-            <div className="bg-surface/20 xl:bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
-              <CarRepair color="#ffffff" className="h-6 w-6 xl:hidden" />
-              <CarRepair color="#1976d2" className="hidden h-6 w-6 xl:block" />
+          <div className="flex items-center justify-between gap-[8px] px-[20px] pt-[16px]">
+            <div className="flex min-w-0 items-center gap-[8px]">
+              <div className="bg-surface/20 xl:bg-primary/10 flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full">
+                <CarRepair color="#ffffff" className="h-6 w-6 xl:hidden" />
+                <CarRepair
+                  color="#1976d2"
+                  className="hidden h-6 w-6 xl:block"
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="text-surface xl:text-primary truncate text-2xl font-semibold md:text-[26px]">
+                  เช็กช่วงล่าง
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-surface xl:text-primary text-2xl font-semibold md:text-[26px]">
-                เช็กช่วงล่าง
-              </p>
-            </div>
+            {/* โผล่เฉพาะตอนมีอะไรให้ล้างจริง ไม่ใช่ปุ่มที่กดแล้วไม่เกิดอะไรค้างอยู่บนหัวเรื่อง */}
+            {hasAnythingToClear && (
+              <button
+                type="button"
+                onClick={() => setIsClearConfirmOpen(true)}
+                className="text-destructive bg-surface flex shrink-0 cursor-pointer items-center gap-[4px] rounded-full px-[10px] py-[4px] text-lg font-medium duration-300 md:text-xl xl:bg-transparent xl:px-0"
+              >
+                <X className="h-4 w-4" />
+                ล้างข้อมูล
+              </button>
+            )}
           </div>
           <form
             id="suspension-form"
@@ -1888,6 +1987,14 @@ const SuspensionInspection = () => {
         isService={editingItem?.category?.name === "บริการ"}
         currentName={editingItem?.name || ""}
         canEditName={isFreeformService(editingItem)}
+      />
+
+      <ConfirmDialog
+        isOpen={isClearConfirmOpen}
+        onClose={() => setIsClearConfirmOpen(false)}
+        onConfirm={handleClearForm}
+        title="ยืนยันการล้างข้อมูล"
+        itemName="ข้อมูลลูกค้า รถ และรายการซ่อมทั้งหมด"
       />
 
       <ConfirmDialog

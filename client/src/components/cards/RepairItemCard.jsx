@@ -1,6 +1,6 @@
 import { Image, Wrench } from "lucide-react";
 import { formatCurrency } from "@/utils/formats";
-import { formatSoldLots } from "@/utils/tireLot";
+import { soldLotEntries } from "@/utils/tireLot";
 
 const RepairItemCard = ({ item, variant }) => {
   const renderProductInfo = (item) => {
@@ -49,8 +49,7 @@ const RepairItemCard = ({ item, variant }) => {
       ? item.part?.unit || item.service?.unit || ""
       : item.unit;
   const isService = variant === "detail" ? !!item.service : !item.partNumber;
-  const soldLotsLabel =
-    variant === "detail" ? formatSoldLots(item.soldLots) : "";
+  const soldLots = variant === "detail" ? soldLotEntries(item.soldLots) : [];
 
   return (
     // min-h ไม่ใช่ h: หน้ารายละเอียดมีบรรทัดสัปดาห์/ปีผลิตเพิ่ม เนื้อหาจะเกิน 80px
@@ -78,10 +77,24 @@ const RepairItemCard = ({ item, variant }) => {
 
         <div className="flex min-w-0 flex-col">
           {renderProductInfo(item)}
-          {variant === "detail" && soldLotsLabel && (
-            <p className="text-subtle-light line-clamp-1 text-sm font-medium md:text-base">
-              สัปดาห์/ปีผลิต: {soldLotsLabel}
-            </p>
+          {/* ยางรุ่นเดียวกันในบิลใบเดียวอาจมาจากคนละล็อต จึงแยกเป็นชิปละล็อต
+              ไม่ใช่ข้อความบรรทัดเดียวที่โดนตัดหางทิ้งเมื่อมีหลายล็อต */}
+          {soldLots.length > 0 && (
+            /* ป้ายอยู่บรรทัดเดียวกับชิป ยางส่วนใหญ่มาจากล็อตเดียว การ์ดจึงสูงเท่าอะไหล่ทั่วไป
+               ชิปตกบรรทัดเองเมื่อมีหลายล็อตจริง */
+            <div className="mt-[2px] flex flex-wrap items-center gap-[4px]">
+              <span className="text-subtle-light text-sm font-medium md:text-base">
+                สัปดาห์/ปีผลิต:
+              </span>
+              {soldLots.map((lot) => (
+                <span
+                  key={lot.dotCode}
+                  className="bg-primary-soft text-primary rounded-full px-[8px] py-[1px] text-sm font-semibold md:text-base"
+                >
+                  {lot.dotCode} × {lot.quantity}
+                </span>
+              ))}
+            </div>
           )}
           <p className="text-subtle-dark line-clamp-1 text-base font-semibold md:text-lg">
             {formatCurrency(unitPrice)} × {item.quantity} {unit}
