@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import FormInput from "@/components/forms/FormInput";
 import { listCustomers } from "@/api/customer";
+import { formatPhone } from "@/utils/formats";
 
 // ช่องชื่อลูกค้าที่มีรายการที่เคยบันทึกไว้ขึ้นมาให้เลือก แต่ยังพิมพ์ชื่อใหม่ได้อิสระ
 // ไม่ใช่ดรอปดาวน์ที่บังคับเลือก เพราะลูกค้าใหม่ต้องกรอกได้เสมอ
@@ -86,7 +87,7 @@ const CustomerNameInput = ({ register, errors, value, onSelect }) => {
                 </p>
                 {customer.phoneNumber && (
                   <p className="text-subtle-dark truncate text-base md:text-lg">
-                    {customer.phoneNumber}
+                    {formatPhone(customer.phoneNumber)}
                   </p>
                 )}
               </button>

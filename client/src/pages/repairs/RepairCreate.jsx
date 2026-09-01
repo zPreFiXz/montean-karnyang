@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Image,
@@ -25,7 +26,7 @@ import ComboBox from "@/components/ui/ComboBox";
 import { listVehicleModels } from "@/api/vehicleModel";
 import { repairSchema } from "@/utils/schemas";
 import { provinces } from "@/constants/provinces";
-import { formatCurrency } from "@/utils/formats";
+import { formatCurrency, formatPhone } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 import { isFreeformService } from "@/constants/services";
 import { onKeyActivate } from "@/utils/a11y";
@@ -49,6 +50,21 @@ const VEHICLE_FIELDS = [
   "mileage",
 ];
 const SUBMIT_FEEDBACK_MS = 400;
+
+// ล้างฟอร์มต้องไล่ชื่อช่องให้ครบ — reset({}) เปล่าๆ ไม่ได้เขียนค่าว่างลงช่องที่ไม่ได้คุมด้วย React
+// (ทะเบียน เลขกิโลเมตร รายละเอียด) ข้อความเดิมจึงค้างอยู่บนหน้าจอ
+const EMPTY_FORM = {
+  name: "",
+  address: "",
+  phoneNumber: "",
+  brand: "",
+  model: "",
+  plateLetters: "",
+  plateNumbers: "",
+  province: "",
+  mileage: "",
+  description: "",
+};
 
 const RepairCreate = () => {
   const navigate = useNavigate();
@@ -87,11 +103,17 @@ const RepairCreate = () => {
   const leaveHandledRef = useRef(false);
   // กู้ร่างได้ครั้งเดียวตอนเปิดหน้า ไม่งั้นร่างที่บันทึกระหว่างพิมพ์จะย้อนทับสิ่งที่พิมพ์อยู่
   const draftRestoredRef = useRef(false);
+  // ข้อมูลรถที่ถูกล้างตอนสลับไปโหมดที่ไม่ผูกรถ เก็บไว้คืนให้เมื่อสลับกลับมา
+  const vehicleFieldsRef = useRef({});
   const { errors } = formState;
 
   // แก้บิลเดิมไม่ต้องเก็บร่าง ของจริงอยู่ในฐานข้อมูลแล้ว
   // และร่างของบิลเก่าไม่ควรไปโผล่ตอนเปิดบิลใหม่
-  const isEditing = !!location.state?.editRepairId;
+  // ยึดค่าไว้ตลอดอายุของหน้า ถ้าอ่านจาก location.state สดๆ อย่างเดียว
+  // จังหวะที่ state หลุดระหว่างทางจะกลายเป็นบิลเดิมถูกเก็บเป็นร่างของบิลใหม่
+  const editingRef = useRef(!!location.state?.editRepairId);
+  if (location.state?.editRepairId) editingRef.current = true;
+  const isEditing = editingRef.current;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -104,6 +126,8 @@ const RepairCreate = () => {
     const restored =
       location.state || (!draftRestoredRef.current && loadDraft(DRAFT_REPAIR));
     draftRestoredRef.current = true;
+    // บอกให้รู้ว่าของที่เห็นมาจากไหน ไม่งั้นเปิดหน้าบิลใหม่แล้วเจอข้อมูลกรอกไว้จะงงว่าซ้ำกับอะไร
+    if (restored && !location.state) toast.info("นำข้อมูลที่ค้างไว้กลับมาแล้ว");
 
     if (restored) {
       const { repairData, repairItems: savedItems } = restored;
@@ -292,10 +316,13 @@ const RepairCreate = () => {
 
   // ล้างทุกอย่างเริ่มใหม่ เช่นลูกค้าเปลี่ยนใจ หรือกรอกผิดคันจนแก้ทีละช่องช้ากว่า
   const handleClearForm = () => {
-    reset({});
+    reset(EMPTY_FORM);
     setRepairItems([]);
     setRestoredStockMap({});
     setBillType("GENERAL");
+    // สำเนาข้อมูลรถที่เก็บไว้ตอนสลับโหมดต้องทิ้งด้วย
+    // ไม่งั้นล้างแล้วสลับไปขายอะไหล่และกลับมา รถคันเดิมจะโผล่กลับมาเอง
+    vehicleFieldsRef.current = {};
     setIsCustomerInfoOpen(false);
     clearDraft(DRAFT_REPAIR);
     setIsClearConfirmOpen(false);
@@ -303,13 +330,31 @@ const RepairCreate = () => {
   };
 
   const handleChangeBillType = (nextType) => {
+    const leavingVehicleMode = nextType === "SALE" || nextType === "SERVICE";
+
     setBillType(nextType);
 
     // ล้างข้อมูลรถทิ้งเมื่อสลับไปโหมดที่ไม่ผูกรถ ไม่งั้นค่าที่กรอกค้างไว้จะถูกส่งไปสร้างรถผีในระบบ
-    if (nextType === "SALE" || nextType === "SERVICE") {
+    // แต่เก็บสำเนาไว้ก่อน กดสลับไปดูโหมดอื่นแล้วกลับมาจะได้ไม่ต้องกรอกรถใหม่ทั้งชุด
+    if (leavingVehicleMode) {
+      // เก็บสำเนาเฉพาะตอนออกจากโหมดงานซ่อมเท่านั้น
+      // สลับไปมาระหว่างงานบริการกับขายอะไหล่จะได้ไม่เอาช่องเปล่าไปทับสำเนาที่เก็บไว้
+      if (billType === "GENERAL") {
+        const kept = {};
+        for (const field of VEHICLE_FIELDS) {
+          kept[field] = getValues(field);
+        }
+        vehicleFieldsRef.current = kept;
+      }
+
       for (const field of VEHICLE_FIELDS) {
         setValue(field, "", { shouldValidate: false });
       }
+      return;
+    }
+
+    for (const [field, value] of Object.entries(vehicleFieldsRef.current)) {
+      setValue(field, value, { shouldValidate: false });
     }
   };
 
@@ -576,10 +621,14 @@ const RepairCreate = () => {
                   <p className="text-normal text-xl font-medium">
                     ข้อมูลลูกค้า
                   </p>
-                  {watch("name") && (
+                  {/* กรอกแต่เบอร์ไม่กรอกชื่อก็ยังบอกได้ว่าเก็บอะไรไว้แล้ว
+                      เบอร์เลื่อนขึ้นมาแทนที่ชื่อ ไม่ใช่ห้อยจุดคั่นไว้ข้างหน้าลอยๆ */}
+                  {(watch("name") || watch("phoneNumber")) && (
                     <p className="text-subtle-dark line-clamp-1 text-lg md:text-xl">
                       {watch("name")}
-                      {watch("phoneNumber") && ` • ${watch("phoneNumber")}`}
+                      {watch("name") && watch("phoneNumber") && " • "}
+                      {watch("phoneNumber") &&
+                        formatPhone(watch("phoneNumber"))}
                     </p>
                   )}
                 </div>
@@ -1148,7 +1197,8 @@ const RepairCreate = () => {
         onClose={() => setIsClearConfirmOpen(false)}
         onConfirm={handleClearForm}
         title="ยืนยันการล้างข้อมูล"
-        itemName="ข้อมูลลูกค้า รถ และรายการซ่อมทั้งหมด"
+        itemName="ข้อมูลที่กรอกไว้ทั้งหมด"
+        confirmLabel="ล้างข้อมูล"
       />
 
       <ConfirmDialog

@@ -5,7 +5,7 @@ import { groupBySidePairs } from "@/utils/repairItemGroups";
 import { useEffect, useState } from "react";
 import FormButton from "@/components/forms/FormButton";
 import RepairItemCard from "@/components/cards/RepairItemCard";
-import { formatCurrency, getProvinceName } from "@/utils/formats";
+import { formatCurrency, formatPhone, getProvinceName } from "@/utils/formats";
 import { createRepair, updateRepair } from "@/api/repair";
 import { clearAllDrafts } from "@/utils/repairDraft";
 import { toast } from "sonner";
@@ -112,6 +112,8 @@ const RepairReview = () => {
 
       if (editRepairId) {
         await withMinDuration(() => updateRepair(editRepairId, repair));
+        // บิลถูกบันทึกแล้ว ร่างที่ค้างไว้หมดหน้าที่
+        clearAllDrafts();
         toast.success("แก้ไขงานซ่อมเรียบร้อยแล้ว");
         if (statusSlug) {
           navigate(`/repairs?status=${statusSlug}`);
@@ -124,7 +126,6 @@ const RepairReview = () => {
         }
       } else {
         await withMinDuration(() => createRepair(repair));
-        // บิลถูกบันทึกแล้ว ร่างที่ค้างไว้หมดหน้าที่
         clearAllDrafts();
         toast.success(
           isSale ? "ขายเรียบร้อยแล้ว" : "สร้างงานซ่อมเรียบร้อยแล้ว",
@@ -220,7 +221,9 @@ const RepairReview = () => {
                       เบอร์โทรศัพท์:
                     </p>
                     <p className="text-normal text-lg font-semibold md:text-xl">
-                      {repairData.phoneNumber || "ไม่ระบุ"}
+                      {repairData.phoneNumber
+                        ? formatPhone(repairData.phoneNumber)
+                        : "ไม่ระบุ"}
                     </p>
                   </div>
                 </div>

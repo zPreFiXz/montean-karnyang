@@ -5,6 +5,7 @@ import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
 import EditPriceDialog from "@/components/dialogs/EditRepairItemDialog";
 import PartPreviewDialog from "@/components/dialogs/PartPreviewDialog";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { provinces } from "@/constants/provinces";
@@ -12,7 +13,7 @@ import { listVehicleModels } from "@/api/vehicleModel";
 import { listParts } from "@/api/part";
 import { listInventory } from "@/api/inventory";
 import LicensePlateInput from "@/components/forms/LicensePlateInput";
-import { formatCurrency } from "@/utils/formats";
+import { formatCurrency, formatPhone } from "@/utils/formats";
 import {
   Image,
   Plus,
@@ -83,6 +84,21 @@ const matchOtherTabGroup = (name) => {
 
 // หน่วงสั้นๆ ให้เห็นตัวหมุนก่อนหน้าจอเปลี่ยน (ไม่ได้รอเซิร์ฟเวอร์ ข้อมูลส่งต่อผ่าน state ล้วน)
 const SUBMIT_FEEDBACK_MS = 400;
+
+// ล้างฟอร์มต้องไล่ชื่อช่องให้ครบ — reset({}) เปล่าๆ ไม่ได้เขียนค่าว่างลงช่องที่ไม่ได้คุมด้วย React
+// (ทะเบียน เลขกิโลเมตร รายละเอียด) ข้อความเดิมจึงค้างอยู่บนหน้าจอ
+const EMPTY_FORM = {
+  name: "",
+  address: "",
+  phoneNumber: "",
+  brand: "",
+  model: "",
+  plateLetters: "",
+  plateNumbers: "",
+  province: "",
+  mileage: "",
+  description: "",
+};
 const TAB_LABELS = { left: "ซ้าย", right: "ขวา", other: "อื่นๆ" };
 const SuspensionInspection = () => {
   const navigate = useNavigate();
@@ -131,7 +147,11 @@ const SuspensionInspection = () => {
 
   // แก้บิลเดิมไม่ต้องเก็บร่าง ของจริงอยู่ในฐานข้อมูลแล้ว
   // และร่างของบิลเก่าไม่ควรไปโผล่ตอนเปิดบิลใหม่
-  const isEditing = !!location.state?.editRepairId;
+  // ยึดค่าไว้ตลอดอายุของหน้า ถ้าอ่านจาก location.state สดๆ อย่างเดียว
+  // จังหวะที่ state หลุดระหว่างทางจะกลายเป็นบิลเดิมถูกเก็บเป็นร่างของบิลใหม่
+  const editingRef = useRef(!!location.state?.editRepairId);
+  if (location.state?.editRepairId) editingRef.current = true;
+  const isEditing = editingRef.current;
 
   const initialSelectedRef = useRef({
     left: new Set(),
@@ -231,6 +251,8 @@ const SuspensionInspection = () => {
       location.state ||
       (!draftRestoredRef.current && loadDraft(DRAFT_SUSPENSION));
     draftRestoredRef.current = true;
+    // บอกให้รู้ว่าของที่เห็นมาจากไหน ไม่งั้นเปิดหน้าบิลใหม่แล้วเจอข้อมูลกรอกไว้จะงงว่าซ้ำกับอะไร
+    if (restored && !location.state) toast.info("นำข้อมูลที่ค้างไว้กลับมาแล้ว");
     if (!restored) return;
 
     const {
@@ -869,7 +891,7 @@ const SuspensionInspection = () => {
 
   // ล้างทุกอย่างเริ่มใหม่ เช่นลูกค้าเปลี่ยนใจ หรือกรอกผิดคันจนแก้ทีละช่องช้ากว่า
   const handleClearForm = () => {
-    reset({});
+    reset(EMPTY_FORM);
     setRepairItems([]);
     setSelectedLeftParts(new Set());
     setSelectedRightParts(new Set());
@@ -1211,10 +1233,14 @@ const SuspensionInspection = () => {
                     <p className="text-normal text-xl font-medium">
                       ข้อมูลลูกค้า
                     </p>
-                    {watch("name") && (
+                    {/* กรอกแต่เบอร์ไม่กรอกชื่อก็ยังบอกได้ว่าเก็บอะไรไว้แล้ว
+                        เบอร์เลื่อนขึ้นมาแทนที่ชื่อ ไม่ใช่ห้อยจุดคั่นไว้ข้างหน้าลอยๆ */}
+                    {(watch("name") || watch("phoneNumber")) && (
                       <p className="text-subtle-dark line-clamp-1 text-lg md:text-xl">
                         {watch("name")}
-                        {watch("phoneNumber") && ` • ${watch("phoneNumber")}`}
+                        {watch("name") && watch("phoneNumber") && " • "}
+                        {watch("phoneNumber") &&
+                          formatPhone(watch("phoneNumber"))}
                       </p>
                     )}
                   </div>
@@ -1994,7 +2020,8 @@ const SuspensionInspection = () => {
         onClose={() => setIsClearConfirmOpen(false)}
         onConfirm={handleClearForm}
         title="ยืนยันการล้างข้อมูล"
-        itemName="ข้อมูลลูกค้า รถ และรายการซ่อมทั้งหมด"
+        itemName="ข้อมูลที่กรอกไว้ทั้งหมด"
+        confirmLabel="ล้างข้อมูล"
       />
 
       <ConfirmDialog

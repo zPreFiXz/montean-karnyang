@@ -17,36 +17,110 @@ const findOrCreateVehicleModel = async (tx, brand, model) => {
 };
 
 // หา/สร้าง/อัปเดตลูกค้า: จับคู่ด้วยเบอร์โทรก่อน (unique) ถ้าไม่มีเบอร์ค่อยจับคู่ด้วยชื่อ
-const resolveCustomer = async (tx, { name, address, phoneNumber }) => {
+// existingCustomer = ลูกค้าที่ผูกกับบิลอยู่ก่อนแก้ไข (บิลใหม่จะเป็น null)
+//
+// แก้บิลเดิม: ถือว่าฟอร์มคือข้อมูลล่าสุดของลูกค้ารายนั้น ทั้งสามช่องแก้ได้อิสระต่อกัน
+// รวมถึงลบทิ้ง เพราะคนกรอกเห็นข้อมูลเดิมอยู่ตรงหน้าแล้วตั้งใจแก้
+//
+// บิลใหม่: ช่องที่เว้นว่างไม่เอาไปทับของเดิม เพราะบิลแต่ละใบกรอกลูกค้าไม่ครบเท่ากัน
+// (ขายหน้าร้านมักกรอกแต่เบอร์) ถ้าเอาช่องว่างไปทับ ที่อยู่ที่เคยเก็บไว้จะหายทันที
+const resolveCustomer = async (
+  tx,
+  { name, address, phoneNumber },
+  existingCustomer = null,
+) => {
+  const isEmpty = !name && !address && !phoneNumber;
+
+  // เขียนทับเฉพาะช่องที่กรอกมา — ใช้กับลูกค้ารายอื่นที่ไม่ได้เปิดแก้อยู่
+  const mergeInto = (customer) => ({
+    name: name || customer.name,
+    address: address || customer.address,
+    phoneNumber: phoneNumber || customer.phoneNumber,
+  });
+
+  if (existingCustomer) {
+    // เบอร์หรือชื่อที่กรอกมาไปตรงกับลูกค้ารายอื่นที่มีอยู่แล้ว = บิลนี้เป็นของคนนั้น
+    // ย้ายบิลไปหาเขาแทนการแก้ชื่อรายเดิมทับ ไม่งั้นจะได้ลูกค้าชื่อซ้ำกันสองราย
+    const claimedByOther = phoneNumber
+      ? await tx.customer.findUnique({ where: { phoneNumber } })
+      : name
+        ? await tx.customer.findFirst({ where: { name } })
+        : null;
+
+    if (claimedByOther && claimedByOther.id !== existingCustomer.id) {
+      return tx.customer.update({
+        where: { id: claimedByOther.id },
+        data: mergeInto(claimedByOther),
+      });
+    }
+
+    if (isEmpty) {
+      // ลบข้อมูลลูกค้าออกจนหมด = ตัดออกจากบิล
+      // ถ้าไม่มีบิลใบอื่นใช้รายนี้แล้วก็เก็บกวาดทิ้ง ไม่ให้เหลือลูกค้าว่างเปล่าค้างในระบบ
+      const usedBy = await tx.repair.count({
+        where: { customerId: existingCustomer.id },
+      });
+      if (usedBy <= 1) {
+        await tx.repair.updateMany({
+          where: { customerId: existingCustomer.id },
+          data: { customerId: null },
+        });
+        await tx.customer.delete({ where: { id: existingCustomer.id } });
+      }
+      return null;
+    }
+
+    return tx.customer.update({
+      where: { id: existingCustomer.id },
+      data: {
+        name: name || null,
+        address: address || null,
+        phoneNumber: phoneNumber || null,
+      },
+    });
+  }
+
+  if (isEmpty) return null;
+
   if (phoneNumber) {
-    let customer = await tx.customer.findUnique({ where: { phoneNumber } });
+    const byPhone = await tx.customer.findUnique({ where: { phoneNumber } });
 
-    if (!customer) {
-      return tx.customer.create({
-        data: { name: name || null, address: address || null, phoneNumber },
+    if (byPhone) {
+      return tx.customer.update({
+        where: { id: byPhone.id },
+        data: mergeInto(byPhone),
       });
     }
 
-    if (name || address) {
-      customer = await tx.customer.update({
-        where: { id: customer.id },
-        data: { name: name || null, address: address || customer.address },
-      });
-    }
-
-    return customer;
+    return tx.customer.create({
+      data: { name: name || null, address: address || null, phoneNumber },
+    });
   }
 
   if (name) {
-    const customer = await tx.customer.findFirst({ where: { name } });
-    if (customer) return customer;
+    const byName = await tx.customer.findFirst({ where: { name } });
+
+    if (byName) {
+      // ที่อยู่ที่กรอกมาต้องเขียนทับของเดิมด้วย ไม่ใช่คืนรายเดิมไปทั้งดุ้น
+      if (address && address !== byName.address) {
+        return tx.customer.update({
+          where: { id: byName.id },
+          data: { address },
+        });
+      }
+      return byName;
+    }
 
     return tx.customer.create({
       data: { name, address: address || null, phoneNumber: null },
     });
   }
 
-  return null;
+  // เหลือแต่ที่อยู่ (เช่นงานบริการนอกสถานที่ที่รู้แต่จุดที่ไป) ไม่มีอะไรให้จับคู่กับรายเดิม
+  // ยังต้องเก็บ ไม่งั้นที่พิมพ์ไว้หายไปเงียบๆ ตอนบันทึก
+  return tx.customer.create({
+    data: { name: null, address, phoneNumber: null },
+  });
 };
 
 // เรียงล็อตเก่าสุดก่อน (FIFO): DOT รูปแบบ WWYY → เทียบปี(YY) ก่อน แล้วสัปดาห์(WW)
@@ -416,7 +490,12 @@ exports.updateRepair = async (req, res, next) => {
 
       const currentRepair = await tx.repair.findUnique({
         where: { id: Number(id) },
-        select: { vehicleId: true },
+        select: {
+          vehicleId: true,
+          customer: {
+            select: { id: true, name: true, phoneNumber: true, address: true },
+          },
+        },
       });
 
       let vehicle = null;
@@ -463,11 +542,11 @@ exports.updateRepair = async (req, res, next) => {
         }
       }
 
-      const customer = await resolveCustomer(tx, {
-        name,
-        address,
-        phoneNumber,
-      });
+      const customer = await resolveCustomer(
+        tx,
+        { name, address, phoneNumber },
+        currentRepair.customer,
+      );
 
       // คืนสต็อกจากรายการเดิม ก่อนลบทิ้ง
       const existingItems = await tx.repairItem.findMany({

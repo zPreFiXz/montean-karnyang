@@ -9,6 +9,7 @@ import {
 import FormInput from "@/components/forms/FormInput";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { DEFAULT_LABOR_SERVICE_NAME } from "@/constants/services";
 import { editNamePriceSchema } from "@/utils/schemas";
 import { formatCurrency } from "@/utils/formats";
 
@@ -26,6 +27,12 @@ const EditRepairItemDialog = ({
   currentName = "",
   canEditName,
 }) => {
+  // ชื่อของรายการเปล่าที่ยังไม่เคยตั้ง = ชื่อในคลัง ถือว่ายังไม่ได้ตั้งชื่อ
+  // เปิดมาให้ช่องว่างไว้เลย จะได้พิมพ์ทับได้ทันทีโดยไม่ต้องลบข้อความเดิมก่อน
+  const isUntouchedName =
+    (currentName || "").trim() === DEFAULT_LABOR_SERVICE_NAME;
+  const initialName = isUntouchedName ? "" : currentName || "";
+
   const {
     register,
     handleSubmit,
@@ -37,7 +44,7 @@ const EditRepairItemDialog = ({
     resolver: zodResolver(editNamePriceSchema),
     defaultValues: {
       price: currentPrice?.toString() || "0",
-      name: currentName || "",
+      name: initialName,
     },
   });
 
@@ -52,18 +59,18 @@ const EditRepairItemDialog = ({
     if (isOpen) {
       reset({
         price: (currentPrice ?? 0).toString(),
-        name: currentName || "",
+        name: initialName,
       });
     }
-  }, [isOpen, currentPrice, currentName, reset]);
+  }, [isOpen, currentPrice, initialName, reset]);
 
   const onSubmit = (data) => {
     const priceValue = data?.price || getValues("price") || price;
     const newPrice = parseFloat(priceValue);
 
-    const newName = isNameEditable
-      ? (data?.name ?? getValues("name") ?? currentName)
-      : undefined;
+    // ปล่อยว่างไว้ = ยังไม่ตั้งชื่อ ใช้ชื่อในคลังไปก่อน ไม่ใช่บรรทัดไม่มีชื่อในบิล
+    const typedName = (data?.name ?? getValues("name") ?? "").trim();
+    const newName = isNameEditable ? typedName || currentName : undefined;
 
     onConfirm({ price: newPrice, name: newName });
     onClose();
@@ -72,7 +79,7 @@ const EditRepairItemDialog = ({
   const handleCancel = () => {
     reset({
       price: (currentPrice ?? 0).toString(),
-      name: currentName || "",
+      name: initialName,
     });
     onClose();
   };
@@ -137,6 +144,7 @@ const EditRepairItemDialog = ({
                       label="ชื่อบริการ"
                       type="text"
                       placeholder={currentName || "กรอกชื่อบริการ"}
+                      autoComplete="off"
                       textSize="text-lg md:text-xl"
                       color="subtle-dark"
                       customClass="px-0 pt-[0px]"

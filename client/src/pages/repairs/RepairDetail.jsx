@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
 import { getRepair, updateRepairStatus, deleteRepair } from "@/api/repair";
-import { formatDate, formatTime, formatCurrency } from "@/utils/formats";
+import { withMinDuration } from "@/utils/withMinDuration";
+import {
+  formatDate,
+  formatTime,
+  formatCurrency,
+  formatPhone,
+} from "@/utils/formats";
 import {
   ChevronLeft,
   CreditCard,
@@ -136,7 +142,7 @@ const RepairDetail = () => {
   const getNextStatusText = (currentStatus) => {
     switch (currentStatus) {
       case "IN_PROGRESS":
-        return "เสร็จสิ้นการซ่อม";
+        return "ยืนยันการซ่อมเสร็จสิ้น";
       case "COMPLETED":
         return "ยืนยันการชำระเงิน";
     }
@@ -177,7 +183,7 @@ const RepairDetail = () => {
         updateData.paymentMethod = selectedPaymentMethod;
       }
 
-      await updateRepairStatus(repair.id, updateData);
+      await withMinDuration(() => updateRepairStatus(repair.id, updateData));
 
       if (skipToCompleted) {
         toast.success("ซ่อมเสร็จสิ้นและชำระเงินเรียบร้อยแล้ว");
@@ -363,7 +369,7 @@ const RepairDetail = () => {
   };
 
   const handleDeleteRepair = async () => {
-    await deleteRepair(repair.id);
+    await withMinDuration(() => deleteRepair(repair.id));
     toast.success("ลบงานซ่อมเรียบร้อยแล้ว");
     setIsDeleteConfirmOpen(false);
     handleGoBack();
@@ -381,6 +387,12 @@ const RepairDetail = () => {
       navigate(-1);
     }
   };
+
+  const hasSingleCustomerLine =
+    [
+      !!repair?.customer?.name,
+      !!(repair?.customer?.phoneNumber || repair?.customer?.address),
+    ].filter(Boolean).length === 1;
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
@@ -467,34 +479,37 @@ const RepairDetail = () => {
                   >
                     <CircleUserRound color="#ffffff" />
                   </div>
-                  {repair.customer.name &&
-                  !repair.customer.phoneNumber &&
-                  !repair.customer.address ? (
-                    <div className="mt-[4px] flex h-[45px] items-center justify-center">
+                  {/* กรอกมาอย่างเดียว (ชื่อล้วน หรือเบอร์ล้วน) ข้อความจะสูงไม่ถึงวงกลม
+                      ต้องดันให้อยู่กึ่งกลางแกนตั้งเทียบวงกลม ไม่งั้นจะลอยเกาะขอบบน */}
+                  <div
+                    className={
+                      hasSingleCustomerLine
+                        ? "mt-[6px] flex min-h-[45px] flex-col justify-center"
+                        : "flex flex-col"
+                    }
+                  >
+                    {repair.customer.name && (
                       <p
                         className={`text-[22px] font-semibold md:text-2xl ${statusInfo.color} leading-tight`}
                       >
                         {repair.customer.name}
                       </p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col">
-                      {repair.customer.name && (
-                        <p
-                          className={`text-[22px] font-semibold md:text-2xl ${statusInfo.color} leading-tight`}
-                        >
-                          {repair.customer.name}
-                        </p>
-                      )}
-                      <div className="mt-[4px] flex flex-wrap items-start gap-[8px]">
+                    )}
+                    {(repair.customer.phoneNumber ||
+                      repair.customer.address) && (
+                      <div
+                        className={`flex flex-wrap items-start gap-[8px] ${
+                          repair.customer.name ? "mt-[4px]" : ""
+                        }`}
+                      >
                         {repair.customer.phoneNumber && (
                           <div className="flex flex-shrink-0 items-center gap-[4px]">
                             <Phone size={16} className="text-subtle-dark" />
                             <a
                               href={`tel:${repair.customer.phoneNumber}`}
-                              className="text-subtle-dark text-lg leading-tight font-medium underline decoration-dashed md:text-xl"
+                              className="text-subtle-dark text-lg leading-tight font-medium underline md:text-xl"
                             >
-                              {repair.customer.phoneNumber}
+                              {formatPhone(repair.customer.phoneNumber)}
                             </a>
                           </div>
                         )}
@@ -510,8 +525,8 @@ const RepairDetail = () => {
                           </div>
                         )}
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -782,14 +797,12 @@ const RepairDetail = () => {
                   <p className="text-subtle-dark text-lg font-medium md:text-xl">
                     สถานะ:
                   </p>
+                  {/* อ่านจากสถานะจริงของบิล ไม่ใช่เดาจากเวลาที่ชำระเงิน
+                      ไม่งั้นบิลที่ยังกำลังซ่อมจะขึ้นว่าซ่อมเสร็จสิ้น */}
                   <p
-                    className={`text-lg font-semibold md:text-xl ${
-                      repair.paidAt
-                        ? "text-status-paid"
-                        : "text-status-completed"
-                    }`}
+                    className={`text-lg font-semibold md:text-xl ${statusInfo.color}`}
                   >
-                    {repair.paidAt ? "ชำระเงินแล้ว" : "ซ่อมเสร็จสิ้น"}
+                    {statusInfo.text}
                   </p>
                 </div>
               </div>
@@ -860,7 +873,7 @@ const RepairDetail = () => {
                 />
                 {repair.status === "IN_PROGRESS" && (
                   <FormButton
-                    label="เสร็จสิ้นการซ่อมและชำระเงิน"
+                    label="ยืนยันการซ่อมเสร็จสิ้นและชำระเงิน"
                     isLoading={isUpdatingSkip}
                     disabled={isUpdatingSkip}
                     onClick={() => handleUpdateStatus(true)}

@@ -18,6 +18,8 @@ const ConfirmDialog = ({
   itemName = "",
   // บรรทัดขยายใต้ชิป สำหรับกรณีที่ชื่ออย่างเดียวยังระบุตัวไม่ชัด (เช่น ทะเบียนรถ ต้องรู้ยี่ห้อรุ่นด้วย)
   itemDetail = "",
+  // ปุ่มยืนยันบอกสิ่งที่จะเกิดขึ้นจริง กล่องนี้ใช้กับงานล้างข้อมูลด้วย ไม่ได้มีแต่งานลบ
+  confirmLabel = "ลบ",
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const cancelButtonRef = useRef(null);
@@ -95,7 +97,7 @@ const ConfirmDialog = ({
             </button>
 
             <FormButton
-              label="ลบ"
+              label={confirmLabel}
               isLoading={isLoading}
               disabled={isLoading}
               onClick={handleConfirm}
