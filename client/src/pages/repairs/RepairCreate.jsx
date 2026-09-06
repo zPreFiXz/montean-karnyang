@@ -29,6 +29,7 @@ import { provinces } from "@/constants/provinces";
 import { formatCurrency, formatPhone } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 import { isFreeformService } from "@/constants/services";
+import { formatProductName } from "@/utils/tireSize";
 import { onKeyActivate } from "@/utils/a11y";
 import { withOtherBrandLast } from "@/utils/vehicleBrand";
 import {
@@ -255,29 +256,14 @@ const RepairCreate = () => {
   };
 
   const renderProductInfo = (item) => {
-    const isTire = item.category?.name === "ยาง";
-
-    if (isTire && item.attributes && item.attributes.aspectRatio) {
-      return (
-        <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
-          {item.brand} {item.attributes.width}/{item.attributes.aspectRatio}R
-          {item.attributes.rimDiameter} {item.name}
-        </p>
-      );
-    }
-
-    if (isTire && item.attributes) {
-      return (
-        <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
-          {item.brand} {item.attributes.width}R{item.attributes.rimDiameter}{" "}
-          {item.name}
-        </p>
-      );
-    }
-
     return (
       <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
-        {item.brand} {item.name}
+        {formatProductName({
+          brand: item.brand,
+          name: item.name,
+          attributes: item.attributes,
+          isTire: item.category?.name === "ยาง",
+        })}
       </p>
     );
   };
@@ -535,17 +521,12 @@ const RepairCreate = () => {
   // บริการไม่มียี่ห้อ (null) — ต่อสตริงตรงๆ จะได้คำว่า "null" ติดมาหน้าชื่อ
   // ต่างจากการ์ดบนหน้าจอที่เขียนเป็น JSX ซึ่ง React ข้าม null ให้เอง
   const getProductName = (item) => {
-    const isTire = item.category?.name === "ยาง";
-
-    if (isTire && item.attributes && item.attributes.aspectRatio) {
-      return `${item.brand} ${item.attributes.width}/${item.attributes.aspectRatio}R${item.attributes.rimDiameter} ${item.name}`;
-    }
-
-    if (isTire && item.attributes) {
-      return `${item.brand} ${item.attributes.width}R${item.attributes.rimDiameter} ${item.name}`;
-    }
-
-    return [item.brand, item.name].filter(Boolean).join(" ");
+    return formatProductName({
+      brand: item.brand,
+      name: item.name,
+      attributes: item.attributes,
+      isTire: item.category?.name === "ยาง",
+    });
   };
 
   return (
@@ -874,11 +855,13 @@ const RepairCreate = () => {
             </div>
             {repairItems.length === 0 ? (
               // บิลขายไม่มีข้อมูลรถ หน้าจึงสั้นกว่า ต้องยืดตามพื้นที่ที่เหลือข้อความถึงจะอยู่กลาง
-              // ส่วนงานซ่อมใช้ความสูงตายตัวเท่าเดิม ไม่งั้นกล่องจะสูงขึ้นจากที่เคยเป็น
+              // แต่ไม่เตี้ยกว่างานซ่อม ไม่งั้นกล่องจะหดตอนกางข้อมูลลูกค้าซึ่งเป็นคนละเรื่องกัน
               <div className={hasNoVehicle ? "flex flex-1 flex-col" : ""}>
                 <div
                   className={`flex items-center justify-center ${
-                    hasNoVehicle ? "flex-1" : "h-[228px] xl:h-auto"
+                    hasNoVehicle
+                      ? "min-h-[228px] flex-1"
+                      : "h-[228px] xl:h-auto"
                   }`}
                 >
                   <p className="text-subtle-light text-xl md:text-[22px]">

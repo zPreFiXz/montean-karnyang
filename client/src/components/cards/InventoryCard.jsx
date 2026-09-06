@@ -1,6 +1,7 @@
 import { Image, Wrench, AlertTriangle } from "lucide-react";
 import { formatCurrency } from "@/utils/formats";
 import { tracksStock } from "@/utils/stock";
+import { formatProductName } from "@/utils/tireSize";
 
 const InventoryCard = ({
   brand,
@@ -20,24 +21,9 @@ const InventoryCard = ({
   const isService = category === "บริการ";
 
   const renderProductInfo = () => {
-    if (isTire && attributes && attributes.aspectRatio) {
-      return (
-        <p className="text-normal line-clamp-2 overflow-hidden text-base font-semibold break-words md:text-lg">
-          {brand} {attributes.width}/{attributes.aspectRatio}R
-          {attributes.rimDiameter} {name}
-        </p>
-      );
-    } else if (isTire && attributes) {
-      return (
-        <p className="text-normal line-clamp-2 overflow-hidden text-base font-semibold break-words md:text-lg">
-          {brand} {attributes.width}R{attributes.rimDiameter} {name}
-        </p>
-      );
-    }
-
     return (
       <p className="text-normal line-clamp-2 overflow-hidden text-base font-semibold break-words md:text-lg">
-        {brand} {name}
+        {formatProductName({ brand, name, attributes, isTire })}
       </p>
     );
   };

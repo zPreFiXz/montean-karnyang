@@ -62,7 +62,8 @@ exports.createPart = async (req, res, next) => {
     await prisma.part.create({
       data: {
         partNumber,
-        brand,
+        // ไม่มียี่ห้อเก็บเป็น null อย่างเดียว ไม่ปนกับค่าว่าง
+        brand: brand?.trim() || null,
         name,
         costPrice,
         sellingPrice,
@@ -118,7 +119,7 @@ exports.updatePart = async (req, res, next) => {
 
     const data = {
       partNumber,
-      brand,
+      brand: brand?.trim() || null,
       name,
       costPrice,
       sellingPrice,

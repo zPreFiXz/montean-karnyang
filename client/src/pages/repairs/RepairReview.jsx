@@ -20,10 +20,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import ComboBox from "@/components/ui/ComboBox";
-import {
-  PAYMENT_METHODS,
-  DEFAULT_PAYMENT_METHOD,
-} from "@/constants/paymentMethods";
+import { PAYMENT_METHODS } from "@/constants/paymentMethods";
 
 const RepairReview = () => {
   const location = useLocation();
@@ -38,8 +35,10 @@ const RepairReview = () => {
   // งานบริการไม่ได้ผูกกับรถ จึงไม่มีข้อมูลรถให้สรุปเหมือนบิลขาย
   const hasNoVehicle = isSale || !!repairData?.noVehicle;
   // บิลขายหน้าร้านเก็บเงินตอนสร้างบิลเลย จึงต้องรู้วิธีชำระเงินตั้งแต่ตรงนี้
+  // ไม่ตั้งค่าเริ่มต้นเป็นเงินสด ต้องเลือกเองทุกใบ ไม่งั้นบิลที่รับเงินทางอื่นจะถูกบันทึกเป็นเงินสด
+  // เพราะกดยืนยันผ่านไปโดยไม่ได้แตะช่องนี้
   const [paymentMethod, setPaymentMethod] = useState(
-    repairData?.paymentMethod || DEFAULT_PAYMENT_METHOD,
+    repairData?.paymentMethod || "",
   );
 
   useEffect(() => {
@@ -79,6 +78,11 @@ const RepairReview = () => {
   );
 
   const handleConfirmRepair = async () => {
+    if (isSale && !paymentMethod) {
+      toast.error("กรุณาเลือกวิธีชำระเงิน");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const repair = {
@@ -240,6 +244,7 @@ const RepairReview = () => {
                   options={PAYMENT_METHODS}
                   value={paymentMethod}
                   onChange={setPaymentMethod}
+                  placeholder="กรุณาเลือก"
                   name="paymentMethod"
                 />
               </div>

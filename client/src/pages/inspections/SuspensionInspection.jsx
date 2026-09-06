@@ -42,10 +42,11 @@ import { CarRepair } from "@/components/icons/Icons";
 import { toastError } from "@/utils/handleError";
 import {
   isFreeformService,
-  DEFAULT_LABOR_SERVICE_NAME,
+  SUSPENSION_DEFAULT_SERVICE_NAMES,
 } from "@/constants/services";
 import { onKeyActivate } from "@/utils/a11y";
 import { isPerSide } from "@/utils/suspension";
+import { formatProductName } from "@/utils/tireSize";
 import { scrollToNewRow } from "@/utils/scrollToNewRow";
 import CollapsibleRow from "@/components/ui/CollapsibleRow";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
@@ -142,8 +143,8 @@ const SuspensionInspection = () => {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   // กู้ร่างได้ครั้งเดียวตอนเปิดหน้า ไม่งั้นร่างที่บันทึกระหว่างพิมพ์จะย้อนทับสิ่งที่พิมพ์อยู่
   const draftRestoredRef = useRef(false);
-  // บริการเปล่าที่ใช้เป็นค่าแรงตั้งต้น — หามาจากชื่อ เพราะ id ไม่ตรงกันระหว่างเครื่อง
-  const [defaultLaborService, setDefaultLaborService] = useState(null);
+  // บริการตั้งต้นของบิลช่วงล่าง — หามาจากชื่อ เพราะ id ไม่ตรงกันระหว่างเครื่อง
+  const [defaultServices, setDefaultServices] = useState([]);
 
   // แก้บิลเดิมไม่ต้องเก็บร่าง ของจริงอยู่ในฐานข้อมูลแล้ว
   // และร่างของบิลเก่าไม่ควรไปโผล่ตอนเปิดบิลใหม่
@@ -174,39 +175,43 @@ const SuspensionInspection = () => {
         return prev;
       }
 
-      // ยังไม่รู้ id ของบริการเปล่า (ต่างกันแต่ละเครื่อง) ก็ยังไม่ต้องใส่
-      if (!defaultLaborService) return prev;
+      // ยังไม่รู้ id ของบริการตั้งต้น (ต่างกันแต่ละเครื่อง) ก็ยังไม่ต้องใส่
+      if (defaultServices.length === 0) return prev;
 
-      const exists = prev.some(
-        (i) =>
-          i?.category?.name === "บริการ" && i?.id === defaultLaborService.id,
+      // เช็กทีละตัว ตัวที่อยู่ในบิลแล้วไม่ใส่ซ้ำ ตัวที่ยังไม่มีค่อยเติม
+      const missing = defaultServices.filter(
+        (service) =>
+          !prev.some(
+            (item) =>
+              item?.category?.name === "บริการ" && item?.id === service.id,
+          ),
       );
-      if (exists) return prev;
+      if (missing.length === 0) return prev;
+
       return [
         ...prev,
-        {
-          ...defaultLaborService,
-          quantity: 1,
-          side: null,
-        },
+        ...missing.map((service) => ({ ...service, quantity: 1, side: null })),
       ];
     });
-  }, [compatibleParts, isPartsLoaded, defaultLaborService]);
+  }, [compatibleParts, isPartsLoaded, defaultServices]);
 
-  // ดึงบริการเปล่ามาไว้ใส่เป็นค่าแรงตั้งต้นของบิลช่วงล่าง
+  // ดึงบริการตั้งต้นของบิลช่วงล่างมาเตรียมไว้
   useEffect(() => {
     let cancelled = false;
 
     listInventory("บริการ", null)
       .then((res) => {
         if (cancelled) return;
-        const found = (res.data || []).find(
-          (item) => item.name === DEFAULT_LABOR_SERVICE_NAME,
-        );
-        if (found) setDefaultLaborService(found);
+
+        // เรียงตามลำดับในลิสต์ ไม่ใช่ลำดับที่คลังส่งมา
+        const found = SUSPENSION_DEFAULT_SERVICE_NAMES.map((name) =>
+          (res.data || []).find((item) => item.name === name),
+        ).filter(Boolean);
+
+        setDefaultServices(found);
       })
       .catch(() => {
-        // ดึงไม่ได้ก็แค่ไม่มีบรรทัดค่าแรงตั้งต้น ช่างเพิ่มเองได้จากปุ่มเพิ่มรายการซ่อม
+        // ดึงไม่ได้ก็แค่ไม่มีบรรทัดตั้งต้น ช่างเพิ่มเองได้จากปุ่มเพิ่มรายการซ่อม
       });
 
     return () => {
@@ -231,13 +236,15 @@ const SuspensionInspection = () => {
   useEffect(() => {
     if (!isPartsLoaded) return;
 
+    // รถรุ่นนี้ไม่มีอะไหล่ช่วงล่างผูกไว้ = เช็กตามตำแหน่งไม่ได้ บรรทัดตั้งต้นที่ใส่ให้ตอนแรกจึงต้องเอาออก
+    // เทียบด้วยชื่อชุดเดียวกับตอนใส่ ไม่ใช่ไล่รหัสที่ต่างกันแต่ละเครื่อง (เดิมดักรหัส 1 ไว้ตรงๆ)
     if (compatibleParts.length === 0) {
       setRepairItems((prev) =>
         prev.filter(
           (item) =>
             !(
               item?.category?.name === "บริการ" &&
-              (item?.id === 1 || item?.name === "ค่าแรง")
+              SUSPENSION_DEFAULT_SERVICE_NAMES.includes(item?.name)
             ),
         ),
       );
@@ -445,27 +452,14 @@ const SuspensionInspection = () => {
       );
     }
 
-    if (isTire && item.attributes && item.attributes.aspectRatio) {
-      return (
-        <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
-          {item.brand} {item.attributes.width}/{item.attributes.aspectRatio}R
-          {item.attributes.rimDiameter} {item.name}
-        </p>
-      );
-    }
-
-    if (isTire && item.attributes) {
-      return (
-        <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
-          {item.brand} {item.attributes.width}R{item.attributes.rimDiameter}{" "}
-          {item.name}
-        </p>
-      );
-    }
-
     return (
       <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
-        {item.brand} {item.name}
+        {formatProductName({
+          brand: item.brand,
+          name: item.name,
+          attributes: item.attributes,
+          isTire,
+        })}
       </p>
     );
   };
@@ -626,15 +620,14 @@ const SuspensionInspection = () => {
 
   const getProductName = (item) => {
     if (!item) return "";
-    const isTire = item.category?.name === "ยาง";
-    if (isTire && item.attributes && item.attributes.aspectRatio) {
-      return `${item.brand} ${item.attributes.width}/${item.attributes.aspectRatio}R${item.attributes.rimDiameter} ${item.name}`;
-    }
-    if (isTire && item.attributes) {
-      return `${item.brand} ${item.attributes.width}R${item.attributes.rimDiameter} ${item.name}`;
-    }
-    // บริการไม่มียี่ห้อ (null) — ต่อสตริงตรงๆ จะได้คำว่า "null" ติดมาหน้าชื่อ
-    return [item.brand, item.name].filter(Boolean).join(" ");
+
+    // บริการไม่มียี่ห้อ (null) — ตัวช่วยตัดค่าว่างทิ้งให้ ไม่งั้นจะได้คำว่า "null" ติดมาหน้าชื่อ
+    return formatProductName({
+      brand: item.brand,
+      name: item.name,
+      attributes: item.attributes,
+      isTire: item.category?.name === "ยาง",
+    });
   };
 
   const getPriceForPart = (part) => {

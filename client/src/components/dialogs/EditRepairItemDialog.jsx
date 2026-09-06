@@ -9,7 +9,7 @@ import {
 import FormInput from "@/components/forms/FormInput";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DEFAULT_LABOR_SERVICE_NAME } from "@/constants/services";
+import { PLACEHOLDER_SERVICE_NAMES } from "@/constants/services";
 import { editNamePriceSchema } from "@/utils/schemas";
 import { formatCurrency } from "@/utils/formats";
 
@@ -29,9 +29,14 @@ const EditRepairItemDialog = ({
 }) => {
   // ชื่อของรายการเปล่าที่ยังไม่เคยตั้ง = ชื่อในคลัง ถือว่ายังไม่ได้ตั้งชื่อ
   // เปิดมาให้ช่องว่างไว้เลย จะได้พิมพ์ทับได้ทันทีโดยไม่ต้องลบข้อความเดิมก่อน
-  const isUntouchedName =
-    (currentName || "").trim() === DEFAULT_LABOR_SERVICE_NAME;
+  const isUntouchedName = PLACEHOLDER_SERVICE_NAMES.includes(
+    (currentName || "").trim(),
+  );
   const initialName = isUntouchedName ? "" : currentName || "";
+
+  // ราคา 0 = ยังไม่ได้ตั้งราคา (รายการเปล่าอย่างค่าแรง) เปิดมาให้ช่องว่างพร้อมพิมพ์
+  // ไม่ใช่เลข 0 ที่ต้องลบทิ้งก่อน — ของที่ตั้งราคาไว้จริงยังขึ้นราคาเดิมให้แก้ตามปกติ
+  const initialPrice = Number(currentPrice) ? currentPrice.toString() : "";
 
   const {
     register,
@@ -43,7 +48,7 @@ const EditRepairItemDialog = ({
   } = useForm({
     resolver: zodResolver(editNamePriceSchema),
     defaultValues: {
-      price: currentPrice?.toString() || "0",
+      price: initialPrice,
       name: initialName,
     },
   });
@@ -58,11 +63,11 @@ const EditRepairItemDialog = ({
   useEffect(() => {
     if (isOpen) {
       reset({
-        price: (currentPrice ?? 0).toString(),
+        price: initialPrice,
         name: initialName,
       });
     }
-  }, [isOpen, currentPrice, initialName, reset]);
+  }, [isOpen, initialPrice, initialName, reset]);
 
   const onSubmit = (data) => {
     const priceValue = data?.price || getValues("price") || price;
@@ -78,7 +83,7 @@ const EditRepairItemDialog = ({
 
   const handleCancel = () => {
     reset({
-      price: (currentPrice ?? 0).toString(),
+      price: initialPrice,
       name: initialName,
     });
     onClose();
@@ -197,6 +202,7 @@ const EditRepairItemDialog = ({
                     name="price"
                     label="ราคาต่อหน่วย (บาท)"
                     type="number"
+                    placeholder="0"
                     textSize="text-lg md:text-xl"
                     color="subtle-dark"
                     customClass="px-0 pt-[0px]"

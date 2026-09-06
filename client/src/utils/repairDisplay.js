@@ -21,10 +21,66 @@ export const getDisplayBrand = (vehicleModel) => {
   return `${brand} ${model}`.trim();
 };
 
+// งานบริการทุกใบขึ้นหัวว่า "งานบริการ" เหมือนกันหมดจนแยกไม่ออกว่าใบไหนคืองานอะไร
+// จึงยกชื่องานในบิลขึ้นมาเป็นหัวแทน แต่เฉพาะงานที่รู้จักในลิสต์นี้เท่านั้น
+// ชื่อที่ช่างพิมพ์เองในบิลยาวไม่แน่นอน ขึ้นหัวการ์ดแล้วโดนตัดกลางคำ สู้ขึ้นว่างานบริการไม่ได้
+//
+// เพิ่มงานใหม่ = เติมชื่อลงลิสต์นี้ให้ตรงกับชื่อในคลังเป๊ะๆ
+const CARD_TITLE_SERVICES = [
+  "ปะยาง",
+  "ปะยาง (แผ่นใหญ่)",
+  "ปะยางรถมอเตอร์ไซค์ (ไหมเสียบ)",
+  "ปะยางรถมอเตอร์ไซค์ (สตรีมเย็น)",
+  "ปะยางในรถไถ ล้อหน้า (สตรีมเย็น)",
+  "จุ๊บลม",
+  "เปลี่ยนจุ๊บลม",
+  "อัดกาวขอบแมกซ์",
+];
+
+// ค่าบริการนอกสถานที่ไม่ใช่งานของมันเอง แต่บอกว่าบิลนี้คือการออกไปทำนอกร้าน
+// ซึ่งที่ร้านเรียกรวมว่า "ปะยางนอกสถานที่" ไม่ว่างานที่ไปทำจะเป็นอะไร
+const ONSITE_SERVICE_NAME = "ค่าบริการนอกสถานที่";
+const ONSITE_TITLE = "ปะยางนอกสถานที่";
+
+// ตัวขยายในวงเล็บ (แผ่นใหญ่) (สตรีมเย็น) อยู่ท้ายชื่อเสมอ ยกติดไปกับหัวนอกสถานที่ด้วย
+// เพราะเป็นตัวบอกว่าปะแบบไหน ซึ่งยังจริงอยู่แม้ชื่องานจะถูกยุบทิ้ง
+const getQualifier = (name) => /\s*(\(.*\))$/.exec(name)?.[1] || "";
+
+// อ่านจาก itemName ที่บันทึกไว้ตอนเปิดบิล ไม่ใช่ชื่อในคลังปัจจุบัน เพราะชื่อในคลังถูกแก้ทีหลังได้
+const getServiceTitle = (repair) => {
+  const items = repair?.repairItems || [];
+
+  // อะไหล่ที่ขายพ่วงไปด้วยไม่ใช่ชื่องาน ไม่เอามาขึ้นหัว
+  const names = items
+    .filter((item) => !item?.partId)
+    .map((item) => (item?.itemName || "").trim())
+    .filter(Boolean);
+
+  // งานเดียวกันแยกเป็นสองบรรทัด (คนละราคา) ไม่ต้องขึ้นชื่อซ้ำ
+  const unique = [...new Set(names)];
+  const works = unique.filter((name) => name !== ONSITE_SERVICE_NAME);
+
+  if (works.length === 0) return "";
+
+  // มีงานที่ไม่รู้จักปนอยู่ = ขึ้นชื่อไม่ครบความจริง สู้ขึ้นว่างานบริการไปเลย
+  // รวมถึงบิลนอกสถานที่ด้วย เพราะงานที่พิมพ์ชื่อเองอาจไม่ใช่งานปะยาง
+  // จะไปขึ้นว่าปะยางนอกสถานที่ไม่ได้
+  if (works.some((name) => !CARD_TITLE_SERVICES.includes(name))) return "";
+
+  if (unique.length !== works.length) {
+    const qualifier = works.map(getQualifier).find(Boolean);
+    return qualifier ? `${ONSITE_TITLE} ${qualifier}` : ONSITE_TITLE;
+  }
+
+  return works.join(" + ");
+};
+
 // บรรทัดบนของการ์ด: ทะเบียนรถ หรือบอกว่าบิลนี้ไม่ได้ผูกกับรถเพราะอะไร
 export const getRepairTitle = (repair, formatProvince = (v) => v) => {
   if (isSaleRepair(repair)) return SALE_TITLE;
-  if (isNoVehicleRepair(repair)) return NO_VEHICLE_TITLE;
+  if (isNoVehicleRepair(repair)) {
+    return getServiceTitle(repair) || NO_VEHICLE_TITLE;
+  }
 
   const plate = repair?.vehicle?.licensePlate;
   if (plate?.plateNumber && plate?.province) {

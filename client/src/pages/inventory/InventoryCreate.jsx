@@ -1,4 +1,5 @@
 import FormInput from "@/components/forms/FormInput";
+import TireConstructionToggle from "@/components/forms/TireConstructionToggle";
 import { useForm } from "react-hook-form";
 import FormButton from "@/components/forms/FormButton";
 import { createPart } from "@/api/part";
@@ -20,6 +21,7 @@ import { VEHICLE_COMPATIBLE_CATEGORIES } from "@/constants/categories";
 import { ChevronLeft } from "lucide-react";
 import FieldErrorList from "@/components/forms/FieldErrorList";
 import { toastError } from "@/utils/handleError";
+import { DEFAULT_TIRE_CONSTRUCTION } from "@/utils/tireSize";
 import { withMinDuration } from "@/utils/withMinDuration";
 import { SIDE_OPTIONS, toPerSide } from "@/utils/suspension";
 
@@ -139,6 +141,7 @@ const InventoryCreate = () => {
       "width",
       "aspectRatio",
       "rimDiameter",
+      "construction",
       "tireLots",
       "suspensionType",
     ]);
@@ -205,6 +208,7 @@ const InventoryCreate = () => {
                 width: data.width,
                 aspectRatio: data.aspectRatio,
                 rimDiameter: data.rimDiameter,
+                construction: data.construction || DEFAULT_TIRE_CONSTRUCTION,
               }
             : isSuspensionCategory()
               ? {
@@ -409,9 +413,10 @@ const InventoryCreate = () => {
                       }}
                     />
 
-                    <span className="text-subtle-dark flex h-[41px] shrink-0 items-center text-xl font-medium md:text-[22px]">
-                      R
-                    </span>
+                    <TireConstructionToggle
+                      value={watch("construction")}
+                      onChange={(next) => setValue("construction", next)}
+                    />
 
                     <FormInput
                       register={register}

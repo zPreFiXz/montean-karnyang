@@ -82,7 +82,7 @@ model Category {
 model Part {
   id                 Int          @id @default(autoincrement())
   partNumber         String       @unique
-  brand              String
+  brand              String?
   name               String
   description        String?      @db.Text
   costPrice          Int?
@@ -134,7 +134,7 @@ model Repair {
   type          RepairType    @default(GENERAL)
   status        RepairStatus  @default(IN_PROGRESS)
   completedAt   DateTime?
-  paymentMethod PaymentMethod @default(CASH)
+  paymentMethod PaymentMethod?
   paidAt        DateTime?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt

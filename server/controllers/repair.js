@@ -1,3 +1,4 @@
+const { Prisma } = require("@prisma/client");
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
 const {
@@ -235,7 +236,9 @@ const createRepairItemsAndDecrementStock = async (
         side: item.side || null,
         unitPrice: item.unitPrice,
         quantity: item.quantity,
-        soldLots,
+        // ช่อง JSON ถ้าส่ง null ธรรมดา Prisma จะเก็บเป็นคำว่า null ในช่อง ไม่ใช่ช่องว่างของฐานข้อมูล
+        // ต้องบอกด้วย DbNull ว่าให้เว้นช่องไว้จริงๆ (รายการที่ไม่ใช่ยางไม่มีล็อตให้เก็บ)
+        soldLots: soldLots ?? Prisma.DbNull,
         repairId,
         partId: item.partId,
         serviceId: item.serviceId,
@@ -254,6 +257,19 @@ exports.listRepairs = async (req, res, next) => {
   try {
     const repairs = await prisma.repair.findMany({
       include: {
+        customer: {
+          select: {
+            name: true,
+          },
+        },
+        // ชื่อรายการใช้ตั้งหัวการ์ดของบิลที่ไม่ผูกกับรถ (ดู getRepairTitle ฝั่งหน้าเว็บ)
+        // partId ไว้แยกว่าบรรทัดไหนเป็นอะไหล่ หัวการ์ดเอาเฉพาะชื่องานบริการ
+        repairItems: {
+          select: {
+            itemName: true,
+            partId: true,
+          },
+        },
         vehicle: {
           include: {
             licensePlate: {

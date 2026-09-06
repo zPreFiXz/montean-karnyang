@@ -18,6 +18,7 @@ import { deleteService } from "@/api/service";
 import { useNavigate } from "react-router";
 import { updateStockSchema } from "@/utils/schemas";
 import useAuthStore from "@/stores/useAuthStore";
+import { formatProductName } from "@/utils/tireSize";
 import { formatCurrency } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
@@ -196,14 +197,13 @@ const RepairItemDetailDialog = ({
 
   const itemDisplayName = (() => {
     if (isService) return `${currentItem.name}`;
-    if (isTire && currentItem.attributes) {
-      const t = currentItem.attributes;
-      if (t.aspectRatio) {
-        return `${currentItem.brand} ${t.width}/${t.aspectRatio}R${t.rimDiameter} ${currentItem.name}`;
-      }
-      return `${currentItem.brand} ${t.width}R${t.rimDiameter} ${currentItem.name}`;
-    }
-    return `${currentItem.brand} ${currentItem.name}`;
+
+    return formatProductName({
+      brand: currentItem.brand,
+      name: currentItem.name,
+      attributes: currentItem.attributes,
+      isTire,
+    });
   })();
 
   const renderProductInfo = () => {

@@ -111,7 +111,8 @@ exports.repairSchema = z
 exports.partSchema = z
   .object({
     partNumber: z.string().min(1, "กรุณากรอกรหัสอะไหล่"),
-    brand: z.string().min(1, "กรุณากรอกยี่ห้อ"),
+    // อะไหล่บางอย่างไม่มียี่ห้อ (ของทำเอง ของโหล) ปล่อยว่างได้
+    brand: z.string().optional(),
     name: z.string().min(1, "กรุณากรอกชื่ออะไหล่"),
     costPrice: z.coerce.number().optional(),
     sellingPrice: z.coerce.number(),

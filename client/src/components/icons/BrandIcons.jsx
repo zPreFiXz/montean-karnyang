@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Car } from "./Icons";
 
 const ICON_SIZE = "w-[45px] h-[45px]";
@@ -6,19 +6,21 @@ const IMAGE_SIZE = "w-[35px] h-[35px]";
 const ICON_BASE_STYLE =
   "flex items-center justify-center border-2 rounded-full bg-surface";
 
+// นามสกุลไฟล์ระบุไว้ตรงๆ ไม่ใช่ลองยิง .png ก่อนแล้วค่อยตกไป .jpg
+// เพราะยี่ห้อที่เป็น .jpg จะเสียเวลาไปกับคำขอที่ 404 ทุกครั้ง แล้วโชว์ไอคอนรถเปล่าคั่นระหว่างรอ
 const BRAND_MAP = {
-  toyota: "Toyota",
-  honda: "Honda",
-  isuzu: "Isuzu",
-  nissan: "Nissan",
-  mazda: "Mazda",
-  mitsubishi: "Mitsubishi",
-  ford: "Ford",
-  suzuki: "Suzuki",
-  mg: "MG",
-  chevrolet: "Chevrolet",
-  hyundai: "Hyundai",
-  tata: "Tata",
+  toyota: { label: "Toyota", file: "toyota.png" },
+  honda: { label: "Honda", file: "honda.png" },
+  isuzu: { label: "Isuzu", file: "isuzu.jpg" },
+  nissan: { label: "Nissan", file: "nissan.png" },
+  mazda: { label: "Mazda", file: "mazda.png" },
+  mitsubishi: { label: "Mitsubishi", file: "mitsubishi.png" },
+  ford: { label: "Ford", file: "ford.png" },
+  suzuki: { label: "Suzuki", file: "suzuki.png" },
+  mg: { label: "MG", file: "mg.png" },
+  chevrolet: { label: "Chevrolet", file: "chevrolet.png" },
+  hyundai: { label: "Hyundai", file: "hyundai.png" },
+  tata: { label: "Tata", file: "tata.png" },
 };
 
 const findBrandKey = (brandText) => {
@@ -29,41 +31,20 @@ const findBrandKey = (brandText) => {
   return null;
 };
 
-const BrandImage = ({ brandKey, alt, fallbackIcon, borderColor }) => {
-  const imagePaths = useMemo(
-    () => [`/brands/${brandKey}.png`, `/brands/${brandKey}.jpg`],
-    [brandKey],
-  );
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [allFailed, setAllFailed] = useState(false);
-
-  const handleImageError = () => {
-    if (currentIndex < imagePaths.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      setImageLoaded(false);
-    } else {
-      setAllFailed(true);
-    }
-  };
-
-  const showFallback = allFailed || !imageLoaded;
+const BrandImage = ({ file, alt, fallbackIcon, borderColor }) => {
+  const [failed, setFailed] = useState(false);
 
   return (
     <div className={`${ICON_SIZE} ${ICON_BASE_STYLE}`} style={{ borderColor }}>
-      {!allFailed && (
+      {failed ? (
+        <div className="flex items-center justify-center">{fallbackIcon}</div>
+      ) : (
         <img
-          key={imagePaths[currentIndex]}
-          src={imagePaths[currentIndex]}
+          src={`/brands/${file}`}
           alt={alt}
           className={`${IMAGE_SIZE} object-contain`}
-          onLoad={() => setImageLoaded(true)}
-          onError={handleImageError}
-          style={{ display: imageLoaded ? "block" : "none" }}
+          onError={() => setFailed(true)}
         />
-      )}
-      {showFallback && (
-        <div className="flex items-center justify-center">{fallbackIcon}</div>
       )}
     </div>
   );
@@ -75,8 +56,8 @@ const BrandIcons = ({ brand, color = "#1976d2" }) => {
   if (brandKey) {
     return (
       <BrandImage
-        brandKey={brandKey}
-        alt={`${BRAND_MAP[brandKey]} Logo`}
+        file={BRAND_MAP[brandKey].file}
+        alt={`${BRAND_MAP[brandKey].label} Logo`}
         fallbackIcon={<Car color={color} />}
         borderColor={color}
       />

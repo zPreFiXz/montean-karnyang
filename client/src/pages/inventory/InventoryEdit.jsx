@@ -1,4 +1,5 @@
 import FormInput from "@/components/forms/FormInput";
+import TireConstructionToggle from "@/components/forms/TireConstructionToggle";
 import { useForm } from "react-hook-form";
 import FormButton from "@/components/forms/FormButton";
 import { updatePart } from "@/api/part";
@@ -24,6 +25,7 @@ import { getInventory } from "@/api/inventory";
 import { useParams, useSearchParams } from "react-router";
 import useAuthStore from "@/stores/useAuthStore";
 import { toastError } from "@/utils/handleError";
+import { DEFAULT_TIRE_CONSTRUCTION } from "@/utils/tireSize";
 import { withMinDuration } from "@/utils/withMinDuration";
 import { sortTireLots } from "@/utils/tireLot";
 import { SIDE_OPTIONS, toPerSide, toSideOptionId } from "@/utils/suspension";
@@ -127,6 +129,11 @@ const InventoryEdit = () => {
             setValue("width", item.attributes.width);
             setValue("aspectRatio", item.attributes.aspectRatio || "");
             setValue("rimDiameter", item.attributes.rimDiameter);
+            // ยางที่บันทึกไว้ก่อนมีปุ่มนี้ไม่มีค่า ถือว่าเป็นเรเดียลตามที่เคยแสดงมาตลอด
+            setValue(
+              "construction",
+              item.attributes.construction || DEFAULT_TIRE_CONSTRUCTION,
+            );
             // แปลงค่าที่เก็บ (perSide) กลับเป็นตัวเลือกในฟอร์ม รองรับข้อมูลเก่าที่ยังไม่ได้ย้ายด้วย
             setValue("suspensionType", toSideOptionId(item.attributes), {
               shouldValidate: true,
@@ -242,6 +249,7 @@ const InventoryEdit = () => {
       "width",
       "aspectRatio",
       "rimDiameter",
+      "construction",
       "tireLots",
       "suspensionType",
     ]);
@@ -334,6 +342,7 @@ const InventoryEdit = () => {
                 width: data.width,
                 aspectRatio: data.aspectRatio,
                 rimDiameter: data.rimDiameter,
+                construction: data.construction || DEFAULT_TIRE_CONSTRUCTION,
               }
             : isSuspensionCategory()
               ? {
@@ -564,9 +573,10 @@ const InventoryEdit = () => {
                         }}
                       />
 
-                      <span className="text-subtle-dark flex h-[41px] shrink-0 items-center text-xl font-medium md:text-[22px]">
-                        R
-                      </span>
+                      <TireConstructionToggle
+                        value={watch("construction")}
+                        onChange={(next) => setValue("construction", next)}
+                      />
 
                       <FormInput
                         register={register}

@@ -146,6 +146,8 @@ export const partServiceSchema = z
     width: z.string().optional(),
     aspectRatio: z.string().optional(),
     rimDiameter: z.string().optional(),
+    // ตัวคั่นขนาดยาง R = เรเดียล ขีด = ผ้าใบ ไม่ได้เลือกถือว่าเรเดียล
+    construction: z.enum(["R", "-"]).optional(),
     tireLots: z
       .array(
         z.object({
@@ -196,14 +198,6 @@ export const partServiceSchema = z
           code: z.ZodIssueCode.custom,
           message: "กรุณากรอกรหัสอะไหล่",
           path: ["partNumber"],
-        });
-      }
-
-      if (!data.brand || data.brand.trim() === "") {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกยี่ห้อ",
-          path: ["brand"],
         });
       }
 
@@ -283,14 +277,6 @@ export const partServiceSchema = z
         });
       }
 
-      if (!data.brand || data.brand.trim() === "") {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกยี่ห้อ",
-          path: ["brand"],
-        });
-      }
-
       if (!data.name || data.name.trim() === "") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -319,14 +305,6 @@ export const partServiceSchema = z
           code: z.ZodIssueCode.custom,
           message: "กรุณากรอกรหัสอะไหล่",
           path: ["partNumber"],
-        });
-      }
-
-      if (!data.brand || data.brand.trim() === "") {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "กรุณากรอกยี่ห้อ",
-          path: ["brand"],
         });
       }
 

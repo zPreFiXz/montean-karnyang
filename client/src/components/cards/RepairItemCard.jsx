@@ -1,6 +1,7 @@
 import { Image, Wrench } from "lucide-react";
 import { formatCurrency } from "@/utils/formats";
 import { soldLotEntries } from "@/utils/tireLot";
+import { formatProductName } from "@/utils/tireSize";
 
 const RepairItemCard = ({ item, variant }) => {
   const renderProductInfo = (item) => {
@@ -13,29 +14,14 @@ const RepairItemCard = ({ item, variant }) => {
       );
     }
 
-    const isTire = item.category?.name === "ยาง";
-
-    if (isTire && item.attributes && item.attributes.aspectRatio) {
-      return (
-        <p className="text-normal line-clamp-2 text-base font-semibold md:text-lg">
-          {item.brand} {item.attributes.width}/{item.attributes.aspectRatio}R
-          {item.attributes.rimDiameter} {item.name}
-        </p>
-      );
-    }
-
-    if (isTire && item.attributes) {
-      return (
-        <p className="text-normal line-clamp-2 text-base font-semibold md:text-lg">
-          {item.brand} {item.attributes.width}R{item.attributes.rimDiameter}{" "}
-          {item.name}
-        </p>
-      );
-    }
-
     return (
       <p className="text-normal line-clamp-2 text-base font-semibold md:text-lg">
-        {item.brand} {item.name}
+        {formatProductName({
+          brand: item.brand,
+          name: item.name,
+          attributes: item.attributes,
+          isTire: item.category?.name === "ยาง",
+        })}
       </p>
     );
   };

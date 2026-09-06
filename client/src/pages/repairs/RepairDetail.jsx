@@ -75,7 +75,7 @@ const RepairDetail = () => {
     try {
       const res = await getRepair(id);
       setRepair(res.data);
-      setSelectedPaymentMethod(res.data.paymentMethod);
+      setSelectedPaymentMethod(res.data.paymentMethod || "");
     } catch (error) {
       toastError(error);
     } finally {
@@ -169,6 +169,13 @@ const RepairDetail = () => {
     const needsPaymentMethod =
       nextStatus === "PAID" ||
       (repair.status === "COMPLETED" && nextStatus === "PAID");
+
+    // ไม่เลือกวิธีชำระเงินแล้วปิดบิลไปเลยได้ ยอดจะไปโผล่ในรายงานโดยไม่รู้ว่ารับเงินมาทางไหน
+    // เซิร์ฟเวอร์ปล่อยผ่านเพราะเก็บเฉพาะตอนที่ส่งค่ามา จึงต้องกันตั้งแต่ตรงนี้
+    if (needsPaymentMethod && !selectedPaymentMethod) {
+      toast.error("กรุณาเลือกวิธีชำระเงิน");
+      return;
+    }
 
     try {
       if (skipToCompleted) {
@@ -773,7 +780,7 @@ const RepairDetail = () => {
                       onValueChange={(value) => setSelectedPaymentMethod(value)}
                     >
                       <SelectTrigger className="text-normal focus:ring-primary/20 focus:border-primary bg-surface w-auto min-w-[140px] cursor-pointer rounded-[20px] border px-[12px] py-[8px] text-lg font-medium duration-300 ease-in-out focus:border-2 focus:ring-3 focus:outline-none">
-                        <SelectValue />
+                        <SelectValue placeholder="กรุณาเลือก" />
                       </SelectTrigger>
                       <SelectContent className="font-athiti font-medium">
                         {PAYMENT_METHODS.map((method) => (
