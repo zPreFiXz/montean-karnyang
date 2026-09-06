@@ -41,6 +41,8 @@ const ComboBox = ({
   disabled = false,
   customClass = "",
   searchable,
+  // ช่องที่อยู่ในแถวแคบๆ ให้หน้าที่เรียกใช้ไปแสดงข้อความรวมเองใต้แถว (เหมือน FormInput)
+  hideErrorMessage = false,
 }) => {
   // เกิน 10 ตัวเลือกค่อยมีช่องค้นหา — น้อยกว่านั้นกวาดตาหาเร็วกว่าพิมพ์
   // ส่งค่า searchable มาเองได้ถ้าต้องการบังคับ
@@ -231,7 +233,7 @@ const ComboBox = ({
           </PopoverContent>
         </Popover>
       </div>
-      {hasError && (
+      {hasError && !hideErrorMessage && (
         <div className="mt-[6px] flex items-center gap-[4px] px-[4px]">
           <AlertCircle className="text-destructive h-4 w-4 flex-shrink-0" />
           <p className="text-destructive text-lg font-medium md:text-xl">

@@ -244,7 +244,7 @@ const RepairReview = () => {
                   options={PAYMENT_METHODS}
                   value={paymentMethod}
                   onChange={setPaymentMethod}
-                  placeholder="กรุณาเลือก"
+                  placeholder="-- เลือกวิธีชำระเงิน --"
                   name="paymentMethod"
                 />
               </div>

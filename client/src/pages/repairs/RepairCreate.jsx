@@ -128,7 +128,7 @@ const RepairCreate = () => {
       location.state || (!draftRestoredRef.current && loadDraft(DRAFT_REPAIR));
     draftRestoredRef.current = true;
     // บอกให้รู้ว่าของที่เห็นมาจากไหน ไม่งั้นเปิดหน้าบิลใหม่แล้วเจอข้อมูลกรอกไว้จะงงว่าซ้ำกับอะไร
-    if (restored && !location.state) toast.info("นำข้อมูลที่ค้างไว้กลับมาแล้ว");
+    if (restored && !location.state) toast.info("กู้คืนข้อมูลที่กรอกไว้แล้ว");
 
     if (restored) {
       const { repairData, repairItems: savedItems } = restored;

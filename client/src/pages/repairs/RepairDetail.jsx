@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
 import { getRepair, updateRepairStatus, deleteRepair } from "@/api/repair";
 import { withMinDuration } from "@/utils/withMinDuration";
@@ -30,13 +30,8 @@ import {
 import BrandIcons from "@/components/icons/BrandIcons";
 import FormButton from "@/components/forms/FormButton";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import ComboBox from "@/components/ui/ComboBox";
+import FieldErrorList from "@/components/forms/FieldErrorList";
 import { toast } from "sonner";
 import RepairItemCard from "@/components/cards/RepairItemCard";
 import { toastError } from "@/utils/handleError";
@@ -63,6 +58,9 @@ const RepairDetail = () => {
   const [isUpdatingSkip, setIsUpdatingSkip] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
+  // ช่องที่ยังไม่ได้เลือกขึ้นกรอบแดงใต้ช่องเหมือนฟอร์มอื่นในระบบ ไม่ใช่เด้งข้อความแล้วหายไป
+  const [paymentMethodError, setPaymentMethodError] = useState("");
+  const paymentSectionRef = useRef(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -170,18 +168,27 @@ const RepairDetail = () => {
       nextStatus === "PAID" ||
       (repair.status === "COMPLETED" && nextStatus === "PAID");
 
-    // ไม่เลือกวิธีชำระเงินแล้วปิดบิลไปเลยได้ ยอดจะไปโผล่ในรายงานโดยไม่รู้ว่ารับเงินมาทางไหน
-    // เซิร์ฟเวอร์ปล่อยผ่านเพราะเก็บเฉพาะตอนที่ส่งค่ามา จึงต้องกันตั้งแต่ตรงนี้
-    if (needsPaymentMethod && !selectedPaymentMethod) {
-      toast.error("กรุณาเลือกวิธีชำระเงิน");
-      return;
-    }
-
     try {
       if (skipToCompleted) {
         setIsUpdatingSkip(true);
       } else {
         setIsUpdating(true);
+      }
+
+      // ไม่เลือกวิธีชำระเงินแล้วปิดบิลไปเลยได้ ยอดจะไปโผล่ในรายงานโดยไม่รู้ว่ารับเงินมาทางไหน
+      // เซิร์ฟเวอร์ปล่อยผ่านเพราะเก็บเฉพาะตอนที่ส่งค่ามา จึงต้องกันตั้งแต่ตรงนี้
+      //
+      // หน่วงเท่าจังหวะบันทึกจริงก่อนค่อยเตือน ปุ่มจะได้หมุนเหมือนกดครั้งอื่น
+      // ไม่ใช่เด้งเตือนทันทีจนไม่แน่ใจว่ากดติดหรือระบบไม่ทำงาน
+      if (needsPaymentMethod && !selectedPaymentMethod) {
+        await withMinDuration(() => Promise.resolve());
+        setPaymentMethodError("กรุณาเลือกวิธีชำระเงิน");
+        // ปุ่มอยู่ล่างสุดของหน้า ถ้าไม่พาไปหาช่องก็จะไม่เห็นว่าติดตรงไหน
+        paymentSectionRef.current?.scrollIntoView({
+          block: "center",
+          behavior: "smooth",
+        });
+        return;
       }
 
       const updateData = { status: nextStatus };
@@ -537,6 +544,22 @@ const RepairDetail = () => {
                 </div>
               </div>
             )}
+            {/* เลขไมล์เป็นข้อมูลของรถ ณ วันซ่อม อ่านคู่กับทะเบียนและลูกค้าด้านบน
+                ถ้าไปอยู่หลังยอดรวมจะกลายเป็นของแถมท้ายบิล เพราะยอดรวมเป็นจุดจบสายตาอยู่แล้ว */}
+            {/* เลขไมล์เป็นข้อมูลของรถ ณ วันซ่อม อ่านคู่กับทะเบียนและลูกค้าด้านบน
+                แถวเดียวจบ ไม่ต้องมีหัวข้อใหญ่ ไม่งั้นรายการซ่อมถูกดันลงไปไกลโดยไม่จำเป็น */}
+            {repair.mileage != null && (
+              <div className="mb-[16px] px-[20px]">
+                <div className="flex items-center justify-between rounded-[10px] bg-gray-50 p-[16px]">
+                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                    เลขกิโลเมตร:
+                  </p>
+                  <p className="text-normal text-lg font-semibold md:text-xl">
+                    {Number(repair.mileage).toLocaleString()} กม.
+                  </p>
+                </div>
+              </div>
+            )}
             {repair.repairItems && (
               <div className="mb-[16px] px-[20px]">
                 <div className="mb-[8px] flex items-center justify-between">
@@ -741,22 +764,10 @@ const RepairDetail = () => {
                 </div>
               </div>
             </div>
-            {repair.mileage != null && (
-              <div className="mb-[16px] px-[20px]">
-                <div className="flex items-center justify-between rounded-[10px] bg-gray-50 p-[16px]">
-                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                    เลขกิโลเมตร
-                  </p>
-                  <p className="text-normal text-lg font-semibold md:text-xl">
-                    {Number(repair.mileage).toLocaleString()} กม.
-                  </p>
-                </div>
-              </div>
-            )}
             {repair.description && (
               <div className="mb-[16px] px-[20px]">
                 <p className="text-normal mb-[16px] text-[22px] font-semibold md:text-2xl">
-                  รายละเอียดเพิ่มเติม
+                  รายละเอียดการซ่อม
                 </p>
                 <div className="rounded-[10px] bg-gray-50 p-[16px]">
                   <p className="text-normal text-lg leading-relaxed font-medium md:text-xl">
@@ -765,44 +776,52 @@ const RepairDetail = () => {
                 </div>
               </div>
             )}
-            <div className="mb-[16px] px-[20px]">
+            <div ref={paymentSectionRef} className="mb-[16px] px-[20px]">
               <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
                 การชำระเงิน
               </p>
               <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-[8px]">
                   <p className="text-subtle-dark text-lg font-medium md:text-xl">
                     วิธีชำระเงิน:
                   </p>
                   {repair.status !== "PAID" ? (
-                    <Select
-                      value={selectedPaymentMethod}
-                      onValueChange={(value) => setSelectedPaymentMethod(value)}
-                    >
-                      <SelectTrigger className="text-normal focus:ring-primary/20 focus:border-primary bg-surface w-auto min-w-[140px] cursor-pointer rounded-[20px] border px-[12px] py-[8px] text-lg font-medium duration-300 ease-in-out focus:border-2 focus:ring-3 focus:outline-none">
-                        <SelectValue placeholder="กรุณาเลือก" />
-                      </SelectTrigger>
-                      <SelectContent className="font-athiti font-medium">
-                        {PAYMENT_METHODS.map((method) => (
-                          <SelectItem
-                            key={method.id}
-                            className="cursor-pointer text-lg md:text-xl"
-                            value={method.id}
-                          >
-                            {method.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    // ใช้ตัวเดียวกับดรอปดาวน์อื่นทั้งระบบ หน้าตาจะได้ไม่หลุดไปคนละแบบ
+                    // คุมความกว้างจากข้างนอกเพราะแถวนี้เป็นป้ายซ้าย-ค่าขวา ไม่ใช่ช่องเต็มบรรทัดแบบในฟอร์ม
+                    <div className="w-[210px] shrink-0">
+                      <ComboBox
+                        options={PAYMENT_METHODS}
+                        value={selectedPaymentMethod}
+                        onChange={(value) => {
+                          setSelectedPaymentMethod(value);
+                          setPaymentMethodError("");
+                        }}
+                        placeholder="-- เลือกวิธีชำระเงิน --"
+                        customClass="text-lg md:text-xl"
+                        name="paymentMethod"
+                        errors={
+                          paymentMethodError
+                            ? { paymentMethod: { message: paymentMethodError } }
+                            : undefined
+                        }
+                        hideErrorMessage
+                      />
+                    </div>
                   ) : (
                     <p className="text-normal text-lg font-semibold md:text-xl">
                       {getPaymentMethodText(repair.paymentMethod)}
                     </p>
                   )}
                 </div>
+                {/* กินความกว้างเต็มกล่องเพื่อให้อยู่บรรทัดเดียว แล้วดันไปชิดขวา
+                    จะได้อยู่ใต้ช่องที่ต้องแก้ ไม่ใช่ใต้ป้ายที่ไม่มีอะไรให้ทำ */}
+                <FieldErrorList
+                  messages={[paymentMethodError]}
+                  className="items-end"
+                />
                 <div className="flex justify-between">
                   <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                    สถานะ:
+                    สถานะการซ่อม:
                   </p>
                   {/* อ่านจากสถานะจริงของบิล ไม่ใช่เดาจากเวลาที่ชำระเงิน
                       ไม่งั้นบิลที่ยังกำลังซ่อมจะขึ้นว่าซ่อมเสร็จสิ้น */}
@@ -834,7 +853,7 @@ const RepairDetail = () => {
                     {repair.completedAt && (
                       <div className="flex justify-between">
                         <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                          ซ่อมเสร็จ:
+                          ซ่อมเสร็จสิ้น:
                         </p>
                         <p className="text-normal text-lg font-medium md:text-xl">
                           {formatDate(repair.completedAt)} |{" "}

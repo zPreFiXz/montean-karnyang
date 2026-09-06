@@ -24,8 +24,10 @@ const PartPreviewDialog = ({ part, price, open, onOpenChange }) => {
         showCloseButton={false}
       >
         <div className="relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]">
-          <DialogTitle className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">
-            {part.name}
+          {/* หัวเรื่องบอกว่าหน้าต่างนี้คืออะไร ชื่ออะไหล่ไปอยู่ในเนื้อหาข้างล่าง
+              รูปแบบเดียวกับหน้าต่างแก้ราคาและหน้าต่างรายละเอียดอะไหล่ */}
+          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
+            รายละเอียดอะไหล่
           </DialogTitle>
           <DialogDescription className="sr-only">
             รูปและข้อมูลของ {part.name}
@@ -40,6 +42,10 @@ const PartPreviewDialog = ({ part, price, open, onOpenChange }) => {
         </div>
 
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px] pb-[16px]">
+          <h2 className="text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">
+            {part.name}
+          </h2>
+
           <div className="mt-[16px] flex justify-center">
             <div className="border-input flex aspect-square w-full max-w-[280px] items-center justify-center overflow-hidden rounded-[20px] border-2">
               {part.secureUrl ? (
