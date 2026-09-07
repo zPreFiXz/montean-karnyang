@@ -7,5 +7,14 @@ export const PAYMENT_METHODS = [
   { id: "CREDIT_CARD", name: "บัตรเครดิต" },
 ];
 
+// เครดิตไม่ใช่วิธีจ่ายเงิน แต่เป็นการบอกว่ายังไม่จ่าย ระบบจึงเก็บเป็นสถานะของบิลแทน
+// รวมไว้ในดรอปดาวน์เดียวกันเพราะคนหน้าร้านเลือกจากจุดเดียวกันตอนปิดงาน
+export const CREDIT_OPTION_ID = "CREDIT";
+
+export const PAYMENT_OPTIONS_WITH_CREDIT = [
+  ...PAYMENT_METHODS,
+  { id: CREDIT_OPTION_ID, name: "เครดิต" },
+];
+
 export const getPaymentMethodText = (method) =>
   PAYMENT_METHODS.find((item) => item.id === method)?.name || "";

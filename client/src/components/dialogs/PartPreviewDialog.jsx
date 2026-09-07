@@ -1,4 +1,5 @@
 import { X, Image as ImageIcon } from "lucide-react";
+import { SparePart } from "@/components/icons/Icons";
 import { formatCurrency } from "@/utils/formats";
 import {
   Dialog,
@@ -55,7 +56,7 @@ const PartPreviewDialog = ({ part, price, open, onOpenChange }) => {
                   className="h-full w-full object-contain"
                 />
               ) : (
-                <ImageIcon className="text-subtle-light h-12 w-12" />
+                <SparePart className="text-subtle-light h-20 w-20" />
               )}
             </div>
           </div>

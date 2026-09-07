@@ -34,9 +34,12 @@ const EditRepairItemDialog = ({
   );
   const initialName = isUntouchedName ? "" : currentName || "";
 
-  // ราคา 0 = ยังไม่ได้ตั้งราคา (รายการเปล่าอย่างค่าแรง) เปิดมาให้ช่องว่างพร้อมพิมพ์
-  // ไม่ใช่เลข 0 ที่ต้องลบทิ้งก่อน — ของที่ตั้งราคาไว้จริงยังขึ้นราคาเดิมให้แก้ตามปกติ
-  const initialPrice = Number(currentPrice) ? currentPrice.toString() : "";
+  // รายการเปล่าอย่างค่าแรงยังไม่ได้ตั้งราคา เปิดมาให้ช่องว่างพร้อมพิมพ์
+  // ของอื่นขึ้นราคาเดิมเสมอ รวมถึงราคา 0 ที่ตั้งใจตั้งไว้ (ของแถม) จะได้รู้ว่าเคยตั้งเป็น 0 ไว้จริง
+  const initialPrice =
+    isUntouchedName && !Number(currentPrice)
+      ? ""
+      : (currentPrice?.toString() ?? "");
 
   const {
     register,

@@ -4,7 +4,7 @@ const createError = require("../utils/createError");
 exports.listCategories = async (req, res, next) => {
   try {
     const categories = await prisma.category.findMany({
-      orderBy: { id: "asc" },
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     });
 
     res.json(categories);

@@ -30,6 +30,8 @@ const RepairReview = () => {
   const { repairData, repairItems, editRepairId } = location.state || {};
   const origin = location.state?.origin || location.state?.from;
   const statusSlug = location.state?.statusSlug;
+  const returnTo = location.state?.returnTo;
+  const currentDate = location.state?.currentDate;
   const vehicleId = location.state?.vehicleId;
   const isSale = repairData?.type === "SALE";
   // งานบริการไม่ได้ผูกกับรถ จึงไม่มีข้อมูลรถให้สรุปเหมือนบิลขาย
@@ -126,7 +128,10 @@ const RepairReview = () => {
         } else if (origin === "repair-status") {
           navigate(`/repairs?status=in-progress`);
         } else {
-          navigate(`/repairs/${editRepairId}`);
+          // กลับไปหน้าบิลพร้อมบอกว่ามาจากไหน ปุ่มย้อนกลับในหน้านั้นจะได้พากลับถูกที่
+          navigate(`/repairs/${editRepairId}`, {
+            state: { returnTo, currentDate },
+          });
         }
       } else {
         await withMinDuration(() => createRepair(repair));
@@ -162,6 +167,8 @@ const RepairReview = () => {
       origin,
       statusSlug,
       vehicleId,
+      returnTo,
+      currentDate,
       ...(!repairData.name || !repairData.name.trim()
         ? { hideMoreFields: true }
         : {}),

@@ -23,6 +23,8 @@
   --color-status-progress: #f59e0b;
   --color-status-completed: #22c55e;
   --color-status-paid: #1976d2;
+  /* เครดิต = ซ่อมเสร็จแล้วแต่ยังไม่ได้เงิน ใช้ม่วงเพราะไม่ชนกับส้ม/เขียว/น้ำเงินของสามสถานะเดิม */
+  --color-status-credit: #7c3aed;
   --color-destructive: #ef4444;
 }
 

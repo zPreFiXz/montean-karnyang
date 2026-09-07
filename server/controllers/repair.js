@@ -666,6 +666,13 @@ exports.updateRepairStatus = async (req, res, next) => {
 
     if (status === "COMPLETED") {
       data.completedAt = new Date();
+    } else if (status === "CREDIT") {
+      // ติดเงินไว้ = ซ่อมเสร็จแล้วแต่ยังไม่ได้เงิน ไม่ตั้งเวลาชำระเงินและไม่เก็บวิธีจ่าย
+      // ยอดจะยังไม่ไปโผล่ในรายงานยอดขายจนกว่าจะตัดเครดิต
+      if (!repair.completedAt) {
+        data.completedAt = new Date();
+      }
+      data.paymentMethod = null;
     } else if (status === "PAID") {
       data.paidAt = new Date();
 

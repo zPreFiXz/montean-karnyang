@@ -35,7 +35,8 @@ const CategoryList = ({
           ...item,
           icon: ICON_MAP[item.name] || DEFAULT_ICON,
         }))
-        .sort((a, b) => a.id - b.id);
+        // เรียงตามลำดับที่ตั้งไว้ในฐานข้อมูล ไม่ใช่ลำดับที่เพิ่มเข้าระบบ
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
       setCategory(categoryWithIcons);
     } catch (error) {
       toastError(error);

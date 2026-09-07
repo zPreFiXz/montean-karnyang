@@ -1,3 +1,60 @@
+import { Wallet } from "lucide-react";
+
+// ยางเปอร์เซ็นต์ (ยางมือสอง) — ยางเปล่าที่ยังไม่ได้ใส่ล้อ
+// วาดเป็นวงยางกับดอกยาง ไม่มีกระทะล้อกับซี่ล้อแบบไอคอนยางใหม่ จะได้แยกออกตอนกวาดตาดู
+export const UsedTire = () => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={48}
+      height={48}
+      viewBox="0 0 24 24"
+    >
+      <g
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      >
+        <circle cx="12" cy="12" r="10"></circle>
+        <circle cx="12" cy="12" r="5"></circle>
+        {/* ดอกยางรอบวง วาดด้วยเส้นประเพื่อให้ได้ร่องถี่ๆ โดยไม่ต้องไล่วาดทีละขีด */}
+        <circle
+          cx="12"
+          cy="12"
+          r="7.5"
+          strokeDasharray="1.6 2.4"
+          strokeWidth={1.2}
+        ></circle>
+      </g>
+    </svg>
+  );
+};
+
+// อะไหล่ — วาดเป็นน็อตหกเหลี่ยม อ่านออกง่ายที่สุดในขนาดเล็ก
+// ไม่ใช้เฟือง เพราะชนกับไอคอนหมวดระบบส่งกำลัง และไม่ใช้ประแจ เพราะนั่นคืองานบริการ
+export const SparePart = ({ className = "" }) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M20.5 12 16.25 19.36 7.75 19.36 3.5 12 7.75 4.64 16.25 4.64Z" />
+      <circle cx="12" cy="12" r="3.6" />
+    </svg>
+  );
+};
+
+// ไอคอนสถานะเครดิต — ใช้ชุดเดียวกับไอคอนสถานะอื่นที่เป็นสีขาวบนวงกลมสี
+export const Credit = () => <Wallet className="h-7 w-7 text-white" />;
+
 export const Garage = () => {
   return (
     <svg

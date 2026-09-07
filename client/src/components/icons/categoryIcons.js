@@ -12,17 +12,19 @@ import {
   Light,
   Wiper,
   Suspension,
+  UsedTire,
 } from "@/components/icons/Icons";
 
 export const ICON_MAP = {
   บริการ: ToolBox,
   ช่วงล่าง: Suspension,
   ยาง: Tire,
+  ยางเปอร์เซ็นต์: UsedTire,
   ยางใน: Innertube,
-  น้ำมันเครื่อง: Oil,
+  น้ำมัน: Oil,
   เบรค: Brake,
   โช๊คอัพ: Shock,
-  "คลัช-เกียร์": Gear,
+  ระบบส่งกำลัง: Gear,
   แบตเตอรี่: Battery,
   ระบบไฟฟ้า: Light,
   สายพาน: Belt,

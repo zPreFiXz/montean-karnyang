@@ -17,7 +17,11 @@ import { useNavigate, useSearchParams } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { partServiceSchema } from "@/utils/schemas";
 import { units, TIRE_UNIT } from "@/constants/units";
-import { VEHICLE_COMPATIBLE_CATEGORIES } from "@/constants/categories";
+import {
+  VEHICLE_COMPATIBLE_CATEGORIES,
+  isTireCategoryName,
+  getCategoryKind,
+} from "@/constants/categories";
 import { ChevronLeft } from "lucide-react";
 import FieldErrorList from "@/components/forms/FieldErrorList";
 import { toastError } from "@/utils/handleError";
@@ -74,7 +78,8 @@ const InventoryCreate = () => {
       const preset = res.data?.find((cat) => cat.name === presetCategory);
       if (preset) {
         setValue("categoryId", preset.id);
-        if (preset.name === "ยาง") setValue("unit", TIRE_UNIT);
+        setValue("categoryKind", getCategoryKind(preset.name));
+        if (isTireCategoryName(preset.name)) setValue("unit", TIRE_UNIT);
       }
     } catch (error) {
       toastError(error);
@@ -101,7 +106,7 @@ const InventoryCreate = () => {
     const selectedCategory = category.find(
       (cat) => cat.id === selectedCategoryId,
     );
-    return selectedCategory?.name === "ยาง";
+    return isTireCategoryName(selectedCategory?.name);
   };
 
   const isSuspensionCategory = () => {
@@ -121,11 +126,16 @@ const InventoryCreate = () => {
   };
 
   const handleCategoryChange = (value) => {
+    const name = category.find((cat) => cat.id === value)?.name;
     setValue("categoryId", value);
+    // ตัวตรวจข้อมูลดูจากชนิดหมวดหมู่ ไม่ใช่รหัส เพราะรหัสของแต่ละเครื่องไม่ตรงกัน
+    setValue("categoryKind", getCategoryKind(name));
 
     // ยางนับเป็นเส้นเสมอ เลยซ่อนช่องหน่วยแล้วกรอกให้แทน
     // สลับออกจากยางต้องล้างค่าคืน ไม่งั้นอะไหล่จะติดหน่วย "เส้น" มาโดยไม่ได้เลือกเอง
-    const isTire = category.find((cat) => cat.id === value)?.name === "ยาง";
+    const isTire = isTireCategoryName(
+      category.find((cat) => cat.id === value)?.name,
+    );
     setValue("unit", isTire ? TIRE_UNIT : "");
 
     clearErrors([

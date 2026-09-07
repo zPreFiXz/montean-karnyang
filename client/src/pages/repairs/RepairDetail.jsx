@@ -11,6 +11,7 @@ import {
 import {
   ChevronLeft,
   CreditCard,
+  Wallet,
   Clock,
   CheckCircle2,
   LoaderCircle,
@@ -31,6 +32,7 @@ import BrandIcons from "@/components/icons/BrandIcons";
 import FormButton from "@/components/forms/FormButton";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import ComboBox from "@/components/ui/ComboBox";
+import { isPartPlaceholderItem } from "@/constants/services";
 import FieldErrorList from "@/components/forms/FieldErrorList";
 import { toast } from "sonner";
 import RepairItemCard from "@/components/cards/RepairItemCard";
@@ -39,6 +41,8 @@ import { groupBySidePairs } from "@/utils/repairItemGroups";
 import { isPerSide } from "@/utils/suspension";
 import {
   PAYMENT_METHODS,
+  PAYMENT_OPTIONS_WITH_CREDIT,
+  CREDIT_OPTION_ID,
   getPaymentMethodText,
 } from "@/constants/paymentMethods";
 import {
@@ -60,6 +64,7 @@ const RepairDetail = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
   // ช่องที่ยังไม่ได้เลือกขึ้นกรอบแดงใต้ช่องเหมือนฟอร์มอื่นในระบบ ไม่ใช่เด้งข้อความแล้วหายไป
   const [paymentMethodError, setPaymentMethodError] = useState("");
+  const isCreditSelected = selectedPaymentMethod === CREDIT_OPTION_ID;
   const paymentSectionRef = useRef(null);
 
   useEffect(() => {
@@ -114,6 +119,16 @@ const RepairDetail = () => {
           iconColor: "#22c55e",
           icon: CheckCircle2,
         };
+      case "CREDIT":
+        return {
+          text: "เครดิต",
+          color: "text-status-credit",
+          bg: "bg-status-credit",
+          softBorder: "border-status-credit/30",
+          softBg: "from-status-credit/10 to-status-credit/5",
+          iconColor: "#7c3aed",
+          icon: Wallet,
+        };
       case "PAID":
         return {
           text: "ชำระเงินแล้ว",
@@ -133,15 +148,20 @@ const RepairDetail = () => {
       case "IN_PROGRESS":
         return "COMPLETED";
       case "COMPLETED":
+      case "CREDIT":
         return "PAID";
     }
   };
 
+  // ปุ่มบอกสิ่งที่จะเกิดขึ้นจริง เลือกเครดิตไว้แล้วกดปุ่มนี้คือยังไม่ได้เก็บเงิน
+  // ถ้าปล่อยให้เขียนว่าชำระเงินเหมือนเดิม คนกดจะเข้าใจว่าเก็บเงินไปแล้ว
   const getNextStatusText = (currentStatus) => {
     switch (currentStatus) {
       case "IN_PROGRESS":
         return "ยืนยันการซ่อมเสร็จสิ้น";
       case "COMPLETED":
+        return isCreditSelected ? "ยืนยันการลงเครดิต" : "ยืนยันการชำระเงิน";
+      case "CREDIT":
         return "ยืนยันการชำระเงิน";
     }
   };
@@ -151,6 +171,7 @@ const RepairDetail = () => {
       case "IN_PROGRESS":
         return "bg-status-completed";
       case "COMPLETED":
+      case "CREDIT":
         return "bg-status-paid";
     }
   };
@@ -161,12 +182,18 @@ const RepairDetail = () => {
     if (skipToCompleted && isUpdatingSkip) return;
     if (!skipToCompleted && isUpdating) return;
 
-    const nextStatus = skipToCompleted ? "PAID" : getNextStatus(repair.status);
+    // เลือกเครดิตมีผลเฉพาะจังหวะที่กำลังจะเก็บเงิน
+    // ปุ่มยืนยันการซ่อมเสร็จสิ้นของบิลที่ยังซ่อมอยู่ ยังเดินไปสถานะซ่อมเสร็จสิ้นตามปกติ
+    const nextStatus = skipToCompleted
+      ? isCreditSelected
+        ? "CREDIT"
+        : "PAID"
+      : repair.status === "COMPLETED" && isCreditSelected
+        ? "CREDIT"
+        : getNextStatus(repair.status);
     if (!nextStatus) return;
 
-    const needsPaymentMethod =
-      nextStatus === "PAID" ||
-      (repair.status === "COMPLETED" && nextStatus === "PAID");
+    const needsPaymentMethod = nextStatus === "PAID";
 
     try {
       if (skipToCompleted) {
@@ -193,13 +220,16 @@ const RepairDetail = () => {
 
       const updateData = { status: nextStatus };
 
+      // สถานะเครดิตไม่ส่งวิธีชำระเงินไป เพราะยังไม่รู้ว่าลูกค้าจะจ่ายทางไหนตอนมาตัดเครดิต
       if (needsPaymentMethod) {
         updateData.paymentMethod = selectedPaymentMethod;
       }
 
       await withMinDuration(() => updateRepairStatus(repair.id, updateData));
 
-      if (skipToCompleted) {
+      if (nextStatus === "CREDIT") {
+        toast.success("ลงเครดิตเรียบร้อยแล้ว");
+      } else if (skipToCompleted) {
         toast.success("ซ่อมเสร็จสิ้นและชำระเงินเรียบร้อยแล้ว");
       } else if (nextStatus === "COMPLETED") {
         toast.success("ซ่อมเสร็จเรียบร้อยแล้ว");
@@ -292,6 +322,8 @@ const RepairDetail = () => {
         brand: "",
         // ชื่อที่บันทึกไว้มาก่อน เพราะบริการอย่างค่าแรงพิมพ์ชื่อเองได้
         name: ri.itemName || ri.service?.name || "",
+        // ชื่อบนบรรทัดถูกพิมพ์ทับไปแล้ว ดูจากชื่อบริการต้นทางว่าเป็นบรรทัดอะไหล่ไหม
+        isPartLine: isPartPlaceholderItem(ri),
         sellingPrice: Number(ri.unitPrice),
         category: ri.service?.category,
         secureUrl: null,
@@ -362,6 +394,10 @@ const RepairDetail = () => {
           from: location.state?.from,
           statusSlug: location.state?.statusSlug,
           vehicleId: location.state?.vehicleId,
+          // ที่ที่เปิดบิลนี้ขึ้นมา (เช่นรายงานยอดขาย) ต้องติดไปตลอดทางแก้ไข
+          // ไม่งั้นบันทึกเสร็จแล้วกดย้อนกลับจะเด้งกลับไปหน้าสรุปที่เพิ่งผ่านมา
+          returnTo: location.state?.returnTo,
+          currentDate: location.state?.currentDate,
           hideMoreFields: !repairData.name?.trim(),
         },
       });
@@ -377,6 +413,8 @@ const RepairDetail = () => {
         from: location.state?.from,
         statusSlug: location.state?.statusSlug,
         vehicleId: location.state?.vehicleId,
+        returnTo: location.state?.returnTo,
+        currentDate: location.state?.currentDate,
         hideMoreFields: !repairData.name?.trim(),
       },
     });
@@ -790,7 +828,11 @@ const RepairDetail = () => {
                     // คุมความกว้างจากข้างนอกเพราะแถวนี้เป็นป้ายซ้าย-ค่าขวา ไม่ใช่ช่องเต็มบรรทัดแบบในฟอร์ม
                     <div className="w-[210px] shrink-0">
                       <ComboBox
-                        options={PAYMENT_METHODS}
+                        options={
+                          repair.status === "CREDIT"
+                            ? PAYMENT_METHODS
+                            : PAYMENT_OPTIONS_WITH_CREDIT
+                        }
                         value={selectedPaymentMethod}
                         onChange={(value) => {
                           setSelectedPaymentMethod(value);
@@ -899,7 +941,11 @@ const RepairDetail = () => {
                 />
                 {repair.status === "IN_PROGRESS" && (
                   <FormButton
-                    label="ยืนยันการซ่อมเสร็จสิ้นและชำระเงิน"
+                    label={
+                      isCreditSelected
+                        ? "ยืนยันการซ่อมเสร็จสิ้นและลงเครดิต"
+                        : "ยืนยันการซ่อมเสร็จสิ้นและชำระเงิน"
+                    }
                     isLoading={isUpdatingSkip}
                     disabled={isUpdatingSkip}
                     onClick={() => handleUpdateStatus(true)}

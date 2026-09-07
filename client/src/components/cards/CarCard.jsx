@@ -18,6 +18,7 @@ const CarCard = ({
     progress: "bg-status-progress",
     completed: "bg-status-completed",
     paid: "bg-status-paid",
+    credit: "bg-status-credit",
   };
 
   const textColorMap = {
@@ -25,6 +26,7 @@ const CarCard = ({
     progress: "text-status-progress",
     completed: "text-status-completed",
     paid: "text-status-paid",
+    credit: "text-status-credit",
   };
 
   return (

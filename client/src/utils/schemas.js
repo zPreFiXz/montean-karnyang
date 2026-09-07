@@ -126,21 +126,24 @@ export const partServiceSchema = z
   .object({
     // อะไหล่
     partNumber: z.string().optional(),
-    brand: z.string().optional(),
+    // ฐานข้อมูลเก็บ "ไม่มียี่ห้อ" เป็น null ไม่ใช่ข้อความว่าง แปลงให้เป็นข้อความว่างตั้งแต่ต้นทาง
+    // ไม่งั้นข้อความ error ดิบของไลบรารีจะหลุดไปโผล่หน้าผู้ใช้
+    brand: z.preprocess((v) => v ?? "", z.string().optional()),
     name: z.string().optional(),
     costPrice: z.preprocess(
       (v) => (v === "" || v == null ? undefined : v),
       z.coerce.number().optional(),
     ),
     sellingPrice: z.coerce.number().optional().default(0),
-    unit: z.string().optional(),
+    unit: z.preprocess((v) => v ?? "", z.string().optional()),
     stockQuantity: z.coerce.number().optional().default(0),
     minStockLevel: z.coerce.number().optional().default(0),
     attributes: z.any().optional(),
     compatibleVehicles: z.any().optional(),
-    description: z.string().optional(),
+    description: z.preprocess((v) => v ?? "", z.string().optional()),
     image: z.any().optional(),
     categoryId: z.number().optional(),
+    categoryKind: z.string().optional(),
 
     // ยาง
     width: z.string().optional(),
@@ -180,9 +183,15 @@ export const partServiceSchema = z
       return;
     }
 
-    const isServiceCategory = data.categoryId === 1;
-    const isSuspensionCategory = data.categoryId === 2;
-    const isTireCategory = data.categoryId === 3;
+    // ชนิดหมวดหมู่ส่งมาจากฟอร์ม (ดู getCategoryKind) เพราะรหัสหมวดของแต่ละเครื่องไม่ตรงกัน
+    // และยางมีสองหมวดแล้ว (ยางใหม่กับยางเปอร์เซ็นต์) เทียบรหัสตัวเดียวจึงไม่พอ
+    // เทียบรหัสไว้เป็นตาข่ายรองรับ เผื่อมีที่เรียกใช้เก่าที่ยังไม่ได้ส่ง categoryKind มา
+    const kind = data.categoryKind;
+    const isServiceCategory = kind ? kind === "service" : data.categoryId === 1;
+    const isSuspensionCategory = kind
+      ? kind === "suspension"
+      : data.categoryId === 2;
+    const isTireCategory = kind ? kind === "tire" : data.categoryId === 3;
 
     if (isServiceCategory) {
       if (!data.name || data.name.trim() === "") {
@@ -328,7 +337,15 @@ export const partServiceSchema = z
 
 export const editNamePriceSchema = z.object({
   name: z.string().min(1, "กรุณากรอกชื่อบริการ"),
-  price: z.coerce.number().min(1, "กรุณากรอกราคาต่อหน่วย"),
+  // ราคา 0 ใช้ได้จริง (ของแถม, บริการที่ไม่คิดเงิน) แต่เว้นว่างไม่ได้
+  // ต้องดักช่องว่างก่อน เพราะ coerce.number แปลง "" เป็น 0 ซึ่งจะผ่านไปเงียบๆ
+  price: z.preprocess(
+    (value) =>
+      typeof value === "string" && value.trim() === "" ? undefined : value,
+    z.coerce
+      .number({ error: "กรุณากรอกราคาต่อหน่วย" })
+      .min(0, "ราคาต้องไม่ติดลบ"),
+  ),
 });
 
 // ฟอร์มเพิ่มสต็อกใช้ schema เดียวสำหรับทั้งอะไหล่และยาง แล้วดูจากรูปร่างข้อมูลว่าเป็นแบบไหน

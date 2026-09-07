@@ -12,6 +12,11 @@ import { listCategories } from "@/api/category";
 import { toastError } from "@/utils/handleError";
 import { onKeyActivate } from "@/utils/a11y";
 import { sortServices } from "@/constants/services";
+import { getPartType } from "@/utils/suspension";
+import { isTireCategoryName } from "@/constants/categories";
+
+// เรียงชื่อชนิดอะไหล่ตามตัวอักษรไทย
+const thaiCollator = new Intl.Collator("th");
 
 // หน้าคลังกับไดอะล็อกเลือกอะไหล่ลงบิลคือหน้าจอเดียวกัน ต่างแค่ "กดการ์ดแล้วเกิดอะไร"
 // จึงรวมค้นหา/หมวดหมู่/ตัวกรองยาง/การจัดกลุ่ม/ข้อความว่างไว้ที่นี่ที่เดียว
@@ -53,6 +58,8 @@ const InventoryBrowser = ({
   const [rimDiameter, setRimDiameter] = useState(() =>
     initialTireFilter("rimDiameter"),
   );
+  // ช่วงล่างมีอะไหล่เป็นร้อยชิ้นแต่แบ่งเป็นชนิดไม่กี่แบบ กรองด้วยชนิดก่อนแล้วค่อยไล่หารุ่นรถ
+  const [partType, setPartType] = useState(() => initialTireFilter("partType"));
 
   const activeCategory = syncUrl
     ? searchParams.get("category") || "ทั้งหมด"
@@ -61,7 +68,7 @@ const InventoryBrowser = ({
   const category = activeCategory === "ทั้งหมด" ? null : activeCategory;
 
   const buildFilterParams = (override = {}) =>
-    activeCategory === "ยาง"
+    isTireCategoryName(activeCategory)
       ? { width, aspectRatio, rimDiameter, brand: tireBrand, ...override }
       : {};
 
@@ -84,18 +91,32 @@ const InventoryBrowser = ({
     const values = { width, aspectRatio, rimDiameter, brand: tireBrand };
 
     for (const [key, value] of Object.entries(values)) {
-      if (value && activeCategory === "ยาง") {
+      if (value && isTireCategoryName(activeCategory)) {
         next.set(key, value);
       } else {
         next.delete(key);
       }
     }
 
+    if (partType && activeCategory === "ช่วงล่าง") {
+      next.set("partType", partType);
+    } else {
+      next.delete("partType");
+    }
+
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [syncUrl, activeCategory, width, aspectRatio, rimDiameter, tireBrand]);
+  }, [
+    syncUrl,
+    activeCategory,
+    width,
+    aspectRatio,
+    rimDiameter,
+    tireBrand,
+    partType,
+  ]);
 
   const debouncedFilter = useDebouncedCallback(() => {
     handleFilter(category, search, buildFilterParams());
@@ -103,17 +124,18 @@ const InventoryBrowser = ({
 
   // โหลดใหม่เมื่อเปลี่ยนหมวด/คำค้น หรือถูกสั่งให้รีเฟรช — ตัวกรองยางมีเส้นทางของตัวเอง (debounce)
   useEffect(() => {
-    if (activeCategory !== "ยาง") {
+    if (!isTireCategoryName(activeCategory)) {
       setTireBrand("");
       setWidth("");
       setAspectRatio("");
       setRimDiameter("");
     }
+    if (activeCategory !== "ช่วงล่าง") setPartType("");
     // ส่งตัวกรองยางไปด้วยตั้งแต่โหลดครั้งแรก เผื่อกู้คืนมาจาก URL — ไม่งั้นจะเห็นยางทั้งหมดจนกว่าจะแตะตัวกรอง
     handleFilter(
       category,
       search,
-      activeCategory === "ยาง" ? buildFilterParams() : {},
+      isTireCategoryName(activeCategory) ? buildFilterParams() : {},
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, search, reloadToken]);
@@ -158,9 +180,21 @@ const InventoryBrowser = ({
     });
 
   const tireParts = useMemo(
-    () => partsList.filter((p) => p?.category?.name === "ยาง"),
-    [partsList],
+    // ตัวเลือกของตัวกรองมาจากยางในหมวดที่กำลังดูอยู่ ยางใหม่กับยางเปอร์เซ็นต์จึงไม่ปนกัน
+    () => partsList.filter((p) => p?.category?.name === activeCategory),
+    [partsList, activeCategory],
   );
+
+  // ชนิดอะไหล่ช่วงล่างที่มีอยู่จริงในคลัง เรียงตามตัวอักษรไทย
+  const partTypeOptions = useMemo(() => {
+    const types = partsList
+      .filter((p) => p?.category?.name === "ช่วงล่าง")
+      .map((p) => getPartType(p.name));
+
+    return Array.from(new Set(types)).sort((a, b) =>
+      thaiCollator.compare(a, b),
+    );
+  }, [partsList]);
 
   // ตัวเลือกของแต่ละช่องกรองด้วย "ช่องอื่นทั้งหมด" ยกเว้นตัวเอง เพื่อให้เลือกช่องไหนก่อนก็ได้
   const matchesExcept = (p, except, sel) =>
@@ -228,10 +262,16 @@ const InventoryBrowser = ({
       ? inventory.filter(matchesVehicle)
       : inventory;
 
+  // ชนิดอะไหล่ไม่ได้เก็บเป็นฟิลด์ จึงกรองฝั่งหน้าเว็บจากชื่อ ไม่ได้ส่งไปให้เซิร์ฟเวอร์กรอง
+  const filteredByPartType =
+    activeCategory === "ช่วงล่าง" && partType
+      ? filteredByVehicle.filter((item) => getPartType(item.name) === partType)
+      : filteredByVehicle;
+
   const visibleInventory =
     activeCategory === "บริการ"
-      ? sortServices(filteredByVehicle)
-      : filteredByVehicle;
+      ? sortServices(filteredByPartType)
+      : filteredByPartType;
 
   // หมวด "ทั้งหมด" แยกหัวข้อตามหมวดหมู่ เรียงกลุ่มให้ตรงกับแถบหมวดหมู่ด้านบน
   const inventoryGroups = useMemo(() => {
@@ -398,7 +438,7 @@ const InventoryBrowser = ({
         </button>
       )}
 
-      {activeCategory === "ยาง" && (
+      {isTireCategoryName(activeCategory) && (
         <div className="mt-[16px] flex w-full flex-col gap-[12px]">
           <div>
             <div className="mb-[8px] flex items-center justify-between">
@@ -446,6 +486,34 @@ const InventoryBrowser = ({
               "นิ้ว",
             )}
           </div>
+        </div>
+      )}
+
+      {activeCategory === "ช่วงล่าง" && (
+        <div className="mt-[16px] w-full">
+          <div className="mb-[8px] flex items-center justify-between">
+            <span className="text-xl font-medium md:text-[22px]">
+              ประเภทอะไหล่
+            </span>
+            {partType && (
+              <button
+                type="button"
+                onClick={() => setPartType("")}
+                className="text-destructive flex cursor-pointer items-center gap-[4px] text-lg font-semibold md:text-xl"
+              >
+                <X className="h-4 w-4" />
+                ล้างตัวกรอง
+              </button>
+            )}
+          </div>
+          <ComboBox
+            options={partTypeOptions.map((t) => ({ name: t }))}
+            value={partType}
+            onChange={setPartType}
+            placeholder="-- เลือกประเภทอะไหล่ --"
+            disabled={isFilterLocked(partTypeOptions, partType)}
+            customClass="text-lg md:text-xl"
+          />
         </div>
       )}
 

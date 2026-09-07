@@ -1,4 +1,5 @@
 const prisma = require("../config/prisma");
+const { buildPartItemName } = require("../utils/repairItemName");
 const createError = require("../utils/createError");
 
 // ยางส่งมาเป็นล็อต [{ dotCode, quantity }] — สต็อกรวม = ผลรวมทุกล็อต (stockQuantity เป็นตัวเลขหลักที่ต้องตรงกับล็อตเสมอ)
@@ -140,7 +141,19 @@ exports.updatePart = async (req, res, next) => {
         await tx.tireLot.deleteMany({ where: { partId: Number(id) } });
         data.tireLots = { create: lots };
       }
-      await tx.part.update({ where: { id: Number(id) }, data });
+      const part = await tx.part.update({
+        where: { id: Number(id) },
+        data,
+        include: { category: true },
+      });
+
+      // ชื่อในบิลเก่าตามชื่อในคลังเสมอ แก้ที่คลังที่เดียวแล้วประวัติเปลี่ยนตามทุกใบ
+      // อยู่ใน transaction เดียวกัน ถ้าอัปเดตชื่อไม่สำเร็จก็ไม่มีการแก้อะไหล่ด้วย
+      // (บริการไม่ทำแบบนี้ เพราะชื่อบนบรรทัดบริการเป็นชื่อที่ช่างพิมพ์เองในบิลใบนั้น)
+      await tx.repairItem.updateMany({
+        where: { partId: Number(id) },
+        data: { itemName: buildPartItemName(part) },
+      });
     });
 
     res.json({ message: "แก้ไขอะไหล่เรียบร้อยแล้ว" });

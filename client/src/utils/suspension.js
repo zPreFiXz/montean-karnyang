@@ -19,3 +19,11 @@ export const SIDE_OPTIONS = [
 export const toPerSide = (optionId) => optionId === "per-side";
 export const toSideOptionId = (attributes) =>
   isPerSide(attributes) ? "per-side" : "single";
+
+// ชื่ออะไหล่ช่วงล่างขึ้นต้นด้วยชนิดของมันเสมอ (ลูกหมากล่าง D-Max, โช้คหน้า Vigo)
+// จึงใช้คำแรกเป็นชนิดได้โดยไม่ต้องเพิ่มฟิลด์ในฐานข้อมูล
+// ข้อแลกเปลี่ยน: ตั้งชื่อไม่ตามแบบแผน อะไหล่ตัวนั้นจะกลายเป็นชนิดของตัวเอง
+export const getPartType = (name) =>
+  String(name || "")
+    .trim()
+    .split(/\s+/)[0] || "อื่นๆ";

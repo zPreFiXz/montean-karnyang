@@ -68,7 +68,8 @@ exports.repairSchema = z
             serviceId: z.number().optional(),
             unitPrice: z.coerce.number(),
             itemName: z.string().max(191).optional(),
-            quantity: z.coerce.number().min(1, "จำนวนอย่างน้อย 1"),
+            // น้ำมันขายครึ่งลิตรได้ จึงเช็กแค่ว่ามากกว่า 0 ไม่ใช่ต้องถึง 1
+            quantity: z.coerce.number().gt(0, "จำนวนต้องมากกว่า 0"),
             // client ส่งตัวพิมพ์เล็ก (UI state) → แปลงเป็นตัวใหญ่ให้ตรง enum Side ใน DB
             side: z.preprocess(
               (v) => (typeof v === "string" ? v.toUpperCase() : v),
@@ -160,7 +161,9 @@ exports.categorySchema = z.object({
 });
 
 exports.updateRepairStatusSchema = z.object({
-  status: z.enum(["COMPLETED", "PAID"], { message: "สถานะไม่ถูกต้อง" }),
+  status: z.enum(["COMPLETED", "CREDIT", "PAID"], {
+    message: "สถานะไม่ถูกต้อง",
+  }),
   paymentMethod: z
     .enum(["CASH", "CREDIT_CARD", "QR_CODE"], {
       message: "วิธีชำระเงินไม่ถูกต้อง",

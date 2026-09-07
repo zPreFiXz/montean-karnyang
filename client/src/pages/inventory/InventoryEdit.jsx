@@ -18,7 +18,11 @@ import { useNavigate } from "react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { partServiceSchema } from "@/utils/schemas";
 import { units, TIRE_UNIT } from "@/constants/units";
-import { VEHICLE_COMPATIBLE_CATEGORIES } from "@/constants/categories";
+import {
+  VEHICLE_COMPATIBLE_CATEGORIES,
+  isTireCategoryName,
+  getCategoryKind,
+} from "@/constants/categories";
 import { ChevronLeft, LoaderCircle } from "lucide-react";
 import FieldErrorList from "@/components/forms/FieldErrorList";
 import { getInventory } from "@/api/inventory";
@@ -107,28 +111,33 @@ const InventoryEdit = () => {
         }
 
         setValue("description", item.description || "");
+        setValue("categoryKind", getCategoryKind(item.category?.name));
 
         if (item.type === "service") {
           setValue("name", item.name);
           setValue("price", item.price);
         } else {
           setValue("partNumber", item.partNumber);
-          setValue("brand", item.brand);
-          setValue("name", item.name);
-          setValue("costPrice", item.costPrice);
+          // อะไหล่ที่ไม่มียี่ห้อเก็บเป็น null ในฐานข้อมูล แต่ช่องกรอกต้องการข้อความ
+          // ใส่ null ลงไปตรงๆ ตัวตรวจข้อมูลจะฟ้องว่าชนิดไม่ตรง ทั้งที่ผู้ใช้ไม่ได้ทำอะไรผิด
+          setValue("brand", item.brand || "");
+          setValue("name", item.name || "");
+          setValue("costPrice", item.costPrice ?? "");
           setValue("sellingPrice", item.sellingPrice);
           // ช่องหน่วยของยางถูกซ่อน ถ้าข้อมูลเก่าเป็นหน่วยอื่นก็แก้เองไม่ได้ จึงบังคับให้ตรงกันตอนโหลด
           setValue(
             "unit",
-            item.category?.name === "ยาง" ? TIRE_UNIT : item.unit,
+            isTireCategoryName(item.category?.name)
+              ? TIRE_UNIT
+              : item.unit || "",
           );
           setValue("stockQuantity", item.stockQuantity);
           setValue("minStockLevel", item.minStockLevel);
 
           if (item.attributes) {
-            setValue("width", item.attributes.width);
+            setValue("width", item.attributes.width || "");
             setValue("aspectRatio", item.attributes.aspectRatio || "");
-            setValue("rimDiameter", item.attributes.rimDiameter);
+            setValue("rimDiameter", item.attributes.rimDiameter || "");
             // ยางที่บันทึกไว้ก่อนมีปุ่มนี้ไม่มีค่า ถือว่าเป็นเรเดียลตามที่เคยแสดงมาตลอด
             setValue(
               "construction",
@@ -197,14 +206,14 @@ const InventoryEdit = () => {
 
   const isTireCategory = () => {
     if (inventory && inventory.category) {
-      return inventory.category.name === "ยาง";
+      return isTireCategoryName(inventory.category.name);
     }
 
     const selectedCategoryId = watch("categoryId");
     const selectedCategory = category.find(
       (cat) => cat.id === selectedCategoryId,
     );
-    return selectedCategory?.name === "ยาง";
+    return isTireCategoryName(selectedCategory?.name);
   };
 
   const isSuspensionCategory = () => {
@@ -229,11 +238,16 @@ const InventoryEdit = () => {
   };
 
   const handleCategoryChange = (value) => {
+    const name = category.find((cat) => cat.id === value)?.name;
     setValue("categoryId", value);
+    // ตัวตรวจข้อมูลดูจากชนิดหมวดหมู่ ไม่ใช่รหัส เพราะรหัสของแต่ละเครื่องไม่ตรงกัน
+    setValue("categoryKind", getCategoryKind(name));
 
     // ยางนับเป็นเส้นเสมอ เลยซ่อนช่องหน่วยแล้วกรอกให้แทน
     // สลับออกจากยางต้องล้างค่าคืน ไม่งั้นอะไหล่จะติดหน่วย "เส้น" มาโดยไม่ได้เลือกเอง
-    const isTire = category.find((cat) => cat.id === value)?.name === "ยาง";
+    const isTire = isTireCategoryName(
+      category.find((cat) => cat.id === value)?.name,
+    );
     setValue("unit", isTire ? TIRE_UNIT : "");
 
     clearErrors([

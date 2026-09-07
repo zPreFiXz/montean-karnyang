@@ -33,6 +33,14 @@ export function formatTime(dateString) {
   });
 }
 
+// จำนวนในบิลเก็บเป็นทศนิยมได้ (น้ำมันขายเป็นลิตร) แต่ของทั่วไปเป็นจำนวนเต็ม
+// 3 ต้องขึ้นว่า 3 ไม่ใช่ 3.00 ส่วน 3.5 ต้องคงทศนิยมไว้
+export function formatQuantity(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "0";
+  return String(Number(number.toFixed(2)));
+}
+
 export function formatCurrency(amount) {
   if (amount === null || amount === undefined) return "ไม่ระบุ";
   if (typeof amount !== "number") return "0 บาท";

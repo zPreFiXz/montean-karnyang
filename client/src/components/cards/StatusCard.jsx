@@ -3,6 +3,7 @@ const StatusCard = ({ bg, icon: Icon, label, amount }) => {
     progress: "bg-status-progress",
     completed: "bg-status-completed",
     paid: "bg-status-paid",
+    credit: "bg-status-credit",
   };
 
   return (

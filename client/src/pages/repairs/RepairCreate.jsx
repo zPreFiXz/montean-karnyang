@@ -12,6 +12,8 @@ import {
   ContactRound,
   ClipboardList,
   X,
+  ChevronUp,
+  ArrowUpDown,
 } from "lucide-react";
 import FormInput from "@/components/forms/FormInput";
 import CustomerNameInput from "@/components/forms/CustomerNameInput";
@@ -26,11 +28,19 @@ import ComboBox from "@/components/ui/ComboBox";
 import { listVehicleModels } from "@/api/vehicleModel";
 import { repairSchema } from "@/utils/schemas";
 import { provinces } from "@/constants/provinces";
-import { formatCurrency, formatPhone } from "@/utils/formats";
+import { formatCurrency, formatPhone, formatQuantity } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 import { isFreeformService } from "@/constants/services";
 import { formatProductName } from "@/utils/tireSize";
+import {
+  isTireCategoryName,
+  allowsDecimalQuantity,
+} from "@/constants/categories";
+import { isPartPlaceholderItem } from "@/constants/services";
+import { SparePart } from "@/components/icons/Icons";
+import EditQuantityDialog from "@/components/dialogs/EditQuantityDialog";
 import { onKeyActivate } from "@/utils/a11y";
+import { withViewTransition } from "@/utils/viewTransition";
 import { withOtherBrandLast } from "@/utils/vehicleBrand";
 import {
   DRAFT_REPAIR,
@@ -96,12 +106,22 @@ const RepairCreate = () => {
   const [brands, setBrands] = useState([]);
   const [restoredStockMap, setRestoredStockMap] = useState({});
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
+  const [quantityItem, setQuantityItem] = useState(null);
+  // โหมดจัดเรียง — แถวเปลี่ยนปุ่มลบ/เพิ่มจำนวนเป็นลูกศรขึ้นลง
+  // ไม่โชว์ลูกศรค้างไว้ตลอด เพราะแถวมีปุ่มแน่นอยู่แล้วบนจอมือถือ
+  const [isReordering, setIsReordering] = useState(false);
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [removingIndex, setRemovingIndex] = useState(null);
   // แถวที่กำลังยุบตัวก่อนหายจริง (ดู CollapsibleRow)
   const [leavingIndex, setLeavingIndex] = useState(null);
   const leaveHandledRef = useRef(false);
+  // แจกรหัสประจำแถวตอนของเข้ามาในบิล ใช้เป็น key ของ React และชื่อสำหรับอนิเมชันสลับที่
+  // ต้องแจกเอง ไม่ใช้รหัสอะไหล่ เพราะบิลเดิมมีอะไหล่ตัวเดียวกันได้หลายแถว (ช่วงล่างซ้าย-ขวา)
+  const nextRowId = useRef(0);
+  const withRowId = (item) =>
+    item.rowId ? item : { ...item, rowId: `row-${++nextRowId.current}` };
+
   // กู้ร่างได้ครั้งเดียวตอนเปิดหน้า ไม่งั้นร่างที่บันทึกระหว่างพิมพ์จะย้อนทับสิ่งที่พิมพ์อยู่
   const draftRestoredRef = useRef(false);
   // ข้อมูลรถที่ถูกล้างตอนสลับไปโหมดที่ไม่ผูกรถ เก็บไว้คืนให้เมื่อสลับกลับมา
@@ -162,7 +182,7 @@ const RepairCreate = () => {
 
         // รายการที่กู้คืนมาไม่ได้ผ่านไดอะล็อก จึงยังไม่มีเพดานของปุ่มบวกติดมาด้วย
         setRepairItems(
-          savedItems.map((it) => {
+          savedItems.map(withRowId).map((it) => {
             if (it.availableStock !== undefined) return it;
             const key = `${it.partNumber}|${it.brand}|${it.name || ""}`;
             return {
@@ -262,7 +282,7 @@ const RepairCreate = () => {
           brand: item.brand,
           name: item.name,
           attributes: item.attributes,
-          isTire: item.category?.name === "ยาง",
+          isTire: isTireCategoryName(item.category?.name),
         })}
       </p>
     );
@@ -296,6 +316,8 @@ const RepairCreate = () => {
         origin: location.state?.origin,
         statusSlug: location.state?.statusSlug,
         vehicleId: location.state?.vehicleId,
+        returnTo: location.state?.returnTo,
+        currentDate: location.state?.currentDate,
       },
     });
   };
@@ -367,6 +389,8 @@ const RepairCreate = () => {
           origin: location.state?.origin || location.state?.from,
           statusSlug: location.state?.statusSlug,
           vehicleId: location.state?.vehicleId,
+          returnTo: location.state?.returnTo,
+          currentDate: location.state?.currentDate,
           from: "create",
         },
       });
@@ -426,8 +450,10 @@ const RepairCreate = () => {
       } else {
         return [
           ...prev,
-          {
+          withRowId({
             ...item,
+            // จำไว้ว่าบรรทัดนี้เป็นอะไหล่ที่ซื้อมาใช้เลย ชื่อจะถูกพิมพ์ทับทีหลัง
+            isPartLine: isPartPlaceholderItem(item),
             // ไดอะล็อกส่งสต็อกที่เบิกได้จริงมาทาง quantity (คิดสต็อกที่คืนจากบิลเดิมแล้ว)
             // เก็บไว้ก่อนถูกทับเป็น 1 เพื่อใช้เป็นเพดานของปุ่มบวก
             availableStock: item.quantity,
@@ -435,7 +461,7 @@ const RepairCreate = () => {
             sellingPrice: item.sellingPrice,
             // ราคาตั้งต้นจากคลัง ไว้เทียบตอนแก้ราคา — sellingPrice จะถูกทับเมื่อปรับราคาให้ลูกค้า
             basePrice: item.sellingPrice,
-          },
+          }),
         ];
       }
     });
@@ -457,6 +483,35 @@ const RepairCreate = () => {
     if (!item.partNumber || !item.brand) return false;
     const limit = item.availableStock ?? item.stockQuantity ?? 0;
     return item.quantity >= limit;
+  };
+
+  // เอารายการออกจนเหลือชิ้นเดียว ปุ่มสลับโหมดจะหายไป ถ้าไม่ปิดโหมดให้ด้วย
+  // แถวจะค้างเป็นลูกศรโดยไม่มีทางกดออก
+  useEffect(() => {
+    if (repairItems.length < 2 && isReordering) setIsReordering(false);
+  }, [repairItems.length, isReordering]);
+
+  // เลื่อนแถวขึ้นลงทีละหนึ่งตำแหน่ง ให้เบราว์เซอร์วาดการสลับที่ให้ (ดู withViewTransition)
+  const handleMoveItem = (index, direction) => {
+    const target = index + direction;
+    if (target < 0 || target >= repairItems.length) return;
+
+    withViewTransition(() =>
+      setRepairItems((prev) => {
+        const next = [...prev];
+        [next[index], next[target]] = [next[target], next[index]];
+        return next;
+      }),
+    );
+  };
+
+  const handleSetQuantity = (quantity) => {
+    if (!quantityItem) return;
+    setRepairItems((prev) =>
+      prev.map((item, i) =>
+        i === quantityItem.index ? { ...item, quantity } : item,
+      ),
+    );
   };
 
   const handleIncreaseQuantity = (index) => {
@@ -525,9 +580,35 @@ const RepairCreate = () => {
       brand: item.brand,
       name: item.name,
       attributes: item.attributes,
-      isTire: item.category?.name === "ยาง",
+      isTire: isTireCategoryName(item.category?.name),
     });
   };
+
+  // รหัสประจำแถว ใช้เป็นทั้ง key ของ React และชื่อสำหรับอนิเมชันสลับที่
+  // ต้องผูกกับตัวรายการ ไม่ใช่ลำดับ ไม่งั้นตอนสลับ React จะแค่เปลี่ยนเนื้อหาในกล่องเดิม
+  // เบราว์เซอร์เลยไม่เห็นว่ามีอะไรย้ายที่ จึงไม่วาดอนิเมชันให้
+  //
+  // ใช้รหัสที่แจกตอนของเข้ามาในบิล ไม่ใช่รหัสอะไหล่ เพราะบิลเดิมมีอะไหล่ตัวเดียวกันได้หลายแถว
+  // (ช่วงล่างซ้าย-ขวา) ชื่อซ้ำกันแม้แถวเดียวก็ทำให้เบราว์เซอร์ยกเลิกอนิเมชันทั้งหน้า
+  const itemKey = (item) => item.rowId;
+
+  // ปุ่มเดียวกันวางสองที่ (มือถือ/จอใหญ่) ประกาศไว้ที่เดียวจะได้ไม่หลุดกันเวลาแก้
+  // โผล่เมื่อมีของตั้งแต่สองรายการ เพราะมีชิ้นเดียวไม่มีอะไรให้สลับ
+  const reorderButton = repairItems.length > 1 && (
+    <button
+      type="button"
+      onClick={() => setIsReordering((prev) => !prev)}
+      aria-pressed={isReordering}
+      aria-label={isReordering ? "ออกจากโหมดจัดเรียง" : "จัดเรียงรายการซ่อม"}
+      className={`flex h-[32px] w-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[8px] border duration-300 ${
+        isReordering
+          ? "bg-primary border-primary text-surface"
+          : "text-subtle-dark border-gray-200 bg-gray-100"
+      }`}
+    >
+      <ArrowUpDown className="h-4 w-4" />
+    </button>
+  );
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-[100svh] flex-col xl:min-h-[calc(100vh-73px)] xl:flex-row xl:items-start xl:gap-[16px] xl:bg-transparent xl:px-[16px] xl:pt-[24px] xl:pb-[24px] xl:shadow-none">
@@ -841,6 +922,7 @@ const RepairCreate = () => {
                 <p className="text-[22px] font-semibold md:text-2xl">
                   รายการซ่อม
                 </p>
+                {reorderButton}
               </div>
               <AddRepairItemDialog
                 onAddItem={handleAddItemToRepair}
@@ -874,21 +956,31 @@ const RepairCreate = () => {
               <div className="pb-[20px]">
                 {repairItems.map((item, index) => (
                   <CollapsibleRow
-                    key={index}
+                    key={itemKey(item)}
                     leaving={leavingIndex === index}
                     onLeaveEnd={handleLeaveEnd}
                   >
                     <div
                       data-repair-row={index}
+                      // ชื่อนี้บอกเบราว์เซอร์ว่าแถวไหนคือแถวเดิม ตอนสลับที่จะได้วาดให้เลื่อนไป
+                      // ใช้รหัสอะไหล่/บริการเป็นชื่อ เพราะรายการซ้ำถูกยุบเป็นแถวเดียวอยู่แล้ว
+                      style={{
+                        viewTransitionName: `repair-item-${itemKey(item)}`,
+                      }}
                       className="mt-[16px] flex items-center gap-[16px] px-[20px]"
                     >
                       <div
                         role="button"
                         tabIndex={0}
-                        onKeyDown={onKeyActivate(() =>
-                          handlePriceClick(index, item),
-                        )}
-                        onClick={() => handlePriceClick(index, item)}
+                        onKeyDown={onKeyActivate(() => {
+                          if (isReordering) return;
+                          handlePriceClick(index, item);
+                        })}
+                        // โหมดจัดเรียงตั้งใจให้กดลูกศรอย่างเดียว กดโดนแถวแล้วเด้งหน้าต่างแก้ราคาจะกวน
+                        onClick={() => {
+                          if (isReordering) return;
+                          handlePriceClick(index, item);
+                        }}
                         className="shadow-primary bg-surface flex h-[92px] min-w-0 flex-1 cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
                       >
                         <div className="flex min-w-0 flex-1 items-center gap-[8px]">
@@ -901,10 +993,13 @@ const RepairCreate = () => {
                               />
                             ) : (
                               <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
-                                {item.category?.name === "บริการ" ? (
-                                  <Wrench className="h-8 w-8" />
+                                {/* งานบริการใช้ประแจ ที่เหลือคืออะไหล่ รวมถึงบรรทัด
+                                    อะไหล่ที่ซื้อมาใช้เลยซึ่งระบบเก็บเป็นบริการ */}
+                                {item.category?.name === "บริการ" &&
+                                !isPartPlaceholderItem(item) ? (
+                                  <Wrench className="h-9 w-9" />
                                 ) : (
-                                  <Image className="h-8 w-8" />
+                                  <SparePart className="h-10 w-10" />
                                 )}
                               </div>
                             )}
@@ -922,44 +1017,83 @@ const RepairCreate = () => {
                                   item.quantity * item.sellingPrice,
                                 )}
                               </p>
-                              <div
-                                className="flex shrink-0 items-center gap-[8px]"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (item.quantity <= 1) {
-                                      setRemovingIndex(index);
-                                      return;
+                              {isReordering ? (
+                                <div className="flex shrink-0 items-center gap-[8px]">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveItem(index, -1);
+                                    }}
+                                    disabled={index === 0}
+                                    aria-label="เลื่อนขึ้น"
+                                    className="text-subtle-dark flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                  >
+                                    <ChevronUp className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveItem(index, 1);
+                                    }}
+                                    disabled={index === repairItems.length - 1}
+                                    aria-label="เลื่อนลง"
+                                    className="text-subtle-dark flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                  >
+                                    <ChevronDown className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div
+                                  className="flex shrink-0 items-center gap-[8px]"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (item.quantity <= 1) {
+                                        setRemovingIndex(index);
+                                        return;
+                                      }
+                                      handleDecreaseQuantity(index);
+                                    }}
+                                    aria-label={
+                                      item.quantity <= 1
+                                        ? "เอารายการออก"
+                                        : "ลดจำนวน"
                                     }
-                                    handleDecreaseQuantity(index);
-                                  }}
-                                  aria-label={
-                                    item.quantity <= 1
-                                      ? "เอารายการออก"
-                                      : "ลดจำนวน"
-                                  }
-                                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100"
-                                >
-                                  <Minus className="h-4 w-4" />
-                                </button>
-                                <p className="text-primary text-lg font-semibold md:text-xl">
-                                  {item.quantity}
-                                </p>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleIncreaseQuantity(index);
-                                  }}
-                                  disabled={isAtStockLimit(item)}
-                                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </button>
-                              </div>
+                                    className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100"
+                                  >
+                                    <Minus className="h-4 w-4" />
+                                  </button>
+                                  {/* กดที่ตัวเลขเพื่อพิมพ์จำนวนเอง เร็วกว่ากดบวกทีละครั้ง
+                                      และจำเป็นกับน้ำมันที่ขายเป็นลิตรครึ่งลิตร */}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setQuantityItem({ index, item });
+                                    }}
+                                    aria-label={`แก้ไขจำนวนของ ${getProductName(item)}`}
+                                    className="text-primary min-w-[32px] cursor-pointer text-lg font-semibold md:text-xl"
+                                  >
+                                    {formatQuantity(item.quantity)}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleIncreaseQuantity(index);
+                                    }}
+                                    disabled={isAtStockLimit(item)}
+                                    className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1010,6 +1144,7 @@ const RepairCreate = () => {
               <p className="text-[22px] font-semibold md:text-2xl">
                 รายการซ่อม
               </p>
+              {reorderButton}
             </div>
             <AddRepairItemDialog
               onAddItem={handleAddItemToRepair}
@@ -1034,21 +1169,30 @@ const RepairCreate = () => {
             <div>
               {repairItems.map((item, index) => (
                 <CollapsibleRow
-                  key={index}
+                  key={itemKey(item)}
                   leaving={leavingIndex === index}
                   onLeaveEnd={handleLeaveEnd}
                 >
                   <div
                     data-repair-row={index}
+                    // ชื่อเดียวกับฝั่งมือถือไม่ชนกัน เพราะอีกฝั่งถูกซ่อนด้วย display:none
+                    // ตามขนาดจอ เบราว์เซอร์จึงถ่ายภาพแค่ฝั่งที่แสดงอยู่
+                    style={{
+                      viewTransitionName: `repair-item-${itemKey(item)}`,
+                    }}
                     className="mt-[16px] flex items-center gap-[16px] px-[20px]"
                   >
                     <div
                       role="button"
                       tabIndex={0}
-                      onKeyDown={onKeyActivate(() =>
-                        handlePriceClick(index, item),
-                      )}
-                      onClick={() => handlePriceClick(index, item)}
+                      onKeyDown={onKeyActivate(() => {
+                        if (isReordering) return;
+                        handlePriceClick(index, item);
+                      })}
+                      onClick={() => {
+                        if (isReordering) return;
+                        handlePriceClick(index, item);
+                      }}
                       className="shadow-primary bg-surface flex h-[92px] min-w-0 flex-1 cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
                     >
                       <div className="flex min-w-0 flex-1 items-center gap-[8px]">
@@ -1061,10 +1205,11 @@ const RepairCreate = () => {
                             />
                           ) : (
                             <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
-                              {item.category?.name === "บริการ" ? (
-                                <Wrench className="h-8 w-8" />
+                              {item.category?.name === "บริการ" &&
+                              !isPartPlaceholderItem(item) ? (
+                                <Wrench className="h-9 w-9" />
                               ) : (
-                                <Image className="h-8 w-8" />
+                                <SparePart className="h-10 w-10" />
                               )}
                             </div>
                           )}
@@ -1082,44 +1227,81 @@ const RepairCreate = () => {
                                 item.quantity * item.sellingPrice,
                               )}
                             </p>
-                            <div
-                              className="flex shrink-0 items-center gap-[8px]"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (item.quantity <= 1) {
-                                    setRemovingIndex(index);
-                                    return;
+                            {isReordering ? (
+                              <div className="flex shrink-0 items-center gap-[8px]">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMoveItem(index, -1);
+                                  }}
+                                  disabled={index === 0}
+                                  aria-label="เลื่อนขึ้น"
+                                  className="text-subtle-dark flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                  <ChevronUp className="h-4 w-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMoveItem(index, 1);
+                                  }}
+                                  disabled={index === repairItems.length - 1}
+                                  aria-label="เลื่อนลง"
+                                  className="text-subtle-dark flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                  <ChevronDown className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div
+                                className="flex shrink-0 items-center gap-[8px]"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (item.quantity <= 1) {
+                                      setRemovingIndex(index);
+                                      return;
+                                    }
+                                    handleDecreaseQuantity(index);
+                                  }}
+                                  aria-label={
+                                    item.quantity <= 1
+                                      ? "เอารายการออก"
+                                      : "ลดจำนวน"
                                   }
-                                  handleDecreaseQuantity(index);
-                                }}
-                                aria-label={
-                                  item.quantity <= 1
-                                    ? "เอารายการออก"
-                                    : "ลดจำนวน"
-                                }
-                                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100"
-                              >
-                                <Minus className="h-4 w-4" />
-                              </button>
-                              <p className="text-primary text-lg font-semibold md:text-xl">
-                                {item.quantity}
-                              </p>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleIncreaseQuantity(index);
-                                }}
-                                disabled={isAtStockLimit(item)}
-                                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
-                              >
-                                <Plus className="h-4 w-4" />
-                              </button>
-                            </div>
+                                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100"
+                                >
+                                  <Minus className="h-4 w-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setQuantityItem({ index, item });
+                                  }}
+                                  aria-label={`แก้ไขจำนวนของ ${getProductName(item)}`}
+                                  className="text-primary min-w-[32px] cursor-pointer text-lg font-semibold md:text-xl"
+                                >
+                                  {formatQuantity(item.quantity)}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleIncreaseQuantity(index);
+                                  }}
+                                  disabled={isAtStockLimit(item)}
+                                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1173,6 +1355,23 @@ const RepairCreate = () => {
         isService={editingItem?.category?.name === "บริการ"}
         currentName={editingItem?.name || ""}
         canEditName={isFreeformService(editingItem)}
+      />
+
+      <EditQuantityDialog
+        isOpen={!!quantityItem}
+        onClose={() => setQuantityItem(null)}
+        onConfirm={handleSetQuantity}
+        currentQuantity={quantityItem?.item?.quantity ?? 1}
+        productName={quantityItem ? getProductName(quantityItem.item) : ""}
+        unit={quantityItem?.item?.unit || ""}
+        // บริการไม่มีสต็อก จึงไม่จำกัดจำนวน
+        maxQuantity={
+          quantityItem?.item?.partNumber
+            ? (quantityItem.item.availableStock ??
+              quantityItem.item.stockQuantity)
+            : undefined
+        }
+        allowDecimal={allowsDecimalQuantity(quantityItem?.item?.category?.name)}
       />
 
       <ConfirmDialog

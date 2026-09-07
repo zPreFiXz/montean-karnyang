@@ -1,6 +1,9 @@
 import { Image, Wrench, AlertTriangle } from "lucide-react";
-import { formatCurrency } from "@/utils/formats";
+import { formatCurrency, formatQuantity } from "@/utils/formats";
 import { tracksStock } from "@/utils/stock";
+import { isPartPlaceholderItem } from "@/constants/services";
+import { SparePart } from "@/components/icons/Icons";
+import { isTireCategoryName } from "@/constants/categories";
 import { formatProductName } from "@/utils/tireSize";
 
 const InventoryCard = ({
@@ -17,7 +20,7 @@ const InventoryCard = ({
   // แม้อะไหล่ตัวนั้นจะไม่ได้ตั้งสต็อกขั้นต่ำไว้ก็ตาม เพราะเบิกไม่ได้อยู่ดี
   alwaysWarnEmpty = false,
 }) => {
-  const isTire = category === "ยาง";
+  const isTire = isTireCategoryName(category);
   const isService = category === "บริการ";
 
   const renderProductInfo = () => {
@@ -44,10 +47,13 @@ const InventoryCard = ({
               </div>
             ) : (
               <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
-                {isService ? (
-                  <Wrench className="h-8 w-8" />
+                {/* งานบริการใช้ประแจ ที่เหลือคืออะไหล่
+                    "อะไหล่อื่นๆ" อยู่ในหมวดบริการเพราะเป็นรายการเปล่าไว้พิมพ์ชื่อทับ
+                    แต่ความหมายคืออะไหล่ จึงได้ไอคอนน็อตเหมือนอะไหล่ตัวอื่น */}
+                {isService && !isPartPlaceholderItem({ name }) ? (
+                  <Wrench className="h-9 w-9" />
                 ) : (
-                  <Image className="h-8 w-8" />
+                  <SparePart className="h-10 w-10" />
                 )}
               </div>
             )}
@@ -59,9 +65,9 @@ const InventoryCard = ({
             {!isService &&
               (!alwaysWarnEmpty && !tracksStock(minStockLevel) ? (
                 <p className="text-subtle-dark text-base font-semibold md:text-lg">
-                  {`จำนวน: ${quantity} ${unit}`}
+                  {`จำนวน: ${formatQuantity(quantity)} ${unit}`}
                 </p>
-              ) : quantity === 0 ? (
+              ) : Number(quantity) === 0 ? (
                 <div className="text-destructive flex items-center gap-[4px] text-base font-semibold md:text-lg">
                   <AlertTriangle className="text-destructive h-5 w-5" />
                   <p>สต็อกหมด</p>
@@ -71,11 +77,11 @@ const InventoryCard = ({
                 Number(quantity) < Number(minStockLevel) ? (
                 <div className="text-status-progress flex items-center gap-[4px] text-base font-semibold md:text-lg">
                   <AlertTriangle className="h-5 w-5" />
-                  <p className="line-clamp-1">{`จำนวน: ${Number(quantity)} ${unit || ""}`}</p>
+                  <p className="line-clamp-1">{`จำนวน: ${formatQuantity(quantity)} ${unit || ""}`}</p>
                 </div>
               ) : (
                 <p className="text-subtle-dark text-base font-semibold md:text-lg">
-                  {`จำนวน: ${quantity} ${unit}`}
+                  {`จำนวน: ${formatQuantity(quantity)} ${unit}`}
                 </p>
               ))}
           </div>

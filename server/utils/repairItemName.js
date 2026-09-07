@@ -6,7 +6,8 @@ exports.buildPartItemName = (part) => {
   if (!part) return null;
 
   const attributes = part.attributes || null;
-  const isTire = part.category?.name === "ยาง";
+  // ต้องตรงกับ TIRE_CATEGORIES ฝั่งหน้าเว็บ ไม่งั้นชื่อในบิลจะไม่มีขนาดยางติดมา
+  const isTire = ["ยาง", "ยางเปอร์เซ็นต์"].includes(part.category?.name);
 
   if (isTire) {
     const size = formatTireSize(attributes);

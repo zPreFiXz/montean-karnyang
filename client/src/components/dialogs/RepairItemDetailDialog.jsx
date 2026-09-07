@@ -19,7 +19,8 @@ import { useNavigate } from "react-router";
 import { updateStockSchema } from "@/utils/schemas";
 import useAuthStore from "@/stores/useAuthStore";
 import { formatProductName } from "@/utils/tireSize";
-import { formatCurrency } from "@/utils/formats";
+import { isTireCategoryName } from "@/constants/categories";
+import { formatCurrency, formatQuantity } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
 import { tracksStock } from "@/utils/stock";
@@ -52,7 +53,7 @@ const RepairItemDetailDialog = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(item);
-  const isTire = currentItem?.category?.name === "ยาง";
+  const isTire = isTireCategoryName(currentItem?.category?.name);
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const {
@@ -160,7 +161,8 @@ const RepairItemDetailDialog = ({
   // (เกณฑ์นี้ต้องตรงกับ InventoryCard และ Dashboard)
   const stockStatus = (() => {
     const quantity = Number(currentItem.stockQuantity) || 0;
-    const amount = `${quantity} ${currentItem.unit || ""}`.trim();
+    const amount =
+      `${formatQuantity(quantity)} ${currentItem.unit || ""}`.trim();
 
     // ไม่ได้สต็อกไว้ → เหลือเท่าไหร่ก็ปกติ ไม่มีเกณฑ์ให้เทียบ
     if (!tracksStock(currentItem.minStockLevel)) {

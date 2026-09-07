@@ -1,15 +1,21 @@
 import { Image, Wrench } from "lucide-react";
-import { formatCurrency } from "@/utils/formats";
+import { formatCurrency, formatQuantity } from "@/utils/formats";
+import { isPartPlaceholderItem } from "@/constants/services";
+import { SparePart } from "@/components/icons/Icons";
 import { soldLotEntries } from "@/utils/tireLot";
+import { isTireCategoryName } from "@/constants/categories";
 import { formatProductName } from "@/utils/tireSize";
 
 const RepairItemCard = ({ item, variant }) => {
+  // ชื่อในบิลถูกอัปเดตให้ตรงกับคลังตั้งแต่ตอนแก้ชื่ออะไหล่แล้ว (ดู updatePart ฝั่งเซิร์ฟเวอร์)
+  // ตรงนี้จึงอ่านค่าที่บันทึกไว้ตรงๆ และของที่ถูกลบออกจากคลังก็ยังมีชื่อเดิมให้อ่าน
+  const detailName = item.itemName;
+
   const renderProductInfo = (item) => {
-    // ประวัติซ่อมแสดงชื่อที่บันทึกไว้ ณ วันซ่อม ไม่ประกอบใหม่จากอะไหล่ปัจจุบัน (อะไหล่อาจถูกลบหรือแก้ชื่อ)
     if (variant === "detail") {
       return (
         <p className="text-normal line-clamp-2 text-base font-semibold md:text-lg">
-          {item.itemName}
+          {detailName}
         </p>
       );
     }
@@ -20,14 +26,14 @@ const RepairItemCard = ({ item, variant }) => {
           brand: item.brand,
           name: item.name,
           attributes: item.attributes,
-          isTire: item.category?.name === "ยาง",
+          isTire: isTireCategoryName(item.category?.name),
         })}
       </p>
     );
   };
 
   const imageUrl = variant === "detail" ? item.part?.secureUrl : item.secureUrl;
-  const itemName = variant === "detail" ? item.itemName : item.name;
+  const itemName = variant === "detail" ? detailName : item.name;
   const unitPrice =
     variant === "detail" ? Number(item.unitPrice) : Number(item.sellingPrice);
   const unit =
@@ -35,6 +41,8 @@ const RepairItemCard = ({ item, variant }) => {
       ? item.part?.unit || item.service?.unit || ""
       : item.unit;
   const isService = variant === "detail" ? !!item.service : !item.partNumber;
+  // อะไหล่ที่ซื้อมาใช้เลยถูกบันทึกเป็นบริการ แต่ควรอ่านว่าเป็นอะไหล่
+  const isPartLine = isPartPlaceholderItem(item);
   const soldLots = variant === "detail" ? soldLotEntries(item.soldLots) : [];
 
   return (
@@ -52,10 +60,12 @@ const RepairItemCard = ({ item, variant }) => {
             </div>
           ) : (
             <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
-              {isService ? (
-                <Wrench className="h-8 w-8" />
+              {/* งานบริการใช้ประแจ ที่เหลือคืออะไหล่ รวมถึงบรรทัดอะไหล่ที่ซื้อมาใช้เลย
+                  ซึ่งระบบเก็บเป็นบริการแต่ความหมายคืออะไหล่ */}
+              {isService && !isPartLine ? (
+                <Wrench className="h-9 w-9" />
               ) : (
-                <Image className="h-8 w-8" />
+                <SparePart className="h-10 w-10" />
               )}
             </div>
           )}
@@ -83,7 +93,7 @@ const RepairItemCard = ({ item, variant }) => {
             </div>
           )}
           <p className="text-subtle-dark line-clamp-1 text-base font-semibold md:text-lg">
-            {formatCurrency(unitPrice)} × {item.quantity} {unit}
+            {formatCurrency(unitPrice)} × {formatQuantity(item.quantity)} {unit}
           </p>
         </div>
       </div>
