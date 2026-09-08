@@ -72,13 +72,29 @@ readdirSync(routesPath)
 
 const clientDistPath = path.join(__dirname, "..", "client", "dist");
 if (existsSync(clientDistPath)) {
-  app.use(express.static(clientDistPath));
+  app.use(
+    express.static(clientDistPath, {
+      // ไฟล์ใน assets มี hash อยู่ในชื่อ เนื้อหาเปลี่ยนเมื่อไรชื่อก็เปลี่ยน จึง cache ยาวได้
+      // ส่วน index.html ต้องถามใหม่ทุกครั้ง ไม่งั้นเครื่องที่ถือ HTML เก่าจะไล่ขอไฟล์ที่ถูกลบไปแล้ว
+      setHeaders: (res, filePath) => {
+        res.setHeader(
+          "Cache-Control",
+          filePath.endsWith("index.html") ? "no-cache" : "public, max-age=31536000, immutable",
+        );
+      },
+    }),
+  );
 
+  // ส่ง index.html เฉพาะคำขอที่เป็นการ "เปิดหน้าเว็บ" เท่านั้น
+  //
+  // เดิมส่งให้ทุก path ที่ไม่ขึ้นต้นด้วย /api ทำให้ไฟล์ .js ที่หายไปตอน build ใหม่
+  // ได้ HTML กลับไปพร้อมสถานะ 200 เบราว์เซอร์เอาไปรันเป็น JavaScript แล้วพังเป็นจอดำ
+  // โดยไม่มี error ให้เห็น — ต้องปล่อยให้ตกไปเป็น 404 ตามความจริง
   app.use((req, res, next) => {
-    if (req.method === "GET" && !req.path.startsWith("/api")) {
-      return res.sendFile(path.join(clientDistPath, "index.html"));
-    }
-    next();
+    if (req.method !== "GET" || req.path.startsWith("/api")) return next();
+    if (path.extname(req.path)) return next(); // มีนามสกุล = ขอไฟล์ ไม่ใช่เปิดหน้า
+    if (!req.accepts("html")) return next();
+    return res.sendFile(path.join(clientDistPath, "index.html"));
   });
 }
 
