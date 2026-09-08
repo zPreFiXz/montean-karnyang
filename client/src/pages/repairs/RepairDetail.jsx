@@ -32,6 +32,7 @@ import BrandIcons from "@/components/icons/BrandIcons";
 import FormButton from "@/components/forms/FormButton";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import ComboBox from "@/components/ui/ComboBox";
+import PartPreviewDialog from "@/components/dialogs/PartPreviewDialog";
 import { isPartPlaceholderItem } from "@/constants/services";
 import FieldErrorList from "@/components/forms/FieldErrorList";
 import { toast } from "sonner";
@@ -40,10 +41,10 @@ import { toastError } from "@/utils/handleError";
 import { groupBySidePairs } from "@/utils/repairItemGroups";
 import { isPerSide } from "@/utils/suspension";
 import {
+  getPaymentMethodText,
   PAYMENT_METHODS,
   PAYMENT_OPTIONS_WITH_CREDIT,
   CREDIT_OPTION_ID,
-  getPaymentMethodText,
 } from "@/constants/paymentMethods";
 import {
   isSaleRepair,
@@ -64,6 +65,10 @@ const RepairDetail = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
   // ช่องที่ยังไม่ได้เลือกขึ้นกรอบแดงใต้ช่องเหมือนฟอร์มอื่นในระบบ ไม่ใช่เด้งข้อความแล้วหายไป
   const [paymentMethodError, setPaymentMethodError] = useState("");
+  // บิลที่จ่ายแล้วโชว์เป็นข้อความ กดดินสอถึงจะกลายเป็นช่องเลือก
+  const [isEditingPaidMethod, setIsEditingPaidMethod] = useState(false);
+  // กดการ์ดในบิลเพื่อดูรูปกับรายละเอียดของสิ่งที่ขายไป
+  const [previewItem, setPreviewItem] = useState(null);
   const isCreditSelected = selectedPaymentMethod === CREDIT_OPTION_ID;
   const paymentSectionRef = useRef(null);
 
@@ -173,6 +178,27 @@ const RepairDetail = () => {
       case "COMPLETED":
       case "CREDIT":
         return "bg-status-paid";
+    }
+  };
+
+  // บิลที่จ่ายแล้ว: เปลี่ยนวิธีชำระเงินแล้วบันทึกเลย ไม่ต้องมีปุ่มยืนยันซ้ำ
+  // ส่งสถานะเดิมไปด้วยเพราะเซิร์ฟเวอร์รับคำสั่งเป็น "อัปเดตสถานะ" ตัวเดียว
+  const handleChangePaidMethod = async (value) => {
+    if (!repair || !value || value === repair.paymentMethod) return;
+
+    try {
+      await updateRepairStatus(repair.id, {
+        status: "PAID",
+        paymentMethod: value,
+      });
+      setRepair((prev) => ({ ...prev, paymentMethod: value }));
+      setIsEditingPaidMethod(false);
+      toast.success("แก้ไขวิธีชำระเงินเรียบร้อยแล้ว");
+    } catch (error) {
+      // กลับไปใช้ค่าเดิมในช่อง ไม่งั้นหน้าจอจะบอกคนละอย่างกับที่บันทึกไว้จริง
+      setSelectedPaymentMethod(repair.paymentMethod || "");
+      setIsEditingPaidMethod(false);
+      toastError(error);
     }
   };
 
@@ -287,6 +313,14 @@ const RepairDetail = () => {
       description: repair?.description || "",
       mileage: repair?.mileage != null ? String(repair.mileage) : "",
       type: repair?.type || "GENERAL",
+      // บิลขายหน้าร้านเก็บเงินไปแล้ว ต้องยกวิธีชำระเงินเดิมไปด้วย
+      // ไม่งั้นหน้าสรุปจะขึ้นว่ายังไม่ได้เลือก แล้วคนแก้บิลต้องเดาว่าวันนั้นรับเงินมาทางไหน
+      //
+      // บิลที่ติดเครดิตไม่มีวิธีจ่ายเก็บไว้ (เพราะยังไม่ได้เงิน) ต้องบอกด้วยตัวสถานะแทน
+      paymentMethod:
+        repair?.status === "CREDIT"
+          ? CREDIT_OPTION_ID
+          : repair?.paymentMethod || "",
       // บิลที่ไม่ได้ผูกกับรถ (งานบริการ) ต้องกลับเข้าโหมดเดิม ไม่งั้นจะถูกบังคับให้เลือกรถ
       noVehicle: !repair?.vehicle,
     };
@@ -426,6 +460,18 @@ const RepairDetail = () => {
     setIsDeleteConfirmOpen(false);
     handleGoBack();
   };
+
+  // แปลงรายการในบิลให้อยู่ในรูปที่หน้าต่างรายละเอียดใช้ได้
+  // ชื่อใช้ของที่บันทึกไว้ในบิล เพราะรวมยี่ห้อกับขนาดยางไว้แล้ว และบริการอาจถูกพิมพ์ชื่อเอง
+  // ราคาใช้ราคาที่ขายจริงในบิล ไม่ใช่ราคาปัจจุบันในคลัง
+  const toPreviewItem = (item) => ({
+    name: item.itemName,
+    category: item.part?.category || item.service?.category || null,
+    partNumber: item.part?.partNumber || null,
+    description: item.part?.description || item.service?.description || null,
+    secureUrl: item.part?.secureUrl || null,
+    sellingPrice: Number(item.unitPrice),
+  });
 
   const handleGoBack = () => {
     if (
@@ -693,6 +739,7 @@ const RepairDetail = () => {
                                     key={`both-${idx}`}
                                     item={item}
                                     variant="detail"
+                                    onClick={() => setPreviewItem(item)}
                                   />
                                 ))}
                               </div>
@@ -710,6 +757,7 @@ const RepairDetail = () => {
                                     key={`left-${idx}`}
                                     item={item}
                                     variant="detail"
+                                    onClick={() => setPreviewItem(item)}
                                   />
                                 ))}
                               </div>
@@ -727,6 +775,7 @@ const RepairDetail = () => {
                                     key={`right-${idx}`}
                                     item={item}
                                     variant="detail"
+                                    onClick={() => setPreviewItem(item)}
                                   />
                                 ))}
                               </div>
@@ -744,6 +793,7 @@ const RepairDetail = () => {
                                     key={`other-${idx}`}
                                     item={item}
                                     variant="detail"
+                                    onClick={() => setPreviewItem(item)}
                                   />
                                 ))}
                               </div>
@@ -761,6 +811,7 @@ const RepairDetail = () => {
                                     key={`general-${idx}`}
                                     item={item}
                                     variant="detail"
+                                    onClick={() => setPreviewItem(item)}
                                   />
                                 ))}
                               </div>
@@ -777,6 +828,7 @@ const RepairDetail = () => {
                         key={index}
                         item={item}
                         variant="detail"
+                        onClick={() => setPreviewItem(item)}
                       />
                     ))}
                   </div>
@@ -804,8 +856,10 @@ const RepairDetail = () => {
             </div>
             {repair.description && (
               <div className="mb-[16px] px-[20px]">
+                {/* บิลขายหน้าร้านไม่มีงานซ่อม ช่องนี้คือหมายเหตุของการขาย
+                    ใช้คำเดียวกับป้ายในหน้ากรอกบิลและหน้าสรุป */}
                 <p className="text-normal mb-[16px] text-[22px] font-semibold md:text-2xl">
-                  รายละเอียดการซ่อม
+                  {isSaleRepair(repair) ? "หมายเหตุ" : "รายละเอียดการซ่อม"}
                 </p>
                 <div className="rounded-[10px] bg-gray-50 p-[16px]">
                   <p className="text-normal text-lg leading-relaxed font-medium md:text-xl">
@@ -823,13 +877,25 @@ const RepairDetail = () => {
                   <p className="text-subtle-dark text-lg font-medium md:text-xl">
                     วิธีชำระเงิน:
                   </p>
-                  {repair.status !== "PAID" ? (
-                    // ใช้ตัวเดียวกับดรอปดาวน์อื่นทั้งระบบ หน้าตาจะได้ไม่หลุดไปคนละแบบ
-                    // คุมความกว้างจากข้างนอกเพราะแถวนี้เป็นป้ายซ้าย-ค่าขวา ไม่ใช่ช่องเต็มบรรทัดแบบในฟอร์ม
+                  {/* บิลที่จ่ายแล้วเป็นเอกสารที่จบแล้ว ทั้งกล่องจึงเป็นข้อความอ่านอย่างเดียว
+                      แต่กดผิดวิธีตอนเก็บเงินเป็นเรื่องที่เกิดได้ จึงมีดินสอให้กดแก้ทีหลัง
+                      กดแล้วบรรทัดนั้นค่อยกลายเป็นช่องเลือก เลือกเสร็จบันทึกทันทีแล้วกลับเป็นข้อความ
+                      (รูปแบบเดียวกับการกดแก้ราคาที่แถวรายการซ่อม) */}
+                  {repair.status === "PAID" && !isEditingPaidMethod ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingPaidMethod(true)}
+                      aria-label="แก้ไขวิธีชำระเงิน"
+                      className="text-normal flex shrink-0 cursor-pointer items-center gap-[6px] text-lg font-semibold md:text-xl"
+                    >
+                      {getPaymentMethodText(repair.paymentMethod) || "ไม่ระบุ"}
+                      <Edit className="text-primary h-4 w-4" />
+                    </button>
+                  ) : (
                     <div className="w-[210px] shrink-0">
                       <ComboBox
                         options={
-                          repair.status === "CREDIT"
+                          repair.status === "PAID" || repair.status === "CREDIT"
                             ? PAYMENT_METHODS
                             : PAYMENT_OPTIONS_WITH_CREDIT
                         }
@@ -837,6 +903,9 @@ const RepairDetail = () => {
                         onChange={(value) => {
                           setSelectedPaymentMethod(value);
                           setPaymentMethodError("");
+                          if (repair.status === "PAID") {
+                            handleChangePaidMethod(value);
+                          }
                         }}
                         placeholder="-- เลือกวิธีชำระเงิน --"
                         customClass="text-lg md:text-xl"
@@ -849,10 +918,6 @@ const RepairDetail = () => {
                         hideErrorMessage
                       />
                     </div>
-                  ) : (
-                    <p className="text-normal text-lg font-semibold md:text-xl">
-                      {getPaymentMethodText(repair.paymentMethod)}
-                    </p>
                   )}
                 </div>
                 {/* กินความกว้างเต็มกล่องเพื่อให้อยู่บรรทัดเดียว แล้วดันไปชิดขวา
@@ -957,6 +1022,13 @@ const RepairDetail = () => {
           </div>
         )}
       </div>
+
+      <PartPreviewDialog
+        part={previewItem ? toPreviewItem(previewItem) : null}
+        price={previewItem ? Number(previewItem.unitPrice) : undefined}
+        open={!!previewItem}
+        onOpenChange={(open) => !open && setPreviewItem(null)}
+      />
 
       <ConfirmDialog
         isOpen={isDeleteConfirmOpen}

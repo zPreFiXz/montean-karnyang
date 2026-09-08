@@ -32,6 +32,7 @@ import { formatCurrency, formatPhone, formatQuantity } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 import { isFreeformService } from "@/constants/services";
 import { formatProductName } from "@/utils/tireSize";
+import { isUnlimitedStockItem } from "@/utils/oil";
 import {
   isTireCategoryName,
   allowsDecimalQuantity,
@@ -441,7 +442,7 @@ const RepairCreate = () => {
           // เลือกซ้ำจากไดอะล็อกไม่ได้ผ่านปุ่มบวก จึงต้องกันเพดานตรงนี้ด้วย
           const limit = i.availableStock ?? i.stockQuantity ?? 0;
           const capped =
-            i.partNumber && i.brand
+            i.partNumber && i.brand && !isUnlimitedStockItem(i)
               ? Math.min(i.quantity + 1, limit)
               : i.quantity + 1;
 
@@ -481,6 +482,8 @@ const RepairCreate = () => {
   // บริการและรายการที่พิมพ์ชื่อเองไม่มีสต็อก จึงไม่จำกัด
   const isAtStockLimit = (item) => {
     if (!item.partNumber || !item.brand) return false;
+    // ของที่ตวงจากถังใหญ่ไม่มีเพดาน กดเพิ่มได้เรื่อยๆ
+    if (isUnlimitedStockItem(item)) return false;
     const limit = item.availableStock ?? item.stockQuantity ?? 0;
     return item.quantity >= limit;
   };
@@ -1366,7 +1369,8 @@ const RepairCreate = () => {
         unit={quantityItem?.item?.unit || ""}
         // บริการไม่มีสต็อก จึงไม่จำกัดจำนวน
         maxQuantity={
-          quantityItem?.item?.partNumber
+          quantityItem?.item?.partNumber &&
+          !isUnlimitedStockItem(quantityItem.item)
             ? (quantityItem.item.availableStock ??
               quantityItem.item.stockQuantity)
             : undefined

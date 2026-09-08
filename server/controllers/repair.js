@@ -4,6 +4,7 @@ const createError = require("../utils/createError");
 const {
   buildPartItemName,
   buildServiceItemName,
+  isUnlimitedStockPart,
 } = require("../utils/repairItemName");
 
 // หา/สร้างรุ่นรถตามยี่ห้อ+รุ่น (ใช้ทั้งตอนสร้างและแก้ไขรายการซ่อม)
@@ -223,7 +224,9 @@ const createRepairItemsAndDecrementStock = async (
   // สร้างทีละรายการ: ยางต้องตัดล็อต FIFO ก่อนเพื่อรู้ DOT ที่ขาย แล้วบันทึกลง RepairItem
   for (const item of repairItems) {
     let soldLots = null;
-    if (item.partId) {
+    // ของที่ตวงจากถังใหญ่ (น้ำมันเกียร์) ไม่ได้นับเป็นชิ้น ตัดสต็อกแล้วเลขจะติดลบไปเรื่อยๆ
+    // จึงบันทึกลงบิลอย่างเดียว ไม่แตะสต็อก
+    if (item.partId && !isUnlimitedStockPart(partById.get(item.partId))) {
       soldLots = await deductTireLotsFifo(tx, item.partId, item.quantity);
       await tx.part.update({
         where: { id: item.partId },
@@ -442,7 +445,11 @@ exports.createRepair = async (req, res, next) => {
 
       // ขายหน้าร้าน = ลูกค้าจ่ายแล้วเดินออกไปเลย จึงบันทึกจบในครั้งเดียว
       // ต่างจากงานบริการที่อาจเก็บเงินทีหลัง จึงเดินสถานะปกติเหมือนงานซ่อม
-      const paidNow = isSale ? new Date() : null;
+      //
+      // ยกเว้นเลือกเครดิต = ของออกจากร้านแล้วแต่ยังไม่ได้เงิน บิลไปพักที่สถานะเครดิต
+      // ไม่มีเวลาชำระเงินและไม่เก็บวิธีจ่าย ยอดจึงยังไม่เข้ารายงานจนกว่าจะตัดเครดิต
+      const isCreditSale = isSale && paymentMethod === "CREDIT";
+      const paidNow = isSale && !isCreditSale ? new Date() : null;
 
       const repair = await tx.repair.create({
         data: {
@@ -450,14 +457,16 @@ exports.createRepair = async (req, res, next) => {
           mileage: mileage ?? null,
           totalPrice,
           type,
-          ...(isSale
-            ? {
-                status: "PAID",
-                completedAt: paidNow,
-                paidAt: paidNow,
-                paymentMethod: paymentMethod || "CASH",
-              }
-            : {}),
+          ...(isCreditSale
+            ? { status: "CREDIT", completedAt: new Date() }
+            : isSale
+              ? {
+                  status: "PAID",
+                  completedAt: paidNow,
+                  paidAt: paidNow,
+                  paymentMethod: paymentMethod || "CASH",
+                }
+              : {}),
           user: { connect: { id: req.user.id } },
           ...(vehicle ? { vehicle: { connect: { id: vehicle.id } } } : {}),
           ...(customer ? { customer: { connect: { id: customer.id } } } : {}),
@@ -508,6 +517,7 @@ exports.updateRepair = async (req, res, next) => {
         where: { id: Number(id) },
         select: {
           vehicleId: true,
+          status: true,
           customer: {
             select: { id: true, name: true, phoneNumber: true, address: true },
           },
@@ -567,10 +577,12 @@ exports.updateRepair = async (req, res, next) => {
       // คืนสต็อกจากรายการเดิม ก่อนลบทิ้ง
       const existingItems = await tx.repairItem.findMany({
         where: { repairId: Number(id) },
+        include: { part: { select: { name: true } } },
       });
 
       for (const item of existingItems) {
-        if (item.partId) {
+        // ของที่ตวงจากถังใหญ่ไม่เคยถูกตัดสต็อก จึงไม่มีอะไรให้คืน คืนไปจะกลายเป็นสต็อกงอก
+        if (item.partId && !isUnlimitedStockPart(item.part)) {
           await tx.part.update({
             where: { id: item.partId },
             data: { stockQuantity: { increment: item.quantity } },
@@ -592,7 +604,19 @@ exports.updateRepair = async (req, res, next) => {
           mileage: mileage ?? null,
           totalPrice,
           type,
-          ...(isSale && paymentMethod ? { paymentMethod } : {}),
+          // บิลขายหน้าร้าน: ช่องวิธีชำระเงินในหน้าแก้ไขทำหน้าที่สลับระหว่าง "ได้เงินแล้ว" กับ "ติดเครดิต"
+          // เลือกวิธีจ่ายจริงให้บิลที่ติดเครดิตอยู่ = ตัดเครดิต ยอดเข้ารายงานของวันที่ตัด
+          // เลือกเครดิตให้บิลที่บันทึกว่าจ่ายแล้ว = แก้ที่บันทึกผิด ล้างเวลาชำระเงินกับวิธีจ่ายทิ้ง
+          ...(isSale && paymentMethod
+            ? paymentMethod === "CREDIT"
+              ? { status: "CREDIT", paidAt: null, paymentMethod: null }
+              : {
+                  paymentMethod,
+                  ...(currentRepair.status === "CREDIT"
+                    ? { status: "PAID", paidAt: new Date() }
+                    : {}),
+                }
+            : {}),
           ...(vehicle
             ? { vehicle: { connect: { id: vehicle.id } } }
             : { vehicle: { disconnect: true } }),
@@ -626,10 +650,11 @@ exports.deleteRepair = async (req, res, next) => {
     await prisma.$transaction(async (tx) => {
       const items = await tx.repairItem.findMany({
         where: { repairId: Number(id) },
+        include: { part: { select: { name: true } } },
       });
 
       for (const item of items) {
-        if (item.partId) {
+        if (item.partId && !isUnlimitedStockPart(item.part)) {
           await tx.part.update({
             where: { id: item.partId },
             data: { stockQuantity: { increment: item.quantity } },
@@ -674,7 +699,9 @@ exports.updateRepairStatus = async (req, res, next) => {
       }
       data.paymentMethod = null;
     } else if (status === "PAID") {
-      data.paidAt = new Date();
+      // บิลที่จ่ายแล้วและแค่มาแก้วิธีชำระเงิน ต้องคงเวลาที่เก็บเงินไว้ตามเดิม
+      // ไม่งั้นยอดจะย้ายไปอยู่ในรายงานของวันที่มาแก้ ทั้งที่เงินเข้าไปตั้งแต่วันก่อน
+      data.paidAt = repair.paidAt ?? new Date();
 
       if (repair.status === "IN_PROGRESS" && !repair.completedAt) {
         data.completedAt = new Date();

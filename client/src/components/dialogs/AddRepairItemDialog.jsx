@@ -9,6 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { X } from "lucide-react";
+import { isUnlimitedStockItem } from "@/utils/oil";
 
 const AddRepairItemDialog = ({
   children,
@@ -52,7 +53,14 @@ const AddRepairItemDialog = ({
     const { displayStock, remainingAddable } = getStockInfo(item);
 
     // กันไว้อีกชั้นเผื่อกดผ่านคีย์บอร์ด — เกณฑ์เดียวกับที่ใช้ปิดการ์ด
-    if (item.partNumber && item.brand && remainingAddable <= 0) return;
+    if (
+      item.partNumber &&
+      item.brand &&
+      remainingAddable <= 0 &&
+      !isUnlimitedStockItem(item)
+    ) {
+      return;
+    }
 
     onAddItem({ ...item, quantity: displayStock });
     setIsDialogOpen(false);
@@ -96,10 +104,16 @@ const AddRepairItemDialog = ({
               const { remainingAddable } = getStockInfo(item);
               return {
                 // การ์ดในไดอะล็อกบอก "เบิกได้อีกเท่าไหร่" ไม่ใช่ "คลังมีเท่าไหร่"
-                quantity: Math.max(remainingAddable, 0),
-                alwaysWarnEmpty: true,
+                // ของที่ไม่นับสต็อกไม่มีเพดาน ส่งค่าที่ไม่จำกัดไปแทนจำนวนที่เบิกได้
+                quantity: isUnlimitedStockItem(item)
+                  ? Infinity
+                  : Math.max(remainingAddable, 0),
+                alwaysWarnEmpty: !isUnlimitedStockItem(item),
                 disabled:
-                  !!item.partNumber && !!item.brand && remainingAddable <= 0,
+                  !!item.partNumber &&
+                  !!item.brand &&
+                  remainingAddable <= 0 &&
+                  !isUnlimitedStockItem(item),
               };
             }}
           />

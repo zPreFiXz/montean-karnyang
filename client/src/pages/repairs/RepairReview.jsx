@@ -20,12 +20,18 @@ import {
   ClipboardList,
 } from "lucide-react";
 import ComboBox from "@/components/ui/ComboBox";
-import { PAYMENT_METHODS } from "@/constants/paymentMethods";
+import PartPreviewDialog from "@/components/dialogs/PartPreviewDialog";
+import {
+  PAYMENT_OPTIONS_WITH_CREDIT,
+  CREDIT_OPTION_ID,
+} from "@/constants/paymentMethods";
 
 const RepairReview = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // กดการ์ดในหน้าสรุปเพื่อดูรูปกับรายละเอียดก่อนยืนยัน เหมือนหน้าเช็กช่วงล่าง
+  const [previewItem, setPreviewItem] = useState(null);
 
   const { repairData, repairItems, editRepairId } = location.state || {};
   const origin = location.state?.origin || location.state?.from;
@@ -42,6 +48,19 @@ const RepairReview = () => {
   const [paymentMethod, setPaymentMethod] = useState(
     repairData?.paymentMethod || "",
   );
+
+  // หัวเรื่องบอกว่ากำลังสรุปบิลแบบไหน ใช้คำเดียวกับปุ่มเลือกประเภทบิลในหน้ากรอก
+  // บิลช่วงล่างเป็นงานซ่อมที่ผูกกับรถเหมือนกัน แต่มาจากคนละหน้าและหน้าตาสรุปต่างกัน
+  const reviewTitle = isSale
+    ? "สรุปขายอะไหล่"
+    : hasNoVehicle
+      ? "สรุปงานบริการ"
+      : repairData?.type === "SUSPENSION"
+        ? "สรุปเช็กช่วงล่าง"
+        : "สรุปงานซ่อม";
+
+  // เลือกเครดิต = ยังไม่ได้รับเงิน ปุ่มกับข้อความแจ้งต้องบอกให้ตรงกับสิ่งที่จะเกิดขึ้น
+  const isCreditChoice = isSale && paymentMethod === CREDIT_OPTION_ID;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -137,14 +156,22 @@ const RepairReview = () => {
         await withMinDuration(() => createRepair(repair));
         clearAllDrafts();
         toast.success(
-          isSale ? "ขายเรียบร้อยแล้ว" : "สร้างงานซ่อมเรียบร้อยแล้ว",
+          isCreditChoice
+            ? "ขายเรียบร้อยแล้ว ลงเครดิตไว้"
+            : isSale
+              ? "ขายเรียบร้อยแล้ว"
+              : "สร้างงานซ่อมเรียบร้อยแล้ว",
         );
         const isDesktop = window.innerWidth >= 1280;
         if (isDesktop) {
           navigate("/");
         } else {
           navigate(
-            isSale ? "/repairs?status=paid" : "/repairs?status=in-progress",
+            isCreditChoice
+              ? "/repairs?status=credit"
+              : isSale
+                ? "/repairs?status=paid"
+                : "/repairs?status=in-progress",
           );
         }
       }
@@ -195,7 +222,7 @@ const RepairReview = () => {
           </button>
           <div>
             <p className="text-surface xl:text-primary text-2xl font-semibold md:text-[26px]">
-              สรุปงานซ่อม
+              {reviewTitle}
             </p>
           </div>
         </div>
@@ -243,20 +270,6 @@ const RepairReview = () => {
 
             {/* บิลขายหน้าร้านจ่ายเงินทันที เลือกวิธีชำระเงินก่อนยืนยัน
                 งานบริการไม่ต้องเลือกตรงนี้ เพราะเก็บเงินทีหลังเหมือนงานซ่อม */}
-            {isSale && (
-              <div className="mb-[16px]">
-                <ComboBox
-                  label="วิธีชำระเงิน"
-                  color="text-subtle-dark"
-                  options={PAYMENT_METHODS}
-                  value={paymentMethod}
-                  onChange={setPaymentMethod}
-                  placeholder="-- เลือกวิธีชำระเงิน --"
-                  name="paymentMethod"
-                />
-              </div>
-            )}
-
             {/* ไม่แสดงเมื่อบิลไม่ได้ผูกกับรถ (ขายหน้าร้าน / งานบริการ) */}
             {!hasNoVehicle && (
               <div className="mb-[16px]">
@@ -296,15 +309,38 @@ const RepairReview = () => {
                         : "ไม่ระบุ"}
                     </p>
                   </div>
-                  <div className="flex items-start justify-between">
-                    <p className="text-subtle-dark flex-shrink-0 text-lg font-medium md:text-xl">
-                      รายละเอียดการซ่อม:
-                    </p>
-                    <p className="text-normal min-w-0 text-right text-lg leading-relaxed font-semibold break-words md:text-xl">
-                      {repairData.description || "ไม่ระบุ"}
-                    </p>
-                  </div>
                 </div>
+              </div>
+            )}
+
+            {/* เดิมอยู่ในกล่องข้อมูลรถ ซึ่งถูกซ่อนทั้งกล่องเมื่อบิลไม่ผูกกับรถ
+                หมายเหตุที่พิมพ์ไว้จึงหายไปจากหน้าสรุปของบิลขายอะไหล่กับงานบริการ */}
+            {repairData.description && (
+              <div className="mb-[16px]">
+                <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
+                  {isSale ? "หมายเหตุ" : "รายละเอียดการซ่อม"}
+                </p>
+                <div className="rounded-[10px] bg-gray-50 p-[16px]">
+                  <p className="text-normal text-lg leading-relaxed font-medium break-words md:text-xl">
+                    {repairData.description}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* วางท้ายสุดเพราะเป็นสิ่งเดียวในหน้านี้ที่ยังต้องเลือก
+                ที่เหลือเป็นข้อมูลที่กรอกมาแล้วให้ตรวจทาน */}
+            {isSale && (
+              <div className="mb-[16px]">
+                <ComboBox
+                  label="วิธีชำระเงิน"
+                  color="text-subtle-dark"
+                  options={PAYMENT_OPTIONS_WITH_CREDIT}
+                  value={paymentMethod}
+                  onChange={setPaymentMethod}
+                  placeholder="-- เลือกวิธีชำระเงิน --"
+                  name="paymentMethod"
+                />
               </div>
             )}
           </div>
@@ -338,6 +374,7 @@ const RepairReview = () => {
                         key={`both-m-${index}`}
                         item={item}
                         variant="summary"
+                        onClick={() => setPreviewItem(item)}
                       />
                     ))}
                   </div>
@@ -357,6 +394,7 @@ const RepairReview = () => {
                         key={`left-${index}`}
                         item={item}
                         variant="summary"
+                        onClick={() => setPreviewItem(item)}
                       />
                     ))}
                   </div>
@@ -376,6 +414,7 @@ const RepairReview = () => {
                         key={`right-${index}`}
                         item={item}
                         variant="summary"
+                        onClick={() => setPreviewItem(item)}
                       />
                     ))}
                   </div>
@@ -395,6 +434,7 @@ const RepairReview = () => {
                         key={`other-${index}`}
                         item={item}
                         variant="summary"
+                        onClick={() => setPreviewItem(item)}
                       />
                     ))}
                   </div>
@@ -416,6 +456,7 @@ const RepairReview = () => {
                         key={`general-${index}`}
                         item={item}
                         variant="summary"
+                        onClick={() => setPreviewItem(item)}
                       />
                     ))}
                   </div>
@@ -444,7 +485,9 @@ const RepairReview = () => {
                   editRepairId
                     ? "บันทึก"
                     : isSale
-                      ? "ขายและรับเงิน"
+                      ? isCreditChoice
+                        ? "ขายและลงเครดิต"
+                        : "ขายและรับเงิน"
                       : "สร้างงานซ่อม"
                 }
                 isLoading={isSubmitting}
@@ -491,6 +534,7 @@ const RepairReview = () => {
                       key={`both-d-${index}`}
                       item={item}
                       variant="summary"
+                      onClick={() => setPreviewItem(item)}
                     />
                   ))}
                 </div>
@@ -510,6 +554,7 @@ const RepairReview = () => {
                       key={`left-${index}`}
                       item={item}
                       variant="summary"
+                      onClick={() => setPreviewItem(item)}
                     />
                   ))}
                 </div>
@@ -529,6 +574,7 @@ const RepairReview = () => {
                       key={`right-${index}`}
                       item={item}
                       variant="summary"
+                      onClick={() => setPreviewItem(item)}
                     />
                   ))}
                 </div>
@@ -548,6 +594,7 @@ const RepairReview = () => {
                       key={`other-${index}`}
                       item={item}
                       variant="summary"
+                      onClick={() => setPreviewItem(item)}
                     />
                   ))}
                 </div>
@@ -569,6 +616,7 @@ const RepairReview = () => {
                       key={`general-${index}`}
                       item={item}
                       variant="summary"
+                      onClick={() => setPreviewItem(item)}
                     />
                   ))}
                 </div>
@@ -597,7 +645,9 @@ const RepairReview = () => {
                 editRepairId
                   ? "บันทึก"
                   : isSale
-                    ? "ขายและรับเงิน"
+                    ? isCreditChoice
+                      ? "ขายและลงเครดิต"
+                      : "ขายและรับเงิน"
                     : "สร้างงานซ่อม"
               }
               isLoading={isSubmitting}
@@ -606,6 +656,21 @@ const RepairReview = () => {
           </div>
         </div>
       </div>
+      {/* ราคาที่ส่งไปคือราคาที่จะใช้จริงในบิล ส่วนราคาปกติมาจาก basePrice
+          หน้าต่างจะได้บอกได้ว่าลดไปเท่าไหร่ */}
+      <PartPreviewDialog
+        part={
+          previewItem
+            ? {
+                ...previewItem,
+                sellingPrice: previewItem.basePrice ?? previewItem.sellingPrice,
+              }
+            : null
+        }
+        price={previewItem?.sellingPrice}
+        open={!!previewItem}
+        onOpenChange={(open) => !open && setPreviewItem(null)}
+      />
     </div>
   );
 };

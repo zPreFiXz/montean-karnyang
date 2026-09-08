@@ -13,7 +13,11 @@ import InventoryCard from "@/components/cards/InventoryCard";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
 import StatusCard from "@/components/cards/StatusCard";
 import { listInventory } from "@/api/inventory";
-import { formatCurrency, formatDate, formatTime } from "@/utils/formats";
+import {
+  formatCurrency,
+  formatDateWithWeekday,
+  formatTime,
+} from "@/utils/formats";
 import useRepairStore from "@/stores/useRepairStore";
 import useAuthStore from "@/stores/useAuthStore";
 import { Success, Wrench, Paid } from "@/components/icons/Icons";
@@ -269,8 +273,9 @@ const Dashboard = () => {
               <p className="text-surface text-[32px] font-semibold md:text-[34px]">
                 มณเฑียรการยาง
               </p>
+              {/* มีชื่อวันด้วยเพราะหน้านี้เปิดค้างไว้ทั้งวัน เห็นแล้วรู้ทันทีว่าวันนี้วันอะไร */}
               <p className="text-surface text-xl font-medium md:text-[22px]">
-                วันที่ {formatDate(new Date())}
+                วัน{formatDateWithWeekday(new Date())}
               </p>
             </div>
 

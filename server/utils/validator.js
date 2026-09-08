@@ -54,8 +54,9 @@ exports.repairSchema = z
     // งานบริการที่ไม่เก็บประวัติรถ (ปะยาง เติมลม) ไม่ได้ผูกกับรถคันไหน จึงไม่ต้องมียี่ห้อ/รุ่น
     noVehicle: z.boolean().optional(),
     // ใช้เฉพาะบิลขายหน้าร้าน ซึ่งเก็บเงินตอนสร้างบิลเลย
+    // CREDIT ไม่ใช่วิธีจ่าย แต่แปลว่าลูกค้าติดเงินไว้ คอนโทรลเลอร์จะเปลี่ยนเป็นสถานะเครดิตแทน
     paymentMethod: z
-      .enum(["CASH", "CREDIT_CARD", "QR_CODE"], {
+      .enum(["CASH", "CREDIT_CARD", "QR_CODE", "CREDIT"], {
         message: "วิธีชำระเงินไม่ถูกต้อง",
       })
       .optional(),

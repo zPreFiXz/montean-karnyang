@@ -238,6 +238,14 @@ const RepairList = () => {
           <p className="text-normal text-[22px] font-semibold md:text-2xl">
             {getStatusTitle()}
           </p>
+          {/* จำนวนที่เห็นในลิสต์ตอนนี้ วางแบบเดียวกับหัวข้อในหน้าคลัง
+              ไม่ขึ้นระหว่างโหลด เพราะเลข 0 ที่เด้งเป็นเลขจริงทีหลังอ่านแล้วเข้าใจผิด
+              ไม่มีสักรายการก็ไม่ต้องขึ้น เพราะข้อความกลางจอบอกอยู่แล้วว่าไม่มีอะไร */}
+          {!isLoading && currentRepairs.length > 0 && (
+            <span className="text-subtle-light shrink-0 text-lg font-medium md:text-xl">
+              ({currentRepairs.length})
+            </span>
+          )}
         </div>
         {isLoading ? (
           <div className="flex flex-1 items-center justify-center">

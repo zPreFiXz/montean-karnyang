@@ -88,26 +88,25 @@ const EditQuantityDialog = ({
             </label>
             <input
               id="repair-item-quantity"
-              type="number"
+              // ใช้ช่องข้อความ ไม่ใช่ช่องตัวเลข เพราะช่องตัวเลขคืนค่าว่างระหว่างที่ยังพิมพ์ไม่จบ
+              // พิมพ์ "3." แล้วเบราว์เซอร์มองว่ายังไม่เป็นตัวเลข ค่าที่อ่านได้เลยเป็นค่าว่าง
+              // ตัวเลขที่พิมพ์ไปเลยหายทั้งบรรทัด — inputMode ยังเรียกแป้นตัวเลขให้เหมือนเดิม
+              type="text"
               inputMode={allowDecimal ? "decimal" : "numeric"}
               value={value}
               placeholder={allowDecimal ? "เช่น 3.5" : "เช่น 2"}
               onChange={(e) => {
-                setValue(e.target.value);
-                setError("");
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleConfirm();
-              }}
-              // เลื่อนล้อเมาส์บนช่องตัวเลขจะเปลี่ยนค่าโดยไม่ตั้งใจ ตัดโฟกัสทิ้งเหมือนช่องราคา
-              onWheel={(e) => e.target.blur()}
-              onInput={(e) => {
+                // กรองที่เดียวตอนพิมพ์ ไม่แก้ค่าในช่องตรงๆ ไม่งั้นจะชนกับค่าที่ React ถืออยู่
                 const cleaned = allowDecimal
                   ? e.target.value
                       .replace(/[^0-9.]/g, "")
                       .replace(/(\..*)\./g, "$1")
                   : e.target.value.replace(/[^0-9]/g, "");
-                e.target.value = cleaned;
+                setValue(cleaned);
+                setError("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleConfirm();
               }}
               className={`bg-surface w-full rounded-[20px] border px-[12px] py-[8px] text-xl font-medium outline-none md:text-[22px] ${
                 error

@@ -1,12 +1,13 @@
 import { Image, Wrench } from "lucide-react";
 import { formatCurrency, formatQuantity } from "@/utils/formats";
+import { onKeyActivate } from "@/utils/a11y";
 import { isPartPlaceholderItem } from "@/constants/services";
 import { SparePart } from "@/components/icons/Icons";
 import { soldLotEntries } from "@/utils/tireLot";
 import { isTireCategoryName } from "@/constants/categories";
 import { formatProductName } from "@/utils/tireSize";
 
-const RepairItemCard = ({ item, variant }) => {
+const RepairItemCard = ({ item, variant, onClick }) => {
   // ชื่อในบิลถูกอัปเดตให้ตรงกับคลังตั้งแต่ตอนแก้ชื่ออะไหล่แล้ว (ดู updatePart ฝั่งเซิร์ฟเวอร์)
   // ตรงนี้จึงอ่านค่าที่บันทึกไว้ตรงๆ และของที่ถูกลบออกจากคลังก็ยังมีชื่อเดิมให้อ่าน
   const detailName = item.itemName;
@@ -47,7 +48,16 @@ const RepairItemCard = ({ item, variant }) => {
 
   return (
     // min-h ไม่ใช่ h: หน้ารายละเอียดมีบรรทัดสัปดาห์/ปีผลิตเพิ่ม เนื้อหาจะเกิน 80px
-    <div className="shadow-primary bg-surface flex min-h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] px-[8px] py-[8px]">
+    // กดได้เมื่อหน้าที่เรียกใช้ส่ง onClick มา (หน้าสรุปเปิดหน้าต่างรายละเอียด)
+    <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? onKeyActivate(onClick) : undefined}
+      onClick={onClick}
+      className={`shadow-primary bg-surface flex min-h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] px-[8px] py-[8px] ${
+        onClick ? "cursor-pointer" : ""
+      }`}
+    >
       <div className="flex min-w-0 flex-1 items-center gap-[8px]">
         <div className="shadow-primary bg-surface flex shrink-0 items-center justify-center rounded-[10px] border border-gray-200">
           {imageUrl ? (

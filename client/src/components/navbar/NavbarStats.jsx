@@ -11,7 +11,6 @@ const NavbarStats = () => {
 
   return (
     <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-[24px]">
-      
       {/* วันที่ปัจจุบัน */}
       <div className="flex items-center gap-[10px]">
         <Calendar className="text-primary h-[22px] w-[22px]" />

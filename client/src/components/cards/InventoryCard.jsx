@@ -2,6 +2,7 @@ import { Image, Wrench, AlertTriangle } from "lucide-react";
 import { formatCurrency, formatQuantity } from "@/utils/formats";
 import { tracksStock } from "@/utils/stock";
 import { isPartPlaceholderItem } from "@/constants/services";
+import { isUnlimitedStockItem } from "@/utils/oil";
 import { SparePart } from "@/components/icons/Icons";
 import { isTireCategoryName } from "@/constants/categories";
 import { formatProductName } from "@/utils/tireSize";
@@ -62,7 +63,14 @@ const InventoryCard = ({
           <div className="flex min-w-0 flex-col">
             {renderProductInfo()}
 
-            {!isService &&
+            {/* ของที่ตวงจากถังใหญ่เบิกได้ตลอด เหลือ 0 จึงไม่ใช่ของหมด
+                แสดงจำนวนตามปกติ ไม่ต้องขึ้นคำเตือนสีแดง */}
+            {!isService && isUnlimitedStockItem({ name }) ? (
+              <p className="text-subtle-dark text-base font-semibold md:text-lg">
+                {`จำนวน: ${formatQuantity(quantity)} ${unit || ""}`}
+              </p>
+            ) : (
+              !isService &&
               (!alwaysWarnEmpty && !tracksStock(minStockLevel) ? (
                 <p className="text-subtle-dark text-base font-semibold md:text-lg">
                   {`จำนวน: ${formatQuantity(quantity)} ${unit}`}
@@ -83,7 +91,8 @@ const InventoryCard = ({
                 <p className="text-subtle-dark text-base font-semibold md:text-lg">
                   {`จำนวน: ${formatQuantity(quantity)} ${unit}`}
                 </p>
-              ))}
+              ))
+            )}
           </div>
         </div>
 

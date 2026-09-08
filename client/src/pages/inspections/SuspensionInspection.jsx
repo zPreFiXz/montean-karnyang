@@ -50,6 +50,7 @@ import {
 import { onKeyActivate } from "@/utils/a11y";
 import { isPerSide, getPartType } from "@/utils/suspension";
 import { formatProductName } from "@/utils/tireSize";
+import { isUnlimitedStockItem } from "@/utils/oil";
 import { withViewTransition } from "@/utils/viewTransition";
 import {
   isTireCategoryName,
@@ -567,6 +568,8 @@ const SuspensionInspection = () => {
   // (availableStock เป็นค่า ณ ตอนหยิบเข้ามา ไม่อัปเดตตามการติ๊กแท็บทีหลัง)
   const isAtStockLimit = (item) => {
     if (!item.partNumber || !item.brand) return false;
+    // ของที่ตวงจากถังใหญ่ไม่มีเพดาน กดเพิ่มได้เรื่อยๆ
+    if (isUnlimitedStockItem(item)) return false;
     const stock = item.availableStock ?? item.stockQuantity ?? 0;
     return item.quantity >= stock - getTabSelectedCountForItem(item);
   };
@@ -2192,7 +2195,8 @@ const SuspensionInspection = () => {
         productName={quantityItem ? getProductName(quantityItem.item) : ""}
         unit={quantityItem?.item?.unit || ""}
         maxQuantity={
-          quantityItem?.item?.partNumber
+          quantityItem?.item?.partNumber &&
+          !isUnlimitedStockItem(quantityItem.item)
             ? (quantityItem.item.availableStock ??
               quantityItem.item.stockQuantity)
             : undefined

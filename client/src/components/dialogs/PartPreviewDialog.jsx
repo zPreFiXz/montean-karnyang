@@ -1,6 +1,9 @@
 import { X, Image as ImageIcon } from "lucide-react";
 import { SparePart } from "@/components/icons/Icons";
 import { formatCurrency } from "@/utils/formats";
+import { isPartPlaceholderItem } from "@/constants/services";
+import { isTireCategoryName } from "@/constants/categories";
+import { formatProductName } from "@/utils/tireSize";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +16,19 @@ import {
 // ซึ่งไม่ควรอยู่ตรงหน้าระหว่างกำลังเปิดบิลให้ลูกค้า
 const PartPreviewDialog = ({ part, price, open, onOpenChange }) => {
   if (!part) return null;
+
+  // บรรทัด "อะไหล่อื่นๆ" อยู่ในหมวดบริการแต่ความหมายคืออะไหล่ จึงยังเรียกว่าอะไหล่
+  const isService =
+    part.category?.name === "บริการ" && !isPartPlaceholderItem(part);
+
+  // ชื่อเต็มแบบเดียวกับที่การ์ดใช้ คือยี่ห้อ + ขนาดยาง + รุ่น
+  // ชื่อในคลังเก็บแค่รุ่น ("MA579") ถ้าโชว์อย่างเดียวจะไม่รู้ว่ายี่ห้ออะไรและขนาดไหน
+  const displayName = formatProductName({
+    brand: part.brand,
+    name: part.name,
+    attributes: part.attributes,
+    isTire: isTireCategoryName(part.category?.name),
+  });
 
   const hasAdjustedPrice =
     price != null && Number(price) !== Number(part.sellingPrice);
@@ -28,10 +44,10 @@ const PartPreviewDialog = ({ part, price, open, onOpenChange }) => {
           {/* หัวเรื่องบอกว่าหน้าต่างนี้คืออะไร ชื่ออะไหล่ไปอยู่ในเนื้อหาข้างล่าง
               รูปแบบเดียวกับหน้าต่างแก้ราคาและหน้าต่างรายละเอียดอะไหล่ */}
           <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
-            รายละเอียดอะไหล่
+            รายละเอียด{isService ? "บริการ" : "อะไหล่"}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            รูปและข้อมูลของ {part.name}
+            ข้อมูลของ {displayName}
           </DialogDescription>
           <button
             onClick={() => onOpenChange(false)}
@@ -44,22 +60,25 @@ const PartPreviewDialog = ({ part, price, open, onOpenChange }) => {
 
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px] pb-[16px]">
           <h2 className="text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">
-            {part.name}
+            {displayName}
           </h2>
 
-          <div className="mt-[16px] flex justify-center">
-            <div className="border-input flex aspect-square w-full max-w-[280px] items-center justify-center overflow-hidden rounded-[20px] border-2">
-              {part.secureUrl ? (
-                <img
-                  src={part.secureUrl}
-                  alt={part.name}
-                  className="h-full w-full object-contain"
-                />
-              ) : (
-                <SparePart className="text-subtle-light h-20 w-20" />
-              )}
+          {/* บริการไม่มีรูปให้ดูอยู่แล้ว กรอบเปล่าขนาด 280 จุดกินที่ฟรีและดันข้อมูลลงไปไกล */}
+          {!isService && (
+            <div className="mt-[16px] flex justify-center">
+              <div className="border-input flex aspect-square w-full max-w-[280px] items-center justify-center overflow-hidden rounded-[20px] border-2">
+                {part.secureUrl ? (
+                  <img
+                    src={part.secureUrl}
+                    alt={displayName}
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  <SparePart className="text-subtle-light h-20 w-20" />
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="mt-[16px] space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
             {part.partNumber && (

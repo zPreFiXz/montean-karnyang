@@ -37,14 +37,9 @@ const CARD_TITLE_SERVICES = [
   "อัดกาวขอบแมกซ์",
 ];
 
-// ค่าบริการนอกสถานที่ไม่ใช่งานของมันเอง แต่บอกว่าบิลนี้คือการออกไปทำนอกร้าน
-// ซึ่งที่ร้านเรียกรวมว่า "ปะยางนอกสถานที่" ไม่ว่างานที่ไปทำจะเป็นอะไร
-const ONSITE_SERVICE_NAME = "ค่าบริการนอกสถานที่";
-const ONSITE_TITLE = "ปะยางนอกสถานที่";
-
-// ตัวขยายในวงเล็บ (แผ่นใหญ่) (สตรีมเย็น) อยู่ท้ายชื่อเสมอ ยกติดไปกับหัวนอกสถานที่ด้วย
-// เพราะเป็นตัวบอกว่าปะแบบไหน ซึ่งยังจริงอยู่แม้ชื่องานจะถูกยุบทิ้ง
-const getQualifier = (name) => /\s*(\(.*\))$/.exec(name)?.[1] || "";
+// ค่าบริการนอกสถานที่ไม่ใช่ชื่องาน เป็นค่าเดินทางที่บวกเพิ่ม จึงไม่เอามาขึ้นหัวการ์ด
+// หัวการ์ดบอกแค่ว่าไปทำอะไรมา ส่วนไปทำที่ไหนดูได้ในบิล
+const isTravelFeeName = (name) => name.includes("นอกสถานที่");
 
 // อ่านจาก itemName ที่บันทึกไว้ตอนเปิดบิล ไม่ใช่ชื่อในคลังปัจจุบัน เพราะชื่อในคลังถูกแก้ทีหลังได้
 const getServiceTitle = (repair) => {
@@ -57,20 +52,12 @@ const getServiceTitle = (repair) => {
     .filter(Boolean);
 
   // งานเดียวกันแยกเป็นสองบรรทัด (คนละราคา) ไม่ต้องขึ้นชื่อซ้ำ
-  const unique = [...new Set(names)];
-  const works = unique.filter((name) => name !== ONSITE_SERVICE_NAME);
+  const works = [...new Set(names)].filter((name) => !isTravelFeeName(name));
 
   if (works.length === 0) return "";
 
   // มีงานที่ไม่รู้จักปนอยู่ = ขึ้นชื่อไม่ครบความจริง สู้ขึ้นว่างานบริการไปเลย
-  // รวมถึงบิลนอกสถานที่ด้วย เพราะงานที่พิมพ์ชื่อเองอาจไม่ใช่งานปะยาง
-  // จะไปขึ้นว่าปะยางนอกสถานที่ไม่ได้
   if (works.some((name) => !CARD_TITLE_SERVICES.includes(name))) return "";
-
-  if (unique.length !== works.length) {
-    const qualifier = works.map(getQualifier).find(Boolean);
-    return qualifier ? `${ONSITE_TITLE} ${qualifier}` : ONSITE_TITLE;
-  }
 
   return works.join(" + ");
 };

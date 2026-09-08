@@ -204,7 +204,9 @@ const EditRepairItemDialog = ({
                     register={register}
                     name="price"
                     label="ราคาต่อหน่วย (บาท)"
-                    type="number"
+                    // ช่องข้อความ ไม่ใช่ช่องตัวเลข เพราะช่องตัวเลขคืนค่าว่างระหว่างที่ยังพิมพ์ไม่จบ
+                    // (พิมพ์ "15." แล้วค่าที่อ่านได้เป็นค่าว่าง เลขที่พิมพ์ไปหายทั้งบรรทัด)
+                    type="text"
                     placeholder="0"
                     textSize="text-lg md:text-xl"
                     color="subtle-dark"
@@ -212,10 +214,9 @@ const EditRepairItemDialog = ({
                     inputMode="numeric"
                     autoFocus={false}
                     errors={errors}
-                    // เลื่อนล้อเมาส์บนช่องตัวเลขจะเปลี่ยนค่าโดยไม่ตั้งใจ ตัดโฟกัสทิ้งเหมือนช่องราคาที่อื่น
-                    onWheel={(e) => e.target.blur()}
+                    // ราคาเก็บเป็นจำนวนเต็ม รับจุดทศนิยมมาก็บันทึกไม่ได้ จึงกันตั้งแต่ช่องกรอก
                     onInput={(e) => {
-                      e.target.value = e.target.value.replace(/[^0-9.]/g, "");
+                      e.target.value = e.target.value.replace(/[^0-9]/g, "");
                     }}
                   />
                 </div>

@@ -11,6 +11,23 @@ export function formatDate(dateString) {
   });
 }
 
+// รายงานยอดขายดูเป็นวันๆ การรู้ว่าวันไหนของสัปดาห์ช่วยอ่านยอดได้มากกว่าเลขวันที่
+// เช่นยอดตกวันจันทร์กับยอดพุ่งวันอาทิตย์ ซึ่งเป็นจังหวะปกติของร้าน
+export function formatDateWithWeekday(dateString) {
+  if (!dateString) return "ไม่ระบุ";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "ไม่ระบุ";
+  // ภาษาไทยได้ "วันอังคารที่ 8 กันยายน 2569" — ตัดคำว่าวันข้างหน้าออกให้เหลือ "อังคารที่ ..."
+  return date
+    .toLocaleDateString("th-TH", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+    .replace(/^วัน/, "");
+}
+
 // แบบย่อสำหรับที่แคบ เช่น การ์ดที่มีราคาอยู่ข้างๆ — "25 ส.ค. 2569"
 export function formatDateShort(dateString) {
   if (!dateString) return "ไม่ระบุ";

@@ -13,7 +13,8 @@ import { toastError } from "@/utils/handleError";
 import { onKeyActivate } from "@/utils/a11y";
 import { sortServices } from "@/constants/services";
 import { getPartType } from "@/utils/suspension";
-import { isTireCategoryName } from "@/constants/categories";
+import { getOilSize, sortOilSizes } from "@/utils/oil";
+import { isTireCategoryName, OIL_CATEGORY } from "@/constants/categories";
 
 // เรียงชื่อชนิดอะไหล่ตามตัวอักษรไทย
 const thaiCollator = new Intl.Collator("th");
@@ -60,6 +61,8 @@ const InventoryBrowser = ({
   );
   // ช่วงล่างมีอะไหล่เป็นร้อยชิ้นแต่แบ่งเป็นชนิดไม่กี่แบบ กรองด้วยชนิดก่อนแล้วค่อยไล่หารุ่นรถ
   const [partType, setPartType] = useState(() => initialTireFilter("partType"));
+  // น้ำมันตัวเดียวกันมีหลายขนาดบรรจุ ส่วนใหญ่หาจากขนาดก่อนว่ามีกี่ลิตร
+  const [oilSize, setOilSize] = useState(() => initialTireFilter("oilSize"));
 
   const activeCategory = syncUrl
     ? searchParams.get("category") || "ทั้งหมด"
@@ -104,6 +107,12 @@ const InventoryBrowser = ({
       next.delete("partType");
     }
 
+    if (oilSize && activeCategory === OIL_CATEGORY) {
+      next.set("oilSize", oilSize);
+    } else {
+      next.delete("oilSize");
+    }
+
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
@@ -116,6 +125,7 @@ const InventoryBrowser = ({
     rimDiameter,
     tireBrand,
     partType,
+    oilSize,
   ]);
 
   const debouncedFilter = useDebouncedCallback(() => {
@@ -131,6 +141,7 @@ const InventoryBrowser = ({
       setRimDiameter("");
     }
     if (activeCategory !== "ช่วงล่าง") setPartType("");
+    if (activeCategory !== OIL_CATEGORY) setOilSize("");
     // ส่งตัวกรองยางไปด้วยตั้งแต่โหลดครั้งแรก เผื่อกู้คืนมาจาก URL — ไม่งั้นจะเห็นยางทั้งหมดจนกว่าจะแตะตัวกรอง
     handleFilter(
       category,
@@ -194,6 +205,16 @@ const InventoryBrowser = ({
     return Array.from(new Set(types)).sort((a, b) =>
       thaiCollator.compare(a, b),
     );
+  }, [partsList]);
+
+  // ขนาดบรรจุของน้ำมันที่มีอยู่จริงในคลัง เรียงจากขวดเล็กไปใหญ่
+  const oilSizeOptions = useMemo(() => {
+    const sizes = partsList
+      .filter((p) => p?.category?.name === OIL_CATEGORY)
+      .map((p) => getOilSize(p.name))
+      .filter(Boolean);
+
+    return sortOilSizes([...new Set(sizes)]);
   }, [partsList]);
 
   // ตัวเลือกของแต่ละช่องกรองด้วย "ช่องอื่นทั้งหมด" ยกเว้นตัวเอง เพื่อให้เลือกช่องไหนก่อนก็ได้
@@ -268,10 +289,15 @@ const InventoryBrowser = ({
       ? filteredByVehicle.filter((item) => getPartType(item.name) === partType)
       : filteredByVehicle;
 
+  const filteredByOilSize =
+    activeCategory === OIL_CATEGORY && oilSize
+      ? filteredByPartType.filter((item) => getOilSize(item.name) === oilSize)
+      : filteredByPartType;
+
   const visibleInventory =
     activeCategory === "บริการ"
-      ? sortServices(filteredByPartType)
-      : filteredByPartType;
+      ? sortServices(filteredByOilSize)
+      : filteredByOilSize;
 
   // หมวด "ทั้งหมด" แยกหัวข้อตามหมวดหมู่ เรียงกลุ่มให้ตรงกับแถบหมวดหมู่ด้านบน
   const inventoryGroups = useMemo(() => {
@@ -517,6 +543,33 @@ const InventoryBrowser = ({
         </div>
       )}
 
+      {activeCategory === OIL_CATEGORY && oilSizeOptions.length > 0 && (
+        <div className="mt-[16px] w-full">
+          <div className="mb-[8px] flex items-center justify-between">
+            <span className="text-xl font-medium md:text-[22px]">
+              ขนาดบรรจุ
+            </span>
+            {oilSize && (
+              <button
+                type="button"
+                onClick={() => setOilSize("")}
+                className="text-destructive flex cursor-pointer items-center gap-[4px] text-lg font-semibold md:text-xl"
+              >
+                <X className="h-4 w-4" />
+                ล้างตัวกรอง
+              </button>
+            )}
+          </div>
+          <ComboBox
+            options={oilSizeOptions.map((size) => ({ name: size }))}
+            value={oilSize}
+            onChange={setOilSize}
+            placeholder="-- เลือกขนาดบรรจุ --"
+            customClass="text-lg md:text-xl"
+          />
+        </div>
+      )}
+
       <div className="mt-[16px] flex items-center justify-between gap-[8px]">
         {/* min-w-0 + truncate: จอแคบให้หัวข้อย่อด้วย ... ไม่ใช่ไปดันปุ่มขวาให้ตกบรรทัด */}
         <div className="flex min-w-0 items-center gap-[6px]">
@@ -525,8 +578,9 @@ const InventoryBrowser = ({
               ? "รายการอะไหล่และบริการ"
               : activeCategory}
           </p>
-          {!isLoading && (
-            <span className="text-subtle-light shrink-0 font-medium">
+          {/* ไม่มีสักรายการก็ไม่ต้องขึ้น เพราะข้อความกลางจอบอกอยู่แล้วว่าไม่มีอะไร */}
+          {!isLoading && visibleInventory.length > 0 && (
+            <span className="text-subtle-light shrink-0 text-lg font-medium md:text-xl">
               ({visibleInventory.length})
             </span>
           )}

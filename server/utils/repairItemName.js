@@ -18,3 +18,12 @@ exports.buildPartItemName = (part) => {
 };
 
 exports.buildServiceItemName = (service) => service?.name || null;
+
+// ของที่ตวงจากถังใหญ่ ไม่ได้นับเป็นชิ้น จึงไม่ตัดสต็อกและไม่คืนสต็อก
+// ต้องตรงกับ UNLIMITED_STOCK_KEYWORDS ฝั่งหน้าเว็บ (client/src/utils/oil.js)
+const UNLIMITED_STOCK_KEYWORDS = ["น้ำมันเกียร์"];
+
+exports.isUnlimitedStockPart = (part) =>
+  UNLIMITED_STOCK_KEYWORDS.some((keyword) =>
+    String(part?.name || "").includes(keyword),
+  );

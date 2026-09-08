@@ -12,7 +12,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { CalendarMonth } from "@/components/ui/CalendarMonth";
 import {
   formatCurrency,
-  formatDate,
+  formatDateWithWeekday,
   formatTime,
   getProvinceName,
 } from "@/utils/formats";
@@ -176,7 +176,7 @@ const SalesReport = () => {
 
     switch (periodType) {
       case "daily":
-        return formatDate(currentDate);
+        return formatDateWithWeekday(currentDate);
       case "weekly":
         return `${startDate.toLocaleDateString("th-TH", {
           day: "numeric",
@@ -249,7 +249,7 @@ const SalesReport = () => {
 
   const groupRepairsByDay = (repairsList) => {
     return repairsList.reduce((acc, r) => {
-      const key = formatDate(r.paidAt || r.createdAt || new Date());
+      const key = formatDateWithWeekday(r.paidAt || r.createdAt || new Date());
       if (!acc[key]) acc[key] = [];
       acc[key].push(r);
       return acc;
@@ -436,9 +436,11 @@ const SalesReport = () => {
             <Paid />
           </div>
           <p className="text-normal text-[22px] font-semibold md:text-2xl">
+            {/* ลิสต์นี้คือทุกบิลที่เก็บเงินแล้วในช่วงที่เลือก มีทั้งงานซ่อม งานบริการ และขายอะไหล่
+                เรียกรวมว่างานซ่อมไม่ตรงกับของที่อยู่ข้างล่าง */}
             {periodRepairs.length > 0
-              ? `งานซ่อม (${periodRepairs.length} รายการ)`
-              : "งานซ่อม"}
+              ? `ยอดขาย (${periodRepairs.length} รายการ)`
+              : "ยอดขาย"}
           </p>
         </div>
         {isLoading ? (
