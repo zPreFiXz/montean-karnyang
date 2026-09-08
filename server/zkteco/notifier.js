@@ -67,7 +67,8 @@ const createNotifier = ({ prisma }) => {
         return;
       }
       sentOn[kind] = "";
-      log.error("Telegram", `${errorLabel} failed:`, err);
+      // ช่วงพักหลังโดน 429 telegram.js log ไว้แล้วครั้งเดียว ตรงนี้ไม่ต้องย้ำทุกนาที
+      if (!err?.backoff) log.error("Telegram", `${errorLabel} failed:`, err);
     }
   };
 
@@ -198,7 +199,11 @@ const createNotifier = ({ prisma }) => {
         await prisma.attendance
           .update({ where: { id: att.id }, data: { notifiedAt: null } })
           .catch(() => {});
-        log.error("Telegram", "Send notification failed (will retry):", err);
+        // err.backoff = ยังอยู่ในช่วงพักที่ telegram.js แจ้งไว้แล้วตอนเข้าสู่ช่วงพัก
+        // ไม่ log ซ้ำ ไม่งั้นได้บรรทัดเดิมทุก 30 วินาทีเหมือนเดิม
+        if (!err?.backoff) {
+          log.error("Telegram", "Send notification failed (will retry):", err);
+        }
         break; // หยุดทั้งคิวเพื่อรักษาลำดับ ไว้ลองรอบหน้า
       }
     }
