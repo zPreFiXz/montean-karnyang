@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router";
+import {
+  saveScrollPosition,
+  useScrollRestoration,
+} from "@/utils/scrollPosition";
 import { LoaderCircle, ChevronLeft } from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
-import { listRepairs } from "@/api/repair";
+import useRepairStore from "@/stores/useRepairStore";
 import { formatTime } from "@/utils/formats";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { Success, Wrench, Paid, Credit } from "@/components/icons/Icons";
@@ -20,19 +24,21 @@ const RepairList = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const status = searchParams.get("status") || "in-progress";
-  const [repairs, setRepairs] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { repairs, fetchRepairs } = useRepairStore();
+  // เหมือนหน้ารายงาน มีของเดิมอยู่แล้วก็โชว์ไปก่อน แล้วดึงใหม่เงียบๆ
+  const [isLoading, setIsLoading] = useState(repairs.length === 0);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-    fetchRepairs();
+    fetchRepairsData();
   }, []);
 
-  const fetchRepairs = async () => {
-    setIsLoading(true);
+  const scrollKey = `/repairs?status=${status}`;
+  useScrollRestoration(scrollKey, !isLoading);
+
+  const fetchRepairsData = async () => {
+    if (repairs.length === 0) setIsLoading(true);
     try {
-      const res = await listRepairs();
-      setRepairs(res.data);
+      await fetchRepairs();
     } catch (error) {
       toastError(error);
     } finally {
@@ -263,6 +269,7 @@ const RepairList = () => {
               key={index}
               to={`/repairs/${item.id}`}
               state={{ from: "repair-status", statusSlug: status }}
+              onClick={() => saveScrollPosition(scrollKey)}
               className="bg-surface shadow-primary mt-[16px] block h-[80px] w-full rounded-[10px]"
             >
               <CarCard

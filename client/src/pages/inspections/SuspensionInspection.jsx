@@ -46,6 +46,7 @@ import {
   isFreeformService,
   isPartPlaceholderItem,
   SUSPENSION_DEFAULT_SERVICE_NAMES,
+  PER_SIDE_SERVICE_NAME,
 } from "@/constants/services";
 import { onKeyActivate } from "@/utils/a11y";
 import { isPerSide, getPartType } from "@/utils/suspension";
@@ -129,6 +130,13 @@ const SuspensionInspection = () => {
   const [brands, setBrands] = useState([]);
   const [repairItems, setRepairItems] = useState([]);
   const [compatibleParts, setCompatibleParts] = useState([]);
+  // บริการรายข้างท้ายแท็บซ้าย/ขวา เก็บแยกจากเซ็ตของอะไหล่
+  // เพราะรหัสบริการกับรหัสอะไหล่เป็นคนละชุด ปนกันแล้วจะชนกันเอง
+  const [perSideService, setPerSideService] = useState(null);
+  const [perSideServiceSides, setPerSideServiceSides] = useState({
+    left: false,
+    right: false,
+  });
   const [isPartsLoaded, setIsPartsLoaded] = useState(false);
   const [selectedLeftParts, setSelectedLeftParts] = useState(new Set());
   const [selectedRightParts, setSelectedRightParts] = useState(new Set());
@@ -232,6 +240,11 @@ const SuspensionInspection = () => {
         ).filter(Boolean);
 
         setDefaultServices(found);
+        setPerSideService(
+          (res.data || []).find(
+            (item) => item.name === PER_SIDE_SERVICE_NAME,
+          ) || null,
+        );
       })
       .catch(() => {
         // ดึงไม่ได้ก็แค่ไม่มีบรรทัดตั้งต้น ช่างเพิ่มเองได้จากปุ่มเพิ่มรายการซ่อม
@@ -309,11 +322,22 @@ const SuspensionInspection = () => {
 
     if (savedItems && Array.isArray(savedItems)) {
       const manualItems = savedItems.filter((i) => !i.side);
+      // บริการรายข้างก็มีข้างเหมือนอะไหล่ แยกออกมาก่อนไม่ให้ปนเข้าเซ็ตของอะไหล่
+      const isPerSideServiceItem = (i) =>
+        !i.partNumber && i.name === PER_SIDE_SERVICE_NAME;
+      setPerSideServiceSides({
+        left: savedItems.some(
+          (i) => i.side === "left" && isPerSideServiceItem(i),
+        ),
+        right: savedItems.some(
+          (i) => i.side === "right" && isPerSideServiceItem(i),
+        ),
+      });
       const leftIds = savedItems
-        .filter((i) => i.side === "left")
+        .filter((i) => i.side === "left" && !isPerSideServiceItem(i))
         .map((i) => i.id);
       const rightIds = savedItems
-        .filter((i) => i.side === "right")
+        .filter((i) => i.side === "right" && !isPerSideServiceItem(i))
         .map((i) => i.id);
       const otherIds = savedItems
         .filter((i) => i.side === "other")
@@ -541,6 +565,14 @@ const SuspensionInspection = () => {
     }, 200);
   };
 
+  // บริการรายข้างที่ติ๊กไว้ นับและคิดเงินรวมไปกับของในแท็บ
+  const countPerSideService = () =>
+    Number(!!perSideService && perSideServiceSides.left) +
+    Number(!!perSideService && perSideServiceSides.right);
+
+  const sumPerSideService = () =>
+    countPerSideService() * (perSideService?.sellingPrice || 0);
+
   // จำนวนที่ติ๊กไว้ในแท็บทั้งสามฝั่ง (นับเฉพาะที่ยังอยู่ในรายการอะไหล่ที่ใช้ได้)
   const countSelectedInTabs = () =>
     Array.from(selectedLeftParts).filter((id) =>
@@ -551,7 +583,8 @@ const SuspensionInspection = () => {
     ).length +
     Array.from(selectedOtherParts).filter((id) =>
       getPartsForSide("other").some((part) => part.id === id),
-    ).length;
+    ).length +
+    countPerSideService();
 
   const getTabSelectedCountForItem = (item) => {
     const part = compatibleParts.find((p) => isSamePart(item, p));
@@ -903,6 +936,14 @@ const SuspensionInspection = () => {
         quantity: 1,
         side: "other",
       })),
+    ...["left", "right"]
+      .filter((side) => perSideService && perSideServiceSides[side])
+      .map((side) => ({
+        ...perSideService,
+        sellingPrice: perSideService.sellingPrice,
+        quantity: 1,
+        side,
+      })),
     ...repairItems,
   ];
 
@@ -939,6 +980,7 @@ const SuspensionInspection = () => {
     setSelectedLeftParts(new Set());
     setSelectedRightParts(new Set());
     setSelectedOtherParts(new Set());
+    setPerSideServiceSides({ left: false, right: false });
     initialSelectedRef.current = {
       left: new Set(),
       right: new Set(),
@@ -1223,6 +1265,75 @@ const SuspensionInspection = () => {
           </div>
         ))
       )}
+
+      {/* บริการรายข้าง อยู่ล่างสุดของแท็บซ้าย/ขวา ต่อจากอะไหล่ทุกกลุ่ม
+          หน้าตาเหมือนการ์ดอะไหล่ทุกอย่าง ต่างแค่ไม่มีสต็อกให้ชน */}
+      {perSideService &&
+        (side === "left" || side === "right") &&
+        getPartsForSide(side).length > 0 && (
+          <div>
+            <div className="mt-[16px] flex items-center gap-[8px] px-[20px]">
+              <p className="text-subtle-dark text-lg font-semibold md:text-xl">
+                บริการ
+              </p>
+              <span className="text-subtle-light text-lg md:text-xl">(1)</span>
+              <div className="bg-subtle-light/40 h-px flex-1" />
+            </div>
+            {(() => {
+              const selectedThis = perSideServiceSides[side];
+              const toggle = () =>
+                setPerSideServiceSides((prev) => ({
+                  ...prev,
+                  [side]: !prev[side],
+                }));
+              return (
+                <div className="mt-[16px] px-[20px]">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={selectedThis}
+                    onKeyDown={onKeyActivate(toggle)}
+                    onClick={toggle}
+                    className={`shadow-primary flex min-h-[80px] w-full cursor-pointer items-center justify-between gap-[8px] rounded-[10px] border-2 px-[8px] py-[8px] transition-colors duration-200 ${
+                      selectedThis
+                        ? "bg-primary/5 border-primary"
+                        : "bg-surface border-transparent"
+                    }`}
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-[8px]">
+                      <div className="shadow-primary bg-surface flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[10px] border border-gray-200">
+                        <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
+                          {/* บริการใช้ประแจเหมือนที่อื่นในระบบ ไม่ใช่น็อตของอะไหล่ */}
+                          <Wrench className="h-9 w-9" />
+                        </div>
+                      </div>
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        {renderProductInfo(perSideService)}
+                        <span
+                          className={`text-xl leading-tight font-semibold duration-200 md:text-[22px] ${
+                            selectedThis ? "text-primary" : "text-subtle-dark"
+                          }`}
+                        >
+                          {formatCurrency(perSideService.sellingPrice)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div
+                      className={`flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-200 ${
+                        selectedThis
+                          ? "bg-gradient-primary text-surface border-transparent"
+                          : "border-subtle-mid text-transparent"
+                      }`}
+                    >
+                      <Check className="h-[16px] w-[16px]" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
     </div>
   );
 
@@ -1493,7 +1604,7 @@ const SuspensionInspection = () => {
               name="description"
               label="รายละเอียดการซ่อม"
               type="text"
-              placeholder="เช่น ค้างตั้งศูนย์, รอสั่งอะไหล่"
+              placeholder="เช่น ค้างตั้งศูนย์ ลูกค้าจะมาวันเสาร์"
               color="surface"
               errors={errors}
             />
@@ -1707,6 +1818,7 @@ const SuspensionInspection = () => {
                                   (part) => part.id === id,
                                 ),
                               ).length +
+                              countPerSideService() +
                               getRepairItemsCountExcludingLabor()}{" "}
                             รายการ
                           </p>
@@ -1744,6 +1856,7 @@ const SuspensionInspection = () => {
                                   },
                                   0,
                                 ) +
+                                sumPerSideService() +
                                 repairItems.reduce(
                                   (total, item) =>
                                     total + item.sellingPrice * item.quantity,
@@ -2041,6 +2154,7 @@ const SuspensionInspection = () => {
                                 (part) => part.id === id,
                               ),
                             ).length +
+                            countPerSideService() +
                             getRepairItemsCountExcludingLabor()}{" "}
                           รายการ
                         </p>
@@ -2072,6 +2186,7 @@ const SuspensionInspection = () => {
                                     : 0)
                                 );
                               }, 0) +
+                              sumPerSideService() +
                               repairItems.reduce(
                                 (total, item) =>
                                   total + item.sellingPrice * item.quantity,
@@ -2185,6 +2300,7 @@ const SuspensionInspection = () => {
         isService={editingItem?.category?.name === "บริการ"}
         currentName={editingItem?.name || ""}
         canEditName={isFreeformService(editingItem)}
+        isPartLine={isPartPlaceholderItem(editingItem)}
       />
 
       <EditQuantityDialog
@@ -2201,7 +2317,7 @@ const SuspensionInspection = () => {
               quantityItem.item.stockQuantity)
             : undefined
         }
-        allowDecimal={allowsDecimalQuantity(quantityItem?.item?.category?.name)}
+        allowDecimal={allowsDecimalQuantity(quantityItem?.item)}
       />
 
       <ConfirmDialog

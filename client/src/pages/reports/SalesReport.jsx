@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { toastError } from "@/utils/handleError";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import {
+  saveScrollPosition,
+  useScrollRestoration,
+} from "@/utils/scrollPosition";
+import {
   ChevronLeft,
   ChevronRight,
   LoaderCircle,
@@ -39,7 +43,9 @@ const SalesReport = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { repairs, fetchRepairs } = useRepairStore();
-  const [isLoading, setIsLoading] = useState(true);
+  // มีข้อมูลค้างในสโตร์อยู่แล้ว (กลับมาจากหน้าบิล) ให้โชว์ของเดิมได้เลย
+  // แล้วค่อยดึงใหม่เงียบๆ ไม่ต้องขึ้นตัวโหลดคั่นให้หน้ากระพริบ
+  const [isLoading, setIsLoading] = useState(repairs.length === 0);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(() => {
     if (location.state?.currentDate) {
@@ -51,6 +57,9 @@ const SalesReport = () => {
   useEffect(() => {
     fetchRepairsData();
   }, [fetchRepairs]);
+
+  const scrollKey = location.pathname + location.search;
+  useScrollRestoration(scrollKey, !isLoading);
 
   useEffect(() => {
     const navDate = location.state?.currentDate;
@@ -64,7 +73,7 @@ const SalesReport = () => {
   }, [location.state?.currentDate]);
 
   const fetchRepairsData = async () => {
-    setIsLoading(true);
+    if (repairs.length === 0) setIsLoading(true);
     try {
       await fetchRepairs();
     } catch (error) {
@@ -458,9 +467,10 @@ const SalesReport = () => {
                       key={index}
                       className={index > 0 ? "mt-[16px] block" : "block"}
                       state={{
-                        returnTo: location.pathname,
+                        returnTo: location.pathname + location.search,
                         currentDate: currentDate.toISOString(),
                       }}
+                      onClick={() => saveScrollPosition(scrollKey)}
                     >
                       <CarCard
                         bg="primary"
@@ -497,9 +507,10 @@ const SalesReport = () => {
                             key={i}
                             className={i > 0 ? "mt-[12px] block" : "block"}
                             state={{
-                              returnTo: location.pathname,
+                              returnTo: location.pathname + location.search,
                               currentDate: currentDate.toISOString(),
                             }}
+                            onClick={() => saveScrollPosition(scrollKey)}
                           >
                             <CarCard
                               bg="primary"

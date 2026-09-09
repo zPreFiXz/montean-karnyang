@@ -1,5 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
-import { Edit, Plus, X, AlertTriangle, Check, Info, Trash } from "lucide-react";
+import { saveScrollPosition } from "@/utils/scrollPosition";
+import {
+  Edit,
+  Plus,
+  X,
+  AlertTriangle,
+  Check,
+  Info,
+  Trash,
+  History,
+  ChevronRight,
+} from "lucide-react";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import {
   Dialog,
@@ -237,15 +248,52 @@ const RepairItemDetailDialog = ({
     );
   };
 
+  // เขียน "ไดอะล็อกของชิ้นนี้เปิดอยู่" ลง URL ของหน้าที่กำลังจะจากไป
+  // แทนที่รายการเดิมในประวัติ กดย้อนกลับมาไดอะล็อกจึงเปิดค้างไว้เหมือนตอนจากไป
+  const rememberOpenItem = () => {
+    // เฉพาะหน้าคลังที่รู้จักพารามิเตอร์นี้ ที่อื่น (เช่นหน้าหลัก) ไม่ต้องมีของแปลกปลอมใน URL
+    if (window.location.pathname !== "/inventory") {
+      const current = `${window.location.pathname}${window.location.search}`;
+      saveScrollPosition(current);
+      return current;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    params.set("item", `${currentItem.type}-${currentItem.id}`);
+    const returnTo = `${window.location.pathname}?${params}`;
+    // แนบตัวข้อมูลไปกับรายการในประวัติด้วย กดย้อนกลับมาจะเปิดได้ตั้งแต่เฟรมแรก
+    // ไม่ต้องรอขอจากเซิร์ฟเวอร์ก่อน (ค่าใน URL เป็นทางสำรองไว้ตอนรีเฟรชหน้า)
+    navigate(returnTo, { replace: true, state: { openItem: currentItem } });
+    saveScrollPosition(returnTo);
+    return returnTo;
+  };
+
   const handleEdit = () => {
     onOpenChange(false);
     // แนบต้นทางไปด้วย เพื่อให้บันทึกเสร็จแล้วกลับมาหน้าที่กดมา ไม่ใช่หน้าที่ระบบเดาว่าเกี่ยวข้อง
     // (เปิดจากหน้าหลักมักกำลังไล่เคลียร์รายการแจ้งเตือนสต็อกอยู่)
-    const from = encodeURIComponent(
-      `${window.location.pathname}${window.location.search}`,
-    );
+    const from = encodeURIComponent(rememberOpenItem());
     navigate(
       `/inventory/${currentItem.id}?type=${currentItem.type}&from=${from}`,
+    );
+  };
+
+  // ไปดูว่าของชิ้นนี้เคยถูกใช้กับรถคันไหนมาบ้าง
+  const handleShowUsage = () => {
+    onOpenChange(false);
+    const returnTo = rememberOpenItem();
+    // ยี่ห้อแยกออกมา หน้าปลายทางเอาไปวางเป็นบรรทัดของตัวเองเหนือชื่อ
+    const params = new URLSearchParams({
+      name: formatProductName({
+        name: currentItem.name,
+        attributes: currentItem.attributes,
+        isTire,
+      }),
+      ...(isService || !currentItem.brand ? {} : { brand: currentItem.brand }),
+      from: returnTo,
+    });
+    navigate(
+      `/inventory/${currentItem.type === "service" ? "service" : "part"}/${currentItem.id}/usage?${params}`,
     );
   };
 
@@ -624,6 +672,20 @@ const RepairItemDetailDialog = ({
           </div>
 
           <div className="flex-shrink-0 px-[16px] pb-[16px]">
+            {/* ประวัติการใช้เป็นการดูข้อมูล ไม่ใช่การแก้ของ จึงแยกออกจากแถวปุ่มลงมือทำ
+                วางเป็นแถวเต็มความกว้างแบบรายการที่กดเข้าไปดูต่อได้ */}
+            {!isAddStockVisible && (
+              <button
+                onClick={handleShowUsage}
+                className="font-athiti text-subtle-dark mb-[16px] flex h-11 w-full cursor-pointer items-center gap-[8px] rounded-[10px] bg-gray-50 px-[12px] text-lg font-semibold md:text-xl"
+              >
+                <History className="text-primary h-5 w-5 shrink-0" />
+                <span className="min-w-0 flex-1 truncate text-left">
+                  ประวัติการใช้
+                </span>
+                <ChevronRight className="text-subtle-light h-5 w-5 shrink-0" />
+              </button>
+            )}
             <div className="flex items-center gap-[16px]">
               {!isService && !isAddStockVisible && (
                 <button

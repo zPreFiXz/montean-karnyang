@@ -11,3 +11,8 @@ export const getInventory = async (id, type) => {
     params: type ? { type } : {},
   });
 };
+
+// บิลที่เคยใช้อะไหล่หรือบริการตัวนี้ (type = "part" | "service")
+export const listInventoryRepairs = async (type, id) => {
+  return await apiClient.get(`/inventory/${type}/${id}/repairs`);
+};

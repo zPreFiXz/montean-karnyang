@@ -1,5 +1,5 @@
 import { listCategories } from "@/api/category";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { ICON_MAP, DEFAULT_ICON } from "@/components/icons/categoryIcons";
 import { LoaderCircle } from "lucide-react";
@@ -14,6 +14,37 @@ const CategoryList = ({
   const [searchParams, setSearchParams] = useSearchParams();
   const [category, setCategory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const stripRef = useRef(null);
+  const activeRef = useRef(null);
+
+  // แถบหมวดหมู่เลื่อนแนวนอนได้ หมวดท้ายๆ อยู่นอกจอ
+  //
+  // เปิดหน้ามาใหม่ = ยังไม่รู้ว่าหมวดที่เลือกอยู่ตรงไหน จัดมากลางจอให้เห็นบริบทซ้ายขวา
+  // กดเลือกเอง = สายตาจับอยู่ที่ปุ่มนั้นแล้ว เลื่อนแค่พอให้เห็นเต็มใบ
+  // ถ้าลากมากลางทุกครั้งปุ่มข้างเคียงจะสลับที่ ต้องไล่หาใหม่ทุกรอบ
+  const hasCentered = useRef(false);
+  useLayoutEffect(() => {
+    const strip = stripRef.current;
+    const chip = activeRef.current;
+    if (isLoading || !strip || !chip) return;
+
+    if (!hasCentered.current) {
+      hasCentered.current = true;
+      const center =
+        chip.offsetLeft - (strip.clientWidth - chip.clientWidth) / 2;
+      strip.scrollLeft = Math.max(0, center);
+      return;
+    }
+
+    const margin = 20;
+    const left = chip.offsetLeft - margin;
+    const right = chip.offsetLeft + chip.clientWidth + margin;
+    if (left < strip.scrollLeft) {
+      strip.scrollTo({ left, behavior: "smooth" });
+    } else if (right > strip.scrollLeft + strip.clientWidth) {
+      strip.scrollTo({ left: right - strip.clientWidth, behavior: "smooth" });
+    }
+  }, [isLoading, activeCategory]);
 
   useEffect(() => {
     fetchCategory();
@@ -46,7 +77,10 @@ const CategoryList = ({
   };
 
   return (
-    <div className="scrollbar-hide -mx-[20px] mt-[16px] overflow-x-auto overflow-y-hidden pl-[20px]">
+    <div
+      ref={stripRef}
+      className="scrollbar-hide -mx-[20px] mt-[16px] overflow-x-auto overflow-y-hidden pl-[20px]"
+    >
       {isLoading ? (
         <div className="flex h-[80px] items-center justify-center">
           <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
@@ -80,6 +114,7 @@ const CategoryList = ({
             return (
               <button
                 key={item.id}
+                ref={isActive ? activeRef : null}
                 onClick={() => {
                   setActiveCategory(item.name);
                   handleFilter(item.name);

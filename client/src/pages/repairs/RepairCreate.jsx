@@ -891,8 +891,8 @@ const RepairCreate = () => {
             type="text"
             placeholder={
               isSale
-                ? "เช่น สั่งของให้ลูกค้า ของถึงวันศุกร์"
-                : "เช่น ค้างตั้งศูนย์, รอสั่งอะไหล่"
+                ? "เช่น สั่งของให้ลูกค้า ของถึงวันศุกร์แล้วโทรตาม"
+                : "เช่น ค้างตั้งศูนย์ ลูกค้าจะมาวันเสาร์"
             }
             color="surface"
             errors={errors}
@@ -1358,6 +1358,7 @@ const RepairCreate = () => {
         isService={editingItem?.category?.name === "บริการ"}
         currentName={editingItem?.name || ""}
         canEditName={isFreeformService(editingItem)}
+        isPartLine={isPartPlaceholderItem(editingItem)}
       />
 
       <EditQuantityDialog
@@ -1375,7 +1376,7 @@ const RepairCreate = () => {
               quantityItem.item.stockQuantity)
             : undefined
         }
-        allowDecimal={allowsDecimalQuantity(quantityItem?.item?.category?.name)}
+        allowDecimal={allowsDecimalQuantity(quantityItem?.item)}
       />
 
       <ConfirmDialog

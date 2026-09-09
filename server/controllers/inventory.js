@@ -1,4 +1,5 @@
 const prisma = require("../config/prisma");
+const createError = require("../utils/createError");
 
 // แปลง service ให้มีโครงสร้างเดียวกับ part เพื่อให้ client แสดงคลังสินค้ารวมกันได้
 const mapServiceToInventoryItem = (service) => ({
@@ -160,6 +161,64 @@ exports.getInventory = async (req, res, next) => {
     }
 
     res.json(inventory);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// บิลทั้งหมดที่เคยใช้อะไหล่หรือบริการตัวนี้ ใช้ในหน้า "รถที่เคยใช้"
+// รวมบรรทัดของบิลเดียวกันเข้าด้วยกัน (ยางซ้าย-ขวาอยู่คนละบรรทัดแต่เป็นบิลใบเดียว)
+exports.listInventoryRepairs = async (req, res, next) => {
+  try {
+    const { type, id } = req.params;
+    const itemId = Number(id);
+
+    if (!Number.isInteger(itemId) || itemId <= 0) {
+      createError(400, "รหัสไม่ถูกต้อง");
+    }
+    if (type !== "part" && type !== "service") {
+      createError(400, "ชนิดรายการไม่ถูกต้อง");
+    }
+
+    const items = await prisma.repairItem.findMany({
+      where: type === "service" ? { serviceId: itemId } : { partId: itemId },
+      select: {
+        quantity: true,
+        unitPrice: true,
+        repair: {
+          include: {
+            customer: { select: { name: true } },
+            repairItems: { select: { itemName: true, partId: true } },
+            vehicle: {
+              include: {
+                licensePlate: {
+                  select: { plateNumber: true, province: true },
+                },
+                vehicleModel: { select: { brand: true, model: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { repair: { createdAt: "desc" } },
+    });
+
+    const byRepair = new Map();
+    for (const item of items) {
+      const current = byRepair.get(item.repair.id);
+      if (current) {
+        current.quantity += Number(item.quantity);
+        current.total += Number(item.quantity) * item.unitPrice;
+      } else {
+        byRepair.set(item.repair.id, {
+          repair: item.repair,
+          quantity: Number(item.quantity),
+          total: Number(item.quantity) * item.unitPrice,
+        });
+      }
+    }
+
+    res.json([...byRepair.values()]);
   } catch (error) {
     next(error);
   }

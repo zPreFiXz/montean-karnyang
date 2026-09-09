@@ -13,6 +13,7 @@ import {
   Wiper,
   Suspension,
   UsedTire,
+  OilFilter,
 } from "@/components/icons/Icons";
 
 export const ICON_MAP = {
@@ -22,6 +23,7 @@ export const ICON_MAP = {
   ยางเปอร์เซ็นต์: UsedTire,
   ยางใน: Innertube,
   น้ำมัน: Oil,
+  กรอง: OilFilter,
   เบรค: Brake,
   โช๊คอัพ: Shock,
   ระบบส่งกำลัง: Gear,

@@ -20,6 +20,7 @@ const RepairDetail = lazy(() => import("@/pages/repairs/RepairDetail"));
 const InventoryList = lazy(() => import("@/pages/inventory/InventoryList"));
 const InventoryCreate = lazy(() => import("@/pages/inventory/InventoryCreate"));
 const InventoryEdit = lazy(() => import("@/pages/inventory/InventoryEdit"));
+const InventoryUsage = lazy(() => import("@/pages/inventory/InventoryUsage"));
 const VehicleList = lazy(() => import("@/pages/vehicles/VehicleList"));
 const VehicleDetail = lazy(() => import("@/pages/vehicles/VehicleDetail"));
 const UserList = lazy(() => import("@/pages/admin/UserList"));
@@ -68,6 +69,10 @@ const AppRoutes = () => {
           {/* Inventory */}
           <Route path="inventory" element={<InventoryList />} />
           <Route path="inventory/new" element={<InventoryCreate />} />
+          <Route
+            path="inventory/:type/:id/usage"
+            element={<InventoryUsage />}
+          />
           <Route path="inventory/:id" element={<InventoryEdit />} />
 
           {/* Vehicle */}

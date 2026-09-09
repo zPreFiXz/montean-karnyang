@@ -466,6 +466,9 @@ const RepairDetail = () => {
   // ราคาใช้ราคาที่ขายจริงในบิล ไม่ใช่ราคาปัจจุบันในคลัง
   const toPreviewItem = (item) => ({
     name: item.itemName,
+    // ชื่อบนบรรทัดถูกพิมพ์ทับไปแล้ว ดูจากบริการต้นทางว่าเป็นบรรทัดอะไหล่ไหม
+    // ไม่งั้นหน้าต่างจะขึ้นว่า "รายละเอียดบริการ" ทั้งที่เป็นอะไหล่ที่ซื้อมาต่างหาก
+    isPartLine: isPartPlaceholderItem(item),
     category: item.part?.category || item.service?.category || null,
     partNumber: item.part?.partNumber || null,
     description: item.part?.description || item.service?.description || null,

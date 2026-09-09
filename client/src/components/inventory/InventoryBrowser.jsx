@@ -11,13 +11,22 @@ import { listParts } from "@/api/part";
 import { listCategories } from "@/api/category";
 import { toastError } from "@/utils/handleError";
 import { onKeyActivate } from "@/utils/a11y";
-import { sortServices } from "@/constants/services";
+import { sortServices, isPartPlaceholderItem } from "@/constants/services";
 import { getPartType } from "@/utils/suspension";
 import { getOilSize, sortOilSizes } from "@/utils/oil";
 import { isTireCategoryName, OIL_CATEGORY } from "@/constants/categories";
 
 // เรียงชื่อชนิดอะไหล่ตามตัวอักษรไทย
 const thaiCollator = new Intl.Collator("th");
+
+const NO_CATEGORY_GROUP = "ไม่มีหมวดหมู่";
+
+// จำผลค้นล่าสุดของแต่ละเงื่อนไขไว้ กลับเข้าหน้าคลังอีกครั้งจะได้มีของโชว์ตั้งแต่เฟรมแรก
+// ไม่ต้องขึ้นตัวโหลดคั่นให้หน้ากระพริบ แล้วค่อยดึงใหม่ทับเงียบๆ
+// อยู่นอกคอมโพเนนต์เพราะต้องอยู่ข้ามการเปลี่ยนหน้า และหายไปเองเมื่อรีเฟรชเบราว์เซอร์
+const inventoryCache = new Map();
+const cacheKey = (categoryName, searchTerm, filterParams) =>
+  JSON.stringify([categoryName, searchTerm, filterParams]);
 
 // หน้าคลังกับไดอะล็อกเลือกอะไหล่ลงบิลคือหน้าจอเดียวกัน ต่างแค่ "กดการ์ดแล้วเกิดอะไร"
 // จึงรวมค้นหา/หมวดหมู่/ตัวกรองยาง/การจัดกลุ่ม/ข้อความว่างไว้ที่นี่ที่เดียว
@@ -31,6 +40,8 @@ const InventoryBrowser = ({
   onItemClick,
   getCardProps = () => ({}),
   reloadToken,
+  // บอกหน้าที่ใช้ว่ารายการพร้อมแล้ว (หน้าคลังใช้จังหวะนี้คืนตำแหน่งที่เลื่อนค้างไว้)
+  onLoadingChange,
   // { brand, model } ของรถในบิล — มีค่าเมื่อไหร่จะมีสวิตช์ให้กรองเฉพาะอะไหล่ที่ใส่รถคันนั้นได้
   vehicle = null,
 }) => {
@@ -76,10 +87,20 @@ const InventoryBrowser = ({
       : {};
 
   const handleFilter = async (categoryName, searchTerm, filterParams = {}) => {
-    setIsLoading(true);
+    const key = cacheKey(categoryName, searchTerm, filterParams);
+    const cached = inventoryCache.get(key);
+    // มีผลเดิมของเงื่อนไขนี้อยู่แล้วก็โชว์ไปก่อน ไม่ต้องขึ้นตัวโหลด
+    if (cached) {
+      setInventory(cached);
+      setIsLoading(false);
+    } else {
+      setIsLoading(true);
+    }
     try {
       const res = await listInventory(categoryName, searchTerm, filterParams);
-      setInventory(res.data || []);
+      const data = res.data || [];
+      inventoryCache.set(key, data);
+      setInventory(data);
     } catch (error) {
       toastError(error);
     } finally {
@@ -127,6 +148,11 @@ const InventoryBrowser = ({
     partType,
     oilSize,
   ]);
+
+  useEffect(() => {
+    onLoadingChange?.(isLoading);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
 
   const debouncedFilter = useDebouncedCallback(() => {
     handleFilter(category, search, buildFilterParams());
@@ -294,10 +320,15 @@ const InventoryBrowser = ({
       ? filteredByPartType.filter((item) => getOilSize(item.name) === oilSize)
       : filteredByPartType;
 
-  const visibleInventory =
+  // "อะไหล่อื่นๆ" เป็นบรรทัดเปล่าไว้พิมพ์ชื่ออะไหล่ที่ซื้อมาต่อจากร้านอื่น ไม่ใช่บริการของร้าน
+  // จึงไม่อยู่ในหมวดไหน โผล่เฉพาะตอนดูทั้งหมด แล้ววางไว้เหนือกลุ่มบริการ
+  const visibleInventory = (
     activeCategory === "บริการ"
       ? sortServices(filteredByOilSize)
-      : filteredByOilSize;
+      : filteredByOilSize
+  ).filter(
+    (item) => activeCategory === "ทั้งหมด" || !isPartPlaceholderItem(item),
+  );
 
   // หมวด "ทั้งหมด" แยกหัวข้อตามหมวดหมู่ เรียงกลุ่มให้ตรงกับแถบหมวดหมู่ด้านบน
   const inventoryGroups = useMemo(() => {
@@ -305,12 +336,16 @@ const InventoryBrowser = ({
 
     const groups = new Map();
     for (const item of visibleInventory) {
-      const name = item.category?.name || "อื่นๆ";
+      const name = isPartPlaceholderItem(item)
+        ? NO_CATEGORY_GROUP
+        : item.category?.name || "อื่นๆ";
       if (!groups.has(name)) groups.set(name, []);
       groups.get(name).push(item);
     }
 
     const rank = (name) => {
+      // กลุ่มไม่มีหมวดหมู่เกาะอยู่เหนือบริการเสมอ ไม่ได้อยู่ในลำดับของแถบหมวดหมู่
+      if (name === NO_CATEGORY_GROUP) return rank("บริการ") - 0.5;
       const i = categoryOrder.indexOf(name);
       return i === -1 ? categoryOrder.length : i;
     };
@@ -547,7 +582,7 @@ const InventoryBrowser = ({
         <div className="mt-[16px] w-full">
           <div className="mb-[8px] flex items-center justify-between">
             <span className="text-xl font-medium md:text-[22px]">
-              ขนาดบรรจุ
+              จำนวนลิตร
             </span>
             {oilSize && (
               <button
@@ -564,7 +599,7 @@ const InventoryBrowser = ({
             options={oilSizeOptions.map((size) => ({ name: size }))}
             value={oilSize}
             onChange={setOilSize}
-            placeholder="-- เลือกขนาดบรรจุ --"
+            placeholder="-- เลือกจำนวนลิตร --"
             customClass="text-lg md:text-xl"
           />
         </div>
@@ -601,15 +636,18 @@ const InventoryBrowser = ({
       ) : inventoryGroups ? (
         inventoryGroups.map((group) => (
           <div key={group.name}>
-            <div className="mt-[16px] flex items-center gap-[8px]">
-              <p className="text-subtle-dark text-lg font-semibold md:text-xl">
-                {group.name}
-              </p>
-              <span className="text-subtle-light text-lg md:text-xl">
-                ({group.items.length})
-              </span>
-              <div className="bg-subtle-light/40 h-px flex-1" />
-            </div>
+            {/* กลุ่มไม่มีหมวดหมู่ไม่ต้องมีหัวข้อ การ์ดบอกตัวเองอยู่แล้วว่าคืออะไร */}
+            {group.name !== NO_CATEGORY_GROUP && (
+              <div className="mt-[16px] flex items-center gap-[8px]">
+                <p className="text-subtle-dark text-lg font-semibold md:text-xl">
+                  {group.name}
+                </p>
+                <span className="text-subtle-light text-lg md:text-xl">
+                  ({group.items.length})
+                </span>
+                <div className="bg-subtle-light/40 h-px flex-1" />
+              </div>
+            )}
             {group.items.map(renderItem)}
           </div>
         ))

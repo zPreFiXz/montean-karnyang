@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
+import { getInventory } from "@/api/inventory";
 import InventoryBrowser from "@/components/inventory/InventoryBrowser";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
 import { BoxSearch } from "@/components/icons/Icons";
+import { useScrollRestoration } from "@/utils/scrollPosition";
 
 const InventoryList = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
 
   const [selectedItem, setSelectedItem] = useState(
@@ -18,10 +20,53 @@ const InventoryList = () => {
   const [reloadToken, setReloadToken] = useState(0);
 
   const activeCategory = searchParams.get("category");
+  const [isListLoading, setIsListLoading] = useState(true);
 
+  // หมวดหมู่กับตัวกรองอยู่ใน URL อยู่แล้ว จำตำแหน่งแยกของแต่ละหมวดได้เลย
+  useScrollRestoration(location.pathname + location.search, !isListLoading);
+
+  // ออกไปหน้าแก้ไขหรือหน้าประวัติแล้วกดย้อนกลับ: ไดอะล็อกต้องเปิดค้างไว้เหมือนตอนจากไป
+  // จำไว้ใน URL (item=part-43) เพราะ URL คือสิ่งเดียวที่ติดอยู่กับหน้าในประวัติของเบราว์เซอร์
+  const openItemParam = searchParams.get("item");
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+    if (!openItemParam) return;
+    // ของชิ้นเดิมเปิดอยู่แล้วก็ไม่ต้องขอซ้ำ (เช่นตอนแถบตัวกรองเขียน URL ทับ)
+    if (
+      selectedItem &&
+      `${selectedItem.type}-${selectedItem.id}` === openItemParam
+    ) {
+      return;
+    }
+
+    const [type, id] = openItemParam.split("-");
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await getInventory(id, type);
+        if (cancelled || !res.data) return;
+        setSelectedItem(res.data);
+        setIsItemDetailOpen(true);
+      } catch {
+        // ของถูกลบไปแล้วหรือลิงก์เพี้ยน ก็แค่ไม่เปิดไดอะล็อก
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openItemParam]);
+
+  // ปิดไดอะล็อกแล้วต้องลบออกจาก URL ด้วย ไม่งั้นรีเฟรชหน้าหรือกดย้อนกลับมาจะเด้งขึ้นมาเอง
+  const handleItemDetailOpenChange = (open) => {
+    setIsItemDetailOpen(open);
+    if (!open && openItemParam) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("item");
+      setSearchParams(next, { replace: true });
+    }
+  };
 
   // มาจากหน้าแก้ไข: ข้อมูลหลังแก้ติดมากับ state แล้ว จึงเปิดได้ตั้งแต่เฟรมแรก
   // ล้าง state ทิ้งทันที ไม่งั้นกดย้อนกลับมาหน้านี้อีกครั้งไดอะล็อกจะเด้งขึ้นมาเองซ้ำ
@@ -49,6 +94,7 @@ const InventoryList = () => {
           <InventoryBrowser
             syncUrl
             reloadToken={reloadToken}
+            onLoadingChange={setIsListLoading}
             onItemClick={(item) => {
               setSelectedItem(item);
               setIsItemDetailOpen(true);
@@ -72,7 +118,7 @@ const InventoryList = () => {
       <RepairItemDetailDialog
         item={selectedItem}
         open={isItemDetailOpen}
-        onOpenChange={setIsItemDetailOpen}
+        onOpenChange={handleItemDetailOpenChange}
         onStockUpdate={() => setReloadToken((n) => n + 1)}
       />
     </div>

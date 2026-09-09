@@ -9,7 +9,10 @@ import {
 import FormInput from "@/components/forms/FormInput";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PLACEHOLDER_SERVICE_NAMES } from "@/constants/services";
+import {
+  PLACEHOLDER_SERVICE_NAMES,
+  isPartPlaceholderItem,
+} from "@/constants/services";
 import { editNamePriceSchema } from "@/utils/schemas";
 import { formatCurrency } from "@/utils/formats";
 
@@ -26,7 +29,14 @@ const EditRepairItemDialog = ({
   isService = false,
   currentName = "",
   canEditName,
+  isPartLine = false,
 }) => {
+  // บรรทัด "อะไหล่อื่นๆ" อยู่ในหมวดบริการเพราะไม่มีของในคลัง แต่ความหมายคืออะไหล่
+  // ป้ายช่องชื่อจึงต้องเรียกตามสิ่งที่ช่างกำลังกรอกจริง
+  const nameLabel = isPartPlaceholderItem({ name: currentName, isPartLine })
+    ? "ชื่ออะไหล่"
+    : "ชื่อบริการ";
+
   // ชื่อของรายการเปล่าที่ยังไม่เคยตั้ง = ชื่อในคลัง ถือว่ายังไม่ได้ตั้งชื่อ
   // เปิดมาให้ช่องว่างไว้เลย จะได้พิมพ์ทับได้ทันทีโดยไม่ต้องลบข้อความเดิมก่อน
   const isUntouchedName = PLACEHOLDER_SERVICE_NAMES.includes(
@@ -149,9 +159,9 @@ const EditRepairItemDialog = ({
                     <FormInput
                       register={register}
                       name="name"
-                      label="ชื่อบริการ"
+                      label={nameLabel}
                       type="text"
-                      placeholder={currentName || "กรอกชื่อบริการ"}
+                      placeholder={currentName || `กรอก${nameLabel}`}
                       autoComplete="off"
                       textSize="text-lg md:text-xl"
                       color="subtle-dark"
