@@ -187,11 +187,58 @@ const restoreTireLotsFromSoldLots = async (tx, partId, soldLots) => {
   }
 };
 
+// ใบประเมินราคายังไม่ได้ลงมือซ่อม ของจึงต้องอยู่ในคลังตามเดิม
+// ย้ายเข้า/ออกจากสถานะนี้เมื่อไหร่ก็คืนหรือตัดสต็อกให้ตรงกับความจริงตอนนั้น
+const restoreStockForRepair = async (tx, repairId) => {
+  const items = await tx.repairItem.findMany({
+    where: { repairId },
+    include: { part: { select: { name: true } } },
+  });
+
+  for (const item of items) {
+    if (!item.partId || isUnlimitedStockPart(item.part)) continue;
+
+    await tx.part.update({
+      where: { id: item.partId },
+      data: { stockQuantity: { increment: item.quantity } },
+    });
+    await restoreTireLotsFromSoldLots(tx, item.partId, item.soldLots);
+    // ล็อตถูกคืนเข้าคลังแล้ว บรรทัดนี้จึงไม่ได้ถืออะไรอยู่
+    await tx.repairItem.update({
+      where: { id: item.id },
+      data: { soldLots: Prisma.DbNull },
+    });
+  }
+};
+
+const deductStockForRepair = async (tx, repairId) => {
+  const items = await tx.repairItem.findMany({
+    where: { repairId },
+    include: { part: { select: { name: true } } },
+  });
+
+  for (const item of items) {
+    if (!item.partId || isUnlimitedStockPart(item.part)) continue;
+
+    const soldLots = await deductTireLotsFifo(tx, item.partId, item.quantity);
+    await tx.part.update({
+      where: { id: item.partId },
+      data: { stockQuantity: { decrement: item.quantity } },
+    });
+    await tx.repairItem.update({
+      where: { id: item.id },
+      data: { soldLots: soldLots ?? Prisma.DbNull },
+    });
+  }
+};
+
 // บันทึกรายการซ่อมย่อยชุดใหม่ พร้อมตัดสต็อกอะไหล่ที่ใช้
 const createRepairItemsAndDecrementStock = async (
   tx,
   repairId,
   repairItems,
+  // ใบประเมินราคาบันทึกรายการอย่างเดียว ของยังไม่ได้ถูกเบิกออกจากคลัง
+  deductStock = true,
 ) => {
   // snapshot ชื่อ ณ วันซ่อม เผื่ออะไหล่ถูกลบภายหลัง ประวัติจะยังมีชื่อ
   const partIds = repairItems.map((i) => i.partId).filter(Boolean);
@@ -226,7 +273,11 @@ const createRepairItemsAndDecrementStock = async (
     let soldLots = null;
     // ของที่ตวงจากถังใหญ่ (น้ำมันเกียร์) ไม่ได้นับเป็นชิ้น ตัดสต็อกแล้วเลขจะติดลบไปเรื่อยๆ
     // จึงบันทึกลงบิลอย่างเดียว ไม่แตะสต็อก
-    if (item.partId && !isUnlimitedStockPart(partById.get(item.partId))) {
+    if (
+      deductStock &&
+      item.partId &&
+      !isUnlimitedStockPart(partById.get(item.partId))
+    ) {
       soldLots = await deductTireLotsFifo(tx, item.partId, item.quantity);
       await tx.part.update({
         where: { id: item.partId },
@@ -574,27 +625,38 @@ exports.updateRepair = async (req, res, next) => {
         currentRepair.customer,
       );
 
+      // ใบประเมินราคายังไม่เคยตัดสต็อก จึงไม่มีอะไรให้คืนและไม่ต้องตัดของชุดใหม่
+      // (คืนไปจะกลายเป็นสต็อกงอก แล้วตัดใหม่จะกลายเป็นของหายทั้งที่ยังไม่ได้ซ่อม)
+      const isEstimate = currentRepair.status === "ESTIMATE";
+
       // คืนสต็อกจากรายการเดิม ก่อนลบทิ้ง
       const existingItems = await tx.repairItem.findMany({
         where: { repairId: Number(id) },
         include: { part: { select: { name: true } } },
       });
 
-      for (const item of existingItems) {
-        // ของที่ตวงจากถังใหญ่ไม่เคยถูกตัดสต็อก จึงไม่มีอะไรให้คืน คืนไปจะกลายเป็นสต็อกงอก
-        if (item.partId && !isUnlimitedStockPart(item.part)) {
-          await tx.part.update({
-            where: { id: item.partId },
-            data: { stockQuantity: { increment: item.quantity } },
-          });
-          await restoreTireLotsFromSoldLots(tx, item.partId, item.soldLots);
+      if (!isEstimate) {
+        for (const item of existingItems) {
+          // ของที่ตวงจากถังใหญ่ไม่เคยถูกตัดสต็อก จึงไม่มีอะไรให้คืน คืนไปจะกลายเป็นสต็อกงอก
+          if (item.partId && !isUnlimitedStockPart(item.part)) {
+            await tx.part.update({
+              where: { id: item.partId },
+              data: { stockQuantity: { increment: item.quantity } },
+            });
+            await restoreTireLotsFromSoldLots(tx, item.partId, item.soldLots);
+          }
         }
       }
 
       await tx.repairItem.deleteMany({ where: { repairId: Number(id) } });
 
       if (repairItems?.length) {
-        await createRepairItemsAndDecrementStock(tx, Number(id), repairItems);
+        await createRepairItemsAndDecrementStock(
+          tx,
+          Number(id),
+          repairItems,
+          !isEstimate,
+        );
       }
 
       await tx.repair.update({
@@ -653,13 +715,16 @@ exports.deleteRepair = async (req, res, next) => {
         include: { part: { select: { name: true } } },
       });
 
-      for (const item of items) {
-        if (item.partId && !isUnlimitedStockPart(item.part)) {
-          await tx.part.update({
-            where: { id: item.partId },
-            data: { stockQuantity: { increment: item.quantity } },
-          });
-          await restoreTireLotsFromSoldLots(tx, item.partId, item.soldLots);
+      // ใบประเมินราคาไม่เคยเบิกของออกจากคลัง ลบทิ้งจึงไม่มีอะไรให้คืน
+      if (repair.status !== "ESTIMATE") {
+        for (const item of items) {
+          if (item.partId && !isUnlimitedStockPart(item.part)) {
+            await tx.part.update({
+              where: { id: item.partId },
+              data: { stockQuantity: { increment: item.quantity } },
+            });
+            await restoreTireLotsFromSoldLots(tx, item.partId, item.soldLots);
+          }
         }
       }
 
@@ -712,9 +777,26 @@ exports.updateRepairStatus = async (req, res, next) => {
       }
     }
 
-    await prisma.repair.update({
-      where: { id: Number(id) },
-      data,
+    // เข้า/ออกใบประเมินราคาต้องขยับสต็อกด้วย จึงทำในรายการเดียวกับการเปลี่ยนสถานะ
+    // ถ้าตัดสต็อกไม่ผ่าน (ของถูกใช้ไปหมดระหว่างรอ) สถานะก็ต้องไม่เปลี่ยนตาม
+    const toEstimate = status === "ESTIMATE" && repair.status !== "ESTIMATE";
+    const fromEstimate = repair.status === "ESTIMATE" && status !== "ESTIMATE";
+
+    if (toEstimate) {
+      // ยังไม่ซ่อม จึงไม่มีเวลาซ่อมเสร็จ ไม่มีเวลาชำระเงิน และยังไม่รู้ว่าจะจ่ายทางไหน
+      data.completedAt = null;
+      data.paidAt = null;
+      data.paymentMethod = null;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      if (toEstimate) await restoreStockForRepair(tx, Number(id));
+      if (fromEstimate) await deductStockForRepair(tx, Number(id));
+
+      await tx.repair.update({
+        where: { id: Number(id) },
+        data,
+      });
     });
 
     res.json({

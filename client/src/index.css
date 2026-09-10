@@ -20,6 +20,9 @@
   --color-normal: #0f172a;
   --color-surface: #ffffff;
   --color-surface-muted: #f6f8fb;
+  /* ใบประเมินราคา = ยังไม่ลงมือซ่อม ใช้ฟ้าเทอร์ควอยซ์ซึ่งเป็นช่องว่างที่เหลือ
+     ส้ม เขียว น้ำเงิน ม่วง ถูกจองโดยสถานะอื่น และแดงคือปุ่มลบทั้งระบบ */
+  --color-status-estimate: #06b6d4;
   --color-status-progress: #f59e0b;
   --color-status-completed: #22c55e;
   --color-status-paid: #1976d2;

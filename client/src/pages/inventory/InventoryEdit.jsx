@@ -407,7 +407,8 @@ const InventoryEdit = () => {
 
       // กลับไปหน้าเดิมแล้วเปิดไดอะล็อกของรายการนี้ค้างไว้ ให้เห็นผลที่เพิ่งแก้ทันที
       navigate(inventoryPathFor(data.categoryId), {
-        state: openItem ? { openItem } : null,
+        // บันทึกเสร็จแล้วกลับหน้าคลัง ถือเป็นการย้อนกลับ ตำแหน่งที่เลื่อนค้างไว้ต้องกลับมาด้วย
+        state: { restoreScroll: true, ...(openItem ? { openItem } : {}) },
       });
 
       reset();

@@ -11,7 +11,11 @@ import { listParts } from "@/api/part";
 import { listCategories } from "@/api/category";
 import { toastError } from "@/utils/handleError";
 import { onKeyActivate } from "@/utils/a11y";
-import { sortServices, isPartPlaceholderItem } from "@/constants/services";
+import {
+  sortServices,
+  isNoCategoryItem,
+  NO_CATEGORY_ORDER,
+} from "@/constants/services";
 import { getPartType } from "@/utils/suspension";
 import { getOilSize, sortOilSizes } from "@/utils/oil";
 import { isTireCategoryName, OIL_CATEGORY } from "@/constants/categories";
@@ -320,15 +324,13 @@ const InventoryBrowser = ({
       ? filteredByPartType.filter((item) => getOilSize(item.name) === oilSize)
       : filteredByPartType;
 
-  // "อะไหล่อื่นๆ" เป็นบรรทัดเปล่าไว้พิมพ์ชื่ออะไหล่ที่ซื้อมาต่อจากร้านอื่น ไม่ใช่บริการของร้าน
+  // "อะไหล่อื่นๆ" กับ "ส่วนลด" ไม่ใช่บริการของร้าน เป็นบรรทัดเปล่าไว้ใส่ในบิล
   // จึงไม่อยู่ในหมวดไหน โผล่เฉพาะตอนดูทั้งหมด แล้ววางไว้เหนือกลุ่มบริการ
   const visibleInventory = (
     activeCategory === "บริการ"
       ? sortServices(filteredByOilSize)
       : filteredByOilSize
-  ).filter(
-    (item) => activeCategory === "ทั้งหมด" || !isPartPlaceholderItem(item),
-  );
+  ).filter((item) => activeCategory === "ทั้งหมด" || !isNoCategoryItem(item));
 
   // หมวด "ทั้งหมด" แยกหัวข้อตามหมวดหมู่ เรียงกลุ่มให้ตรงกับแถบหมวดหมู่ด้านบน
   const inventoryGroups = useMemo(() => {
@@ -336,7 +338,7 @@ const InventoryBrowser = ({
 
     const groups = new Map();
     for (const item of visibleInventory) {
-      const name = isPartPlaceholderItem(item)
+      const name = isNoCategoryItem(item)
         ? NO_CATEGORY_GROUP
         : item.category?.name || "อื่นๆ";
       if (!groups.has(name)) groups.set(name, []);
@@ -354,7 +356,16 @@ const InventoryBrowser = ({
       .map(([name, items]) => ({
         name,
         // บริการเรียงตามลำดับที่ร้านหยิบใช้บ่อย ไม่ใช่ตามที่เซิร์ฟเวอร์ส่งมา
-        items: name === "บริการ" ? sortServices(items) : items,
+        items:
+          name === "บริการ"
+            ? sortServices(items)
+            : name === NO_CATEGORY_GROUP
+              ? [...items].sort(
+                  (a, b) =>
+                    NO_CATEGORY_ORDER.indexOf(a.name) -
+                    NO_CATEGORY_ORDER.indexOf(b.name),
+                )
+              : items,
       }))
       .sort((a, b) => rank(a.name) - rank(b.name));
   }, [visibleInventory, activeCategory, categoryOrder]);
@@ -554,7 +565,7 @@ const InventoryBrowser = ({
         <div className="mt-[16px] w-full">
           <div className="mb-[8px] flex items-center justify-between">
             <span className="text-xl font-medium md:text-[22px]">
-              ประเภทอะไหล่
+              ชนิดอะไหล่
             </span>
             {partType && (
               <button
@@ -571,7 +582,7 @@ const InventoryBrowser = ({
             options={partTypeOptions.map((t) => ({ name: t }))}
             value={partType}
             onChange={setPartType}
-            placeholder="-- เลือกประเภทอะไหล่ --"
+            placeholder="-- เลือกชนิดอะไหล่ --"
             disabled={isFilterLocked(partTypeOptions, partType)}
             customClass="text-lg md:text-xl"
           />

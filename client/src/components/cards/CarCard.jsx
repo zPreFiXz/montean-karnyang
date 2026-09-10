@@ -15,6 +15,7 @@ const CarCard = ({
 }) => {
   const bgColorMap = {
     primary: "bg-primary",
+    estimate: "bg-status-estimate",
     progress: "bg-status-progress",
     completed: "bg-status-completed",
     paid: "bg-status-paid",
@@ -23,6 +24,7 @@ const CarCard = ({
 
   const textColorMap = {
     primary: "text-primary",
+    estimate: "text-status-estimate",
     progress: "text-status-progress",
     completed: "text-status-completed",
     paid: "text-status-paid",

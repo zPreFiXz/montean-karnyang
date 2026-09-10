@@ -28,6 +28,8 @@ import {
   X,
   ChevronUp,
   ArrowUpDown,
+  TicketPercent,
+  Trash2,
 } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import {
@@ -45,6 +47,7 @@ import { toastError } from "@/utils/handleError";
 import {
   isFreeformService,
   isPartPlaceholderItem,
+  isDiscountItem,
   SUSPENSION_DEFAULT_SERVICE_NAMES,
   PER_SIDE_SERVICE_NAME,
 } from "@/constants/services";
@@ -62,6 +65,7 @@ import { scrollToNewRow } from "@/utils/scrollToNewRow";
 import CollapsibleRow from "@/components/ui/CollapsibleRow";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import { withOtherBrandLast } from "@/utils/vehicleBrand";
+import { usePrefetchPages } from "@/routes/pageImports";
 
 const CUSTOMER_FIELDS = ["name", "address", "phoneNumber"];
 
@@ -113,6 +117,9 @@ const EMPTY_FORM = {
 };
 const TAB_LABELS = { left: "ซ้าย", right: "ขวา", other: "อื่นๆ" };
 const SuspensionInspection = () => {
+  // เตรียมโค้ดของหน้าที่มักไปต่อจากหน้านี้ กดแล้วจะได้ไม่ต้องรอโหลด
+  usePrefetchPages(["RepairReview"]);
+
   const navigate = useNavigate();
   const location = useLocation();
   const {
@@ -368,7 +375,8 @@ const SuspensionInspection = () => {
       // เฉพาะบิลที่บันทึกแล้ว (แก้ไขบิลเดิม) — ของถูกหักจากคลังไปแล้ว ต้องบวกคืนตอนคำนวณว่าเบิกได้เท่าไหร่
       // ถ้าแค่ย้อนกลับมาจากหน้าสรุป คลังยังไม่ถูกหัก ถ้าบวกคืนจะกลายเป็นมีของมากกว่าความจริง
       const map = {};
-      if (editRepairId) {
+      // ใบประเมินราคายังไม่เคยเบิกของออกจากคลัง จึงไม่มีอะไรให้บวกคืน
+      if (editRepairId && !restored.stockNotDeducted) {
         for (const it of savedItems) {
           if (it?.partNumber && it?.brand && typeof it.quantity === "number") {
             const key = `${it.partNumber}|${it.brand}|${it.name || ""}`;
@@ -409,7 +417,9 @@ const SuspensionInspection = () => {
     }
 
     const preserved = {
-      ...(editRepairId ? { editRepairId } : {}),
+      ...(editRepairId
+        ? { editRepairId, stockNotDeducted: restored.stockNotDeducted }
+        : {}),
       ...(location.state?.from ? { from: location.state.from } : {}),
       ...(location.state?.origin ? { origin: location.state.origin } : {}),
       ...(location.state?.statusSlug
@@ -548,6 +558,8 @@ const SuspensionInspection = () => {
           withRowId({
             ...itemWithSide,
             isPartLine: isPartPlaceholderItem(itemWithSide),
+            // บรรทัดส่วนลดเก็บราคาติดลบ ยอดรวมจึงหักออกให้เอง
+            isDiscountLine: isDiscountItem(itemWithSide),
             quantity: 1,
             sellingPrice: itemWithSide.sellingPrice,
             // ราคาตั้งต้นจากคลัง ไว้เทียบตอนแก้ราคา (sellingPrice จะถูกทับเมื่อปรับราคา)
@@ -690,7 +702,10 @@ const SuspensionInspection = () => {
           i === editingItem.index
             ? {
                 ...item,
-                sellingPrice: newPrice,
+                // กรอกมาเป็นเลขบวก บรรทัดส่วนลดต้องกลับเป็นลบก่อนเก็บ
+                sellingPrice: isDiscountItem(item)
+                  ? -Math.abs(newPrice)
+                  : newPrice,
                 ...(newName ? { name: newName } : {}),
               }
             : item,
@@ -1012,6 +1027,7 @@ const SuspensionInspection = () => {
           repairItems: allRepairItems,
           from: "suspension",
           editRepairId: location.state?.editRepairId,
+          stockNotDeducted: location.state?.stockNotDeducted,
           origin: location.state?.from,
           statusSlug: location.state?.statusSlug,
           vehicleId: location.state?.vehicleId,
@@ -1677,7 +1693,7 @@ const SuspensionInspection = () => {
                             if (isReordering) return;
                             handlePriceClick(index, item);
                           }}
-                          className="shadow-primary bg-surface flex h-[92px] w-full cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
+                          className="shadow-primary bg-surface relative flex h-[92px] w-full cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
                         >
                           <div className="flex min-w-0 flex-1 items-center gap-[8px]">
                             <div className="shadow-primary bg-surface flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[10px] border border-gray-200">
@@ -1689,8 +1705,10 @@ const SuspensionInspection = () => {
                                 />
                               ) : (
                                 <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
-                                  {!item.partNumber &&
-                                  !isPartPlaceholderItem(item) ? (
+                                  {isDiscountItem(item) ? (
+                                    <TicketPercent className="h-9 w-9" />
+                                  ) : !item.partNumber &&
+                                    !isPartPlaceholderItem(item) ? (
                                     <Wrench className="h-9 w-9" />
                                   ) : (
                                     <SparePart className="h-10 w-10" />
@@ -1740,6 +1758,20 @@ const SuspensionInspection = () => {
                                       <ChevronDown className="h-4 w-4" />
                                     </button>
                                   </div>
+                                ) : isDiscountItem(item) ? (
+                                  // ส่วนลดมีบรรทัดเดียวเสมอ ไม่มีจำนวนให้เพิ่มลด เหลือไว้แค่ปุ่มลบ
+                                  // วางลอยกลางการ์ดในแนวตั้ง ไม่ให้ไปเกาะบรรทัดราคาเหมือนปุ่มจำนวน
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setRemovingIndex(index);
+                                    }}
+                                    aria-label="เอารายการออก"
+                                    className="bg-destructive text-surface absolute top-1/2 right-[8px] flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-[8px]"
+                                  >
+                                    <Trash2 className="h-5 w-5" />
+                                  </button>
                                 ) : (
                                   <div
                                     className="flex shrink-0 items-center gap-[8px]"
@@ -2015,7 +2047,7 @@ const SuspensionInspection = () => {
                           if (isReordering) return;
                           handlePriceClick(index, item);
                         }}
-                        className="shadow-primary bg-surface flex h-[92px] w-full cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
+                        className="shadow-primary bg-surface relative flex h-[92px] w-full cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
                       >
                         <div className="flex min-w-0 flex-1 items-center gap-[8px]">
                           <div className="shadow-primary bg-surface flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[10px] border border-gray-200">
@@ -2027,8 +2059,10 @@ const SuspensionInspection = () => {
                               />
                             ) : (
                               <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
-                                {!item.partNumber &&
-                                !isPartPlaceholderItem(item) ? (
+                                {isDiscountItem(item) ? (
+                                  <TicketPercent className="h-9 w-9" />
+                                ) : !item.partNumber &&
+                                  !isPartPlaceholderItem(item) ? (
                                   <Wrench className="h-9 w-9" />
                                 ) : (
                                   <SparePart className="h-10 w-10" />
@@ -2076,6 +2110,20 @@ const SuspensionInspection = () => {
                                     <ChevronDown className="h-4 w-4" />
                                   </button>
                                 </div>
+                              ) : isDiscountItem(item) ? (
+                                // ส่วนลดมีบรรทัดเดียวเสมอ ไม่มีจำนวนให้เพิ่มลด เหลือไว้แค่ปุ่มลบ
+                                // วางลอยกลางการ์ดในแนวตั้ง ไม่ให้ไปเกาะบรรทัดราคาเหมือนปุ่มจำนวน
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setRemovingIndex(index);
+                                  }}
+                                  aria-label="เอารายการออก"
+                                  className="bg-destructive text-surface absolute top-1/2 right-[8px] flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-[8px]"
+                                >
+                                  <Trash2 className="h-5 w-5" />
+                                </button>
                               ) : (
                                 <div
                                   className="flex shrink-0 items-center gap-[8px]"

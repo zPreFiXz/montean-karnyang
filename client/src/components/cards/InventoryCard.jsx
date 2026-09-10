@@ -1,7 +1,7 @@
-import { Image, Wrench, AlertTriangle } from "lucide-react";
+import { Image, Wrench, AlertTriangle, TicketPercent } from "lucide-react";
 import { formatCurrency, formatQuantity } from "@/utils/formats";
 import { tracksStock } from "@/utils/stock";
-import { isPartPlaceholderItem } from "@/constants/services";
+import { isPartPlaceholderItem, isDiscountItem } from "@/constants/services";
 import { isUnlimitedStockItem } from "@/utils/oil";
 import { SparePart } from "@/components/icons/Icons";
 import { isTireCategoryName } from "@/constants/categories";
@@ -51,7 +51,9 @@ const InventoryCard = ({
                 {/* งานบริการใช้ประแจ ที่เหลือคืออะไหล่
                     "อะไหล่อื่นๆ" อยู่ในหมวดบริการเพราะเป็นรายการเปล่าไว้พิมพ์ชื่อทับ
                     แต่ความหมายคืออะไหล่ จึงได้ไอคอนน็อตเหมือนอะไหล่ตัวอื่น */}
-                {isService && !isPartPlaceholderItem({ name }) ? (
+                {isDiscountItem({ name }) ? (
+                  <TicketPercent className="h-9 w-9" />
+                ) : isService && !isPartPlaceholderItem({ name }) ? (
                   <Wrench className="h-9 w-9" />
                 ) : (
                   <SparePart className="h-10 w-10" />

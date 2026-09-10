@@ -20,6 +20,8 @@ const ConfirmDialog = ({
   itemDetail = "",
   // ปุ่มยืนยันบอกสิ่งที่จะเกิดขึ้นจริง กล่องนี้ใช้กับงานล้างข้อมูลด้วย ไม่ได้มีแต่งานลบ
   confirmLabel = "ลบ",
+  // แดงคือลบทิ้ง งานที่ไม่ได้ทำลายอะไรให้ส่งสีหลักของระบบมาแทน
+  confirmClass = "bg-destructive",
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const cancelButtonRef = useRef(null);
@@ -101,7 +103,7 @@ const ConfirmDialog = ({
               isLoading={isLoading}
               disabled={isLoading}
               onClick={handleConfirm}
-              className="font-athiti bg-destructive mr-0 ml-0 flex-1"
+              className={`font-athiti ${confirmClass} mr-0 ml-0 flex-1`}
             />
           </div>
         </div>

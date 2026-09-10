@@ -5,8 +5,12 @@ import InventoryBrowser from "@/components/inventory/InventoryBrowser";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
 import { BoxSearch } from "@/components/icons/Icons";
 import { useScrollRestoration } from "@/utils/scrollPosition";
+import { usePrefetchPages } from "@/routes/pageImports";
 
 const InventoryList = () => {
+  // เตรียมโค้ดของหน้าที่มักไปต่อจากหน้านี้ กดแล้วจะได้ไม่ต้องรอโหลด
+  usePrefetchPages(["InventoryEdit", "InventoryCreate", "InventoryUsage"]);
+
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
 

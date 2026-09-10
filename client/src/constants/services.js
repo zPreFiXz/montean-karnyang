@@ -29,6 +29,25 @@ export const SUSPENSION_DEFAULT_SERVICE_NAMES = [
   "ตั้งศูนย์",
 ];
 
+// ส่วนลดท้ายบิล เก็บเป็นบรรทัดหนึ่งในบิลที่ราคาติดลบ
+// ยอดรวมจึงบวกกันตรงๆ ได้เหมือนบรรทัดอื่น ไม่ต้องมีช่องส่วนลดแยกและไม่ต้องแก้ตารางบิล
+export const DISCOUNT_SERVICE_NAME = "ส่วนลด";
+
+export const isDiscountItem = (item) =>
+  !!item?.isDiscountLine ||
+  item?.service?.name === DISCOUNT_SERVICE_NAME ||
+  (!item?.partNumber && item?.name === DISCOUNT_SERVICE_NAME);
+
+// รายการที่ไม่ได้อยู่หมวดไหน โผล่รวมกันเหนือกลุ่มบริการตอนดูทั้งหมด
+// เรียงตามลำดับนี้ ไม่ใช่ลำดับที่เซิร์ฟเวอร์ส่งมา
+export const isNoCategoryItem = (item) =>
+  isPartPlaceholderItem(item) || isDiscountItem(item);
+
+export const NO_CATEGORY_ORDER = [
+  PART_PLACEHOLDER_SERVICE_NAME,
+  DISCOUNT_SERVICE_NAME,
+];
+
 // บริการที่เลือกแยกซ้าย-ขวาได้จากแท็บตำแหน่งในบิลเช็กช่วงล่าง
 // คิดเป็นรายข้างเหมือนอะไหล่ จึงอยู่ท้ายแท็บนั้นแทนที่จะให้ไปหาเองในรายการซ่อมเพิ่มเติม
 export const PER_SIDE_SERVICE_NAME = "ตั้งลูกปืนล้อ";
@@ -36,7 +55,8 @@ export const PER_SIDE_SERVICE_NAME = "ตั้งลูกปืนล้อ";
 // บริการทุกตัวแก้ชื่อในบิลได้ ไม่ใช่แค่รายการที่ตั้งราคาไว้ 0
 // เพราะงานหน้าร้านมักไม่ตรงกับชื่อในคลังเป๊ะๆ (ปะยางรถยนต์ → ปะยางหน้าซ้าย 2 รู)
 // ชื่อที่พิมพ์ถูกเก็บลงบิลใบนั้นใบเดียว ไม่กระทบชื่อในคลัง
-export const isFreeformService = (item) => item?.category?.name === "บริการ";
+export const isFreeformService = (item) =>
+  item?.category?.name === "บริการ" && !isDiscountItem(item);
 
 // ลำดับที่ร้านหยิบใช้บ่อย เรียงตามกลุ่มงาน: รายการเปล่า → ปะยาง → งานล้อ → งานตรวจเช็ก
 // บริการที่ไม่อยู่ในลิสต์ (เช่นค่าแรงเปลี่ยนอะไหล่ต่างๆ) ตกไปท้ายสุด เรียงตามตัวอักษรไทย

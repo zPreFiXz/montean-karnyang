@@ -13,6 +13,7 @@ import {
   CreditCard,
   Wallet,
   Clock,
+  ClipboardList,
   CheckCircle2,
   LoaderCircle,
   CircleUserRound,
@@ -52,8 +53,12 @@ import {
   getRepairTitle,
   getRepairSubtitle,
 } from "@/utils/repairDisplay";
+import { usePrefetchPages } from "@/routes/pageImports";
 
 const RepairDetail = () => {
+  // เตรียมโค้ดของหน้าที่มักไปต่อจากหน้านี้ กดแล้วจะได้ไม่ต้องรอโหลด
+  usePrefetchPages(["RepairList", "RepairCreate"]);
+
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -67,6 +72,8 @@ const RepairDetail = () => {
   const [paymentMethodError, setPaymentMethodError] = useState("");
   // บิลที่จ่ายแล้วโชว์เป็นข้อความ กดดินสอถึงจะกลายเป็นช่องเลือก
   const [isEditingPaidMethod, setIsEditingPaidMethod] = useState(false);
+  const [isSavingEstimate, setIsSavingEstimate] = useState(false);
+  const [isEstimateConfirmOpen, setIsEstimateConfirmOpen] = useState(false);
   // กดการ์ดในบิลเพื่อดูรูปกับรายละเอียดของสิ่งที่ขายไป
   const [previewItem, setPreviewItem] = useState(null);
   const isCreditSelected = selectedPaymentMethod === CREDIT_OPTION_ID;
@@ -104,6 +111,16 @@ const RepairDetail = () => {
 
   const getStatusInfo = (status) => {
     switch (status) {
+      case "ESTIMATE":
+        return {
+          text: "ใบประเมินราคา",
+          color: "text-status-estimate",
+          bg: "bg-status-estimate",
+          softBorder: "border-status-estimate/30",
+          softBg: "from-status-estimate/10 to-status-estimate/5",
+          iconColor: "#06b6d4",
+          icon: ClipboardList,
+        };
       case "IN_PROGRESS":
         return {
           text: "กำลังซ่อม",
@@ -150,6 +167,8 @@ const RepairDetail = () => {
 
   const getNextStatus = (currentStatus) => {
     switch (currentStatus) {
+      case "ESTIMATE":
+        return "IN_PROGRESS";
       case "IN_PROGRESS":
         return "COMPLETED";
       case "COMPLETED":
@@ -162,6 +181,8 @@ const RepairDetail = () => {
   // ถ้าปล่อยให้เขียนว่าชำระเงินเหมือนเดิม คนกดจะเข้าใจว่าเก็บเงินไปแล้ว
   const getNextStatusText = (currentStatus) => {
     switch (currentStatus) {
+      case "ESTIMATE":
+        return "ยืนยันการเริ่มซ่อม";
       case "IN_PROGRESS":
         return "ยืนยันการซ่อมเสร็จสิ้น";
       case "COMPLETED":
@@ -173,6 +194,8 @@ const RepairDetail = () => {
 
   const getNextStatusButtonClass = (currentStatus) => {
     switch (currentStatus) {
+      case "ESTIMATE":
+        return "bg-status-progress";
       case "IN_PROGRESS":
         return "bg-status-completed";
       case "COMPLETED":
@@ -199,6 +222,27 @@ const RepairDetail = () => {
       setSelectedPaymentMethod(repair.paymentMethod || "");
       setIsEditingPaidMethod(false);
       toastError(error);
+    }
+  };
+
+  // เก็บบิลที่ยังไม่ได้ซ่อมไว้เป็นใบประเมินราคา ของในบิลถูกคืนเข้าคลังโดยเซิร์ฟเวอร์
+  const handleSaveAsEstimate = async () => {
+    if (!repair || isSavingEstimate) return;
+
+    try {
+      setIsSavingEstimate(true);
+      await withMinDuration(() =>
+        updateRepairStatus(repair.id, { status: "ESTIMATE" }),
+      );
+      setIsEstimateConfirmOpen(false);
+      toast.success("บันทึกเป็นใบประเมินราคาเรียบร้อยแล้ว");
+      // แทนที่หน้าบิลในประวัติ ไม่ซ้อนเพิ่ม เพราะบิลใบนั้นไม่ได้อยู่ในกองกำลังซ่อมแล้ว
+      // กดย้อนกลับจากหน้าใบประเมินราคาจึงไปถึงรายการที่มาตั้งแต่แรกในครั้งเดียว
+      navigate("/repairs?status=estimate", { replace: true });
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setIsSavingEstimate(false);
     }
   };
 
@@ -259,6 +303,8 @@ const RepairDetail = () => {
         toast.success("ซ่อมเสร็จสิ้นและชำระเงินเรียบร้อยแล้ว");
       } else if (nextStatus === "COMPLETED") {
         toast.success("ซ่อมเสร็จเรียบร้อยแล้ว");
+      } else if (nextStatus === "IN_PROGRESS") {
+        toast.success("เริ่มซ่อมแล้ว");
       } else if (nextStatus === "PAID") {
         toast.success("ชำระเงินเรียบร้อยแล้ว");
       }
@@ -273,7 +319,9 @@ const RepairDetail = () => {
       }
 
       const statusSlug = nextStatus.toLowerCase().replace("_", "-");
-      navigate(`/repairs?status=${statusSlug}`);
+      // บิลย้ายกองไปแล้ว หน้าบิลเดิมในประวัติจึงหมดหน้าที่ ใช้แทนที่แทนการซ้อนเพิ่ม
+      // กดย้อนกลับครั้งเดียวจะถึงรายการที่มาตั้งแต่แรก ไม่ต้องผ่านบิลที่ย้ายออกไปแล้ว
+      navigate(`/repairs?status=${statusSlug}`, { replace: true });
     } catch (error) {
       toastError(error);
     } finally {
@@ -425,6 +473,8 @@ const RepairDetail = () => {
           repairItems: savedItems,
           scrollToItems: true,
           editRepairId: repair.id,
+          // ใบประเมินราคายังไม่เคยเบิกของ ห้ามบวกของในบิลคืนตอนคิดว่าเบิกได้เท่าไหร่
+          stockNotDeducted: repair.status === "ESTIMATE",
           from: location.state?.from,
           statusSlug: location.state?.statusSlug,
           vehicleId: location.state?.vehicleId,
@@ -454,9 +504,25 @@ const RepairDetail = () => {
     });
   };
 
+  // ใบประเมินราคายังไม่ใช่งานซ่อม และบิลขายหน้าร้านก็ไม่มีงานซ่อม
+  // เรียกให้ตรงกับของที่กำลังจะถูกลบ ไม่งั้นคนกดจะนึกว่าลบผิดใบ
+  const deleteTargetName =
+    repair?.status === "ESTIMATE"
+      ? "ใบประเมินราคา"
+      : isSaleRepair(repair)
+        ? "รายการขาย"
+        : "งานซ่อม";
+
+  // บิลที่ไม่มีชื่อลูกค้าจะได้คำว่า "ลูกค้าทั่วไป" มาเป็นบรรทัดขยาย
+  // ซึ่งไม่ได้ช่วยระบุว่าเป็นใบไหน ในกล่องยืนยันจึงไม่ต้องมีบรรทัดนั้น
+  const confirmItemDetail =
+    getRepairSubtitle(repair) === "ลูกค้าทั่วไป"
+      ? ""
+      : getRepairSubtitle(repair);
+
   const handleDeleteRepair = async () => {
     await withMinDuration(() => deleteRepair(repair.id));
-    toast.success("ลบงานซ่อมเรียบร้อยแล้ว");
+    toast.success(`ลบ${deleteTargetName}เรียบร้อยแล้ว`);
     setIsDeleteConfirmOpen(false);
     handleGoBack();
   };
@@ -482,7 +548,8 @@ const RepairDetail = () => {
       location.state.returnTo.includes("/admin/reports/sales")
     ) {
       navigate(location.state.returnTo, {
-        state: { currentDate: location.state.currentDate },
+        // กลับด้วยการสั่งไปหน้าเดิม ไม่ใช่ถอยประวัติ ต้องบอกเองว่านี่คือการย้อนกลับ
+        state: { currentDate: location.state.currentDate, restoreScroll: true },
       });
     } else {
       navigate(-1);
@@ -508,10 +575,26 @@ const RepairDetail = () => {
         <p className="text-surface min-w-0 flex-1 truncate text-2xl font-semibold md:text-[26px]">
           รายละเอียดการซ่อม
         </p>
+        {/* ประเมินราคาไว้ก่อน ลูกค้ายังไม่ตกลงซ่อม — ของที่จองไว้ในบิลจะถูกคืนเข้าคลัง
+            มีเฉพาะบิลที่ยังซ่อมอยู่ บิลที่เก็บเงินไปแล้วย้อนกลับไปเป็นใบประเมินไม่ได้ */}
+        {repair?.status === "IN_PROGRESS" && (
+          <button
+            onClick={() => setIsEstimateConfirmOpen(true)}
+            disabled={isSavingEstimate}
+            aria-label="บันทึกเป็นใบประเมินราคา"
+            className="bg-status-estimate flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full disabled:opacity-60"
+          >
+            {isSavingEstimate ? (
+              <LoaderCircle className="text-surface h-5 w-5 animate-spin" />
+            ) : (
+              <ClipboardList className="text-surface h-5 w-5" />
+            )}
+          </button>
+        )}
         {/* วางแยกจากปุ่มหลักด้านล่าง เพื่อไม่ให้นิ้วพลาดไปโดนตอนกดเปลี่ยนสถานะ */}
         <button
           onClick={() => setIsDeleteConfirmOpen(true)}
-          aria-label="ลบงานซ่อม"
+          aria-label={`ลบ${deleteTargetName}`}
           className="bg-destructive flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
         >
           <Trash2 className="text-surface h-5 w-5" />
@@ -873,62 +956,74 @@ const RepairDetail = () => {
             )}
             <div ref={paymentSectionRef} className="mb-[16px] px-[20px]">
               <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
-                การชำระเงิน
+                {repair.status === "ESTIMATE" ? "สถานะ" : "การชำระเงิน"}
               </p>
               <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
-                <div className="flex items-center justify-between gap-[8px]">
-                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                    วิธีชำระเงิน:
-                  </p>
-                  {/* บิลที่จ่ายแล้วเป็นเอกสารที่จบแล้ว ทั้งกล่องจึงเป็นข้อความอ่านอย่างเดียว
-                      แต่กดผิดวิธีตอนเก็บเงินเป็นเรื่องที่เกิดได้ จึงมีดินสอให้กดแก้ทีหลัง
-                      กดแล้วบรรทัดนั้นค่อยกลายเป็นช่องเลือก เลือกเสร็จบันทึกทันทีแล้วกลับเป็นข้อความ
-                      (รูปแบบเดียวกับการกดแก้ราคาที่แถวรายการซ่อม) */}
-                  {repair.status === "PAID" && !isEditingPaidMethod ? (
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingPaidMethod(true)}
-                      aria-label="แก้ไขวิธีชำระเงิน"
-                      className="text-normal flex shrink-0 cursor-pointer items-center gap-[6px] text-lg font-semibold md:text-xl"
-                    >
-                      {getPaymentMethodText(repair.paymentMethod) || "ไม่ระบุ"}
-                      <Edit className="text-primary h-4 w-4" />
-                    </button>
-                  ) : (
-                    <div className="w-[210px] shrink-0">
-                      <ComboBox
-                        options={
-                          repair.status === "PAID" || repair.status === "CREDIT"
-                            ? PAYMENT_METHODS
-                            : PAYMENT_OPTIONS_WITH_CREDIT
-                        }
-                        value={selectedPaymentMethod}
-                        onChange={(value) => {
-                          setSelectedPaymentMethod(value);
-                          setPaymentMethodError("");
-                          if (repair.status === "PAID") {
-                            handleChangePaidMethod(value);
-                          }
-                        }}
-                        placeholder="-- เลือกวิธีชำระเงิน --"
-                        customClass="text-lg md:text-xl"
-                        name="paymentMethod"
-                        errors={
-                          paymentMethodError
-                            ? { paymentMethod: { message: paymentMethodError } }
-                            : undefined
-                        }
-                        hideErrorMessage
-                      />
+                {/* ใบประเมินราคายังไม่มีการเก็บเงิน เลือกวิธีชำระเงินตอนนี้ก็ไม่มีผลอะไร
+                    เหลือไว้แค่บรรทัดสถานะ ไม่ต้องมีช่องให้กดเล่น */}
+                {repair.status !== "ESTIMATE" && (
+                  <>
+                    <div className="flex items-center justify-between gap-[8px]">
+                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                        วิธีชำระเงิน:
+                      </p>
+                      {/* บิลที่จ่ายแล้วเป็นเอกสารที่จบแล้ว ทั้งกล่องจึงเป็นข้อความอ่านอย่างเดียว
+                        แต่กดผิดวิธีตอนเก็บเงินเป็นเรื่องที่เกิดได้ จึงมีดินสอให้กดแก้ทีหลัง
+                        กดแล้วบรรทัดนั้นค่อยกลายเป็นช่องเลือก เลือกเสร็จบันทึกทันทีแล้วกลับเป็นข้อความ
+                        (รูปแบบเดียวกับการกดแก้ราคาที่แถวรายการซ่อม) */}
+                      {repair.status === "PAID" && !isEditingPaidMethod ? (
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingPaidMethod(true)}
+                          aria-label="แก้ไขวิธีชำระเงิน"
+                          className="text-normal flex shrink-0 cursor-pointer items-center gap-[6px] text-lg font-semibold md:text-xl"
+                        >
+                          {getPaymentMethodText(repair.paymentMethod) ||
+                            "ไม่ระบุ"}
+                          <Edit className="text-primary h-4 w-4" />
+                        </button>
+                      ) : (
+                        <div className="w-[210px] shrink-0">
+                          <ComboBox
+                            options={
+                              repair.status === "PAID" ||
+                              repair.status === "CREDIT"
+                                ? PAYMENT_METHODS
+                                : PAYMENT_OPTIONS_WITH_CREDIT
+                            }
+                            value={selectedPaymentMethod}
+                            onChange={(value) => {
+                              setSelectedPaymentMethod(value);
+                              setPaymentMethodError("");
+                              if (repair.status === "PAID") {
+                                handleChangePaidMethod(value);
+                              }
+                            }}
+                            placeholder="-- เลือกวิธีชำระเงิน --"
+                            customClass="text-lg md:text-xl"
+                            name="paymentMethod"
+                            errors={
+                              paymentMethodError
+                                ? {
+                                    paymentMethod: {
+                                      message: paymentMethodError,
+                                    },
+                                  }
+                                : undefined
+                            }
+                            hideErrorMessage
+                          />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                {/* กินความกว้างเต็มกล่องเพื่อให้อยู่บรรทัดเดียว แล้วดันไปชิดขวา
-                    จะได้อยู่ใต้ช่องที่ต้องแก้ ไม่ใช่ใต้ป้ายที่ไม่มีอะไรให้ทำ */}
-                <FieldErrorList
-                  messages={[paymentMethodError]}
-                  className="items-end"
-                />
+                    {/* กินความกว้างเต็มกล่องเพื่อให้อยู่บรรทัดเดียว แล้วดันไปชิดขวา
+                      จะได้อยู่ใต้ช่องที่ต้องแก้ ไม่ใช่ใต้ป้ายที่ไม่มีอะไรให้ทำ */}
+                    <FieldErrorList
+                      messages={[paymentMethodError]}
+                      className="items-end"
+                    />
+                  </>
+                )}
                 <div className="flex justify-between">
                   <p className="text-subtle-dark text-lg font-medium md:text-xl">
                     สถานะการซ่อม:
@@ -1034,12 +1129,23 @@ const RepairDetail = () => {
       />
 
       <ConfirmDialog
+        isOpen={isEstimateConfirmOpen}
+        onClose={() => setIsEstimateConfirmOpen(false)}
+        onConfirm={handleSaveAsEstimate}
+        title="บันทึกเป็นใบประเมินราคา"
+        itemName={getRepairTitle(repair)}
+        itemDetail={confirmItemDetail}
+        confirmLabel="บันทึก"
+        confirmClass="bg-gradient-primary"
+      />
+
+      <ConfirmDialog
         isOpen={isDeleteConfirmOpen}
         onClose={() => setIsDeleteConfirmOpen(false)}
         onConfirm={handleDeleteRepair}
-        title="ยืนยันการลบงานซ่อม"
+        title={`ยืนยันการลบ${deleteTargetName}`}
         itemName={getRepairTitle(repair)}
-        itemDetail={getRepairSubtitle(repair)}
+        itemDetail={confirmItemDetail}
       />
     </div>
   );

@@ -33,8 +33,12 @@ import {
   getRepairTitle,
   getRepairSubtitle,
 } from "@/utils/repairDisplay";
+import { usePrefetchPages } from "@/routes/pageImports";
 
 const Dashboard = () => {
+  // เตรียมโค้ดของหน้าที่มักไปต่อจากหน้านี้ กดแล้วจะได้ไม่ต้องรอโหลด
+  usePrefetchPages(["RepairList", "RepairDetail", "RepairCreate"]);
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [inventory, setInventory] = useState([]);

@@ -14,6 +14,8 @@ import {
   X,
   ChevronUp,
   ArrowUpDown,
+  TicketPercent,
+  Trash2,
 } from "lucide-react";
 import FormInput from "@/components/forms/FormInput";
 import CustomerNameInput from "@/components/forms/CustomerNameInput";
@@ -37,7 +39,7 @@ import {
   isTireCategoryName,
   allowsDecimalQuantity,
 } from "@/constants/categories";
-import { isPartPlaceholderItem } from "@/constants/services";
+import { isPartPlaceholderItem, isDiscountItem } from "@/constants/services";
 import { SparePart } from "@/components/icons/Icons";
 import EditQuantityDialog from "@/components/dialogs/EditQuantityDialog";
 import { onKeyActivate } from "@/utils/a11y";
@@ -51,6 +53,7 @@ import {
   clearDraft,
   isDraftWorthSaving,
 } from "@/utils/repairDraft";
+import { usePrefetchPages } from "@/routes/pageImports";
 
 const CUSTOMER_FIELDS = ["name", "address", "phoneNumber"];
 const VEHICLE_FIELDS = [
@@ -79,6 +82,9 @@ const EMPTY_FORM = {
 };
 
 const RepairCreate = () => {
+  // เตรียมโค้ดของหน้าที่มักไปต่อจากหน้านี้ กดแล้วจะได้ไม่ต้องรอโหลด
+  usePrefetchPages(["RepairReview"]);
+
   const navigate = useNavigate();
   const location = useLocation();
   const {
@@ -167,7 +173,7 @@ const RepairCreate = () => {
         // เฉพาะบิลที่บันทึกแล้ว (แก้ไขบิลเดิม) — ของถูกหักจากคลังไปแล้ว ต้องบวกคืนตอนคำนวณว่าเบิกได้เท่าไหร่
         // ถ้าแค่ย้อนกลับมาจากหน้ายืนยัน คลังยังไม่ถูกหัก ถ้าบวกคืนจะกลายเป็นมีของมากกว่าความจริง
         const map = {};
-        if (location.state?.editRepairId) {
+        if (location.state?.editRepairId && !location.state?.stockNotDeducted) {
           for (const it of savedItems) {
             if (
               it?.partNumber &&
@@ -206,7 +212,10 @@ const RepairCreate = () => {
 
       const preserved = {
         ...(location.state?.editRepairId
-          ? { editRepairId: location.state.editRepairId }
+          ? {
+              editRepairId: location.state.editRepairId,
+              stockNotDeducted: location.state.stockNotDeducted,
+            }
           : {}),
         ...(location.state?.origin ? { origin: location.state.origin } : {}),
         ...(location.state?.from ? { from: location.state.from } : {}),
@@ -313,6 +322,7 @@ const RepairCreate = () => {
         // ยกเว้นยังไม่ได้เลือกรถ ซึ่งต้องกรอกด้านบนก่อน ไม่งั้นจะเลื่อนพ้นช่องที่ต้องกรอก
         scrollToItems: !!(watch("brand") && watch("model")),
         editRepairId: location.state?.editRepairId,
+        stockNotDeducted: location.state?.stockNotDeducted,
         from: location.state?.from,
         origin: location.state?.origin,
         statusSlug: location.state?.statusSlug,
@@ -455,6 +465,8 @@ const RepairCreate = () => {
             ...item,
             // จำไว้ว่าบรรทัดนี้เป็นอะไหล่ที่ซื้อมาใช้เลย ชื่อจะถูกพิมพ์ทับทีหลัง
             isPartLine: isPartPlaceholderItem(item),
+            // บรรทัดส่วนลดเก็บราคาติดลบ ยอดรวมจึงหักออกให้เอง
+            isDiscountLine: isDiscountItem(item),
             // ไดอะล็อกส่งสต็อกที่เบิกได้จริงมาทาง quantity (คิดสต็อกที่คืนจากบิลเดิมแล้ว)
             // เก็บไว้ก่อนถูกทับเป็น 1 เพื่อใช้เป็นเพดานของปุ่มบวก
             availableStock: item.quantity,
@@ -567,7 +579,10 @@ const RepairCreate = () => {
           i === editingItem.index
             ? {
                 ...item,
-                sellingPrice: newPrice,
+                // กรอกมาเป็นเลขบวก บรรทัดส่วนลดต้องกลับเป็นลบก่อนเก็บ
+                sellingPrice: isDiscountItem(item)
+                  ? -Math.abs(newPrice)
+                  : newPrice,
                 ...(newName ? { name: newName } : {}),
               }
             : item,
@@ -984,7 +999,7 @@ const RepairCreate = () => {
                           if (isReordering) return;
                           handlePriceClick(index, item);
                         }}
-                        className="shadow-primary bg-surface flex h-[92px] min-w-0 flex-1 cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
+                        className="shadow-primary bg-surface relative flex h-[92px] min-w-0 flex-1 cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
                       >
                         <div className="flex min-w-0 flex-1 items-center gap-[8px]">
                           <div className="shadow-primary bg-surface flex h-[60px] w-[60px] items-center justify-center rounded-[10px] border border-gray-200">
@@ -998,8 +1013,10 @@ const RepairCreate = () => {
                               <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
                                 {/* งานบริการใช้ประแจ ที่เหลือคืออะไหล่ รวมถึงบรรทัด
                                     อะไหล่ที่ซื้อมาใช้เลยซึ่งระบบเก็บเป็นบริการ */}
-                                {item.category?.name === "บริการ" &&
-                                !isPartPlaceholderItem(item) ? (
+                                {isDiscountItem(item) ? (
+                                  <TicketPercent className="h-9 w-9" />
+                                ) : item.category?.name === "บริการ" &&
+                                  !isPartPlaceholderItem(item) ? (
                                   <Wrench className="h-9 w-9" />
                                 ) : (
                                   <SparePart className="h-10 w-10" />
@@ -1047,6 +1064,20 @@ const RepairCreate = () => {
                                     <ChevronDown className="h-4 w-4" />
                                   </button>
                                 </div>
+                              ) : isDiscountItem(item) ? (
+                                // ส่วนลดมีบรรทัดเดียวเสมอ ไม่มีจำนวนให้เพิ่มลด เหลือไว้แค่ปุ่มลบ
+                                // วางลอยกลางการ์ดในแนวตั้ง ไม่ให้ไปเกาะบรรทัดราคาเหมือนปุ่มจำนวน
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setRemovingIndex(index);
+                                  }}
+                                  aria-label="เอารายการออก"
+                                  className="bg-destructive text-surface absolute top-1/2 right-[8px] flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-[8px]"
+                                >
+                                  <Trash2 className="h-5 w-5" />
+                                </button>
                               ) : (
                                 <div
                                   className="flex shrink-0 items-center gap-[8px]"
@@ -1196,7 +1227,7 @@ const RepairCreate = () => {
                         if (isReordering) return;
                         handlePriceClick(index, item);
                       }}
-                      className="shadow-primary bg-surface flex h-[92px] min-w-0 flex-1 cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
+                      className="shadow-primary bg-surface relative flex h-[92px] min-w-0 flex-1 cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
                     >
                       <div className="flex min-w-0 flex-1 items-center gap-[8px]">
                         <div className="shadow-primary bg-surface flex h-[60px] w-[60px] items-center justify-center rounded-[10px] border border-gray-200">
@@ -1208,8 +1239,10 @@ const RepairCreate = () => {
                             />
                           ) : (
                             <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
-                              {item.category?.name === "บริการ" &&
-                              !isPartPlaceholderItem(item) ? (
+                              {isDiscountItem(item) ? (
+                                <TicketPercent className="h-9 w-9" />
+                              ) : item.category?.name === "บริการ" &&
+                                !isPartPlaceholderItem(item) ? (
                                 <Wrench className="h-9 w-9" />
                               ) : (
                                 <SparePart className="h-10 w-10" />
@@ -1257,6 +1290,20 @@ const RepairCreate = () => {
                                   <ChevronDown className="h-4 w-4" />
                                 </button>
                               </div>
+                            ) : isDiscountItem(item) ? (
+                              // ส่วนลดมีบรรทัดเดียวเสมอ ไม่มีจำนวนให้เพิ่มลด เหลือไว้แค่ปุ่มลบ
+                              // วางลอยกลางการ์ดในแนวตั้ง ไม่ให้ไปเกาะบรรทัดราคาเหมือนปุ่มจำนวน
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRemovingIndex(index);
+                                }}
+                                aria-label="เอารายการออก"
+                                className="bg-destructive text-surface absolute top-1/2 right-[8px] flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-[8px]"
+                              >
+                                <Trash2 className="h-5 w-5" />
+                              </button>
                             ) : (
                               <div
                                 className="flex shrink-0 items-center gap-[8px]"

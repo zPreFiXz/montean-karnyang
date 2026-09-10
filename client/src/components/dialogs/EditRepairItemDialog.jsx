@@ -12,6 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   PLACEHOLDER_SERVICE_NAMES,
   isPartPlaceholderItem,
+  isDiscountItem,
 } from "@/constants/services";
 import { editNamePriceSchema } from "@/utils/schemas";
 import { formatCurrency } from "@/utils/formats";
@@ -31,6 +32,9 @@ const EditRepairItemDialog = ({
   canEditName,
   isPartLine = false,
 }) => {
+  // ส่วนลดเก็บในบิลเป็นเลขติดลบ แต่ในช่องกรอกให้พิมพ์เป็นเลขบวกธรรมดา
+  // คนกรอกคิดว่า "ลดให้ 100" ไม่ใช่ "ใส่ลบหนึ่งร้อย"
+  const isDiscount = isDiscountItem({ name: currentName });
   // บรรทัด "อะไหล่อื่นๆ" อยู่ในหมวดบริการเพราะไม่มีของในคลัง แต่ความหมายคืออะไหล่
   // ป้ายช่องชื่อจึงต้องเรียกตามสิ่งที่ช่างกำลังกรอกจริง
   const nameLabel = isPartPlaceholderItem({ name: currentName, isPartLine })
@@ -47,9 +51,9 @@ const EditRepairItemDialog = ({
   // รายการเปล่าอย่างค่าแรงยังไม่ได้ตั้งราคา เปิดมาให้ช่องว่างพร้อมพิมพ์
   // ของอื่นขึ้นราคาเดิมเสมอ รวมถึงราคา 0 ที่ตั้งใจตั้งไว้ (ของแถม) จะได้รู้ว่าเคยตั้งเป็น 0 ไว้จริง
   const initialPrice =
-    isUntouchedName && !Number(currentPrice)
+    (isUntouchedName || isDiscount) && !Number(currentPrice)
       ? ""
-      : (currentPrice?.toString() ?? "");
+      : (Math.abs(Number(currentPrice ?? 0)).toString() ?? "");
 
   const {
     register,
@@ -213,7 +217,7 @@ const EditRepairItemDialog = ({
                   <FormInput
                     register={register}
                     name="price"
-                    label="ราคาต่อหน่วย (บาท)"
+                    label={isDiscount ? "ส่วนลด (บาท)" : "ราคาต่อหน่วย (บาท)"}
                     // ช่องข้อความ ไม่ใช่ช่องตัวเลข เพราะช่องตัวเลขคืนค่าว่างระหว่างที่ยังพิมพ์ไม่จบ
                     // (พิมพ์ "15." แล้วค่าที่อ่านได้เป็นค่าว่าง เลขที่พิมพ์ไปหายทั้งบรรทัด)
                     type="text"

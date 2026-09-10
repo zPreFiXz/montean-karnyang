@@ -2,32 +2,31 @@ import { lazy, Suspense } from "react";
 import { LoaderCircle } from "lucide-react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import Layout from "@/layouts/Layout";
+import { pageImports } from "./pageImports";
 import ProtectRouteUser from "./ProtectRouteUser";
 import ProtectRouteAdmin from "./ProtectRouteAdmin";
 import ProtectRouteGuest from "./ProtectRouteGuest";
 
 // แยกแต่ละหน้าเป็น chunk ของตัวเอง โหลดเมื่อเข้าเส้นทางนั้นจริง (ลดขนาด bundle แรก)
-const Login = lazy(() => import("@/pages/auth/Login"));
-const Dashboard = lazy(() => import("@/pages/Dashboard"));
-const VehicleModelList = lazy(() => import("@/pages/admin/VehicleModelList"));
-const SuspensionInspection = lazy(
-  () => import("@/pages/inspections/SuspensionInspection"),
-);
-const RepairCreate = lazy(() => import("@/pages/repairs/RepairCreate"));
-const RepairReview = lazy(() => import("@/pages/repairs/RepairReview"));
-const RepairList = lazy(() => import("@/pages/repairs/RepairList"));
-const RepairDetail = lazy(() => import("@/pages/repairs/RepairDetail"));
-const InventoryList = lazy(() => import("@/pages/inventory/InventoryList"));
-const InventoryCreate = lazy(() => import("@/pages/inventory/InventoryCreate"));
-const InventoryEdit = lazy(() => import("@/pages/inventory/InventoryEdit"));
-const InventoryUsage = lazy(() => import("@/pages/inventory/InventoryUsage"));
-const VehicleList = lazy(() => import("@/pages/vehicles/VehicleList"));
-const VehicleDetail = lazy(() => import("@/pages/vehicles/VehicleDetail"));
-const UserList = lazy(() => import("@/pages/admin/UserList"));
-const EmployeeList = lazy(() => import("@/pages/admin/EmployeeList"));
-const SalesReport = lazy(() => import("@/pages/reports/SalesReport"));
-const AttendanceReport = lazy(() => import("@/pages/reports/AttendanceReport"));
-const NotFound = lazy(() => import("@/pages/NotFound"));
+const Login = lazy(pageImports.Login);
+const Dashboard = lazy(pageImports.Dashboard);
+const VehicleModelList = lazy(pageImports.VehicleModelList);
+const SuspensionInspection = lazy(pageImports.SuspensionInspection);
+const RepairCreate = lazy(pageImports.RepairCreate);
+const RepairReview = lazy(pageImports.RepairReview);
+const RepairList = lazy(pageImports.RepairList);
+const RepairDetail = lazy(pageImports.RepairDetail);
+const InventoryList = lazy(pageImports.InventoryList);
+const InventoryCreate = lazy(pageImports.InventoryCreate);
+const InventoryEdit = lazy(pageImports.InventoryEdit);
+const InventoryUsage = lazy(pageImports.InventoryUsage);
+const VehicleList = lazy(pageImports.VehicleList);
+const VehicleDetail = lazy(pageImports.VehicleDetail);
+const UserList = lazy(pageImports.UserList);
+const EmployeeList = lazy(pageImports.EmployeeList);
+const SalesReport = lazy(pageImports.SalesReport);
+const AttendanceReport = lazy(pageImports.AttendanceReport);
+const NotFound = lazy(pageImports.NotFound);
 
 const RouteFallback = () => (
   <div className="flex min-h-svh items-center justify-center">

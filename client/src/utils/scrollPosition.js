@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef } from "react";
+import { useLocation, useNavigationType } from "react-router";
 
 const PREFIX = "scroll:";
 
@@ -29,7 +30,17 @@ const takeScrollPosition = (key) => {
 // คืนตำแหน่งที่จำไว้ครั้งเดียวตอนกลับเข้าหน้า ต้องรอ isReady ให้รายการขึ้นครบก่อน
 // ไม่งั้นหน้ายังสั้นอยู่ เลื่อนไปไม่ถึง
 export const useScrollRestoration = (key, isReady) => {
+  // คืนตำแหน่งเฉพาะตอน "ย้อนกลับ" มาที่หน้านี้จริงๆ
+  // เข้ามาใหม่จากเมนูอื่นถือเป็นการเริ่มดูใหม่ ต้องอยู่บนสุดเสมอ
+  // (บางเส้นทางกลับด้วยการสั่งไปหน้าเดิมตรงๆ ไม่ใช่ถอยประวัติ จึงบอกกันด้วย restoreScroll)
+  const navigationType = useNavigationType();
+  const location = useLocation();
+  const canRestore =
+    navigationType === "POP" || !!location.state?.restoreScroll;
   const pending = useRef(undefined);
+  // เปลี่ยนแท็บ = เปลี่ยนกุญแจ ถือเป็นการเข้าหน้าใหม่ ต้องอ่านตำแหน่งของกุญแจใหม่
+  // ไม่งั้นจะค้างตำแหน่งที่เลื่อนไว้ของแท็บก่อนหน้า เพราะหน้ายังเป็นตัวเดิมไม่ได้ถูกสร้างใหม่
+  const lastKey = useRef(null);
 
   // useLayoutEffect เพราะต้องเลื่อนให้เสร็จก่อนเฟรมแรกที่รายการโผล่
   // ถ้าเลื่อนทีหลังจะเห็นหน้ากระโดดจากบนสุดลงมา
@@ -40,9 +51,15 @@ export const useScrollRestoration = (key, isReady) => {
       if (main) main.scrollTop = top;
     };
 
+    if (lastKey.current !== key) {
+      lastKey.current = key;
+      pending.current = undefined;
+    }
+
     // อ่านตำแหน่งครั้งเดียวตั้งแต่เฟรมแรก ถึงข้อมูลจะมาแล้วตั้งแต่ต้นก็ยังคืนค่าทัน
     if (pending.current === undefined) {
-      pending.current = takeScrollPosition(key);
+      const saved = takeScrollPosition(key);
+      pending.current = canRestore ? saved : null;
       // ไม่มีตำแหน่งที่จำไว้ = เข้าหน้านี้ใหม่ ต้องเริ่มที่บนสุด
       // ไม่งั้นจะค้างตำแหน่งของหน้าก่อนหน้าติดมา
       if (pending.current === null) apply(0);

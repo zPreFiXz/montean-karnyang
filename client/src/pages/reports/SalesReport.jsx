@@ -424,7 +424,7 @@ const SalesReport = () => {
           </button>
         </div>
       </div>
-      <div className="bg-surface -mt-[16px] flex min-h-[calc(100vh-249px)] w-full flex-col rounded-tl-2xl rounded-tr-2xl px-[20px] pb-[112px] md:min-h-[calc(100vh-269px)] xl:pb-[16px]">
+      <div className="bg-surface -mt-[16px] flex min-h-[calc(100svh-249px)] w-full flex-col rounded-tl-2xl rounded-tr-2xl px-[20px] pb-[112px] md:min-h-[calc(100svh-269px)] xl:pb-[16px]">
         {revenueByPaymentMethod.length > 0 && (
           <div className="mt-[16px] space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
             {revenueByPaymentMethod.map((method) => (
@@ -540,7 +540,7 @@ const SalesReport = () => {
         ) : (
           <div className="flex flex-1 items-center justify-center">
             <p className="text-subtle-light text-center text-xl text-balance md:text-[22px]">
-              ไม่มีงานซ่อม
+              ไม่มียอดขาย
             </p>
           </div>
         )}

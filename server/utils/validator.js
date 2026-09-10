@@ -162,7 +162,7 @@ exports.categorySchema = z.object({
 });
 
 exports.updateRepairStatusSchema = z.object({
-  status: z.enum(["COMPLETED", "CREDIT", "PAID"], {
+  status: z.enum(["ESTIMATE", "IN_PROGRESS", "COMPLETED", "CREDIT", "PAID"], {
     message: "สถานะไม่ถูกต้อง",
   }),
   paymentMethod: z

@@ -1,7 +1,7 @@
-import { Image, Wrench } from "lucide-react";
+import { Image, Wrench, TicketPercent } from "lucide-react";
 import { formatCurrency, formatQuantity } from "@/utils/formats";
 import { onKeyActivate } from "@/utils/a11y";
-import { isPartPlaceholderItem } from "@/constants/services";
+import { isPartPlaceholderItem, isDiscountItem } from "@/constants/services";
 import { SparePart } from "@/components/icons/Icons";
 import { soldLotEntries } from "@/utils/tireLot";
 import { isTireCategoryName } from "@/constants/categories";
@@ -71,8 +71,11 @@ const RepairItemCard = ({ item, variant, onClick }) => {
           ) : (
             <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
               {/* งานบริการใช้ประแจ ที่เหลือคืออะไหล่ รวมถึงบรรทัดอะไหล่ที่ซื้อมาใช้เลย
-                  ซึ่งระบบเก็บเป็นบริการแต่ความหมายคืออะไหล่ */}
-              {isService && !isPartLine ? (
+                  ซึ่งระบบเก็บเป็นบริการแต่ความหมายคืออะไหล่
+                  ส่วนลดไม่ใช่ทั้งสองอย่าง จึงใช้ป้ายลดราคา */}
+              {isDiscountItem(item) ? (
+                <TicketPercent className="h-9 w-9" />
+              ) : isService && !isPartLine ? (
                 <Wrench className="h-9 w-9" />
               ) : (
                 <SparePart className="h-10 w-10" />

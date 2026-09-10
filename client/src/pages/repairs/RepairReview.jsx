@@ -25,8 +25,12 @@ import {
   PAYMENT_OPTIONS_WITH_CREDIT,
   CREDIT_OPTION_ID,
 } from "@/constants/paymentMethods";
+import { usePrefetchPages } from "@/routes/pageImports";
 
 const RepairReview = () => {
+  // เตรียมโค้ดของหน้าที่มักไปต่อจากหน้านี้ กดแล้วจะได้ไม่ต้องรอโหลด
+  usePrefetchPages(["RepairList", "RepairDetail"]);
+
   const location = useLocation();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
