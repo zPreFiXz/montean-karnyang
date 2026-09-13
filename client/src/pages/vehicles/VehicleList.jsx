@@ -8,6 +8,7 @@ import { Document } from "@/components/icons/Icons";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { toastError } from "@/utils/handleError";
 import { getDisplayBrand } from "@/utils/repairDisplay";
+import { formatPlate } from "@/utils/formats";
 
 // numeric: true ให้เทียบกลุ่มตัวเลขตามค่าจริง ทะเบียน 999 จึงมาก่อน 1234
 const plateCollator = new Intl.Collator("th", { numeric: true });
@@ -121,7 +122,7 @@ const VehicleList = () => {
                     icon={<BrandIcons brand={item.vehicleModel.brand} />}
                     licensePlate={
                       item.licensePlate
-                        ? `${item.licensePlate.plateNumber} ${item.licensePlate.province}`
+                        ? `${formatPlate(item.licensePlate.plateNumber)} ${item.licensePlate.province}`
                         : "ไม่ระบุทะเบียนรถ"
                     }
                     brand={getDisplayBrand(item.vehicleModel)}

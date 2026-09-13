@@ -1,3 +1,4 @@
+import { formatPlate } from "@/utils/formats";
 // บิลในระบบมีสามแบบ
 // 1. งานซ่อมที่ผูกกับรถ — มีทะเบียน/รุ่นรถ ไปโผล่ในประวัติรถ
 // 2. ขายอะไหล่หน้าร้าน (type = SALE) — ลูกค้าไม่ได้เอารถมา
@@ -71,7 +72,7 @@ export const getRepairTitle = (repair, formatProvince = (v) => v) => {
 
   const plate = repair?.vehicle?.licensePlate;
   if (plate?.plateNumber && plate?.province) {
-    return `${plate.plateNumber} ${formatProvince(plate.province)}`;
+    return `${formatPlate(plate.plateNumber)} ${formatProvince(plate.province)}`;
   }
   return "ไม่ระบุทะเบียนรถ";
 };

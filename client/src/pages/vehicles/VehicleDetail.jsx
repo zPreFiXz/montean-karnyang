@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from "react-router";
 import { ChevronLeft, LoaderCircle, Trash2, Wrench } from "lucide-react";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { getVehicle, deleteVehicle } from "@/api/vehicle";
-import { formatDate } from "@/utils/formats";
+import { formatDate, formatPlate } from "@/utils/formats";
 import RepairCard from "@/components/cards/RepairCard";
 import { toastError } from "@/utils/handleError";
 import { toast } from "sonner";
@@ -82,7 +82,7 @@ const VehicleDetail = () => {
                 <p className="text-primary text-[22px] leading-tight font-semibold md:text-2xl">
                   {vehicle?.licensePlate?.plateNumber &&
                   vehicle?.licensePlate?.province
-                    ? `${vehicle.licensePlate.plateNumber} ${vehicle.licensePlate.province}`
+                    ? `${formatPlate(vehicle.licensePlate.plateNumber)} ${vehicle.licensePlate.province}`
                     : "ไม่ระบุทะเบียนรถ"}
                 </p>
                 <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
@@ -136,7 +136,7 @@ const VehicleDetail = () => {
         title="ยืนยันการลบรถ"
         itemName={
           vehicle?.licensePlate?.plateNumber
-            ? `${vehicle.licensePlate.plateNumber} ${vehicle.licensePlate.province}`
+            ? `${formatPlate(vehicle.licensePlate.plateNumber)} ${vehicle.licensePlate.province}`
             : "ไม่ระบุทะเบียนรถ"
         }
         itemDetail={getDisplayBrand(vehicle?.vehicleModel)}

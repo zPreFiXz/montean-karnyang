@@ -1,7 +1,7 @@
 const { Prisma } = require("@prisma/client");
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
-const { buildReceiptHtml } = require("../utils/receiptHtml");
+const { buildReceiptHtml, buildJobSheetHtml } = require("../utils/receiptHtml");
 const { printReceipt } = require("../utils/printReceipt");
 const {
   buildPartItemName,
@@ -825,9 +825,16 @@ exports.printRepairReceipt = async (req, res, next) => {
             vehicleModel: { select: { brand: true, model: true } },
           },
         },
+        user: { select: { name: true } },
         repairItems: {
           include: {
-            part: { select: { unit: true } },
+            part: {
+              select: {
+                unit: true,
+                name: true,
+                category: { select: { name: true } },
+              },
+            },
             service: { select: { name: true } },
           },
         },
@@ -838,9 +845,21 @@ exports.printRepairReceipt = async (req, res, next) => {
       createError(404, "ไม่พบรายการซ่อม");
     }
 
-    await printReceipt(buildReceiptHtml(repair), repair.id);
+    // หน้าเว็บบอกมาว่าจะเอาข้อมูลลูกค้าติดไปด้วยไหม ไม่ส่งมาก็ถือว่าเอา
+    const showCustomer = req.body?.showCustomer !== false;
+    const isJobSheet = req.body?.docType === "job";
 
-    res.json({ message: "ส่งใบเสร็จเข้าเครื่องพิมพ์แล้ว" });
+    const html = isJobSheet
+      ? buildJobSheetHtml(repair)
+      : buildReceiptHtml(repair, { showCustomer });
+
+    await printReceipt(html, repair.id);
+
+    res.json({
+      message: isJobSheet
+        ? "ส่งใบสั่งซ่อมเข้าเครื่องพิมพ์แล้ว"
+        : "ส่งใบเสร็จเข้าเครื่องพิมพ์แล้ว",
+    });
   } catch (error) {
     next(error);
   }

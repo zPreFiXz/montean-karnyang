@@ -83,6 +83,20 @@ const sendToPrinter = async (filePath, printerName) => {
 
 // สร้างใบเสร็จเป็น PDF แล้วส่งเข้าเครื่องพิมพ์ที่ต่อกับเครื่องนี้
 // PRINTER_NAME ใน .env ไว้เลือกเครื่องเมื่อมีหลายเครื่อง ไม่ตั้งก็ใช้เครื่องที่ตั้งเป็นค่าเริ่มต้น
+// แปลข้อผิดพลาดของเครื่องพิมพ์เป็นภาษาที่คนหน้าร้านทำตามได้
+// ข้อความดิบจากระบบปฏิบัติการอ่านไม่รู้เรื่องและไม่ได้บอกว่าต้องทำอะไรต่อ
+const toPrinterError = (error) => {
+  const text = String(error?.message || "");
+
+  if (/no default destination|ไม่พบเครื่องพิมพ์|no destinations/i.test(text)) {
+    return "ไม่พบเครื่องพิมพ์ ตรวจสอบว่าเสียบสายและเปิดเครื่องพิมพ์ไว้แล้ว";
+  }
+  if (/not found|ENOENT/i.test(text)) {
+    return "เครื่องที่รันระบบยังสั่งพิมพ์ไม่ได้ ตรวจสอบการติดตั้งเครื่องพิมพ์";
+  }
+  return "สั่งพิมพ์ไม่สำเร็จ ตรวจสอบเครื่องพิมพ์แล้วลองใหม่อีกครั้ง";
+};
+
 const printReceipt = async (html, fileTag) => {
   const pdf = await htmlToPdf(html);
   const filePath = path.join(
@@ -93,6 +107,8 @@ const printReceipt = async (html, fileTag) => {
   await fs.writeFile(filePath, pdf);
   try {
     await sendToPrinter(filePath, process.env.PRINTER_NAME);
+  } catch (error) {
+    createError(503, toPrinterError(error));
   } finally {
     // ลบไฟล์ชั่วคราวเสมอ ไม่ให้ใบเสร็จของลูกค้าค้างอยู่ในเครื่อง
     await fs.unlink(filePath).catch(() => {});

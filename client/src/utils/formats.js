@@ -82,3 +82,12 @@ export function getProvinceName(provinceId) {
   const province = provinces.find((p) => p.id === provinceId);
   return province ? province.name : provinceId;
 }
+
+// ทะเบียนเก็บในฐานข้อมูลเป็น "กษ 9037" (เว้นวรรค) แต่เวลาแสดงคั่นด้วยขีดให้อ่านง่ายขึ้น
+// รับได้ทั้งแบบเว้นวรรคและแบบมีขีดอยู่แล้ว เผื่อข้อมูลเก่าที่บันทึกคนละรูปแบบ
+export function formatPlate(plateNumber) {
+  const text = String(plateNumber || "").trim();
+  if (!text) return "";
+  const parts = text.split(/[\s-]+/).filter(Boolean);
+  return parts.length > 1 ? parts.join("-") : text;
+}

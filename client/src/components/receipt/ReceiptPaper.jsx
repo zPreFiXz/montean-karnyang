@@ -1,0 +1,278 @@
+import { formatQuantity, formatPlate } from "@/utils/formats";
+import { bahtText } from "@/utils/bahtText";
+import { getDisplayBrand } from "@/utils/repairDisplay";
+import { isPartPlaceholderItem } from "@/constants/services";
+
+// ข้อมูลร้านที่พิมพ์ไว้บนหัวใบเสร็จเล่มกระดาษ ใช้ชุดเดียวกันเพื่อให้ใบที่พิมพ์ออกมาหน้าตาเหมือนกัน
+const SHOP = {
+  name: "ร้านมณเฑียรการยาง",
+  address: "543 หมู่ที่ 5 ตำบลน้ำอ้อม อำเภอกันทรลักษ์ จังหวัดศรีสะเกษ 33110",
+  contact:
+    "โทร. 089-8492861, 093-3261705  เลขประจำตัวผู้เสียภาษี 3 33030032502 1",
+};
+
+// ใบเสร็จกระดาษมีเส้นว่างไว้เขียนเพิ่ม ใบที่พิมพ์จึงเติมแถวเปล่าให้ตารางสูงเท่ากันทุกใบ
+const MIN_ROWS = 12;
+
+// ช่องติ๊กวิธีจ่ายบนใบเสร็จ เรียงตามที่ร้านใช้บ่อย (เช็คไม่มีในระบบ เว้นไว้ให้ติ๊กมือ)
+const PAYMENT_BOXES = [
+  { label: "เงินสด", method: "CASH" },
+  { label: "สแกนจ่าย", method: "QR_CODE" },
+  { label: "บัตรเครดิต", method: "CREDIT_CARD" },
+  { label: "เช็ค", method: null },
+];
+
+const formatMoney = (value) =>
+  Number(value || 0).toLocaleString("th-TH", { maximumFractionDigits: 2 });
+
+// หน่วยเก็บไว้กับอะไหล่ในคลัง อะไหล่ที่ซื้อมาใช้เลยไม่มีของในคลังจึงนับเป็นชิ้น
+// ส่วนงานบริการไม่มีหน่วย เขียนแต่จำนวนเหมือนที่เขียนมือในเล่ม
+export const unitOf = (item) => {
+  if (item.part?.unit) return item.part.unit;
+  return isPartPlaceholderItem(item) ? "ชิ้น" : "";
+};
+
+// บิลเช็กช่วงล่างเก็บข้างที่ใส่ไว้กับแต่ละบรรทัด ใบจึงต้องบอกด้วยว่าเปลี่ยนของข้างไหน
+// ของชิ้นเดียวกันที่ใส่ทั้งสองข้างยุบเป็นแถวเดียวแล้วห้อยท้ายว่า L-R
+export const mergeBySide = (items) => {
+  const rows = [];
+  const byKey = new Map();
+
+  for (const item of items) {
+    const side = item.side === "LEFT" ? "L" : item.side === "RIGHT" ? "R" : "";
+    if (!side) {
+      rows.push({ item, quantity: Number(item.quantity), sides: [] });
+      continue;
+    }
+
+    const key = `${item.itemName}|${item.unitPrice}`;
+    const existing = byKey.get(key);
+    if (existing) {
+      existing.quantity += Number(item.quantity);
+      if (!existing.sides.includes(side)) existing.sides.push(side);
+      continue;
+    }
+
+    const row = { item, quantity: Number(item.quantity), sides: [side] };
+    byKey.set(key, row);
+    rows.push(row);
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    sideLabel:
+      row.sides.includes("L") && row.sides.includes("R")
+        ? "L-R"
+        : row.sides[0] || "",
+  }));
+};
+
+// ข้อมูลหัวใบที่ใบเสร็จกับใบสั่งงานใช้ร่วมกัน
+export const receiptHeaderInfo = (repair) => {
+  const issuedAt = new Date(repair.paidAt || repair.createdAt || Date.now());
+  const plate = repair.vehicle?.licensePlate;
+
+  return {
+    day: issuedAt.getDate(),
+    month: issuedAt.toLocaleDateString("th-TH", { month: "long" }),
+    // ใบเสร็จไทยเขียนปี พ.ศ. สองหลัก ตามที่เขียนมือในเล่ม
+    year: String(issuedAt.getFullYear() + 543).slice(-2),
+    vehicleName: getDisplayBrand(repair.vehicle?.vehicleModel) || "",
+    plateText: plate?.plateNumber
+      ? `${formatPlate(plate.plateNumber)} ${plate.province || ""}`.trim()
+      : "",
+  };
+};
+
+// เนื้อในของใบเสร็จ กระดาษกับการย่อขนาดอยู่ที่ ReceiptPreviewDialog
+const ReceiptPaper = ({ repair, showCustomer = true }) => {
+  const { day, month, year, vehicleName, plateText } =
+    receiptHeaderInfo(repair);
+  const customerName = repair.customer?.name || "";
+  const customerAddress = repair.customer?.address || "";
+
+  const items = mergeBySide(repair.repairItems || []);
+  const blankRows = Math.max(0, MIN_ROWS - items.length);
+  const total = Number(repair.totalPrice || 0);
+
+  return (
+    <>
+      <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-[8px]">
+        <p className="flex items-end gap-[4px] whitespace-nowrap">
+          เล่มที่
+          <span className="w-[70px] border-b border-dotted border-black" />
+        </p>
+        <div className="text-center">
+          <p className="text-[15pt] font-semibold">ใบเสร็จรับเงิน</p>
+          <p className="text-[17pt] font-semibold">{SHOP.name}</p>
+        </div>
+        <p className="flex items-end justify-end gap-[4px] whitespace-nowrap">
+          เลขที่
+          <span className="min-w-[42px] border-b border-dotted border-black text-center font-semibold">
+            {repair.id}
+          </span>
+        </p>
+      </div>
+
+      <p className="mt-[2px] text-center">{SHOP.address}</p>
+      <p className="text-center">{SHOP.contact}</p>
+
+      <div className="mt-[8px] flex justify-center gap-[12px]">
+        <p className="flex items-end gap-[4px]">
+          วันที่
+          <span className="w-[52px] border-b border-dotted border-black text-center font-semibold">
+            {day}
+          </span>
+        </p>
+        <p className="flex items-end gap-[4px]">
+          เดือน
+          <span className="w-[92px] border-b border-dotted border-black text-center font-semibold">
+            {month}
+          </span>
+        </p>
+        <p className="flex items-end gap-[4px]">
+          พ.ศ.
+          <span className="w-[52px] border-b border-dotted border-black text-center font-semibold">
+            {year}
+          </span>
+        </p>
+      </div>
+
+      <div className="mt-[6px] space-y-[5px]">
+        {/* ปิดสวิตช์แล้วเว้นช่องไว้เฉยๆ ไม่เอาบรรทัดออก
+                ใบจะได้หน้าตาเหมือนเดิมทุกครั้งและเขียนมือเพิ่มทีหลังได้ */}
+        <p className="flex items-end gap-[6px]">
+          <span className="whitespace-nowrap">ชื่อลูกค้า</span>
+          <span className="flex-1 border-b border-dotted border-black text-center font-semibold">
+            {showCustomer ? customerName : ""}
+          </span>
+        </p>
+        <p className="flex items-end gap-[6px]">
+          <span className="whitespace-nowrap">ที่อยู่</span>
+          <span className="flex-1 border-b border-dotted border-black text-center font-semibold">
+            {showCustomer ? customerAddress : ""}
+          </span>
+        </p>
+        {/* ช่องนี้มีในเล่มจริง ร้านเว้นว่างไว้เกือบทุกใบ แต่ต้องมีให้กรอกมือได้ */}
+        <p className="flex items-end gap-[6px]">
+          <span className="whitespace-nowrap">เลขประจำตัวผู้เสียภาษีอากร</span>
+          <span className="flex-1 border-b border-dotted border-black" />
+        </p>
+        {/* รถอยู่บรรทัดของตัวเอง เพราะใบเสร็จของร้านยางต้องรู้ว่าเป็นของคันไหน */}
+        <p className="flex items-end gap-[6px]">
+          <span className="whitespace-nowrap">ยี่ห้อ-รุ่นรถ</span>
+          {/* สองช่องกว้างเท่ากัน แบ่งที่ว่างที่เหลือคนละครึ่ง */}
+          <span className="flex-1 border-b border-dotted border-black text-center font-semibold">
+            {vehicleName}
+          </span>
+          <span className="whitespace-nowrap">ทะเบียนรถ</span>
+          <span className="flex-1 border-b border-dotted border-black text-center font-semibold">
+            {plateText}
+          </span>
+        </p>
+      </div>
+
+      <table className="mt-[8px] w-full table-fixed border-collapse">
+        <thead>
+          <tr>
+            <th className="w-[62px] border border-black p-[3px] font-semibold">
+              จำนวน
+            </th>
+            <th className="border border-black p-[3px] font-semibold">
+              รายการ
+            </th>
+            <th className="w-[92px] border border-black p-[3px] font-semibold whitespace-nowrap">
+              ราคาต่อหน่วย
+            </th>
+            <th className="w-[92px] border border-black p-[3px] font-semibold">
+              จำนวนเงิน
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map(({ item, quantity, sideLabel }) => {
+            const amount = Number(item.unitPrice) * quantity;
+            return (
+              <tr key={item.id}>
+                <td className="h-[22px] border border-black px-[3px] text-center">
+                  {`${formatQuantity(quantity)} ${unitOf(item)}`.trim()}
+                </td>
+                <td className="border border-black px-[4px] break-words">
+                  {item.itemName}
+                  {sideLabel ? ` (${sideLabel})` : ""}
+                </td>
+                <td className="border border-black px-[4px] text-right">
+                  {formatMoney(item.unitPrice)}
+                </td>
+                <td className="border border-black px-[4px] text-right">
+                  {formatMoney(amount)}
+                </td>
+              </tr>
+            );
+          })}
+          {Array.from({ length: blankRows }).map((_, index) => (
+            <tr key={`blank-${index}`}>
+              <td className="h-[22px] border border-black" />
+              <td className="border border-black" />
+              <td className="border border-black" />
+              <td className="border border-black" />
+            </tr>
+          ))}
+          <tr>
+            <td colSpan={2} className="border border-black px-[4px] py-[5px]">
+              <span className="mr-[6px]">จำนวนเงินรวมทั้งสิ้น</span>
+              <span className="font-semibold">{bahtText(total)}</span>
+            </td>
+            <td className="border border-black px-[4px] text-center whitespace-nowrap">
+              จำนวนเงินรวม
+            </td>
+            <td className="border border-black px-[4px] text-right font-semibold">
+              {formatMoney(total)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* เล่มกระดาษมีแค่เงินสดกับเช็ค แต่ร้านรับโอนกับบัตรด้วย จึงเพิ่มอีกสองช่อง
+                ติ๊กให้เองตามวิธีที่บันทึกไว้ในบิล */}
+      <div className="mt-[8px] flex items-center gap-[20px]">
+        {PAYMENT_BOXES.map((box) => (
+          <span key={box.label} className="flex items-center gap-[6px]">
+            <span className="flex h-[13px] w-[13px] items-center justify-center border border-black text-[10px] leading-none">
+              {/* เช็คไม่มีในระบบ (method เป็นว่าง) บิลที่ยังไม่ได้เก็บเงินก็ว่างเหมือนกัน
+                  ต้องเช็คว่ามีวิธีจ่ายจริงก่อน ไม่งั้นจะไปติ๊กช่องเช็คให้เอง */}
+              {box.method && repair.paymentMethod === box.method ? "✓" : ""}
+            </span>
+            {box.label}
+          </span>
+        ))}
+      </div>
+
+      {/* แถวของเช็คในเล่มจริง เว้นว่างไว้ให้เขียนมือเหมือนเดิม
+          สี่ช่องกว้างเท่ากัน แบ่งที่ว่างเท่าๆ กัน อ่านเป็นแถวเดียวกันได้ */}
+      <div className="mt-[6px] flex items-end gap-[8px]">
+        {["ธนาคาร", "เลขที่", "ลงวันที่", "จำนวนเงิน"].map((label) => (
+          <span key={label} className="flex flex-1 items-end gap-[4px]">
+            <span className="whitespace-nowrap">{label}</span>
+            <span className="flex-1 border-b border-dotted border-black" />
+          </span>
+        ))}
+      </div>
+
+      <div className="mt-[22px] flex justify-between gap-[16px]">
+        <p className="flex flex-1 items-end gap-[4px]">
+          ลงชื่อ
+          <span className="flex-1 border-b border-dotted border-black" />
+          ผู้รับเงิน
+        </p>
+        <p className="flex flex-1 items-end gap-[4px]">
+          ลงชื่อ
+          <span className="flex-1 border-b border-dotted border-black" />
+          ผู้จ่ายเงิน
+        </p>
+      </div>
+    </>
+  );
+};
+
+export default ReceiptPaper;

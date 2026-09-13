@@ -297,7 +297,7 @@ const RepairReview = () => {
                       {repairData.plateLetters &&
                       repairData.plateNumbers &&
                       getProvinceName(repairData.province)
-                        ? `${repairData.plateLetters} ${
+                        ? `${repairData.plateLetters}-${
                             repairData.plateNumbers
                           } ${getProvinceName(repairData.province)}`
                         : "ไม่ระบุ"}
