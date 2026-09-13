@@ -14,6 +14,7 @@ import {
   Wallet,
   Clock,
   ClipboardList,
+  Printer,
   CheckCircle2,
   LoaderCircle,
   CircleUserRound,
@@ -31,6 +32,7 @@ import {
 } from "lucide-react";
 import BrandIcons from "@/components/icons/BrandIcons";
 import FormButton from "@/components/forms/FormButton";
+import ReceiptPreviewDialog from "@/components/dialogs/ReceiptPreviewDialog";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import ComboBox from "@/components/ui/ComboBox";
 import PartPreviewDialog from "@/components/dialogs/PartPreviewDialog";
@@ -74,6 +76,7 @@ const RepairDetail = () => {
   const [isEditingPaidMethod, setIsEditingPaidMethod] = useState(false);
   const [isSavingEstimate, setIsSavingEstimate] = useState(false);
   const [isEstimateConfirmOpen, setIsEstimateConfirmOpen] = useState(false);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   // กดการ์ดในบิลเพื่อดูรูปกับรายละเอียดของสิ่งที่ขายไป
   const [previewItem, setPreviewItem] = useState(null);
   const isCreditSelected = selectedPaymentMethod === CREDIT_OPTION_ID;
@@ -572,9 +575,24 @@ const RepairDetail = () => {
         >
           <ChevronLeft className="text-surface" />
         </button>
-        <p className="text-surface min-w-0 flex-1 truncate text-2xl font-semibold md:text-[26px]">
+        {/* บิลที่กำลังซ่อมมีปุ่มไอคอนสามอัน (พิมพ์ ใบประเมินราคา ลบ) ที่เหลือให้ชื่อหน้าจึงแคบ
+            เฉพาะกรณีนั้นบนจอเล็กจึงลดขนาดลงหนึ่งขั้นให้อ่านได้ครบคำ สถานะอื่นมีสองปุ่ม ขนาดเท่าเดิม */}
+        <p
+          className={`text-surface min-w-0 flex-1 truncate font-semibold sm:text-2xl md:text-[26px] ${
+            repair?.status === "IN_PROGRESS" ? "text-xl" : "text-2xl"
+          }`}
+        >
           รายละเอียดการซ่อม
         </p>
+        {/* พิมพ์ได้ทุกสถานะ บางครั้งลูกค้าขอใบไปก่อนตั้งแต่ยังไม่จ่าย */}
+        <button
+          onClick={() => setIsReceiptOpen(true)}
+          aria-label="พิมพ์ใบเสร็จ"
+          className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+        >
+          <Printer className="text-surface h-5 w-5" />
+        </button>
+
         {/* ประเมินราคาไว้ก่อน ลูกค้ายังไม่ตกลงซ่อม — ของที่จองไว้ในบิลจะถูกคืนเข้าคลัง
             มีเฉพาะบิลที่ยังซ่อมอยู่ บิลที่เก็บเงินไปแล้วย้อนกลับไปเป็นใบประเมินไม่ได้ */}
         {repair?.status === "IN_PROGRESS" && (
@@ -1126,6 +1144,12 @@ const RepairDetail = () => {
         price={previewItem ? Number(previewItem.unitPrice) : undefined}
         open={!!previewItem}
         onOpenChange={(open) => !open && setPreviewItem(null)}
+      />
+
+      <ReceiptPreviewDialog
+        repair={repair}
+        open={isReceiptOpen}
+        onOpenChange={setIsReceiptOpen}
       />
 
       <ConfirmDialog

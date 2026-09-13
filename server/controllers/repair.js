@@ -1,6 +1,8 @@
 const { Prisma } = require("@prisma/client");
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
+const { buildReceiptHtml } = require("../utils/receiptHtml");
+const { printReceipt } = require("../utils/printReceipt");
 const {
   buildPartItemName,
   buildServiceItemName,
@@ -802,6 +804,43 @@ exports.updateRepairStatus = async (req, res, next) => {
     res.json({
       message: "อัปเดตสถานะการซ่อมเรียบร้อยแล้ว",
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// สั่งพิมพ์ใบเสร็จออกเครื่องพิมพ์ที่ต่อกับเครื่องที่รันเซิร์ฟเวอร์
+// มีไว้ให้กดจากมือถือแล้วกระดาษออกที่ร้านได้ โดยไม่ต้องเดินไปกดที่คอม
+exports.printRepairReceipt = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const repair = await prisma.repair.findUnique({
+      where: { id: Number(id) },
+      include: {
+        customer: true,
+        vehicle: {
+          include: {
+            licensePlate: { select: { plateNumber: true, province: true } },
+            vehicleModel: { select: { brand: true, model: true } },
+          },
+        },
+        repairItems: {
+          include: {
+            part: { select: { unit: true } },
+            service: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    if (!repair) {
+      createError(404, "ไม่พบรายการซ่อม");
+    }
+
+    await printReceipt(buildReceiptHtml(repair), repair.id);
+
+    res.json({ message: "ส่งใบเสร็จเข้าเครื่องพิมพ์แล้ว" });
   } catch (error) {
     next(error);
   }

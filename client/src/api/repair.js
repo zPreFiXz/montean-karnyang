@@ -23,3 +23,8 @@ export const updateRepairStatus = async (id, data) => {
 export const deleteRepair = async (id) => {
   return await apiClient.delete(`/repairs/${id}`);
 };
+
+// สั่งพิมพ์ใบเสร็จออกเครื่องพิมพ์ที่ต่อกับคอมที่รันเซิร์ฟเวอร์ (กดจากมือถือได้)
+export const printRepairReceipt = async (id) => {
+  return await apiClient.post(`/repairs/${id}/print`);
+};

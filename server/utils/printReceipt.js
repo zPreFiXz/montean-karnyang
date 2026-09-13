@@ -1,0 +1,102 @@
+const os = require("os");
+const path = require("path");
+const fs = require("fs/promises");
+const { execFile } = require("child_process");
+const { existsSync } = require("fs");
+const puppeteer = require("puppeteer-core");
+const createError = require("./createError");
+
+// ใช้ Chrome ที่ลงไว้ในเครื่องอยู่แล้ว ไม่โหลดเบราว์เซอร์มาเก็บในโปรเจคอีกก้อน
+// ตั้ง CHROME_PATH ใน .env ได้ถ้าลงไว้คนละที่
+const CHROME_CANDIDATES = [
+  process.env.CHROME_PATH,
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "/usr/bin/google-chrome",
+  "/usr/bin/chromium-browser",
+].filter(Boolean);
+
+const findChrome = () => {
+  const found = CHROME_CANDIDATES.find((candidate) => existsSync(candidate));
+  if (!found) {
+    createError(
+      500,
+      "ไม่พบ Chrome ในเครื่องนี้ ติดตั้ง Chrome หรือกำหนด CHROME_PATH ก่อน",
+    );
+  }
+  return found;
+};
+
+const htmlToPdf = async (html) => {
+  const browser = await puppeteer.launch({
+    executablePath: findChrome(),
+    headless: true,
+    args: ["--no-sandbox", "--disable-dev-shm-usage"],
+  });
+
+  try {
+    const page = await browser.newPage();
+    // waitUntil networkidle0 เพื่อให้ฟอนต์จากเน็ต (ถ้ามี) โหลดเสร็จก่อนแปลงเป็น PDF
+    await page.setContent(html, { waitUntil: "networkidle0" });
+    return await page.pdf({
+      format: "A5",
+      printBackground: true,
+      margin: { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" },
+    });
+  } finally {
+    await browser.close();
+  }
+};
+
+const run = (command, args) =>
+  new Promise((resolve, reject) => {
+    execFile(command, args, (error, stdout, stderr) => {
+      if (error) {
+        reject(new Error(stderr || error.message));
+        return;
+      }
+      resolve(stdout);
+    });
+  });
+
+// วินโดวส์สั่งพิมพ์ผ่าน pdf-to-printer ส่วนแมค/ลินุกซ์ใช้คำสั่ง lp ที่มีอยู่แล้ว
+const sendToPrinter = async (filePath, printerName) => {
+  if (os.platform() === "win32") {
+    // require ตรงนี้ เพราะแพ็กเกจนี้ใช้ได้เฉพาะวินโดวส์
+    const printer = require("pdf-to-printer");
+    await printer.print(filePath, {
+      ...(printerName ? { printer: printerName } : {}),
+      paperSize: "A5",
+    });
+    return;
+  }
+
+  await run("lp", [
+    ...(printerName ? ["-d", printerName] : []),
+    "-o",
+    "media=A5",
+    filePath,
+  ]);
+};
+
+// สร้างใบเสร็จเป็น PDF แล้วส่งเข้าเครื่องพิมพ์ที่ต่อกับเครื่องนี้
+// PRINTER_NAME ใน .env ไว้เลือกเครื่องเมื่อมีหลายเครื่อง ไม่ตั้งก็ใช้เครื่องที่ตั้งเป็นค่าเริ่มต้น
+const printReceipt = async (html, fileTag) => {
+  const pdf = await htmlToPdf(html);
+  const filePath = path.join(
+    os.tmpdir(),
+    `receipt-${fileTag}-${Date.now()}.pdf`,
+  );
+
+  await fs.writeFile(filePath, pdf);
+  try {
+    await sendToPrinter(filePath, process.env.PRINTER_NAME);
+  } finally {
+    // ลบไฟล์ชั่วคราวเสมอ ไม่ให้ใบเสร็จของลูกค้าค้างอยู่ในเครื่อง
+    await fs.unlink(filePath).catch(() => {});
+  }
+};
+
+module.exports = { printReceipt };
