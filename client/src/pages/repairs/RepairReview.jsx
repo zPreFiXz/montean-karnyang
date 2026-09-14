@@ -26,6 +26,7 @@ import {
   CREDIT_OPTION_ID,
 } from "@/constants/paymentMethods";
 import { usePrefetchPages } from "@/routes/pageImports";
+import { getDisplayBrand } from "@/utils/repairDisplay";
 
 const RepairReview = () => {
   // เตรียมโค้ดของหน้าที่มักไปต่อจากหน้านี้ กดแล้วจะได้ไม่ต้องรอโหลด
@@ -286,7 +287,10 @@ const RepairReview = () => {
                       ยี่ห้อ-รุ่น:
                     </p>
                     <p className="text-normal text-lg font-semibold md:text-xl">
-                      {repairData.brand} {repairData.model}
+                      {getDisplayBrand({
+                        brand: repairData.brand,
+                        model: repairData.model,
+                      })}
                     </p>
                   </div>
                   <div className="flex justify-between">
@@ -370,7 +374,7 @@ const RepairReview = () => {
                 <div className="mb-[16px] px-[20px]">
                   <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                     <ArrowLeftRight className="mt-[2px]" />
-                    รายการซ่อมฝั่งซ้าย-ขวา
+                    รายการซ่อมข้างซ้าย-ขวา
                   </p>
                   <div className="space-y-[12px]">
                     {bothSides.map((item, index) => (
@@ -390,7 +394,7 @@ const RepairReview = () => {
                 <div className="mb-[16px] px-[20px]">
                   <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                     <ArrowLeft className="mt-[2px]" />
-                    รายการซ่อมฝั่งซ้าย
+                    รายการซ่อมข้างซ้าย
                   </p>
                   <div className="space-y-[12px]">
                     {leftOnly.map((item, index) => (
@@ -410,7 +414,7 @@ const RepairReview = () => {
                 <div className="mb-[16px] px-[20px]">
                   <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                     <ArrowRight className="mt-[2px]" />
-                    รายการซ่อมฝั่งขวา
+                    รายการซ่อมข้างขวา
                   </p>
                   <div className="space-y-[12px]">
                     {rightOnly.map((item, index) => (
@@ -530,7 +534,7 @@ const RepairReview = () => {
               <div className="mb-[16px] px-[20px]">
                 <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                   <ArrowLeftRight className="mt-[2px]" />
-                  รายการซ่อมฝั่งซ้าย-ขวา
+                  รายการซ่อมข้างซ้าย-ขวา
                 </p>
                 <div className="space-y-[12px]">
                   {bothSides.map((item, index) => (
@@ -550,7 +554,7 @@ const RepairReview = () => {
               <div className="mb-[16px]">
                 <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                   <ArrowLeft className="mt-[2px]" />
-                  รายการซ่อมฝั่งซ้าย
+                  รายการซ่อมข้างซ้าย
                 </p>
                 <div className="space-y-[12px]">
                   {leftOnly.map((item, index) => (
@@ -570,7 +574,7 @@ const RepairReview = () => {
               <div className="mb-[16px]">
                 <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                   <ArrowRight className="mt-[2px]" />
-                  รายการซ่อมฝั่งขวา
+                  รายการซ่อมข้างขวา
                 </p>
                 <div className="space-y-[12px]">
                   {rightOnly.map((item, index) => (

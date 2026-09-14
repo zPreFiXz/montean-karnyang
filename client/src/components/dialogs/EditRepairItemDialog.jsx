@@ -10,6 +10,7 @@ import FormInput from "@/components/forms/FormInput";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  DEFAULT_LABOR_SERVICE_NAME,
   PLACEHOLDER_SERVICE_NAMES,
   isPartPlaceholderItem,
   isDiscountItem,
@@ -31,22 +32,30 @@ const EditRepairItemDialog = ({
   currentName = "",
   canEditName,
   isPartLine = false,
+  isDiscountLine = false,
 }) => {
   // ส่วนลดเก็บในบิลเป็นเลขติดลบ แต่ในช่องกรอกให้พิมพ์เป็นเลขบวกธรรมดา
   // คนกรอกคิดว่า "ลดให้ 100" ไม่ใช่ "ใส่ลบหนึ่งร้อย"
-  const isDiscount = isDiscountItem({ name: currentName });
+  // ดูจากธงที่ติดมากับบรรทัด ไม่ใช่ชื่อ เพราะส่วนลดเปลี่ยนชื่อได้แล้ว
+  const isDiscount = isDiscountItem({ name: currentName, isDiscountLine });
   // บรรทัด "อะไหล่อื่นๆ" อยู่ในหมวดบริการเพราะไม่มีของในคลัง แต่ความหมายคืออะไหล่
   // ป้ายช่องชื่อจึงต้องเรียกตามสิ่งที่ช่างกำลังกรอกจริง
-  const nameLabel = isPartPlaceholderItem({ name: currentName, isPartLine })
-    ? "ชื่ออะไหล่"
-    : "ชื่อบริการ";
+  const nameLabel = isDiscount
+    ? "ชื่อส่วนลด"
+    : isPartPlaceholderItem({ name: currentName, isPartLine })
+      ? "ชื่ออะไหล่"
+      : "ชื่อบริการ";
 
   // ชื่อของรายการเปล่าที่ยังไม่เคยตั้ง = ชื่อในคลัง ถือว่ายังไม่ได้ตั้งชื่อ
   // เปิดมาให้ช่องว่างไว้เลย จะได้พิมพ์ทับได้ทันทีโดยไม่ต้องลบข้อความเดิมก่อน
   const isUntouchedName = PLACEHOLDER_SERVICE_NAMES.includes(
     (currentName || "").trim(),
   );
-  const initialName = isUntouchedName ? "" : currentName || "";
+  // ค่าแรงเป็นคำที่ใช้ได้ตามนั้นอยู่แล้ว ไม่ต้องล้างช่องให้พิมพ์ใหม่
+  // ต่างจากบรรทัดเปล่าอื่นที่ชื่อในคลังเป็นแค่ป้ายชั่วคราวรอพิมพ์ทับ
+  const keepsOwnName =
+    (currentName || "").trim() === DEFAULT_LABOR_SERVICE_NAME;
+  const initialName = isUntouchedName && !keepsOwnName ? "" : currentName || "";
 
   // รายการเปล่าอย่างค่าแรงยังไม่ได้ตั้งราคา เปิดมาให้ช่องว่างพร้อมพิมพ์
   // ของอื่นขึ้นราคาเดิมเสมอ รวมถึงราคา 0 ที่ตั้งใจตั้งไว้ (ของแถม) จะได้รู้ว่าเคยตั้งเป็น 0 ไว้จริง

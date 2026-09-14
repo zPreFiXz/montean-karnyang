@@ -847,18 +847,19 @@ exports.printRepairReceipt = async (req, res, next) => {
 
     // หน้าเว็บบอกมาว่าจะเอาข้อมูลลูกค้าติดไปด้วยไหม ไม่ส่งมาก็ถือว่าเอา
     const showCustomer = req.body?.showCustomer !== false;
+    const showBrand = req.body?.showBrand !== false;
     const isJobSheet = req.body?.docType === "job";
 
     const html = isJobSheet
       ? buildJobSheetHtml(repair)
-      : buildReceiptHtml(repair, { showCustomer });
+      : buildReceiptHtml(repair, { showCustomer, showBrand });
 
     await printReceipt(html, repair.id);
 
     res.json({
       message: isJobSheet
-        ? "ส่งใบสั่งซ่อมเข้าเครื่องพิมพ์แล้ว"
-        : "ส่งใบเสร็จเข้าเครื่องพิมพ์แล้ว",
+        ? "สั่งพิมพ์ใบสั่งซ่อมแล้ว"
+        : "สั่งพิมพ์ใบเสร็จแล้ว",
     });
   } catch (error) {
     next(error);

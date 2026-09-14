@@ -1,7 +1,9 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { X, Printer, Plus, Minus } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
-import ReceiptPaper from "@/components/receipt/ReceiptPaper";
+import ReceiptPaper, {
+  hasShortenableName,
+} from "@/components/receipt/ReceiptPaper";
 import JobSheetPaper from "@/components/receipt/JobSheetPaper";
 import {
   Dialog,
@@ -11,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { printRepairReceipt } from "@/api/repair";
+import { isSaleRepair, isNoVehicleRepair } from "@/utils/repairDisplay";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
 
@@ -69,6 +72,9 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
   const [isPrintingAtShop, setIsPrintingAtShop] = useState(false);
   // ลูกค้าบางรายไม่อยากให้ชื่อกับที่อยู่ขึ้นบนใบ ปิดได้ก่อนสั่งพิมพ์
   const [showCustomer, setShowCustomer] = useState(true);
+  // ชื่อในบิลมียี่ห้อกับรุ่นรถต่อท้ายจนยาว ใบเสร็จจึงตัดเหลือแค่ชนิดอะไหล่ไว้ก่อน
+  // เปิดสวิตช์เมื่อลูกค้าอยากรู้ว่าใส่ของยี่ห้อไหนรุ่นอะไร
+  const [showBrand, setShowBrand] = useState(false);
   // ใบเสร็จให้ลูกค้า กับใบสั่งซ่อมให้ช่าง ใช้กระดาษกับปุ่มพิมพ์ชุดเดียวกัน
   const [docType, setDocType] = useState("receipt");
   // เฟรมแรกกระดาษยังเป็นขนาดจริง ต้องรอวัดพื้นที่เสร็จก่อนถึงจะโชว์
@@ -82,6 +88,7 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
     setZoom(1);
     setIsMeasured(false);
     setShowCustomer(true);
+    setShowBrand(false);
     setDocType("receipt");
     setFitScale(estimateFitScale());
 
@@ -157,6 +164,11 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
   const customerAddress = repair.customer?.address || "";
   // บิลที่ไม่มีทั้งชื่อและที่อยู่ ปิดสวิตช์ไปก็ไม่มีอะไรหาย จึงไม่ต้องมีสวิตช์ให้กด
   const hasCustomerInfo = !!(customerName || customerAddress);
+  // ใบสั่งซ่อมมีไว้ส่งงานให้ช่างที่ทำกับรถ ใช้กับงานซ่อมทั่วไปและงานเช็กช่วงล่าง
+  // งานบริการที่ไม่ผูกรถกับบิลขายอะไหล่หน้าร้านจบที่หน้าร้าน ไม่มีงานให้ส่งต่อ
+  const showJobSheetTab = !isSaleRepair(repair) && !isNoVehicleRepair(repair);
+  // มีสวิตช์ชื่อแบบเต็มให้กดเฉพาะบิลที่มีของซึ่งย่อชื่อได้จริง (ช่วงล่างกับน้ำมัน)
+  const canShortenNames = hasShortenableName(repair.repairItems || []);
 
   const handlePrintAtShop = async () => {
     if (isPrintingAtShop) return;
@@ -164,15 +176,16 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
     try {
       setIsPrintingAtShop(true);
       await withMinDuration(() =>
-        printRepairReceipt(repair.id, { showCustomer, docType }),
+        printRepairReceipt(repair.id, { showCustomer, showBrand, docType }),
       );
       toast.success(
-        docType === "job"
-          ? "ส่งใบสั่งซ่อมเข้าเครื่องพิมพ์แล้ว"
-          : "ส่งใบเสร็จเข้าเครื่องพิมพ์แล้ว",
+        docType === "job" ? "สั่งพิมพ์ใบสั่งซ่อมแล้ว" : "สั่งพิมพ์ใบเสร็จแล้ว",
       );
     } catch (error) {
-      toastError(error, "สั่งพิมพ์ไม่สำเร็จ");
+      toastError(
+        error,
+        "พิมพ์ไม่ได้ กรุณาตรวจสอบเครื่องพิมพ์แล้วลองใหม่อีกครั้ง",
+      );
     } finally {
       setIsPrintingAtShop(false);
     }
@@ -215,58 +228,78 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
         </div>
 
         {/* เลือกว่าจะพิมพ์ใบไหน ตัวอย่างข้างล่างเปลี่ยนตามทันที */}
-        <div className="receipt-chrome mx-[16px] mb-[8px] flex justify-center gap-[8px]">
-          {[
-            { id: "receipt", label: "ใบเสร็จ" },
-            { id: "job", label: "ใบสั่งซ่อม" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              // สลับใบแล้วเริ่มดูใบใหม่ที่ขนาดพอดีกรอบเสมอ ไม่ค้างซูมของใบก่อน
-              onClick={() => {
-                setDocType(tab.id);
-                setZoom(1);
-              }}
-              className={`font-athiti h-[38px] flex-1 cursor-pointer rounded-[20px] border text-lg font-semibold duration-300 md:text-xl ${
-                docType === tab.id
-                  ? "bg-primary text-surface border-transparent"
-                  : "border-subtle-light text-subtle-dark bg-surface"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {showJobSheetTab && (
+          <div className="receipt-chrome mx-[16px] mb-[8px] flex justify-center gap-[8px]">
+            {[
+              { id: "receipt", label: "ใบเสร็จ" },
+              { id: "job", label: "ใบสั่งซ่อม" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                // สลับใบแล้วเริ่มดูใบใหม่ที่ขนาดพอดีกรอบเสมอ ไม่ค้างซูมของใบก่อน
+                onClick={() => {
+                  setDocType(tab.id);
+                  setZoom(1);
+                }}
+                className={`font-athiti h-[38px] flex-1 cursor-pointer rounded-[20px] border text-lg font-semibold duration-300 md:text-xl ${
+                  docType === tab.id
+                    ? "bg-primary text-surface border-transparent"
+                    : "border-subtle-light text-subtle-dark bg-surface"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* ตั้งค่าก่อนแล้วเห็นผลบนกระดาษข้างล่างทันที จึงอยู่เหนือกระดาษ */}
-        {docType === "receipt" && hasCustomerInfo && (
-          <div className="receipt-chrome mx-[16px] mb-[8px] flex justify-center">
-            <button
-              type="button"
-              onClick={() => setShowCustomer((value) => !value)}
-              aria-pressed={showCustomer}
-              className="font-athiti flex cursor-pointer items-center gap-[8px]"
-            >
-              <span
-                className={`flex h-[22px] w-[38px] shrink-0 items-center rounded-full p-[3px] duration-300 ${
-                  showCustomer ? "bg-primary" : "bg-gray-300"
-                }`}
-              >
-                <span
-                  className={`bg-surface h-[16px] w-[16px] rounded-full duration-300 ${
-                    showCustomer ? "translate-x-[16px]" : "translate-x-0"
-                  }`}
-                />
-              </span>
-              <span
-                className={`text-lg font-medium md:text-xl ${
-                  showCustomer ? "text-primary" : "text-subtle-dark"
-                }`}
-              >
-                แสดงข้อมูลลูกค้า
-              </span>
-            </button>
+        {docType === "receipt" && (
+          <div className="receipt-chrome mx-[16px] mb-[8px] flex flex-wrap justify-center gap-x-[20px] gap-y-[4px]">
+            {[
+              {
+                label: "แสดงข้อมูลลูกค้า",
+                value: showCustomer,
+                onToggle: () => setShowCustomer((value) => !value),
+                visible: hasCustomerInfo,
+              },
+              {
+                label: "แสดงชื่ออะไหล่แบบเต็ม",
+                value: showBrand,
+                onToggle: () => setShowBrand((value) => !value),
+                visible: canShortenNames,
+              },
+            ]
+              .filter((item) => item.visible)
+              .map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={item.onToggle}
+                  aria-pressed={item.value}
+                  className="font-athiti flex cursor-pointer items-center gap-[8px]"
+                >
+                  <span
+                    className={`flex h-[22px] w-[38px] shrink-0 items-center rounded-full p-[3px] duration-300 ${
+                      item.value ? "bg-primary" : "bg-gray-300"
+                    }`}
+                  >
+                    <span
+                      className={`bg-surface h-[16px] w-[16px] rounded-full duration-300 ${
+                        item.value ? "translate-x-[16px]" : "translate-x-0"
+                      }`}
+                    />
+                  </span>
+                  <span
+                    className={`text-lg font-medium md:text-xl ${
+                      item.value ? "text-primary" : "text-subtle-dark"
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                </button>
+              ))}
           </div>
         )}
 
@@ -293,7 +326,11 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
             {docType === "job" ? (
               <JobSheetPaper repair={repair} />
             ) : (
-              <ReceiptPaper repair={repair} showCustomer={showCustomer} />
+              <ReceiptPaper
+                repair={repair}
+                showCustomer={showCustomer}
+                showBrand={showBrand}
+              />
             )}
           </div>
         </div>

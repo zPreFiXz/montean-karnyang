@@ -61,6 +61,58 @@ const run = (command, args) =>
     });
   });
 
+// คิวพิมพ์ของระบบปฏิบัติการรับงานได้เสมอ ถึงเครื่องพิมพ์จะไม่ได้เสียบอยู่
+// งานจะไปค้างในคิวเงียบๆ แล้วคนกดจะนึกว่าพิมพ์ไปแล้ว จึงต้องเช็กสถานะก่อนส่ง
+const ensurePrinterReady = async (printerName) => {
+  if (os.platform() === "win32") {
+    const printer = require("pdf-to-printer");
+    const printers = await printer.getPrinters().catch(() => []);
+    if (printers.length === 0) {
+      createError(
+        503,
+        "พิมพ์ไม่ได้ เพราะไม่พบเครื่องพิมพ์ กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์",
+      );
+    }
+
+    // ถามสถานะจริงของเครื่อง ถ้าถามไม่ได้ก็ปล่อยผ่าน ดีกว่าบล็อกการพิมพ์เพราะตัวเช็กเอง
+    const target = printerName || printers[0]?.name;
+    const status = await run("powershell", [
+      "-NoProfile",
+      "-Command",
+      `(Get-Printer -Name '${target}').PrinterStatus`,
+    ]).catch(() => "");
+
+    if (/offline|error|paused/i.test(status)) {
+      createError(
+        503,
+        "พิมพ์ไม่ได้ เพราะเครื่องพิมพ์ยังไม่พร้อม กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์",
+      );
+    }
+    return;
+  }
+
+  const listing = await run("lpstat", ["-p"]).catch(() => "");
+  if (!listing.trim()) {
+    createError(
+      503,
+      "พิมพ์ไม่ได้ เพราะไม่พบเครื่องพิมพ์ กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์",
+    );
+  }
+
+  // ดูเฉพาะย่อหน้าของเครื่องที่จะใช้ ไม่งั้นเครื่องอื่นที่ออฟไลน์จะทำให้ทั้งระบบพิมพ์ไม่ได้
+  const blocks = listing.split(/\n(?=\S)/);
+  const block = printerName
+    ? blocks.find((part) => part.includes(printerName)) || ""
+    : blocks[0] || "";
+
+  if (/offline|ออฟไลน์|disabled|ปิดใช้งาน/i.test(block)) {
+    createError(
+      503,
+      "พิมพ์ไม่ได้ เพราะเครื่องพิมพ์ยังไม่พร้อม กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์",
+    );
+  }
+};
+
 // วินโดวส์สั่งพิมพ์ผ่าน pdf-to-printer ส่วนแมค/ลินุกซ์ใช้คำสั่ง lp ที่มีอยู่แล้ว
 const sendToPrinter = async (filePath, printerName) => {
   if (os.platform() === "win32") {
@@ -89,10 +141,10 @@ const toPrinterError = (error) => {
   const text = String(error?.message || "");
 
   if (/no default destination|ไม่พบเครื่องพิมพ์|no destinations/i.test(text)) {
-    return "ไม่พบเครื่องพิมพ์ ตรวจสอบว่าเสียบสายและเปิดเครื่องพิมพ์ไว้แล้ว";
+    return "พิมพ์ไม่ได้ เพราะไม่พบเครื่องพิมพ์ กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์";
   }
   if (/not found|ENOENT/i.test(text)) {
-    return "เครื่องที่รันระบบยังสั่งพิมพ์ไม่ได้ ตรวจสอบการติดตั้งเครื่องพิมพ์";
+    return "พิมพ์ไม่ได้ เพราะเครื่องที่รันระบบยังสั่งพิมพ์ไม่ได้ กรุณาตรวจสอบการติดตั้งเครื่องพิมพ์";
   }
   return "สั่งพิมพ์ไม่สำเร็จ ตรวจสอบเครื่องพิมพ์แล้วลองใหม่อีกครั้ง";
 };
@@ -103,6 +155,8 @@ const printReceipt = async (html, fileTag) => {
     os.tmpdir(),
     `receipt-${fileTag}-${Date.now()}.pdf`,
   );
+
+  await ensurePrinterReady(process.env.PRINTER_NAME);
 
   await fs.writeFile(filePath, pdf);
   try {

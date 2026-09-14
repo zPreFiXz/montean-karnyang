@@ -835,7 +835,7 @@ const RepairDetail = () => {
                             <div className="mb-[8px]">
                               <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                                 <ArrowLeftRight className="mt-[2px]" />
-                                รายการซ่อมฝั่งซ้าย-ขวา
+                                รายการซ่อมข้างซ้าย-ขวา
                               </p>
                               <div className="space-y-[12px]">
                                 {bothSides.map((item, idx) => (
@@ -853,7 +853,7 @@ const RepairDetail = () => {
                             <div className="mb-[8px]">
                               <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                                 <ArrowLeft className="mt-[2px]" />
-                                รายการซ่อมฝั่งซ้าย
+                                รายการซ่อมข้างซ้าย
                               </p>
                               <div className="space-y-[12px]">
                                 {leftOnly.map((item, idx) => (
@@ -871,7 +871,7 @@ const RepairDetail = () => {
                             <div className="mb-[8px]">
                               <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
                                 <ArrowRight className="mt-[2px]" />
-                                รายการซ่อมฝั่งขวา
+                                รายการซ่อมข้างขวา
                               </p>
                               <div className="space-y-[12px]">
                                 {rightOnly.map((item, idx) => (

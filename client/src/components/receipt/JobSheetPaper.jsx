@@ -1,7 +1,5 @@
 import { Fragment } from "react";
 import { formatQuantity } from "@/utils/formats";
-import { getPartType } from "@/utils/suspension";
-import { SUSPENSION_CATEGORY } from "@/constants/categories";
 import {
   DEFAULT_LABOR_SERVICE_NAME,
   isDiscountItem,
@@ -10,18 +8,12 @@ import {
   mergeBySide,
   unitOf,
   receiptHeaderInfo,
+  shortWorkName,
 } from "@/components/receipt/ReceiptPaper";
 
 // ใบสั่งซ่อมสำหรับช่าง: อ่านจากระยะห่างได้ ทะเบียนตัวใหญ่สุด งานเป็นรายการมีช่องติ๊ก
 // ตั้งใจไม่ใส่ราคา ช่างไม่ได้ใช้ และใบนี้วางอยู่หน้ารถให้คนเดินผ่านเห็นได้
 const MIN_ROWS = 10;
-
-// ช่างดูจากชนิดอะไหล่ ไม่ได้ดูยี่ห้อหรือรุ่น ชื่อในบิลมีทั้งสองอย่างต่อท้ายจนยาว
-// ของช่วงล่างจึงตัดเหลือคำแรกของชื่อในคลัง ซึ่งเป็นชนิดอะไหล่พอดี (ลูกหมากบน คันชักนอก)
-const workName = (item) =>
-  item.part?.category?.name === SUSPENSION_CATEGORY && item.part?.name
-    ? getPartType(item.part.name)
-    : item.itemName;
 
 const JobSheetPaper = ({ repair }) => {
   const { vehicleName, plateText } = receiptHeaderInfo(repair);
@@ -38,12 +30,12 @@ const JobSheetPaper = ({ repair }) => {
   const groups = [
     {
       key: "left",
-      label: "ฝั่งซ้าย (L)",
+      label: "ข้างซ้าย (L)",
       items: allItems.filter((i) => i.side === "LEFT"),
     },
     {
       key: "right",
-      label: "ฝั่งขวา (R)",
+      label: "ข้างขวา (R)",
       items: allItems.filter((i) => i.side === "RIGHT"),
     },
     {
@@ -113,7 +105,7 @@ const JobSheetPaper = ({ repair }) => {
                     <tr key={`${group.key}-${item.id}`}>
                       <td className="h-[34px] border border-black" />
                       <td className="border border-black px-[6px] break-words">
-                        {workName(item)}
+                        {shortWorkName(item)}
                       </td>
                       <td className="border border-black px-[6px] text-center">
                         {`${formatQuantity(quantity)} ${unitOf(item)}`.trim()}
@@ -126,7 +118,7 @@ const JobSheetPaper = ({ repair }) => {
                 <tr key={item.id}>
                   <td className="h-[34px] border border-black" />
                   <td className="border border-black px-[6px] break-words">
-                    {workName(item)}
+                    {shortWorkName(item)}
                     {sideLabel ? ` (${sideLabel})` : ""}
                   </td>
                   <td className="border border-black px-[6px] text-center">

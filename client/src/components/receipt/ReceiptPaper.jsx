@@ -1,14 +1,17 @@
 import { formatQuantity, formatPlate } from "@/utils/formats";
 import { bahtText } from "@/utils/bahtText";
 import { getDisplayBrand } from "@/utils/repairDisplay";
-import { isPartPlaceholderItem } from "@/constants/services";
+import { getPartType } from "@/utils/suspension";
+import { getOilSize } from "@/utils/oil";
+import { VEHICLE_COMPATIBLE_CATEGORIES } from "@/constants/categories";
+import { isDiscountItem } from "@/constants/services";
 
 // ข้อมูลร้านที่พิมพ์ไว้บนหัวใบเสร็จเล่มกระดาษ ใช้ชุดเดียวกันเพื่อให้ใบที่พิมพ์ออกมาหน้าตาเหมือนกัน
 const SHOP = {
   name: "ร้านมณเฑียรการยาง",
   address: "543 หมู่ที่ 5 ตำบลน้ำอ้อม อำเภอกันทรลักษ์ จังหวัดศรีสะเกษ 33110",
   contact:
-    "โทร. 089-8492861, 093-3261705  เลขประจำตัวผู้เสียภาษี 3 33030032502 1",
+    "โทร. 089-849-2861, 093-326-1705  เลขประจำตัวผู้เสียภาษี 3 33030032502 1",
 };
 
 // ใบเสร็จกระดาษมีเส้นว่างไว้เขียนเพิ่ม ใบที่พิมพ์จึงเติมแถวเปล่าให้ตารางสูงเท่ากันทุกใบ
@@ -22,15 +25,52 @@ const PAYMENT_BOXES = [
   { label: "เช็ค", method: null },
 ];
 
+// ช่างดูจากชนิดอะไหล่ ไม่ได้ดูยี่ห้อหรือรุ่น ชื่อในบิลมีทั้งสองอย่างต่อท้ายจนยาว
+// ของช่วงล่างจึงตัดเหลือคำแรกของชื่อในคลัง ซึ่งเป็นชนิดอะไหล่พอดี (ลูกหมากบน คันชักนอก)
+export const shortWorkName = (item) => {
+  // หมวดที่อะไหล่ผูกกับรุ่นรถ ชื่อในคลังจะเป็น "ยี่ห้อ ชนิด รุ่นรถ" เสมอ
+  // ตัดเหลือคำแรกซึ่งเป็นชนิดอะไหล่ (ลูกหมากบน คันชักนอก ผ้าเบรคหน้า)
+  if (
+    VEHICLE_COMPATIBLE_CATEGORIES.includes(item.part?.category?.name) &&
+    item.part?.name
+  ) {
+    return getPartType(item.part.name);
+  }
+
+  // น้ำมันส่วนใหญ่เป็นบรรทัดที่พิมพ์ชื่อเอง ดูจากชื่อแทนหมวดหมู่
+  // ร้านเขียนตามแบบ "VALVOLINE (3L) น้ำมันเครื่อง+กรอง SYNPOWER ECO (0W30)"
+  // เก็บขนาดลิตร คำไทย และค่าความหนืดท้ายชื่อ ตัดยี่ห้อกับชื่อเกรดที่เป็นอักษรอังกฤษออก
+  // -> "(3L) น้ำมันเครื่อง+กรอง (0W30)"
+  const name = String(item.itemName || "");
+  const size = getOilSize(name);
+  if (size && name.includes("น้ำมัน")) {
+    const thai = name.match(/[ก-๙][ก-๙+\s-]*[ก-๙]/);
+    // วงเล็บที่ไม่ใช่ขนาดลิตร คือค่าความหนืดหรือมาตรฐาน เช่น (0W30) (DOT3)
+    const grade = name
+      .match(/\([^)]*\)/g)
+      ?.find((part) => !/\d+(\.\d+)?\s*L\s*\)/i.test(part));
+
+    if (thai) {
+      // getOilSize คืนค่ามาพร้อมตัว L แล้ว (เช่น "3L") ห้ามเติมซ้ำ
+      return `(${size}) ${thai[0].trim()}${grade ? ` ${grade}` : ""}`;
+    }
+  }
+
+  return item.itemName;
+};
+
+// บิลใบนี้มีของที่ย่อชื่อได้ไหม ถ้าไม่มีก็ไม่ต้องมีสวิตช์ให้กด
+export const hasShortenableName = (items = []) =>
+  items.some((item) => shortWorkName(item) !== item.itemName);
+
 const formatMoney = (value) =>
   Number(value || 0).toLocaleString("th-TH", { maximumFractionDigits: 2 });
 
 // หน่วยเก็บไว้กับอะไหล่ในคลัง อะไหล่ที่ซื้อมาใช้เลยไม่มีของในคลังจึงนับเป็นชิ้น
 // ส่วนงานบริการไม่มีหน่วย เขียนแต่จำนวนเหมือนที่เขียนมือในเล่ม
-export const unitOf = (item) => {
-  if (item.part?.unit) return item.part.unit;
-  return isPartPlaceholderItem(item) ? "ชิ้น" : "";
-};
+// หน่วยมาจากอะไหล่ในคลังเท่านั้น บรรทัดที่พิมพ์ชื่อเอง ทั้งอะไหล่อื่นๆ และบริการ
+// ไม่รู้ว่านับเป็นอะไร จึงเขียนแต่จำนวนเปล่าๆ เหมือนที่เขียนมือในเล่ม
+export const unitOf = (item) => item.part?.unit || "";
 
 // บิลเช็กช่วงล่างเก็บข้างที่ใส่ไว้กับแต่ละบรรทัด ใบจึงต้องบอกด้วยว่าเปลี่ยนของข้างไหน
 // ของชิ้นเดียวกันที่ใส่ทั้งสองข้างยุบเป็นแถวเดียวแล้วห้อยท้ายว่า L-R
@@ -85,15 +125,30 @@ export const receiptHeaderInfo = (repair) => {
 };
 
 // เนื้อในของใบเสร็จ กระดาษกับการย่อขนาดอยู่ที่ ReceiptPreviewDialog
-const ReceiptPaper = ({ repair, showCustomer = true }) => {
+const ReceiptPaper = ({ repair, showCustomer = true, showBrand = true }) => {
   const { day, month, year, vehicleName, plateText } =
     receiptHeaderInfo(repair);
   const customerName = repair.customer?.name || "";
   const customerAddress = repair.customer?.address || "";
 
-  const items = mergeBySide(repair.repairItems || []);
-  const blankRows = Math.max(0, MIN_ROWS - items.length);
+  // ส่วนลดไม่ใช่ของที่ขาย ยกออกจากตารางไปไว้เป็นแถวใต้ยอดรวมแทน อ่านง่ายกว่าปนอยู่กลางรายการ
+  const discountItems = (repair.repairItems || []).filter(isDiscountItem);
+  const discountTotal = discountItems.reduce(
+    (sum, item) => sum + Number(item.unitPrice) * Number(item.quantity),
+    0,
+  );
+  const hasDiscount = discountTotal !== 0;
+
+  const items = mergeBySide(
+    (repair.repairItems || []).filter((item) => !isDiscountItem(item)),
+  );
+  const blankRows = Math.max(
+    0,
+    MIN_ROWS - items.length - (hasDiscount ? 2 : 0),
+  );
+  // ยอดในบิลหักส่วนลดไปแล้ว ยอดก่อนหักจึงต้องบวกกลับ (ส่วนลดเก็บเป็นเลขติดลบ)
   const total = Number(repair.totalPrice || 0);
+  const subtotal = total - discountTotal;
 
   return (
     <>
@@ -117,7 +172,7 @@ const ReceiptPaper = ({ repair, showCustomer = true }) => {
       <p className="mt-[2px] text-center">{SHOP.address}</p>
       <p className="text-center">{SHOP.contact}</p>
 
-      <div className="mt-[8px] flex justify-center gap-[12px]">
+      <div className="mt-[8px] flex justify-end gap-[12px]">
         <p className="flex items-end gap-[4px]">
           วันที่
           <span className="w-[52px] border-b border-dotted border-black text-center font-semibold">
@@ -181,7 +236,7 @@ const ReceiptPaper = ({ repair, showCustomer = true }) => {
             <th className="border border-black p-[3px] font-semibold">
               รายการ
             </th>
-            <th className="w-[92px] border border-black p-[3px] font-semibold whitespace-nowrap">
+            <th className="w-[108px] border border-black p-[3px] font-semibold whitespace-nowrap">
               ราคาต่อหน่วย
             </th>
             <th className="w-[92px] border border-black p-[3px] font-semibold">
@@ -198,7 +253,7 @@ const ReceiptPaper = ({ repair, showCustomer = true }) => {
                   {`${formatQuantity(quantity)} ${unitOf(item)}`.trim()}
                 </td>
                 <td className="border border-black px-[4px] break-words">
-                  {item.itemName}
+                  {showBrand ? item.itemName : shortWorkName(item)}
                   {sideLabel ? ` (${sideLabel})` : ""}
                 </td>
                 <td className="border border-black px-[4px] text-right">
@@ -218,6 +273,34 @@ const ReceiptPaper = ({ repair, showCustomer = true }) => {
               <td className="border border-black" />
             </tr>
           ))}
+          {hasDiscount && (
+            <>
+              <tr>
+                {/* ฝั่งซ้ายของสองแถวนี้ปล่อยโล่ง ไม่ต้องตีเส้นเป็นช่องเปล่า */}
+                <td colSpan={2} />
+                <td className="border border-black px-[4px] text-center whitespace-nowrap">
+                  รวมเป็นเงิน
+                </td>
+                <td className="border border-black px-[4px] text-right">
+                  {formatMoney(subtotal)}
+                </td>
+              </tr>
+              {/* ส่วนลดตั้งชื่อเองได้ และมีได้หลายบรรทัด แยกแถวละรายการตามชื่อที่ตั้งไว้ */}
+              {discountItems.map((item) => (
+                <tr key={item.id}>
+                  <td colSpan={2} />
+                  <td className="border border-black px-[4px] text-center">
+                    {item.itemName}
+                  </td>
+                  <td className="border border-black px-[4px] text-right">
+                    {formatMoney(
+                      Number(item.unitPrice) * Number(item.quantity),
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </>
+          )}
           <tr>
             <td colSpan={2} className="border border-black px-[4px] py-[5px]">
               <span className="mr-[6px]">จำนวนเงินรวมทั้งสิ้น</span>

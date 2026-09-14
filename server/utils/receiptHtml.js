@@ -37,7 +37,7 @@ const SHOP = {
   name: "ร้านมณเฑียรการยาง",
   address: "543 หมู่ที่ 5 ตำบลน้ำอ้อม อำเภอกันทรลักษ์ จังหวัดศรีสะเกษ 33110",
   contact:
-    "โทร. 089-8492861, 093-3261705  เลขประจำตัวผู้เสียภาษี 3 33030032502 1",
+    "โทร. 089-849-2861, 093-326-1705  เลขประจำตัวผู้เสียภาษี 3 33030032502 1",
 };
 
 const MIN_ROWS = 12;
@@ -57,6 +57,16 @@ const formatPlate = (plateNumber) => {
   return parts.length > 1 ? parts.join("-") : text;
 };
 
+// ยี่ห้อ "อื่นๆ" เป็นตัวเลือกสำรอง ไม่ใช่ยี่ห้อจริง จึงไม่ต้องเอาไปโชว์หน้าชื่อรุ่น
+// (ตรงกับ getDisplayBrand ฝั่งหน้าเว็บ)
+const displayBrand = (model) => {
+  if (!model) return "";
+  const brand = model.brand || "";
+  const name = model.model || "";
+  if (brand === "อื่นๆ" || brand === "อื่น ๆ") return name;
+  return `${brand} ${name}`.trim();
+};
+
 const escapeHtml = (value) =>
   String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -71,12 +81,8 @@ const formatQuantity = (value) => {
   return Number.isInteger(number) ? String(number) : String(number);
 };
 
-// อะไหล่ที่ซื้อมาใช้เลยไม่มีของในคลัง จึงนับเป็นชิ้น ส่วนงานบริการไม่มีหน่วย
-const unitOf = (item) => {
-  if (item.part?.unit) return item.part.unit;
-  const isPartLine = item.service?.name === "อะไหล่อื่นๆ";
-  return isPartLine ? "ชิ้น" : "";
-};
+// หน่วยมาจากอะไหล่ในคลังเท่านั้น บรรทัดที่พิมพ์ชื่อเองไม่รู้ว่านับเป็นอะไร เขียนแต่จำนวน
+const unitOf = (item) => item.part?.unit || "";
 
 // ของชิ้นเดียวกันที่ใส่ทั้งสองข้างยุบเป็นแถวเดียวแล้วห้อยท้ายว่า L-R
 const mergeBySide = (items) => {
@@ -113,7 +119,10 @@ const mergeBySide = (items) => {
 };
 
 // showCustomer = false คือใบที่ไม่เอาชื่อ ที่อยู่ และเลขผู้เสียภาษีของลูกค้าติดไปด้วย
-const buildReceiptHtml = (repair, { showCustomer = true } = {}) => {
+const buildReceiptHtml = (
+  repair,
+  { showCustomer = true, showBrand = true } = {},
+) => {
   const issuedAt = new Date(repair.paidAt || repair.createdAt || Date.now());
   const day = issuedAt.getDate();
   const month = issuedAt.toLocaleDateString("th-TH", { month: "long" });
@@ -124,18 +133,33 @@ const buildReceiptHtml = (repair, { showCustomer = true } = {}) => {
     ? `${formatPlate(plate.plateNumber)} ${plate.province || ""}`.trim()
     : "";
   const model = repair.vehicle?.vehicleModel;
-  const vehicleName = model ? `${model.brand} ${model.model}`.trim() : "";
+  const vehicleName = displayBrand(model);
 
-  const rows = mergeBySide(repair.repairItems || []);
-  const blankRows = Math.max(0, MIN_ROWS - rows.length);
+  // ส่วนลดไม่ใช่ของที่ขาย ยกออกจากตารางไปไว้เป็นแถวใต้ยอดรวมแทน (ตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
+  // ราคาติดลบมีแต่ส่วนลดเท่านั้น ใช้เป็นตาข่ายรองรับบรรทัดที่ถูกเปลี่ยนชื่อ
+  const isDiscount = (item) =>
+    (item.service?.name || item.itemName) === "ส่วนลด" ||
+    Number(item.unitPrice) < 0;
+  const discountItems = (repair.repairItems || []).filter(isDiscount);
+  const discountTotal = discountItems.reduce(
+    (sum, item) => sum + Number(item.unitPrice) * Number(item.quantity),
+    0,
+  );
+  const hasDiscount = discountTotal !== 0;
+
+  const rows = mergeBySide(
+    (repair.repairItems || []).filter((item) => !isDiscount(item)),
+  );
+  const blankRows = Math.max(0, MIN_ROWS - rows.length - (hasDiscount ? 2 : 0));
+  // ยอดในบิลหักส่วนลดไปแล้ว ยอดก่อนหักจึงต้องบวกกลับ (ส่วนลดเก็บเป็นเลขติดลบ)
   const total = Number(repair.totalPrice || 0);
+  const subtotal = total - discountTotal;
 
   const itemRows = rows
     .map(({ item, quantity, sideLabel }) => {
       const amount = Number(item.unitPrice) * quantity;
-      const name = sideLabel
-        ? `${item.itemName} (${sideLabel})`
-        : item.itemName;
+      const base = showBrand ? item.itemName : workName(item);
+      const name = sideLabel ? `${base} (${sideLabel})` : base;
       return `<tr>
         <td class="c">${escapeHtml(`${formatQuantity(quantity)} ${unitOf(item)}`.trim())}</td>
         <td class="wrap">${escapeHtml(name)}</td>
@@ -193,7 +217,7 @@ const buildReceiptHtml = (repair, { showCustomer = true } = {}) => {
   .title .doc { font-size: 15pt; font-weight: 600; }
   .title .shop { font-size: 17pt; font-weight: 600; }
   .center { text-align: center; }
-  .date-row { display: flex; justify-content: center; gap: 12px; margin-top: 8px; }
+  .date-row { display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px; }
   .date-row span.v { min-width: 52px; text-align: center; font-weight: 600; }
   .fields { margin-top: 6px; }
   .fields p { display: flex; align-items: flex-end; gap: 6px; margin: 0 0 5px; }
@@ -207,6 +231,8 @@ const buildReceiptHtml = (repair, { showCustomer = true } = {}) => {
   td.c { text-align: center; }
   td.r { text-align: right; }
   td.wrap { word-break: break-word; }
+  /* ฝั่งซ้ายของแถวยอดรวมกับส่วนลดปล่อยโล่ง ไม่ต้องตีเส้นเป็นช่องเปล่า */
+  td.blank { border: none; }
   .sum-text { font-weight: 600; }
   .pays { display: flex; align-items: center; gap: 20px; margin-top: 8px; }
   .pay { display: flex; align-items: center; gap: 6px; }
@@ -255,6 +281,24 @@ ${customerFields}
     <tbody>
       ${itemRows}
       ${emptyRows}
+      ${
+        hasDiscount
+          ? `<tr>
+        <td colspan="2" class="blank"></td>
+        <td class="c">รวมเป็นเงิน</td>
+        <td class="r">${formatMoney(subtotal)}</td>
+      </tr>
+      ${discountItems
+        .map(
+          (item) => `<tr>
+        <td colspan="2" class="blank"></td>
+        <td class="c">${escapeHtml(item.itemName)}</td>
+        <td class="r">${formatMoney(Number(item.unitPrice) * Number(item.quantity))}</td>
+      </tr>`,
+        )
+        .join("")}`
+          : ""
+      }
       <tr>
         <td colspan="2">จำนวนเงินรวมทั้งสิ้น <span class="sum-text">${escapeHtml(bahtText(total))}</span></td>
         <td class="c">จำนวนเงินรวม</td>
@@ -282,10 +326,42 @@ ${customerFields}
 
 // ช่างดูจากชนิดอะไหล่ ไม่ได้ดูยี่ห้อหรือรุ่น จึงตัดชื่อของช่วงล่างเหลือคำแรกของชื่อในคลัง
 // (ตรงกับ workName ใน client/src/components/receipt/JobSheetPaper.jsx)
-const workName = (item) =>
-  item.part?.category?.name === "ช่วงล่าง" && item.part?.name
-    ? String(item.part.name).trim().split(/\s+/)[0]
-    : item.itemName;
+// หมวดที่อะไหล่ผูกกับรุ่นรถ ต้องตรงกับ VEHICLE_COMPATIBLE_CATEGORIES ฝั่งหน้าเว็บ
+const VEHICLE_COMPATIBLE_CATEGORIES = [
+  "ช่วงล่าง",
+  "เบรค",
+  "โช๊คอัพ",
+  "กรอง",
+  "ไส้กรอง",
+];
+
+const workName = (item) => {
+  // ชื่อในคลังของหมวดพวกนี้เป็น "ยี่ห้อ ชนิด รุ่นรถ" ตัดเหลือคำแรกซึ่งเป็นชนิดอะไหล่
+  if (
+    VEHICLE_COMPATIBLE_CATEGORIES.includes(item.part?.category?.name) &&
+    item.part?.name
+  ) {
+    return String(item.part.name).trim().split(/\s+/)[0];
+  }
+
+  // น้ำมันส่วนใหญ่เป็นบรรทัดที่พิมพ์ชื่อเอง ดูจากชื่อแทนหมวดหมู่
+  // ร้านเขียนตามแบบ "VALVOLINE (3L) น้ำมันเครื่อง+กรอง SYNPOWER ECO (0W30)"
+  // เก็บขนาดลิตร คำไทย และค่าความหนืดท้ายชื่อ -> "(3L) น้ำมันเครื่อง+กรอง (0W30)"
+  const name = String(item.itemName || "");
+  const size = name.match(/\(\s*(\d+(?:\.\d+)?)\s*L\s*\)/i);
+  if (size && name.includes("น้ำมัน")) {
+    const thai = name.match(/[ก-๙][ก-๙+\s-]*[ก-๙]/);
+    const grade = (name.match(/\([^)]*\)/g) || []).find(
+      (part) => !/\d+(\.\d+)?\s*L\s*\)/i.test(part),
+    );
+
+    if (thai) {
+      return `(${size[1]}L) ${thai[0].trim()}${grade ? ` ${grade}` : ""}`;
+    }
+  }
+
+  return item.itemName;
+};
 
 // ใบสั่งซ่อมสำหรับช่าง: ทะเบียนตัวใหญ่สุด รายการงานมีช่องติ๊ก ไม่มีราคา
 // (ตรงกับ client/src/components/receipt/JobSheetPaper.jsx แก้ต้องแก้คู่กัน)
@@ -295,7 +371,7 @@ const buildJobSheetHtml = (repair) => {
     ? `${formatPlate(plate.plateNumber)} ${plate.province || ""}`.trim()
     : "";
   const model = repair.vehicle?.vehicleModel;
-  const vehicleName = model ? `${model.brand} ${model.model}`.trim() : "";
+  const vehicleName = displayBrand(model);
 
   // ใบนี้เป็นใบของช่าง ไม่เกี่ยวกับเงิน ค่าแรงกับส่วนลดจึงไม่ต้องขึ้น
   // ช่างสองคนทำคนละฝั่ง จึงแบ่งงานเป็นท่อนตามฝั่ง (ตรงกับ JobSheetPaper ฝั่งหน้าเว็บ)
@@ -332,11 +408,11 @@ const buildJobSheetHtml = (repair) => {
   const itemRows = hasSides
     ? [
         {
-          label: "ฝั่งซ้าย (L)",
+          label: "ข้างซ้าย (L)",
           items: allItems.filter((i) => i.side === "LEFT"),
         },
         {
-          label: "ฝั่งขวา (R)",
+          label: "ข้างขวา (R)",
           items: allItems.filter((i) => i.side === "RIGHT"),
         },
         {

@@ -1406,6 +1406,7 @@ const RepairCreate = () => {
         currentName={editingItem?.name || ""}
         canEditName={isFreeformService(editingItem)}
         isPartLine={isPartPlaceholderItem(editingItem)}
+        isDiscountLine={isDiscountItem(editingItem)}
       />
 
       <EditQuantityDialog

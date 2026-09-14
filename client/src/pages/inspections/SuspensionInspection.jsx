@@ -77,11 +77,13 @@ const TAB_ORDER = ["left", "right", "other"];
 
 // ลำดับที่ช่างไล่ตรวจช่วงล่างจริง ไม่ใช่ตามตัวอักษร — ชนิดที่ไม่อยู่ในลิสต์ตกไปท้ายสุด
 const PART_TYPE_ORDER = [
-  "ลูกหมากล่าง",
+  "ลูกหมากปีกนกล่าง",
   "ลูกหมากแร็ค",
+  "ยางกันฝุ่นแร็ค",
   "คันชักนอก",
-  "ลูกหมากบน",
-  "ลูกหมากกันโคลง",
+  "ลูกหมากปีกนกบน",
+  "ลูกหมากกันโคลงหน้า",
+  "ยางกันโคลง",
 ];
 // แท็บ "อื่นๆ" ให้เหลือเฉพาะสามชนิดนี้ตามลำดับที่ช่างไล่ตรวจ
 // จับด้วยคำขึ้นต้น ไม่ใช่ชื่อเต็ม เพราะชื่ออะไหล่มีรุ่นต่อท้าย ("โช้คหลัง PG5-4046 STD 4WD")
@@ -2349,6 +2351,7 @@ const SuspensionInspection = () => {
         currentName={editingItem?.name || ""}
         canEditName={isFreeformService(editingItem)}
         isPartLine={isPartPlaceholderItem(editingItem)}
+        isDiscountLine={isDiscountItem(editingItem)}
       />
 
       <EditQuantityDialog
