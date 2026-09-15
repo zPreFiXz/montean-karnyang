@@ -4,7 +4,10 @@ import { getInventory } from "@/api/inventory";
 import InventoryBrowser from "@/components/inventory/InventoryBrowser";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
 import { BoxSearch } from "@/components/icons/Icons";
-import { useScrollRestoration } from "@/utils/scrollPosition";
+import {
+  inventoryScrollKey,
+  useScrollRestoration,
+} from "@/utils/scrollPosition";
 import { usePrefetchPages } from "@/routes/pageImports";
 
 const InventoryList = () => {
@@ -26,8 +29,8 @@ const InventoryList = () => {
   const activeCategory = searchParams.get("category");
   const [isListLoading, setIsListLoading] = useState(true);
 
-  // หมวดหมู่กับตัวกรองอยู่ใน URL อยู่แล้ว จำตำแหน่งแยกของแต่ละหมวดได้เลย
-  useScrollRestoration(location.pathname + location.search, !isListLoading);
+  // จำตำแหน่งแยกของแต่ละหมวดหมู่
+  useScrollRestoration(inventoryScrollKey(activeCategory), !isListLoading);
 
   // ออกไปหน้าแก้ไขหรือหน้าประวัติแล้วกดย้อนกลับ: ไดอะล็อกต้องเปิดค้างไว้เหมือนตอนจากไป
   // จำไว้ใน URL (item=part-43) เพราะ URL คือสิ่งเดียวที่ติดอยู่กับหน้าในประวัติของเบราว์เซอร์

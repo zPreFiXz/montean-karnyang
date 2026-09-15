@@ -7,6 +7,11 @@ const PREFIX = "scroll:";
 // อ่านทั้งสองที่แล้วเอาค่ามากกว่า จะได้ไม่ต้องเช็ค breakpoint
 const getMain = () => document.querySelector("main");
 
+// กุญแจของหน้าคลัง คิดจากหมวดหมู่อย่างเดียว
+// URL ของหน้านั้นมีพารามิเตอร์อื่นปนอยู่ (ไดอะล็อกที่เปิดค้าง ตัวกรองยาง) และถูกเขียนทับเองได้
+// ถ้าเอาทั้ง URL มาเป็นกุญแจ ตำแหน่งที่จำไว้จะหาไม่เจอทันทีที่พารามิเตอร์ขยับ
+export const inventoryScrollKey = (category) => `inventory:${category || ""}`;
+
 export const saveScrollPosition = (key) => {
   const top = Math.max(window.scrollY || 0, getMain()?.scrollTop || 0);
   try {

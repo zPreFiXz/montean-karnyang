@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { saveScrollPosition } from "@/utils/scrollPosition";
+import { inventoryScrollKey, saveScrollPosition } from "@/utils/scrollPosition";
 import {
   Edit,
   Plus,
@@ -264,7 +264,7 @@ const RepairItemDetailDialog = ({
     // แนบตัวข้อมูลไปกับรายการในประวัติด้วย กดย้อนกลับมาจะเปิดได้ตั้งแต่เฟรมแรก
     // ไม่ต้องรอขอจากเซิร์ฟเวอร์ก่อน (ค่าใน URL เป็นทางสำรองไว้ตอนรีเฟรชหน้า)
     navigate(returnTo, { replace: true, state: { openItem: currentItem } });
-    saveScrollPosition(returnTo);
+    saveScrollPosition(inventoryScrollKey(params.get("category")));
     return returnTo;
   };
 
