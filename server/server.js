@@ -112,6 +112,13 @@ app.use((req, res) => {
 app.use(handleError);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+// เบราว์เซอร์เก็บ TCP connection ไว้ใช้ซ้ำนานเป็นนาที แต่ Node ปิดทิ้งตั้งแต่ 5 วินาที (ค่าเริ่มต้น)
+// พนักงานกรอกฟอร์มนานกว่านั้นแล้วกดบันทึก คำขอจึงวิ่งไปบน connection ที่เซิร์ฟเวอร์เพิ่งปิด
+// ได้ ECONNRESET ฝั่งเว็บเห็นเป็น ERR_NETWORK ต้องกดซ้ำถึงจะติด — ให้ Node รอนานกว่าเบราว์เซอร์แทน
+server.keepAliveTimeout = 65_000;
+// ต้องมากกว่า keepAliveTimeout เสมอ ไม่งั้น Node ตัดทิ้งระหว่างรออ่าน header ของคำขอถัดไป
+server.headersTimeout = 70_000;
