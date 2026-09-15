@@ -47,7 +47,11 @@ const VehicleDetail = () => {
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-[8px] px-[20px] py-[18px]">
         <button
-          onClick={() => navigate("/vehicles")}
+          // ถอยประวัติ เพื่อให้หน้ารายการได้คำค้นกับตำแหน่งที่จำไว้คืนมา
+          // (เปิดลิงก์นี้ตรงๆ จะไม่มีประวัติให้ถอย จึงมีเส้นทางสำรองไว้)
+          onClick={() =>
+            window.history.length > 1 ? navigate(-1) : navigate("/vehicles")
+          }
           aria-label="ย้อนกลับ"
           className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
         >

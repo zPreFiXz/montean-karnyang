@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Link, useSearchParams } from "react-router";
+import { Link, useNavigationType, useSearchParams } from "react-router";
 import { LoaderCircle } from "lucide-react";
 import SearchBar from "@/components/forms/SearchBar";
 import CarCard from "@/components/cards/CarCard";
@@ -9,24 +9,45 @@ import BrandIcons from "@/components/icons/BrandIcons";
 import { toastError } from "@/utils/handleError";
 import { getDisplayBrand } from "@/utils/repairDisplay";
 import { formatPlate } from "@/utils/formats";
+import {
+  saveScrollPosition,
+  useScrollRestoration,
+} from "@/utils/scrollPosition";
+
+const SCROLL_KEY = "vehicles";
+
+// จำผลค้นล่าสุดของแต่ละคำค้นไว้ กดย้อนกลับมาจะได้มีรายการโชว์ตั้งแต่เฟรมแรก
+// ไม่ต้องขึ้นตัวโหลดคั่นให้หน้ากระพริบ แล้วค่อยดึงใหม่ทับเงียบๆ
+// อยู่นอกคอมโพเนนต์เพราะต้องอยู่ข้ามการเปลี่ยนหน้า และหายไปเองเมื่อรีเฟรชเบราว์เซอร์
+const vehicleCache = new Map();
+const cacheKey = (search) => search || "";
 
 // numeric: true ให้เทียบกลุ่มตัวเลขตามค่าจริง ทะเบียน 999 จึงมาก่อน 1234
 const plateCollator = new Intl.Collator("th", { numeric: true });
 
 const VehicleList = () => {
-  const [vehicles, setVehicles] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
   const isInitializing = useRef(false);
+  // ประเภทการเข้าหน้าตอนแรกเท่านั้นที่บอกได้ว่าเป็นการย้อนกลับ
+  // ค่าจะเปลี่ยนเมื่อพิมพ์ค้นหา (เพราะ setSearchParams นับเป็นการไปหน้าใหม่) จึงเก็บไว้ครั้งเดียว
+  const isReturning = useRef(useNavigationType() === "POP");
 
   const search = searchParams.get("search");
+
+  // เริ่มจากผลเดิมที่จำไว้ได้เลย ไม่ต้องรอเอฟเฟกต์ หน้าจึงไม่กระพริบเป็นตัวโหลดหนึ่งเฟรม
+  const cachedVehicles = vehicleCache.get(cacheKey(search));
+  const [vehicles, setVehicles] = useState(cachedVehicles || []);
+  const [isLoading, setIsLoading] = useState(!cachedVehicles);
 
   // ตัดกันตกบรรทัด — คำค้นอาจยาวเกินได้ถ้าใส่มาทาง URL ตรงๆ
   const searchTerm =
     search && search.length > 20 ? `${search.slice(0, 20)}…` : search;
 
+  // กลับมาจากหน้ารายละเอียด = ดูรายการเดิมต่อ คำค้นที่ติดอยู่ใน URL จึงคงไว้
+  // (ไม่ต้องสั่งโหลดเอง เอฟเฟกต์ของ search ข้างล่างทำให้แล้วตั้งแต่เฟรมแรก)
+  // เข้าจากเมนู = เริ่มดูใหม่ ต้องล้างคำค้นเก่าทิ้ง
   useEffect(() => {
-    window.scrollTo(0, 0);
+    if (isReturning.current) return;
 
     if (isInitializing.current) return;
     isInitializing.current = true;
@@ -39,6 +60,8 @@ const VehicleList = () => {
       isInitializing.current = false;
     }, 200);
   }, []);
+
+  useScrollRestoration(SCROLL_KEY, !isLoading);
 
   useEffect(() => {
     if (isInitializing.current) return;
@@ -74,10 +97,19 @@ const VehicleList = () => {
     });
 
   const handleFilter = async (search) => {
-    setIsLoading(true);
+    // มีผลเดิมของคำค้นนี้อยู่แล้วก็โชว์ไปก่อน ไม่ต้องขึ้นตัวโหลด
+    const cached = vehicleCache.get(cacheKey(search));
+    if (cached) {
+      setVehicles(cached);
+      setIsLoading(false);
+    } else {
+      setIsLoading(true);
+    }
     try {
       const res = await listVehicles(search);
-      setVehicles(sortVehicles(res.data));
+      const sorted = sortVehicles(res.data);
+      vehicleCache.set(cacheKey(search), sorted);
+      setVehicles(sorted);
     } catch (error) {
       toastError(error);
     } finally {
@@ -116,7 +148,10 @@ const VehicleList = () => {
           ) : (
             vehicles.map((item, index) => (
               <div key={index} className="mt-[16px]">
-                <Link to={`/vehicles/${item.id}`}>
+                <Link
+                  to={`/vehicles/${item.id}`}
+                  onClick={() => saveScrollPosition(SCROLL_KEY)}
+                >
                   <CarCard
                     bg="primary"
                     icon={<BrandIcons brand={item.vehicleModel.brand} />}

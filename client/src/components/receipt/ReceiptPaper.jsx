@@ -15,7 +15,7 @@ const SHOP = {
 };
 
 // ใบเสร็จกระดาษมีเส้นว่างไว้เขียนเพิ่ม ใบที่พิมพ์จึงเติมแถวเปล่าให้ตารางสูงเท่ากันทุกใบ
-const MIN_ROWS = 12;
+const MIN_ROWS = 10;
 
 // ช่องติ๊กวิธีจ่ายบนใบเสร็จ เรียงตามที่ร้านใช้บ่อย (เช็คไม่มีในระบบ เว้นไว้ให้ติ๊กมือ)
 const PAYMENT_BOXES = [
@@ -38,21 +38,16 @@ export const shortWorkName = (item) => {
   }
 
   // น้ำมันส่วนใหญ่เป็นบรรทัดที่พิมพ์ชื่อเอง ดูจากชื่อแทนหมวดหมู่
-  // ร้านเขียนตามแบบ "VALVOLINE (3L) น้ำมันเครื่อง+กรอง SYNPOWER ECO (0W30)"
-  // เก็บขนาดลิตร คำไทย และค่าความหนืดท้ายชื่อ ตัดยี่ห้อกับชื่อเกรดที่เป็นอักษรอังกฤษออก
-  // -> "(3L) น้ำมันเครื่อง+กรอง (0W30)"
+  // เอาแค่ขนาดลิตรกับชื่อของ ตัดยี่ห้อ เกรด และของแถมพ่วงท้ายออกให้หมด
+  // "VALVOLINE (3L) น้ำมันเครื่อง+กรอง SYNPOWER ECO (0W30)" -> "(3L) น้ำมันเครื่อง+กรอง"
+  // "VALVOLINE น้ำมันเบรค (DOT3)" -> "น้ำมันเบรค"
   const name = String(item.itemName || "");
-  const size = getOilSize(name);
-  if (size && name.includes("น้ำมัน")) {
+  if (name.includes("น้ำมัน")) {
     const thai = name.match(/[ก-๙][ก-๙+\s-]*[ก-๙]/);
-    // วงเล็บที่ไม่ใช่ขนาดลิตร คือค่าความหนืดหรือมาตรฐาน เช่น (0W30) (DOT3)
-    const grade = name
-      .match(/\([^)]*\)/g)
-      ?.find((part) => !/\d+(\.\d+)?\s*L\s*\)/i.test(part));
-
     if (thai) {
-      // getOilSize คืนค่ามาพร้อมตัว L แล้ว (เช่น "3L") ห้ามเติมซ้ำ
-      return `(${size}) ${thai[0].trim()}${grade ? ` ${grade}` : ""}`;
+      const base = thai[0].trim();
+      const size = getOilSize(name);
+      if (base) return size ? `(${size}) ${base}` : base;
     }
   }
 
@@ -65,6 +60,10 @@ export const hasShortenableName = (items = []) =>
 
 const formatMoney = (value) =>
   Number(value || 0).toLocaleString("th-TH", { maximumFractionDigits: 2 });
+
+// ของแถมคิดราคา 0 ในเล่มกระดาษร้านขีด - ไว้ ไม่ได้เขียนเลขศูนย์
+const formatAmount = (value) =>
+  Number(value) === 0 ? "-" : formatMoney(value);
 
 // หน่วยเก็บไว้กับอะไหล่ในคลัง อะไหล่ที่ซื้อมาใช้เลยไม่มีของในคลังจึงนับเป็นชิ้น
 // ส่วนงานบริการไม่มีหน่วย เขียนแต่จำนวนเหมือนที่เขียนมือในเล่ม
@@ -124,28 +123,62 @@ export const receiptHeaderInfo = (repair) => {
   };
 };
 
-// เนื้อในของใบเสร็จ กระดาษกับการย่อขนาดอยู่ที่ ReceiptPreviewDialog
-const ReceiptPaper = ({ repair, showCustomer = true, showBrand = true }) => {
+// บิลที่มีรายการเกินหนึ่งหน้าให้แยกเป็นใบต่อไป แผ่นละ MIN_ROWS บรรทัด
+// ยอดรวมกับส่วนลดอยู่แผ่นสุดท้ายแผ่นเดียว ไม่งั้นอ่านแล้วนึกว่าจ่ายหลายรอบ
+export const buildReceiptPages = (repair) => {
+  const allItems = repair?.repairItems || [];
+  const discountItems = allItems.filter(isDiscountItem);
+  const rows = mergeBySide(allItems.filter((item) => !isDiscountItem(item)));
+
+  const pages = [];
+  for (
+    let start = 0;
+    start < rows.length || pages.length === 0;
+    start += MIN_ROWS
+  ) {
+    pages.push(rows.slice(start, start + MIN_ROWS));
+  }
+
+  // แถวยอดรวมกับส่วนลดกินที่ของแผ่นสุดท้าย ถ้าไม่พอก็ขึ้นแผ่นใหม่ให้
+  const lastPage = pages[pages.length - 1];
+  const summaryRows = discountItems.length ? discountItems.length + 1 : 1;
+  if (lastPage.length + summaryRows > MIN_ROWS) pages.push([]);
+
+  return { pages, discountItems };
+};
+
+export const receiptPageCount = (repair) =>
+  buildReceiptPages(repair).pages.length;
+
+// เนื้อในของใบเสร็จหนึ่งแผ่น กระดาษกับการย่อขนาดอยู่ที่ ReceiptPreviewDialog
+const ReceiptPaper = ({
+  repair,
+  showCustomer = true,
+  showBrand = true,
+  pageIndex = 0,
+}) => {
   const { day, month, year, vehicleName, plateText } =
     receiptHeaderInfo(repair);
   const customerName = repair.customer?.name || "";
   const customerAddress = repair.customer?.address || "";
 
+  const { pages, discountItems } = buildReceiptPages(repair);
+  const pageCount = pages.length;
+  const items = pages[pageIndex] || [];
+  const isLastPage = pageIndex === pageCount - 1;
+
   // ส่วนลดไม่ใช่ของที่ขาย ยกออกจากตารางไปไว้เป็นแถวใต้ยอดรวมแทน อ่านง่ายกว่าปนอยู่กลางรายการ
-  const discountItems = (repair.repairItems || []).filter(isDiscountItem);
   const discountTotal = discountItems.reduce(
     (sum, item) => sum + Number(item.unitPrice) * Number(item.quantity),
     0,
   );
-  const hasDiscount = discountTotal !== 0;
-
-  const items = mergeBySide(
-    (repair.repairItems || []).filter((item) => !isDiscountItem(item)),
-  );
-  const blankRows = Math.max(
-    0,
-    MIN_ROWS - items.length - (hasDiscount ? 2 : 0),
-  );
+  const hasDiscount = isLastPage && discountTotal !== 0;
+  const summaryRows = isLastPage
+    ? hasDiscount
+      ? discountItems.length + 1
+      : 1
+    : 0;
+  const blankRows = Math.max(0, MIN_ROWS - items.length - summaryRows);
   // ยอดในบิลหักส่วนลดไปแล้ว ยอดก่อนหักจึงต้องบวกกลับ (ส่วนลดเก็บเป็นเลขติดลบ)
   const total = Number(repair.totalPrice || 0);
   const subtotal = total - discountTotal;
@@ -163,8 +196,9 @@ const ReceiptPaper = ({ repair, showCustomer = true, showBrand = true }) => {
         </div>
         <p className="flex items-end justify-end gap-[4px] whitespace-nowrap">
           เลขที่
+          {/* บิลหลายแผ่นเขียนเลขต่อเนื่องแบบ 122/1 122/2 ตามแบบเอกสารต่อเนื่องของไทย */}
           <span className="min-w-[42px] border-b border-dotted border-black text-center font-semibold">
-            {repair.id}
+            {pageCount > 1 ? `${repair.id}/${pageIndex + 1}` : repair.id}
           </span>
         </p>
       </div>
@@ -257,10 +291,10 @@ const ReceiptPaper = ({ repair, showCustomer = true, showBrand = true }) => {
                   {sideLabel ? ` (${sideLabel})` : ""}
                 </td>
                 <td className="border border-black px-[4px] text-right">
-                  {formatMoney(item.unitPrice)}
+                  {formatAmount(item.unitPrice)}
                 </td>
                 <td className="border border-black px-[4px] text-right">
-                  {formatMoney(amount)}
+                  {formatAmount(amount)}
                 </td>
               </tr>
             );
@@ -301,18 +335,20 @@ const ReceiptPaper = ({ repair, showCustomer = true, showBrand = true }) => {
               ))}
             </>
           )}
-          <tr>
-            <td colSpan={2} className="border border-black px-[4px] py-[5px]">
-              <span className="mr-[6px]">จำนวนเงินรวมทั้งสิ้น</span>
-              <span className="font-semibold">{bahtText(total)}</span>
-            </td>
-            <td className="border border-black px-[4px] text-center whitespace-nowrap">
-              จำนวนเงินรวม
-            </td>
-            <td className="border border-black px-[4px] text-right font-semibold">
-              {formatMoney(total)}
-            </td>
-          </tr>
+          {isLastPage && (
+            <tr>
+              <td colSpan={2} className="border border-black px-[4px] py-[5px]">
+                <span className="mr-[6px]">จำนวนเงินรวมทั้งสิ้น</span>
+                <span className="font-semibold">{bahtText(total)}</span>
+              </td>
+              <td className="border border-black px-[4px] text-center whitespace-nowrap">
+                จำนวนเงินรวม
+              </td>
+              <td className="border border-black px-[4px] text-right font-semibold">
+                {formatMoney(total)}
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
 

@@ -44,6 +44,7 @@ const RepairReview = () => {
   const returnTo = location.state?.returnTo;
   const currentDate = location.state?.currentDate;
   const vehicleId = location.state?.vehicleId;
+  const backIdx = location.state?.backIdx;
   const isSale = repairData?.type === "SALE";
   // งานบริการไม่ได้ผูกกับรถ จึงไม่มีข้อมูลรถให้สรุปเหมือนบิลขาย
   const hasNoVehicle = isSale || !!repairData?.noVehicle;
@@ -145,15 +146,27 @@ const RepairReview = () => {
         // บิลถูกบันทึกแล้ว ร่างที่ค้างไว้หมดหน้าที่
         clearAllDrafts();
         toast.success("แก้ไขงานซ่อมเรียบร้อยแล้ว");
-        if (statusSlug) {
-          navigate(`/repairs?status=${statusSlug}`);
-        } else if (vehicleId) {
-          navigate(`/vehicles/${vehicleId}`);
-        } else if (origin === "repair-status") {
-          navigate(`/repairs?status=in-progress`);
+        // แก้ไขจากที่ไหนก็กลับมาที่บิลใบนั้น จะได้เห็นผลที่เพิ่งแก้ทันที
+        // แล้วกดย้อนกลับต่อไปถึงหน้าที่มาตั้งแต่แรกตามลำดับเดิม
+        // ต้องถอยประวัติ ไม่ใช่ซ้อนหน้าใหม่ ไม่งั้นหน้ากรอกงานกับหน้าสรุปจะค้างอยู่ในประวัติ
+        // (หน้าบิลอยู่ถัดจาก backIdx หนึ่งขั้นเสมอ เพราะ backIdx คือหน้าก่อนเข้าบิล)
+        const currentIdx = window.history.state?.idx;
+        const targetIdx = backIdx + 1;
+        if (
+          typeof backIdx === "number" &&
+          typeof currentIdx === "number" &&
+          targetIdx >= 0 &&
+          targetIdx < currentIdx
+        ) {
+          navigate(targetIdx - currentIdx);
+        } else if (window.history.length > 2) {
+          // อ่านลำดับในประวัติไม่ได้ ก็ถอยตามจำนวนหน้าที่เส้นทางแก้ไขซ้อนไว้เอง
+          // จากหน้าบิลมีสองหน้าเสมอ คือหน้ากรอกงานกับหน้าสรุปนี้
+          navigate(-2);
         } else {
-          // กลับไปหน้าบิลพร้อมบอกว่ามาจากไหน ปุ่มย้อนกลับในหน้านั้นจะได้พากลับถูกที่
+          // เปิดลิงก์เข้ามาตรงๆ ไม่มีประวัติให้ถอย จึงเปิดหน้าบิลให้ใหม่
           navigate(`/repairs/${editRepairId}`, {
+            replace: true,
             state: { returnTo, currentDate },
           });
         }

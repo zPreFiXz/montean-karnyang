@@ -272,27 +272,37 @@
     overflow: visible !important;
   }
 
-  #receipt-frame {
+  /* กรอบครอบกระดาษมีไว้คุมพื้นที่เลื่อนบนจอ ตอนพิมพ์ไม่ต้องจำกัดขนาด */
+  #receipt-viewport > div,
+  #receipt-viewport > div > div {
+    display: block !important;
     width: auto !important;
     height: auto !important;
+    gap: 0 !important;
     margin: 0 !important;
   }
 
   /* พิมพ์ด้วยขนาดจริง ไม่เอาการย่อของหน้าจอมาด้วย */
   /* ใบเสร็จเป็นขาวดำล้วน ไม่ให้สีของธีมหลุดไปบนกระดาษ */
-  #receipt-paper,
-  #receipt-paper * {
+  .receipt-paper,
+  .receipt-paper * {
     color: #000 !important;
     border-color: #000 !important;
     background: transparent !important;
   }
 
-  #receipt-paper {
+  .receipt-paper {
     transform: none !important;
     background: #fff !important;
     width: 148mm !important;
     height: 210mm !important;
     overflow: hidden !important;
     box-shadow: none !important;
+    /* บิลยาวเกินหนึ่งแผ่นถูกแยกเป็นหลายใบ แต่ละใบต้องขึ้นกระดาษใหม่ */
+    break-after: page;
+  }
+
+  .receipt-paper:last-of-type {
+    break-after: auto;
   }
 }

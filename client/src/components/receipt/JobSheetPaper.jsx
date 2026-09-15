@@ -13,7 +13,8 @@ import {
 
 // ใบสั่งซ่อมสำหรับช่าง: อ่านจากระยะห่างได้ ทะเบียนตัวใหญ่สุด งานเป็นรายการมีช่องติ๊ก
 // ตั้งใจไม่ใส่ราคา ช่างไม่ได้ใช้ และใบนี้วางอยู่หน้ารถให้คนเดินผ่านเห็นได้
-const MIN_ROWS = 10;
+// แถวว่างท้ายตารางไว้เขียนงานที่เจอหน้างาน สองแถวเท่ากันทุกบิล
+const EXTRA_ROWS = 2;
 
 const JobSheetPaper = ({ repair }) => {
   const { vehicleName, plateText } = receiptHeaderInfo(repair);
@@ -50,40 +51,37 @@ const JobSheetPaper = ({ repair }) => {
     (item) => item.side === "LEFT" || item.side === "RIGHT",
   );
   const items = mergeBySide(allItems);
-  const blankRows = Math.max(0, MIN_ROWS - items.length);
 
   return (
     <>
-      <div className="flex items-start justify-between gap-[8px]">
-        <p className="text-[16pt] font-semibold">ใบสั่งซ่อม</p>
-        <p className="flex items-end gap-[4px] text-[11pt]">
-          เลขที่
-          <span className="min-w-[42px] border-b border-dotted border-black text-center font-semibold">
-            {repair.id}
-          </span>
+      {/* หัวใบมีเส้นคาดบางๆ แทนพื้นทึบ ประหยัดหมึกและอ่านง่ายพอกัน */}
+      <div className="flex items-center justify-between border-b border-black pb-[4px]">
+        <p className="text-[17pt] leading-none font-semibold">ใบสั่งซ่อม</p>
+        <p className="text-[12pt] leading-none">
+          เลขที่ <span className="font-semibold">{repair.id}</span>
         </p>
       </div>
 
       {/* ทะเบียนคือสิ่งที่ช่างใช้จับคู่ใบกับรถ จึงตัวใหญ่ที่สุดบนใบ */}
-      <div className="mt-[6px] border-2 border-black p-[8px]">
-        {/* ทะเบียนกับยี่ห้อรุ่นสำคัญพอกันสำหรับช่าง ตัวเท่ากันและอยู่บรรทัดเดียว
-            ห้ามตกบรรทัด ถ้าชื่อรุ่นยาวให้ตัดหางแทน กรอบจะได้สูงเท่ากันทุกใบ */}
-        <p className="flex items-end justify-between gap-[12px] text-[18pt] leading-none font-bold whitespace-nowrap">
-          <span>{plateText || "ไม่ระบุทะเบียนรถ"}</span>
-          <span className="min-w-0 truncate">{vehicleName}</span>
+      <div className="mt-[10px] flex items-baseline justify-between gap-[12px] whitespace-nowrap">
+        <p className="text-[22pt] leading-none font-semibold">
+          {plateText || "ไม่ระบุทะเบียนรถ"}
+        </p>
+        <p className="min-w-0 truncate text-[16pt] leading-none font-semibold">
+          {vehicleName}
         </p>
       </div>
 
       <table className="mt-[10px] w-full table-fixed border-collapse text-[12pt]">
         <thead>
-          <tr>
-            <th className="w-[34px] border border-black p-[4px] font-semibold">
+          <tr className="bg-gray-200">
+            <th className="w-[36px] border border-black p-[5px] font-semibold">
               ✓
             </th>
-            <th className="border border-black p-[4px] font-semibold">
+            <th className="border border-black p-[5px] text-left font-semibold">
               รายการ
             </th>
-            <th className="w-[96px] border border-black p-[4px] font-semibold">
+            <th className="w-[92px] border border-black p-[5px] font-semibold">
               จำนวน
             </th>
           </tr>
@@ -92,11 +90,11 @@ const JobSheetPaper = ({ repair }) => {
           {hasSides
             ? groups.map((group) => (
                 <Fragment key={group.key}>
-                  {/* แถบหัวฝั่ง กินความกว้างทั้งแถว ช่างมองปราดเดียวรู้ว่าท่อนไหนของตัวเอง */}
+                  {/* แถบหัวข้าง กินความกว้างทั้งแถว ช่างมองปราดเดียวรู้ว่าท่อนไหนของตัวเอง */}
                   <tr>
                     <td
                       colSpan={3}
-                      className="border border-black bg-gray-200 px-[6px] text-[12pt] font-semibold"
+                      className="border border-black bg-gray-200 px-[8px] py-[3px] text-[11pt] font-semibold"
                     >
                       {group.label}
                     </td>
@@ -104,10 +102,10 @@ const JobSheetPaper = ({ repair }) => {
                   {mergeBySide(group.items).map(({ item, quantity }) => (
                     <tr key={`${group.key}-${item.id}`}>
                       <td className="h-[34px] border border-black" />
-                      <td className="border border-black px-[6px] break-words">
+                      <td className="border border-black px-[8px] break-words">
                         {shortWorkName(item)}
                       </td>
-                      <td className="border border-black px-[6px] text-center">
+                      <td className="border border-black px-[8px] text-center">
                         {`${formatQuantity(quantity)} ${unitOf(item)}`.trim()}
                       </td>
                     </tr>
@@ -117,11 +115,11 @@ const JobSheetPaper = ({ repair }) => {
             : items.map(({ item, quantity, sideLabel }) => (
                 <tr key={item.id}>
                   <td className="h-[34px] border border-black" />
-                  <td className="border border-black px-[6px] break-words">
+                  <td className="border border-black px-[8px] break-words">
                     {shortWorkName(item)}
                     {sideLabel ? ` (${sideLabel})` : ""}
                   </td>
-                  <td className="border border-black px-[6px] text-center">
+                  <td className="border border-black px-[8px] text-center">
                     {`${formatQuantity(quantity)} ${unitOf(item)}`.trim()}
                   </td>
                 </tr>
@@ -130,12 +128,12 @@ const JobSheetPaper = ({ repair }) => {
           <tr>
             <td
               colSpan={3}
-              className="border border-black bg-gray-200 px-[6px] text-[12pt] font-semibold"
+              className="border border-black bg-gray-200 px-[8px] py-[3px] text-[11pt] font-semibold"
             >
               เพิ่มเติม
             </td>
           </tr>
-          {Array.from({ length: hasSides ? 4 : blankRows }).map((_, index) => (
+          {Array.from({ length: EXTRA_ROWS }).map((_, index) => (
             <tr key={`blank-${index}`}>
               <td className="h-[34px] border border-black" />
               <td className="border border-black" />

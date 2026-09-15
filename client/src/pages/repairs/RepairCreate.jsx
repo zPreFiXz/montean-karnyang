@@ -15,6 +15,7 @@ import {
   ChevronUp,
   ArrowUpDown,
   TicketPercent,
+  Gift,
   Trash2,
 } from "lucide-react";
 import FormInput from "@/components/forms/FormInput";
@@ -28,6 +29,7 @@ import { scrollToNewRow } from "@/utils/scrollToNewRow";
 import FormButton from "@/components/forms/FormButton";
 import ComboBox from "@/components/ui/ComboBox";
 import { listVehicleModels } from "@/api/vehicleModel";
+import { listInventory } from "@/api/inventory";
 import { repairSchema } from "@/utils/schemas";
 import { provinces } from "@/constants/provinces";
 import { formatCurrency, formatPhone, formatQuantity } from "@/utils/formats";
@@ -39,7 +41,14 @@ import {
   isTireCategoryName,
   allowsDecimalQuantity,
 } from "@/constants/categories";
-import { isPartPlaceholderItem, isDiscountItem } from "@/constants/services";
+import {
+  isPartPlaceholderItem,
+  isDiscountItem,
+  TIRE_FREEBIE_NAMES,
+  TIRE_ALIGNMENT_FREEBIE_NAME,
+  ALIGNMENT_FREE_TIRE_COUNT,
+  freebieQuantityFor,
+} from "@/constants/services";
 import { SparePart } from "@/components/icons/Icons";
 import EditQuantityDialog from "@/components/dialogs/EditQuantityDialog";
 import { onKeyActivate } from "@/utils/a11y";
@@ -118,6 +127,7 @@ const RepairCreate = () => {
   // ไม่โชว์ลูกศรค้างไว้ตลอด เพราะแถวมีปุ่มแน่นอยู่แล้วบนจอมือถือ
   const [isReordering, setIsReordering] = useState(false);
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
+  const [isAddingFreebies, setIsAddingFreebies] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [removingIndex, setRemovingIndex] = useState(null);
   // แถวที่กำลังยุบตัวก่อนหายจริง (ดู CollapsibleRow)
@@ -227,8 +237,10 @@ const RepairCreate = () => {
           : {}),
       };
       if (location.state) {
+        // เก็บเฉพาะข้อมูลที่ยังต้องใช้ แต่ต้องคงฟิลด์ของตัวจัดการเส้นทางไว้ด้วย
+        // (ลำดับหน้าในประวัติอยู่ในนั้น ถ้าเขียนทับทิ้งจะคำนวณทางกลับหลังบันทึกไม่ได้)
         window.history.replaceState(
-          preserved,
+          { ...window.history.state, usr: preserved },
           document.title,
           window.location.pathname,
         );
@@ -397,6 +409,7 @@ const RepairCreate = () => {
           },
           repairItems: repairItems,
           editRepairId: location.state?.editRepairId,
+          backIdx: location.state?.backIdx,
           origin: location.state?.origin || location.state?.from,
           statusSlug: location.state?.statusSlug,
           vehicleId: location.state?.vehicleId,
@@ -612,6 +625,167 @@ const RepairCreate = () => {
 
   // ปุ่มเดียวกันวางสองที่ (มือถือ/จอใหญ่) ประกาศไว้ที่เดียวจะได้ไม่หลุดกันเวลาแก้
   // โผล่เมื่อมีของตั้งแต่สองรายการ เพราะมีชิ้นเดียวไม่มีอะไรให้สลับ
+  // ซื้อยางแล้วร้านแถมจุ๊บลมกับถ่วงล้อทุกเส้น ครบสี่เส้นแถมตั้งศูนย์ด้วย
+  // ไม่ใส่ให้เองอัตโนมัติ เพราะบางคนเอายางไปใส่เอง ไม่ได้ถ่วงล้อที่ร้าน
+  const tireCount = repairItems
+    .filter((item) => isTireCategoryName(item.category?.name))
+    .reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+
+  const freebieNames = [
+    ...TIRE_FREEBIE_NAMES,
+    ...(tireCount >= ALIGNMENT_FREE_TIRE_COUNT
+      ? [TIRE_ALIGNMENT_FREEBIE_NAME]
+      : []),
+  ];
+  const missingFreebies = freebieNames.filter(
+    (name) => !repairItems.some((item) => item.name === name),
+  );
+
+  // ยางเปลี่ยนจำนวนเมื่อไหร่ ของแถมต้องขยับตาม จุ๊บลมเท่าจำนวนยาง ถ่วงล้อไม่เกินสองล้อ
+  // และตั้งศูนย์หายไปถ้ายางไม่ถึงสี่เส้น (แตะเฉพาะบรรทัดที่มาจากปุ่มของแถม)
+  useEffect(() => {
+    if (!repairItems.some((item) => item.isFreebie)) return;
+
+    // ของแถมที่ไม่ควรมีแล้ว (ยางน้อยลงจนไม่ถึงเกณฑ์) ต้องหายออกไป
+    const dropping = repairItems
+      .map((item, index) => ({ item, index }))
+      .filter(
+        ({ item }) =>
+          item.isFreebie && freebieQuantityFor(item.name, tireCount) === 0,
+      );
+
+    // ตัวแรกยุบแถวออกให้เห็นเหมือนกดลบเอง ที่เหลือ (เช่นลบยางออกหมดทีเดียว) ตัดทิ้งเลย
+    const animatedIndex = dropping[0]?.index ?? -1;
+    const removeNow = new Set(dropping.slice(1).map(({ index }) => index));
+
+    setRepairItems((prev) => {
+      const next = prev
+        .map((item) => {
+          if (!item.isFreebie) return item;
+          const quantity = freebieQuantityFor(item.name, tireCount);
+          return quantity === 0 || quantity === item.quantity
+            ? item
+            : { ...item, quantity };
+        })
+        .filter((_, index) => !removeNow.has(index));
+
+      const changed =
+        next.length !== prev.length || next.some((item, i) => item !== prev[i]);
+      return changed ? next : prev;
+    });
+
+    if (animatedIndex !== -1 && leavingIndex === null) {
+      leaveHandledRef.current = false;
+      setLeavingIndex(animatedIndex);
+      return;
+    }
+
+    // เพิ่มยางจนครบสี่เส้นแล้วตั้งศูนย์ต้องโผล่มาเอง ไม่ต้องกดปุ่มของแถมซ้ำ
+    const needsAlignment =
+      tireCount >= ALIGNMENT_FREE_TIRE_COUNT &&
+      !repairItems.some((item) => item.name === TIRE_ALIGNMENT_FREEBIE_NAME);
+
+    if (!needsAlignment) return;
+
+    let cancelled = false;
+    loadFreebieServices()
+      .then((services) => {
+        const alignment = services.find(
+          (service) => service.name === TIRE_ALIGNMENT_FREEBIE_NAME,
+        );
+        if (cancelled || !alignment) return;
+
+        setRepairItems((prev) =>
+          prev.some((item) => item.name === TIRE_ALIGNMENT_FREEBIE_NAME)
+            ? prev
+            : [...prev, buildFreebieLine(alignment)],
+        );
+
+        // โผล่มาเองแล้วต้องพาไปดูด้วย ไม่งั้นบรรทัดใหม่จะอยู่นอกจอโดยไม่มีใครรู้
+        scrollToNewRow(() => {
+          const rows = document.querySelectorAll("[data-repair-row]");
+          const visible = [...rows].filter((el) => el.offsetParent !== null);
+          return visible[visible.length - 1];
+        });
+      })
+      .catch(() => {
+        // ดึงรายชื่อบริการไม่ได้ก็แค่ไม่เติมให้ ยังกดปุ่มของแถมเองได้
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tireCount]);
+
+  // รายชื่อบริการอ่านครั้งเดียวแล้วเก็บไว้ ใช้ทั้งตอนกดปุ่มและตอนเติมตั้งศูนย์ให้เอง
+  const freebieServicesRef = useRef(null);
+  const loadFreebieServices = async () => {
+    if (freebieServicesRef.current) return freebieServicesRef.current;
+    const res = await listInventory("บริการ", null);
+    freebieServicesRef.current = res.data || [];
+    return freebieServicesRef.current;
+  };
+
+  const buildFreebieLine = (service) =>
+    withRowId({
+      ...service,
+      quantity: freebieQuantityFor(service.name, tireCount),
+      // จำไว้ว่าบรรทัดนี้มาจากของแถม จะได้ขยับจำนวนตามยางให้เอง
+      isFreebie: true,
+      // ของแถมคิดราคา 0 แต่เก็บราคาปกติไว้ ใบเสร็จจะได้บอกได้ว่าลดไปเท่าไหร่
+      sellingPrice: 0,
+      basePrice: service.sellingPrice,
+    });
+
+  const handleAddFreebies = async () => {
+    if (isAddingFreebies || missingFreebies.length === 0) return;
+
+    try {
+      setIsAddingFreebies(true);
+      const services = await loadFreebieServices();
+
+      const added = missingFreebies
+        .map((name) => services.find((service) => service.name === name))
+        .filter(Boolean)
+        .filter((service) => freebieQuantityFor(service.name, tireCount) > 0)
+        .map(buildFreebieLine);
+
+      if (added.length === 0) {
+        toast.error("ไม่พบบริการของแถมในคลัง");
+        return;
+      }
+
+      setRepairItems((prev) => [...prev, ...added]);
+
+      // พาไปหาแถวที่เพิ่งเพิ่ม เหมือนตอนเพิ่มรายการจากไดอะล็อก
+      // (รายการถูกวาดสองชุดสำหรับมือถือ/เดสก์ท็อป จึงต้องหยิบชุดที่แสดงอยู่จริง)
+      scrollToNewRow(() => {
+        const rows = document.querySelectorAll("[data-repair-row]");
+        const visible = [...rows].filter((el) => el.offsetParent !== null);
+        return visible[visible.length - 1];
+      });
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setIsAddingFreebies(false);
+    }
+  };
+
+  // ขึ้นเฉพาะบิลที่มียางและยังเพิ่มของแถมไม่ครบ
+  const freebieButton = tireCount > 0 && missingFreebies.length > 0 && (
+    <button
+      type="button"
+      onClick={handleAddFreebies}
+      disabled={isAddingFreebies}
+      aria-label="เพิ่มของแถม"
+      title="เพิ่มของแถม"
+      className="text-primary border-primary/40 bg-primary/5 flex h-[32px] w-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[8px] border duration-300 disabled:opacity-60"
+    >
+      <Gift className="h-4 w-4" />
+    </button>
+  );
+
   const reorderButton = repairItems.length > 1 && (
     <button
       type="button"
@@ -941,6 +1115,7 @@ const RepairCreate = () => {
                   รายการซ่อม
                 </p>
                 {reorderButton}
+                {freebieButton}
               </div>
               <AddRepairItemDialog
                 onAddItem={handleAddItemToRepair}
@@ -1179,6 +1354,7 @@ const RepairCreate = () => {
                 รายการซ่อม
               </p>
               {reorderButton}
+              {freebieButton}
             </div>
             <AddRepairItemDialog
               onAddItem={handleAddItemToRepair}

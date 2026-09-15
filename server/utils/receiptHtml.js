@@ -40,7 +40,7 @@ const SHOP = {
     "โทร. 089-849-2861, 093-326-1705  เลขประจำตัวผู้เสียภาษี 3 33030032502 1",
 };
 
-const MIN_ROWS = 12;
+const MIN_ROWS = 10;
 
 const PAYMENT_BOXES = [
   { label: "เงินสด", method: "CASH" },
@@ -75,6 +75,10 @@ const escapeHtml = (value) =>
 
 const formatMoney = (value) =>
   Number(value || 0).toLocaleString("th-TH", { maximumFractionDigits: 2 });
+
+// ของแถมคิดราคา 0 ในเล่มกระดาษร้านขีด - ไว้ ไม่ได้เขียนเลขศูนย์
+const formatAmount = (value) =>
+  Number(value) === 0 ? "-" : formatMoney(value);
 
 const formatQuantity = (value) => {
   const number = Number(value || 0);
@@ -150,28 +154,58 @@ const buildReceiptHtml = (
   const rows = mergeBySide(
     (repair.repairItems || []).filter((item) => !isDiscount(item)),
   );
-  const blankRows = Math.max(0, MIN_ROWS - rows.length - (hasDiscount ? 2 : 0));
+  // บิลที่มีรายการเกินหนึ่งหน้าให้แยกเป็นใบต่อไป แผ่นละ MIN_ROWS บรรทัด
+  // ยอดรวมกับส่วนลดอยู่แผ่นสุดท้ายแผ่นเดียว (ตรงกับ buildReceiptPages ฝั่งหน้าเว็บ)
+  const pages = [];
+  for (
+    let start = 0;
+    start < rows.length || pages.length === 0;
+    start += MIN_ROWS
+  ) {
+    pages.push(rows.slice(start, start + MIN_ROWS));
+  }
+
+  const summaryRows = discountItems.length ? discountItems.length + 1 : 1;
+  if (pages[pages.length - 1].length + summaryRows > MIN_ROWS) pages.push([]);
   // ยอดในบิลหักส่วนลดไปแล้ว ยอดก่อนหักจึงต้องบวกกลับ (ส่วนลดเก็บเป็นเลขติดลบ)
   const total = Number(repair.totalPrice || 0);
   const subtotal = total - discountTotal;
 
-  const itemRows = rows
-    .map(({ item, quantity, sideLabel }) => {
-      const amount = Number(item.unitPrice) * quantity;
-      const base = showBrand ? item.itemName : workName(item);
-      const name = sideLabel ? `${base} (${sideLabel})` : base;
-      return `<tr>
+  const rowHtml = ({ item, quantity, sideLabel }) => {
+    const amount = Number(item.unitPrice) * quantity;
+    const base = showBrand ? item.itemName : workName(item);
+    const name = sideLabel ? `${base} (${sideLabel})` : base;
+    return `<tr>
         <td class="c">${escapeHtml(`${formatQuantity(quantity)} ${unitOf(item)}`.trim())}</td>
         <td class="wrap">${escapeHtml(name)}</td>
-        <td class="r">${formatMoney(item.unitPrice)}</td>
-        <td class="r">${formatMoney(amount)}</td>
+        <td class="r">${formatAmount(item.unitPrice)}</td>
+        <td class="r">${formatAmount(amount)}</td>
       </tr>`;
-    })
-    .join("");
+  };
 
-  const emptyRows = Array.from({ length: blankRows })
-    .map(() => "<tr><td></td><td></td><td></td><td></td></tr>")
-    .join("");
+  const summaryHtml = `${
+    hasDiscount
+      ? `<tr>
+        <td colspan="2" class="blank"></td>
+        <td class="c">รวมเป็นเงิน</td>
+        <td class="r">${formatMoney(subtotal)}</td>
+      </tr>
+      ${discountItems
+        .map(
+          (item) => `<tr>
+        <td colspan="2" class="blank"></td>
+        <td class="c">${escapeHtml(item.itemName)}</td>
+        <td class="r">${formatMoney(Number(item.unitPrice) * Number(item.quantity))}</td>
+      </tr>`,
+        )
+        .join("")}`
+      : ""
+  }
+      <tr>
+        <td colspan="2">จำนวนเงินรวมทั้งสิ้น <span class="sum-text">${escapeHtml(bahtText(total))}</span></td>
+        <td class="c">จำนวนเงินรวม</td>
+        <td class="r" style="font-weight:600">${formatMoney(total)}</td>
+      </tr>`;
 
   // ปิดข้อมูลลูกค้า = เว้นช่องไว้ ไม่เอาบรรทัดออก ใบจะได้หน้าตาเหมือนกันทุกครั้ง
   const customerFields = `<p>ชื่อลูกค้า<span class="dotted v">${
@@ -181,6 +215,76 @@ const buildReceiptHtml = (
       showCustomer ? escapeHtml(repair.customer?.address || "") : ""
     }</span></p>
     <p>เลขประจำตัวผู้เสียภาษีอากร<span class="dotted v"></span></p>`;
+
+  // เนื้อของกระดาษหนึ่งแผ่น เรียกซ้ำตามจำนวนหน้า
+  const pageHtml = (pageRows, pageIndex) => {
+    const isLastPage = pageIndex === pages.length - 1;
+    const blankRows = Math.max(
+      0,
+      MIN_ROWS - pageRows.length - (isLastPage ? summaryRows : 0),
+    );
+    const emptyRows = Array.from({ length: blankRows })
+      .map(() => "<tr><td></td><td></td><td></td><td></td></tr>")
+      .join("");
+    // บิลหลายแผ่นเขียนเลขต่อเนื่องแบบ 122/1 122/2 ตามแบบเอกสารต่อเนื่องของไทย
+    const receiptNo =
+      pages.length > 1 ? `${repair.id}/${pageIndex + 1}` : repair.id;
+
+    return `<div class="receipt-paper">
+  <div class="head">
+    <p class="side">เล่มที่<span class="dotted" style="width:70px"></span></p>
+    <div class="title">
+      <div class="doc">ใบเสร็จรับเงิน</div>
+      <div class="shop">${SHOP.name}</div>
+    </div>
+    <p class="side">เลขที่<span class="dotted" style="min-width:42px;text-align:center;font-weight:600">${receiptNo}</span></p>
+  </div>
+
+  <p class="center" style="margin:2px 0 0">${SHOP.address}</p>
+  <p class="center" style="margin:0">${SHOP.contact}</p>
+
+  <div class="date-row">
+    <p style="margin:0;display:flex;align-items:flex-end;gap:4px">วันที่<span class="dotted v">${day}</span></p>
+    <p style="margin:0;display:flex;align-items:flex-end;gap:4px">เดือน<span class="dotted v" style="min-width:92px">${escapeHtml(month)}</span></p>
+    <p style="margin:0;display:flex;align-items:flex-end;gap:4px">พ.ศ.<span class="dotted v">${year}</span></p>
+  </div>
+
+  <div class="fields">
+${customerFields}
+    <p>ยี่ห้อ-รุ่นรถ<span class="dotted v">${escapeHtml(vehicleName)}</span>ทะเบียนรถ<span class="dotted v">${escapeHtml(plateText)}</span></p>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="qty">จำนวน</th>
+        <th>รายการ</th>
+        <th class="unit">ราคาต่อหน่วย</th>
+        <th class="amount">จำนวนเงิน</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${pageRows.map(rowHtml).join("")}
+      ${emptyRows}
+      ${isLastPage ? summaryHtml : ""}
+    </tbody>
+  </table>
+
+  <div class="pays">${paymentBoxes}</div>
+
+  <div class="bank">
+    <span class="bank-field">ธนาคาร<span class="dotted"></span></span>
+    <span class="bank-field">เลขที่<span class="dotted"></span></span>
+    <span class="bank-field">ลงวันที่<span class="dotted"></span></span>
+    <span class="bank-field">จำนวนเงิน<span class="dotted"></span></span>
+  </div>
+
+  <div class="sign">
+    <p>ลงชื่อ<span class="dotted" style="flex:1"></span>ผู้รับเงิน</p>
+    <p>ลงชื่อ<span class="dotted" style="flex:1"></span>ผู้จ่ายเงิน</p>
+  </div>
+</div>`;
+  };
 
   const paymentBoxes = PAYMENT_BOXES.map(
     (box) =>
@@ -200,16 +304,21 @@ const buildReceiptHtml = (
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    width: 148mm;
-    height: 210mm;
-    padding: 10mm;
-    overflow: hidden;
     color: #000;
     background: #fff;
     font-family: "Athiti", "Sarabun", "Tahoma", sans-serif;
     font-size: 11pt;
     line-height: 1.25;
   }
+  /* บิลยาวเกินหนึ่งหน้าถูกแยกเป็นหลายแผ่น แต่ละแผ่นเป็นกระดาษ A5 ของตัวเอง */
+  .receipt-paper {
+    width: 148mm;
+    height: 210mm;
+    padding: 10mm;
+    overflow: hidden;
+    break-after: page;
+  }
+  .receipt-paper:last-of-type { break-after: auto; }
   .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
   .head .side { white-space: nowrap; display: flex; align-items: flex-end; gap: 4px; }
   .dotted { border-bottom: 1px dotted #000; }
@@ -246,80 +355,7 @@ const buildReceiptHtml = (
 </style>
 </head>
 <body>
-  <div class="head">
-    <p class="side">เล่มที่<span class="dotted" style="width:70px"></span></p>
-    <div class="title">
-      <div class="doc">ใบเสร็จรับเงิน</div>
-      <div class="shop">${SHOP.name}</div>
-    </div>
-    <p class="side">เลขที่<span class="dotted" style="min-width:42px;text-align:center;font-weight:600">${repair.id}</span></p>
-  </div>
-
-  <p class="center" style="margin:2px 0 0">${SHOP.address}</p>
-  <p class="center" style="margin:0">${SHOP.contact}</p>
-
-  <div class="date-row">
-    <p style="margin:0;display:flex;align-items:flex-end;gap:4px">วันที่<span class="dotted v">${day}</span></p>
-    <p style="margin:0;display:flex;align-items:flex-end;gap:4px">เดือน<span class="dotted v" style="min-width:92px">${escapeHtml(month)}</span></p>
-    <p style="margin:0;display:flex;align-items:flex-end;gap:4px">พ.ศ.<span class="dotted v">${year}</span></p>
-  </div>
-
-  <div class="fields">
-${customerFields}
-    <p>ยี่ห้อ-รุ่นรถ<span class="dotted v">${escapeHtml(vehicleName)}</span>ทะเบียนรถ<span class="dotted v">${escapeHtml(plateText)}</span></p>
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th class="qty">จำนวน</th>
-        <th>รายการ</th>
-        <th class="unit">ราคาต่อหน่วย</th>
-        <th class="amount">จำนวนเงิน</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${itemRows}
-      ${emptyRows}
-      ${
-        hasDiscount
-          ? `<tr>
-        <td colspan="2" class="blank"></td>
-        <td class="c">รวมเป็นเงิน</td>
-        <td class="r">${formatMoney(subtotal)}</td>
-      </tr>
-      ${discountItems
-        .map(
-          (item) => `<tr>
-        <td colspan="2" class="blank"></td>
-        <td class="c">${escapeHtml(item.itemName)}</td>
-        <td class="r">${formatMoney(Number(item.unitPrice) * Number(item.quantity))}</td>
-      </tr>`,
-        )
-        .join("")}`
-          : ""
-      }
-      <tr>
-        <td colspan="2">จำนวนเงินรวมทั้งสิ้น <span class="sum-text">${escapeHtml(bahtText(total))}</span></td>
-        <td class="c">จำนวนเงินรวม</td>
-        <td class="r" style="font-weight:600">${formatMoney(total)}</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div class="pays">${paymentBoxes}</div>
-
-  <div class="bank">
-    <span class="bank-field">ธนาคาร<span class="dotted"></span></span>
-    <span class="bank-field">เลขที่<span class="dotted"></span></span>
-    <span class="bank-field">ลงวันที่<span class="dotted"></span></span>
-    <span class="bank-field">จำนวนเงิน<span class="dotted"></span></span>
-  </div>
-
-  <div class="sign">
-    <p>ลงชื่อ<span class="dotted" style="flex:1"></span>ผู้รับเงิน</p>
-    <p>ลงชื่อ<span class="dotted" style="flex:1"></span>ผู้จ่ายเงิน</p>
-  </div>
+${pages.map(pageHtml).join("")}
 </body>
 </html>`;
 };
@@ -345,18 +381,15 @@ const workName = (item) => {
   }
 
   // น้ำมันส่วนใหญ่เป็นบรรทัดที่พิมพ์ชื่อเอง ดูจากชื่อแทนหมวดหมู่
-  // ร้านเขียนตามแบบ "VALVOLINE (3L) น้ำมันเครื่อง+กรอง SYNPOWER ECO (0W30)"
-  // เก็บขนาดลิตร คำไทย และค่าความหนืดท้ายชื่อ -> "(3L) น้ำมันเครื่อง+กรอง (0W30)"
+  // เอาแค่ขนาดลิตรกับชื่อของ ตัดยี่ห้อ เกรด และของแถมพ่วงท้ายออกให้หมด
+  // (ตรงกับ shortWorkName ฝั่งหน้าเว็บ)
   const name = String(item.itemName || "");
-  const size = name.match(/\(\s*(\d+(?:\.\d+)?)\s*L\s*\)/i);
-  if (size && name.includes("น้ำมัน")) {
+  if (name.includes("น้ำมัน")) {
     const thai = name.match(/[ก-๙][ก-๙+\s-]*[ก-๙]/);
-    const grade = (name.match(/\([^)]*\)/g) || []).find(
-      (part) => !/\d+(\.\d+)?\s*L\s*\)/i.test(part),
-    );
-
     if (thai) {
-      return `(${size[1]}L) ${thai[0].trim()}${grade ? ` ${grade}` : ""}`;
+      const base = thai[0].trim();
+      const size = name.match(/\(\s*(\d+(?:\.\d+)?)\s*L\s*\)/i);
+      if (base) return size ? `(${Number(size[1])}L) ${base}` : base;
     }
   }
 
@@ -383,7 +416,8 @@ const buildJobSheetHtml = (repair) => {
     (item) => item.side === "LEFT" || item.side === "RIGHT",
   );
   const rows = mergeBySide(allItems);
-  const blankRows = hasSides ? 4 : Math.max(0, 10 - rows.length);
+  // แถวว่างท้ายตารางไว้เขียนงานที่เจอหน้างาน สองแถวเท่ากันทุกบิล
+  const blankRows = 2;
 
   const workRow = ({ item, quantity, sideLabel }) => {
     const base = workName(item);
@@ -391,7 +425,7 @@ const buildJobSheetHtml = (repair) => {
     return `<tr>
         <td class="tick"></td>
         <td class="wrap">${escapeHtml(name)}</td>
-        <td class="c">${escapeHtml(`${formatQuantity(quantity)} ${unitOf(item)}`.trim())}</td>
+        <td class="qty">${escapeHtml(`${formatQuantity(quantity)} ${unitOf(item)}`.trim())}</td>
       </tr>`;
   };
 
@@ -452,50 +486,46 @@ const buildJobSheetHtml = (repair) => {
     font-family: "Athiti", "Sarabun", "Tahoma", sans-serif;
     font-size: 11pt; line-height: 1.25;
   }
-  .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-  .head .doc { font-size: 16pt; font-weight: 600; }
-  .dotted { border-bottom: 1px dotted #000; display: inline-block; text-align: center; font-weight: 600; }
-  .car { border: 2px solid #000; padding: 8px; margin-top: 6px; }
-  .car .row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; white-space: nowrap; }
-  /* ทะเบียนกับยี่ห้อรุ่นสำคัญพอกันสำหรับช่าง จึงตัวเท่ากันทั้งคู่ */
-  .car .plate, .car .model { font-size: 18pt; font-weight: 700; line-height: 1; }
-  .car .model { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-  .car .meta { display: flex; gap: 24px; margin-top: 6px; }
-  h2 { font-size: 13pt; margin: 10px 0 4px; }
+  /* หัวใบมีเส้นคาดหนาแทนพื้นทึบ ประหยัดหมึกและอ่านง่ายพอกัน */
+  .head { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #000; padding-bottom: 4px; }
+  .head .doc { font-size: 17pt; font-weight: 600; line-height: 1; }
+  .head .no { font-size: 12pt; line-height: 1; }
+  .head .no b { font-weight: 600; }
+  /* ทะเบียนคือสิ่งที่ช่างใช้จับคู่ใบกับรถ จึงตัวใหญ่ที่สุดบนใบ */
+  .car { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; white-space: nowrap; margin-top: 10px; }
+  .car .plate { font-size: 22pt; font-weight: 600; line-height: 1; }
+  .car .model { font-size: 16pt; font-weight: 600; line-height: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12pt; margin-top: 10px; }
-  th, td { border: 1px solid #000; padding: 4px 6px; height: 34px; }
+  th, td { border: 1px solid #000; padding: 5px 8px; height: 34px; }
+  thead tr { background: #e5e7eb; }
   th { font-weight: 600; text-align: center; }
-  th.tick, td.tick { width: 34px; }
-  th.qty, td.qty { width: 96px; }
+  th.name { text-align: left; }
+  th.tick, td.tick { width: 36px; text-align: center; }
+  th.qty, td.qty { width: 92px; text-align: center; }
   td.c { text-align: center; }
   td.wrap { word-break: break-word; }
-  td.group { background: #e5e7eb; font-weight: 600; height: 26px; }
-  /* หมายเหตุเป็นเส้นบรรทัดให้เขียนต่อ ไม่ใช่กรอบ */
+  td.group { background: #e5e7eb; font-weight: 600; height: 26px; font-size: 11pt; }
+  /* รายละเอียดการซ่อมเป็นบรรทัดเดียว ข้อความชิดซ้ายเหมือนการเขียนมือ */
   .note { margin-top: 10px; }
   .note-row { display: flex; align-items: flex-end; gap: 6px; margin: 0; }
   .note-label { white-space: nowrap; font-weight: 600; }
   .note-line { flex: 1; text-align: left; }
-  .sign { display: flex; gap: 16px; margin-top: 10px; }
-  .sign p { display: flex; align-items: flex-end; gap: 4px; flex: 1; margin: 0; }
-  .sign .dotted { flex: 1; }
 </style>
 </head>
 <body>
   <div class="head">
-    <p class="doc" style="margin:0">ใบสั่งซ่อม</p>
-    <p style="margin:0">เลขที่ <span class="dotted" style="min-width:42px">${repair.id}</span></p>
+    <p class="doc">ใบสั่งซ่อม</p>
+    <p class="no">เลขที่ <b>${repair.id}</b></p>
   </div>
 
   <div class="car">
-    <div class="row">
-      <div class="plate">${escapeHtml(plateText || "ไม่ระบุทะเบียนรถ")}</div>
-      <div class="model">${escapeHtml(vehicleName)}</div>
-    </div>
+    <div class="plate">${escapeHtml(plateText || "ไม่ระบุทะเบียนรถ")}</div>
+    <div class="model">${escapeHtml(vehicleName)}</div>
   </div>
 
   <table>
     <thead>
-      <tr><th class="tick">✓</th><th>รายการ</th><th class="qty">จำนวน</th></tr>
+      <tr><th class="tick">✓</th><th class="name">รายการ</th><th class="qty">จำนวน</th></tr>
     </thead>
     <tbody>
       ${itemRows}
@@ -504,8 +534,7 @@ const buildJobSheetHtml = (repair) => {
     </tbody>
   </table>
 
-${noteBlock}
-
+  ${noteBlock}
 </body>
 </html>`;
 };

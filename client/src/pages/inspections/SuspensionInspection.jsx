@@ -420,7 +420,12 @@ const SuspensionInspection = () => {
 
     const preserved = {
       ...(editRepairId
-        ? { editRepairId, stockNotDeducted: restored.stockNotDeducted }
+        ? {
+            editRepairId,
+            stockNotDeducted: restored.stockNotDeducted,
+            // ทางกลับหลังบันทึก ต้องรอดผ่านการล้าง state ของหน้านี้ไปด้วย
+            backIdx: restored.backIdx,
+          }
         : {}),
       ...(location.state?.from ? { from: location.state.from } : {}),
       ...(location.state?.origin ? { origin: location.state.origin } : {}),
@@ -432,8 +437,10 @@ const SuspensionInspection = () => {
         : {}),
     };
     if (location.state) {
+      // เก็บเฉพาะข้อมูลที่ยังต้องใช้ แต่ต้องคงฟิลด์ของตัวจัดการเส้นทางไว้ด้วย
+      // (ลำดับหน้าในประวัติอยู่ในนั้น ถ้าเขียนทับทิ้งจะคำนวณทางกลับหลังบันทึกไม่ได้)
       window.history.replaceState(
-        preserved,
+        { ...window.history.state, usr: preserved },
         document.title,
         window.location.pathname,
       );
@@ -1029,6 +1036,8 @@ const SuspensionInspection = () => {
           repairItems: allRepairItems,
           from: "suspension",
           editRepairId: location.state?.editRepairId,
+          backIdx:
+            location.state?.backIdx ?? window.history.state?.usr?.backIdx,
           stockNotDeducted: location.state?.stockNotDeducted,
           origin: location.state?.from,
           statusSlug: location.state?.statusSlug,
@@ -1056,6 +1065,7 @@ const SuspensionInspection = () => {
       state: {
         repairData: getValues(),
         repairItems,
+        backIdx: location.state?.backIdx ?? window.history.state?.usr?.backIdx,
         origin: location.state?.from,
         statusSlug: location.state?.statusSlug,
         vehicleId: location.state?.vehicleId,

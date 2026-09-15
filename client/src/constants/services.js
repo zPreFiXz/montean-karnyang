@@ -100,3 +100,20 @@ export const sortServices = (items = []) =>
     const diff = rankOf(a.name) - rankOf(b.name);
     return diff !== 0 ? diff : serviceCollator.compare(a.name, b.name);
   });
+
+// ซื้อยางแถมจุ๊บลมกับถ่วงล้อทุกเส้น และแถมตั้งศูนย์เมื่อครบสี่เส้น
+// อ้างด้วยชื่อเหมือนบริการตั้งต้นอื่น เพราะรหัสของแต่ละเครื่องไม่ตรงกัน
+export const TIRE_FREEBIE_NAMES = ["จุ๊บลม", "ถ่วงล้อ"];
+export const TIRE_ALIGNMENT_FREEBIE_NAME = "ตั้งศูนย์";
+export const ALIGNMENT_FREE_TIRE_COUNT = 4;
+// ถ่วงล้อแถมได้มากสุดสองล้อ ต่อให้ซื้อยางสี่เส้น
+export const MAX_FREE_BALANCING = 2;
+
+// จำนวนของแถมที่ควรมี เมื่อบิลมียางกี่เส้น
+export const freebieQuantityFor = (name, tireCount) => {
+  if (name === TIRE_ALIGNMENT_FREEBIE_NAME) {
+    return tireCount >= ALIGNMENT_FREE_TIRE_COUNT ? 1 : 0;
+  }
+  if (name === "ถ่วงล้อ") return Math.min(tireCount, MAX_FREE_BALANCING);
+  return tireCount;
+};

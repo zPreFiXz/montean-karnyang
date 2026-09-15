@@ -1,8 +1,9 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { X, Printer, Plus, Minus } from "lucide-react";
+import { X, Printer } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import ReceiptPaper, {
   hasShortenableName,
+  receiptPageCount,
 } from "@/components/receipt/ReceiptPaper";
 import JobSheetPaper from "@/components/receipt/JobSheetPaper";
 import {
@@ -27,7 +28,9 @@ const MM = 96 / 25.4;
 const VIEWPORT_MARGIN = 16;
 // เพดานขนาดไดอะล็อก ต้องตรงกับคลาสที่ใช้จริงเช่นกัน
 const DIALOG_MAX_WIDTH = 620;
-const DIALOG_MAX_HEIGHT_RATIO = 0.9;
+// เว้นที่ไว้จากขอบจอพอสมควร ไม่ให้กล่องไปชนเพดานความสูง
+// ไม่งั้นแถบที่อยู่ของเบราว์เซอร์มือถือยุบ/กางทีเดียว ความสูงกล่องก็เปลี่ยนแล้วเลื่อนให้เห็น
+const DIALOG_MAX_HEIGHT_RATIO = 0.88;
 // ความสูงโดยประมาณของหัวข้อ แถบซูม และแถวปุ่มรวมกัน ใช้เดาขนาดตั้งแต่เรนเดอร์แรก
 // ก่อนจะวัดของจริงได้ ค่าคลาดนิดหน่อยไม่เป็นไรเพราะซ่อนไว้จนกว่าจะวัดเสร็จ
 const ESTIMATED_CHROME_HEIGHT = 180;
@@ -51,24 +54,17 @@ const estimateFitScale = () => {
   );
 };
 
-const ZOOM_STEP = 0.25;
-const MIN_ZOOM = 1;
-const MAX_ZOOM = 2;
-
 const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
   // ตัวอย่างบนจอกับใบที่พิมพ์ต้องเป็นกระดาษแผ่นเดียวกันเป๊ะ
   // จึงวาดด้วยขนาดจริงของ A5 (หักขอบกระดาษแล้ว) แล้วย่อทั้งแผ่นให้พอดีความกว้างไดอะล็อก
   // ย่อด้วยการสเกล ไม่ใช่ปรับขนาดตัวอักษร สัดส่วนทุกอย่างจึงเท่าของจริง
-  // สามส่วนที่ไม่ใช่กระดาษ ใช้วัดว่าเหลือที่ให้กระดาษเท่าไหร่
+  // ทุกส่วนที่ไม่ใช่กระดาษ (หัวข้อ แท็บ สวิตช์ แถวปุ่ม) ติดคลาส receipt-chrome ไว้
+  // วัดรวมจากคลาสนั้นทีเดียว เพิ่มแถวใหม่ทีหลังก็ถูกนับเองโดยไม่ต้องแก้ตรงนี้
   const viewportRef = useRef(null);
-  const chromeRef = useRef(null);
-  const zoomBarRef = useRef(null);
-  const actionsRef = useRef(null);
+  const contentRef = useRef(null);
   const paperRef = useRef(null);
   // ขนาดที่ทำให้ทั้งแผ่นพอดีกรอบ คิดจากทั้งกว้างและสูง จะได้เห็นครบโดยไม่ต้องเลื่อน
   const [fitScale, setFitScale] = useState(estimateFitScale);
-  // ตัวคูณจากการซูมของผู้ใช้ 1 เท่ากับพอดีกรอบ
-  const [zoom, setZoom] = useState(1);
   const [isPrintingAtShop, setIsPrintingAtShop] = useState(false);
   // ลูกค้าบางรายไม่อยากให้ชื่อกับที่อยู่ขึ้นบนใบ ปิดได้ก่อนสั่งพิมพ์
   const [showCustomer, setShowCustomer] = useState(true);
@@ -85,7 +81,6 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
   // ถ้าวัดหลังวาด จะเห็นกล่องไดอะล็อกกางออกแล้วหดเข้ามาหนึ่งครั้ง
   useLayoutEffect(() => {
     if (!open) return;
-    setZoom(1);
     setIsMeasured(false);
     setShowCustomer(true);
     setShowBrand(false);
@@ -93,72 +88,78 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
     setFitScale(estimateFitScale());
 
     const fit = () => {
-      const chrome = chromeRef.current;
       const paper = paperRef.current;
       const paperWidth = paper?.offsetWidth;
       const paperHeight = paper?.offsetHeight;
 
-      // วัดไม่ได้ (ยังไม่ถูกวางลงหน้า) ก็ใช้ค่าประมาณจากขนาดจอไปก่อน
-      // สำคัญคือต้องปลดการซ่อนทุกกรณี ไม่งั้นกล่องจะถูกซ่อนค้างจนดูเหมือนเปิดช้า
+      // วัดไม่ได้ก็ต้องปลดการซ่อน ไม่งั้นกล่องจะถูกซ่อนค้างจนดูเหมือนเปิดไม่ขึ้น
       if (!paperWidth || !paperHeight) {
         setIsMeasured(true);
         return;
       }
 
-      // คิดจากพื้นที่ว่างบนจอโดยตรง ไม่ใช่จากขนาดไดอะล็อก
-      // เพราะไดอะล็อกจะหดตามกระดาษ ถ้าวัดจากมันจะกลายเป็นวนกันเอง
+      // ความสูงของแถวที่ไม่ใช่กระดาษวัดได้ตรงๆ และไม่ขึ้นกับขนาดกระดาษ
+      // จึงคิดที่ว่างจากขนาดจอลบแถวพวกนี้ ไม่ใช่วัดจากกรอบซึ่งจะกลายเป็นวนกันเอง
+      const chromeParts =
+        contentRef.current?.querySelectorAll(".receipt-chrome") || [];
+      const chromeHeight =
+        [...chromeParts].reduce((sum, part) => sum + part.offsetHeight, 0) ||
+        ESTIMATED_CHROME_HEIGHT;
+
       const maxDialogWidth = Math.min(DIALOG_MAX_WIDTH, window.innerWidth - 32);
       const availableWidth = maxDialogWidth - VIEWPORT_MARGIN * 2;
-      const chromeHeight =
-        (chrome?.offsetHeight || 0) +
-          (zoomBarRef.current?.offsetHeight || 0) +
-          (actionsRef.current?.offsetHeight || 0) || ESTIMATED_CHROME_HEIGHT;
       const availableHeight =
         window.innerHeight * DIALOG_MAX_HEIGHT_RATIO -
         chromeHeight -
-        VIEWPORT_MARGIN * 2;
+        VIEWPORT_MARGIN;
 
       if (availableWidth > 0 && availableHeight > 0) {
-        // เผื่อไว้เล็กน้อย กันเศษปัดของเบราว์เซอร์ทำให้ล้นออกไปหนึ่งจุดแล้วมีแถบเลื่อนโผล่
+        // เผื่อไว้เล็กน้อย กันเศษปัดของเบราว์เซอร์ทำให้ล้นออกไปหนึ่งจุด
         setFitScale(
           Math.min(availableWidth / paperWidth, availableHeight / paperHeight) *
-            0.98,
+            0.99,
         );
       }
-
-      setIsMeasured(true);
     };
 
+    // วัดรอบแรกตั้งแต่ยังซ่อนอยู่ แล้ววัดซ้ำในเฟรมถัดไปตอนที่หน้าจัดเสร็จจริง
+    // ค่อยแสดงเมื่อได้ค่าที่นิ่งแล้ว ไม่งั้นจะเห็นกระดาษใหญ่แล้วหดลงตอนเปิด
+    // ไม่วัดซ้ำหลังจากนั้น เพราะกล่องลอยกลางจอ ความสูงขยับนิดเดียวก็เห็นกล่องเลื่อน
     fit();
-    // ไดอะล็อกมีอนิเมชันตอนเปิด วัดตั้งแต่เฟรมแรกอาจได้ขนาดระหว่างทาง จึงวัดซ้ำหลังนิ่งแล้ว
-    const settle = setTimeout(fit, 120);
-    window.addEventListener("resize", fit);
-    const observer = new ResizeObserver(fit);
-    if (paperRef.current) observer.observe(paperRef.current);
-    if (chromeRef.current) observer.observe(chromeRef.current);
-    if (zoomBarRef.current) observer.observe(zoomBarRef.current);
-    if (actionsRef.current) observer.observe(actionsRef.current);
+    const reveal = requestAnimationFrame(() => {
+      fit();
+      setIsMeasured(true);
+    });
+
+    // วัดใหม่เฉพาะตอนขนาดจอเปลี่ยนจริงจัง เช่นหมุนจอ
+    // บนมือถือแถบที่อยู่ของเบราว์เซอร์ยุบ/กางเองได้ ความสูงขยับทีละไม่กี่สิบจุด
+    // ถ้าวัดใหม่ทุกครั้งกล่องที่ลอยกลางจอจะเลื่อนให้เห็นทุกที
+    let lastSize = { width: window.innerWidth, height: window.innerHeight };
+    const onResize = () => {
+      const size = { width: window.innerWidth, height: window.innerHeight };
+      const changedALot =
+        size.width !== lastSize.width ||
+        Math.abs(size.height - lastSize.height) > 120;
+
+      if (!changedALot) return;
+      lastSize = size;
+      fit();
+    };
+
+    window.addEventListener("resize", onResize);
     return () => {
-      clearTimeout(settle);
-      window.removeEventListener("resize", fit);
-      observer.disconnect();
+      cancelAnimationFrame(reveal);
+      window.removeEventListener("resize", onResize);
     };
   }, [open]);
 
-  // กลับมาขนาดพอดีกรอบแล้วกรอบจะเลื่อนไม่ได้อีก ต้องดึงกลับขึ้นบนสุดก่อน
-  // ไม่งั้นกระดาษจะค้างอยู่ตรงตำแหน่งที่เลื่อนไว้ตอนซูม แล้วเลื่อนกลับไม่ได้
-  useLayoutEffect(() => {
-    if (zoom !== 1 || !viewportRef.current) return;
-    viewportRef.current.scrollTop = 0;
-    viewportRef.current.scrollLeft = 0;
-  }, [zoom]);
-
-  const scale = fitScale * zoom;
-  // กรอบดูตัวอย่างเท่าขนาดแผ่นที่ย่อแล้วพอดี ไม่มีพื้นที่ว่างรอบกระดาษ
-  const paperBoxWidth = PAPER_WIDTH_MM * MM * fitScale;
-  const paperBoxHeight = PAPER_HEIGHT_MM * MM * fitScale;
+  const scale = fitScale;
 
   if (!repair) return null;
+
+  // ใบเสร็จยาวเกินหนึ่งแผ่นจะถูกแยกเป็นหลายใบ ใบสั่งซ่อมยังเป็นแผ่นเดียวเสมอ
+  // (คำนวณหลังเช็กว่ามีบิลแล้ว หน้าที่ยังโหลดไม่เสร็จจะส่งค่าว่างมา)
+  const pageCount = docType === "job" ? 1 : receiptPageCount(repair);
 
   const customerName = repair.customer?.name || "";
   const customerAddress = repair.customer?.address || "";
@@ -194,12 +195,13 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        style={{
-          width: paperBoxWidth
-            ? paperBoxWidth + VIEWPORT_MARGIN * 2
-            : undefined,
-        }}
-        className={`flex max-h-[90svh] w-full max-w-[calc(100%-2rem)] flex-col overflow-hidden p-0 ${
+        ref={contentRef}
+        // ความกว้างคงที่แบบไดอะล็อกอื่น ไม่หดตามกระดาษ
+        // ถ้าให้กว้างตามกระดาษ ขนาดกระดาษก็คิดจากไดอะล็อกอีกที กลายเป็นวนกันเองจนเห็นขยับตอนเปิด
+        // สูงตามเนื้อหาเหมือนไดอะล็อกอื่น ไม่ล็อกความสูงไว้
+        // ยึดระยะจากขอบบนแทนการจัดกึ่งกลางแนวตั้ง เพราะกล่องสูงเกือบเต็มจอ
+        // ถ้าจัดกึ่งกลาง พอแถบที่อยู่ของเบราว์เซอร์มือถือยุบ/กาง จุดกึ่งกลางจะขยับแล้วกล่องเลื่อนตาม
+        className={`top-[4svh] flex max-h-[92svh] w-full max-w-[calc(100%-2rem)] translate-y-0 flex-col overflow-hidden p-0 sm:max-w-[620px] ${
           isMeasured ? "" : "opacity-0"
         }`}
         showCloseButton={false}
@@ -207,10 +209,7 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
         // ปล่อยไว้ Radix จะไปโฟกัสปุ่มกากบาทให้เอง แล้วขึ้นกรอบไฮไลท์ตั้งแต่เปิด
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <div
-          ref={chromeRef}
-          className="receipt-chrome relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]"
-        >
+        <div className="receipt-chrome relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]">
           <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
             {docType === "job" ? "ตัวอย่างใบสั่งซ่อม" : "ตัวอย่างใบเสร็จ"}
           </DialogTitle>
@@ -237,11 +236,7 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
               <button
                 key={tab.id}
                 type="button"
-                // สลับใบแล้วเริ่มดูใบใหม่ที่ขนาดพอดีกรอบเสมอ ไม่ค้างซูมของใบก่อน
-                onClick={() => {
-                  setDocType(tab.id);
-                  setZoom(1);
-                }}
+                onClick={() => setDocType(tab.id)}
                 className={`font-athiti h-[38px] flex-1 cursor-pointer rounded-[20px] border text-lg font-semibold duration-300 md:text-xl ${
                   docType === tab.id
                     ? "bg-primary text-surface border-transparent"
@@ -255,8 +250,14 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
         )}
 
         {/* ตั้งค่าก่อนแล้วเห็นผลบนกระดาษข้างล่างทันที จึงอยู่เหนือกระดาษ */}
-        {docType === "receipt" && (
-          <div className="receipt-chrome mx-[16px] mb-[8px] flex flex-wrap justify-center gap-x-[20px] gap-y-[4px]">
+        {/* กันที่ไว้เท่าเดิมทั้งสองแท็บ สลับแท็บแล้วกล่องจะได้ไม่เปลี่ยนความสูง
+            อยู่ใบสั่งซ่อมจะเว้นว่างไว้ กดไม่ได้และมองไม่เห็น */}
+        {(hasCustomerInfo || canShortenNames) && (
+          <div
+            className={`receipt-chrome mx-[16px] mb-[8px] flex flex-wrap justify-center gap-x-[20px] gap-y-[4px] ${
+              docType === "receipt" ? "" : "invisible"
+            }`}
+          >
             {[
               {
                 label: "แสดงข้อมูลลูกค้า",
@@ -281,12 +282,12 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
                   className="font-athiti flex cursor-pointer items-center gap-[8px]"
                 >
                   <span
-                    className={`flex h-[22px] w-[38px] shrink-0 items-center rounded-full p-[3px] duration-300 ${
+                    className={`flex h-[22px] w-[38px] shrink-0 items-center rounded-full p-[3px] transition-colors duration-300 ${
                       item.value ? "bg-primary" : "bg-gray-300"
                     }`}
                   >
                     <span
-                      className={`bg-surface h-[16px] w-[16px] rounded-full duration-300 ${
+                      className={`bg-surface h-[16px] w-[16px] rounded-full transition-transform duration-300 ${
                         item.value ? "translate-x-[16px]" : "translate-x-0"
                       }`}
                     />
@@ -306,75 +307,49 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
         <div
           ref={viewportRef}
           id="receipt-viewport"
-          style={{
-            width: paperBoxWidth || undefined,
-            height: paperBoxHeight || undefined,
-          }}
-          className={`mx-[16px] mb-[16px] ${
-            zoom > 1 ? "overflow-auto" : "overflow-hidden"
-          }`}
+          // เลื่อนบนล่างได้เสมอ เผื่อความสูงจอจริงไม่ตรงกับที่คำนวณไว้
+          // ซ้ายขวาเปิดเฉพาะตอนซูม เพราะขนาดพอดีกรอบไม่มีอะไรให้เลื่อนออกข้าง
+          // ไม่มีระยะขอบใน พื้นที่เลื่อนจะได้จบที่ขอบกระดาษพอดี ไม่มีที่ว่างเกินท้าย
+          // เลื่อนได้เฉพาะแนวตั้ง (บิลหลายแผ่น) กว้างพอดีอยู่แล้วจึงไม่ต้องเลื่อนข้าง
+          // scrollbar-gutter คงที่ ไม่งั้นแถบเลื่อนโผล่แล้วความกว้างเปลี่ยน แล้ววัดขนาดใหม่ไปมา
+          style={{ height: PAPER_HEIGHT_MM * MM * fitScale }}
+          className="mx-[16px] mb-[8px] min-h-0 shrink overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]"
         >
-          {/* กระดาษจริง: ตัวนี้คือสิ่งเดียวที่ถูกพิมพ์ (ดูกฎ @media print ใน index.css) */}
-          <div
-            ref={paperRef}
-            id="receipt-paper"
-            style={{ transform: `scale(${scale})` }}
-            // overflow-hidden เหมือนกระดาษจริงที่พิมพ์เกินขอบไม่ได้
-            // ถ้าปล่อยให้ล้น พื้นที่เลื่อนของกรอบดูตัวอย่างจะขยายตามจนเลื่อนได้ทั้งที่ย่อพอดีแล้ว
-            className="font-athiti h-[210mm] w-[148mm] origin-top-left overflow-hidden bg-white p-[10mm] text-[11pt] leading-tight text-black"
-          >
-            {docType === "job" ? (
-              <JobSheetPaper repair={repair} />
-            ) : (
-              <ReceiptPaper
-                repair={repair}
-                showCustomer={showCustomer}
-                showBrand={showBrand}
-              />
-            )}
+          {/* กรอบเท่าขนาดแผ่นหลังย่อ กันไม่ให้พื้นที่เลื่อนยาวเท่าขนาดกระดาษจริง
+              เพราะการย่อเป็นการแปลงภาพ ขนาดในการจัดหน้ายังเท่าเดิม */}
+          <div className="flex flex-col items-center gap-[12px]">
+            {Array.from({ length: pageCount }).map((_, page) => (
+              <div
+                key={page}
+                style={{
+                  width: PAPER_WIDTH_MM * MM * scale,
+                  height: PAPER_HEIGHT_MM * MM * scale,
+                }}
+                className="shrink-0"
+              >
+                {/* กระดาษจริง: ตัวนี้คือสิ่งเดียวที่ถูกพิมพ์ (ดูกฎ @media print ใน index.css) */}
+                <div
+                  ref={page === 0 ? paperRef : undefined}
+                  className="receipt-paper font-athiti h-[210mm] w-[148mm] origin-top-left overflow-hidden bg-white p-[10mm] text-[11pt] leading-tight text-black"
+                  style={{ transform: `scale(${scale})` }}
+                >
+                  {docType === "job" ? (
+                    <JobSheetPaper repair={repair} />
+                  ) : (
+                    <ReceiptPaper
+                      repair={repair}
+                      showCustomer={showCustomer}
+                      showBrand={showBrand}
+                      pageIndex={page}
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div
-          ref={zoomBarRef}
-          className="receipt-chrome flex flex-shrink-0 items-center justify-center gap-[12px] px-[16px] pb-[8px]"
-        >
-          <button
-            type="button"
-            // ปัดทศนิยมกันค่าเพี้ยนสะสมจากการบวกลบทีละ 0.25 แล้วปุ่มดับก่อนถึงขีดสุด
-            onClick={() =>
-              setZoom((z) =>
-                Math.max(MIN_ZOOM, Math.round((z - ZOOM_STEP) * 100) / 100),
-              )
-            }
-            disabled={zoom <= MIN_ZOOM}
-            aria-label="ย่อ"
-            className="text-subtle-dark flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-gray-200 bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <Minus className="h-4 w-4" />
-          </button>
-          <span className="text-subtle-dark min-w-[56px] text-center text-lg font-semibold md:text-xl">
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            type="button"
-            onClick={() =>
-              setZoom((z) =>
-                Math.min(MAX_ZOOM, Math.round((z + ZOOM_STEP) * 100) / 100),
-              )
-            }
-            disabled={zoom >= MAX_ZOOM}
-            aria-label="ขยาย"
-            className="text-subtle-dark flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-gray-200 bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div
-          ref={actionsRef}
-          className="receipt-chrome flex-shrink-0 px-[16px] py-[16px]"
-        >
+        <div className="receipt-chrome flex-shrink-0 px-[16px] pt-[8px] pb-[16px]">
           <div className="flex gap-[16px]">
             <button
               type="button"

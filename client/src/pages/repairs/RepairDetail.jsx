@@ -476,6 +476,12 @@ const RepairDetail = () => {
           repairItems: savedItems,
           scrollToItems: true,
           editRepairId: repair.id,
+          // ตำแหน่งของหน้าก่อนหน้าบิลนี้ในประวัติ (หน้าที่ผู้ใช้มาตั้งแต่แรก)
+          // บันทึกเสร็จแล้วจะถอยกลับไปที่นั่นทีเดียว ประวัติจะได้ไม่เหลือหน้าแก้ไขกับหน้าสรุปค้างอยู่
+          backIdx:
+            typeof window.history.state?.idx === "number"
+              ? window.history.state.idx - 1
+              : null,
           // ใบประเมินราคายังไม่เคยเบิกของ ห้ามบวกของในบิลคืนตอนคิดว่าเบิกได้เท่าไหร่
           stockNotDeducted: repair.status === "ESTIMATE",
           from: location.state?.from,
@@ -497,6 +503,12 @@ const RepairDetail = () => {
         repairItems: normalizedItems,
         scrollToItems: true,
         editRepairId: repair.id,
+        // ตำแหน่งของหน้าก่อนหน้าบิลนี้ในประวัติ (หน้าที่ผู้ใช้มาตั้งแต่แรก)
+        // บันทึกเสร็จแล้วจะถอยกลับไปที่นั่นทีเดียว ประวัติจะได้ไม่เหลือหน้าแก้ไขกับหน้าสรุปค้างอยู่
+        backIdx:
+          typeof window.history.state?.idx === "number"
+            ? window.history.state.idx - 1
+            : null,
         from: location.state?.from,
         statusSlug: location.state?.statusSlug,
         vehicleId: location.state?.vehicleId,
