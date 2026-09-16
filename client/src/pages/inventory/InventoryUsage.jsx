@@ -18,6 +18,10 @@ import {
 } from "@/utils/repairDisplay";
 import { formatDateShort } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
+import {
+  useScrollRestoration,
+  useScrollTracking,
+} from "@/utils/scrollPosition";
 
 // ประวัติการใช้ของอะไหล่หรือบริการหนึ่งตัว: บิลไหนบ้างที่เคยมีของชิ้นนี้
 // ชื่อของมาทางพารามิเตอร์ ไม่ต้องยิงขอซ้ำ เพราะเข้าหน้านี้จากไดอะล็อกที่มีข้อมูลอยู่แล้ว
@@ -64,6 +68,11 @@ const InventoryUsage = () => {
   }, [type, id]);
 
   const isService = type === "service";
+
+  // กดเข้าไปดูบิลแล้วกดกลับ ต้องอยู่ตรงเดิม แยกตำแหน่งของแต่ละอะไหล่หรือบริการ
+  const scrollKey = `usage:${type}-${id}`;
+  useScrollTracking(scrollKey);
+  useScrollRestoration(scrollKey, !isLoading);
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">

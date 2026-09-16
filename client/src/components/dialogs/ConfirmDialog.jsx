@@ -47,8 +47,35 @@ const ConfirmDialog = ({
     return stopHold;
   }, [isOpen]);
 
-  const startHold = () => {
+  // ครบเวลาแล้วไดอะล็อกปิดทั้งที่นิ้วยังแตะอยู่ พอปล่อยนิ้วเบราว์เซอร์จะยิงคลิก
+  // ลงตำแหน่งนั้น ซึ่งตอนนั้นเป็นปุ่มของหน้าที่อยู่ข้างหลังไปแล้ว จึงต้องกลืนคลิกนั้นทิ้ง
+  //
+  // กลืนไปจนกว่านิ้วจะปล่อยจริง ไม่ผูกกับเวลา เพราะคนมักกดค้างต่ออีกจนเห็นว่าเกิดอะไรขึ้น
+  // (กล่องนี้ถูกถอดออกไปแล้วตอนนั้น จึงต้องดักที่เอกสาร ไม่ใช่ที่ตัวปุ่ม)
+  const swallowNextClick = () => {
+    const swallow = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    const remove = () => document.removeEventListener("click", swallow, true);
+
+    document.addEventListener("click", swallow, true);
+    // คลิกมาหลังปล่อยนิ้วเสมอ จึงรอให้ปล่อยก่อนแล้วค่อยเผื่อเวลาอีกนิดก่อนถอด
+    document.addEventListener("pointerup", () => setTimeout(remove, 350), {
+      capture: true,
+      once: true,
+    });
+    // ไม่มีการปล่อยนิ้วเลย (เช่นสั่งด้วยคีย์บอร์ด) ก็ต้องถอดออกอยู่ดี
+    setTimeout(remove, 3000);
+  };
+
+  const startHold = (event) => {
     if (isLoading || holdRef.current.frame) return;
+
+    // จับนิ้วนี้ไว้กับปุ่ม เลื่อนนิ้วออกนอกปุ่มก็ยังได้ pointerup ครบ
+    if (event?.pointerId !== undefined) {
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+    }
 
     holdRef.current.startedAt = performance.now();
     const tick = (now) => {
@@ -57,6 +84,7 @@ const ConfirmDialog = ({
 
       if (ratio >= 1) {
         stopHold();
+        swallowNextClick();
         handleConfirm();
         return;
       }
@@ -143,7 +171,11 @@ const ConfirmDialog = ({
               <button
                 type="button"
                 disabled={isLoading}
-                onPointerDown={startHold}
+                onPointerDown={(e) => {
+                  // กันเบราว์เซอร์สร้างเหตุการณ์เมาส์จำลองตามหลังการแตะ
+                  e.preventDefault();
+                  startHold(e);
+                }}
                 onPointerUp={stopHold}
                 onPointerLeave={stopHold}
                 onPointerCancel={stopHold}

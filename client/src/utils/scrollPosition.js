@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { useLocation, useNavigationType } from "react-router";
 
 const PREFIX = "scroll:";
@@ -30,6 +30,32 @@ const takeScrollPosition = (key) => {
   } catch {
     return null;
   }
+};
+
+// จำตำแหน่งไว้เรื่อยๆ ระหว่างเลื่อนหน้า สำหรับหน้าที่ออกไปหน้าอื่นได้หลายทาง
+// (เช่นหน้าคลังที่ออกผ่านไดอะล็อก — ตอนไดอะล็อกปิด เบราว์เซอร์ยังคืนค่าการเลื่อนไม่เสร็จ
+//  วัดตรงนั้นจะได้ 0 ติดไป ตำแหน่งที่จำไว้เลยเพี้ยน)
+export const useScrollTracking = (key) => {
+  useEffect(() => {
+    let frame = 0;
+    const save = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        saveScrollPosition(key);
+      });
+    };
+
+    const main = getMain();
+    window.addEventListener("scroll", save, { passive: true });
+    main?.addEventListener("scroll", save, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", save);
+      main?.removeEventListener("scroll", save);
+    };
+  }, [key]);
 };
 
 // คืนตำแหน่งที่จำไว้ครั้งเดียวตอนกลับเข้าหน้า ต้องรอ isReady ให้รายการขึ้นครบก่อน

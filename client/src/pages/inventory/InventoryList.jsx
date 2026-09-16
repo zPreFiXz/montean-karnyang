@@ -7,6 +7,7 @@ import { BoxSearch } from "@/components/icons/Icons";
 import {
   inventoryScrollKey,
   useScrollRestoration,
+  useScrollTracking,
 } from "@/utils/scrollPosition";
 import { usePrefetchPages } from "@/routes/pageImports";
 
@@ -30,6 +31,9 @@ const InventoryList = () => {
   const [isListLoading, setIsListLoading] = useState(true);
 
   // จำตำแหน่งแยกของแต่ละหมวดหมู่
+  // ออกจากหน้านี้ได้หลายทาง (ไดอะล็อก ปุ่มแก้ไข ประวัติการใช้) จึงจำไว้ตลอดระหว่างเลื่อน
+  // แทนการวัดตอนกดปุ่ม ซึ่งไดอะล็อกที่กำลังปิดจะทำให้วัดได้ 0
+  useScrollTracking(inventoryScrollKey(activeCategory));
   useScrollRestoration(inventoryScrollKey(activeCategory), !isListLoading);
 
   // ออกไปหน้าแก้ไขหรือหน้าประวัติแล้วกดย้อนกลับ: ไดอะล็อกต้องเปิดค้างไว้เหมือนตอนจากไป
