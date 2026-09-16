@@ -17,6 +17,7 @@ import {
   TicketPercent,
   Gift,
   Trash2,
+  LoaderCircle,
 } from "lucide-react";
 import FormInput from "@/components/forms/FormInput";
 import CustomerNameInput from "@/components/forms/CustomerNameInput";
@@ -29,6 +30,8 @@ import { scrollToNewRow } from "@/utils/scrollToNewRow";
 import FormButton from "@/components/forms/FormButton";
 import ComboBox from "@/components/ui/ComboBox";
 import { listVehicleModels } from "@/api/vehicleModel";
+import { listParts } from "@/api/part";
+import KnownVehicleHint from "@/components/forms/KnownVehicleHint";
 import { listInventory } from "@/api/inventory";
 import { repairSchema } from "@/utils/schemas";
 import { provinces } from "@/constants/provinces";
@@ -40,6 +43,7 @@ import { isUnlimitedStockItem } from "@/utils/oil";
 import {
   isTireCategoryName,
   allowsDecimalQuantity,
+  SUSPENSION_CATEGORY,
 } from "@/constants/categories";
 import {
   isPartPlaceholderItem,
@@ -153,9 +157,15 @@ const RepairCreate = () => {
   if (location.state?.editRepairId) editingRef.current = true;
   const isEditing = editingRef.current;
 
+  // รุ่นรถที่มีอะไหล่ระบุว่าใช้ได้ ใช้ตัดสินว่ากดเช็กช่วงล่างต่อได้ไหม
+  // null = ยังโหลดไม่เสร็จ ระหว่างนั้นไม่ปิดปุ่ม ดีกว่าห้ามกดทั้งที่อาจกดได้
+  const [modelsWithParts, setModelsWithParts] = useState(null);
+  const [isCheckingSuspension, setIsCheckingSuspension] = useState(false);
+
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchVehicleModels();
+    fetchModelsWithParts();
   }, []);
 
   useEffect(() => {
@@ -165,7 +175,7 @@ const RepairCreate = () => {
       location.state || (!draftRestoredRef.current && loadDraft(DRAFT_REPAIR));
     draftRestoredRef.current = true;
     // บอกให้รู้ว่าของที่เห็นมาจากไหน ไม่งั้นเปิดหน้าบิลใหม่แล้วเจอข้อมูลกรอกไว้จะงงว่าซ้ำกับอะไร
-    if (restored && !location.state) toast.info("กู้คืนข้อมูลที่กรอกไว้แล้ว");
+    if (restored && !location.state) toast.info("กู้คืนข้อมูลที่กรอกค้างไว้แล้ว");
 
     if (restored) {
       const { repairData, repairItems: savedItems } = restored;
@@ -288,6 +298,32 @@ const RepairCreate = () => {
     }
   };
 
+  // หน้าเช็กช่วงล่างเลือกอะไหล่จากรายการที่ผูกกับรุ่นรถไว้ ใช้เกณฑ์เดียวกันตรงนี้
+  const fetchModelsWithParts = async () => {
+    try {
+      const res = await listParts();
+      const keys = new Set();
+      (res.data || []).forEach((part) => {
+        // นับเฉพาะอะไหล่ช่วงล่าง ให้ตรงกับที่หน้าเช็กช่วงล่างเอาไปแสดง
+        if (part.category?.name !== SUSPENSION_CATEGORY) return;
+        (part.compatibleVehicles || []).forEach((vehicle) => {
+          keys.add(`${vehicle.brand}|${vehicle.model}`);
+        });
+      });
+      setModelsWithParts(keys);
+    } catch {
+      // ถามไม่ได้ก็ปล่อยให้กดต่อได้ หน้าเช็กช่วงล่างมีทางออกให้อยู่แล้ว
+      setModelsWithParts(null);
+    }
+  };
+
+  // ยังไม่ได้เลือกรถก็กดได้ ไปเลือกที่หน้าโน้นแทน
+  const hasSuspensionParts =
+    !modelsWithParts ||
+    !watch("brand") ||
+    !watch("model") ||
+    modelsWithParts.has(`${watch("brand")}|${watch("model")}`);
+
   const getAvailableModelsForBrand = () => {
     const selectedBrand = watch("brand");
     const modelsForBrand = vehicleModels
@@ -311,6 +347,21 @@ const RepairCreate = () => {
   };
 
   // เลือกลูกค้าที่เคยบันทึกไว้ — เติมทั้งสามช่องให้ตรงกับที่เก็บไว้ แก้ทับได้ตามปกติ
+  // ทะเบียนเก็บเป็น "ตัวอักษร เว้นวรรค ตัวเลข" ให้ตรงกับที่บันทึกไว้ตอนสร้างบิล
+  const plateText =
+    watch("plateLetters") && watch("plateNumbers")
+      ? `${watch("plateLetters")} ${watch("plateNumbers")}`
+      : "";
+
+  // รถคันเดิมกลับมา เติมแค่ยี่ห้อกับรุ่นรถ เพราะผูกกับตัวรถเสมอไม่ว่าใครขับมา
+  // ไม่เติมข้อมูลลูกค้า เพราะผูกกับบิลแต่ละใบ คนเอารถมาวันนี้อาจไม่ใช่คนเดิม
+  // ถ้าเติมเองแล้วคนกดไม่ทันดู ชื่อผิดจะไปโผล่บนใบเสร็จ (ช่องชื่อลูกค้าเลือกจากรายชื่อเก่าได้อยู่แล้ว)
+  const handleFillKnownVehicle = (vehicle) => {
+    const model = vehicle.vehicleModel;
+    if (model?.brand) setValue("brand", model.brand, { shouldValidate: true });
+    if (model?.model) setValue("model", model.model, { shouldValidate: true });
+  };
+
   const handleSelectCustomer = (customer) => {
     setValue("name", customer.name || "", { shouldValidate: true });
     setValue("phoneNumber", customer.phoneNumber || "", {
@@ -321,7 +372,18 @@ const RepairCreate = () => {
 
   // ลูกค้าขอเช็กช่วงล่างเพิ่มระหว่างที่เปิดบิลเปลี่ยนยางค้างไว้ — ยกทั้งข้อมูลรถและรายการที่เลือกไปด้วย
   // จะได้อยู่ในบิลเดียวกัน ไม่ต้องเปิดบิลใหม่แล้วเก็บเงินสองรอบ (ขากลับมีอยู่แล้วที่หน้าเช็กช่วงล่าง)
-  const handleAddSuspensionCheck = () => {
+  const handleAddSuspensionCheck = async () => {
+    // หน่วงสั้นๆ ให้เห็นตัวหมุนก่อน ไม่งั้นกดแล้วเงียบจนไม่รู้ว่ากดติด
+    setIsCheckingSuspension(true);
+    await new Promise((resolve) => setTimeout(resolve, SUBMIT_FEEDBACK_MS));
+    setIsCheckingSuspension(false);
+
+    // ไปหน้าโน้นก็เลือกอะไหล่ไม่ได้ บอกเหตุผลแล้วอยู่หน้านี้ต่อ
+    if (!hasSuspensionParts) {
+      toast.error("ไม่มีอะไหล่ช่วงล่างของรถรุ่นนี้");
+      return;
+    }
+
     // บิลย้ายไปอยู่ในมือหน้าเช็กช่วงล่างแล้ว ร่างของหน้านี้จึงหมดหน้าที่
     // ปล่อยไว้จะกลายเป็นร่างเก่าที่ไม่มีอะไหล่ช่วงล่างคอยดักอยู่
     clearDraft(DRAFT_REPAIR);
@@ -641,6 +703,46 @@ const RepairCreate = () => {
     (name) => !repairItems.some((item) => item.name === name),
   );
 
+  // ยางครบสี่เส้นเมื่อไหร่ ตั้งศูนย์ที่เพิ่มเองไว้ก่อนหน้าต้องกลายเป็นของแถมด้วย
+  // ไม่งั้นคนที่เลือกตั้งศูนย์ไว้ตั้งแต่แรกจะโดนคิดเงินทั้งที่เข้าเกณฑ์แถม
+  // ถ้ายางลดลงจนไม่ถึงเกณฑ์ ให้คืนราคาเดิม ไม่ใช่ลบบรรทัดทิ้งเหมือนของแถมที่ระบบเติมเอง
+  useEffect(() => {
+    setRepairItems((prev) => {
+      let changed = false;
+
+      const next = prev.map((item) => {
+        if (item.name !== TIRE_ALIGNMENT_FREEBIE_NAME) return item;
+
+        const shouldBeFree = tireCount >= ALIGNMENT_FREE_TIRE_COUNT;
+
+        if (shouldBeFree && !item.isFreebie) {
+          changed = true;
+          return {
+            ...item,
+            isFreebie: true,
+            freebieFromPaid: true,
+            basePrice: item.sellingPrice ?? item.basePrice,
+            sellingPrice: 0,
+          };
+        }
+
+        if (!shouldBeFree && item.freebieFromPaid) {
+          changed = true;
+          return {
+            ...item,
+            isFreebie: false,
+            freebieFromPaid: false,
+            sellingPrice: item.basePrice ?? 0,
+          };
+        }
+
+        return item;
+      });
+
+      return changed ? next : prev;
+    });
+  }, [tireCount]);
+
   // ยางเปลี่ยนจำนวนเมื่อไหร่ ของแถมต้องขยับตาม จุ๊บลมเท่าจำนวนยาง ถ่วงล้อไม่เกินสองล้อ
   // และตั้งศูนย์หายไปถ้ายางไม่ถึงสี่เส้น (แตะเฉพาะบรรทัดที่มาจากปุ่มของแถม)
   useEffect(() => {
@@ -651,7 +753,10 @@ const RepairCreate = () => {
       .map((item, index) => ({ item, index }))
       .filter(
         ({ item }) =>
-          item.isFreebie && freebieQuantityFor(item.name, tireCount) === 0,
+          item.isFreebie &&
+          // บรรทัดที่เคยเป็นของเสียเงินให้คืนราคาแทนการลบทิ้ง (อีกเอฟเฟกต์จัดการอยู่)
+          !item.freebieFromPaid &&
+          freebieQuantityFor(item.name, tireCount) === 0,
       );
 
     // ตัวแรกยุบแถวออกให้เห็นเหมือนกดลบเอง ที่เหลือ (เช่นลบยางออกหมดทีเดียว) ตัดทิ้งเลย
@@ -1056,6 +1161,11 @@ const RepairCreate = () => {
                     />
                   </div>
                 </div>
+                <KnownVehicleHint
+                  plate={plateText}
+                  province={watch("province")}
+                  onFill={handleFillKnownVehicle}
+                />
               </div>
               <FormInput
                 register={register}
@@ -1092,8 +1202,12 @@ const RepairCreate = () => {
               <button
                 type="button"
                 onClick={handleAddSuspensionCheck}
-                className="border-surface text-surface xl:border-primary xl:text-primary flex h-[41px] cursor-pointer items-center justify-center rounded-[20px] border px-[20px] text-lg font-semibold md:text-xl"
+                disabled={isCheckingSuspension}
+                className="border-surface text-surface xl:border-primary xl:text-primary flex h-[41px] cursor-pointer items-center justify-center rounded-[20px] border px-[20px] text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
               >
+                {isCheckingSuspension && (
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 เช็กช่วงล่างต่อ
               </button>
             </div>
@@ -1201,11 +1315,14 @@ const RepairCreate = () => {
                           </div>
                           <div className="flex min-w-0 flex-1 flex-col">
                             {renderProductInfo(item)}
-                            <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
-                              {/* บริการไม่มีหน่วย จึงเหลือแค่ราคา */}
-                              {formatCurrency(Number(item.sellingPrice))}
-                              {item.unit ? `/${item.unit}` : ""}
-                            </p>
+                            {/* ส่วนลดมีบรรทัดเดียวและจำนวนเป็นหนึ่งเสมอ ราคาต่อหน่วยจึงซ้ำกับยอดรวม */}
+                            {!isDiscountItem(item) && (
+                              <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
+                                {/* บริการไม่มีหน่วย จึงเหลือแค่ราคา */}
+                                {formatCurrency(Number(item.sellingPrice))}
+                                {item.unit ? `/${item.unit}` : ""}
+                              </p>
+                            )}
                             <div className="flex w-full items-center justify-between">
                               <p className="text-primary text-xl leading-tight font-semibold text-nowrap md:text-[22px]">
                                 {formatCurrency(
@@ -1428,11 +1545,14 @@ const RepairCreate = () => {
                         </div>
                         <div className="flex min-w-0 flex-1 flex-col">
                           {renderProductInfo(item)}
-                          <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
-                            {/* บริการไม่มีหน่วย จึงเหลือแค่ราคา */}
-                            {formatCurrency(Number(item.sellingPrice))}
-                            {item.unit ? `/${item.unit}` : ""}
-                          </p>
+                          {/* ส่วนลดมีบรรทัดเดียวและจำนวนเป็นหนึ่งเสมอ ราคาต่อหน่วยจึงซ้ำกับยอดรวม */}
+                          {!isDiscountItem(item) && (
+                            <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
+                              {/* บริการไม่มีหน่วย จึงเหลือแค่ราคา */}
+                              {formatCurrency(Number(item.sellingPrice))}
+                              {item.unit ? `/${item.unit}` : ""}
+                            </p>
+                          )}
                           <div className="flex w-full items-center justify-between">
                             <p className="text-primary text-xl leading-tight font-semibold text-nowrap md:text-[22px]">
                               {formatCurrency(
@@ -1608,6 +1728,8 @@ const RepairCreate = () => {
         onClose={() => setIsClearConfirmOpen(false)}
         onConfirm={handleClearForm}
         title="ยืนยันการล้างข้อมูล"
+        // ยังไม่ได้บันทึกลงระบบ กดผิดก็กรอกใหม่ได้ ไม่ต้องกดค้าง
+        requireHold={false}
         itemName="ข้อมูลที่กรอกไว้ทั้งหมด"
         confirmLabel="ล้างข้อมูล"
       />
@@ -1617,6 +1739,8 @@ const RepairCreate = () => {
         onClose={() => setRemovingIndex(null)}
         onConfirm={handleRemoveItem}
         title="ยืนยันการเอารายการออก"
+        // ยังไม่ได้บันทึกลงระบบ กดผิดก็กรอกใหม่ได้ ไม่ต้องกดค้าง
+        requireHold={false}
         itemName={
           removingIndex !== null && repairItems[removingIndex]
             ? getProductName(repairItems[removingIndex])

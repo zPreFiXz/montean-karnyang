@@ -57,8 +57,12 @@ const JobSheetPaper = ({ repair }) => {
       {/* หัวใบมีเส้นคาดบางๆ แทนพื้นทึบ ประหยัดหมึกและอ่านง่ายพอกัน */}
       <div className="flex items-center justify-between border-b border-black pb-[4px]">
         <p className="text-[17pt] leading-none font-semibold">ใบสั่งซ่อม</p>
-        <p className="text-[12pt] leading-none">
-          เลขที่ <span className="font-semibold">{repair.id}</span>
+        {/* เส้นประใต้เลขที่ ให้หน้าตาเข้าชุดกับใบเสร็จ */}
+        <p className="flex items-end gap-[4px] text-[12pt] whitespace-nowrap">
+          เลขที่
+          <span className="min-w-[42px] border-b border-dotted border-black text-center font-semibold">
+            {repair.id}
+          </span>
         </p>
       </div>
 
@@ -94,7 +98,7 @@ const JobSheetPaper = ({ repair }) => {
                   <tr>
                     <td
                       colSpan={3}
-                      className="border border-black bg-gray-200 px-[8px] py-[3px] text-[11pt] font-semibold"
+                      className="border border-black bg-gray-200 px-[8px] py-[3px] text-[16px] font-semibold"
                     >
                       {group.label}
                     </td>
@@ -128,7 +132,7 @@ const JobSheetPaper = ({ repair }) => {
           <tr>
             <td
               colSpan={3}
-              className="border border-black bg-gray-200 px-[8px] py-[3px] text-[11pt] font-semibold"
+              className="border border-black bg-gray-200 px-[8px] py-[3px] text-[16px] font-semibold"
             >
               เพิ่มเติม
             </td>
@@ -145,7 +149,7 @@ const JobSheetPaper = ({ repair }) => {
 
       {/* ไม่มีรายละเอียดก็ไม่ต้องมีบรรทัดเปล่าให้รกใบ ข้อความชิดซ้ายเหมือนเขียนมือ */}
       {repair.description && (
-        <div className="mt-[10px] flex items-end gap-[6px] text-[11pt]">
+        <div className="mt-[10px] flex items-end gap-[6px] text-[16px]">
           <span className="font-semibold whitespace-nowrap">
             รายละเอียดการซ่อม
           </span>

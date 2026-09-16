@@ -201,7 +201,7 @@ const buildReceiptHtml = (
         .join("")}`
       : ""
   }
-      <tr>
+      <tr class="sum">
         <td colspan="2">จำนวนเงินรวมทั้งสิ้น <span class="sum-text">${escapeHtml(bahtText(total))}</span></td>
         <td class="c">จำนวนเงินรวม</td>
         <td class="r" style="font-weight:600">${formatMoney(total)}</td>
@@ -332,6 +332,7 @@ ${customerFields}
   .fields p { display: flex; align-items: flex-end; gap: 6px; margin: 0 0 5px; }
   .fields .v { flex: 1; text-align: center; font-weight: 600; }
   table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 8px; font-size: inherit; }
+  thead tr, tr.sum { background: #e5e7eb; }
   th, td { border: 1px solid #000; padding: 2px 4px; height: 22px; }
   th { font-weight: 600; text-align: center; }
   th.qty, td.qty { width: 62px; }
@@ -489,8 +490,9 @@ const buildJobSheetHtml = (repair) => {
   /* หัวใบมีเส้นคาดหนาแทนพื้นทึบ ประหยัดหมึกและอ่านง่ายพอกัน */
   .head { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #000; padding-bottom: 4px; }
   .head .doc { font-size: 17pt; font-weight: 600; line-height: 1; }
-  .head .no { font-size: 12pt; line-height: 1; }
-  .head .no b { font-weight: 600; }
+  .head .no { font-size: 12pt; line-height: 1; display: flex; align-items: flex-end; gap: 4px; white-space: nowrap; }
+  /* เส้นประใต้เลขที่ ให้หน้าตาเข้าชุดกับใบเสร็จ */
+  .head .no .dotted { border-bottom: 1px dotted #000; }
   /* ทะเบียนคือสิ่งที่ช่างใช้จับคู่ใบกับรถ จึงตัวใหญ่ที่สุดบนใบ */
   .car { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; white-space: nowrap; margin-top: 10px; }
   .car .plate { font-size: 22pt; font-weight: 600; line-height: 1; }
@@ -504,9 +506,9 @@ const buildJobSheetHtml = (repair) => {
   th.qty, td.qty { width: 92px; text-align: center; }
   td.c { text-align: center; }
   td.wrap { word-break: break-word; }
-  td.group { background: #e5e7eb; font-weight: 600; height: 26px; font-size: 11pt; }
+  td.group { background: #e5e7eb; font-weight: 600; height: 26px; font-size: 16px; }
   /* รายละเอียดการซ่อมเป็นบรรทัดเดียว ข้อความชิดซ้ายเหมือนการเขียนมือ */
-  .note { margin-top: 10px; }
+  .note { margin-top: 10px; font-size: 16px; }
   .note-row { display: flex; align-items: flex-end; gap: 6px; margin: 0; }
   .note-label { white-space: nowrap; font-weight: 600; }
   .note-line { flex: 1; text-align: left; }
@@ -515,7 +517,7 @@ const buildJobSheetHtml = (repair) => {
 <body>
   <div class="head">
     <p class="doc">ใบสั่งซ่อม</p>
-    <p class="no">เลขที่ <b>${repair.id}</b></p>
+    <p class="no">เลขที่<span class="dotted" style="min-width:42px;text-align:center;font-weight:600">${repair.id}</span></p>
   </div>
 
   <div class="car">

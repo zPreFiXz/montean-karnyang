@@ -198,10 +198,8 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
         ref={contentRef}
         // ความกว้างคงที่แบบไดอะล็อกอื่น ไม่หดตามกระดาษ
         // ถ้าให้กว้างตามกระดาษ ขนาดกระดาษก็คิดจากไดอะล็อกอีกที กลายเป็นวนกันเองจนเห็นขยับตอนเปิด
-        // สูงตามเนื้อหาเหมือนไดอะล็อกอื่น ไม่ล็อกความสูงไว้
-        // ยึดระยะจากขอบบนแทนการจัดกึ่งกลางแนวตั้ง เพราะกล่องสูงเกือบเต็มจอ
-        // ถ้าจัดกึ่งกลาง พอแถบที่อยู่ของเบราว์เซอร์มือถือยุบ/กาง จุดกึ่งกลางจะขยับแล้วกล่องเลื่อนตาม
-        className={`top-[4svh] flex max-h-[92svh] w-full max-w-[calc(100%-2rem)] translate-y-0 flex-col overflow-hidden p-0 sm:max-w-[620px] ${
+        // สูงตามเนื้อหาเหมือนไดอะล็อกอื่น ไม่ล็อกความสูงไว้ และจัดกึ่งกลางเหมือนกล่องอื่น
+        className={`flex max-h-[92svh] w-full max-w-[calc(100%-2rem)] flex-col overflow-hidden p-0 sm:max-w-[620px] ${
           isMeasured ? "" : "opacity-0"
         }`}
         showCloseButton={false}

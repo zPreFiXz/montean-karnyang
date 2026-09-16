@@ -70,7 +70,7 @@ const ensurePrinterReady = async (printerName) => {
     if (printers.length === 0) {
       createError(
         503,
-        "พิมพ์ไม่ได้ เพราะไม่พบเครื่องพิมพ์ กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์",
+        "ไม่พบเครื่องพิมพ์ ตรวจสอบสายและเปิดเครื่อง",
       );
     }
 
@@ -85,7 +85,7 @@ const ensurePrinterReady = async (printerName) => {
     if (/offline|error|paused/i.test(status)) {
       createError(
         503,
-        "พิมพ์ไม่ได้ เพราะเครื่องพิมพ์ยังไม่พร้อม กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์",
+        "เครื่องพิมพ์ไม่พร้อม ตรวจสอบสายและเปิดเครื่อง",
       );
     }
     return;
@@ -95,7 +95,7 @@ const ensurePrinterReady = async (printerName) => {
   if (!listing.trim()) {
     createError(
       503,
-      "พิมพ์ไม่ได้ เพราะไม่พบเครื่องพิมพ์ กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์",
+      "ไม่พบเครื่องพิมพ์ ตรวจสอบสายและเปิดเครื่อง",
     );
   }
 
@@ -108,7 +108,7 @@ const ensurePrinterReady = async (printerName) => {
   if (/offline|ออฟไลน์|disabled|ปิดใช้งาน/i.test(block)) {
     createError(
       503,
-      "พิมพ์ไม่ได้ เพราะเครื่องพิมพ์ยังไม่พร้อม กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์",
+      "เครื่องพิมพ์ไม่พร้อม ตรวจสอบสายและเปิดเครื่อง",
     );
   }
 };
@@ -141,12 +141,12 @@ const toPrinterError = (error) => {
   const text = String(error?.message || "");
 
   if (/no default destination|ไม่พบเครื่องพิมพ์|no destinations/i.test(text)) {
-    return "พิมพ์ไม่ได้ เพราะไม่พบเครื่องพิมพ์ กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์";
+    return "ไม่พบเครื่องพิมพ์ ตรวจสอบสายและเปิดเครื่อง";
   }
   if (/not found|ENOENT/i.test(text)) {
-    return "พิมพ์ไม่ได้ เพราะเครื่องที่รันระบบยังสั่งพิมพ์ไม่ได้ กรุณาตรวจสอบการติดตั้งเครื่องพิมพ์";
+    return "เครื่องนี้สั่งพิมพ์ไม่ได้ ตรวจสอบการติดตั้งเครื่องพิมพ์";
   }
-  return "สั่งพิมพ์ไม่สำเร็จ ตรวจสอบเครื่องพิมพ์แล้วลองใหม่อีกครั้ง";
+  return "สั่งพิมพ์ไม่สำเร็จ ลองใหม่อีกครั้ง";
 };
 
 const printReceipt = async (html, fileTag) => {

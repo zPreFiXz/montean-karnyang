@@ -113,6 +113,16 @@ exports.deleteUser = async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    // งานซ่อมต้องรู้ว่าใครเป็นคนสร้าง ถ้าลบบัญชีทิ้งงานเก่าจะไม่มีเจ้าของ
+    // (ฐานข้อมูลปฏิเสธให้อยู่แล้ว แต่ข้อความที่ได้กลางเกินไป จึงเช็กเองเพื่อบอกเหตุผลจริง)
+    const openedRepair = await prisma.repair.findFirst({
+      where: { userId: Number(id) },
+    });
+
+    if (openedRepair) {
+      createError(400, "ลบไม่ได้ เพราะบัญชีนี้เคยสร้างงานซ่อมไว้");
+    }
+
     await prisma.user.delete({
       where: { id: Number(id) },
     });

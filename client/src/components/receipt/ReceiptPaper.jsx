@@ -263,7 +263,7 @@ const ReceiptPaper = ({
 
       <table className="mt-[8px] w-full table-fixed border-collapse">
         <thead>
-          <tr>
+          <tr className="bg-gray-200">
             <th className="w-[62px] border border-black p-[3px] font-semibold">
               จำนวน
             </th>
@@ -336,7 +336,7 @@ const ReceiptPaper = ({
             </>
           )}
           {isLastPage && (
-            <tr>
+            <tr className="bg-gray-200">
               <td colSpan={2} className="border border-black px-[4px] py-[5px]">
                 <span className="mr-[6px]">จำนวนเงินรวมทั้งสิ้น</span>
                 <span className="font-semibold">{bahtText(total)}</span>

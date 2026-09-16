@@ -10,6 +10,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { provinces } from "@/constants/provinces";
 import { listVehicleModels } from "@/api/vehicleModel";
+import KnownVehicleHint from "@/components/forms/KnownVehicleHint";
 import { listParts } from "@/api/part";
 import { listInventory } from "@/api/inventory";
 import LicensePlateInput from "@/components/forms/LicensePlateInput";
@@ -28,6 +29,7 @@ import {
   X,
   ChevronUp,
   ArrowUpDown,
+  Gift,
   TicketPercent,
   Trash2,
 } from "lucide-react";
@@ -50,6 +52,10 @@ import {
   isDiscountItem,
   SUSPENSION_DEFAULT_SERVICE_NAMES,
   PER_SIDE_SERVICE_NAME,
+  TIRE_FREEBIE_NAMES,
+  TIRE_ALIGNMENT_FREEBIE_NAME,
+  ALIGNMENT_FREE_TIRE_COUNT,
+  freebieQuantityFor,
 } from "@/constants/services";
 import { onKeyActivate } from "@/utils/a11y";
 import { isPerSide, getPartType } from "@/utils/suspension";
@@ -59,6 +65,7 @@ import { withViewTransition } from "@/utils/viewTransition";
 import {
   isTireCategoryName,
   allowsDecimalQuantity,
+  SUSPENSION_CATEGORY,
 } from "@/constants/categories";
 import EditQuantityDialog from "@/components/dialogs/EditQuantityDialog";
 import { scrollToNewRow } from "@/utils/scrollToNewRow";
@@ -156,6 +163,7 @@ const SuspensionInspection = () => {
   const [removingIndex, setRemovingIndex] = useState(null);
   // แถวที่กำลังยุบตัวก่อนหายจริง (ดู CollapsibleRow)
   const [leavingIndex, setLeavingIndex] = useState(null);
+  const [isAddingFreebies, setIsAddingFreebies] = useState(false);
   const leaveHandledRef = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
   const [restoredStockMap, setRestoredStockMap] = useState({});
@@ -304,7 +312,7 @@ const SuspensionInspection = () => {
       (!draftRestoredRef.current && loadDraft(DRAFT_SUSPENSION));
     draftRestoredRef.current = true;
     // บอกให้รู้ว่าของที่เห็นมาจากไหน ไม่งั้นเปิดหน้าบิลใหม่แล้วเจอข้อมูลกรอกไว้จะงงว่าซ้ำกับอะไร
-    if (restored && !location.state) toast.info("กู้คืนข้อมูลที่กรอกไว้แล้ว");
+    if (restored && !location.state) toast.info("กู้คืนข้อมูลที่กรอกค้างไว้แล้ว");
     if (!restored) return;
 
     const {
@@ -466,7 +474,10 @@ const SuspensionInspection = () => {
       const res = await listParts();
       const allParts = res.data;
 
+      // หน้านี้เช็กเฉพาะงานช่วงล่าง อะไหล่หมวดอื่นที่บังเอิญระบุรุ่นรถไว้ (เช่นน้ำมัน)
+      // ไม่ควรโผล่มาในแท็บตำแหน่ง ของพวกนั้นเพิ่มได้ที่รายการซ่อมเพิ่มเติมอยู่แล้ว
       const compatible = allParts.filter((part) => {
+        if (part.category?.name !== SUSPENSION_CATEGORY) return false;
         if (!part.compatibleVehicles) return false;
 
         return part.compatibleVehicles.some(
@@ -528,6 +539,21 @@ const SuspensionInspection = () => {
         })}
       </p>
     );
+  };
+
+  // ทะเบียนเก็บเป็น "ตัวอักษร เว้นวรรค ตัวเลข" ให้ตรงกับที่บันทึกไว้ตอนสร้างบิล
+  const plateText =
+    watch("plateLetters") && watch("plateNumbers")
+      ? `${watch("plateLetters")} ${watch("plateNumbers")}`
+      : "";
+
+  // รถคันเดิมกลับมา เติมแค่ยี่ห้อกับรุ่นรถ เพราะผูกกับตัวรถเสมอไม่ว่าใครขับมา
+  // ไม่เติมข้อมูลลูกค้า เพราะผูกกับบิลแต่ละใบ คนเอารถมาวันนี้อาจไม่ใช่คนเดิม
+  // ถ้าเติมเองแล้วคนกดไม่ทันดู ชื่อผิดจะไปโผล่บนใบเสร็จ (ช่องชื่อลูกค้าเลือกจากรายชื่อเก่าได้อยู่แล้ว)
+  const handleFillKnownVehicle = (vehicle) => {
+    const model = vehicle.vehicleModel;
+    if (model?.brand) setValue("brand", model.brand, { shouldValidate: true });
+    if (model?.model) setValue("model", model.model, { shouldValidate: true });
   };
 
   // เลือกลูกค้าที่เคยบันทึกไว้ — เติมทั้งสามช่องให้ตรงกับที่เก็บไว้ แก้ทับได้ตามปกติ
@@ -1139,7 +1165,7 @@ const SuspensionInspection = () => {
             {!hasVehicleSelected
               ? "กรุณาเลือกยี่ห้อและรุ่นรถ"
               : compatibleParts.length === 0
-                ? "ไม่พบอะไหล่ของรถรุ่นนี้"
+                ? "ไม่มีอะไหล่ช่วงล่างของรถรุ่นนี้"
                 : "ไม่พบอะไหล่ในตำแหน่งนี้"}
           </p>
 
@@ -1366,6 +1392,204 @@ const SuspensionInspection = () => {
   );
 
   // ปุ่มเดียวกันวางสองที่ (มือถือ/จอใหญ่) ประกาศไว้ที่เดียวจะได้ไม่หลุดกันเวลาแก้
+  // ซื้อยางแล้วร้านแถมจุ๊บลมกับถ่วงล้อทุกเส้น ครบสี่เส้นแถมตั้งศูนย์ด้วย
+  // ไม่ใส่ให้เองอัตโนมัติ เพราะบางคนเอายางไปใส่เอง ไม่ได้ถ่วงล้อที่ร้าน
+  const tireCount = repairItems
+    .filter((item) => isTireCategoryName(item.category?.name))
+    .reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+
+  const freebieNames = [
+    ...TIRE_FREEBIE_NAMES,
+    ...(tireCount >= ALIGNMENT_FREE_TIRE_COUNT
+      ? [TIRE_ALIGNMENT_FREEBIE_NAME]
+      : []),
+  ];
+  const missingFreebies = freebieNames.filter(
+    (name) => !repairItems.some((item) => item.name === name),
+  );
+
+  // รายชื่อบริการอ่านครั้งเดียวแล้วเก็บไว้ ใช้ทั้งตอนกดปุ่มและตอนเติมตั้งศูนย์ให้เอง
+  const freebieServicesRef = useRef(null);
+  const loadFreebieServices = async () => {
+    if (freebieServicesRef.current) return freebieServicesRef.current;
+    const res = await listInventory("บริการ", null);
+    freebieServicesRef.current = res.data || [];
+    return freebieServicesRef.current;
+  };
+
+  const buildFreebieLine = (service) =>
+    withRowId({
+      ...service,
+      quantity: freebieQuantityFor(service.name, tireCount),
+      // ของแถมไม่ใช่งานรายข้าง จึงไม่ผูกกับซ้ายขวา
+      side: null,
+      // จำไว้ว่าบรรทัดนี้มาจากของแถม จะได้ขยับจำนวนตามยางให้เอง
+      isFreebie: true,
+      // ของแถมคิดราคา 0 แต่เก็บราคาปกติไว้ ใบเสร็จจะได้บอกได้ว่าลดไปเท่าไหร่
+      sellingPrice: 0,
+      basePrice: service.sellingPrice,
+    });
+
+  // พาไปดูแถวที่เพิ่งเพิ่ม แบบเดียวกับตอนเพิ่มรายการจากไดอะล็อกของหน้านี้
+  const scrollToLastRow = () =>
+    setTimeout(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    }, 200);
+
+  // ยางครบสี่เส้นเมื่อไหร่ ตั้งศูนย์ที่เพิ่มเองไว้ก่อนหน้าต้องกลายเป็นของแถมด้วย
+  // ไม่งั้นคนที่เลือกตั้งศูนย์ไว้ตั้งแต่แรกจะโดนคิดเงินทั้งที่เข้าเกณฑ์แถม
+  // ถ้ายางลดลงจนไม่ถึงเกณฑ์ ให้คืนราคาเดิม ไม่ใช่ลบบรรทัดทิ้งเหมือนของแถมที่ระบบเติมเอง
+  useEffect(() => {
+    setRepairItems((prev) => {
+      let changed = false;
+
+      const next = prev.map((item) => {
+        if (item.name !== TIRE_ALIGNMENT_FREEBIE_NAME) return item;
+
+        const shouldBeFree = tireCount >= ALIGNMENT_FREE_TIRE_COUNT;
+
+        if (shouldBeFree && !item.isFreebie) {
+          changed = true;
+          return {
+            ...item,
+            isFreebie: true,
+            freebieFromPaid: true,
+            basePrice: item.sellingPrice ?? item.basePrice,
+            sellingPrice: 0,
+          };
+        }
+
+        if (!shouldBeFree && item.freebieFromPaid) {
+          changed = true;
+          return {
+            ...item,
+            isFreebie: false,
+            freebieFromPaid: false,
+            sellingPrice: item.basePrice ?? 0,
+          };
+        }
+
+        return item;
+      });
+
+      return changed ? next : prev;
+    });
+  }, [tireCount]);
+
+  // ยางเปลี่ยนจำนวนเมื่อไหร่ ของแถมต้องขยับตาม จุ๊บลมเท่าจำนวนยาง ถ่วงล้อไม่เกินสองล้อ
+  // และตั้งศูนย์หายไปถ้ายางไม่ถึงสี่เส้น (แตะเฉพาะบรรทัดที่มาจากปุ่มของแถม)
+  useEffect(() => {
+    if (!repairItems.some((item) => item.isFreebie)) return;
+
+    const dropping = repairItems
+      .map((item, index) => ({ item, index }))
+      .filter(
+        ({ item }) =>
+          item.isFreebie &&
+          // บรรทัดที่เคยเป็นของเสียเงินให้คืนราคาแทนการลบทิ้ง (อีกเอฟเฟกต์จัดการอยู่)
+          !item.freebieFromPaid &&
+          freebieQuantityFor(item.name, tireCount) === 0,
+      );
+
+    // ตัวแรกยุบแถวออกให้เห็นเหมือนกดลบเอง ที่เหลือตัดทิ้งเลย
+    const animatedIndex = dropping[0]?.index ?? -1;
+    const removeNow = new Set(dropping.slice(1).map(({ index }) => index));
+
+    setRepairItems((prev) => {
+      const next = prev
+        .map((item) => {
+          if (!item.isFreebie) return item;
+          const quantity = freebieQuantityFor(item.name, tireCount);
+          return quantity === 0 || quantity === item.quantity
+            ? item
+            : { ...item, quantity };
+        })
+        .filter((_, index) => !removeNow.has(index));
+
+      const changed =
+        next.length !== prev.length || next.some((item, i) => item !== prev[i]);
+      return changed ? next : prev;
+    });
+
+    if (animatedIndex !== -1 && leavingIndex === null) {
+      leaveHandledRef.current = false;
+      setLeavingIndex(animatedIndex);
+      return;
+    }
+
+    // เพิ่มยางจนครบสี่เส้นแล้วตั้งศูนย์ต้องโผล่มาเอง ไม่ต้องกดปุ่มของแถมซ้ำ
+    const needsAlignment =
+      tireCount >= ALIGNMENT_FREE_TIRE_COUNT &&
+      !repairItems.some((item) => item.name === TIRE_ALIGNMENT_FREEBIE_NAME);
+
+    if (!needsAlignment) return;
+
+    let cancelled = false;
+    loadFreebieServices()
+      .then((services) => {
+        const alignment = services.find(
+          (service) => service.name === TIRE_ALIGNMENT_FREEBIE_NAME,
+        );
+        if (cancelled || !alignment) return;
+
+        setRepairItems((prev) =>
+          prev.some((item) => item.name === TIRE_ALIGNMENT_FREEBIE_NAME)
+            ? prev
+            : [...prev, buildFreebieLine(alignment)],
+        );
+        scrollToLastRow();
+      })
+      .catch(() => {
+        // ดึงรายชื่อบริการไม่ได้ก็แค่ไม่เติมให้ ยังกดปุ่มของแถมเองได้
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tireCount]);
+
+  const handleAddFreebies = async () => {
+    if (isAddingFreebies || missingFreebies.length === 0) return;
+
+    try {
+      setIsAddingFreebies(true);
+      const services = await loadFreebieServices();
+
+      const added = missingFreebies
+        .map((name) => services.find((service) => service.name === name))
+        .filter(Boolean)
+        .filter((service) => freebieQuantityFor(service.name, tireCount) > 0)
+        .map(buildFreebieLine);
+
+      if (added.length === 0) {
+        toast.error("ไม่พบบริการของแถมในคลัง");
+        return;
+      }
+
+      setRepairItems((prev) => [...prev, ...added]);
+      scrollToLastRow();
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setIsAddingFreebies(false);
+    }
+  };
+
+  // ขึ้นเฉพาะบิลที่มียางและยังเพิ่มของแถมไม่ครบ
+  const freebieButton = tireCount > 0 && missingFreebies.length > 0 && (
+    <button
+      type="button"
+      onClick={handleAddFreebies}
+      disabled={isAddingFreebies}
+      aria-label="เพิ่มของแถม"
+      title="เพิ่มของแถม"
+      className="text-primary border-primary/40 bg-primary/5 flex h-[32px] w-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[8px] border duration-300 disabled:opacity-60"
+    >
+      <Gift className="h-4 w-4" />
+    </button>
+  );
+
   const reorderButton = repairItems.length > 1 && (
     <button
       type="button"
@@ -1610,6 +1834,11 @@ const SuspensionInspection = () => {
                   />
                 </div>
               </div>
+              <KnownVehicleHint
+                plate={plateText}
+                province={watch("province")}
+                onFill={handleFillKnownVehicle}
+              />
             </div>
 
             <FormInput
@@ -1658,26 +1887,31 @@ const SuspensionInspection = () => {
               <div className="overflow-x-clip">
                 {renderPartPanel(activeTab)}
               </div>
-              {hasVehicleSelected && !hasNoCompatibleParts && (
-                <div className="flex items-center justify-between px-[20px] pt-[16px]">
-                  {/* หัวข้อย่อยใต้ "รายการซ่อมช่วงล่าง" จึงเล็กกว่าหนึ่งขั้น */}
-                  <div className="flex items-center gap-[8px]">
-                    <p className="text-xl font-semibold md:text-[22px]">
-                      รายการซ่อมเพิ่มเติม
-                    </p>
-                    {reorderButton}
+              {hasVehicleSelected &&
+                (!hasNoCompatibleParts || repairItems.length > 0) && (
+                  <div className="flex items-center justify-between gap-[8px] px-[20px] pt-[16px]">
+                    {/* หัวข้อย่อยใต้ "รายการซ่อมช่วงล่าง" จึงเล็กกว่าหนึ่งขั้น
+                        แถวนี้มีทั้งหัวข้อ ปุ่มของแถม ปุ่มจัดเรียง และปุ่มเพิ่มรายการ
+                        จอแคบจึงย่อตัวอักษรลงหนึ่งขั้น แทนการตัดคำให้สั้น */}
+                    <div className="flex min-w-0 items-center gap-[8px]">
+                      <p className="text-lg font-semibold sm:text-xl md:text-[22px]">
+                        รายการซ่อมเพิ่มเติม
+                      </p>
+                      {freebieButton}
+                      {reorderButton}
+                    </div>
+                    <AddRepairItemDialog
+                      onAddItem={handleAddItemToRepair}
+                      selectedItems={[...repairItems, ...getSelectedTabItems()]}
+                      restoredStockMap={restoredStockMap}
+                      vehicle={{ brand: watch("brand"), model: watch("model") }}
+                    >
+                      <p className="text-primary cursor-pointer text-lg font-semibold whitespace-nowrap sm:text-xl md:text-[22px]">
+                        + เพิ่มรายการซ่อม
+                      </p>
+                    </AddRepairItemDialog>
                   </div>
-                  <AddRepairItemDialog
-                    onAddItem={handleAddItemToRepair}
-                    selectedItems={[...repairItems, ...getSelectedTabItems()]}
-                    restoredStockMap={restoredStockMap}
-                  >
-                    <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
-                      + เพิ่มรายการซ่อม
-                    </p>
-                  </AddRepairItemDialog>
-                </div>
-              )}
+                )}
               {repairItems.length === 0 && compatibleParts.length === 0 ? (
                 <div className="h-[96px] lg:h-0"></div>
               ) : repairItems.length > 0 ? (
@@ -1731,10 +1965,13 @@ const SuspensionInspection = () => {
 
                             <div className="flex min-w-0 flex-1 flex-col">
                               {renderProductInfo(item)}
-                              <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
-                                {formatCurrency(Number(item.sellingPrice))}
-                                {item.unit ? `/${item.unit}` : ""}
-                              </p>
+                              {/* ส่วนลดมีบรรทัดเดียวและจำนวนเป็นหนึ่งเสมอ ราคาต่อหน่วยจึงซ้ำกับยอดรวม */}
+                              {!isDiscountItem(item) && (
+                                <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
+                                  {formatCurrency(Number(item.sellingPrice))}
+                                  {item.unit ? `/${item.unit}` : ""}
+                                </p>
+                              )}
                               <div className="flex w-full items-center justify-between">
                                 <p className="text-primary text-xl leading-tight font-semibold text-nowrap md:text-[22px]">
                                   {formatCurrency(
@@ -2012,26 +2249,29 @@ const SuspensionInspection = () => {
             {compatibleParts.length > 0 && renderTabs()}
             {/* กันการล้นตอนแผงไถลเข้ามา ไม่งั้นหน้าจะกว้างขึ้นชั่วขณะแล้วจัดตำแหน่งใหม่ทั้งหน้า */}
             <div className="overflow-x-clip">{renderPartPanel(activeTab)}</div>
-            {hasVehicleSelected && !hasNoCompatibleParts && (
-              <div className="flex items-center justify-between px-[20px] pt-[16px]">
-                {/* หัวข้อย่อยใต้ "รายการซ่อมช่วงล่าง" จึงเล็กกว่าหนึ่งขั้น */}
-                <div className="flex items-center gap-[8px]">
-                  <p className="text-xl font-semibold md:text-[22px]">
-                    รายการซ่อมเพิ่มเติม
-                  </p>
-                  {reorderButton}
+            {hasVehicleSelected &&
+              (!hasNoCompatibleParts || repairItems.length > 0) && (
+                <div className="flex items-center justify-between px-[20px] pt-[16px]">
+                  {/* หัวข้อย่อยใต้ "รายการซ่อมช่วงล่าง" จึงเล็กกว่าหนึ่งขั้น */}
+                  <div className="flex items-center gap-[8px]">
+                    <p className="text-xl font-semibold md:text-[22px]">
+                      รายการซ่อมเพิ่มเติม
+                    </p>
+                    {freebieButton}
+                    {reorderButton}
+                  </div>
+                  <AddRepairItemDialog
+                    onAddItem={handleAddItemToRepair}
+                    selectedItems={[...repairItems, ...getSelectedTabItems()]}
+                    restoredStockMap={restoredStockMap}
+                    vehicle={{ brand: watch("brand"), model: watch("model") }}
+                  >
+                    <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
+                      + เพิ่มรายการซ่อม
+                    </p>
+                  </AddRepairItemDialog>
                 </div>
-                <AddRepairItemDialog
-                  onAddItem={handleAddItemToRepair}
-                  selectedItems={[...repairItems, ...getSelectedTabItems()]}
-                  restoredStockMap={restoredStockMap}
-                >
-                  <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
-                    + เพิ่มรายการซ่อม
-                  </p>
-                </AddRepairItemDialog>
-              </div>
-            )}
+              )}
             {repairItems.length === 0 && compatibleParts.length === 0 ? (
               <div />
             ) : repairItems.length > 0 ? (
@@ -2085,10 +2325,13 @@ const SuspensionInspection = () => {
 
                           <div className="flex min-w-0 flex-1 flex-col">
                             {renderProductInfo(item)}
-                            <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
-                              {formatCurrency(Number(item.sellingPrice))}
-                              {item.unit ? `/${item.unit}` : ""}
-                            </p>
+                            {/* ส่วนลดมีบรรทัดเดียวและจำนวนเป็นหนึ่งเสมอ ราคาต่อหน่วยจึงซ้ำกับยอดรวม */}
+                            {!isDiscountItem(item) && (
+                              <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
+                                {formatCurrency(Number(item.sellingPrice))}
+                                {item.unit ? `/${item.unit}` : ""}
+                              </p>
+                            )}
                             <div className="flex w-full items-center justify-between">
                               <p className="text-primary text-xl leading-tight font-semibold text-nowrap md:text-[22px]">
                                 {formatCurrency(
@@ -2386,6 +2629,8 @@ const SuspensionInspection = () => {
         onClose={() => setIsClearConfirmOpen(false)}
         onConfirm={handleClearForm}
         title="ยืนยันการล้างข้อมูล"
+        // ยังไม่ได้บันทึกลงระบบ กดผิดก็กรอกใหม่ได้ ไม่ต้องกดค้าง
+        requireHold={false}
         itemName="ข้อมูลที่กรอกไว้ทั้งหมด"
         confirmLabel="ล้างข้อมูล"
       />
@@ -2395,6 +2640,8 @@ const SuspensionInspection = () => {
         onClose={() => setRemovingIndex(null)}
         onConfirm={handleRemoveItem}
         title="ยืนยันการเอารายการออก"
+        // ยังไม่ได้บันทึกลงระบบ กดผิดก็กรอกใหม่ได้ ไม่ต้องกดค้าง
+        requireHold={false}
         itemName={
           removingIndex !== null && repairItems[removingIndex]
             ? getProductName(repairItems[removingIndex])

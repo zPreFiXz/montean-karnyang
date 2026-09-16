@@ -213,6 +213,16 @@ exports.deletePart = async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    // บิลเก่าอ้างถึงอะไหล่ตัวนี้อยู่ ถ้าลบทิ้งข้อมูลในบิลจะขาดหาย
+    // (ความสัมพันธ์ตั้งไว้ให้ตัดเป็นค่าว่าง ไม่ได้ห้ามลบเอง จึงต้องกันที่ตรงนี้)
+    const usedInRepair = await prisma.repairItem.findFirst({
+      where: { partId: Number(id) },
+    });
+
+    if (usedInRepair) {
+      createError(400, "ลบไม่ได้ เพราะมีงานซ่อมที่ใช้อะไหล่นี้อยู่");
+    }
+
     await prisma.part.delete({
       where: { id: Number(id) },
     });

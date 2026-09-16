@@ -117,7 +117,7 @@ exports.deleteVehicleModel = async (req, res, next) => {
     });
 
     if (vehicleInUse) {
-      createError(400, "ลบไม่ได้ เพราะมีรถที่ใช้ยี่ห้อและรุ่นนี้อยู่");
+      createError(400, "ลบไม่ได้ เพราะมีรถที่ใช้ยี่ห้อและรุ่นรถนี้อยู่");
     }
 
     await prisma.vehicleModel.delete({

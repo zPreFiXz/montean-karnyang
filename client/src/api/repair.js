@@ -26,9 +26,15 @@ export const deleteRepair = async (id) => {
 
 // สั่งพิมพ์ใบเสร็จออกเครื่องพิมพ์ที่ต่อกับคอมที่รันเซิร์ฟเวอร์ (กดจากมือถือได้)
 export const printRepairReceipt = async (id, options = {}) => {
-  const { showCustomer = true, docType = "receipt" } = options;
+  // ค่าเริ่มต้นต้องตรงกับหน้าตัวอย่าง ใบที่พิมพ์ออกมาจะได้เหมือนที่เห็นทุกครั้ง
+  const {
+    showCustomer = true,
+    showBrand = false,
+    docType = "receipt",
+  } = options;
   return await apiClient.post(`/repairs/${id}/print`, {
     showCustomer,
+    showBrand,
     docType,
   });
 };

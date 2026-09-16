@@ -29,8 +29,10 @@ import {
   Wrench,
   ShoppingBag,
   Trash2,
+  ChevronRight,
 } from "lucide-react";
 import BrandIcons from "@/components/icons/BrandIcons";
+import { onKeyActivate } from "@/utils/a11y";
 import FormButton from "@/components/forms/FormButton";
 import ReceiptPreviewDialog from "@/components/dialogs/ReceiptPreviewDialog";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
@@ -557,6 +559,14 @@ const RepairDetail = () => {
     sellingPrice: Number(item.unitPrice),
   });
 
+  // กดแถวทะเบียนแล้วไปดูประวัติของรถคันนั้น บอกด้วยว่ามาจากบิลไหน
+  // ปุ่มย้อนกลับของหน้าประวัติรถจะได้พากลับมาที่บิลนี้ ไม่ใช่โยนไปหน้ารายการ
+  const vehicleId = repair?.vehicle?.id;
+  const handleOpenVehicle = () => {
+    if (!vehicleId) return;
+    navigate(`/vehicles/${vehicleId}`);
+  };
+
   const handleGoBack = () => {
     if (
       location.state?.returnTo &&
@@ -654,7 +664,24 @@ const RepairDetail = () => {
                 </p>
               </div>
             </div>
-            <div className="my-[16px] flex items-center gap-[8px] px-[20px]">
+            {/* บิลที่ผูกกับรถ กดแถวนี้เพื่อไปดูประวัติของรถคันนั้นได้
+                (บิลขายหน้าร้านกับงานที่ไม่มีรถ ไม่มีปลายทางให้ไป จึงกดไม่ได้) */}
+            <div
+              {...(vehicleId
+                ? {
+                    role: "button",
+                    tabIndex: 0,
+                    onClick: handleOpenVehicle,
+                    onKeyDown: onKeyActivate(handleOpenVehicle),
+                    "aria-label": "ดูประวัติรถคันนี้",
+                    className:
+                      "my-[16px] flex cursor-pointer items-center gap-[8px] px-[20px]",
+                  }
+                : {
+                    className:
+                      "my-[16px] flex items-center gap-[8px] px-[20px]",
+                  })}
+            >
               <div
                 className={`flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full ${statusInfo.bg}`}
               >
@@ -670,7 +697,7 @@ const RepairDetail = () => {
                   />
                 )}
               </div>
-              <div className="flex flex-col">
+              <div className="flex min-w-0 flex-1 flex-col">
                 <p
                   className={`text-[22px] font-semibold md:text-2xl ${statusInfo.color} leading-tight`}
                 >
@@ -684,6 +711,13 @@ const RepairDetail = () => {
                   </p>
                 )}
               </div>
+              {vehicleId && (
+                // วงกลมพื้นอ่อนทำให้ลูกศรเด่นพอจะอ่านว่าแถวนี้กดได้
+                // ใช้สีเทากลางๆ ไม่ผูกกับสถานะ ไม่งั้นจะไปแย่งความเด่นของไอคอนรถทางซ้าย
+                <span className="bg-subtle-light/15 flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-full">
+                  <ChevronRight className="text-subtle-dark h-5 w-5" />
+                </span>
+              )}
             </div>
             {repair.customer && (
               <div>
@@ -1173,6 +1207,8 @@ const RepairDetail = () => {
         itemDetail={confirmItemDetail}
         confirmLabel="บันทึก"
         confirmClass="bg-gradient-primary"
+        // ไม่ได้ลบอะไร กดผิดก็แก้กลับได้ ไม่ต้องให้กดค้าง
+        requireHold={false}
       />
 
       <ConfirmDialog

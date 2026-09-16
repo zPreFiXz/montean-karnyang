@@ -401,7 +401,7 @@ exports.getRepair = async (req, res, next) => {
     });
 
     if (!repair) {
-      createError(404, "ไม่พบรายการซ่อม");
+      createError(404, "ไม่พบงานซ่อม");
     }
 
     res.json(repair);
@@ -531,7 +531,7 @@ exports.createRepair = async (req, res, next) => {
       }
     });
 
-    res.json({ message: "สร้างรายการซ่อมเรียบร้อยแล้ว" });
+    res.json({ message: "สร้างงานซ่อมเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }
@@ -691,7 +691,7 @@ exports.updateRepair = async (req, res, next) => {
       });
     });
 
-    res.json({ message: "แก้ไขรายการซ่อมเรียบร้อยแล้ว" });
+    res.json({ message: "แก้ไขงานซ่อมเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }
@@ -708,7 +708,7 @@ exports.deleteRepair = async (req, res, next) => {
     });
 
     if (!repair) {
-      createError(404, "ไม่พบรายการซ่อม");
+      createError(404, "ไม่พบงานซ่อม");
     }
 
     await prisma.$transaction(async (tx) => {
@@ -734,7 +734,7 @@ exports.deleteRepair = async (req, res, next) => {
       await tx.repair.delete({ where: { id: Number(id) } });
     });
 
-    res.json({ message: "ลบรายการซ่อมเรียบร้อยแล้ว" });
+    res.json({ message: "ลบงานซ่อมเรียบร้อยแล้ว" });
   } catch (error) {
     next(error);
   }
@@ -751,7 +751,7 @@ exports.updateRepairStatus = async (req, res, next) => {
     });
 
     if (!repair) {
-      createError(404, "ไม่พบรายการซ่อม");
+      createError(404, "ไม่พบงานซ่อม");
     }
 
     const data = { status };
@@ -842,12 +842,13 @@ exports.printRepairReceipt = async (req, res, next) => {
     });
 
     if (!repair) {
-      createError(404, "ไม่พบรายการซ่อม");
+      createError(404, "ไม่พบงานซ่อม");
     }
 
     // หน้าเว็บบอกมาว่าจะเอาข้อมูลลูกค้าติดไปด้วยไหม ไม่ส่งมาก็ถือว่าเอา
     const showCustomer = req.body?.showCustomer !== false;
-    const showBrand = req.body?.showBrand !== false;
+    // ชื่ออะไหล่แบบเต็มปิดไว้เป็นค่าเริ่มต้น เท่ากับสวิตช์ในหน้าตัวอย่าง
+    const showBrand = req.body?.showBrand === true;
     const isJobSheet = req.body?.docType === "job";
 
     const html = isJobSheet

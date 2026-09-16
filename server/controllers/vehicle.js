@@ -76,6 +76,46 @@ exports.listVehicles = async (req, res, next) => {
   }
 };
 
+// ค้นรถจากทะเบียนตอนกำลังกรอกบิล เพื่อบอกว่ารถคันนี้เคยมาแล้ว
+// ส่งลูกค้าของบิลล่าสุดไปด้วย หน้ากรอกจะได้เติมชื่อ เบอร์ และที่อยู่ให้ในทีเดียว
+// (ข้อมูลลูกค้าผูกกับบิลเป็นรายใบ ไม่ได้ผูกกับตัวรถ จึงต้องหยิบจากบิลล่าสุด)
+exports.lookupVehicleByPlate = async (req, res, next) => {
+  try {
+    const { plate, province } = req.query;
+
+    if (!plate || !province) {
+      return res.json(null);
+    }
+
+    const vehicle = await prisma.vehicle.findFirst({
+      where: {
+        licensePlate: { plateNumber: plate, province },
+      },
+      include: {
+        licensePlate: true,
+        vehicleModel: true,
+        // จำนวนบิลทั้งหมดของรถคันนี้ ใช้บอกว่าเคยมากี่ครั้ง
+        _count: { select: { repairs: true } },
+        repairs: {
+          where: { customerId: { not: null } },
+          select: {
+            createdAt: true,
+            customer: {
+              select: { name: true, phoneNumber: true, address: true },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
+      },
+    });
+
+    res.json(vehicle || null);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getVehicle = async (req, res, next) => {
   try {
     const { id } = req.params;

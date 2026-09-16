@@ -1,6 +1,12 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { LoaderCircle } from "lucide-react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router";
 import Layout from "@/layouts/Layout";
 import { pageImports } from "./pageImports";
 import ProtectRouteUser from "./ProtectRouteUser";
@@ -28,6 +34,21 @@ const SalesReport = lazy(pageImports.SalesReport);
 const AttendanceReport = lazy(pageImports.AttendanceReport);
 const NotFound = lazy(pageImports.NotFound);
 
+// ไดอะล็อกล็อกการคลิกทั้งหน้าไว้ระหว่างปิด แล้วค่อยปลดตอนจบจังหวะปิด
+// ถ้าเปลี่ยนหน้าระหว่างนั้น (เช่นกดแก้ไขจากในไดอะล็อก) ตัวมันถูกถอดไปก่อนได้ปลด
+// หน้าใหม่จึงกดอะไรไม่ติดทั้งหน้า ต้องปลดให้เองทุกครั้งที่เปลี่ยนหน้า
+const UnlockPointerEvents = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (document.body.style.pointerEvents === "none") {
+      document.body.style.pointerEvents = "";
+    }
+  }, [location.pathname, location.search]);
+
+  return null;
+};
+
 const RouteFallback = () => (
   <div className="flex min-h-svh items-center justify-center">
     <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
@@ -37,6 +58,7 @@ const RouteFallback = () => (
 const AppRoutes = () => {
   return (
     <BrowserRouter>
+      <UnlockPointerEvents />
       <Routes>
         {/* Public */}
         <Route path="/" element={<Navigate to="/login" replace />} />

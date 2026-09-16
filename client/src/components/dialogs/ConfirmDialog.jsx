@@ -1,5 +1,5 @@
-import { X } from "lucide-react";
-import { useState, useRef } from "react";
+import { LoaderCircle, X } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,6 +8,10 @@ import {
 } from "@/components/ui/dialog";
 import FormButton from "../forms/FormButton";
 import { toastError } from "@/utils/handleError";
+
+// ต้องกดค้างนานเท่านี้ถึงจะลบจริง สั้นกว่านี้มือไวก็ยังรัวผ่านได้
+// ยาวกว่านี้จะรู้สึกว่าปุ่มค้างไม่ทำงาน
+const HOLD_MS = 900;
 
 const ConfirmDialog = ({
   isOpen,
@@ -22,9 +26,44 @@ const ConfirmDialog = ({
   confirmLabel = "ลบ",
   // แดงคือลบทิ้ง งานที่ไม่ได้ทำลายอะไรให้ส่งสีหลักของระบบมาแทน
   confirmClass = "bg-destructive",
+  // งานที่ลบของทิ้งต้องกดค้าง งานที่ย้อนกลับได้ (เช่นบันทึกเป็นใบประเมินราคา) กดครั้งเดียวพอ
+  requireHold = true,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const cancelButtonRef = useRef(null);
+  // 0 ถึง 1 ตามเวลาที่กดค้างไว้ ใช้วาดแถบวิ่งบนปุ่มให้เห็นว่าอีกนานแค่ไหน
+  const [holdRatio, setHoldRatio] = useState(0);
+  const holdRef = useRef({ frame: 0, startedAt: 0 });
+
+  const stopHold = () => {
+    cancelAnimationFrame(holdRef.current.frame);
+    holdRef.current.frame = 0;
+    setHoldRatio(0);
+  };
+
+  // ปิดกล่องระหว่างกดค้างอยู่ ต้องหยุดจับเวลาด้วย ไม่งั้นแถบจะเดินต่อในกล่องที่ปิดไปแล้ว
+  useEffect(() => {
+    if (!isOpen) stopHold();
+    return stopHold;
+  }, [isOpen]);
+
+  const startHold = () => {
+    if (isLoading || holdRef.current.frame) return;
+
+    holdRef.current.startedAt = performance.now();
+    const tick = (now) => {
+      const ratio = Math.min((now - holdRef.current.startedAt) / HOLD_MS, 1);
+      setHoldRatio(ratio);
+
+      if (ratio >= 1) {
+        stopHold();
+        handleConfirm();
+        return;
+      }
+      holdRef.current.frame = requestAnimationFrame(tick);
+    };
+    holdRef.current.frame = requestAnimationFrame(tick);
+  };
 
   const handleConfirm = async () => {
     setIsLoading(true);
@@ -98,13 +137,51 @@ const ConfirmDialog = ({
               ยกเลิก
             </button>
 
-            <FormButton
-              label={confirmLabel}
-              isLoading={isLoading}
-              disabled={isLoading}
-              onClick={handleConfirm}
-              className={`font-athiti ${confirmClass} mr-0 ml-0 flex-1`}
-            />
+            {requireHold ? (
+              // กดค้างแทนการกดครั้งเดียว กันมือไวรัวผ่านทั้งสองจังหวะ
+              // ปล่อยก่อนครบเวลา แถบจะรีเซ็ตและไม่มีอะไรเกิดขึ้น
+              <button
+                type="button"
+                disabled={isLoading}
+                onPointerDown={startHold}
+                onPointerUp={stopHold}
+                onPointerLeave={stopHold}
+                onPointerCancel={stopHold}
+                onKeyDown={(e) => {
+                  if ((e.key === "Enter" || e.key === " ") && !e.repeat) {
+                    e.preventDefault();
+                    startHold();
+                  }
+                }}
+                onKeyUp={stopHold}
+                onContextMenu={(e) => e.preventDefault()}
+                className={`font-athiti ${confirmClass} text-surface shadow-primary relative flex h-[41px] flex-1 cursor-pointer touch-none items-center justify-center overflow-hidden rounded-[20px] text-lg font-semibold select-none disabled:cursor-not-allowed disabled:opacity-70 md:text-xl`}
+              >
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-y-0 left-0 bg-white/30"
+                  style={{ width: `${holdRatio * 100}%` }}
+                />
+                <span className="relative flex items-center">
+                  {isLoading ? (
+                    <>
+                      <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                      {confirmLabel}...
+                    </>
+                  ) : (
+                    `กดค้างเพื่อ${confirmLabel}`
+                  )}
+                </span>
+              </button>
+            ) : (
+              <FormButton
+                label={confirmLabel}
+                isLoading={isLoading}
+                disabled={isLoading}
+                onClick={handleConfirm}
+                className={`font-athiti ${confirmClass} mr-0 ml-0 flex-1`}
+              />
+            )}
           </div>
         </div>
       </DialogContent>

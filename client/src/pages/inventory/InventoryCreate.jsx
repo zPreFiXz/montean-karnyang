@@ -5,6 +5,7 @@ import FormButton from "@/components/forms/FormButton";
 import { createPart } from "@/api/part";
 import { createService } from "@/api/service";
 import { toast } from "sonner";
+import { firstErrorMessage } from "@/utils/formErrors";
 import { useEffect, useState } from "react";
 import { listCategories } from "@/api/category";
 import ComboBox from "@/components/ui/ComboBox";
@@ -167,7 +168,15 @@ const InventoryCreate = () => {
       .map((field) => document.querySelector(`[name="${field}"]`))
       .filter((el) => el && el.offsetParent !== null);
 
-    if (errorElements.length === 0) return;
+    if (errorElements.length === 0) {
+      // ช่องที่ผิดอาจซ่อนอยู่ (คนละหมวดหมู่ หรืออยู่ในส่วนที่พับไว้) เลื่อนไปหาไม่ได้
+      // ถ้าเงียบไปเฉยๆ จะเหมือนกดปุ่มแล้วไม่ทำงาน ต้องบอกว่าติดตรงไหน
+      toast.error(
+        firstErrorMessage(errs) ||
+          "กรอกข้อมูลไม่ครบ ตรวจสอบช่องที่ยังไม่ถูกต้องอีกครั้ง",
+      );
+      return;
+    }
 
     const firstErrorEl = errorElements.reduce((prev, curr) =>
       prev.getBoundingClientRect().top < curr.getBoundingClientRect().top

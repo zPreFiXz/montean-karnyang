@@ -72,6 +72,16 @@ exports.deleteService = async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    // บิลเก่าอ้างถึงบริการตัวนี้อยู่ ถ้าลบทิ้งข้อมูลในบิลจะขาดหาย
+    // (ความสัมพันธ์ตั้งไว้ให้ตัดเป็นค่าว่าง ไม่ได้ห้ามลบเอง จึงต้องกันที่ตรงนี้)
+    const usedInRepair = await prisma.repairItem.findFirst({
+      where: { serviceId: Number(id) },
+    });
+
+    if (usedInRepair) {
+      createError(400, "ลบไม่ได้ เพราะมีงานซ่อมที่ใช้บริการนี้อยู่");
+    }
+
     await prisma.service.delete({
       where: { id: Number(id) },
     });
