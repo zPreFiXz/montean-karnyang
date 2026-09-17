@@ -226,9 +226,10 @@ const OrganizationDetail = () => {
           onClose={() => setIsTypeDialogOpen(false)}
           customer={customer}
           onSaved={(type) => {
-            // ไม่ใช่หน่วยงานหรือร้านค้าแล้ว รายนี้จึงไม่มีที่อยู่ในหน้านี้อีก กลับไปหน้ารายชื่อ
+            // ไม่ใช่หน่วยงานหรือร้านค้าแล้ว บิลที่ค้างอยู่ย้ายไปกองเครดิตทันที
+            // จึงพาไปที่นั่นเลย ไม่ใช่กลับไปหน้ารายชื่อที่ไม่มีรายนี้อยู่แล้ว
             if (!type) {
-              navigate("/organizations", { replace: true });
+              navigate("/repairs?status=credit", { replace: true });
               return;
             }
             setCustomer((prev) => ({ ...prev, organizationType: type }));

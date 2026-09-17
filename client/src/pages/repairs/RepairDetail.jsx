@@ -326,9 +326,17 @@ const RepairDetail = () => {
         return;
       }
 
-      const statusSlug = nextStatus.toLowerCase().replace("_", "-");
       // บิลย้ายกองไปแล้ว หน้าบิลเดิมในประวัติจึงหมดหน้าที่ ใช้แทนที่แทนการซ้อนเพิ่ม
       // กดย้อนกลับครั้งเดียวจะถึงรายการที่มาตั้งแต่แรก ไม่ต้องผ่านบิลที่ย้ายออกไปแล้ว
+
+      // ลงเครดิตให้หน่วยงานหรือร้านค้า บิลจะไปโผล่ที่หน้าหน่วยงานและร้านค้า ไม่ใช่แท็บเครดิต
+      // จึงต้องพาไปที่นั่น ไม่งั้นจะเข้าแท็บเครดิตแล้วหาบิลที่เพิ่งลงไม่เจอ
+      if (nextStatus === "CREDIT" && repair.customer?.organizationType) {
+        navigate("/organizations", { replace: true });
+        return;
+      }
+
+      const statusSlug = nextStatus.toLowerCase().replace("_", "-");
       navigate(`/repairs?status=${statusSlug}`, { replace: true });
     } catch (error) {
       toastError(error);
@@ -1243,7 +1251,13 @@ const RepairDetail = () => {
           isOpen={isOrgDialogOpen}
           onClose={() => setIsOrgDialogOpen(false)}
           customer={repair.customer}
-          onSaved={fetchRepairDetail}
+          // บิลย้ายกองทันทีที่เปลี่ยนประเภท จึงพาไปที่กองใหม่เลย ไม่ใช่ค้างอยู่หน้าเดิม
+          // แทนที่หน้าบิลในประวัติ กดย้อนกลับจะได้ถึงหน้าที่มาตั้งแต่แรก
+          onSaved={(type) =>
+            navigate(type ? "/organizations" : "/repairs?status=credit", {
+              replace: true,
+            })
+          }
         />
       )}
 
