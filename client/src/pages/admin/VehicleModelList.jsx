@@ -57,7 +57,7 @@ const VehicleModelList = () => {
         1;
       if (selectedBrand && isLastOfBrand) setSelectedBrand("");
       fetchVehicleModels();
-      setIsDeleteDialogOpen(false);
+      // กล่องยืนยันปิดตัวเองเมื่อทำงานสำเร็จ ที่นี่เหลือแค่ล้างรายการที่เลือกไว้
       setDeletingItem(null);
       toast.success("ลบยี่ห้อและรุ่นรถเรียบร้อยแล้ว");
     } catch (error) {

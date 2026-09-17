@@ -26,6 +26,9 @@ const InventoryList = lazy(pageImports.InventoryList);
 const InventoryCreate = lazy(pageImports.InventoryCreate);
 const InventoryEdit = lazy(pageImports.InventoryEdit);
 const InventoryUsage = lazy(pageImports.InventoryUsage);
+const OrganizationList = lazy(pageImports.OrganizationList);
+const OrganizationDetail = lazy(pageImports.OrganizationDetail);
+const OrganizationHistory = lazy(pageImports.OrganizationHistory);
 const VehicleList = lazy(pageImports.VehicleList);
 const VehicleDetail = lazy(pageImports.VehicleDetail);
 const UserList = lazy(pageImports.UserList);
@@ -86,6 +89,14 @@ const AppRoutes = () => {
           <Route path="repairs/new" element={<RepairCreate />} />
           <Route path="repairs/review" element={<RepairReview />} />
           <Route path="repairs/:id" element={<RepairDetail />} />
+
+          {/* หน่วยงานราชการและร้านค้าที่เปิดบิลเครดิตไว้ เข้าจากหัวหน้าเครดิต */}
+          <Route path="organizations" element={<OrganizationList />} />
+          <Route
+            path="organizations/:id/history"
+            element={<OrganizationHistory />}
+          />
+          <Route path="organizations/:id" element={<OrganizationDetail />} />
 
           {/* Inventory */}
           <Route path="inventory" element={<InventoryList />} />

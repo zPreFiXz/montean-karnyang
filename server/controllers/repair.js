@@ -316,6 +316,8 @@ exports.listRepairs = async (req, res, next) => {
         customer: {
           select: {
             name: true,
+            // บิลเครดิตของหน่วยงานหรือร้านค้าไปรวมอยู่หน้าหน่วยงานและร้านค้าแทน
+            organizationType: true,
           },
         },
         // ชื่อรายการใช้ตั้งหัวการ์ดของบิลที่ไม่ผูกกับรถ (ดู getRepairTitle ฝั่งหน้าเว็บ)
@@ -858,9 +860,7 @@ exports.printRepairReceipt = async (req, res, next) => {
     await printReceipt(html, repair.id);
 
     res.json({
-      message: isJobSheet
-        ? "สั่งพิมพ์ใบสั่งซ่อมแล้ว"
-        : "สั่งพิมพ์ใบเสร็จแล้ว",
+      message: isJobSheet ? "สั่งพิมพ์ใบสั่งซ่อมแล้ว" : "สั่งพิมพ์ใบเสร็จแล้ว",
     });
   } catch (error) {
     next(error);

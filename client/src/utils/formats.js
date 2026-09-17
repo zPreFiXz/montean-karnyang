@@ -40,6 +40,26 @@ export function formatDateShort(dateString) {
   });
 }
 
+// หัวข้อของกลุ่มรายเดือน เช่น "กันยายน 2569"
+export function formatMonth(dateString) {
+  if (!dateString) return "ไม่ระบุ";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "ไม่ระบุ";
+  return date.toLocaleDateString("th-TH", {
+    year: "numeric",
+    month: "long",
+  });
+}
+
+// กุญแจของเดือนในรูป 2026-09 ใช้จัดกลุ่มและใส่ใน URL
+// คิดจากเวลาท้องถิ่น ไม่ใช่ ISO เพราะบิลดึกๆ จะถูกนับเป็นเดือนถัดไป
+export function monthKey(dateString) {
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "";
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${date.getFullYear()}-${month}`;
+}
+
 export function formatTime(dateString) {
   if (!dateString) return "ไม่ระบุ";
   const date = new Date(dateString);

@@ -33,6 +33,9 @@ import {
 } from "lucide-react";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { onKeyActivate } from "@/utils/a11y";
+import OrganizationTypeDialog from "@/components/dialogs/OrganizationTypeDialog";
+import { organizationLabel } from "@/constants/organizations";
+import { Building2, Store, SquarePen } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import ReceiptPreviewDialog from "@/components/dialogs/ReceiptPreviewDialog";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
@@ -561,11 +564,23 @@ const RepairDetail = () => {
 
   // กดแถวทะเบียนแล้วไปดูประวัติของรถคันนั้น บอกด้วยว่ามาจากบิลไหน
   // ปุ่มย้อนกลับของหน้าประวัติรถจะได้พากลับมาที่บิลนี้ ไม่ใช่โยนไปหน้ารายการ
-  const vehicleId = repair?.vehicle?.id;
+  //
+  // เปิดบิลนี้มาจากหน้าประวัติรถคันเดียวกัน = ไม่มีที่ให้ไปต่อ ปิดการกดและซ่อนลูกศร
+  // ไม่งั้นกดไปกลับหลายรอบ ประวัติจะซ้อนยาวจนต้องกดย้อนกลับเป็นสิบครั้งกว่าจะพ้น
+  const cameFromThisVehicle =
+    location.state?.from === "vehicle-detail" &&
+    String(location.state?.vehicleId) === String(repair?.vehicle?.id);
+  const canOpenVehicle = !!repair?.vehicle?.id && !cameFromThisVehicle;
+
   const handleOpenVehicle = () => {
-    if (!vehicleId) return;
-    navigate(`/vehicles/${vehicleId}`);
+    if (!canOpenVehicle) return;
+    navigate(`/vehicles/${repair.vehicle.id}`);
   };
+
+  // บิลเครดิตมักเป็นของหน่วยงานราชการหรือร้านค้าที่มาเคลียร์ทีเดียวตอนสิ้นเดือน
+  // ตั้งประเภทไว้ที่ตัวลูกค้า บิลใบต่อไปของรายเดียวกันจึงถูกรวมให้เอง
+  const [isOrgDialogOpen, setIsOrgDialogOpen] = useState(false);
+  const canSetOrganization = repair?.status === "CREDIT" && !!repair?.customer;
 
   const handleGoBack = () => {
     if (
@@ -667,7 +682,7 @@ const RepairDetail = () => {
             {/* บิลที่ผูกกับรถ กดแถวนี้เพื่อไปดูประวัติของรถคันนั้นได้
                 (บิลขายหน้าร้านกับงานที่ไม่มีรถ ไม่มีปลายทางให้ไป จึงกดไม่ได้) */}
             <div
-              {...(vehicleId
+              {...(canOpenVehicle
                 ? {
                     role: "button",
                     tabIndex: 0,
@@ -711,7 +726,7 @@ const RepairDetail = () => {
                   </p>
                 )}
               </div>
-              {vehicleId && (
+              {canOpenVehicle && (
                 // วงกลมพื้นอ่อนทำให้ลูกศรเด่นพอจะอ่านว่าแถวนี้กดได้
                 // ใช้สีเทากลางๆ ไม่ผูกกับสถานะ ไม่งั้นจะไปแย่งความเด่นของไอคอนรถทางซ้าย
                 <span className="bg-subtle-light/15 flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-full">
@@ -725,15 +740,22 @@ const RepairDetail = () => {
                   <div
                     className={`mt-[6px] flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full ${statusInfo.bg}`}
                   >
-                    <CircleUserRound color="#ffffff" />
+                    {/* ไอคอนบอกประเภทลูกค้าไปเลย กวาดตาแล้วรู้ว่าบิลนี้เป็นของใครแบบไหน */}
+                    {repair.customer.organizationType === "GOVERNMENT" ? (
+                      <Building2 className="text-surface h-6 w-6" />
+                    ) : repair.customer.organizationType === "SHOP" ? (
+                      <Store className="text-surface h-6 w-6" />
+                    ) : (
+                      <CircleUserRound color="#ffffff" />
+                    )}
                   </div>
                   {/* กรอกมาอย่างเดียว (ชื่อล้วน หรือเบอร์ล้วน) ข้อความจะสูงไม่ถึงวงกลม
                       ต้องดันให้อยู่กึ่งกลางแกนตั้งเทียบวงกลม ไม่งั้นจะลอยเกาะขอบบน */}
                   <div
                     className={
                       hasSingleCustomerLine
-                        ? "mt-[6px] flex min-h-[45px] flex-col justify-center"
-                        : "flex flex-col"
+                        ? "mt-[6px] flex min-h-[45px] min-w-0 flex-1 flex-col justify-center"
+                        : "flex min-w-0 flex-1 flex-col"
                     }
                   >
                     {repair.customer.name && (
@@ -741,6 +763,12 @@ const RepairDetail = () => {
                         className={`text-[22px] font-semibold md:text-2xl ${statusInfo.color} leading-tight`}
                       >
                         {repair.customer.name}
+                      </p>
+                    )}
+                    {/* ประเภทที่ตั้งไว้แล้ว แสดงใต้ชื่อให้รู้ว่าบิลนี้ถูกรวมอยู่กับใคร */}
+                    {repair.customer.organizationType && (
+                      <p className="text-subtle-light text-lg leading-tight font-medium md:text-xl">
+                        {organizationLabel(repair.customer.organizationType)}
                       </p>
                     )}
                     {(repair.customer.phoneNumber ||
@@ -775,6 +803,18 @@ const RepairDetail = () => {
                       </div>
                     )}
                   </div>
+                  {/* ตั้งประเภทลูกค้าได้จากบิลเครดิต เพราะเป็นจังหวะที่รู้ว่าใครติดเงินไว้ */}
+                  {canSetOrganization && (
+                    <button
+                      type="button"
+                      onClick={() => setIsOrgDialogOpen(true)}
+                      aria-label="ตั้งประเภทลูกค้า"
+                      title="ตั้งประเภทลูกค้า"
+                      className="bg-subtle-light/15 mt-[6px] flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+                    >
+                      <SquarePen className="text-subtle-dark h-5 w-5" />
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -1197,6 +1237,15 @@ const RepairDetail = () => {
         open={isReceiptOpen}
         onOpenChange={setIsReceiptOpen}
       />
+
+      {canSetOrganization && (
+        <OrganizationTypeDialog
+          isOpen={isOrgDialogOpen}
+          onClose={() => setIsOrgDialogOpen(false)}
+          customer={repair.customer}
+          onSaved={fetchRepairDetail}
+        />
+      )}
 
       <ConfirmDialog
         isOpen={isEstimateConfirmOpen}

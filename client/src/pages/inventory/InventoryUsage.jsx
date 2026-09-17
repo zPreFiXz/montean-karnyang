@@ -23,6 +23,12 @@ import {
   useScrollTracking,
 } from "@/utils/scrollPosition";
 
+// จำผลของแต่ละชิ้นไว้ กดย้อนกลับมาจะได้มีรายการโชว์ตั้งแต่เฟรมแรก ไม่ต้องขึ้นตัวหมุน
+// อยู่นอกคอมโพเนนต์เพราะต้องอยู่ข้ามการเปลี่ยนหน้า และหายไปเองเมื่อรีเฟรชเบราว์เซอร์
+const usageCache = new Map();
+const imageCache = new Map();
+const cacheKey = (type, id) => `${type}-${id}`;
+
 // ประวัติการใช้ของอะไหล่หรือบริการหนึ่งตัว: บิลไหนบ้างที่เคยมีของชิ้นนี้
 // ชื่อของมาทางพารามิเตอร์ ไม่ต้องยิงขอซ้ำ เพราะเข้าหน้านี้จากไดอะล็อกที่มีข้อมูลอยู่แล้ว
 const InventoryUsage = () => {
@@ -34,10 +40,13 @@ const InventoryUsage = () => {
   const itemBrand = searchParams.get("brand") || "";
   const backTo = searchParams.get("from") || "/inventory";
 
-  const [usages, setUsages] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cached = usageCache.get(cacheKey(type, id));
+  const [usages, setUsages] = useState(cached || []);
+  const [isLoading, setIsLoading] = useState(!cached);
   // ชื่อกับยี่ห้อมาทางพารามิเตอร์ ขึ้นได้ทันที ส่วนรูปต้องขอจากคลัง
-  const [itemImage, setItemImage] = useState(null);
+  const [itemImage, setItemImage] = useState(
+    imageCache.get(cacheKey(type, id)) ?? null,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -45,7 +54,9 @@ const InventoryUsage = () => {
     (async () => {
       try {
         const res = await listInventoryRepairs(type, id);
-        if (!cancelled) setUsages(res.data || []);
+        const data = res.data || [];
+        usageCache.set(cacheKey(type, id), data);
+        if (!cancelled) setUsages(data);
       } catch (error) {
         if (!cancelled) toastError(error);
       } finally {
@@ -56,7 +67,9 @@ const InventoryUsage = () => {
     (async () => {
       try {
         const res = await getInventory(id, type);
-        if (!cancelled) setItemImage(res.data?.secureUrl || null);
+        const url = res.data?.secureUrl || null;
+        imageCache.set(cacheKey(type, id), url);
+        if (!cancelled) setItemImage(url);
       } catch {
         // ไม่มีรูปก็แค่ขึ้นไอคอนแทน ไม่ต้องรบกวนด้วยข้อความ
       }

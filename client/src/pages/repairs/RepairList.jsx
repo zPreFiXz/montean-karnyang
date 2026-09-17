@@ -13,6 +13,7 @@ import { Success, Wrench, Paid, Credit } from "@/components/icons/Icons";
 import SearchBar from "@/components/forms/SearchBar";
 import { ClipboardList } from "lucide-react";
 import { Wallet } from "lucide-react";
+import { Store } from "lucide-react";
 import { ShoppingBag } from "lucide-react";
 import {
   isSaleRepair,
@@ -70,7 +71,15 @@ const RepairList = () => {
   };
 
   // เครดิตเป็นรายการย่อยของงานที่ซ่อมเสร็จแล้ว ไม่ใช่สถานะที่มีแท็บของตัวเอง
-  const creditCount = repairs.filter((r) => r.status === "CREDIT").length;
+  const creditCount = repairs.filter(
+    (r) => r.status === "CREDIT" && !r.customer?.organizationType,
+  ).length;
+  // นับเป็นรายหน่วยงาน ไม่ใช่รายบิล เพราะหน้าปลายทางเป็นรายชื่อ ไม่ใช่รายการบิล
+  const organizationCount = new Set(
+    repairs
+      .filter((r) => r.status === "CREDIT" && r.customer?.organizationType)
+      .map((r) => r.customer.name),
+  ).size;
   const estimateCount = repairs.filter((r) => r.status === "ESTIMATE").length;
 
   // ใบประเมินราคาสะสมไปเรื่อยๆ ไม่มีวันหมดอายุเหมือนแท็บอื่นที่ไล่ปิดงานได้
@@ -108,6 +117,12 @@ const RepairList = () => {
       }
 
       if (status === "estimate" && isStatusMatch) return matchesSearch(repair);
+
+      // บิลเครดิตของหน่วยงานหรือร้านค้าย้ายไปรวมที่หน้าหน่วยงานและร้านค้าแล้ว
+      // แท็บนี้จึงเหลือเฉพาะลูกค้าทั่วไปที่ต้องตามเก็บเป็นรายคน
+      if (status === "credit" && isStatusMatch) {
+        return !repair.customer?.organizationType && matchesSearch(repair);
+      }
 
       return isStatusMatch;
     })
@@ -195,7 +210,9 @@ const RepairList = () => {
       case "completed":
         return "ไม่มีรายการที่ซ่อมเสร็จสิ้น";
       case "credit":
-        return "ไม่มีรายการเครดิต";
+        return search
+          ? `ไม่พบ "${searchParams.get("search")}"`
+          : "ไม่มีรายการเครดิต";
       case "paid":
         return "ไม่มีรายการที่ชำระเงินแล้ว";
       default:
@@ -225,8 +242,14 @@ const RepairList = () => {
         >
           <ChevronLeft className="text-surface" />
         </button>
+        {/* เครดิตกับใบประเมินราคาเป็นกองของตัวเอง ไม่ใช่สถานะของงานที่เดินอยู่
+            หัวหน้าจึงบอกชื่อกองไปเลย และไม่ต้องมีหัวข้อซ้ำอีกในกล่อง */}
         <p className="text-surface min-w-0 flex-1 truncate text-2xl font-semibold md:text-[26px]">
-          สถานะการซ่อม
+          {status === "estimate"
+            ? "ใบประเมินราคา"
+            : status === "credit"
+              ? "เครดิต"
+              : "สถานะการซ่อม"}
         </p>
 
         {/* เครดิตกับใบประเมินราคาเป็นกองของตัวเอง ไม่ใช่สถานะคู่ขนานกับสามแท็บที่งานเดินอยู่
@@ -261,6 +284,24 @@ const RepairList = () => {
             {creditCount > 0 && (
               <span className="bg-surface text-primary absolute -top-[2px] -right-[2px] flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-[4px] text-sm font-semibold">
                 {creditCount}
+              </span>
+            )}
+          </Link>
+        )}
+
+        {/* หน่วยงานและร้านค้าเป็นกองของตัวเอง อยู่บนหัวหน้าหลักเหมือนอีกสองปุ่ม
+            กองอื่น (เครดิต ใบประเมินราคา) เป็นคนละเรื่อง จึงไม่ต้องมีปุ่มนี้ให้รกหัว */}
+        {status !== "credit" && status !== "estimate" && (
+          <Link
+            to="/organizations"
+            aria-label={`หน่วยงานและร้านค้า ${organizationCount} รายการ`}
+            title="หน่วยงานและร้านค้า"
+            className="bg-surface/20 relative flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full"
+          >
+            <Store className="text-surface h-5 w-5" />
+            {organizationCount > 0 && (
+              <span className="bg-surface text-primary absolute -top-[2px] -right-[2px] flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-[4px] text-sm font-semibold">
+                {organizationCount}
               </span>
             )}
           </Link>
@@ -304,31 +345,34 @@ const RepairList = () => {
         </div>
       )}
       <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl px-[20px] pb-[112px]">
-        <div className="flex items-center gap-[8px] pt-[16px]">
-          {statusIcon && (
-            <div
-              // ไอคอนของ lucide รับสีตามข้อความ ต้องบอกสีขาวให้เอง
-              // ต่างจากไอคอนชุดของโปรเจคที่ฝังเส้นสีขาวไว้ในตัว
-              className={`${statusIcon.bg} text-surface flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full`}
-            >
-              <statusIcon.Icon />
-            </div>
-          )}
-          <p className="text-normal text-[22px] font-semibold md:text-2xl">
-            {getStatusTitle()}
-          </p>
-          {/* จำนวนที่เห็นในลิสต์ตอนนี้ วางแบบเดียวกับหัวข้อในหน้าคลัง
+        {/* สองหน้านี้บอกชื่อกองไว้ที่หัวหน้าจอแล้ว ไม่ต้องบอกซ้ำในกล่อง */}
+        {status !== "estimate" && status !== "credit" && (
+          <div className="flex items-center gap-[8px] pt-[16px]">
+            {statusIcon && (
+              <div
+                // ไอคอนของ lucide รับสีตามข้อความ ต้องบอกสีขาวให้เอง
+                // ต่างจากไอคอนชุดของโปรเจคที่ฝังเส้นสีขาวไว้ในตัว
+                className={`${statusIcon.bg} text-surface flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full`}
+              >
+                <statusIcon.Icon />
+              </div>
+            )}
+            <p className="text-normal text-[22px] font-semibold md:text-2xl">
+              {getStatusTitle()}
+            </p>
+            {/* จำนวนที่เห็นในลิสต์ตอนนี้ วางแบบเดียวกับหัวข้อในหน้าคลัง
               ไม่ขึ้นระหว่างโหลด เพราะเลข 0 ที่เด้งเป็นเลขจริงทีหลังอ่านแล้วเข้าใจผิด
               ไม่มีสักรายการก็ไม่ต้องขึ้น เพราะข้อความกลางจอบอกอยู่แล้วว่าไม่มีอะไร */}
-          {!isLoading && currentRepairs.length > 0 && (
-            <span className="text-subtle-light shrink-0 text-lg font-medium md:text-xl">
-              ({currentRepairs.length})
-            </span>
-          )}
-        </div>
-        {/* ใบประเมินราคาเก็บสะสมยาว จึงมีช่องค้นหาเหมือนหน้าประวัติรถ
+            {!isLoading && currentRepairs.length > 0 && (
+              <span className="text-subtle-light shrink-0 text-lg font-medium md:text-xl">
+                ({currentRepairs.length})
+              </span>
+            )}
+          </div>
+        )}
+        {/* ใบประเมินราคากับเครดิตเก็บสะสมยาว จึงมีช่องค้นหาเหมือนหน้าประวัติรถ
             แท็บอื่นเป็นงานที่เดินอยู่ไม่กี่คัน กวาดตาหาเจอเร็วกว่าพิมพ์ */}
-        {status === "estimate" && (
+        {(status === "estimate" || status === "credit") && (
           <div className="pt-[16px]">
             <SearchBar placeholder="ค้นหาทะเบียน, ยี่ห้อ, รุ่นรถ, ชื่อลูกค้า" />
           </div>

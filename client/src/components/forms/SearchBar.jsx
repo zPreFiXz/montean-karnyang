@@ -38,7 +38,9 @@ const SearchBar = ({
       } else {
         params.delete("search");
       }
-      setSearchParams(params);
+      // เขียนทับรายการเดิมในประวัติ ไม่ใช่ซ้อนใหม่ทุกครั้งที่หยุดพิมพ์
+      // ไม่งั้นกดย้อนกลับจะเป็นการถอยคำค้นทีละตัว แทนที่จะออกจากหน้า
+      setSearchParams(params, { replace: true });
     }
   }, 500);
 
@@ -55,7 +57,7 @@ const SearchBar = ({
     } else {
       const params = new URLSearchParams(searchParams);
       params.delete("search");
-      setSearchParams(params);
+      setSearchParams(params, { replace: true });
     }
   };
 

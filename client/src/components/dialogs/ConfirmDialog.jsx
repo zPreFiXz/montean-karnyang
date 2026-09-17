@@ -97,6 +97,8 @@ const ConfirmDialog = ({
     setIsLoading(true);
     try {
       await onConfirm();
+      // ทำงานเสร็จแล้วปิดกล่องให้เลย ทุกหน้าจะได้ปิดเหมือนกันโดยไม่ต้องสั่งปิดเอง
+      onClose?.();
     } catch (error) {
       toastError(error);
     } finally {

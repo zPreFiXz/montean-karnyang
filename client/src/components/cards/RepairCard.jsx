@@ -6,6 +6,8 @@ const statusStyle = {
   IN_PROGRESS: { bg: "bg-status-progress", text: "text-status-progress" },
   COMPLETED: { bg: "bg-status-completed", text: "text-status-completed" },
   PAID: { bg: "bg-status-paid", text: "text-status-paid" },
+  CREDIT: { bg: "bg-status-credit", text: "text-status-credit" },
+  ESTIMATE: { bg: "bg-status-estimate", text: "text-status-estimate" },
 };
 
 const RepairCard = ({
