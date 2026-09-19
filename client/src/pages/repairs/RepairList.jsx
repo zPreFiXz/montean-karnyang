@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useSearchParams, useNavigate } from "react-router";
+import { Link, Navigate, useSearchParams, useNavigate } from "react-router";
 import {
   saveScrollPosition,
   useScrollRestoration,
@@ -71,15 +71,8 @@ const RepairList = () => {
   };
 
   // เครดิตเป็นรายการย่อยของงานที่ซ่อมเสร็จแล้ว ไม่ใช่สถานะที่มีแท็บของตัวเอง
-  const creditCount = repairs.filter(
-    (r) => r.status === "CREDIT" && !r.customer?.organizationType,
-  ).length;
-  // นับเป็นรายหน่วยงาน ไม่ใช่รายบิล เพราะหน้าปลายทางเป็นรายชื่อ ไม่ใช่รายการบิล
-  const organizationCount = new Set(
-    repairs
-      .filter((r) => r.status === "CREDIT" && r.customer?.organizationType)
-      .map((r) => r.customer.name),
-  ).size;
+  // เครดิตรวมทุกแบบแล้ว ทั้งหน่วยงาน ร้านค้า และลูกค้าทั่วไป
+  const creditCount = repairs.filter((r) => r.status === "CREDIT").length;
   const estimateCount = repairs.filter((r) => r.status === "ESTIMATE").length;
 
   // ใบประเมินราคาสะสมไปเรื่อยๆ ไม่มีวันหมดอายุเหมือนแท็บอื่นที่ไล่ปิดงานได้
@@ -222,6 +215,12 @@ const RepairList = () => {
 
   const statusIcon = getStatusIcon();
 
+  // เครดิตย้ายไปรวมที่หน้าเครดิตแล้ว ลิงก์เก่าที่ยังชี้มาที่นี่ให้พาไปที่นั่นแทน
+  // (ต้องอยู่หลังฮุคทั้งหมด ไม่งั้นลำดับฮุคจะไม่เท่ากันทุกรอบ)
+  if (status === "credit") {
+    return <Navigate to="/organizations?type=general" replace />;
+  }
+
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
@@ -275,7 +274,7 @@ const RepairList = () => {
 
         {status !== "credit" && status !== "estimate" && (
           <Link
-            to="/repairs?status=credit"
+            to="/organizations"
             aria-label={`เครดิต ${creditCount} รายการ`}
             title="เครดิต"
             className="bg-surface/20 relative flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full"
@@ -284,24 +283,6 @@ const RepairList = () => {
             {creditCount > 0 && (
               <span className="bg-surface text-primary absolute -top-[2px] -right-[2px] flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-[4px] text-sm font-semibold">
                 {creditCount}
-              </span>
-            )}
-          </Link>
-        )}
-
-        {/* หน่วยงานและร้านค้าเป็นกองของตัวเอง อยู่บนหัวหน้าหลักเหมือนอีกสองปุ่ม
-            กองอื่น (เครดิต ใบประเมินราคา) เป็นคนละเรื่อง จึงไม่ต้องมีปุ่มนี้ให้รกหัว */}
-        {status !== "credit" && status !== "estimate" && (
-          <Link
-            to="/organizations"
-            aria-label={`หน่วยงานและร้านค้า ${organizationCount} รายการ`}
-            title="หน่วยงานและร้านค้า"
-            className="bg-surface/20 relative flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full"
-          >
-            <Store className="text-surface h-5 w-5" />
-            {organizationCount > 0 && (
-              <span className="bg-surface text-primary absolute -top-[2px] -right-[2px] flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-[4px] text-sm font-semibold">
-                {organizationCount}
               </span>
             )}
           </Link>

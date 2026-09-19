@@ -6,3 +6,11 @@ export const ORGANIZATION_TYPES = [
 
 export const organizationLabel = (type) =>
   ORGANIZATION_TYPES.find((item) => item.value === type)?.label || "";
+
+// กองย่อยในหน้าเครดิตของแต่ละประเภท ว่าง = ลูกค้าทั่วไป
+export const creditPathFor = (organizationType) => {
+  if (organizationType === "GOVERNMENT")
+    return "/organizations?type=government";
+  if (organizationType === "SHOP") return "/organizations?type=shop";
+  return "/organizations?type=general";
+};

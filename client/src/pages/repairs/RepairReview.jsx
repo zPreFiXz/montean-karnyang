@@ -186,7 +186,7 @@ const RepairReview = () => {
         } else {
           navigate(
             isCreditChoice
-              ? "/repairs?status=credit"
+              ? "/organizations?type=general"
               : isSale
                 ? "/repairs?status=paid"
                 : "/repairs?status=in-progress",

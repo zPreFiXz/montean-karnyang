@@ -71,7 +71,8 @@ exports.listOrganizations = async (req, res, next) => {
         organizationType: true,
         repairs: {
           where: { status: "CREDIT" },
-          select: { totalPrice: true },
+          // วันที่ไว้บอกว่าค้างมาตั้งแต่เดือนไหน
+          select: { totalPrice: true, createdAt: true },
         },
       },
     });
@@ -84,6 +85,12 @@ exports.listOrganizations = async (req, res, next) => {
         creditTotal: repairs.reduce(
           (sum, repair) => sum + Number(repair.totalPrice || 0),
           0,
+        ),
+        // บิลที่ยังไม่ได้เก็บเงินและเก่าที่สุด = ค้างมาตั้งแต่เดือนไหน
+        oldestUnpaidAt: repairs.reduce(
+          (oldest, repair) =>
+            !oldest || repair.createdAt < oldest ? repair.createdAt : oldest,
+          null,
         ),
       }))
       // ค้างเยอะขึ้นก่อน เพราะเป็นเหตุผลหลักที่เปิดหน้านี้

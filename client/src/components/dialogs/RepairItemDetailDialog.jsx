@@ -642,7 +642,6 @@ const RepairItemDetailDialog = ({
                             disabled={isSubmitting}
                             onClick={handleCancelAddStock}
                             // พื้นขาว+ขอบ ไม่ใช่พื้นเทา เพราะกล่องฟอร์มเป็น bg-gray-50 อยู่แล้วจะกลืนกัน
-                            // กว้างครึ่งเดียวของปุ่มหลัก — เป็นทางถอย ไม่ใช่สิ่งที่ตั้งใจมากด
                             className="font-athiti bg-surface text-subtle-dark border-subtle-light flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
                           >
                             ยกเลิก
@@ -660,7 +659,7 @@ const RepairItemDetailDialog = ({
                               )
                             }
                             isLoading={isSubmitting}
-                            className="font-athiti bg-gradient-primary mr-0 ml-0 flex-[2]"
+                            className="font-athiti bg-gradient-primary mr-0 ml-0 flex-1"
                           />
                         </div>
                       </form>

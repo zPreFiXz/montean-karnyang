@@ -74,12 +74,18 @@ const resolveCustomer = async (
       return null;
     }
 
+    // เปลี่ยนชื่อ = อาจเป็นคนละรายกันแล้ว ประเภทหน่วยงาน/ร้านค้าจึงต้องล้างทิ้ง
+    // ไม่งั้นบิลของลูกค้าทั่วไปจะไปโผล่ในกองหน่วยงานโดยไม่มีใครรู้
+    // (แก้คำผิดแล้วโดนล้างไปด้วย แต่แค่กดเลือกประเภทใหม่ครั้งเดียว เสียหายน้อยกว่า)
+    const isRenamed = (name || null) !== (existingCustomer.name || null);
+
     return tx.customer.update({
       where: { id: existingCustomer.id },
       data: {
         name: name || null,
         address: address || null,
         phoneNumber: phoneNumber || null,
+        ...(isRenamed ? { organizationType: null } : {}),
       },
     });
   }

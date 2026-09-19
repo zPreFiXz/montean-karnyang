@@ -1,26 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import {
   ChevronLeft,
   LoaderCircle,
   Phone,
   MapPin,
-  Wrench,
   ShoppingBag,
   Store,
-  CalendarDays,
+  History,
   SquarePen,
 } from "lucide-react";
-import RepairCard from "@/components/cards/RepairCard";
+import CarCard from "@/components/cards/CarCard";
+import BrandIcons from "@/components/icons/BrandIcons";
 import { listOrganizationRepairs } from "@/api/customer";
-import { organizationLabel } from "@/constants/organizations";
-import { isSaleRepair } from "@/utils/repairDisplay";
+import { organizationLabel, creditPathFor } from "@/constants/organizations";
 import {
-  formatCurrency,
-  formatDate,
-  formatMonth,
-  formatPhone,
-} from "@/utils/formats";
+  isSaleRepair,
+  isNoVehicleRepair,
+  getRepairTitle,
+  getRepairSubtitle,
+} from "@/utils/repairDisplay";
+import { formatCurrency, formatDateShort, formatPhone } from "@/utils/formats";
+import { Wrench } from "@/components/icons/Icons";
 import { toastError } from "@/utils/handleError";
 import OrganizationTypeDialog from "@/components/dialogs/OrganizationTypeDialog";
 import {
@@ -38,6 +39,8 @@ const OrganizationDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   // แก้ประเภทได้จากหน้านี้ด้วย ไม่งั้นพอไม่เหลือบิลเครดิตให้กดเข้าไปก็แก้ไม่ได้อีกเลย
   const [isTypeDialogOpen, setIsTypeDialogOpen] = useState(false);
+  // ประเภทที่เพิ่งเปลี่ยนระหว่างเปิดหน้านี้ ใช้เลือกปลายทางของปุ่มย้อนกลับ
+  const changedTypeRef = useRef(undefined);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,11 +67,6 @@ const OrganizationDetail = () => {
   useScrollTracking(scrollKey);
   useScrollRestoration(scrollKey, !isLoading);
 
-  // บิลเรียงใหม่สุดมาก่อนจากเซิร์ฟเวอร์ ใบสุดท้ายจึงเป็นใบที่ค้างมานานที่สุด
-  const oldestUnpaid = repairs.length
-    ? repairs[repairs.length - 1].createdAt
-    : null;
-
   const creditTotal = repairs.reduce(
     (sum, repair) => sum + (Number(repair.totalPrice) || 0),
     0,
@@ -78,20 +76,32 @@ const OrganizationDetail = () => {
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
         <button
-          onClick={() =>
-            window.history.length > 1
-              ? navigate(-1)
-              : navigate("/organizations")
-          }
+          // เปลี่ยนประเภทไประหว่างเปิดหน้านี้ = กองที่มาตอนแรกไม่มีรายนี้แล้ว
+          // พาไปกองใหม่แทนการถอยกลับไปเจอรายชื่อที่หายไปหนึ่งราย
+          onClick={() => {
+            if (changedTypeRef.current !== undefined) {
+              navigate(creditPathFor(changedTypeRef.current), {
+                replace: true,
+              });
+              return;
+            }
+
+            if (window.history.length > 1) {
+              navigate(-1);
+              return;
+            }
+
+            navigate("/organizations");
+          }}
           aria-label="ย้อนกลับ"
           className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
         >
           <ChevronLeft className="text-surface" />
         </button>
-        {/* หัวหน้าจอบอกว่าอยู่หน้าอะไร ส่วนชื่อหน่วยงานอยู่ในเนื้อหาข้างล่าง
+        {/* หัวหน้าจอบอกว่าอยู่กองไหน ส่วนชื่อหน่วยงานอยู่ในเนื้อหาข้างล่าง
             เหมือนหน้าประวัติรถที่หัวไม่ได้เขียนทะเบียน */}
         <p className="text-surface min-w-0 flex-1 truncate text-2xl font-semibold md:text-[26px]">
-          หน่วยงานและร้านค้า
+          เครดิต
         </p>
       </div>
 
@@ -154,25 +164,16 @@ const OrganizationDetail = () => {
             title="ประวัติย้อนหลัง"
             className="bg-subtle-light/15 mt-[2px] flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full"
           >
-            <CalendarDays className="text-subtle-dark h-5 w-5" />
+            <History className="text-subtle-dark h-5 w-5" />
           </Link>
         </div>
 
         {/* กล่องยอดรวมแบบเดียวกับท้ายบิล พื้นไล่สีจางของสถานะเครดิต */}
         <div className="border-status-credit/30 from-status-credit/10 to-status-credit/5 mt-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
           <div className="flex items-center justify-between gap-[8px]">
-            <div className="min-w-0">
-              <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
-                ยอดค้างชำระ
-              </p>
-              {/* ยึดบิลเก่าสุดที่ยังไม่ได้เก็บเงิน บอกว่าค้างมานานแค่ไหน
-                  ใช้ได้ทั้งกรณีบิลเดือนเดียวและค้างข้ามหลายเดือน */}
-              {oldestUnpaid && (
-                <p className="text-subtle-light text-base leading-tight font-medium md:text-lg">
-                  ค้างตั้งแต่ {formatMonth(oldestUnpaid)}
-                </p>
-              )}
-            </div>
+            <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
+              ยอดค้างชำระ
+            </p>
             <p className="text-status-credit text-2xl font-semibold md:text-[26px]">
               {formatCurrency(creditTotal)}
             </p>
@@ -181,7 +182,7 @@ const OrganizationDetail = () => {
 
         <div className="mt-[16px] flex items-center gap-[8px]">
           <p className="text-normal text-[22px] font-semibold md:text-2xl">
-            บิลเครดิต
+            บิลค้างชำระ
           </p>
           {!isLoading && repairs.length > 0 && (
             <span className="text-subtle-light shrink-0 text-lg font-medium md:text-xl">
@@ -197,7 +198,7 @@ const OrganizationDetail = () => {
         ) : repairs.length === 0 ? (
           <div className="flex flex-1 items-center justify-center">
             <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">
-              ไม่มีบิลเครดิต
+              ไม่มีบิลค้างชำระ
             </p>
           </div>
         ) : (
@@ -207,14 +208,26 @@ const OrganizationDetail = () => {
               to={`/repairs/${item.id}`}
               className="mt-[16px] block w-full"
             >
-              {/* การ์ดเดียวกับหน้าประวัติรถ เพราะเป็นการไล่บิลของเจ้าของรายเดียวเหมือนกัน
-                  วันที่เป็นบรรทัดหลัก บรรทัดรองบอกจำนวนรายการ ไม่ต้องมีชื่อหน่วยงานซ้ำทุกใบ */}
-              <RepairCard
-                icon={isSaleRepair(item) ? ShoppingBag : Wrench}
-                itemCount={item.repairItems?.length}
-                dateText={formatDate(item.createdAt)}
+              {/* การ์ดแบบเดียวกับรายการบิลหน้าอื่น ทะเบียนเป็นบรรทัดหลัก
+                  ตามด้วยยี่ห้อรุ่นกับวันที่ และยอดเงินขวาสุด */}
+              <CarCard
+                bg="credit"
+                icon={
+                  isSaleRepair(item) ? (
+                    <ShoppingBag className="text-surface h-6 w-6" />
+                  ) : isNoVehicleRepair(item) ? (
+                    <Wrench />
+                  ) : (
+                    <BrandIcons
+                      brand={item.vehicle?.vehicleModel?.brand}
+                      color="#7c3aed"
+                    />
+                  )
+                }
+                licensePlate={getRepairTitle(item)}
+                brand={getRepairSubtitle(item)}
+                note={formatDateShort(item.createdAt)}
                 price={Number(item.totalPrice) || 0}
-                status={item.status}
               />
             </Link>
           ))
@@ -225,13 +238,10 @@ const OrganizationDetail = () => {
           isOpen={isTypeDialogOpen}
           onClose={() => setIsTypeDialogOpen(false)}
           customer={customer}
+          // ทั้งสามปุ่มทำเหมือนกัน คืออยู่หน้าเดิมแล้วอัปเดตให้เห็นผลทันที
+          // ส่วนการย้ายกองไปเกิดตอนกดย้อนกลับ (หน้านี้ยังดูบิลค้างกับประวัติได้เหมือนเดิม)
           onSaved={(type) => {
-            // ไม่ใช่หน่วยงานหรือร้านค้าแล้ว บิลที่ค้างอยู่ย้ายไปกองเครดิตทันที
-            // จึงพาไปที่นั่นเลย ไม่ใช่กลับไปหน้ารายชื่อที่ไม่มีรายนี้อยู่แล้ว
-            if (!type) {
-              navigate("/repairs?status=credit", { replace: true });
-              return;
-            }
+            changedTypeRef.current = type;
             setCustomer((prev) => ({ ...prev, organizationType: type }));
           }}
         />

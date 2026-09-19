@@ -34,7 +34,7 @@ import {
 import BrandIcons from "@/components/icons/BrandIcons";
 import { onKeyActivate } from "@/utils/a11y";
 import OrganizationTypeDialog from "@/components/dialogs/OrganizationTypeDialog";
-import { organizationLabel } from "@/constants/organizations";
+import { organizationLabel, creditPathFor } from "@/constants/organizations";
 import { Building2, Store, SquarePen } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import ReceiptPreviewDialog from "@/components/dialogs/ReceiptPreviewDialog";
@@ -273,6 +273,19 @@ const RepairDetail = () => {
 
     const needsPaymentMethod = nextStatus === "PAID";
 
+    // ลูกค้ายังไม่เคยตั้งประเภท ถามก่อนแล้วค่อยลงเครดิต ตอบแล้วจะวนกลับมาทำต่อเอง
+    // ถามก่อนเพราะถ้าปิดกล่องทิ้ง บิลจะได้ไม่ถูกลงเครดิตไปแล้วทั้งที่ยังไม่ได้ตอบ
+    if (
+      nextStatus === "CREDIT" &&
+      repair.customer &&
+      !repair.customer.organizationType &&
+      !creditTypeAnsweredRef.current
+    ) {
+      pendingCreditSkipRef.current = skipToCompleted;
+      setIsOrgDialogOpen(true);
+      return;
+    }
+
     try {
       if (skipToCompleted) {
         setIsUpdatingSkip(true);
@@ -329,10 +342,18 @@ const RepairDetail = () => {
       // บิลย้ายกองไปแล้ว หน้าบิลเดิมในประวัติจึงหมดหน้าที่ ใช้แทนที่แทนการซ้อนเพิ่ม
       // กดย้อนกลับครั้งเดียวจะถึงรายการที่มาตั้งแต่แรก ไม่ต้องผ่านบิลที่ย้ายออกไปแล้ว
 
-      // ลงเครดิตให้หน่วยงานหรือร้านค้า บิลจะไปโผล่ที่หน้าหน่วยงานและร้านค้า ไม่ใช่แท็บเครดิต
-      // จึงต้องพาไปที่นั่น ไม่งั้นจะเข้าแท็บเครดิตแล้วหาบิลที่เพิ่งลงไม่เจอ
-      if (nextStatus === "CREDIT" && repair.customer?.organizationType) {
-        navigate("/organizations", { replace: true });
+      // ลงเครดิตแล้วพาไปที่กองที่บิลไปอยู่จริง ไม่งั้นจะหาบิลที่เพิ่งลงไม่เจอ
+      // เครดิตทุกแบบอยู่หน้าเดียวกันแล้ว ต่างแค่กองย่อย
+      if (nextStatus === "CREDIT") {
+        // ประเภทที่เพิ่งเลือกในกล่องยังไม่อยู่ในข้อมูลบิลที่ถืออยู่ ใช้ค่าที่จำไว้ก่อน
+        navigate(
+          creditPathFor(
+            creditTypeAnsweredRef.current
+              ? pendingCreditTypeRef.current
+              : repair.customer?.organizationType,
+          ),
+          { replace: true },
+        );
         return;
       }
 
@@ -588,9 +609,37 @@ const RepairDetail = () => {
   // บิลเครดิตมักเป็นของหน่วยงานราชการหรือร้านค้าที่มาเคลียร์ทีเดียวตอนสิ้นเดือน
   // ตั้งประเภทไว้ที่ตัวลูกค้า บิลใบต่อไปของรายเดียวกันจึงถูกรวมให้เอง
   const [isOrgDialogOpen, setIsOrgDialogOpen] = useState(false);
-  const canSetOrganization = repair?.status === "CREDIT" && !!repair?.customer;
+  // จำว่ากล่องถูกเปิดระหว่างกำลังลงเครดิตหรือเปล่า (null = ไม่ได้อยู่ในขั้นตอนนั้น)
+  // และตอบว่าอะไร เพื่อให้ลงเครดิตทำต่อได้ทันทีหลังบันทึกประเภท
+  const pendingCreditSkipRef = useRef(null);
+  const creditTypeAnsweredRef = useRef(false);
+  const pendingCreditTypeRef = useRef(null);
+  // ประเภทที่เพิ่งเปลี่ยนระหว่างเปิดบิลนี้ ใช้เลือกปลายทางของปุ่มย้อนกลับ
+  const changedTypeRef = useRef(undefined);
+  // ปุ่มขึ้นเฉพาะบิลเครดิต แต่ตัวกล่องต้องเรียกได้ตลอด เพราะหลังกดลงเครดิต
+  // ข้อมูลบิลในมือยังเป็นสถานะเดิมอยู่ (ไม่ได้โหลดใหม่ เพราะกำลังจะออกจากหน้า)
+  const hasCustomer = !!repair?.customer;
+  const canSetOrganization = repair?.status === "CREDIT" && hasCustomer;
 
   const handleGoBack = () => {
+    // เปลี่ยนประเภทระหว่างเปิดบิลนี้ = กองที่มาตอนแรกไม่มีบิลใบนี้แล้ว
+    // พาไปกองใหม่แทน ไม่งั้นกลับไปเจอรายการที่หายไปหนึ่งใบโดยไม่รู้ว่าไปไหน
+    //
+    // ดูจากสถานะของบิล ไม่ใช่ป้ายที่ติดมากับหน้า เพราะบิลที่กดมาจากในหน้าของหน่วยงาน
+    // ไม่มีป้ายนั้นติดมาด้วย แต่ก็อยู่ในหน้าเครดิตเหมือนกัน
+    // (เข้ามาจากหน้าประวัติรถหรือรายงานยอดขาย จัดการด้วยเงื่อนไขข้างล่างตามเดิม)
+    const cameFromCreditPage =
+      location.state?.from !== "vehicle-detail" && !location.state?.returnTo;
+
+    if (
+      changedTypeRef.current !== undefined &&
+      repair?.status === "CREDIT" &&
+      cameFromCreditPage
+    ) {
+      navigate(creditPathFor(changedTypeRef.current), { replace: true });
+      return;
+    }
+
     if (
       location.state?.returnTo &&
       location.state.returnTo.includes("/admin/reports/sales")
@@ -773,9 +822,11 @@ const RepairDetail = () => {
                         {repair.customer.name}
                       </p>
                     )}
-                    {/* ประเภทที่ตั้งไว้แล้ว แสดงใต้ชื่อให้รู้ว่าบิลนี้ถูกรวมอยู่กับใคร */}
+                    {/* ขึ้นเฉพาะหน่วยงานกับร้านค้า ซึ่งเป็นข้อยกเว้นที่ต้องรู้
+                        ลูกค้าทั่วไปมีเกือบทุกบิล บอกไปก็ไม่ได้อะไรใหม่ ไม่มีบรรทัดนี้ก็แปลว่าทั่วไป
+                        ใช้สีเดียวกับบรรทัดยี่ห้อ-รุ่นรถ เพราะทำหน้าที่เดียวกันคือขยายบรรทัดบน */}
                     {repair.customer.organizationType && (
-                      <p className="text-subtle-light text-lg leading-tight font-medium md:text-xl">
+                      <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
                         {organizationLabel(repair.customer.organizationType)}
                       </p>
                     )}
@@ -1246,18 +1297,37 @@ const RepairDetail = () => {
         onOpenChange={setIsReceiptOpen}
       />
 
-      {canSetOrganization && (
+      {hasCustomer && (
         <OrganizationTypeDialog
           isOpen={isOrgDialogOpen}
-          onClose={() => setIsOrgDialogOpen(false)}
+          // ปิดกล่องโดยไม่ตอบ = ยังไม่ลงเครดิต บิลอยู่สถานะเดิม
+          onClose={() => {
+            pendingCreditSkipRef.current = null;
+            setIsOrgDialogOpen(false);
+          }}
           customer={repair.customer}
+          // อยู่ระหว่างลงเครดิต ข้อความแจ้งผลจะมาทีเดียวตอนลงเครดิตเสร็จ
+          silent={pendingCreditSkipRef.current !== null}
           // บิลย้ายกองทันทีที่เปลี่ยนประเภท จึงพาไปที่กองใหม่เลย ไม่ใช่ค้างอยู่หน้าเดิม
           // แทนที่หน้าบิลในประวัติ กดย้อนกลับจะได้ถึงหน้าที่มาตั้งแต่แรก
-          onSaved={(type) =>
-            navigate(type ? "/organizations" : "/repairs?status=credit", {
-              replace: true,
-            })
-          }
+          onSaved={(type) => {
+            setIsOrgDialogOpen(false);
+
+            // ถูกถามระหว่างกำลังลงเครดิต ตอบแล้วก็ลงเครดิตต่อให้จบ
+            if (pendingCreditSkipRef.current !== null) {
+              const skipToCompleted = pendingCreditSkipRef.current;
+              pendingCreditSkipRef.current = null;
+              creditTypeAnsweredRef.current = true;
+              pendingCreditTypeRef.current = type;
+              handleUpdateStatus(skipToCompleted);
+              return;
+            }
+
+            // แก้ป้ายของลูกค้าเฉยๆ บิลที่เปิดอยู่ยังเป็นใบเดิม จึงอยู่หน้านี้ต่อ
+            // โหลดใหม่เพื่อให้บรรทัดประเภทใต้ชื่อตรงกับที่เพิ่งเลือก
+            changedTypeRef.current = type;
+            fetchRepairDetail();
+          }}
         />
       )}
 

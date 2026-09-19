@@ -31,8 +31,6 @@ model Customer {
   name             String?
   address          String?
   phoneNumber      String?           @unique
-  // ลูกค้าที่เป็นหน่วยงานราชการหรือร้านค้า มักเปิดบิลเครดิตแล้วมาเคลียร์ทีเดียวตอนสิ้นเดือน
-  // ว่าง = ลูกค้าทั่วไป ไม่ต้องไปรวมยอดให้
   organizationType OrganizationType?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
@@ -83,8 +81,6 @@ model Vehicle {
 model Category {
   id        Int       @id @default(autoincrement())
   name      String    @unique
-  // ลำดับที่โชว์ในแถบหมวดหมู่ — เรียงตามที่ร้านหยิบใช้ ไม่ใช่ตามลำดับที่เพิ่มเข้าระบบ
-  // เว้นช่วงทีละ 10 เผื่อแทรกหมวดใหม่ระหว่างกลางโดยไม่ต้องไล่แก้ทั้งตาราง
   sortOrder Int       @default(999)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -101,7 +97,6 @@ model Part {
   costPrice          Int?
   sellingPrice       Int
   unit               String
-  // ทศนิยมเพราะน้ำมันขายเป็นลิตรครึ่งลิตรได้ ของอย่างอื่นยังเป็นจำนวนเต็มตามเดิม
   stockQuantity      Decimal      @db.Decimal(10, 2)
   minStockLevel      Int
   attributes         Json?
@@ -168,11 +163,9 @@ enum RepairType {
 }
 
 enum RepairStatus {
-  // ประเมินราคาไว้แต่ยังไม่ได้ลงมือซ่อม จึงยังไม่ตัดสต็อกและไม่นับเป็นยอดขาย
   ESTIMATE
   IN_PROGRESS
   COMPLETED
-  // ซ่อมเสร็จแล้วแต่ลูกค้าติดเงินไว้ ยังไม่นับเป็นยอดขายจนกว่าจะตัดเครดิต
   CREDIT
   PAID
 }
@@ -188,7 +181,6 @@ model RepairItem {
   itemName  String?
   side      Side?
   unitPrice Int
-  // ทศนิยมเพราะน้ำมันขายเป็นลิตรครึ่งลิตรได้
   quantity  Decimal  @default(1) @db.Decimal(10, 2)
   soldLots  Json?
   createdAt DateTime @default(now())

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X, Building2, Store } from "lucide-react";
+import { X, Building2, Store, CircleUserRound } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,13 +10,26 @@ import FormButton from "@/components/forms/FormButton";
 import { ORGANIZATION_TYPES } from "@/constants/organizations";
 import { setCustomerOrganizationType } from "@/api/customer";
 import { toastError } from "@/utils/handleError";
+import { withMinDuration } from "@/utils/withMinDuration";
 import { toast } from "sonner";
 
 const ICONS = { GOVERNMENT: Building2, SHOP: Store };
 
+// ลูกค้าทั่วไปคือ "ไม่ได้เป็นทั้งสองอย่าง" เก็บเป็นค่าว่างในฐานข้อมูล
+// แต่ต้องมีปุ่มให้กดเลือกตรงๆ ไม่งั้นต้องรู้เองว่าต้องกดปุ่มที่เลือกอยู่ซ้ำเพื่อยกเลิก
+const OPTIONS = [...ORGANIZATION_TYPES, { value: null, label: "ลูกค้าทั่วไป" }];
+
 // ตั้งว่าลูกค้ารายนี้เป็นหน่วยงานหรือร้านค้า
 // ติดกับตัวลูกค้า ไม่ใช่บิล ตั้งครั้งเดียวแล้วบิลเครดิตใบต่อๆ ไปของรายนี้ถูกรวมให้เอง
-const OrganizationTypeDialog = ({ isOpen, onClose, customer, onSaved }) => {
+// silent = ถูกเรียกเป็นขั้นตอนหนึ่งของงานอื่น (เช่นระหว่างลงเครดิต)
+// งานนั้นมีข้อความแจ้งผลของตัวเองอยู่แล้ว ไม่ต้องเด้งซ้อนกันสองอัน
+const OrganizationTypeDialog = ({
+  isOpen,
+  onClose,
+  customer,
+  onSaved,
+  silent = false,
+}) => {
   const [selected, setSelected] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -29,8 +42,16 @@ const OrganizationTypeDialog = ({ isOpen, onClose, customer, onSaved }) => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await setCustomerOrganizationType(customer.id, selected);
-      toast.success("บันทึกประเภทลูกค้าเรียบร้อยแล้ว");
+      // หน่วงขั้นต่ำให้ตัวหมุนทันโชว์ เหมือนปุ่มบันทึกอื่นในระบบ
+      // (คำขอนี้เล็กมาก ถ้าไม่หน่วงจะกระพริบแวบเดียวจนไม่แน่ใจว่ากดติด)
+      await withMinDuration(() =>
+        setCustomerOrganizationType(customer.id, selected),
+      );
+      // บอกผลที่เกิดขึ้นจริง ไม่ใช่ชื่อช่องข้อมูล คนอ่านจะได้ไม่ต้องแปลอีกชั้น
+      if (!silent) {
+        const label = OPTIONS.find((item) => item.value === selected)?.label;
+        toast.success(`เปลี่ยนเป็น${label}เรียบร้อยแล้ว`);
+      }
       onSaved?.(selected);
       onClose();
     } catch (error) {
@@ -69,20 +90,18 @@ const OrganizationTypeDialog = ({ isOpen, onClose, customer, onSaved }) => {
             </h2>
           )}
 
-          {/* เลือกอันที่เลือกอยู่ซ้ำ = ยกเลิก กลับไปเป็นลูกค้าทั่วไป
-              จึงไม่ต้องมีตัวเลือกที่สามให้รกกล่อง */}
-          <div className="mt-[16px] flex gap-[16px]">
-            {ORGANIZATION_TYPES.map((option) => {
-              const Icon = ICONS[option.value];
+          <div className="mt-[16px] flex gap-[8px]">
+            {OPTIONS.map((option) => {
+              const Icon = ICONS[option.value] || CircleUserRound;
               const isActive = selected === option.value;
 
               return (
                 <button
-                  key={option.value}
+                  key={option.label}
                   type="button"
-                  onClick={() => setSelected(isActive ? null : option.value)}
+                  onClick={() => setSelected(option.value)}
                   aria-pressed={isActive}
-                  className={`flex flex-1 cursor-pointer flex-col items-center gap-[8px] rounded-[10px] border p-[16px] duration-300 ${
+                  className={`flex flex-1 cursor-pointer flex-col items-center gap-[8px] rounded-[10px] border px-[8px] py-[16px] duration-300 ${
                     isActive
                       ? "border-primary bg-primary/5"
                       : "border-gray-200 bg-gray-50"
@@ -100,7 +119,7 @@ const OrganizationTypeDialog = ({ isOpen, onClose, customer, onSaved }) => {
                     />
                   </span>
                   <span
-                    className={`text-xl font-semibold md:text-[22px] ${
+                    className={`text-center text-lg font-semibold md:text-xl ${
                       isActive ? "text-primary" : "text-subtle-dark"
                     }`}
                   >
