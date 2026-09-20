@@ -10,6 +10,7 @@ const {
   updateCustomerOrganizationType,
   listOrganizations,
   listOrganizationRepairs,
+  printOrganizationBill,
 } = require("../controllers/customer");
 
 router.get("/customers", authCheck, listCustomers);
@@ -19,6 +20,11 @@ router.get(
   "/customers/organizations/:id/repairs",
   authCheck,
   listOrganizationRepairs,
+);
+router.post(
+  "/customers/organizations/:id/print",
+  authCheck,
+  printOrganizationBill,
 );
 router.patch(
   "/customers/:id/organization-type",

@@ -7,14 +7,22 @@ import {
   ShoppingBag,
   CalendarDays,
   Store,
+  Printer,
 } from "lucide-react";
-import RepairCard from "@/components/cards/RepairCard";
+import CarCard from "@/components/cards/CarCard";
+import OrganizationBillPreviewDialog from "@/components/dialogs/OrganizationBillPreviewDialog";
+import BrandIcons from "@/components/icons/BrandIcons";
 import { listOrganizationRepairs } from "@/api/customer";
-import { isSaleRepair } from "@/utils/repairDisplay";
+import {
+  isSaleRepair,
+  isNoVehicleRepair,
+  getRepairTitle,
+  getRepairSubtitle,
+} from "@/utils/repairDisplay";
 import { organizationLabel } from "@/constants/organizations";
 import {
   formatCurrency,
-  formatDate,
+  formatDateShort,
   formatMonth,
   monthKey,
 } from "@/utils/formats";
@@ -23,6 +31,33 @@ import {
   useScrollRestoration,
   useScrollTracking,
 } from "@/utils/scrollPosition";
+
+// สีของการ์ดตามสถานะบิล ชุดเดียวกับหน้าสถานะการซ่อม
+const statusBgOf = (status) => {
+  switch (status) {
+    case "IN_PROGRESS":
+      return "progress";
+    case "COMPLETED":
+      return "completed";
+    case "PAID":
+      return "paid";
+    default:
+      return "credit";
+  }
+};
+
+const statusColorOf = (status) => {
+  switch (status) {
+    case "IN_PROGRESS":
+      return "#ffb000";
+    case "COMPLETED":
+      return "#22c55e";
+    case "PAID":
+      return "#1976d2";
+    default:
+      return "#7c3aed";
+  }
+};
 
 // ประวัติบิลของหน่วยงานหรือร้านค้ารายเดียว แยกเป็นรายเดือน
 // หน้าเดียวสองสถานะ: ไม่มี month ใน URL = รายชื่อเดือน, มี month = บิลของเดือนนั้น
@@ -36,6 +71,7 @@ const OrganizationHistory = () => {
   const [customer, setCustomer] = useState(null);
   const [repairs, setRepairs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,6 +117,11 @@ const OrganizationHistory = () => {
   const monthRepairs = month
     ? repairs.filter((repair) => monthKey(repair.createdAt) === month)
     : [];
+  const monthTotal = monthRepairs.reduce(
+    (sum, repair) => sum + (Number(repair.totalPrice) || 0),
+    0,
+  );
+
   const monthLabel = month
     ? formatMonth(monthRepairs[0]?.date || `${month}-01`)
     : "";
@@ -121,6 +162,32 @@ const OrganizationHistory = () => {
                 </p>
               )}
             </div>
+            {/* พิมพ์ได้เฉพาะตอนเปิดดูรายเดือน เพราะพิมพ์เป็นชุดของเดือนนั้น */}
+            {month && monthRepairs.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsPreviewOpen(true)}
+                aria-label="พิมพ์ใบวางบิล"
+                title="พิมพ์ใบวางบิล"
+                className="bg-subtle-light/15 mt-[2px] flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+              >
+                <Printer className="text-subtle-dark h-5 w-5" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ยอดรวมของเดือนที่เปิดอยู่ วางแบบเดียวกับกล่องยอดค้างชำระในหน้าก่อนหน้า */}
+        {month && monthRepairs.length > 0 && (
+          <div className="border-status-credit/30 from-status-credit/10 to-status-credit/5 mt-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
+            <div className="flex items-center justify-between gap-[8px]">
+              <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
+                ทั้งหมด {monthRepairs.length} บิล
+              </p>
+              <p className="text-status-credit text-2xl leading-tight font-semibold md:text-[26px]">
+                {formatCurrency(monthTotal)}
+              </p>
+            </div>
           </div>
         )}
 
@@ -142,12 +209,25 @@ const OrganizationHistory = () => {
                 to={`/repairs/${item.id}`}
                 className="mt-[16px] block w-full"
               >
-                <RepairCard
-                  icon={isSaleRepair(item) ? ShoppingBag : Wrench}
-                  itemCount={item.repairItems?.length}
-                  dateText={formatDate(item.createdAt)}
+                {/* การ์ดแบบเดียวกับรายการบิลหน้าอื่น สีตามสถานะของบิลแต่ละใบ */}
+                <CarCard
+                  bg={statusBgOf(item.status)}
+                  icon={
+                    isSaleRepair(item) ? (
+                      <ShoppingBag className="text-surface h-6 w-6" />
+                    ) : isNoVehicleRepair(item) ? (
+                      <Wrench />
+                    ) : (
+                      <BrandIcons
+                        brand={item.vehicle?.vehicleModel?.brand}
+                        color={statusColorOf(item.status)}
+                      />
+                    )
+                  }
+                  licensePlate={getRepairTitle(item)}
+                  brand={getRepairSubtitle(item)}
+                  note={formatDateShort(item.createdAt)}
                   price={Number(item.totalPrice) || 0}
-                  status={item.status}
                 />
               </Link>
             ))
@@ -183,6 +263,13 @@ const OrganizationHistory = () => {
           ))
         )}
       </div>
+      <OrganizationBillPreviewDialog
+        customer={customer}
+        repairs={monthRepairs}
+        month={month}
+        open={isPreviewOpen}
+        onOpenChange={setIsPreviewOpen}
+      />
     </div>
   );
 };

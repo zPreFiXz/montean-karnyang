@@ -123,7 +123,8 @@ const mergeBySide = (items) => {
 };
 
 // showCustomer = false คือใบที่ไม่เอาชื่อ ที่อยู่ และเลขผู้เสียภาษีของลูกค้าติดไปด้วย
-const buildReceiptHtml = (
+// แผ่นกระดาษของใบเสร็จหนึ่งใบ (ไม่รวมโครงเอกสาร) ใบยาวเกินหนึ่งแผ่นจะได้หลายแผ่น
+const receiptPagesHtml = (
   repair,
   { showCustomer = true, showBrand = true } = {},
 ) => {
@@ -204,7 +205,7 @@ const buildReceiptHtml = (
       <tr class="sum">
         <td colspan="2">จำนวนเงินรวมทั้งสิ้น <span class="sum-text">${escapeHtml(bahtText(total))}</span></td>
         <td class="c">จำนวนเงินรวม</td>
-        <td class="r" style="font-weight:600">${formatMoney(total)}</td>
+        <td class="r" style="font-weight:600;font-size:13pt">${formatMoney(total)}</td>
       </tr>`;
 
   // ปิดข้อมูลลูกค้า = เว้นช่องไว้ ไม่เอาบรรทัดออก ใบจะได้หน้าตาเหมือนกันทุกครั้ง
@@ -293,12 +294,12 @@ ${customerFields}
       }</span>${box.label}</span>`,
   ).join("");
 
-  return `<!doctype html>
-<html lang="th">
-<head>
-<meta charset="utf-8" />
-<title>ใบเสร็จรับเงิน ${repair.id}</title>
-<style>
+  // คืนเฉพาะแผ่นกระดาษ เพื่อให้เอาไปต่อกับใบอื่นในเอกสารเดียวได้
+  return pages.map(pageHtml).join("");
+};
+
+// โครงเอกสารกับสไตล์ใช้ร่วมกันทุกใบ จะได้ไม่ต้องก๊อปสไตล์ไปวางซ้ำเวลาพิมพ์หลายใบ
+const RECEIPT_STYLES = `
   ${FONT_FACES}
   @page { size: A5 portrait; margin: 0; }
   * { box-sizing: border-box; }
@@ -353,13 +354,27 @@ ${customerFields}
   .bank-field .dotted { flex: 1; }
   .sign { display: flex; gap: 16px; margin-top: 22px; }
   .sign p { display: flex; align-items: flex-end; gap: 4px; flex: 1; margin: 0; }
+`;
+
+const receiptDocument = (title, body) => `<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<title>${title}</title>
+<style>
+${RECEIPT_STYLES}
 </style>
 </head>
 <body>
-${pages.map(pageHtml).join("")}
+${body}
 </body>
 </html>`;
-};
+
+const buildReceiptHtml = (repair, options) =>
+  receiptDocument(
+    `ใบเสร็จรับเงิน ${repair.id}`,
+    receiptPagesHtml(repair, options),
+  );
 
 // ช่างดูจากชนิดอะไหล่ ไม่ได้ดูยี่ห้อหรือรุ่น จึงตัดชื่อของช่วงล่างเหลือคำแรกของชื่อในคลัง
 // (ตรงกับ workName ใน client/src/components/receipt/JobSheetPaper.jsx)
@@ -541,4 +556,94 @@ const buildJobSheetHtml = (repair) => {
 </html>`;
 };
 
-module.exports = { buildReceiptHtml, buildJobSheetHtml };
+const ORGANIZATION_LABELS = { GOVERNMENT: "หน่วยงาน", SHOP: "ร้านค้า" };
+
+const formatThaiDate = (value) => {
+  const date = new Date(value || Date.now());
+  return date.toLocaleDateString("th-TH", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+// คำเดียวกับหัวการ์ดในหน้าเว็บ (ดู getRepairTitle ใน client/src/utils/repairDisplay.js)
+const repairTitle = (repair) => {
+  if (repair.type === "SALE") return "ขายอะไหล่หน้าร้าน";
+  if (!repair.vehicle) return "งานบริการ";
+
+  const plate = repair.vehicle?.licensePlate;
+  if (plate?.plateNumber) {
+    return `${formatPlate(plate.plateNumber)} ${plate.province || ""}`.trim();
+  }
+  // รถที่ไม่มีทะเบียน บอกยี่ห้อกับรุ่นแทน จะได้ยังรู้ว่าเป็นคันไหน
+  return displayBrand(repair.vehicle?.vehicleModel) || "งานซ่อม";
+};
+
+// เอกสารวางบิลของหน่วยงานหรือร้านค้า: แผ่นแรกเป็นใบสรุปว่ามีบิลอะไรบ้างรวมเท่าไหร่
+// แผ่นถัดไปเป็นใบเสร็จของแต่ละบิลเรียงตามลำดับเดียวกับในใบสรุป
+const buildOrganizationBillHtml = (customer, repairs, options) => {
+  const total = repairs.reduce(
+    (sum, repair) => sum + Number(repair.totalPrice || 0),
+    0,
+  );
+
+  const rows = repairs
+    .map(
+      (repair) => `<tr>
+        <td class="c">${repair.id}</td>
+        <td class="c">${escapeHtml(formatThaiDate(repair.createdAt))}</td>
+        <td>${escapeHtml(repairTitle(repair))}</td>
+        <td class="r">${formatMoney(Number(repair.totalPrice || 0))}</td>
+      </tr>`,
+    )
+    .join("");
+
+  const summary = `<div class="receipt-paper">
+  <div class="head" style="justify-content:center">
+    <div class="title">
+      <div class="doc">ใบวางบิล</div>
+      <div class="shop">${SHOP.name}</div>
+    </div>
+  </div>
+
+  <p class="center" style="margin:2px 0 0">${SHOP.address}</p>
+  <p class="center" style="margin:0">${SHOP.contact}</p>
+
+  <p style="margin:12px 0 0;display:flex;align-items:flex-end;gap:6px">ชื่อลูกค้า<span class="dotted" style="flex:1;text-align:center;font-weight:600">${escapeHtml(customer?.name || "")}</span><span style="white-space:nowrap">จำนวน ${repairs.length} บิล</span></p>
+
+  <table style="margin-top:8px">
+    <thead>
+      <tr>
+        <th style="width:52px">เลขที่</th>
+        <th style="width:86px">วันที่</th>
+        <th>รายการ</th>
+        <th style="width:92px">จำนวนเงิน</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows}
+      <tr class="sum">
+        <td colspan="3">จำนวนเงินรวมทั้งสิ้น <span style="font-weight:600">${escapeHtml(bahtText(total))}</span></td>
+        <td class="r" style="font-weight:600;font-size:13pt">${formatMoney(total)}</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>`;
+
+  const receipts = repairs
+    .map((repair) => receiptPagesHtml(repair, options))
+    .join("");
+
+  return receiptDocument(
+    `ใบวางบิล ${customer?.name || ""}`.trim(),
+    summary + receipts,
+  );
+};
+
+module.exports = {
+  buildReceiptHtml,
+  buildJobSheetHtml,
+  buildOrganizationBillHtml,
+};

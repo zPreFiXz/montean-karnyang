@@ -7,6 +7,7 @@ import {
   MapPin,
   ShoppingBag,
   Store,
+  Printer,
   History,
   SquarePen,
 } from "lucide-react";
@@ -24,6 +25,7 @@ import { formatCurrency, formatDateShort, formatPhone } from "@/utils/formats";
 import { Wrench } from "@/components/icons/Icons";
 import { toastError } from "@/utils/handleError";
 import OrganizationTypeDialog from "@/components/dialogs/OrganizationTypeDialog";
+import OrganizationBillPreviewDialog from "@/components/dialogs/OrganizationBillPreviewDialog";
 import {
   useScrollRestoration,
   useScrollTracking,
@@ -41,6 +43,7 @@ const OrganizationDetail = () => {
   const [isTypeDialogOpen, setIsTypeDialogOpen] = useState(false);
   // ประเภทที่เพิ่งเปลี่ยนระหว่างเปิดหน้านี้ ใช้เลือกปลายทางของปุ่มย้อนกลับ
   const changedTypeRef = useRef(undefined);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -157,6 +160,18 @@ const OrganizationDetail = () => {
           >
             <SquarePen className="text-subtle-dark h-5 w-5" />
           </button>
+          {/* ใบวางบิลสำหรับเอาไปวางที่หน่วยงาน ขึ้นเฉพาะตอนมีบิลค้าง */}
+          {repairs.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setIsPreviewOpen(true)}
+              aria-label="พิมพ์ใบวางบิล"
+              title="พิมพ์ใบวางบิล"
+              className="bg-subtle-light/15 mt-[2px] flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+            >
+              <Printer className="text-subtle-dark h-5 w-5" />
+            </button>
+          )}
           {/* บิลที่เก็บเงินไปแล้วไม่อยู่ในหน้านี้ ดูย้อนหลังได้ที่ประวัติรายเดือน */}
           <Link
             to={`/organizations/${id}/history`}
@@ -172,23 +187,12 @@ const OrganizationDetail = () => {
         <div className="border-status-credit/30 from-status-credit/10 to-status-credit/5 mt-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
           <div className="flex items-center justify-between gap-[8px]">
             <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
-              ยอดค้างชำระ
+              ค้างชำระ {repairs.length} บิล
             </p>
             <p className="text-status-credit text-2xl font-semibold md:text-[26px]">
               {formatCurrency(creditTotal)}
             </p>
           </div>
-        </div>
-
-        <div className="mt-[16px] flex items-center gap-[8px]">
-          <p className="text-normal text-[22px] font-semibold md:text-2xl">
-            บิลค้างชำระ
-          </p>
-          {!isLoading && repairs.length > 0 && (
-            <span className="text-subtle-light shrink-0 text-lg font-medium md:text-xl">
-              ({repairs.length})
-            </span>
-          )}
         </div>
 
         {isLoading ? (
@@ -233,6 +237,13 @@ const OrganizationDetail = () => {
           ))
         )}
       </div>
+      <OrganizationBillPreviewDialog
+        customer={customer}
+        repairs={repairs}
+        open={isPreviewOpen}
+        onOpenChange={setIsPreviewOpen}
+      />
+
       {customer && (
         <OrganizationTypeDialog
           isOpen={isTypeDialogOpen}

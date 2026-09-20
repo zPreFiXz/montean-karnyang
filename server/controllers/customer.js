@@ -1,5 +1,7 @@
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
+const { buildOrganizationBillHtml } = require("../utils/receiptHtml");
+const { printReceipt } = require("../utils/printReceipt");
 
 // ค้นลูกค้าที่เคยบันทึกไว้ เพื่อให้เลือกซ้ำได้ตอนกรอกบิล
 // สำคัญกว่าความสะดวก: กันชื่อเดียวกันถูกพิมพ์ต่างกันจนกลายเป็นลูกค้าคนละราย
@@ -145,12 +147,104 @@ exports.listOrganizationRepairs = async (req, res, next) => {
             vehicleModel: { select: { brand: true, model: true } },
           },
         },
-        repairItems: { select: { id: true } },
+        // รายละเอียดครบ เพราะหน้านี้เอาไปวาดตัวอย่างใบเสร็จด้วย ไม่ใช่แค่นับจำนวน
+        repairItems: {
+          include: {
+            part: {
+              select: {
+                unit: true,
+                name: true,
+                category: { select: { name: true } },
+              },
+            },
+            service: { select: { name: true } },
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
 
     res.json({ customer, repairs });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// พิมพ์ใบวางบิลของหน่วยงานหรือร้านค้า: แผ่นแรกเป็นใบสรุปยอดค้าง แผ่นถัดไปเป็นใบเสร็จของแต่ละบิล
+exports.printOrganizationBill = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const showCustomer = req.body?.showCustomer !== false;
+    const showBrand = req.body?.showBrand === true;
+    // ส่งเดือนมาในรูป 2026-09 = เอาบิลของเดือนนั้นทุกสถานะ (ใช้กับหน้าประวัติรายเดือน)
+    // ไม่ส่งมา = เอาเฉพาะบิลที่ยังค้างชำระ
+    const month = String(req.body?.month || "");
+    const isMonthly = /^\d{4}-\d{2}$/.test(month);
+
+    const customer = await prisma.customer.findUnique({
+      where: { id: Number(id) },
+      select: { id: true, name: true, organizationType: true },
+    });
+
+    if (!customer) {
+      createError(404, "ไม่พบลูกค้า");
+    }
+
+    // ขอบเขตของเดือนคิดจากเวลาท้องถิ่นของเครื่องที่รันระบบ ให้ตรงกับที่หน้าเว็บจัดกลุ่มไว้
+    const monthRange = isMonthly
+      ? {
+          gte: new Date(Number(month.slice(0, 4)), Number(month.slice(5)) - 1),
+          lt: new Date(Number(month.slice(0, 4)), Number(month.slice(5))),
+        }
+      : null;
+
+    const repairs = await prisma.repair.findMany({
+      where: {
+        customerId: Number(id),
+        ...(isMonthly
+          ? { status: { not: "ESTIMATE" }, createdAt: monthRange }
+          : { status: "CREDIT" }),
+      },
+      include: {
+        customer: true,
+        vehicle: {
+          include: {
+            licensePlate: { select: { plateNumber: true, province: true } },
+            vehicleModel: { select: { brand: true, model: true } },
+          },
+        },
+        repairItems: {
+          include: {
+            part: {
+              select: {
+                unit: true,
+                name: true,
+                category: { select: { name: true } },
+              },
+            },
+            service: { select: { name: true } },
+          },
+        },
+      },
+      // เรียงตามเลขที่ใบเสร็จจากน้อยไปมาก ใบสรุปกับใบเสร็จที่แนบไปจะได้ไล่ตามเลขตรงกัน
+      orderBy: { id: "asc" },
+    });
+
+    if (repairs.length === 0) {
+      createError(
+        400,
+        isMonthly ? "ไม่มีบิลให้พิมพ์" : "ไม่มีบิลค้างชำระให้พิมพ์",
+      );
+    }
+
+    const html = buildOrganizationBillHtml(customer, repairs, {
+      showCustomer,
+      showBrand,
+    });
+
+    await printReceipt(html, `org-${customer.id}`);
+
+    res.json({ message: "ส่งใบวางบิลเข้าเครื่องพิมพ์แล้ว" });
   } catch (error) {
     next(error);
   }

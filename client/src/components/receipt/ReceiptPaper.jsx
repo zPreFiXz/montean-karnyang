@@ -7,7 +7,7 @@ import { VEHICLE_COMPATIBLE_CATEGORIES } from "@/constants/categories";
 import { isDiscountItem } from "@/constants/services";
 
 // ข้อมูลร้านที่พิมพ์ไว้บนหัวใบเสร็จเล่มกระดาษ ใช้ชุดเดียวกันเพื่อให้ใบที่พิมพ์ออกมาหน้าตาเหมือนกัน
-const SHOP = {
+export const SHOP = {
   name: "ร้านมณเฑียรการยาง",
   address: "543 หมู่ที่ 5 ตำบลน้ำอ้อม อำเภอกันทรลักษ์ จังหวัดศรีสะเกษ 33110",
   contact:
@@ -344,7 +344,8 @@ const ReceiptPaper = ({
               <td className="border border-black px-[4px] text-center whitespace-nowrap">
                 จำนวนเงินรวม
               </td>
-              <td className="border border-black px-[4px] text-right font-semibold">
+              {/* ยอดรวมคือตัวเลขที่ลูกค้ามองหา จึงใหญ่กว่ายอดของแต่ละรายการหนึ่งขั้น */}
+              <td className="border border-black px-[4px] text-right text-[13pt] font-semibold">
                 {formatMoney(total)}
               </td>
             </tr>
