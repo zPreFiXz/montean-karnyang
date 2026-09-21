@@ -131,9 +131,12 @@ const RepairReview = () => {
           const isPart = !!(item.partNumber && item.brand);
           return {
             ...(isPart ? { partId: item.id } : { serviceId: item.id }),
-            // บริการพิมพ์ชื่อเองได้ (เช่นค่าแรงที่ระบุงานลงไป) ต้องส่งชื่อไปด้วย
-            // ไม่งั้นเซิร์ฟเวอร์จะบันทึกชื่อจากคลังทับ ชื่อที่แก้ไว้จะหาย
-            ...(isPart || !item.name ? {} : { itemName: item.name }),
+            // ชื่อที่พิมพ์เองต้องส่งไปด้วย ไม่งั้นเซิร์ฟเวอร์จะประกอบชื่อจากคลังทับ
+            // อะไหล่ที่ไม่ได้แก้ชื่อไม่ต้องส่ง ปล่อยให้เซิร์ฟเวอร์ประกอบเอง
+            // (ชื่อบนการ์ดไม่มียี่ห้อกับขนาดยางนำหน้า ถ้าส่งไปจะกลายเป็นชื่อที่ขาดไป)
+            ...(!item.name || (isPart && !item.hasCustomName)
+              ? {}
+              : { itemName: item.name }),
             unitPrice: Number(item.sellingPrice),
             quantity: item.quantity,
             ...(item.side ? { side: item.side } : {}),

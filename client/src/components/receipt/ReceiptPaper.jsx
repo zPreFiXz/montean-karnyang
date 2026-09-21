@@ -28,6 +28,15 @@ const PAYMENT_BOXES = [
 // ช่างดูจากชนิดอะไหล่ ไม่ได้ดูยี่ห้อหรือรุ่น ชื่อในบิลมีทั้งสองอย่างต่อท้ายจนยาว
 // ของช่วงล่างจึงตัดเหลือคำแรกของชื่อในคลัง ซึ่งเป็นชนิดอะไหล่พอดี (ลูกหมากบน คันชักนอก)
 export const shortWorkName = (item) => {
+  // พิมพ์ชื่อทับไว้เอง = ตั้งใจให้ขึ้นแบบนั้น ไม่ต้องย่อทับ
+  // ชื่อที่ระบบประกอบเองจะมีชื่อในคลังอยู่ข้างในเสมอ ถ้าไม่มีแปลว่าถูกพิมพ์ใหม่
+  if (
+    item.part?.name &&
+    !String(item.itemName || "").includes(item.part.name)
+  ) {
+    return item.itemName;
+  }
+
   // หมวดที่อะไหล่ผูกกับรุ่นรถ ชื่อในคลังจะเป็น "ยี่ห้อ ชนิด รุ่นรถ" เสมอ
   // ตัดเหลือคำแรกซึ่งเป็นชนิดอะไหล่ (ลูกหมากบน คันชักนอก ผ้าเบรคหน้า)
   if (
@@ -107,6 +116,15 @@ export const mergeBySide = (items) => {
 };
 
 // ข้อมูลหัวใบที่ใบเสร็จกับใบสั่งงานใช้ร่วมกัน
+// ชื่อเอกสารเปลี่ยนตามสถานะ เพราะเรียกว่าใบเสร็จรับเงินได้เฉพาะตอนรับเงินแล้วจริง
+// ใบประเมินราคา = ยังไม่ได้ซ่อม เป็นใบเสนอราคา
+// เครดิต = ซ่อมแล้วแต่ยังไม่ได้เงิน เป็นใบส่งของ
+export const receiptDocTitle = (repair) => {
+  if (repair?.status === "ESTIMATE") return "ใบเสนอราคา";
+  if (repair?.status === "CREDIT") return "ใบส่งของ";
+  return "ใบเสร็จรับเงิน";
+};
+
 export const receiptHeaderInfo = (repair) => {
   const issuedAt = new Date(repair.paidAt || repair.createdAt || Date.now());
   const plate = repair.vehicle?.licensePlate;
@@ -191,7 +209,7 @@ const ReceiptPaper = ({
           <span className="w-[70px] border-b border-dotted border-black" />
         </p>
         <div className="text-center">
-          <p className="text-[15pt] font-semibold">ใบเสร็จรับเงิน</p>
+          <p className="text-[15pt] font-semibold">{receiptDocTitle(repair)}</p>
           <p className="text-[17pt] font-semibold">{SHOP.name}</p>
         </div>
         <p className="flex items-end justify-end gap-[4px] whitespace-nowrap">

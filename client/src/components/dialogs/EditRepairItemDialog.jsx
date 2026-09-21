@@ -39,10 +39,11 @@ const EditRepairItemDialog = ({
   // ดูจากธงที่ติดมากับบรรทัด ไม่ใช่ชื่อ เพราะส่วนลดเปลี่ยนชื่อได้แล้ว
   const isDiscount = isDiscountItem({ name: currentName, isDiscountLine });
   // บรรทัด "อะไหล่อื่นๆ" อยู่ในหมวดบริการเพราะไม่มีของในคลัง แต่ความหมายคืออะไหล่
+  // ส่วนอะไหล่จริงจากคลังก็เป็นอะไหล่อยู่แล้ว (isService = อยู่ในหมวดบริการจริงๆ)
   // ป้ายช่องชื่อจึงต้องเรียกตามสิ่งที่ช่างกำลังกรอกจริง
   const nameLabel = isDiscount
     ? "ชื่อส่วนลด"
-    : isPartPlaceholderItem({ name: currentName, isPartLine })
+    : !isService || isPartPlaceholderItem({ name: currentName, isPartLine })
       ? "ชื่ออะไหล่"
       : "ชื่อบริการ";
 
@@ -168,6 +169,19 @@ const EditRepairItemDialog = ({
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-[8px]">
                 <div className="space-y-[16px] rounded-[10px] bg-gray-50 p-[16px]">
+                  {/* รหัสอะไหล่ไว้เทียบกับของจริงในมือก่อนแก้ราคา
+                      วางเป็นแถวข้อมูลในกล่องเทาแบบเดียวกับหน้าต่างรายละเอียดอะไหล่ */}
+                  {!isService && partNumber && (
+                    <div className="flex items-center justify-between">
+                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                        รหัสอะไหล่:
+                      </p>
+                      <p className="text-normal text-lg font-semibold md:text-xl">
+                        {partNumber}
+                      </p>
+                    </div>
+                  )}
+
                   {isNameEditable && (
                     <FormInput
                       register={register}
@@ -182,19 +196,6 @@ const EditRepairItemDialog = ({
                       autoFocus={false}
                       errors={errors}
                     />
-                  )}
-
-                  {/* รหัสอะไหล่ไว้เทียบกับของจริงในมือก่อนแก้ราคา
-                      วางเป็นแถวข้อมูลในกล่องเทาแบบเดียวกับหน้าต่างรายละเอียดอะไหล่ */}
-                  {!isService && partNumber && (
-                    <div className="flex items-center justify-between">
-                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                        รหัสอะไหล่:
-                      </p>
-                      <p className="text-normal text-lg font-semibold md:text-xl">
-                        {partNumber}
-                      </p>
-                    </div>
                   )}
 
                   {/* บันทึกของร้าน เช่น "ต้องขันสลักใหม่" — วางแบบป้ายอยู่บนข้อความอยู่ล่าง

@@ -245,7 +245,7 @@ const RepairList = () => {
             หัวหน้าจึงบอกชื่อกองไปเลย และไม่ต้องมีหัวข้อซ้ำอีกในกล่อง */}
         <p className="text-surface min-w-0 flex-1 truncate text-2xl font-semibold md:text-[26px]">
           {status === "estimate"
-            ? "ใบประเมินราคา"
+            ? "ประเมินราคา"
             : status === "credit"
               ? "เครดิต"
               : "สถานะการซ่อม"}

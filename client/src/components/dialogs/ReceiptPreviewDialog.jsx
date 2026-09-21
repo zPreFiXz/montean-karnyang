@@ -3,6 +3,7 @@ import { X, Printer } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import ReceiptPaper, {
   hasShortenableName,
+  receiptDocTitle,
   receiptPageCount,
 } from "@/components/receipt/ReceiptPaper";
 import JobSheetPaper from "@/components/receipt/JobSheetPaper";
@@ -167,7 +168,11 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
   const hasCustomerInfo = !!(customerName || customerAddress);
   // ใบสั่งซ่อมมีไว้ส่งงานให้ช่างที่ทำกับรถ ใช้กับงานซ่อมทั่วไปและงานเช็กช่วงล่าง
   // งานบริการที่ไม่ผูกรถกับบิลขายอะไหล่หน้าร้านจบที่หน้าร้าน ไม่มีงานให้ส่งต่อ
-  const showJobSheetTab = !isSaleRepair(repair) && !isNoVehicleRepair(repair);
+  // บิลเครดิตคือซ่อมเสร็จแล้วรอเก็บเงิน ช่างไม่มีงานให้ทำต่อ เหลือแค่ใบส่งของ
+  const showJobSheetTab =
+    !isSaleRepair(repair) &&
+    !isNoVehicleRepair(repair) &&
+    repair.status !== "CREDIT";
   // มีสวิตช์ชื่อแบบเต็มให้กดเฉพาะบิลที่มีของซึ่งย่อชื่อได้จริง (ช่วงล่างกับน้ำมัน)
   const canShortenNames = hasShortenableName(repair.repairItems || []);
 
@@ -180,7 +185,9 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
         printRepairReceipt(repair.id, { showCustomer, showBrand, docType }),
       );
       toast.success(
-        docType === "job" ? "สั่งพิมพ์ใบสั่งซ่อมแล้ว" : "สั่งพิมพ์ใบเสร็จแล้ว",
+        docType === "job"
+          ? "สั่งพิมพ์ใบสั่งซ่อมแล้ว"
+          : `สั่งพิมพ์${receiptDocTitle(repair)}แล้ว`,
       );
     } catch (error) {
       toastError(
@@ -209,7 +216,9 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
       >
         <div className="receipt-chrome relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]">
           <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
-            {docType === "job" ? "ตัวอย่างใบสั่งซ่อม" : "ตัวอย่างใบเสร็จ"}
+            {docType === "job"
+              ? "ตัวอย่างใบสั่งซ่อม"
+              : `ตัวอย่าง${receiptDocTitle(repair)}`}
           </DialogTitle>
           <DialogDescription className="sr-only">
             ตัวอย่างใบเสร็จก่อนพิมพ์
@@ -228,7 +237,7 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
         {showJobSheetTab && (
           <div className="receipt-chrome mx-[16px] mb-[8px] flex justify-center gap-[8px]">
             {[
-              { id: "receipt", label: "ใบเสร็จ" },
+              { id: "receipt", label: receiptDocTitle(repair) },
               { id: "job", label: "ใบสั่งซ่อม" },
             ].map((tab) => (
               <button

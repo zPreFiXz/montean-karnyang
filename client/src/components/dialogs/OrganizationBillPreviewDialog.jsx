@@ -1,9 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { X, Printer } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
-import ReceiptPaper, {
-  receiptPageCount,
-} from "@/components/receipt/ReceiptPaper";
 import CreditSummaryPaper from "@/components/receipt/CreditSummaryPaper";
 import {
   Dialog,
@@ -44,8 +41,8 @@ const estimateFitScale = () => {
   );
 };
 
-// ตัวอย่างใบวางบิล: แผ่นแรกเป็นใบสรุปยอดค้าง แผ่นถัดไปเป็นใบเสร็จของแต่ละบิล
-// วิธีวัดและย่อกระดาษเหมือนตัวอย่างใบเสร็จทุกอย่าง ต่างแค่จำนวนแผ่นมาจากหลายบิล
+// ตัวอย่างใบวางบิล แผ่นเดียวจบ
+// วิธีวัดและย่อกระดาษเหมือนตัวอย่างใบเสร็จทุกอย่าง
 const OrganizationBillPreviewDialog = ({
   customer,
   repairs,
@@ -129,19 +126,6 @@ const OrganizationBillPreviewDialog = ({
   // (หน้าที่เรียกใช้เรียงใหม่สุดขึ้นก่อน ซึ่งเหมาะกับการอ่านบนจอ แต่คนละเรื่องกับบนกระดาษ)
   const ordered = [...repairs].sort((a, b) => a.id - b.id);
 
-  // ใบสรุปหนึ่งแผ่น แล้วตามด้วยแผ่นของแต่ละบิล (บิลยาวเกินหนึ่งแผ่นก็แตกเป็นหลายแผ่น)
-  const sheets = [
-    { key: "summary", type: "summary" },
-    ...ordered.flatMap((repair) =>
-      Array.from({ length: receiptPageCount(repair) }).map((_, page) => ({
-        key: `${repair.id}-${page}`,
-        type: "receipt",
-        repair,
-        pageIndex: page,
-      })),
-    ),
-  ];
-
   const handlePrint = async () => {
     if (isPrinting) return;
 
@@ -176,7 +160,7 @@ const OrganizationBillPreviewDialog = ({
             ตัวอย่างใบวางบิล
           </DialogTitle>
           <DialogDescription className="sr-only">
-            ใบวางบิลและใบเสร็จของแต่ละบิล
+            สรุปบิลที่ค้างชำระของลูกค้ารายนี้
           </DialogDescription>
           <button
             onClick={() => onOpenChange(false)}
@@ -192,33 +176,21 @@ const OrganizationBillPreviewDialog = ({
           className="mx-[16px] mb-[8px] min-h-0 shrink overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]"
         >
           <div className="flex flex-col items-center gap-[12px]">
-            {sheets.map((sheet, index) => (
+            <div
+              style={{
+                width: PAPER_WIDTH_MM * MM * scale,
+                height: PAPER_HEIGHT_MM * MM * scale,
+              }}
+              className="shrink-0"
+            >
               <div
-                key={sheet.key}
-                style={{
-                  width: PAPER_WIDTH_MM * MM * scale,
-                  height: PAPER_HEIGHT_MM * MM * scale,
-                }}
-                className="shrink-0"
+                ref={paperRef}
+                className="receipt-paper font-athiti h-[210mm] w-[148mm] origin-top-left overflow-hidden bg-white p-[10mm] text-[11pt] leading-tight text-black"
+                style={{ transform: `scale(${scale})` }}
               >
-                <div
-                  ref={index === 0 ? paperRef : undefined}
-                  className="receipt-paper font-athiti h-[210mm] w-[148mm] origin-top-left overflow-hidden bg-white p-[10mm] text-[11pt] leading-tight text-black"
-                  style={{ transform: `scale(${scale})` }}
-                >
-                  {sheet.type === "summary" ? (
-                    <CreditSummaryPaper customer={customer} repairs={ordered} />
-                  ) : (
-                    <ReceiptPaper
-                      repair={sheet.repair}
-                      showCustomer
-                      showBrand={false}
-                      pageIndex={sheet.pageIndex}
-                    />
-                  )}
-                </div>
+                <CreditSummaryPaper customer={customer} repairs={ordered} />
               </div>
-            ))}
+            </div>
           </div>
         </div>
 

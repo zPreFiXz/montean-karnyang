@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useLocation, useNavigate, useParams } from "react-router";
 import {
   ChevronLeft,
   LoaderCircle,
@@ -31,14 +31,23 @@ import {
   useScrollTracking,
 } from "@/utils/scrollPosition";
 
+// จำผลของแต่ละรายไว้ กดกลับเข้ามาซ้ำจะได้มีของโชว์ตั้งแต่เฟรมแรก ไม่ต้องขึ้นตัวหมุน
+const detailCache = new Map();
+
 // บิลเครดิตทั้งหมดของหน่วยงานหรือร้านค้ารายเดียว พร้อมยอดค้างรวม
 const OrganizationDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [customer, setCustomer] = useState(null);
-  const [repairs, setRepairs] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // ชื่อกับประเภทมากับการกดจากหน้ารายชื่อ ขึ้นได้ทันทีตั้งแต่เฟรมแรก
+  // ส่วนบิลต้องขอจากเซิร์ฟเวอร์ ถ้าเคยเปิดรายนี้แล้วก็ใช้ของที่จำไว้ไปก่อน
+  const cached = detailCache.get(String(id));
+  const [customer, setCustomer] = useState(
+    cached?.customer || location.state?.organization || null,
+  );
+  const [repairs, setRepairs] = useState(cached?.repairs || []);
+  const [isLoading, setIsLoading] = useState(!cached);
   // แก้ประเภทได้จากหน้านี้ด้วย ไม่งั้นพอไม่เหลือบิลเครดิตให้กดเข้าไปก็แก้ไม่ได้อีกเลย
   const [isTypeDialogOpen, setIsTypeDialogOpen] = useState(false);
   // ประเภทที่เพิ่งเปลี่ยนระหว่างเปิดหน้านี้ ใช้เลือกปลายทางของปุ่มย้อนกลับ
@@ -51,9 +60,14 @@ const OrganizationDetail = () => {
     (async () => {
       try {
         const res = await listOrganizationRepairs(id);
+        const data = {
+          customer: res.data?.customer || null,
+          repairs: res.data?.repairs || [],
+        };
+        detailCache.set(String(id), data);
         if (cancelled) return;
-        setCustomer(res.data?.customer || null);
-        setRepairs(res.data?.repairs || []);
+        setCustomer(data.customer);
+        setRepairs(data.repairs);
       } catch (error) {
         if (!cancelled) toastError(error);
       } finally {

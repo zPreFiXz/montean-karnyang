@@ -410,24 +410,27 @@ const RepairDetail = () => {
       noVehicle: !repair?.vehicle,
     };
 
-    const usedQtyByPartId = (repair?.repairItems || []).reduce((acc, ri) => {
-      if (ri.part?.id) {
-        acc[ri.part.id] = (acc[ri.part.id] || 0) + (ri.quantity || 1);
-      }
-      return acc;
-    }, {});
-
     const normalizedItems = (repair?.repairItems || []).map((ri) => {
       if (ri.part) {
-        const baseStock = ri.part.stockQuantity ?? 0;
-        const restoredStock = baseStock + (usedQtyByPartId[ri.part.id] || 0);
+        // ชื่อที่ระบบประกอบเองจะมีชื่อในคลังอยู่ข้างในเสมอ ถ้าไม่มีแปลว่าถูกพิมพ์ทับไว้
+        // บรรทัดที่พิมพ์ทับต้องยกชื่อจากบิลกลับเข้าฟอร์ม ไม่งั้นเปิดแก้ไขแล้วชื่อจะหาย
+        // (บรรทัดปกติใช้ชื่อในคลัง เพราะการ์ดในฟอร์มเติมยี่ห้อกับขนาดยางให้เองอยู่แล้ว)
+        const hasCustomName =
+          !!ri.part.name && !String(ri.itemName || "").includes(ri.part.name);
+
         return {
           id: ri.part.id,
           partNumber: ri.part.partNumber,
+          // ยี่ห้อต้องคงไว้เสมอ เพราะการนับสต็อกคืนใช้ตรวจว่าบรรทัดนี้เป็นอะไหล่จริง
+          // การกันเติมยี่ห้อซ้ำหน้าชื่อที่พิมพ์เองไปทำตอนแสดงผลแทน (ดู hasCustomName)
           brand: ri.part.brand || "",
-          name: ri.part.name || "",
+          name: hasCustomName ? ri.itemName : ri.part.name || "",
+          hasCustomName,
           sellingPrice: Number(ri.unitPrice),
-          stock: restoredStock,
+          // สต็อกดิบของอะไหล่ ยังไม่บวกของที่บิลนี้เบิกไป
+          // หน้ากรอกงานจะบวกคืนให้เองตอนคิดเพดานของปุ่มบวก (ดู restoredStockMap)
+          // ชื่อฟิลด์ต้องเป็น stockQuantity ให้ตรงกับที่หน้าโน้นอ่าน ไม่งั้นเพดานจะกลายเป็นศูนย์
+          stockQuantity: ri.part.stockQuantity ?? 0,
           unit: ri.part.unit,
           category: ri.part.category,
           secureUrl: ri.part.secureUrl || null,

@@ -137,6 +137,13 @@ exports.updatePart = async (req, res, next) => {
 
     // ยาง: แทนที่ล็อตทั้งชุดตามที่ฟอร์มส่งมา (ลบเก่า สร้างใหม่) ใน transaction เดียวกับการอัปเดต Part
     await prisma.$transaction(async (tx) => {
+      // ชื่อที่ระบบเคยประกอบไว้ก่อนแก้ ใช้แยกว่าบรรทัดไหนยังเป็นชื่ออัตโนมัติ
+      const before = await tx.part.findUnique({
+        where: { id: Number(id) },
+        include: { category: true },
+      });
+      const previousName = buildPartItemName(before);
+
       if (lots) {
         await tx.tireLot.deleteMany({ where: { partId: Number(id) } });
         data.tireLots = { create: lots };
@@ -147,11 +154,13 @@ exports.updatePart = async (req, res, next) => {
         include: { category: true },
       });
 
-      // ชื่อในบิลเก่าตามชื่อในคลังเสมอ แก้ที่คลังที่เดียวแล้วประวัติเปลี่ยนตามทุกใบ
+      // ชื่อในบิลเก่าตามชื่อในคลัง แก้ที่คลังที่เดียวแล้วประวัติเปลี่ยนตามทุกใบ
+      // ยกเว้นบรรทัดที่ถูกพิมพ์ชื่อทับไว้ในบิล ซึ่งต้องคงไว้ตามที่คนเขียน
+      // ดูจากชื่อเดิม ถ้าตรงกับที่ระบบเคยประกอบไว้แปลว่ายังไม่เคยถูกแก้
       // อยู่ใน transaction เดียวกัน ถ้าอัปเดตชื่อไม่สำเร็จก็ไม่มีการแก้อะไหล่ด้วย
       // (บริการไม่ทำแบบนี้ เพราะชื่อบนบรรทัดบริการเป็นชื่อที่ช่างพิมพ์เองในบิลใบนั้น)
       await tx.repairItem.updateMany({
-        where: { partId: Number(id) },
+        where: { partId: Number(id), itemName: previousName },
         data: { itemName: buildPartItemName(part) },
       });
     });

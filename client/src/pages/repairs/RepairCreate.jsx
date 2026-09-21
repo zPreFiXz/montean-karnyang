@@ -37,7 +37,6 @@ import { repairSchema } from "@/utils/schemas";
 import { provinces } from "@/constants/provinces";
 import { formatCurrency, formatPhone, formatQuantity } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
-import { isFreeformService } from "@/constants/services";
 import { formatProductName } from "@/utils/tireSize";
 import { isUnlimitedStockItem } from "@/utils/oil";
 import {
@@ -175,7 +174,8 @@ const RepairCreate = () => {
       location.state || (!draftRestoredRef.current && loadDraft(DRAFT_REPAIR));
     draftRestoredRef.current = true;
     // บอกให้รู้ว่าของที่เห็นมาจากไหน ไม่งั้นเปิดหน้าบิลใหม่แล้วเจอข้อมูลกรอกไว้จะงงว่าซ้ำกับอะไร
-    if (restored && !location.state) toast.info("กู้คืนข้อมูลที่กรอกค้างไว้แล้ว");
+    if (restored && !location.state)
+      toast.info("กู้คืนข้อมูลที่กรอกค้างไว้แล้ว");
 
     if (restored) {
       const { repairData, repairItems: savedItems } = restored;
@@ -200,7 +200,10 @@ const RepairCreate = () => {
               it?.brand &&
               typeof it.quantity === "number"
             ) {
-              const key = `${it.partNumber}|${it.brand}|${it.name || ""}`;
+              const key =
+                it.id != null
+                  ? `id:${it.id}`
+                  : `${it.partNumber}|${it.brand}|${it.name || ""}`;
               map[key] = (map[key] || 0) + it.quantity;
             }
           }
@@ -211,7 +214,10 @@ const RepairCreate = () => {
         setRepairItems(
           savedItems.map(withRowId).map((it) => {
             if (it.availableStock !== undefined) return it;
-            const key = `${it.partNumber}|${it.brand}|${it.name || ""}`;
+            const key =
+              it.id != null
+                ? `id:${it.id}`
+                : `${it.partNumber}|${it.brand}|${it.name || ""}`;
             return {
               ...it,
               availableStock: (it.stockQuantity || 0) + (map[key] || 0),
@@ -412,7 +418,8 @@ const RepairCreate = () => {
     reset(EMPTY_FORM);
     setRepairItems([]);
     setRestoredStockMap({});
-    setBillType("GENERAL");
+    // ไม่แตะโหมดบิล เพราะมันคือฟอร์มที่กำลังใช้อยู่ ไม่ใช่ข้อมูลที่กรอก
+    // คนกดล้างระหว่างเปิดบิลขายอะไหล่มักจะขายใบใหม่ต่อ ไม่ได้จะเปลี่ยนไปทำงานซ่อม
     // สำเนาข้อมูลรถที่เก็บไว้ตอนสลับโหมดต้องทิ้งด้วย
     // ไม่งั้นล้างแล้วสลับไปขายอะไหล่และกลับมา รถคันเดิมจะโผล่กลับมาเอง
     vehicleFieldsRef.current = {};
@@ -658,7 +665,10 @@ const RepairCreate = () => {
                 sellingPrice: isDiscountItem(item)
                   ? -Math.abs(newPrice)
                   : newPrice,
-                ...(newName ? { name: newName } : {}),
+                // จำว่าชื่อนี้พิมพ์เอง เพื่อไม่ให้ถูกชื่อจากคลังเขียนทับตอนบันทึกและตอนย่อชื่อบนใบเสร็จ
+                ...(newName
+                  ? { name: newName, hasCustomName: newName !== item.name }
+                  : {}),
               }
             : item,
         ),
@@ -669,6 +679,9 @@ const RepairCreate = () => {
   // บริการไม่มียี่ห้อ (null) — ต่อสตริงตรงๆ จะได้คำว่า "null" ติดมาหน้าชื่อ
   // ต่างจากการ์ดบนหน้าจอที่เขียนเป็น JSX ซึ่ง React ข้าม null ให้เอง
   const getProductName = (item) => {
+    // ชื่อที่พิมพ์ทับไว้เองคือทั้งบรรทัดแล้ว ไม่ต้องเติมยี่ห้อกับขนาดยางนำหน้าอีก
+    if (item.hasCustomName) return item.name;
+
     return formatProductName({
       brand: item.brand,
       name: item.name,
@@ -1700,7 +1713,8 @@ const RepairCreate = () => {
         productImage={editingItem?.secureUrl}
         isService={editingItem?.category?.name === "บริการ"}
         currentName={editingItem?.name || ""}
-        canEditName={isFreeformService(editingItem)}
+        // ทุกบรรทัดพิมพ์ชื่อทับได้ ตัวเชื่อมกับอะไหล่ยังอยู่ รูปกับรหัสจึงยังตามของจริง
+        canEditName
         isPartLine={isPartPlaceholderItem(editingItem)}
         isDiscountLine={isDiscountItem(editingItem)}
       />

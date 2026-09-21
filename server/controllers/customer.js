@@ -174,8 +174,6 @@ exports.listOrganizationRepairs = async (req, res, next) => {
 exports.printOrganizationBill = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const showCustomer = req.body?.showCustomer !== false;
-    const showBrand = req.body?.showBrand === true;
     // ส่งเดือนมาในรูป 2026-09 = เอาบิลของเดือนนั้นทุกสถานะ (ใช้กับหน้าประวัติรายเดือน)
     // ไม่ส่งมา = เอาเฉพาะบิลที่ยังค้างชำระ
     const month = String(req.body?.month || "");
@@ -205,28 +203,20 @@ exports.printOrganizationBill = async (req, res, next) => {
           ? { status: { not: "ESTIMATE" }, createdAt: monthRange }
           : { status: "CREDIT" }),
       },
-      include: {
-        customer: true,
+      // ใบวางบิลใช้แค่หัวบิล ไม่ต้องดึงรายการในบิลมาทั้งหมด
+      select: {
+        id: true,
+        type: true,
+        totalPrice: true,
+        createdAt: true,
         vehicle: {
-          include: {
+          select: {
             licensePlate: { select: { plateNumber: true, province: true } },
             vehicleModel: { select: { brand: true, model: true } },
           },
         },
-        repairItems: {
-          include: {
-            part: {
-              select: {
-                unit: true,
-                name: true,
-                category: { select: { name: true } },
-              },
-            },
-            service: { select: { name: true } },
-          },
-        },
       },
-      // เรียงตามเลขที่ใบเสร็จจากน้อยไปมาก ใบสรุปกับใบเสร็จที่แนบไปจะได้ไล่ตามเลขตรงกัน
+      // เรียงตามเลขที่ใบเสร็จจากน้อยไปมาก
       orderBy: { id: "asc" },
     });
 
@@ -237,10 +227,7 @@ exports.printOrganizationBill = async (req, res, next) => {
       );
     }
 
-    const html = buildOrganizationBillHtml(customer, repairs, {
-      showCustomer,
-      showBrand,
-    });
+    const html = buildOrganizationBillHtml(customer, repairs);
 
     await printReceipt(html, `org-${customer.id}`);
 

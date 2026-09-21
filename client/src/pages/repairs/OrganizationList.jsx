@@ -34,9 +34,19 @@ let cachedOrganizations = null;
 // สามกอง: หน่วยงานกับร้านค้ารวมยอดเป็นรายชื่อ ส่วนลูกค้าทั่วไปดูเป็นรายบิล
 // เพราะเป็นคนที่ติดเงินครั้งเดียวจบ ไม่ได้เปิดบิลต่อเนื่องแล้วมาเคลียร์ทีเดียว
 const TABS = [
-  { id: "government", label: "หน่วยงาน", icon: Building2 },
-  { id: "shop", label: "ร้านค้า", icon: Store },
-  { id: "general", label: "ลูกค้าทั่วไป", icon: CircleUserRound },
+  {
+    id: "government",
+    label: "หน่วยงาน",
+    title: "รายการหน่วยงาน",
+    icon: Building2,
+  },
+  { id: "shop", label: "ร้านค้า", title: "รายการร้านค้า", icon: Store },
+  {
+    id: "general",
+    label: "ลูกค้าทั่วไป",
+    title: "รายการบิลค้างชำระ",
+    icon: CircleUserRound,
+  },
 ];
 
 const TYPE_OF_TAB = { government: "GOVERNMENT", shop: "SHOP" };
@@ -92,6 +102,10 @@ const OrganizationList = () => {
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const isGeneral = tab === "general";
+  const activeTab = TABS.find((item) => item.id === tab);
+  const visibleCount = isGeneral
+    ? generalRepairs.length
+    : visibleOrganizations.length;
   const isEmpty = isGeneral
     ? generalRepairs.length === 0
     : visibleOrganizations.length === 0;
@@ -144,6 +158,22 @@ const OrganizationList = () => {
       </div>
 
       <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl px-[20px] pb-[112px] xl:pb-[16px]">
+        {/* หัวข้อของกองที่เปิดอยู่ วางแบบเดียวกับหน้าสถานะการซ่อม
+            จำนวนไม่ขึ้นระหว่างโหลดและตอนไม่มีสักรายการ เพราะข้อความกลางจอบอกอยู่แล้ว */}
+        <div className="flex items-center gap-[8px] pt-[16px]">
+          <div className="bg-status-credit text-surface flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full">
+            <activeTab.icon className="h-5 w-5" />
+          </div>
+          <p className="text-normal text-[22px] font-semibold md:text-2xl">
+            {activeTab.title}
+          </p>
+          {!isLoading && visibleCount > 0 && (
+            <span className="text-subtle-light shrink-0 text-lg font-medium md:text-xl">
+              ({visibleCount})
+            </span>
+          )}
+        </div>
+
         {isLoading ? (
           <div className="flex flex-1 items-center justify-center">
             <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
@@ -189,6 +219,8 @@ const OrganizationList = () => {
             <Link
               key={item.id}
               to={`/organizations/${item.id}`}
+              // ส่งของที่หน้านี้มีอยู่แล้วไปด้วย หน้าปลายทางจะได้ขึ้นหัวได้ทันทีไม่ต้องรอโหลด
+              state={{ organization: item }}
               className="mt-[16px] block w-full"
             >
               {/* ใช้การ์ดตัวเดียวกับรายการบิลทุกหน้า ต่างแค่ของที่ใส่เข้าไป

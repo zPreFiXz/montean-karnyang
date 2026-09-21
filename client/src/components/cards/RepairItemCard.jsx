@@ -23,12 +23,15 @@ const RepairItemCard = ({ item, variant, onClick }) => {
 
     return (
       <p className="text-normal line-clamp-2 text-base font-semibold md:text-lg">
-        {formatProductName({
-          brand: item.brand,
-          name: item.name,
-          attributes: item.attributes,
-          isTire: isTireCategoryName(item.category?.name),
-        })}
+        {/* ชื่อที่พิมพ์ทับไว้เองคือทั้งบรรทัดแล้ว ไม่ต้องเติมยี่ห้อกับขนาดยางนำหน้าอีก */}
+        {item.hasCustomName
+          ? item.name
+          : formatProductName({
+              brand: item.brand,
+              name: item.name,
+              attributes: item.attributes,
+              isTire: isTireCategoryName(item.category?.name),
+            })}
       </p>
     );
   };

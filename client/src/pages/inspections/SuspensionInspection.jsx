@@ -47,7 +47,6 @@ import { repairSchema } from "@/utils/schemas";
 import { CarRepair, SparePart } from "@/components/icons/Icons";
 import { toastError } from "@/utils/handleError";
 import {
-  isFreeformService,
   isPartPlaceholderItem,
   isDiscountItem,
   SUSPENSION_DEFAULT_SERVICE_NAMES,
@@ -312,7 +311,8 @@ const SuspensionInspection = () => {
       (!draftRestoredRef.current && loadDraft(DRAFT_SUSPENSION));
     draftRestoredRef.current = true;
     // บอกให้รู้ว่าของที่เห็นมาจากไหน ไม่งั้นเปิดหน้าบิลใหม่แล้วเจอข้อมูลกรอกไว้จะงงว่าซ้ำกับอะไร
-    if (restored && !location.state) toast.info("กู้คืนข้อมูลที่กรอกค้างไว้แล้ว");
+    if (restored && !location.state)
+      toast.info("กู้คืนข้อมูลที่กรอกค้างไว้แล้ว");
     if (!restored) return;
 
     const {
@@ -389,7 +389,10 @@ const SuspensionInspection = () => {
       if (editRepairId && !restored.stockNotDeducted) {
         for (const it of savedItems) {
           if (it?.partNumber && it?.brand && typeof it.quantity === "number") {
-            const key = `${it.partNumber}|${it.brand}|${it.name || ""}`;
+            const key =
+              it.id != null
+                ? `id:${it.id}`
+                : `${it.partNumber}|${it.brand}|${it.name || ""}`;
             map[key] = (map[key] || 0) + it.quantity;
           }
         }
@@ -400,7 +403,10 @@ const SuspensionInspection = () => {
       setRepairItems(
         manualItems.map(withRowId).map((it) => {
           if (it.availableStock !== undefined) return it;
-          const key = `${it.partNumber}|${it.brand}|${it.name || ""}`;
+          const key =
+            it.id != null
+              ? `id:${it.id}`
+              : `${it.partNumber}|${it.brand}|${it.name || ""}`;
           return {
             ...it,
             availableStock: (it.stockQuantity || 0) + (map[key] || 0),
@@ -741,7 +747,10 @@ const SuspensionInspection = () => {
                 sellingPrice: isDiscountItem(item)
                   ? -Math.abs(newPrice)
                   : newPrice,
-                ...(newName ? { name: newName } : {}),
+                // จำว่าชื่อนี้พิมพ์เอง เพื่อไม่ให้ถูกชื่อจากคลังเขียนทับตอนบันทึกและตอนย่อชื่อบนใบเสร็จ
+                ...(newName
+                  ? { name: newName, hasCustomName: newName !== item.name }
+                  : {}),
               }
             : item,
         ),
@@ -758,6 +767,9 @@ const SuspensionInspection = () => {
     if (!item) return "";
 
     // บริการไม่มียี่ห้อ (null) — ตัวช่วยตัดค่าว่างทิ้งให้ ไม่งั้นจะได้คำว่า "null" ติดมาหน้าชื่อ
+    // ชื่อที่พิมพ์ทับไว้เองคือทั้งบรรทัดแล้ว ไม่ต้องเติมยี่ห้อกับขนาดยางนำหน้าอีก
+    if (item.hasCustomName) return item.name;
+
     return formatProductName({
       brand: item.brand,
       name: item.name,
@@ -1256,10 +1268,10 @@ const SuspensionInspection = () => {
 
                       <div className="flex min-w-0 flex-1 flex-col">
                         {renderProductInfo(part)}
-                        {/* เลือกแล้วค่อยโชว์รหัส — ถ้าโชว์ทุกใบตั้งแต่แรก ลิสต์ 17 ใบจะยาวจนไล่ดูไม่ไหว
+                        {/* โชว์รหัสทุกใบตั้งแต่ยังไม่เลือก เพราะช่างไล่หาของจากรหัสเป็นหลัก
                             ส่วนรายละเอียดยาวไม่แน่นอน ไม่เอาขึ้นการ์ด ให้ไปอ่านในหน้าต่างแทน
                             (ยังไม่เลือก = กดที่รูป, เลือกแล้ว = กดที่ราคา) */}
-                        {selectedThis && part.partNumber && (
+                        {part.partNumber && (
                           <p className="text-subtle-dark truncate text-base leading-tight font-medium md:text-lg">
                             รหัสอะไหล่: {part.partNumber}
                           </p>
@@ -2602,7 +2614,8 @@ const SuspensionInspection = () => {
         productImage={editingItem?.secureUrl}
         isService={editingItem?.category?.name === "บริการ"}
         currentName={editingItem?.name || ""}
-        canEditName={isFreeformService(editingItem)}
+        // ทุกบรรทัดพิมพ์ชื่อทับได้ ตัวเชื่อมกับอะไหล่ยังอยู่ รูปกับรหัสจึงยังตามของจริง
+        canEditName
         isPartLine={isPartPlaceholderItem(editingItem)}
         isDiscountLine={isDiscountItem(editingItem)}
       />

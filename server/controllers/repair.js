@@ -304,12 +304,13 @@ const createRepairItemsAndDecrementStock = async (
         repairId,
         partId: item.partId,
         serviceId: item.serviceId,
-        // บริการพิมพ์ชื่อเองได้ จึงใช้ชื่อที่ส่งมาก่อน แล้วค่อยตกไปที่ชื่อในคลัง
-        // ส่วนอะไหล่ยังประกอบจากข้อมูลจริงเสมอ ไม่รับชื่อจากหน้าเว็บ
-        itemName: item.partId
-          ? buildPartItemName(partById.get(item.partId))
-          : item.itemName?.trim() ||
-            buildServiceItemName(serviceById.get(item.serviceId)),
+        // ทุกบรรทัดพิมพ์ชื่อทับได้ จึงใช้ชื่อที่ส่งมาก่อน ไม่ได้พิมพ์มาค่อยประกอบจากคลัง
+        // ตัวเชื่อมกับอะไหล่ยังอยู่ รูป รหัส หมวดหมู่ และสต็อกจึงยังอ้างอิงของจริงเหมือนเดิม
+        itemName:
+          item.itemName?.trim() ||
+          (item.partId
+            ? buildPartItemName(partById.get(item.partId))
+            : buildServiceItemName(serviceById.get(item.serviceId))),
       },
     });
   }
@@ -797,6 +798,13 @@ exports.updateRepairStatus = async (req, res, next) => {
       data.completedAt = null;
       data.paidAt = null;
       data.paymentMethod = null;
+    }
+
+    // ใบประเมินราคาถูกเปิดไว้ล่วงหน้าเป็นวันหรือเป็นสัปดาห์ก่อนลูกค้าจะตัดสินใจซ่อม
+    // วันที่ของบิลจึงต้องนับใหม่ตอนเริ่มซ่อมจริง ไม่งั้นงานจะไปเรียงอยู่ท้ายรายการ
+    // และวันที่บนใบเสร็จจะเป็นวันที่ประเมิน ไม่ใช่วันที่ซ่อม
+    if (fromEstimate) {
+      data.createdAt = new Date();
     }
 
     await prisma.$transaction(async (tx) => {

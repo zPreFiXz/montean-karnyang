@@ -42,6 +42,14 @@ const SHOP = {
 
 const MIN_ROWS = 10;
 
+// เรียกว่าใบเสร็จรับเงินได้เฉพาะตอนรับเงินแล้วจริง
+// ใบประเมินราคา = ยังไม่ได้ซ่อม เป็นใบเสนอราคา / เครดิต = ซ่อมแล้วแต่ยังไม่ได้เงิน เป็นใบส่งของ
+const receiptDocTitle = (repair) => {
+  if (repair.status === "ESTIMATE") return "ใบเสนอราคา";
+  if (repair.status === "CREDIT") return "ใบส่งของ";
+  return "ใบเสร็จรับเงิน";
+};
+
 const PAYMENT_BOXES = [
   { label: "เงินสด", method: "CASH" },
   { label: "สแกนจ่าย", method: "QR_CODE" },
@@ -128,6 +136,8 @@ const receiptPagesHtml = (
   repair,
   { showCustomer = true, showBrand = true } = {},
 ) => {
+  // ชื่อเอกสารเปลี่ยนตามสถานะ (ตรงกับ receiptDocTitle ฝั่งหน้าเว็บ)
+  const docTitle = receiptDocTitle(repair);
   const issuedAt = new Date(repair.paidAt || repair.createdAt || Date.now());
   const day = issuedAt.getDate();
   const month = issuedAt.toLocaleDateString("th-TH", { month: "long" });
@@ -235,7 +245,7 @@ const receiptPagesHtml = (
   <div class="head">
     <p class="side">เล่มที่<span class="dotted" style="width:70px"></span></p>
     <div class="title">
-      <div class="doc">ใบเสร็จรับเงิน</div>
+      <div class="doc">${docTitle}</div>
       <div class="shop">${SHOP.name}</div>
     </div>
     <p class="side">เลขที่<span class="dotted" style="min-width:42px;text-align:center;font-weight:600">${receiptNo}</span></p>
@@ -372,7 +382,7 @@ ${body}
 
 const buildReceiptHtml = (repair, options) =>
   receiptDocument(
-    `ใบเสร็จรับเงิน ${repair.id}`,
+    `${receiptDocTitle(repair)} ${repair.id}`,
     receiptPagesHtml(repair, options),
   );
 
@@ -388,6 +398,14 @@ const VEHICLE_COMPATIBLE_CATEGORIES = [
 ];
 
 const workName = (item) => {
+  // พิมพ์ชื่อทับไว้เอง = ตั้งใจให้ขึ้นแบบนั้น ไม่ต้องย่อทับ (ตรงกับ shortWorkName ฝั่งหน้าเว็บ)
+  if (
+    item.part?.name &&
+    !String(item.itemName || "").includes(item.part.name)
+  ) {
+    return item.itemName;
+  }
+
   // ชื่อในคลังของหมวดพวกนี้เป็น "ยี่ห้อ ชนิด รุ่นรถ" ตัดเหลือคำแรกซึ่งเป็นชนิดอะไหล่
   if (
     VEHICLE_COMPATIBLE_CATEGORIES.includes(item.part?.category?.name) &&
@@ -580,9 +598,9 @@ const repairTitle = (repair) => {
   return displayBrand(repair.vehicle?.vehicleModel) || "งานซ่อม";
 };
 
-// เอกสารวางบิลของหน่วยงานหรือร้านค้า: แผ่นแรกเป็นใบสรุปว่ามีบิลอะไรบ้างรวมเท่าไหร่
-// แผ่นถัดไปเป็นใบเสร็จของแต่ละบิลเรียงตามลำดับเดียวกับในใบสรุป
-const buildOrganizationBillHtml = (customer, repairs, options) => {
+// ใบวางบิลของหน่วยงานหรือร้านค้า: แผ่นเดียวจบ สรุปว่ามีบิลอะไรบ้างรวมเท่าไหร่
+// (ใบเสร็จของแต่ละบิลพิมพ์แยกจากหน้าบิลนั้นได้อยู่แล้ว ไม่ต้องแนบมาด้วยทุกครั้ง)
+const buildOrganizationBillHtml = (customer, repairs) => {
   const total = repairs.reduce(
     (sum, repair) => sum + Number(repair.totalPrice || 0),
     0,
@@ -632,14 +650,7 @@ const buildOrganizationBillHtml = (customer, repairs, options) => {
 
 </div>`;
 
-  const receipts = repairs
-    .map((repair) => receiptPagesHtml(repair, options))
-    .join("");
-
-  return receiptDocument(
-    `ใบวางบิล ${customer?.name || ""}`.trim(),
-    summary + receipts,
-  );
+  return receiptDocument(`ใบวางบิล ${customer?.name || ""}`.trim(), summary);
 };
 
 module.exports = {

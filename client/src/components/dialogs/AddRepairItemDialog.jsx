@@ -22,19 +22,28 @@ const AddRepairItemDialog = ({
   const [reloadToken, setReloadToken] = useState(0);
   const restoredStockMapRef = useRef({});
 
+  // ผูกกับตัวอะไหล่ ไม่ใช่ชื่อ เพราะชื่อบนบรรทัดในบิลถูกพิมพ์ทับได้
+  // (ถ้าใช้ชื่อเป็นกุญแจ บรรทัดที่แก้ชื่อจะกลายเป็นของคนละชิ้นแล้วนับสต็อกผิด)
   const buildPartKey = (item) =>
-    `${item.partNumber || ""}|${item.brand || ""}|${item.name || ""}`;
+    item.id != null
+      ? `id:${item.id}`
+      : `${item.partNumber || ""}|${item.brand || ""}|${item.name || ""}`;
+
+  const isSamePart = (a, b) =>
+    a.id != null && b.id != null
+      ? a.id === b.id && !!a.partNumber === !!b.partNumber
+      : a.partNumber === b.partNumber &&
+        a.brand === b.brand &&
+        a.name === b.name;
 
   // เบิกได้ = สต็อกในคลัง + ของที่บิลนี้เคยเบิกไปแล้ว − ของที่อยู่ในบิลตอนนี้
   const getStockInfo = (item) => {
     const key = buildPartKey(item);
-    const selectedQuantity = selectedItems.reduce((sum, selected) => {
-      const isSamePart =
-        selected.partNumber === item.partNumber &&
-        selected.brand === item.brand &&
-        selected.name === item.name;
-      return isSamePart ? sum + (selected.quantity || 0) : sum;
-    }, 0);
+    const selectedQuantity = selectedItems.reduce(
+      (sum, selected) =>
+        isSamePart(selected, item) ? sum + (selected.quantity || 0) : sum,
+      0,
+    );
 
     const displayStock =
       (item.stockQuantity || 0) + (restoredStockMapRef.current[key] || 0);
