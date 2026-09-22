@@ -1,3 +1,4 @@
+import PageSpinner from "@/components/ui/PageSpinner";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
@@ -5,8 +6,11 @@ import {
   LoaderCircle,
   ShoppingBag,
   Wrench as WrenchOutline,
+  TicketPercent,
 } from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
+import SearchBar from "@/components/forms/SearchBar";
+import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { Wrench, SparePart } from "@/components/icons/Icons";
 import { getInventory, listInventoryRepairs } from "@/api/inventory";
@@ -17,6 +21,12 @@ import {
   getRepairSubtitle,
 } from "@/utils/repairDisplay";
 import { formatDateShort } from "@/utils/formats";
+import {
+  isDiscountItem,
+  isPartPlaceholderItem,
+  PART_PLACEHOLDER_SERVICE_NAME,
+  SERVICE_PLACEHOLDER_SERVICE_NAME,
+} from "@/constants/services";
 import { toastError } from "@/utils/handleError";
 import {
   useScrollRestoration,
@@ -82,6 +92,44 @@ const InventoryUsage = () => {
 
   const isService = type === "service";
 
+  // เรียกตามสิ่งที่คนกำลังดูจริง ไม่ใช่ตามชนิดที่เก็บในระบบ
+  // ส่วนลดกับอะไหล่อื่นๆ ถูกเก็บในหมวดบริการ แต่ความหมายคนละอย่างกับงานบริการ
+  const [search, setSearch] = useState("");
+  const keyword = search.trim();
+
+  // เฉพาะสองตัวนี้เท่านั้นที่เป็นรายการเปล่าไว้พิมพ์ชื่อทับ ชื่อในบิลจึงต่างกันทุกใบ
+  // ของอื่นใช้ชื่อจากคลังเหมือนกันหมด ไม่มีอะไรให้ค้น
+  const isRenamable =
+    itemName === PART_PLACEHOLDER_SERVICE_NAME ||
+    itemName === SERVICE_PLACEHOLDER_SERVICE_NAME;
+
+  // ค้นจากชื่อที่ตั้งไว้ในบิลอย่างเดียว เพราะนั่นคือสิ่งเดียวที่ต่างกันในแต่ละใบ
+  const visibleUsages =
+    keyword && isRenamable
+      ? usages.filter(({ itemNames }) =>
+          (itemNames || []).some((name) => String(name).includes(keyword)),
+        )
+      : usages;
+
+  // บิลเดียวอาจมีหลายบรรทัดคนละชื่อ เอามาต่อกันทั้งหมดจะยาวจนโดนตัดท้าย
+  // จึงโชว์ชื่อเดียวแล้วบอกจำนวนที่เหลือ และถ้ากำลังค้นอยู่ให้ชื่อที่ตรงกับคำค้นขึ้นก่อน
+  // ใช้คำว่า "และอีก" ไม่ใช่ "+2" เพราะหน้านี้เต็มไปด้วยตัวเลขเงินกับจำนวนชิ้น
+  const billNameLabel = (names) => {
+    const matched = keyword
+      ? names.find((name) => String(name).includes(keyword))
+      : null;
+    const first = matched || names[0];
+    const rest = names.length - 1;
+
+    return rest > 0 ? `${first} และอีก ${rest}` : first;
+  };
+
+  const usageNoun = isDiscountItem({ name: itemName })
+    ? "ส่วนลด"
+    : isService && !isPartPlaceholderItem({ name: itemName })
+      ? "บริการ"
+      : "อะไหล่";
+
   // กดเข้าไปดูบิลแล้วกดกลับ ต้องอยู่ตรงเดิม แยกตำแหน่งของแต่ละอะไหล่หรือบริการ
   const scrollKey = `usage:${type}-${id}`;
   useScrollTracking(scrollKey);
@@ -119,9 +167,12 @@ const InventoryUsage = () => {
               />
             ) : (
               <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
-                {/* ประแจของ Icons ถูกกำหนดเส้นสีขาวไว้ ใช้ได้เฉพาะบนวงกลมสีเข้ม
-                    กรอบรูปพื้นขาวจึงต้องใช้ตัวที่รับสีตามข้อความได้ */}
-                {isService ? (
+                {/* กติกาเดียวกับการ์ดในหน้าคลัง ส่วนลดใช้ป้ายลดราคา
+                    "อะไหล่อื่นๆ" อยู่ในหมวดบริการแต่ความหมายคืออะไหล่ จึงใช้น็อต
+                    (ประแจของ Icons ฝังเส้นสีขาวไว้ กรอบรูปพื้นขาวจึงต้องใช้ตัวที่รับสีตามข้อความ) */}
+                {isDiscountItem({ name: itemName }) ? (
+                  <TicketPercent className="h-9 w-9" />
+                ) : isService && !isPartPlaceholderItem({ name: itemName }) ? (
                   <WrenchOutline className="h-9 w-9" />
                 ) : (
                   <SparePart className="h-10 w-10" />
@@ -135,29 +186,41 @@ const InventoryUsage = () => {
           </p>
         </div>
 
+        {/* รายการเปล่าอย่างอะไหล่อื่นๆ ถูกพิมพ์ชื่อทับเป็นรายใบ ชื่อจึงต่างกันทุกบิล
+            ช่องค้นหาไว้ไล่หาบิลจากชื่อที่ตั้งไว้ตอนนั้น รวมถึงทะเบียนและชื่อลูกค้า */}
+        {!isLoading && isRenamable && usages.length > 0 && (
+          <div className="pt-[16px]">
+            <SearchBar
+              placeholder="ค้นหาชื่อในบิล"
+              value={search}
+              onSearch={setSearch}
+            />
+          </div>
+        )}
+
         <div className="mt-[16px] flex items-center gap-[8px]">
           <p className="text-normal text-[22px] font-semibold md:text-2xl">
             รายการที่เคยใช้
           </p>
-          {!isLoading && usages.length > 0 && (
+          {!isLoading && visibleUsages.length > 0 && (
             <span className="text-subtle-light shrink-0 text-lg font-medium md:text-xl">
-              ({usages.length})
+              ({visibleUsages.length})
             </span>
           )}
         </div>
 
         {isLoading ? (
-          <div className="flex flex-1 items-center justify-center">
-            <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
-          </div>
-        ) : usages.length === 0 ? (
+          <PageSpinner />
+        ) : visibleUsages.length === 0 ? (
           <div className="flex flex-1 items-center justify-center">
             <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">
-              ไม่มีรายการที่เคยใช้{isService ? "บริการนี้" : "อะไหล่นี้"}
+              {keyword && isRenamable
+                ? `ไม่พบ "${keyword}"`
+                : `ไม่มีรายการที่เคยใช้${usageNoun}นี้`}
             </p>
           </div>
         ) : (
-          usages.map(({ repair }) => (
+          visibleUsages.map(({ repair, itemNames }) => (
             <Link
               key={repair.id}
               to={`/repairs/${repair.id}`}
@@ -167,9 +230,9 @@ const InventoryUsage = () => {
                 bg="primary"
                 icon={
                   isSaleRepair(repair) ? (
-                    <ShoppingBag className="text-surface h-6 w-6" />
+                    <OutlineCardIcon icon={ShoppingBag} color="#1976d2" />
                   ) : isNoVehicleRepair(repair) ? (
-                    <Wrench />
+                    <OutlineCardIcon icon={WrenchOutline} color="#1976d2" />
                   ) : (
                     <BrandIcons
                       brand={repair.vehicle?.vehicleModel?.brand}
@@ -179,8 +242,14 @@ const InventoryUsage = () => {
                 }
                 licensePlate={getRepairTitle(repair)}
                 brand={getRepairSubtitle(repair)}
-                // วันที่เปิดบิล = วันที่ของถูกเบิกไปใช้จริง
-                note={formatDateShort(repair.createdAt)}
+                // รายการเปล่าตั้งชื่อเองรายใบ ชื่อในบิลบอกได้ว่าใช้ทำอะไร
+                // บรรทัดเดียวใส่ได้สองอย่าง จึงสละวันที่ไป (ดูได้ในบิลตอนกดเข้าไป)
+                // ของอื่นใช้ชื่อจากคลังเหมือนกันหมด จึงบอกวันที่เปิดบิลแทน
+                note={
+                  isRenamable && itemNames?.length
+                    ? billNameLabel(itemNames)
+                    : formatDateShort(repair.createdAt)
+                }
               />
             </Link>
           ))

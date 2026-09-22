@@ -1,6 +1,8 @@
+import PageSpinner from "@/components/ui/PageSpinner";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import {
+  Wrench as WrenchOutline,
   ChevronLeft,
   LoaderCircle,
   Store,
@@ -10,8 +12,8 @@ import {
 } from "lucide-react";
 // ประแจของชุดไอคอนโปรเจคฝังเส้นสีขาวไว้ในตัว ใช้บนวงกลมสีทึบได้เลย
 // ต่างจากของ lucide ที่รับสีตามข้อความ จะกลายเป็นสีเข้มบนพื้นม่วง
-import { Wrench } from "@/components/icons/Icons";
 import CarCard from "@/components/cards/CarCard";
+import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import BrandIcons from "@/components/icons/BrandIcons";
 import useRepairStore from "@/stores/useRepairStore";
 import { listOrganizations } from "@/api/customer";
@@ -175,9 +177,7 @@ const OrganizationList = () => {
         </div>
 
         {isLoading ? (
-          <div className="flex flex-1 items-center justify-center">
-            <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
-          </div>
+          <PageSpinner />
         ) : isEmpty ? (
           <div className="flex flex-1 items-center justify-center">
             <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">
@@ -197,9 +197,9 @@ const OrganizationList = () => {
                 bg="credit"
                 icon={
                   isSaleRepair(item) ? (
-                    <ShoppingBag className="text-surface h-6 w-6" />
+                    <OutlineCardIcon icon={ShoppingBag} color="#7c3aed" />
                   ) : isNoVehicleRepair(item) ? (
-                    <Wrench />
+                    <OutlineCardIcon icon={WrenchOutline} color="#7c3aed" />
                   ) : (
                     <BrandIcons
                       brand={item.vehicle?.vehicleModel?.brand}
@@ -229,9 +229,9 @@ const OrganizationList = () => {
                 bg="credit"
                 icon={
                   item.organizationType === "SHOP" ? (
-                    <Store className="text-surface h-6 w-6" />
+                    <OutlineCardIcon icon={Store} color="#7c3aed" />
                   ) : (
-                    <Building2 className="text-surface h-6 w-6" />
+                    <OutlineCardIcon icon={Building2} color="#7c3aed" />
                   )
                 }
                 licensePlate={item.name}

@@ -1,3 +1,4 @@
+import PageSpinner from "@/components/ui/PageSpinner";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { ChevronLeft, LoaderCircle, Trash2, Wrench } from "lucide-react";
@@ -73,9 +74,7 @@ const VehicleDetail = () => {
       </div>
       <div className="bg-surface shadow-primary flex flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pt-[16px] pb-[96px]">
         {isLoading ? (
-          <div className="flex flex-1 items-center justify-center">
-            <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
-          </div>
+          <PageSpinner />
         ) : (
           <div className="flex flex-1 flex-col">
             <div className="mb-[16px] flex items-center gap-[8px] px-[20px]">

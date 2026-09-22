@@ -82,7 +82,9 @@ const CategoryList = ({
       className="scrollbar-hide -mx-[20px] mt-[16px] overflow-x-auto overflow-y-hidden pl-[20px]"
     >
       {isLoading ? (
-        <div className="flex h-[80px] items-center justify-center">
+        // แถบถูกดึงขอบออกข้างละ 20 แล้วใส่ระยะในคืนเฉพาะด้านซ้าย
+        // ตอนโหลดจึงต้องใส่ด้านขวาให้เท่ากัน ไม่งั้นตัวหมุนจะเบ้ไปทางขวา
+        <div className="flex h-[80px] items-center justify-center pr-[20px]">
           <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
         </div>
       ) : (

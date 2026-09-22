@@ -1,3 +1,4 @@
+import PageSpinner from "@/components/ui/PageSpinner";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import {
@@ -7,12 +8,14 @@ import {
   MapPin,
   ShoppingBag,
   Store,
+  Wrench as WrenchOutline,
   Printer,
   History,
   SquarePen,
 } from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
 import BrandIcons from "@/components/icons/BrandIcons";
+import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import { listOrganizationRepairs } from "@/api/customer";
 import { organizationLabel, creditPathFor } from "@/constants/organizations";
 import {
@@ -22,7 +25,6 @@ import {
   getRepairSubtitle,
 } from "@/utils/repairDisplay";
 import { formatCurrency, formatDateShort, formatPhone } from "@/utils/formats";
-import { Wrench } from "@/components/icons/Icons";
 import { toastError } from "@/utils/handleError";
 import OrganizationTypeDialog from "@/components/dialogs/OrganizationTypeDialog";
 import OrganizationBillPreviewDialog from "@/components/dialogs/OrganizationBillPreviewDialog";
@@ -120,135 +122,147 @@ const OrganizationDetail = () => {
         <p className="text-surface min-w-0 flex-1 truncate text-2xl font-semibold md:text-[26px]">
           เครดิต
         </p>
+
+        {/* ปุ่มของทั้งหน้าอยู่มุมขวาบนเหมือนหน้าบิล รอข้อมูลมาก่อนแล้วขึ้นพร้อมกัน
+            ไม่งั้นปุ่มพิมพ์จะแทรกเข้ามาทีหลังแล้วดันปุ่มอื่นเลื่อนที่ */}
+        {!isLoading && (
+          <>
+            {/* ใบวางบิลสำหรับเอาไปวางที่หน่วยงาน ขึ้นเฉพาะตอนมีบิลค้าง */}
+            {repairs.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsPreviewOpen(true)}
+                aria-label="พิมพ์ใบวางบิล"
+                title="พิมพ์ใบวางบิล"
+                className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+              >
+                <Printer className="text-surface h-5 w-5" />
+              </button>
+            )}
+
+            {/* บิลที่เก็บเงินไปแล้วไม่อยู่ในหน้านี้ ดูย้อนหลังได้ที่ประวัติรายเดือน */}
+            <Link
+              to={`/organizations/${id}/history`}
+              aria-label="ประวัติย้อนหลัง"
+              title="ประวัติย้อนหลัง"
+              className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full"
+            >
+              <History className="text-surface h-5 w-5" />
+            </Link>
+          </>
+        )}
       </div>
 
       <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl px-[20px] pb-[112px] xl:pb-[16px]">
-        {/* หัวของหน่วยงาน วางแบบเดียวกับแถวลูกค้าในหน้าบิล
+        {/* กล่องขาวทั้งกล่องรอโหลดพร้อมกัน เหมือนหน้าอื่นในระบบ
+            ไม่งั้นหัวหน่วยงานขึ้นก่อนแล้วยอดกับรายการค่อยตามมาทีหลัง เห็นเป็นสองจังหวะ */}
+        {isLoading ? (
+          <PageSpinner />
+        ) : (
+          <>
+            {/* หัวของหน่วยงาน วางแบบเดียวกับแถวลูกค้าในหน้าบิล
             วงกลมไอคอนสีสถานะ ตามด้วยชื่อและประเภท */}
-        <div className="mt-[16px] flex items-start gap-[8px]">
-          <div className="bg-status-credit mt-[2px] flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full">
-            <Store className="text-surface h-6 w-6" />
-          </div>
-          <div className="flex min-w-0 flex-1 flex-col">
-            <p className="text-status-credit text-[22px] leading-tight font-semibold md:text-2xl">
-              {customer?.name || ""}
-            </p>
-            {customer?.organizationType && (
-              <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                {organizationLabel(customer.organizationType)}
-              </p>
-            )}
-            {(customer?.phoneNumber || customer?.address) && (
-              <div className="mt-[4px] flex flex-wrap items-start gap-[8px]">
-                {customer.phoneNumber && (
-                  <div className="flex shrink-0 items-center gap-[4px]">
-                    <Phone size={16} className="text-subtle-dark" />
-                    <a
-                      href={`tel:${customer.phoneNumber}`}
-                      className="text-subtle-dark text-lg leading-tight font-medium underline md:text-xl"
-                    >
-                      {formatPhone(customer.phoneNumber)}
-                    </a>
-                  </div>
+            <div className="mt-[16px] flex items-start gap-[8px]">
+              <div className="bg-status-credit mt-[2px] flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full">
+                <Store className="text-surface h-6 w-6" />
+              </div>
+              <div className="flex min-w-0 flex-1 flex-col">
+                <p className="text-status-credit text-[22px] leading-tight font-semibold md:text-2xl">
+                  {customer?.name || ""}
+                </p>
+                {customer?.organizationType && (
+                  <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
+                    {organizationLabel(customer.organizationType)}
+                  </p>
                 )}
-                {customer.address && (
-                  <div className="flex items-start gap-[4px]">
-                    <MapPin
-                      size={16}
-                      className="text-subtle-dark mt-[2px] shrink-0"
-                    />
-                    <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                      {customer.address}
-                    </p>
+                {(customer?.phoneNumber || customer?.address) && (
+                  <div className="mt-[4px] flex flex-wrap items-start gap-[8px]">
+                    {customer.phoneNumber && (
+                      <div className="flex shrink-0 items-center gap-[4px]">
+                        <Phone size={16} className="text-subtle-dark" />
+                        <a
+                          href={`tel:${customer.phoneNumber}`}
+                          className="text-subtle-dark text-lg leading-tight font-medium underline md:text-xl"
+                        >
+                          {formatPhone(customer.phoneNumber)}
+                        </a>
+                      </div>
+                    )}
+                    {customer.address && (
+                      <div className="flex items-start gap-[4px]">
+                        <MapPin
+                          size={16}
+                          className="text-subtle-dark mt-[2px] shrink-0"
+                        />
+                        <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
+                          {customer.address}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsTypeDialogOpen(true)}
-            aria-label="แก้ประเภทลูกค้า"
-            title="แก้ประเภทลูกค้า"
-            className="bg-subtle-light/15 mt-[2px] flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
-          >
-            <SquarePen className="text-subtle-dark h-5 w-5" />
-          </button>
-          {/* ใบวางบิลสำหรับเอาไปวางที่หน่วยงาน ขึ้นเฉพาะตอนมีบิลค้าง */}
-          {repairs.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setIsPreviewOpen(true)}
-              aria-label="พิมพ์ใบวางบิล"
-              title="พิมพ์ใบวางบิล"
-              className="bg-subtle-light/15 mt-[2px] flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
-            >
-              <Printer className="text-subtle-dark h-5 w-5" />
-            </button>
-          )}
-          {/* บิลที่เก็บเงินไปแล้วไม่อยู่ในหน้านี้ ดูย้อนหลังได้ที่ประวัติรายเดือน */}
-          <Link
-            to={`/organizations/${id}/history`}
-            aria-label="ประวัติย้อนหลัง"
-            title="ประวัติย้อนหลัง"
-            className="bg-subtle-light/15 mt-[2px] flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full"
-          >
-            <History className="text-subtle-dark h-5 w-5" />
-          </Link>
-        </div>
+              <button
+                type="button"
+                onClick={() => setIsTypeDialogOpen(true)}
+                aria-label="แก้ประเภทลูกค้า"
+                title="แก้ประเภทลูกค้า"
+                className="bg-subtle-light/15 mt-[2px] flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+              >
+                <SquarePen className="text-subtle-dark h-5 w-5" />
+              </button>
+            </div>
 
-        {/* กล่องยอดรวมแบบเดียวกับท้ายบิล พื้นไล่สีจางของสถานะเครดิต */}
-        <div className="border-status-credit/30 from-status-credit/10 to-status-credit/5 mt-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
-          <div className="flex items-center justify-between gap-[8px]">
-            <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
-              ค้างชำระ {repairs.length} บิล
-            </p>
-            <p className="text-status-credit text-2xl font-semibold md:text-[26px]">
-              {formatCurrency(creditTotal)}
-            </p>
-          </div>
-        </div>
+            {/* กล่องยอดรวมแบบเดียวกับท้ายบิล พื้นไล่สีจางของสถานะเครดิต */}
+            <div className="border-status-credit/30 from-status-credit/10 to-status-credit/5 mt-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
+              <div className="flex items-center justify-between gap-[8px]">
+                <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
+                  ค้างชำระ {repairs.length} บิล
+                </p>
+                <p className="text-status-credit text-2xl font-semibold md:text-[26px]">
+                  {formatCurrency(creditTotal)}
+                </p>
+              </div>
+            </div>
 
-        {isLoading ? (
-          <div className="flex flex-1 items-center justify-center">
-            <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
-          </div>
-        ) : repairs.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center">
-            <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">
-              ไม่มีบิลค้างชำระ
-            </p>
-          </div>
-        ) : (
-          repairs.map((item) => (
-            <Link
-              key={item.id}
-              to={`/repairs/${item.id}`}
-              className="mt-[16px] block w-full"
-            >
-              {/* การ์ดแบบเดียวกับรายการบิลหน้าอื่น ทะเบียนเป็นบรรทัดหลัก
+            {repairs.length === 0 ? (
+              <div className="flex flex-1 items-center justify-center">
+                <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">
+                  ไม่มีบิลค้างชำระ
+                </p>
+              </div>
+            ) : (
+              repairs.map((item) => (
+                <Link
+                  key={item.id}
+                  to={`/repairs/${item.id}`}
+                  className="mt-[16px] block w-full"
+                >
+                  {/* การ์ดแบบเดียวกับรายการบิลหน้าอื่น ทะเบียนเป็นบรรทัดหลัก
                   ตามด้วยยี่ห้อรุ่นกับวันที่ และยอดเงินขวาสุด */}
-              <CarCard
-                bg="credit"
-                icon={
-                  isSaleRepair(item) ? (
-                    <ShoppingBag className="text-surface h-6 w-6" />
-                  ) : isNoVehicleRepair(item) ? (
-                    <Wrench />
-                  ) : (
-                    <BrandIcons
-                      brand={item.vehicle?.vehicleModel?.brand}
-                      color="#7c3aed"
-                    />
-                  )
-                }
-                licensePlate={getRepairTitle(item)}
-                brand={getRepairSubtitle(item)}
-                note={formatDateShort(item.createdAt)}
-                price={Number(item.totalPrice) || 0}
-              />
-            </Link>
-          ))
+                  <CarCard
+                    bg="credit"
+                    icon={
+                      isSaleRepair(item) ? (
+                        <OutlineCardIcon icon={ShoppingBag} color="#7c3aed" />
+                      ) : isNoVehicleRepair(item) ? (
+                        <OutlineCardIcon icon={WrenchOutline} color="#7c3aed" />
+                      ) : (
+                        <BrandIcons
+                          brand={item.vehicle?.vehicleModel?.brand}
+                          color="#7c3aed"
+                        />
+                      )
+                    }
+                    licensePlate={getRepairTitle(item)}
+                    brand={getRepairSubtitle(item)}
+                    note={formatDateShort(item.createdAt)}
+                    price={Number(item.totalPrice) || 0}
+                  />
+                </Link>
+              ))
+            )}
+          </>
         )}
       </div>
       <OrganizationBillPreviewDialog

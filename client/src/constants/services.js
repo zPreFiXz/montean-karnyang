@@ -9,9 +9,11 @@ export const PART_PLACEHOLDER_SERVICE_NAME = "อะไหล่อื่นๆ"
 
 // รายการที่ตั้งใจให้พิมพ์ชื่อทับตอนเปิดบิล ชื่อในคลังเป็นแค่ป้ายชั่วคราว
 // เปิดไดอะล็อกแก้ชื่อแล้วช่องจะว่างไว้ให้พิมพ์ได้เลย ไม่ต้องลบของเดิมก่อน
+export const SERVICE_PLACEHOLDER_SERVICE_NAME = "บริการอื่นๆ";
+
 export const PLACEHOLDER_SERVICE_NAMES = [
   DEFAULT_LABOR_SERVICE_NAME,
-  "บริการอื่นๆ",
+  SERVICE_PLACEHOLDER_SERVICE_NAME,
   PART_PLACEHOLDER_SERVICE_NAME,
 ];
 

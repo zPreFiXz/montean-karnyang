@@ -1,11 +1,17 @@
+import PageSpinner from "@/components/ui/PageSpinner";
 import { useState, useEffect } from "react";
 import { Link, Navigate, useSearchParams, useNavigate } from "react-router";
 import {
   saveScrollPosition,
   useScrollRestoration,
 } from "@/utils/scrollPosition";
-import { LoaderCircle, ChevronLeft } from "lucide-react";
+import {
+  LoaderCircle,
+  ChevronLeft,
+  Wrench as WrenchOutline,
+} from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
+import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import useRepairStore from "@/stores/useRepairStore";
 import { formatTime, formatDateShort } from "@/utils/formats";
 import BrandIcons from "@/components/icons/BrandIcons";
@@ -360,9 +366,7 @@ const RepairList = () => {
         )}
 
         {isLoading ? (
-          <div className="flex flex-1 items-center justify-center">
-            <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
-          </div>
+          <PageSpinner />
         ) : currentRepairs.length === 0 ? (
           <div className="flex flex-1 items-center justify-center">
             <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">
@@ -382,9 +386,15 @@ const RepairList = () => {
                 bg={getStatusBg(item.status)}
                 icon={
                   isSaleRepair(item) ? (
-                    <ShoppingBag className="text-surface h-6 w-6" />
+                    <OutlineCardIcon
+                      icon={ShoppingBag}
+                      color={getStatusColor(item.status)}
+                    />
                   ) : isNoVehicleRepair(item) ? (
-                    <Wrench />
+                    <OutlineCardIcon
+                      icon={WrenchOutline}
+                      color={getStatusColor(item.status)}
+                    />
                   ) : (
                     <BrandIcons
                       brand={item.vehicle?.vehicleModel?.brand}

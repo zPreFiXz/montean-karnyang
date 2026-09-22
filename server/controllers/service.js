@@ -91,3 +91,38 @@ exports.deleteService = async (req, res, next) => {
     next(error);
   }
 };
+
+// ชื่อที่เคยพิมพ์ทับไว้ในบิลของบริการตัวนี้ (เช่น "อะไหล่อื่นๆ" หรือ "บริการอื่นๆ")
+// เอาไว้ให้เลือกซ้ำตอนเปิดบิลใหม่ จะได้ไม่ต้องพิมพ์เองทุกครั้งและชื่อไม่เพี้ยนไปคนละแบบ
+exports.listServiceItemNames = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { search } = req.query;
+
+    const service = await prisma.service.findUnique({
+      where: { id: Number(id) },
+      select: { name: true },
+    });
+
+    const items = await prisma.repairItem.findMany({
+      where: {
+        serviceId: Number(id),
+        itemName: { not: null },
+        ...(search ? { itemName: { contains: search } } : {}),
+      },
+      select: { itemName: true },
+      distinct: ["itemName"],
+      orderBy: { id: "desc" },
+      take: 20,
+    });
+
+    // ชื่อที่ยังเป็นชื่อบริการตั้งต้นไม่ใช่ชื่อที่พิมพ์เอง ไม่ต้องเอามาเสนอ
+    const names = items
+      .map((item) => item.itemName)
+      .filter((name) => name && name !== service?.name);
+
+    res.json(names);
+  } catch (error) {
+    next(error);
+  }
+};

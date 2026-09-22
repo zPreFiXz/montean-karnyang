@@ -1,3 +1,4 @@
+import PageSpinner from "@/components/ui/PageSpinner";
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigationType, useSearchParams } from "react-router";
 import { LoaderCircle } from "lucide-react";
@@ -136,9 +137,7 @@ const VehicleList = () => {
 
           {/* รายการรถ */}
           {isLoading ? (
-            <div className="flex flex-1 items-center justify-center">
-              <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
-            </div>
+            <PageSpinner />
           ) : vehicles.length === 0 ? (
             <div className="flex flex-1 items-center justify-center">
               <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">

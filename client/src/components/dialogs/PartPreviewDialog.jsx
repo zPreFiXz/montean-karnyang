@@ -92,12 +92,16 @@ const PartPreviewDialog = ({ part, price, open, onOpenChange }) => {
               </div>
             )}
 
+            {/* อยู่บรรทัดเดียวกับป้ายก่อน ยาวเกินค่อยตกบรรทัดลงมา
+                ข้อความชิดซ้าย ทุกบรรทัดจึงเริ่มที่ขอบเดียวกัน */}
             {part.description && (
-              <div className="flex justify-between gap-[12px]">
+              <div className="flex gap-[12px]">
                 <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
                   รายละเอียด:
                 </p>
-                <p className="text-normal min-w-0 text-right text-lg font-semibold break-words whitespace-pre-line md:text-xl">
+                {/* ไม่ใส่กฎตัดคำใดๆ เพราะภาษาไทยเขียนติดกันทั้งประโยค
+                    ถ้าใส่ เบราว์เซอร์จะมองเป็นคำเดียวแล้วตัดตรงไหนก็ได้ (ตั้ง|ศูนย์) */}
+                <p className="text-normal min-w-0 flex-1 text-lg font-semibold whitespace-pre-line md:text-xl">
                   {part.description}
                 </p>
               </div>

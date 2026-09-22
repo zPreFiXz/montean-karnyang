@@ -29,6 +29,7 @@ export const VEHICLE_COMPATIBLE_CATEGORIES = [
   "ช่วงล่าง",
   "เบรค",
   "โช๊คอัพ",
+  "ระบบส่งกำลัง",
   "กรอง",
   "ไส้กรอง",
 ];

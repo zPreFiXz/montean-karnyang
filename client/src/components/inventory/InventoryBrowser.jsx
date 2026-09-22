@@ -1,3 +1,4 @@
+import PageSpinner from "@/components/ui/PageSpinner";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { useDebouncedCallback } from "use-debounce";
@@ -635,9 +636,7 @@ const InventoryBrowser = ({
       </div>
 
       {isLoading ? (
-        <div className="flex flex-1 items-center justify-center">
-          <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
-        </div>
+        <PageSpinner />
       ) : visibleInventory.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
           <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">

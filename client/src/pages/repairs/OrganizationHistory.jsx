@@ -1,6 +1,8 @@
+import PageSpinner from "@/components/ui/PageSpinner";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
+  Wrench as WrenchOutline,
   ChevronLeft,
   LoaderCircle,
   Wrench,
@@ -10,6 +12,7 @@ import {
   Printer,
 } from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
+import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import OrganizationBillPreviewDialog from "@/components/dialogs/OrganizationBillPreviewDialog";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { listOrganizationRepairs } from "@/api/customer";
@@ -143,124 +146,136 @@ const OrganizationHistory = () => {
         <p className="text-surface min-w-0 flex-1 truncate text-2xl font-semibold md:text-[26px]">
           {month ? monthLabel : "ประวัติย้อนหลัง"}
         </p>
+
+        {/* ปุ่มของทั้งหน้าอยู่มุมขวาบนเหมือนหน้าอื่น
+            พิมพ์ได้เฉพาะตอนเปิดดูรายเดือน เพราะพิมพ์เป็นชุดของเดือนนั้น */}
+        {!isLoading && month && monthRepairs.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setIsPreviewOpen(true)}
+            aria-label="พิมพ์ใบวางบิล"
+            title="พิมพ์ใบวางบิล"
+            className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+          >
+            <Printer className="text-surface h-5 w-5" />
+          </button>
+        )}
       </div>
 
       <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl px-[20px] pb-[112px] xl:pb-[16px]">
-        {/* หัวของหน่วยงาน วางแบบเดียวกับหน้ารายละเอียด สองหน้าจะได้ต่อกันเป็นเรื่องเดียว */}
-        {customer?.name && (
-          <div className="mt-[16px] flex items-start gap-[8px]">
-            <div className="bg-status-credit mt-[2px] flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full">
-              <Store className="text-surface h-6 w-6" />
-            </div>
-            <div className="flex min-w-0 flex-1 flex-col">
-              <p className="text-status-credit text-[22px] leading-tight font-semibold md:text-2xl">
-                {customer.name}
-              </p>
-              {customer.organizationType && (
-                <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                  {organizationLabel(customer.organizationType)}
-                </p>
-              )}
-            </div>
-            {/* พิมพ์ได้เฉพาะตอนเปิดดูรายเดือน เพราะพิมพ์เป็นชุดของเดือนนั้น */}
-            {month && monthRepairs.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setIsPreviewOpen(true)}
-                aria-label="พิมพ์ใบวางบิล"
-                title="พิมพ์ใบวางบิล"
-                className="bg-subtle-light/15 mt-[2px] flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
-              >
-                <Printer className="text-subtle-dark h-5 w-5" />
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* ยอดรวมของเดือนที่เปิดอยู่ วางแบบเดียวกับกล่องยอดค้างชำระในหน้าก่อนหน้า */}
-        {month && monthRepairs.length > 0 && (
-          <div className="border-status-credit/30 from-status-credit/10 to-status-credit/5 mt-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
-            <div className="flex items-center justify-between gap-[8px]">
-              <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
-                ทั้งหมด {monthRepairs.length} บิล
-              </p>
-              <p className="text-status-credit text-2xl leading-tight font-semibold md:text-[26px]">
-                {formatCurrency(monthTotal)}
-              </p>
-            </div>
-          </div>
-        )}
-
+        {/* กล่องขาวทั้งกล่องรอโหลดพร้อมกัน เหมือนหน้าอื่นในระบบ
+            ไม่งั้นหัวหน่วยงานขึ้นก่อนแล้วรายการค่อยตามมาทีหลัง เห็นเป็นสองจังหวะ */}
         {isLoading ? (
-          <div className="flex flex-1 items-center justify-center">
-            <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
-          </div>
-        ) : month ? (
-          monthRepairs.length === 0 ? (
-            <div className="flex flex-1 items-center justify-center">
-              <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">
-                ไม่มีบิลในเดือนนี้
-              </p>
-            </div>
-          ) : (
-            monthRepairs.map((item) => (
-              <Link
-                key={item.id}
-                to={`/repairs/${item.id}`}
-                className="mt-[16px] block w-full"
-              >
-                {/* การ์ดแบบเดียวกับรายการบิลหน้าอื่น สีตามสถานะของบิลแต่ละใบ */}
-                <CarCard
-                  bg={statusBgOf(item.status)}
-                  icon={
-                    isSaleRepair(item) ? (
-                      <ShoppingBag className="text-surface h-6 w-6" />
-                    ) : isNoVehicleRepair(item) ? (
-                      <Wrench />
-                    ) : (
-                      <BrandIcons
-                        brand={item.vehicle?.vehicleModel?.brand}
-                        color={statusColorOf(item.status)}
-                      />
-                    )
-                  }
-                  licensePlate={getRepairTitle(item)}
-                  brand={getRepairSubtitle(item)}
-                  note={formatDateShort(item.createdAt)}
-                  price={Number(item.totalPrice) || 0}
-                />
-              </Link>
-            ))
-          )
-        ) : months.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center">
-            <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">
-              ไม่มีประวัติย้อนหลัง
-            </p>
-          </div>
+          <PageSpinner />
         ) : (
-          months.map((group) => (
-            <Link
-              key={group.key}
-              to={`/organizations/${id}/history?month=${group.key}`}
-              className="bg-surface shadow-primary mt-[16px] flex h-[80px] w-full items-center gap-[8px] rounded-[10px] px-[16px]"
-            >
-              <div className="bg-status-credit flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-full">
-                <CalendarDays className="text-surface h-6 w-6" />
+          <>
+            {/* หัวของหน่วยงาน วางแบบเดียวกับหน้ารายละเอียด สองหน้าจะได้ต่อกันเป็นเรื่องเดียว */}
+            {customer?.name && (
+              <div className="mt-[16px] flex items-start gap-[8px]">
+                <div className="bg-status-credit mt-[2px] flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full">
+                  <Store className="text-surface h-6 w-6" />
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <p className="text-status-credit text-[22px] leading-tight font-semibold md:text-2xl">
+                    {customer.name}
+                  </p>
+                  {customer.organizationType && (
+                    <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
+                      {organizationLabel(customer.organizationType)}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="flex min-w-0 flex-1 flex-col">
-                <p className="text-status-credit truncate text-lg leading-tight font-semibold md:text-xl">
-                  {formatMonth(group.date)}
-                </p>
-                <p className="text-subtle-dark truncate text-base leading-tight font-medium md:text-lg">
-                  {group.count} บิล
+            )}
+
+            {/* ยอดรวมของเดือนที่เปิดอยู่ วางแบบเดียวกับกล่องยอดค้างชำระในหน้าก่อนหน้า */}
+            {month && monthRepairs.length > 0 && (
+              <div className="border-status-credit/30 from-status-credit/10 to-status-credit/5 mt-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
+                <div className="flex items-center justify-between gap-[8px]">
+                  <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
+                    ทั้งหมด {monthRepairs.length} บิล
+                  </p>
+                  <p className="text-status-credit text-2xl leading-tight font-semibold md:text-[26px]">
+                    {formatCurrency(monthTotal)}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {month ? (
+              monthRepairs.length === 0 ? (
+                <div className="flex flex-1 items-center justify-center">
+                  <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">
+                    ไม่มีบิลในเดือนนี้
+                  </p>
+                </div>
+              ) : (
+                monthRepairs.map((item) => (
+                  <Link
+                    key={item.id}
+                    to={`/repairs/${item.id}`}
+                    className="mt-[16px] block w-full"
+                  >
+                    {/* การ์ดแบบเดียวกับรายการบิลหน้าอื่น สีตามสถานะของบิลแต่ละใบ */}
+                    <CarCard
+                      bg={statusBgOf(item.status)}
+                      icon={
+                        isSaleRepair(item) ? (
+                          <OutlineCardIcon
+                            icon={ShoppingBag}
+                            color={statusColorOf(item.status)}
+                          />
+                        ) : isNoVehicleRepair(item) ? (
+                          <OutlineCardIcon
+                            icon={WrenchOutline}
+                            color={statusColorOf(item.status)}
+                          />
+                        ) : (
+                          <BrandIcons
+                            brand={item.vehicle?.vehicleModel?.brand}
+                            color={statusColorOf(item.status)}
+                          />
+                        )
+                      }
+                      licensePlate={getRepairTitle(item)}
+                      brand={getRepairSubtitle(item)}
+                      note={formatDateShort(item.createdAt)}
+                      price={Number(item.totalPrice) || 0}
+                    />
+                  </Link>
+                ))
+              )
+            ) : months.length === 0 ? (
+              <div className="flex flex-1 items-center justify-center">
+                <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">
+                  ไม่มีประวัติย้อนหลัง
                 </p>
               </div>
-              <p className="text-status-credit shrink-0 text-[22px] font-semibold md:text-2xl">
-                {formatCurrency(group.total)}
-              </p>
-            </Link>
-          ))
+            ) : (
+              months.map((group) => (
+                <Link
+                  key={group.key}
+                  to={`/organizations/${id}/history?month=${group.key}`}
+                  className="bg-surface shadow-primary mt-[16px] flex h-[80px] w-full items-center gap-[8px] rounded-[10px] px-[16px]"
+                >
+                  <div className="bg-status-credit flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-full">
+                    <CalendarDays className="text-surface h-6 w-6" />
+                  </div>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <p className="text-status-credit truncate text-lg leading-tight font-semibold md:text-xl">
+                      {formatMonth(group.date)}
+                    </p>
+                    <p className="text-subtle-dark truncate text-base leading-tight font-medium md:text-lg">
+                      {group.count} บิล
+                    </p>
+                  </div>
+                  <p className="text-status-credit shrink-0 text-[22px] font-semibold md:text-2xl">
+                    {formatCurrency(group.total)}
+                  </p>
+                </Link>
+              ))
+            )}
+          </>
         )}
       </div>
       <OrganizationBillPreviewDialog

@@ -1,3 +1,4 @@
+import PageSpinner from "@/components/ui/PageSpinner";
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
 import { getRepair, updateRepairStatus, deleteRepair } from "@/api/repair";
@@ -32,6 +33,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import BrandIcons from "@/components/icons/BrandIcons";
+import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import { onKeyActivate } from "@/utils/a11y";
 import OrganizationTypeDialog from "@/components/dialogs/OrganizationTypeDialog";
 import { organizationLabel, creditPathFor } from "@/constants/organizations";
@@ -91,6 +93,7 @@ const RepairDetail = () => {
     window.scrollTo(0, 0);
 
     fetchRepairDetail();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchRepairDetail = async () => {
@@ -681,45 +684,50 @@ const RepairDetail = () => {
         >
           รายละเอียดการซ่อม
         </p>
-        {/* พิมพ์ได้ทุกสถานะ บางครั้งลูกค้าขอใบไปก่อนตั้งแต่ยังไม่จ่าย */}
-        <button
-          onClick={() => setIsReceiptOpen(true)}
-          aria-label="พิมพ์ใบเสร็จ"
-          className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
-        >
-          <Printer className="text-surface h-5 w-5" />
-        </button>
+        {/* ปุ่มทั้งแถวรอข้อมูลมาก่อนแล้วค่อยขึ้นพร้อมกัน
+            ไม่งั้นปุ่มใบประเมินราคาจะแทรกเข้ามาทีหลังแล้วดันปุ่มอื่นเลื่อนที่
+            ซึ่งอันตรายเพราะปุ่มลบอยู่ในแถวเดียวกัน */}
+        {!isLoading && (
+          <>
+            {/* พิมพ์ได้ทุกสถานะ บางครั้งลูกค้าขอใบไปก่อนตั้งแต่ยังไม่จ่าย */}
+            <button
+              onClick={() => setIsReceiptOpen(true)}
+              aria-label="พิมพ์ใบเสร็จ"
+              className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+            >
+              <Printer className="text-surface h-5 w-5" />
+            </button>
 
-        {/* ประเมินราคาไว้ก่อน ลูกค้ายังไม่ตกลงซ่อม — ของที่จองไว้ในบิลจะถูกคืนเข้าคลัง
+            {/* ประเมินราคาไว้ก่อน ลูกค้ายังไม่ตกลงซ่อม — ของที่จองไว้ในบิลจะถูกคืนเข้าคลัง
             มีเฉพาะบิลที่ยังซ่อมอยู่ บิลที่เก็บเงินไปแล้วย้อนกลับไปเป็นใบประเมินไม่ได้ */}
-        {repair?.status === "IN_PROGRESS" && (
-          <button
-            onClick={() => setIsEstimateConfirmOpen(true)}
-            disabled={isSavingEstimate}
-            aria-label="บันทึกเป็นใบประเมินราคา"
-            className="bg-status-estimate flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full disabled:opacity-60"
-          >
-            {isSavingEstimate ? (
-              <LoaderCircle className="text-surface h-5 w-5 animate-spin" />
-            ) : (
-              <ClipboardList className="text-surface h-5 w-5" />
+            {repair?.status === "IN_PROGRESS" && (
+              <button
+                onClick={() => setIsEstimateConfirmOpen(true)}
+                disabled={isSavingEstimate}
+                aria-label="บันทึกเป็นใบประเมินราคา"
+                className="bg-status-estimate flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full disabled:opacity-60"
+              >
+                {isSavingEstimate ? (
+                  <LoaderCircle className="text-surface h-5 w-5 animate-spin" />
+                ) : (
+                  <ClipboardList className="text-surface h-5 w-5" />
+                )}
+              </button>
             )}
-          </button>
+            {/* วางแยกจากปุ่มหลักด้านล่าง เพื่อไม่ให้นิ้วพลาดไปโดนตอนกดเปลี่ยนสถานะ */}
+            <button
+              onClick={() => setIsDeleteConfirmOpen(true)}
+              aria-label={`ลบ${deleteTargetName}`}
+              className="bg-destructive flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+            >
+              <Trash2 className="text-surface h-5 w-5" />
+            </button>
+          </>
         )}
-        {/* วางแยกจากปุ่มหลักด้านล่าง เพื่อไม่ให้นิ้วพลาดไปโดนตอนกดเปลี่ยนสถานะ */}
-        <button
-          onClick={() => setIsDeleteConfirmOpen(true)}
-          aria-label={`ลบ${deleteTargetName}`}
-          className="bg-destructive flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
-        >
-          <Trash2 className="text-surface h-5 w-5" />
-        </button>
       </div>
       <div className="bg-surface shadow-primary mt-[16px] flex flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pt-[16px] pb-[112px] xl:pb-[16px]">
         {isLoading ? (
-          <div className="flex flex-1 items-center justify-center">
-            <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
-          </div>
+          <PageSpinner />
         ) : (
           <div>
             <div className="mb-[16px] flex items-center justify-between px-[20px]">
@@ -761,10 +769,12 @@ const RepairDetail = () => {
                 className={`flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full ${statusInfo.bg}`}
               >
                 {isSaleRepair(repair) ? (
-                  <ShoppingBag className="text-surface h-6 w-6" />
+                  <OutlineCardIcon
+                    icon={ShoppingBag}
+                    color={statusInfo.iconColor}
+                  />
                 ) : isNoVehicleRepair(repair) ? (
-                  // Wrench ของ lucide ใช้สีตามตัวหนังสือ ต้องสั่งเป็นสีขาวเองบนวงกลมสีทึบ
-                  <Wrench className="text-surface h-6 w-6" />
+                  <OutlineCardIcon icon={Wrench} color={statusInfo.iconColor} />
                 ) : (
                   <BrandIcons
                     brand={repair.vehicle?.vehicleModel?.brand}
@@ -800,14 +810,18 @@ const RepairDetail = () => {
                   <div
                     className={`mt-[6px] flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full ${statusInfo.bg}`}
                   >
-                    {/* ไอคอนบอกประเภทลูกค้าไปเลย กวาดตาแล้วรู้ว่าบิลนี้เป็นของใครแบบไหน */}
-                    {repair.customer.organizationType === "GOVERNMENT" ? (
-                      <Building2 className="text-surface h-6 w-6" />
-                    ) : repair.customer.organizationType === "SHOP" ? (
-                      <Store className="text-surface h-6 w-6" />
-                    ) : (
-                      <CircleUserRound color="#ffffff" />
-                    )}
+                    {/* ไอคอนบอกประเภทลูกค้าไปเลย กวาดตาแล้วรู้ว่าบิลนี้เป็นของใครแบบไหน
+                        ทั้งสามแบบใช้กรอบเดียวกับไอคอนอื่น จะได้ไม่มีวงไหนดูต่างออกไป */}
+                    <OutlineCardIcon
+                      icon={
+                        repair.customer.organizationType === "GOVERNMENT"
+                          ? Building2
+                          : repair.customer.organizationType === "SHOP"
+                            ? Store
+                            : CircleUserRound
+                      }
+                      color={statusInfo.iconColor}
+                    />
                   </div>
                   {/* กรอกมาอย่างเดียว (ชื่อล้วน หรือเบอร์ล้วน) ข้อความจะสูงไม่ถึงวงกลม
                       ต้องดันให้อยู่กึ่งกลางแกนตั้งเทียบวงกลม ไม่งั้นจะลอยเกาะขอบบน */}

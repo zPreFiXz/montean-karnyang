@@ -7,8 +7,10 @@ import {
   X,
   LoaderCircle,
   ShoppingBag,
+  Wrench as WrenchOutline,
 } from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
+import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import InventoryCard from "@/components/cards/InventoryCard";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
 import StatusCard from "@/components/cards/StatusCard";
@@ -153,9 +155,9 @@ const Dashboard = () => {
               bg={bg}
               icon={
                 isSaleRepair(repair) ? (
-                  <ShoppingBag className="text-surface h-6 w-6" />
+                  <OutlineCardIcon icon={ShoppingBag} color={iconColor} />
                 ) : isNoVehicleRepair(repair) ? (
-                  <Wrench />
+                  <OutlineCardIcon icon={WrenchOutline} color={iconColor} />
                 ) : (
                   <BrandIcons
                     brand={repair.vehicle?.vehicleModel?.brand}
@@ -243,11 +245,11 @@ const Dashboard = () => {
             <p className="text-subtle-dark flex items-center gap-2 text-[22px] font-medium">
               แจ้งเตือนสต็อก{!isInventoryLoading && ` (${stockAlertCount})`}
             </p>
-            <div className={isInventoryLoading ? "" : "mt-[16px]"}>
+            <div className="mt-[16px]">
               {isInventoryLoading ? (
-                // ตอนโหลดไม่ใส่ระยะบน แล้วให้กล่องสูงเท่าระยะ+การ์ด (16+80)
-                // ตัวหมุนจึงอยู่กลางพื้นที่ว่างใต้หัวข้อจริงๆ เหมือนตัวหมุนหน้าอื่น
-                <div className="flex h-[96px] items-center justify-center">
+                // สูงเท่าการ์ดหนึ่งใบและเว้นระยะบนเท่ากัน ตัวหมุนจึงอยู่กลางที่ของการ์ดใบแรกพอดี
+                // พอโหลดเสร็จการ์ดมาแทนที่ตรงนั้นเลย กล่องไม่ขยับขึ้นลง
+                <div className="flex h-[80px] items-center justify-center">
                   <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
                 </div>
               ) : (
@@ -432,13 +434,17 @@ const Dashboard = () => {
           {(isInventoryLoading ||
             outOfStockItems.length > 0 ||
             lowStockItems.length > 0) && (
-            <div className="pb-[16px]">
+            <div
+              className={`pb-[16px] ${
+                isInventoryLoading ? "flex flex-1 flex-col" : ""
+              }`}
+            >
               <p className="text-normal pt-[8px] text-[22px] font-semibold md:text-2xl">
                 แจ้งเตือนสต็อก{!isInventoryLoading && ` (${stockAlertCount})`}
               </p>
               {isInventoryLoading ? (
-                // เช่นเดียวกับฝั่งจอใหญ่ — กินระยะบนของการ์ดเข้ามาเป็นความสูง แล้วจัดกลาง
-                <div className="flex h-[96px] items-center justify-center">
+                // ยืดเต็มที่ว่างที่เหลือของหน้า แล้ววางตัวหมุนไว้กึ่งกลางแนวตั้งของที่ว่างนั้น
+                <div className="flex flex-1 items-center justify-center">
                   <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
                 </div>
               ) : (

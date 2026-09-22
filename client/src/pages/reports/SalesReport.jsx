@@ -10,8 +10,10 @@ import {
   ChevronRight,
   LoaderCircle,
   Calendar as CalendarIcon,
+  Wrench as WrenchOutline,
 } from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
+import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarMonth } from "@/components/ui/CalendarMonth";
 import {
@@ -476,9 +478,15 @@ const SalesReport = () => {
                         bg="primary"
                         icon={
                           isSaleRepair(repair) ? (
-                            <ShoppingBag className="text-surface h-6 w-6" />
+                            <OutlineCardIcon
+                              icon={ShoppingBag}
+                              color="#1976d2"
+                            />
                           ) : isNoVehicleRepair(repair) ? (
-                            <Wrench />
+                            <OutlineCardIcon
+                              icon={WrenchOutline}
+                              color="#1976d2"
+                            />
                           ) : (
                             <BrandIcons
                               brand={repair.vehicle?.vehicleModel?.brand}
@@ -516,9 +524,15 @@ const SalesReport = () => {
                               bg="primary"
                               icon={
                                 isSaleRepair(repair) ? (
-                                  <ShoppingBag className="text-surface h-6 w-6" />
+                                  <OutlineCardIcon
+                                    icon={ShoppingBag}
+                                    color="#1976d2"
+                                  />
                                 ) : isNoVehicleRepair(repair) ? (
-                                  <Wrench />
+                                  <OutlineCardIcon
+                                    icon={WrenchOutline}
+                                    color="#1976d2"
+                                  />
                                 ) : (
                                   <BrandIcons
                                     brand={repair.vehicle?.vehicleModel?.brand}

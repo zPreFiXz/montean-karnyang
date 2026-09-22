@@ -91,20 +91,9 @@ const PART_TYPE_ORDER = [
   "ลูกหมากกันโคลงหน้า",
   "ยางกันโคลง",
 ];
-// แท็บ "อื่นๆ" ให้เหลือเฉพาะสามชนิดนี้ตามลำดับที่ช่างไล่ตรวจ
-// จับด้วยคำขึ้นต้น ไม่ใช่ชื่อเต็ม เพราะชื่ออะไหล่มีรุ่นต่อท้าย ("โช้คหลัง PG5-4046 STD 4WD")
-const OTHER_TAB_GROUPS = [
-  { label: "คันส่งกลาง", prefixes: ["คันส่งกลาง"] },
-  { label: "โช้คหน้า", prefixes: ["โช้คหน้า"] },
-  { label: "โช้คหลัง", prefixes: ["โช้คหลัง"] },
-];
-
-const matchOtherTabGroup = (name) => {
-  const text = String(name || "").trim();
-  return OTHER_TAB_GROUPS.find((group) =>
-    group.prefixes.some((prefix) => text.startsWith(prefix)),
-  );
-};
+// สามชนิดที่ช่างไล่ตรวจประจำในแท็บ "อื่นๆ" ให้ขึ้นก่อนตามลำดับนี้
+// ชนิดอื่นยังขึ้นเหมือนกัน แค่ไปต่อท้ายเรียงตามตัวอักษร
+const OTHER_TAB_ORDER = ["คันส่งกลาง", "โช้คหน้า", "โช้คหลัง"];
 
 // หน่วงสั้นๆ ให้เห็นตัวหมุนก่อนหน้าจอเปลี่ยน (ไม่ได้รอเซิร์ฟเวอร์ ข้อมูลส่งต่อผ่าน state ล้วน)
 const SUBMIT_FEEDBACK_MS = 400;
@@ -510,7 +499,9 @@ const SuspensionInspection = () => {
         part.category?.name === "ช่วงล่าง" && isPerSide(part.attributes);
 
       if (perSide) return side === "left" || side === "right";
-      return side === "other" && !!matchOtherTabGroup(part.name);
+      // อะไหล่ช่วงล่างที่ไม่ได้ติดตั้งแยกข้างทุกตัวไปอยู่แท็บอื่นๆ
+      // (เดิมรับเฉพาะสามชนิดที่ระบุไว้ ตัวที่เหลือจึงหายไปทั้งที่ผูกกับรุ่นรถไว้แล้ว)
+      return side === "other";
     });
   };
 
@@ -854,11 +845,20 @@ const SuspensionInspection = () => {
   // จึงใช้คำแรกเป็นหัวข้อกลุ่มได้โดยไม่ต้องเพิ่มฟิลด์ใหม่
   // ข้อแลกเปลี่ยน: ถ้าตั้งชื่อไม่ตามแบบแผน อะไหล่ตัวนั้นจะกลายเป็นกลุ่มของตัวเอง
   // แท็บอื่นๆ จัดกลุ่มตามลิสต์ที่กำหนดไว้ ไม่ใช่ตามคำแรกของชื่อ
-  const groupOtherParts = (parts) =>
-    OTHER_TAB_GROUPS.map((group) => ({
-      type: group.label,
-      items: parts.filter((part) => matchOtherTabGroup(part.name) === group),
-    })).filter((group) => group.items.length > 0);
+  // แท็บอื่นๆ จัดกลุ่มตามคำแรกของชื่อเหมือนแท็บซ้ายขวา
+  // แต่สามชนิดที่ช่างไล่ตรวจประจำให้ขึ้นก่อนตามลำดับเดิม ที่เหลือเรียงตามตัวอักษรต่อท้าย
+  const groupOtherParts = (parts) => {
+    const groups = groupPartsByType(parts);
+    const rank = (type) => {
+      const index = OTHER_TAB_ORDER.indexOf(type);
+      return index === -1 ? OTHER_TAB_ORDER.length : index;
+    };
+
+    return [...groups].sort(
+      (a, b) =>
+        rank(a.type) - rank(b.type) || thaiCollator.compare(a.type, b.type),
+    );
+  };
 
   const groupPartsByType = (parts) => {
     const groups = new Map();

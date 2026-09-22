@@ -642,7 +642,7 @@ const InventoryCreate = () => {
             name="description"
             label="รายละเอียด"
             type="text"
-            placeholder="เช่น ใส่แทนเบอร์เดิมได้ ต้องขันสลักใหม่"
+            placeholder="เช่น ของสั่งล่วงหน้า 3 วัน"
             color="subtle-dark"
             errors={errors}
           />

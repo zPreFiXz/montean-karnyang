@@ -185,6 +185,9 @@ exports.listInventoryRepairs = async (req, res, next) => {
       select: {
         quantity: true,
         unitPrice: true,
+        // ชื่อที่บันทึกไว้ในบิลใบนั้น — รายการเปล่าอย่างอะไหล่อื่นๆ ถูกพิมพ์ชื่อทับเป็นรายใบ
+        // หน้าประวัติการใช้เอาไว้ค้นหาและบอกว่าบิลนั้นเรียกของชิ้นนี้ว่าอะไร
+        itemName: true,
         repair: {
           include: {
             customer: { select: { name: true } },
@@ -209,11 +212,16 @@ exports.listInventoryRepairs = async (req, res, next) => {
       if (current) {
         current.quantity += Number(item.quantity);
         current.total += Number(item.quantity) * item.unitPrice;
+        // บิลเดียวอาจมีหลายบรรทัดและตั้งชื่อคนละอย่าง เก็บให้ครบแบบไม่ซ้ำ
+        if (item.itemName && !current.itemNames.includes(item.itemName)) {
+          current.itemNames.push(item.itemName);
+        }
       } else {
         byRepair.set(item.repair.id, {
           repair: item.repair,
           quantity: Number(item.quantity),
           total: Number(item.quantity) * item.unitPrice,
+          itemNames: item.itemName ? [item.itemName] : [],
         });
       }
     }
