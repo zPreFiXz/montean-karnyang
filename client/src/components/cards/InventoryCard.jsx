@@ -4,7 +4,7 @@ import { tracksStock } from "@/utils/stock";
 import { isPartPlaceholderItem, isDiscountItem } from "@/constants/services";
 import { isUnlimitedStockItem } from "@/utils/oil";
 import { SparePart } from "@/components/icons/Icons";
-import { isTireCategoryName } from "@/constants/categories";
+import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
 import { formatProductName } from "@/utils/tireSize";
 
 const InventoryCard = ({
@@ -27,7 +27,13 @@ const InventoryCard = ({
   const renderProductInfo = () => {
     return (
       <p className="text-normal line-clamp-2 overflow-hidden text-base font-semibold break-words md:text-lg">
-        {formatProductName({ brand, name, attributes, isTire })}
+        {formatProductName({
+          brand,
+          name,
+          attributes,
+          isTire,
+          isUsedTire: category === USED_TIRE_CATEGORY,
+        })}
       </p>
     );
   };

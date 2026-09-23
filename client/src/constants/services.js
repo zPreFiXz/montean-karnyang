@@ -43,6 +43,32 @@ export const isDiscountItem = (item) =>
   // หรือร่างเก่าที่บันทึกไว้ก่อนระบบจะติดธงบอกชนิดบรรทัด
   Number(item?.sellingPrice ?? item?.unitPrice ?? 0) < 0;
 
+// งานที่คิดเป็นครั้งต่อคัน ไม่มีทางทำสองรอบในบิลเดียว จึงไม่มีปุ่มเพิ่มลดจำนวน
+export const SINGLE_QUANTITY_SERVICE_NAMES = [
+  DEFAULT_LABOR_SERVICE_NAME,
+  "ตั้งศูนย์",
+  "สลับยาง+ถ่วงล้อ",
+];
+
+// ค่าแรงมักถูกพิมพ์ชื่อทับ จึงดูธงที่ติดตอนหยิบลงบิลหรือชื่อบริการต้นทางก่อนชื่อบนบรรทัด
+export const isSingleQuantityItem = (item) =>
+  !!item?.isSingleLine ||
+  SINGLE_QUANTITY_SERVICE_NAMES.includes(item?.service?.name) ||
+  (!item?.partNumber && SINGLE_QUANTITY_SERVICE_NAMES.includes(item?.name));
+
+// รายการเปล่าที่ช่างพิมพ์ชื่อเอง (อะไหล่อื่นๆ บริการอื่นๆ) ไม่มีหน่วยในคลังให้ดึงมา
+// จึงมีช่องพิมพ์หน่วยข้างปุ่มจำนวนบนการ์ด
+// ชื่อบนบรรทัดถูกพิมพ์ทับไปแล้ว ดูจากธงที่ติดตอนหยิบลงบิลหรือชื่อบริการต้นทางแทน
+const TYPED_UNIT_SERVICE_NAMES = [
+  PART_PLACEHOLDER_SERVICE_NAME,
+  SERVICE_PLACEHOLDER_SERVICE_NAME,
+];
+
+export const hasTypedUnit = (item) =>
+  !!item?.isTypedUnitLine ||
+  TYPED_UNIT_SERVICE_NAMES.includes(item?.service?.name) ||
+  (!item?.partNumber && TYPED_UNIT_SERVICE_NAMES.includes(item?.name));
+
 // รายการที่ไม่ได้อยู่หมวดไหน โผล่รวมกันเหนือกลุ่มบริการตอนดูทั้งหมด
 // เรียงตามลำดับนี้ ไม่ใช่ลำดับที่เซิร์ฟเวอร์ส่งมา
 export const isNoCategoryItem = (item) =>

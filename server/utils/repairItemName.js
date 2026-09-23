@@ -11,6 +11,11 @@ exports.buildPartItemName = (part) => {
 
   if (isTire) {
     const size = formatTireSize(attributes);
+    // ยางมือสองไม่ได้ขายตามยี่ห้อหรือรุ่น ลูกค้าถามหาแค่ขนาด ชื่อจึงเป็นคำเดียวตามด้วยเบอร์
+    // ต้องตรงกับ formatProductName ฝั่งหน้าเว็บ
+    if (size && part.category?.name === "ยางเปอร์เซ็นต์") {
+      return `ยางเปอร์เซ็นต์ ${size}`;
+    }
     if (size) return [part.brand, size, part.name].filter(Boolean).join(" ");
   }
 

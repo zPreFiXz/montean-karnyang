@@ -28,8 +28,20 @@ export const formatTireSize = (attributes) => {
 };
 
 // ชื่อที่แสดงบนการ์ดและในบิล: ยี่ห้อ + ขนาด (เฉพาะยาง) + รุ่น
-export const formatProductName = ({ brand, name, attributes, isTire }) =>
-  [brand, isTire ? formatTireSize(attributes) : "", name]
+// ยางเปอร์เซ็นต์ไม่ได้ขายตามยี่ห้อหรือรุ่น ลูกค้าถามหาแค่ขนาด จึงเป็น "ยางเปอร์เซ็นต์ 215/70R15"
+// ต้องตรงกับ buildPartItemName ฝั่งเซิร์ฟเวอร์
+export const formatProductName = ({
+  brand,
+  name,
+  attributes,
+  isTire,
+  isUsedTire = false,
+}) => {
+  const size = isTire ? formatTireSize(attributes) : "";
+  if (isUsedTire && size) return `ยางเปอร์เซ็นต์ ${size}`;
+
+  return [brand, size, name]
     .map((value) => String(value ?? "").trim())
     .filter(Boolean)
     .join(" ");
+};

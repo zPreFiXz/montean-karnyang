@@ -43,9 +43,12 @@ import {
   isTireCategoryName,
   allowsDecimalQuantity,
   SUSPENSION_CATEGORY,
+  USED_TIRE_CATEGORY,
 } from "@/constants/categories";
 import {
   isPartPlaceholderItem,
+  isSingleQuantityItem,
+  hasTypedUnit,
   isDiscountItem,
   TIRE_FREEBIE_NAMES,
   TIRE_ALIGNMENT_FREEBIE_NAME,
@@ -67,7 +70,7 @@ import {
 } from "@/utils/repairDraft";
 import { usePrefetchPages } from "@/routes/pageImports";
 
-const CUSTOMER_FIELDS = ["name", "address", "phoneNumber"];
+const CUSTOMER_FIELDS = ["name", "address", "phoneNumber", "taxId"];
 const VEHICLE_FIELDS = [
   "brand",
   "model",
@@ -84,6 +87,7 @@ const EMPTY_FORM = {
   name: "",
   address: "",
   phoneNumber: "",
+  taxId: "",
   brand: "",
   model: "",
   plateLetters: "",
@@ -139,8 +143,13 @@ const RepairCreate = () => {
   // แจกรหัสประจำแถวตอนของเข้ามาในบิล ใช้เป็น key ของ React และชื่อสำหรับอนิเมชันสลับที่
   // ต้องแจกเอง ไม่ใช้รหัสอะไหล่ เพราะบิลเดิมมีอะไหล่ตัวเดียวกันได้หลายแถว (ช่วงล่างซ้าย-ขวา)
   const nextRowId = useRef(0);
-  const withRowId = (item) =>
-    item.rowId ? item : { ...item, rowId: `row-${++nextRowId.current}` };
+  // ติดธงงานครั้งเดียวตอนเข้าบิล ก่อนชื่อจะถูกพิมพ์ทับจนดูจากชื่อไม่ออก
+  const withRowId = (item) => ({
+    ...item,
+    rowId: item.rowId || `row-${++nextRowId.current}`,
+    isSingleLine: isSingleQuantityItem(item),
+    isTypedUnitLine: hasTypedUnit(item),
+  });
 
   // กู้ร่างได้ครั้งเดียวตอนเปิดหน้า ไม่งั้นร่างที่บันทึกระหว่างพิมพ์จะย้อนทับสิ่งที่พิมพ์อยู่
   const draftRestoredRef = useRef(false);
@@ -195,11 +204,7 @@ const RepairCreate = () => {
         const map = {};
         if (location.state?.editRepairId && !location.state?.stockNotDeducted) {
           for (const it of savedItems) {
-            if (
-              it?.partNumber &&
-              it?.brand &&
-              typeof it.quantity === "number"
-            ) {
+            if (it?.partNumber && typeof it.quantity === "number") {
               const key =
                 it.id != null
                   ? `id:${it.id}`
@@ -347,6 +352,7 @@ const RepairCreate = () => {
           name: item.name,
           attributes: item.attributes,
           isTire: isTireCategoryName(item.category?.name),
+          isUsedTire: item.category?.name === USED_TIRE_CATEGORY,
         })}
       </p>
     );
@@ -374,6 +380,7 @@ const RepairCreate = () => {
       shouldValidate: true,
     });
     setValue("address", customer.address || "");
+    setValue("taxId", customer.taxId || "", { shouldValidate: true });
   };
 
   // ลูกค้าขอเช็กช่วงล่างเพิ่มระหว่างที่เปิดบิลเปลี่ยนยางค้างไว้ — ยกทั้งข้อมูลรถและรายการที่เลือกไปด้วย
@@ -403,6 +410,7 @@ const RepairCreate = () => {
         scrollToItems: !!(watch("brand") && watch("model")),
         editRepairId: location.state?.editRepairId,
         stockNotDeducted: location.state?.stockNotDeducted,
+        backIdx: location.state?.backIdx,
         from: location.state?.from,
         origin: location.state?.origin,
         statusSlug: location.state?.statusSlug,
@@ -529,12 +537,12 @@ const RepairCreate = () => {
       );
       if (index !== -1) {
         return prev.map((i, idx) => {
-          if (idx !== index) return i;
+          if (idx !== index || isSingleQuantityItem(i)) return i;
 
           // เลือกซ้ำจากไดอะล็อกไม่ได้ผ่านปุ่มบวก จึงต้องกันเพดานตรงนี้ด้วย
           const limit = i.availableStock ?? i.stockQuantity ?? 0;
           const capped =
-            i.partNumber && i.brand && !isUnlimitedStockItem(i)
+            i.partNumber && !isUnlimitedStockItem(i)
               ? Math.min(i.quantity + 1, limit)
               : i.quantity + 1;
 
@@ -608,6 +616,12 @@ const RepairCreate = () => {
       prev.map((item, i) =>
         i === quantityItem.index ? { ...item, quantity } : item,
       ),
+    );
+  };
+
+  const handleUnitChange = (index, unit) => {
+    setRepairItems((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, unit } : item)),
     );
   };
 
@@ -687,6 +701,7 @@ const RepairCreate = () => {
       name: item.name,
       attributes: item.attributes,
       isTire: isTireCategoryName(item.category?.name),
+      isUsedTire: item.category?.name === USED_TIRE_CATEGORY,
     });
   };
 
@@ -1059,6 +1074,23 @@ const RepairCreate = () => {
                     }}
                     customClass="w-full"
                   />
+                  <FormInput
+                    register={register}
+                    name="taxId"
+                    label="เลขประจำตัวผู้เสียภาษีอากร"
+                    type="text"
+                    placeholder="เช่น 0105550123451"
+                    color="subtle-dark"
+                    maxLength={13}
+                    errors={errors}
+                    inputMode="numeric"
+                    onInput={(e) => {
+                      e.target.value = e.target.value
+                        .replace(/[^0-9]/g, "")
+                        .slice(0, 13);
+                    }}
+                    customClass="w-full"
+                  />
                 </div>
               </div>
             </div>
@@ -1177,6 +1209,7 @@ const RepairCreate = () => {
                 <KnownVehicleHint
                   plate={plateText}
                   province={watch("province")}
+                  excludeRepairId={location.state?.editRepairId}
                   onFill={handleFillKnownVehicle}
                 />
               </div>
@@ -1329,15 +1362,16 @@ const RepairCreate = () => {
                           <div className="flex min-w-0 flex-1 flex-col">
                             {renderProductInfo(item)}
                             {/* ส่วนลดมีบรรทัดเดียวและจำนวนเป็นหนึ่งเสมอ ราคาต่อหน่วยจึงซ้ำกับยอดรวม */}
-                            {!isDiscountItem(item) && (
-                              <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
-                                {/* บริการไม่มีหน่วย จึงเหลือแค่ราคา */}
-                                {formatCurrency(Number(item.sellingPrice))}
-                                {item.unit ? `/${item.unit}` : ""}
-                              </p>
-                            )}
+                            {!isDiscountItem(item) &&
+                              !isSingleQuantityItem(item) && (
+                                <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
+                                  {/* บริการที่ไม่ได้ตั้งหน่วยไว้เหลือแค่ราคา */}
+                                  {formatCurrency(Number(item.sellingPrice))}
+                                  {item.unit ? `/${item.unit}` : ""}
+                                </p>
+                              )}
                             <div className="flex w-full items-center justify-between">
-                              <p className="text-primary text-xl leading-tight font-semibold text-nowrap md:text-[22px]">
+                              <p className="text-primary min-w-0 truncate text-xl leading-tight font-semibold text-nowrap md:text-[22px]">
                                 {formatCurrency(
                                   item.quantity * item.sellingPrice,
                                 )}
@@ -1369,8 +1403,9 @@ const RepairCreate = () => {
                                     <ChevronDown className="h-4 w-4" />
                                   </button>
                                 </div>
-                              ) : isDiscountItem(item) ? (
-                                // ส่วนลดมีบรรทัดเดียวเสมอ ไม่มีจำนวนให้เพิ่มลด เหลือไว้แค่ปุ่มลบ
+                              ) : isDiscountItem(item) ||
+                                isSingleQuantityItem(item) ? (
+                                // ส่วนลดกับงานที่คิดครั้งเดียวต่อคัน ไม่มีจำนวนให้เพิ่มลด เหลือไว้แค่ปุ่มลบ
                                 // วางลอยกลางการ์ดในแนวตั้ง ไม่ให้ไปเกาะบรรทัดราคาเหมือนปุ่มจำนวน
                                 <button
                                   type="button"
@@ -1385,7 +1420,7 @@ const RepairCreate = () => {
                                 </button>
                               ) : (
                                 <div
-                                  className="flex shrink-0 items-center gap-[8px]"
+                                  className="flex shrink-0 items-center gap-[4px]"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <button
@@ -1403,7 +1438,7 @@ const RepairCreate = () => {
                                         ? "เอารายการออก"
                                         : "ลดจำนวน"
                                     }
-                                    className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100"
+                                    className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100"
                                   >
                                     <Minus className="h-4 w-4" />
                                   </button>
@@ -1416,7 +1451,7 @@ const RepairCreate = () => {
                                       setQuantityItem({ index, item });
                                     }}
                                     aria-label={`แก้ไขจำนวนของ ${getProductName(item)}`}
-                                    className="text-primary min-w-[32px] cursor-pointer text-lg font-semibold md:text-xl"
+                                    className="text-primary min-w-[28px] cursor-pointer text-lg font-semibold md:text-xl"
                                   >
                                     {formatQuantity(item.quantity)}
                                   </button>
@@ -1427,10 +1462,30 @@ const RepairCreate = () => {
                                       handleIncreaseQuantity(index);
                                     }}
                                     disabled={isAtStockLimit(item)}
-                                    className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
+                                    className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
                                   >
                                     <Plus className="h-4 w-4" />
                                   </button>
+                                  {/* อะไหล่อื่นๆ กับบริการอื่นๆ ไม่มีหน่วยในคลัง ช่างพิมพ์เองต่อท้ายจำนวน อ่านได้ว่า "2 ตัว" */}
+                                  {hasTypedUnit(item) && (
+                                    <input
+                                      type="text"
+                                      value={item.unit || ""}
+                                      onChange={(e) =>
+                                        handleUnitChange(index, e.target.value)
+                                      }
+                                      onClick={(e) => e.stopPropagation()}
+                                      onKeyDown={(e) => {
+                                        e.stopPropagation();
+                                        if (e.key === "Enter")
+                                          e.currentTarget.blur();
+                                      }}
+                                      maxLength={20}
+                                      placeholder="หน่วย"
+                                      aria-label={`หน่วยของ ${getProductName(item)}`}
+                                      className="text-subtle-dark placeholder:text-subtle-light bg-surface focus:border-primary ml-[4px] h-9 w-[44px] shrink-0 rounded-[8px] border border-gray-200 px-[4px] text-center text-base font-medium outline-none md:text-lg"
+                                    />
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -1559,15 +1614,16 @@ const RepairCreate = () => {
                         <div className="flex min-w-0 flex-1 flex-col">
                           {renderProductInfo(item)}
                           {/* ส่วนลดมีบรรทัดเดียวและจำนวนเป็นหนึ่งเสมอ ราคาต่อหน่วยจึงซ้ำกับยอดรวม */}
-                          {!isDiscountItem(item) && (
-                            <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
-                              {/* บริการไม่มีหน่วย จึงเหลือแค่ราคา */}
-                              {formatCurrency(Number(item.sellingPrice))}
-                              {item.unit ? `/${item.unit}` : ""}
-                            </p>
-                          )}
+                          {!isDiscountItem(item) &&
+                            !isSingleQuantityItem(item) && (
+                              <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
+                                {/* บริการที่ไม่ได้ตั้งหน่วยไว้เหลือแค่ราคา */}
+                                {formatCurrency(Number(item.sellingPrice))}
+                                {item.unit ? `/${item.unit}` : ""}
+                              </p>
+                            )}
                           <div className="flex w-full items-center justify-between">
-                            <p className="text-primary text-xl leading-tight font-semibold text-nowrap md:text-[22px]">
+                            <p className="text-primary min-w-0 truncate text-xl leading-tight font-semibold text-nowrap md:text-[22px]">
                               {formatCurrency(
                                 item.quantity * item.sellingPrice,
                               )}
@@ -1599,8 +1655,9 @@ const RepairCreate = () => {
                                   <ChevronDown className="h-4 w-4" />
                                 </button>
                               </div>
-                            ) : isDiscountItem(item) ? (
-                              // ส่วนลดมีบรรทัดเดียวเสมอ ไม่มีจำนวนให้เพิ่มลด เหลือไว้แค่ปุ่มลบ
+                            ) : isDiscountItem(item) ||
+                              isSingleQuantityItem(item) ? (
+                              // ส่วนลดกับงานที่คิดครั้งเดียวต่อคัน ไม่มีจำนวนให้เพิ่มลด เหลือไว้แค่ปุ่มลบ
                               // วางลอยกลางการ์ดในแนวตั้ง ไม่ให้ไปเกาะบรรทัดราคาเหมือนปุ่มจำนวน
                               <button
                                 type="button"
@@ -1615,7 +1672,7 @@ const RepairCreate = () => {
                               </button>
                             ) : (
                               <div
-                                className="flex shrink-0 items-center gap-[8px]"
+                                className="flex shrink-0 items-center gap-[4px]"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <button
@@ -1633,7 +1690,7 @@ const RepairCreate = () => {
                                       ? "เอารายการออก"
                                       : "ลดจำนวน"
                                   }
-                                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100"
+                                  className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100"
                                 >
                                   <Minus className="h-4 w-4" />
                                 </button>
@@ -1644,7 +1701,7 @@ const RepairCreate = () => {
                                     setQuantityItem({ index, item });
                                   }}
                                   aria-label={`แก้ไขจำนวนของ ${getProductName(item)}`}
-                                  className="text-primary min-w-[32px] cursor-pointer text-lg font-semibold md:text-xl"
+                                  className="text-primary min-w-[28px] cursor-pointer text-lg font-semibold md:text-xl"
                                 >
                                   {formatQuantity(item.quantity)}
                                 </button>
@@ -1655,10 +1712,30 @@ const RepairCreate = () => {
                                     handleIncreaseQuantity(index);
                                   }}
                                   disabled={isAtStockLimit(item)}
-                                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
+                                  className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
                                 >
                                   <Plus className="h-4 w-4" />
                                 </button>
+                                {/* อะไหล่อื่นๆ กับบริการอื่นๆ ไม่มีหน่วยในคลัง ช่างพิมพ์เองต่อท้ายจำนวน อ่านได้ว่า "2 ตัว" */}
+                                {hasTypedUnit(item) && (
+                                  <input
+                                    type="text"
+                                    value={item.unit || ""}
+                                    onChange={(e) =>
+                                      handleUnitChange(index, e.target.value)
+                                    }
+                                    onClick={(e) => e.stopPropagation()}
+                                    onKeyDown={(e) => {
+                                      e.stopPropagation();
+                                      if (e.key === "Enter")
+                                        e.currentTarget.blur();
+                                    }}
+                                    maxLength={20}
+                                    placeholder="หน่วย"
+                                    aria-label={`หน่วยของ ${getProductName(item)}`}
+                                    className="text-subtle-dark placeholder:text-subtle-light bg-surface focus:border-primary ml-[4px] h-9 w-[44px] shrink-0 rounded-[8px] border border-gray-200 px-[4px] text-center text-base font-medium outline-none md:text-lg"
+                                  />
+                                )}
                               </div>
                             )}
                           </div>

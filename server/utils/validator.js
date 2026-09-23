@@ -28,6 +28,13 @@ exports.repairSchema = z
   .object({
     name: z.string().optional(),
     address: z.string().optional(),
+    taxId: z.preprocess(
+      (v) => (v === "" || v == null ? undefined : v),
+      z
+        .string()
+        .regex(/^[0-9]{13}$/, "กรุณากรอกเลขประจำตัวผู้เสียภาษีอากร 13 หลัก")
+        .optional(),
+    ),
     phoneNumber: z.preprocess(
       (v) => (v === "" || v == null ? undefined : v),
       z
@@ -69,6 +76,7 @@ exports.repairSchema = z
             serviceId: z.number().optional(),
             unitPrice: z.coerce.number(),
             itemName: z.string().max(191).optional(),
+            itemUnit: z.string().trim().max(20).optional(),
             // น้ำมันขายครึ่งลิตรได้ จึงเช็กแค่ว่ามากกว่า 0 ไม่ใช่ต้องถึง 1
             quantity: z.coerce.number().gt(0, "จำนวนต้องมากกว่า 0"),
             // client ส่งตัวพิมพ์เล็ก (UI state) → แปลงเป็นตัวใหญ่ให้ตรง enum Side ใน DB
@@ -154,6 +162,8 @@ exports.serviceSchema = z.object({
   name: z.string().min(1, "กรุณากรอกชื่อบริการ"),
   price: z.coerce.number(),
   description: z.string().optional(),
+  // บริการส่วนใหญ่คิดเป็นครั้ง ไม่ต้องมีหน่วย ใส่เฉพาะที่นับเป็นชิ้นได้ (ล้อ รู)
+  unit: z.string().trim().max(20, "หน่วยยาวเกินไป").optional(),
   categoryId: z.coerce.number(),
 });
 

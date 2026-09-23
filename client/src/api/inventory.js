@@ -16,3 +16,8 @@ export const getInventory = async (id, type) => {
 export const listInventoryRepairs = async (type, id) => {
   return await apiClient.get(`/inventory/${type}/${id}/repairs`);
 };
+
+// หน่วยที่เคยใช้แล้ว { partUnits, serviceUnits } ใช้เติมรายการในช่องเลือกหน่วย
+export const listUnits = async () => {
+  return await apiClient.get("/inventory/units");
+};

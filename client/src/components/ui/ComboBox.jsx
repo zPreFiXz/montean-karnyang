@@ -13,7 +13,7 @@ import {
   CommandList,
   CommandItem,
 } from "@/components/ui/command";
-import { Check, ChevronsUpDown, AlertCircle } from "lucide-react";
+import { Check, ChevronsUpDown, AlertCircle, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@radix-ui/react-label";
 
@@ -43,17 +43,28 @@ const ComboBox = ({
   searchable,
   // ช่องที่อยู่ในแถวแคบๆ ให้หน้าที่เรียกใช้ไปแสดงข้อความรวมเองใต้แถว (เหมือน FormInput)
   hideErrorMessage = false,
+  // พิมพ์ค่าที่ไม่มีในรายการแล้วกดใช้ได้เลย (เช่นหน่วยใหม่) ส่งค่าที่พิมพ์กลับไปทาง onChange
+  // createLabel = ข้อความของแถวเพิ่ม เช่น (text) => `เพิ่มหน่วย "${text}"`
+  creatable = false,
+  createLabel = (text) => `เพิ่ม "${text}"`,
 }) => {
   // เกิน 10 ตัวเลือกค่อยมีช่องค้นหา — น้อยกว่านั้นกวาดตาหาเร็วกว่าพิมพ์
-  // ส่งค่า searchable มาเองได้ถ้าต้องการบังคับ
-  const showSearch = searchable ?? options.length > SEARCH_THRESHOLD;
+  // ส่งค่า searchable มาเองได้ถ้าต้องการบังคับ ส่วนช่องที่เพิ่มค่าเองได้ต้องมีช่องให้พิมพ์เสมอ
+  const showSearch =
+    creatable || (searchable ?? options.length > SEARCH_THRESHOLD);
 
   const getIdentifier = (item) =>
     item && (item.id !== undefined && item.id !== null ? item.id : item.name);
 
-  const selectedLabel = options.find(
-    (item) => getIdentifier(item) === value,
-  )?.name;
+  // ค่าที่เพิ่งพิมพ์เพิ่มยังไม่อยู่ในรายการ ก็ยังต้องขึ้นในช่องให้เห็นว่าเลือกอะไรไว้
+  const selectedLabel =
+    options.find((item) => getIdentifier(item) === value)?.name ??
+    (creatable && value ? value : undefined);
+
+  const [search, setSearch] = useState("");
+  const typed = search.trim();
+  const canCreate =
+    creatable && typed !== "" && !options.some((item) => item.name === typed);
 
   const [open, setOpen] = useState(false);
   // ตัวที่ถูกไฮไลท์อยู่ใน cmdk — คุมเองเพื่อไม่ให้ไปเกาะตัวแรกทุกครั้งที่เปิด
@@ -72,6 +83,8 @@ const ComboBox = ({
     if (!open && inputRef.current) {
       inputRef.current.blur();
     }
+    // เปิดใหม่ต้องเริ่มจากรายการเต็ม ไม่ค้างคำที่พิมพ์ค้างไว้รอบก่อน
+    if (!open) setSearch("");
   }, [open]);
 
   // โดยปริยาย cmdk จะไฮไลท์ตัวแรกไว้ให้กด Enter ได้ทันที
@@ -175,7 +188,9 @@ const ComboBox = ({
               {showSearch && (
                 <CommandInput
                   ref={inputRef}
-                  placeholder="ค้นหา"
+                  value={search}
+                  onValueChange={setSearch}
+                  placeholder={creatable ? "ค้นหาหรือพิมพ์เพิ่ม" : "ค้นหา"}
                   className={`font-athiti text-normal h-9 font-medium ${
                     customClass || "text-lg md:text-xl"
                   }`}
@@ -184,15 +199,37 @@ const ComboBox = ({
               {/* cmdk ใช้ CommandList เป็นตัวเลื่อนโดยเฉพาะ — ก่อนหน้านี้ไปสั่ง overflow ที่ CommandGroup
                   ซึ่งมี overflow-hidden ติดมาในตัวอยู่แล้ว รายการยาวจึงถูกตัดทิ้งโดยเลื่อนไม่ได้ */}
               <CommandList className="max-h-none min-h-0 flex-1">
-                <CommandEmpty>
-                  <p
-                    className={`font-athiti text-subtle-dark font-medium ${
-                      customClass || "text-lg md:text-xl"
-                    }`}
-                  >
-                    ไม่พบรายการ
-                  </p>
-                </CommandEmpty>
+                {/* forceMount = ไม่ให้ตัวกรองของ cmdk ซ่อนแถวนี้ เพราะข้อความแถวไม่ตรงกับคำค้นเป๊ะ */}
+                {canCreate && (
+                  <CommandGroup forceMount>
+                    <CommandItem
+                      forceMount
+                      value={`__create__${typed}`}
+                      onSelect={() => {
+                        onChange(typed);
+                        setOpen(false);
+                      }}
+                      className={`font-athiti text-primary cursor-pointer font-semibold ${
+                        customClass || "text-lg md:text-xl"
+                      }`}
+                    >
+                      <Plus className="text-primary mr-2 h-4 w-4" />
+                      {createLabel(typed)}
+                    </CommandItem>
+                  </CommandGroup>
+                )}
+                {/* มีแถวเพิ่มค่าใหม่อยู่แล้ว ไม่ต้องบอกว่าไม่พบ */}
+                {!canCreate && (
+                  <CommandEmpty>
+                    <p
+                      className={`font-athiti text-subtle-dark font-medium ${
+                        customClass || "text-lg md:text-xl"
+                      }`}
+                    >
+                      ไม่พบรายการ
+                    </p>
+                  </CommandEmpty>
+                )}
                 {/* ไม่วาดตอนไม่มีรายการ เพราะ padding ของกลุ่มจะค้างเป็นช่องว่าง 8px ใต้ข้อความ "ไม่พบรายการ" */}
                 {options.length > 0 && (
                   <CommandGroup>

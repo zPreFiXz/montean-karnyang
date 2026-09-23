@@ -3,11 +3,16 @@ import { isUnlimitedStockItem } from "@/utils/oil";
 export const SERVICE_CATEGORY = "บริการ";
 export const SUSPENSION_CATEGORY = "ช่วงล่าง";
 
-// ยางใหม่กับยางเปอร์เซ็นต์ (ยางมือสอง) กรอกเหมือนกันทุกอย่าง
-// ทั้งขนาดหน้ายาง/แก้มยาง/ขอบ สต็อกเป็นล็อตตามสัปดาห์ปีผลิต และหน่วยเป็นเส้น
+// ยางใหม่กับยางเปอร์เซ็นต์ (ยางมือสอง) กรอกขนาดหน้ายาง/แก้มยาง/ขอบ และนับเป็นเส้นเหมือนกัน
 export const TIRE_CATEGORIES = ["ยาง", "ยางเปอร์เซ็นต์"];
+export const USED_TIRE_CATEGORY = "ยางเปอร์เซ็นต์";
 
 export const isTireCategoryName = (name) => TIRE_CATEGORIES.includes(name);
+
+// สต็อกเป็นล็อตตามสัปดาห์/ปีผลิตเฉพาะยางใหม่ ยางมือสองเส้นเดียวไม่มีล็อตให้ไล่ขายเก่าก่อน
+// จึงนับจำนวนตรงๆ เหมือนอะไหล่ทั่วไป
+export const tracksTireLots = (name) =>
+  isTireCategoryName(name) && name !== USED_TIRE_CATEGORY;
 
 // น้ำมันตวงขายเป็นลิตร ครึ่งลิตรก็ขายได้ หมวดอื่นนับเป็นชิ้นจึงเป็นจำนวนเต็มเสมอ
 export const OIL_CATEGORY = "น้ำมัน";
@@ -20,6 +25,7 @@ export const allowsDecimalQuantity = (item) => isUnlimitedStockItem(item);
 export const getCategoryKind = (name) => {
   if (name === SERVICE_CATEGORY) return "service";
   if (name === SUSPENSION_CATEGORY) return "suspension";
+  if (name === USED_TIRE_CATEGORY) return "usedTire";
   if (isTireCategoryName(name)) return "tire";
   return "part";
 };

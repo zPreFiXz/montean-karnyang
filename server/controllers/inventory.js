@@ -9,7 +9,7 @@ const mapServiceToInventoryItem = (service) => ({
   brand: null,
   costPrice: null,
   sellingPrice: service.price,
-  unit: null,
+  unit: service.unit || null,
   stockQuantity: 0,
   minStockLevel: 0,
   attributes: null,
@@ -227,6 +227,28 @@ exports.listInventoryRepairs = async (req, res, next) => {
     }
 
     res.json([...byRepair.values()]);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// หน่วยที่เคยใช้แล้วในคลัง แยกของอะไหล่กับบริการ
+// ช่องเลือกหน่วยเอาไปรวมกับหน่วยตั้งต้น หน่วยที่พิมพ์เพิ่มครั้งเดียวจึงโผล่ให้เลือกครั้งต่อไปเอง
+exports.listUnits = async (req, res, next) => {
+  try {
+    const [parts, services] = await Promise.all([
+      prisma.part.findMany({ select: { unit: true }, distinct: ["unit"] }),
+      prisma.service.findMany({
+        where: { unit: { not: null } },
+        select: { unit: true },
+        distinct: ["unit"],
+      }),
+    ]);
+
+    const clean = (rows) =>
+      rows.map((row) => String(row.unit || "").trim()).filter(Boolean);
+
+    res.json({ partUnits: clean(parts), serviceUnits: clean(services) });
   } catch (error) {
     next(error);
   }

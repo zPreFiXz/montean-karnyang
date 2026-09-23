@@ -37,13 +37,17 @@ import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import { onKeyActivate } from "@/utils/a11y";
 import OrganizationTypeDialog from "@/components/dialogs/OrganizationTypeDialog";
 import { organizationLabel, creditPathFor } from "@/constants/organizations";
-import { Building2, Store, SquarePen } from "lucide-react";
+import { Building2, Store, SquarePen, IdCard } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import ReceiptPreviewDialog from "@/components/dialogs/ReceiptPreviewDialog";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import ComboBox from "@/components/ui/ComboBox";
 import PartPreviewDialog from "@/components/dialogs/PartPreviewDialog";
-import { isPartPlaceholderItem } from "@/constants/services";
+import {
+  isPartPlaceholderItem,
+  isSingleQuantityItem,
+  hasTypedUnit,
+} from "@/constants/services";
 import FieldErrorList from "@/components/forms/FieldErrorList";
 import { toast } from "sonner";
 import RepairItemCard from "@/components/cards/RepairItemCard";
@@ -392,6 +396,7 @@ const RepairDetail = () => {
       name: repair?.customer?.name || "",
       address: repair?.customer?.address || "",
       phoneNumber: repair?.customer?.phoneNumber || "",
+      taxId: repair?.customer?.taxId || "",
       brand: repair?.vehicle?.vehicleModel?.brand || "",
       model: repair?.vehicle?.vehicleModel?.model || "",
       plateLetters,
@@ -449,6 +454,9 @@ const RepairDetail = () => {
         name: ri.itemName || ri.service?.name || "",
         // ชื่อบนบรรทัดถูกพิมพ์ทับไปแล้ว ดูจากชื่อบริการต้นทางว่าเป็นบรรทัดอะไหล่ไหม
         isPartLine: isPartPlaceholderItem(ri),
+        isSingleLine: isSingleQuantityItem(ri),
+        isTypedUnitLine: hasTypedUnit(ri),
+        unit: ri.itemUnit || "",
         sellingPrice: Number(ri.unitPrice),
         category: ri.service?.category,
         secureUrl: null,
@@ -662,7 +670,11 @@ const RepairDetail = () => {
   const hasSingleCustomerLine =
     [
       !!repair?.customer?.name,
-      !!(repair?.customer?.phoneNumber || repair?.customer?.address),
+      !!(
+        repair?.customer?.phoneNumber ||
+        repair?.customer?.address ||
+        repair?.customer?.taxId
+      ),
     ].filter(Boolean).length === 1;
 
   return (
@@ -848,7 +860,8 @@ const RepairDetail = () => {
                       </p>
                     )}
                     {(repair.customer.phoneNumber ||
-                      repair.customer.address) && (
+                      repair.customer.address ||
+                      repair.customer.taxId) && (
                       <div
                         className={`flex flex-wrap items-start gap-[8px] ${
                           repair.customer.name ? "mt-[4px]" : ""
@@ -873,6 +886,14 @@ const RepairDetail = () => {
                             />
                             <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
                               {repair.customer.address}
+                            </p>
+                          </div>
+                        )}
+                        {repair.customer.taxId && (
+                          <div className="flex flex-shrink-0 items-center gap-[4px]">
+                            <IdCard size={16} className="text-subtle-dark" />
+                            <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
+                              {repair.customer.taxId}
                             </p>
                           </div>
                         )}

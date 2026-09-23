@@ -6,7 +6,7 @@ const SLIDE_MS = 150;
 
 // กรอกทะเบียนครบแล้วบอกให้รู้ว่ารถคันนี้เคยมาแล้ว พร้อมปุ่มใช้ยี่ห้อและรุ่นรถเดิม
 // ชื่อลูกค้าล่าสุดแสดงไว้ให้รู้ว่าเคยเป็นของใคร แต่ไม่เติมลงฟอร์ม เพราะรถเปลี่ยนมือได้
-const KnownVehicleHint = ({ plate, province, onFill }) => {
+const KnownVehicleHint = ({ plate, province, excludeRepairId, onFill }) => {
   const [vehicle, setVehicle] = useState(null);
   // แยกจาก vehicle เพราะตอนหาย ต้องคาเนื้อหาไว้จนกว่าจะยุบเสร็จ
   const [isOpen, setIsOpen] = useState(false);
@@ -23,10 +23,11 @@ const KnownVehicleHint = ({ plate, province, onFill }) => {
     let cancelled = false;
     // หน่วงไว้ให้พิมพ์จบก่อน ไม่งั้นยิงถามทุกตัวอักษรที่เคาะ
     const timer = setTimeout(() => {
-      lookupVehicleByPlate(plateText, provinceText)
+      lookupVehicleByPlate(plateText, provinceText, excludeRepairId)
         .then((res) => {
           if (cancelled) return;
-          if (res.data) {
+          // ไม่นับบิลที่กำลังแก้แล้วเหลือ 0 = รถมาครั้งแรก ไม่ต้องบอกว่าเคยมา
+          if (res.data?._count?.repairs > 0) {
             setVehicle(res.data);
             // เปิดในเฟรมถัดไป ให้เบราว์เซอร์ทันวาดตอนยังยุบอยู่ แถบจะได้ไหลลงมาให้เห็น
             requestAnimationFrame(() => setIsOpen(true));
@@ -44,7 +45,7 @@ const KnownVehicleHint = ({ plate, province, onFill }) => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [plate, province]);
+  }, [plate, province, excludeRepairId]);
 
   // ยุบเสร็จแล้วค่อยทิ้งข้อมูล ระหว่างยุบยังต้องมีเนื้อหาให้เห็น
   useEffect(() => {

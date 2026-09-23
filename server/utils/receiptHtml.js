@@ -93,8 +93,16 @@ const formatQuantity = (value) => {
   return Number.isInteger(number) ? String(number) : String(number);
 };
 
-// หน่วยมาจากอะไหล่ในคลังเท่านั้น บรรทัดที่พิมพ์ชื่อเองไม่รู้ว่านับเป็นอะไร เขียนแต่จำนวน
-const unitOf = (item) => item.part?.unit || "";
+// อะไหล่อื่นๆ ใช้หน่วยที่ช่างพิมพ์ไว้ในบิล ไม่ได้พิมพ์หรือเป็นงานบริการก็เขียนแต่จำนวน
+const unitOf = (item) => item.itemUnit || item.part?.unit || "";
+
+// งานที่คิดครั้งเดียวต่อคันเว้นช่องจำนวนไว้ (ตรงกับ SINGLE_QUANTITY_SERVICE_NAMES ฝั่งหน้าเว็บ)
+// บิลเก่าที่เคยใส่เกินหนึ่งยังต้องเขียน ไม่งั้นราคาต่อหน่วยกับจำนวนเงินจะไม่ตรงกัน
+const SINGLE_QUANTITY_SERVICE_NAMES = ["ค่าแรง", "ตั้งศูนย์", "สลับยาง+ถ่วงล้อ"];
+const quantityLabel = (item, quantity) =>
+  SINGLE_QUANTITY_SERVICE_NAMES.includes(item.service?.name) && quantity === 1
+    ? ""
+    : `${formatQuantity(quantity)} ${unitOf(item)}`.trim();
 
 // ของชิ้นเดียวกันที่ใส่ทั้งสองข้างยุบเป็นแถวเดียวแล้วห้อยท้ายว่า L-R
 const mergeBySide = (items) => {
@@ -187,7 +195,7 @@ const receiptPagesHtml = (
     const base = showBrand ? item.itemName : workName(item);
     const name = sideLabel ? `${base} (${sideLabel})` : base;
     return `<tr>
-        <td class="c">${escapeHtml(`${formatQuantity(quantity)} ${unitOf(item)}`.trim())}</td>
+        <td class="c">${escapeHtml(quantityLabel(item, quantity))}</td>
         <td class="wrap">${escapeHtml(name)}</td>
         <td class="r">${formatAmount(item.unitPrice)}</td>
         <td class="r">${formatAmount(amount)}</td>
@@ -225,7 +233,9 @@ const receiptPagesHtml = (
     <p>ที่อยู่<span class="dotted v">${
       showCustomer ? escapeHtml(repair.customer?.address || "") : ""
     }</span></p>
-    <p>เลขประจำตัวผู้เสียภาษีอากร<span class="dotted v"></span></p>`;
+    <p>เลขประจำตัวผู้เสียภาษีอากร<span class="dotted v">${
+      showCustomer ? escapeHtml(repair.customer?.taxId || "") : ""
+    }</span></p>`;
 
   // เนื้อของกระดาษหนึ่งแผ่น เรียกซ้ำตามจำนวนหน้า
   const pageHtml = (pageRows, pageIndex) => {

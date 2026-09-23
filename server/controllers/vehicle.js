@@ -81,11 +81,15 @@ exports.listVehicles = async (req, res, next) => {
 // (ข้อมูลลูกค้าผูกกับบิลเป็นรายใบ ไม่ได้ผูกกับตัวรถ จึงต้องหยิบจากบิลล่าสุด)
 exports.lookupVehicleByPlate = async (req, res, next) => {
   try {
-    const { plate, province } = req.query;
+    const { plate, province, excludeRepairId } = req.query;
 
     if (!plate || !province) {
       return res.json(null);
     }
+
+    // กำลังแก้บิลเดิมอยู่ บิลใบนั้นไม่นับเป็นครั้งที่เคยมา ไม่งั้นรถที่มาครั้งแรกจะขึ้นว่ามาแล้ว 1 ครั้ง
+    const excludeId = Number(excludeRepairId) || null;
+    const otherRepairs = excludeId ? { id: { not: excludeId } } : {};
 
     const vehicle = await prisma.vehicle.findFirst({
       where: {
@@ -95,9 +99,9 @@ exports.lookupVehicleByPlate = async (req, res, next) => {
         licensePlate: true,
         vehicleModel: true,
         // จำนวนบิลทั้งหมดของรถคันนี้ ใช้บอกว่าเคยมากี่ครั้ง
-        _count: { select: { repairs: true } },
+        _count: { select: { repairs: { where: otherRepairs } } },
         repairs: {
-          where: { customerId: { not: null } },
+          where: { customerId: { not: null }, ...otherRepairs },
           select: {
             createdAt: true,
             customer: {

@@ -2,7 +2,7 @@ import { X, Image as ImageIcon } from "lucide-react";
 import { SparePart } from "@/components/icons/Icons";
 import { formatCurrency } from "@/utils/formats";
 import { isPartPlaceholderItem } from "@/constants/services";
-import { isTireCategoryName } from "@/constants/categories";
+import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
 import { formatProductName } from "@/utils/tireSize";
 import {
   Dialog,
@@ -28,6 +28,7 @@ const PartPreviewDialog = ({ part, price, open, onOpenChange }) => {
     name: part.name,
     attributes: part.attributes,
     isTire: isTireCategoryName(part.category?.name),
+    isUsedTire: part.category?.name === USED_TIRE_CATEGORY,
   });
 
   const hasAdjustedPrice =

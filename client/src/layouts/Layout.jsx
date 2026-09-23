@@ -4,9 +4,12 @@ import { LoaderCircle } from "lucide-react";
 import Navbar from "@/components/navbar/Navbar";
 import LeftSidebar from "@/components/LeftSidebar";
 import BottomNav from "@/components/BottomNav";
+import { usePageResetKey } from "@/utils/pageReset";
 
 // breakpoint เดียวทั้งระบบ: จอ lg ขึ้นไปใช้ Navbar + Sidebar, ต่ำกว่านั้นใช้ BottomNav
 const Layout = () => {
+  const resetKey = usePageResetKey();
+
   return (
     <div className="font-athiti flex min-h-svh flex-col">
       <div className="sticky top-0 z-40 hidden w-full bg-transparent lg:block">
@@ -28,7 +31,7 @@ const Layout = () => {
               </div>
             }
           >
-            <Outlet />
+            <Outlet key={resetKey} />
           </Suspense>
         </main>
 

@@ -64,7 +64,6 @@ const AddRepairItemDialog = ({
     // กันไว้อีกชั้นเผื่อกดผ่านคีย์บอร์ด — เกณฑ์เดียวกับที่ใช้ปิดการ์ด
     if (
       item.partNumber &&
-      item.brand &&
       remainingAddable <= 0 &&
       !isUnlimitedStockItem(item)
     ) {
@@ -120,7 +119,6 @@ const AddRepairItemDialog = ({
                 alwaysWarnEmpty: !isUnlimitedStockItem(item),
                 disabled:
                   !!item.partNumber &&
-                  !!item.brand &&
                   remainingAddable <= 0 &&
                   !isUnlimitedStockItem(item),
               };

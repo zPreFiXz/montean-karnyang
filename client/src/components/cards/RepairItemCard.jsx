@@ -4,7 +4,7 @@ import { onKeyActivate } from "@/utils/a11y";
 import { isPartPlaceholderItem, isDiscountItem } from "@/constants/services";
 import { SparePart } from "@/components/icons/Icons";
 import { soldLotEntries } from "@/utils/tireLot";
-import { isTireCategoryName } from "@/constants/categories";
+import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
 import { formatProductName } from "@/utils/tireSize";
 
 const RepairItemCard = ({ item, variant, onClick }) => {
@@ -31,6 +31,7 @@ const RepairItemCard = ({ item, variant, onClick }) => {
               name: item.name,
               attributes: item.attributes,
               isTire: isTireCategoryName(item.category?.name),
+              isUsedTire: item.category?.name === USED_TIRE_CATEGORY,
             })}
       </p>
     );
@@ -41,9 +42,7 @@ const RepairItemCard = ({ item, variant, onClick }) => {
   const unitPrice =
     variant === "detail" ? Number(item.unitPrice) : Number(item.sellingPrice);
   const unit =
-    variant === "detail"
-      ? item.part?.unit || item.service?.unit || ""
-      : item.unit;
+    variant === "detail" ? item.itemUnit || item.part?.unit || "" : item.unit;
   const isService = variant === "detail" ? !!item.service : !item.partNumber;
   // อะไหล่ที่ซื้อมาใช้เลยถูกบันทึกเป็นบริการ แต่ควรอ่านว่าเป็นอะไหล่
   const isPartLine = isPartPlaceholderItem(item);

@@ -19,7 +19,13 @@ exports.listCustomers = async (req, res, next) => {
             ],
           }
         : undefined,
-      select: { id: true, name: true, phoneNumber: true, address: true },
+      select: {
+        id: true,
+        name: true,
+        phoneNumber: true,
+        address: true,
+        taxId: true,
+      },
       orderBy: { updatedAt: "desc" },
       take: 20,
     });
@@ -70,6 +76,7 @@ exports.listOrganizations = async (req, res, next) => {
         name: true,
         phoneNumber: true,
         address: true,
+        taxId: true,
         organizationType: true,
         repairs: {
           where: { status: "CREDIT" },
@@ -123,6 +130,7 @@ exports.listOrganizationRepairs = async (req, res, next) => {
         name: true,
         phoneNumber: true,
         address: true,
+        taxId: true,
         organizationType: true,
       },
     });

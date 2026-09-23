@@ -1,9 +1,17 @@
 import { Link, useLocation } from "react-router";
 import { Plus } from "./icons/Icons";
 import { MENU_ITEMS, isActivePath } from "@/constants/menu";
+import { resetCurrentPage } from "@/utils/pageReset";
 
-const NavButton = ({ icon: Icon, label, to, isActive }) => (
-  <Link to={to} aria-label={label} aria-current={isActive ? "page" : undefined}>
+const NavButton = ({ icon: Icon, label, to, isActive, isCurrentPage }) => (
+  <Link
+    to={to}
+    aria-label={label}
+    aria-current={isActive ? "page" : undefined}
+    onClick={() => {
+      if (isCurrentPage) resetCurrentPage();
+    }}
+  >
     <div className="flex flex-col items-center">
       <div
         className={`flex h-[38px] w-[38px] items-center justify-center rounded-[8px] ${
@@ -35,6 +43,7 @@ const BottomNav = () => {
       label={item.shortLabel}
       to={item.path}
       isActive={isActivePath(item.path, location.pathname)}
+      isCurrentPage={location.pathname === item.path}
     />
   );
 

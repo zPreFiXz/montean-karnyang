@@ -6,6 +6,7 @@ import {
   LoaderCircle,
   Phone,
   MapPin,
+  IdCard,
   ShoppingBag,
   Store,
   Wrench as WrenchOutline,
@@ -175,7 +176,9 @@ const OrganizationDetail = () => {
                     {organizationLabel(customer.organizationType)}
                   </p>
                 )}
-                {(customer?.phoneNumber || customer?.address) && (
+                {(customer?.phoneNumber ||
+                  customer?.address ||
+                  customer?.taxId) && (
                   <div className="mt-[4px] flex flex-wrap items-start gap-[8px]">
                     {customer.phoneNumber && (
                       <div className="flex shrink-0 items-center gap-[4px]">
@@ -196,6 +199,14 @@ const OrganizationDetail = () => {
                         />
                         <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
                           {customer.address}
+                        </p>
+                      </div>
+                    )}
+                    {customer.taxId && (
+                      <div className="flex shrink-0 items-center gap-[4px]">
+                        <IdCard size={16} className="text-subtle-dark" />
+                        <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
+                          {customer.taxId}
                         </p>
                       </div>
                     )}

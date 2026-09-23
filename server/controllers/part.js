@@ -147,6 +147,10 @@ exports.updatePart = async (req, res, next) => {
       if (lots) {
         await tx.tireLot.deleteMany({ where: { partId: Number(id) } });
         data.tireLots = { create: lots };
+      } else {
+        // กรอกสต็อกเป็นจำนวนตรงๆ (เช่นย้ายยางไปหมวดยางเปอร์เซ็นต์) ล็อตเก่าต้องหายไปด้วย
+        // ไม่งั้นตอนขายจะไปตัดจากล็อตที่ไม่ตรงกับจำนวนในสต็อก
+        await tx.tireLot.deleteMany({ where: { partId: Number(id) } });
       }
       const part = await tx.part.update({
         where: { id: Number(id) },

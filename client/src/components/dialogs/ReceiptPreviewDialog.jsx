@@ -165,7 +165,11 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
   const customerName = repair.customer?.name || "";
   const customerAddress = repair.customer?.address || "";
   // บิลที่ไม่มีทั้งชื่อและที่อยู่ ปิดสวิตช์ไปก็ไม่มีอะไรหาย จึงไม่ต้องมีสวิตช์ให้กด
-  const hasCustomerInfo = !!(customerName || customerAddress);
+  const hasCustomerInfo = !!(
+    customerName ||
+    customerAddress ||
+    repair.customer?.taxId
+  );
   // ใบสั่งซ่อมมีไว้ส่งงานให้ช่างที่ทำกับรถ ใช้กับงานซ่อมทั่วไปและงานเช็กช่วงล่าง
   // งานบริการที่ไม่ผูกรถกับบิลขายอะไหล่หน้าร้านจบที่หน้าร้าน ไม่มีงานให้ส่งต่อ
   // บิลเครดิตคือซ่อมเสร็จแล้วรอเก็บเงิน ช่างไม่มีงานให้ทำต่อ เหลือแค่ใบส่งของ

@@ -30,15 +30,16 @@ const findOrCreateVehicleModel = async (tx, brand, model) => {
 // (ขายหน้าร้านมักกรอกแต่เบอร์) ถ้าเอาช่องว่างไปทับ ที่อยู่ที่เคยเก็บไว้จะหายทันที
 const resolveCustomer = async (
   tx,
-  { name, address, phoneNumber },
+  { name, address, taxId, phoneNumber },
   existingCustomer = null,
 ) => {
-  const isEmpty = !name && !address && !phoneNumber;
+  const isEmpty = !name && !address && !taxId && !phoneNumber;
 
   // เขียนทับเฉพาะช่องที่กรอกมา — ใช้กับลูกค้ารายอื่นที่ไม่ได้เปิดแก้อยู่
   const mergeInto = (customer) => ({
     name: name || customer.name,
     address: address || customer.address,
+    taxId: taxId || customer.taxId,
     phoneNumber: phoneNumber || customer.phoneNumber,
   });
 
@@ -84,6 +85,7 @@ const resolveCustomer = async (
       data: {
         name: name || null,
         address: address || null,
+        taxId: taxId || null,
         phoneNumber: phoneNumber || null,
         ...(isRenamed ? { organizationType: null } : {}),
       },
@@ -103,7 +105,12 @@ const resolveCustomer = async (
     }
 
     return tx.customer.create({
-      data: { name: name || null, address: address || null, phoneNumber },
+      data: {
+        name: name || null,
+        address: address || null,
+        taxId: taxId || null,
+        phoneNumber,
+      },
     });
   }
 
@@ -111,25 +118,38 @@ const resolveCustomer = async (
     const byName = await tx.customer.findFirst({ where: { name } });
 
     if (byName) {
-      // ที่อยู่ที่กรอกมาต้องเขียนทับของเดิมด้วย ไม่ใช่คืนรายเดิมไปทั้งดุ้น
-      if (address && address !== byName.address) {
+      // ที่อยู่กับเลขผู้เสียภาษีที่กรอกมาต้องเขียนทับของเดิมด้วย ไม่ใช่คืนรายเดิมไปทั้งดุ้น
+      if (
+        (address && address !== byName.address) ||
+        (taxId && taxId !== byName.taxId)
+      ) {
         return tx.customer.update({
           where: { id: byName.id },
-          data: { address },
+          data: mergeInto(byName),
         });
       }
       return byName;
     }
 
     return tx.customer.create({
-      data: { name, address: address || null, phoneNumber: null },
+      data: {
+        name,
+        address: address || null,
+        taxId: taxId || null,
+        phoneNumber: null,
+      },
     });
   }
 
-  // เหลือแต่ที่อยู่ (เช่นงานบริการนอกสถานที่ที่รู้แต่จุดที่ไป) ไม่มีอะไรให้จับคู่กับรายเดิม
+  // เหลือแต่ที่อยู่หรือเลขผู้เสียภาษี (เช่นงานบริการนอกสถานที่ที่รู้แต่จุดที่ไป) ไม่มีอะไรให้จับคู่กับรายเดิม
   // ยังต้องเก็บ ไม่งั้นที่พิมพ์ไว้หายไปเงียบๆ ตอนบันทึก
   return tx.customer.create({
-    data: { name: null, address, phoneNumber: null },
+    data: {
+      name: null,
+      address: address || null,
+      taxId: taxId || null,
+      phoneNumber: null,
+    },
   });
 };
 
@@ -311,6 +331,8 @@ const createRepairItemsAndDecrementStock = async (
           (item.partId
             ? buildPartItemName(partById.get(item.partId))
             : buildServiceItemName(serviceById.get(item.serviceId))),
+        // หน่วยของอะไหล่อื่นๆ ที่ช่างพิมพ์เอง อะไหล่จากคลังใช้หน่วยในคลังอยู่แล้ว
+        itemUnit: item.itemUnit || null,
       },
     });
   }
@@ -424,6 +446,7 @@ exports.createRepair = async (req, res, next) => {
     const {
       name,
       address,
+      taxId,
       phoneNumber,
       brand,
       model,
@@ -502,6 +525,7 @@ exports.createRepair = async (req, res, next) => {
       const customer = await resolveCustomer(tx, {
         name,
         address,
+        taxId,
         phoneNumber,
       });
 
@@ -552,6 +576,7 @@ exports.updateRepair = async (req, res, next) => {
     const {
       name,
       address,
+      taxId,
       phoneNumber,
       brand,
       model,
@@ -581,7 +606,13 @@ exports.updateRepair = async (req, res, next) => {
           vehicleId: true,
           status: true,
           customer: {
-            select: { id: true, name: true, phoneNumber: true, address: true },
+            select: {
+              id: true,
+              name: true,
+              phoneNumber: true,
+              address: true,
+              taxId: true,
+            },
           },
         },
       });
@@ -632,7 +663,7 @@ exports.updateRepair = async (req, res, next) => {
 
       const customer = await resolveCustomer(
         tx,
-        { name, address, phoneNumber },
+        { name, address, taxId, phoneNumber },
         currentRepair.customer,
       );
 

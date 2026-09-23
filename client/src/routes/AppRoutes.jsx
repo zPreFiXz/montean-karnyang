@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { createElement, lazy, Suspense, useEffect } from "react";
 import { LoaderCircle } from "lucide-react";
 import {
   BrowserRouter,
@@ -36,6 +36,18 @@ const EmployeeList = lazy(pageImports.EmployeeList);
 const SalesReport = lazy(pageImports.SalesReport);
 const AttendanceReport = lazy(pageImports.AttendanceReport);
 const NotFound = lazy(pageImports.NotFound);
+
+// หน้าเปิดบิลใช้เส้นทางเดียวกันทั้งบิลใหม่และตอนแก้บิลเดิม กดปุ่มบวกระหว่างแก้บิลจึงไม่ได้เปลี่ยนหน้า
+// หน้าเดิมค้างข้อมูลบิลที่แก้อยู่ แต่เลขบิลหลุดไปกับ state กดบันทึกเลยกลายเป็นบิลใหม่ซ้ำอีกใบ
+// ผูก key กับบิลที่แก้ ออกจากโหมดแก้เมื่อไหร่หน้าจะเริ่มใหม่ ส่วนบิลใหม่ key เดิม กดบวกซ้ำไม่ล้างที่กรอกอยู่
+const BillPage = ({ page }) => {
+  const location = useLocation();
+  const editRepairId = location.state?.editRepairId;
+
+  return createElement(page, {
+    key: editRepairId ? `edit-${editRepairId}` : "new",
+  });
+};
 
 // ไดอะล็อกล็อกการคลิกทั้งหน้าไว้ระหว่างปิด แล้วค่อยปลดตอนจบจังหวะปิด
 // ถ้าเปลี่ยนหน้าระหว่างนั้น (เช่นกดแก้ไขจากในไดอะล็อก) ตัวมันถูกถอดไปก่อนได้ปลด
@@ -81,12 +93,15 @@ const AppRoutes = () => {
           {/* Inspection */}
           <Route
             path="inspections/suspension"
-            element={<SuspensionInspection />}
+            element={<BillPage page={SuspensionInspection} />}
           />
 
           {/* Repair */}
           <Route path="repairs" element={<RepairList />} />
-          <Route path="repairs/new" element={<RepairCreate />} />
+          <Route
+            path="repairs/new"
+            element={<BillPage page={RepairCreate} />}
+          />
           <Route path="repairs/review" element={<RepairReview />} />
           <Route path="repairs/:id" element={<RepairDetail />} />
 

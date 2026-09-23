@@ -30,6 +30,7 @@ model Customer {
   id               Int               @id @default(autoincrement())
   name             String?
   address          String?
+  taxId            String?           @db.VarChar(13)
   phoneNumber      String?           @unique
   organizationType OrganizationType?
   createdAt        DateTime          @default(now())
@@ -128,6 +129,7 @@ model Service {
   name        String       @unique
   description String?      @db.Text
   price       Int
+  unit        String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   category    Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
@@ -179,6 +181,7 @@ enum PaymentMethod {
 model RepairItem {
   id        Int      @id @default(autoincrement())
   itemName  String?
+  itemUnit  String?
   side      Side?
   unitPrice Int
   quantity  Decimal  @default(1) @db.Decimal(10, 2)

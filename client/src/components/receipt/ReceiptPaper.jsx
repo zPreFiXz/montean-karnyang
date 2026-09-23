@@ -4,7 +4,7 @@ import { getDisplayBrand } from "@/utils/repairDisplay";
 import { getPartType } from "@/utils/suspension";
 import { getOilSize } from "@/utils/oil";
 import { VEHICLE_COMPATIBLE_CATEGORIES } from "@/constants/categories";
-import { isDiscountItem } from "@/constants/services";
+import { isDiscountItem, isSingleQuantityItem } from "@/constants/services";
 
 // ข้อมูลร้านที่พิมพ์ไว้บนหัวใบเสร็จเล่มกระดาษ ใช้ชุดเดียวกันเพื่อให้ใบที่พิมพ์ออกมาหน้าตาเหมือนกัน
 export const SHOP = {
@@ -74,11 +74,16 @@ const formatMoney = (value) =>
 const formatAmount = (value) =>
   Number(value) === 0 ? "-" : formatMoney(value);
 
-// หน่วยเก็บไว้กับอะไหล่ในคลัง อะไหล่ที่ซื้อมาใช้เลยไม่มีของในคลังจึงนับเป็นชิ้น
-// ส่วนงานบริการไม่มีหน่วย เขียนแต่จำนวนเหมือนที่เขียนมือในเล่ม
-// หน่วยมาจากอะไหล่ในคลังเท่านั้น บรรทัดที่พิมพ์ชื่อเอง ทั้งอะไหล่อื่นๆ และบริการ
-// ไม่รู้ว่านับเป็นอะไร จึงเขียนแต่จำนวนเปล่าๆ เหมือนที่เขียนมือในเล่ม
-export const unitOf = (item) => item.part?.unit || "";
+// อะไหล่อื่นๆ ใช้หน่วยที่ช่างพิมพ์ไว้ในบิล ไม่ได้พิมพ์หรือเป็นงานบริการ
+// ก็เขียนแต่จำนวนเปล่าๆ เหมือนที่เขียนมือในเล่ม
+export const unitOf = (item) => item.itemUnit || item.part?.unit || "";
+
+// งานที่คิดครั้งเดียวต่อคันเว้นช่องจำนวนไว้ เหมือนที่เขียนมือในเล่ม
+// บิลเก่าที่เคยใส่เกินหนึ่งยังต้องเขียน ไม่งั้นราคาต่อหน่วยกับจำนวนเงินจะไม่ตรงกัน
+export const quantityLabel = (item, quantity) =>
+  isSingleQuantityItem(item) && quantity === 1
+    ? ""
+    : `${formatQuantity(quantity)} ${unitOf(item)}`.trim();
 
 // บิลเช็กช่วงล่างเก็บข้างที่ใส่ไว้กับแต่ละบรรทัด ใบจึงต้องบอกด้วยว่าเปลี่ยนของข้างไหน
 // ของชิ้นเดียวกันที่ใส่ทั้งสองข้างยุบเป็นแถวเดียวแล้วห้อยท้ายว่า L-R
@@ -179,6 +184,7 @@ const ReceiptPaper = ({
     receiptHeaderInfo(repair);
   const customerName = repair.customer?.name || "";
   const customerAddress = repair.customer?.address || "";
+  const customerTaxId = repair.customer?.taxId || "";
 
   const { pages, discountItems } = buildReceiptPages(repair);
   const pageCount = pages.length;
@@ -260,10 +266,12 @@ const ReceiptPaper = ({
             {showCustomer ? customerAddress : ""}
           </span>
         </p>
-        {/* ช่องนี้มีในเล่มจริง ร้านเว้นว่างไว้เกือบทุกใบ แต่ต้องมีให้กรอกมือได้ */}
+        {/* ลูกค้าส่วนใหญ่ไม่มีเลขนี้ บรรทัดจึงว่างไว้ให้เขียนมือได้เหมือนในเล่ม */}
         <p className="flex items-end gap-[6px]">
           <span className="whitespace-nowrap">เลขประจำตัวผู้เสียภาษีอากร</span>
-          <span className="flex-1 border-b border-dotted border-black" />
+          <span className="flex-1 border-b border-dotted border-black text-center font-semibold">
+            {showCustomer ? customerTaxId : ""}
+          </span>
         </p>
         {/* รถอยู่บรรทัดของตัวเอง เพราะใบเสร็จของร้านยางต้องรู้ว่าเป็นของคันไหน */}
         <p className="flex items-end gap-[6px]">
@@ -302,7 +310,7 @@ const ReceiptPaper = ({
             return (
               <tr key={item.id}>
                 <td className="h-[22px] border border-black px-[3px] text-center">
-                  {`${formatQuantity(quantity)} ${unitOf(item)}`.trim()}
+                  {quantityLabel(item, quantity)}
                 </td>
                 <td className="border border-black px-[4px] break-words">
                   {showBrand ? item.itemName : shortWorkName(item)}

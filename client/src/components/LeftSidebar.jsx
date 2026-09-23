@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router";
 import { Plus } from "./icons/Icons";
 import { MENU_ITEMS, isActivePath } from "@/constants/menu";
+import { resetCurrentPage } from "@/utils/pageReset";
 
 // แถบเมนูซ้ายสำหรับจอ desktop
 const LeftSidebar = () => {
@@ -28,6 +29,9 @@ const LeftSidebar = () => {
             to={item.path}
             className="flex w-full justify-center"
             aria-current={isActive ? "page" : undefined}
+            onClick={() => {
+              if (location.pathname === item.path) resetCurrentPage();
+            }}
           >
             <div
               className={`group flex h-16 w-full cursor-pointer items-center justify-center gap-5 rounded-[10px] duration-300 ${

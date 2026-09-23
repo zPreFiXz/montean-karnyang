@@ -9,7 +9,6 @@ import {
   Info,
   Trash,
   History,
-  ChevronRight,
 } from "lucide-react";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import {
@@ -30,7 +29,11 @@ import { useNavigate } from "react-router";
 import { updateStockSchema } from "@/utils/schemas";
 import useAuthStore from "@/stores/useAuthStore";
 import { formatProductName } from "@/utils/tireSize";
-import { isTireCategoryName } from "@/constants/categories";
+import {
+  isTireCategoryName,
+  tracksTireLots,
+  USED_TIRE_CATEGORY,
+} from "@/constants/categories";
 import { formatCurrency, formatQuantity } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
@@ -65,6 +68,9 @@ const RepairItemDetailDialog = ({
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(item);
   const isTire = isTireCategoryName(currentItem?.category?.name);
+  // ยางเปอร์เซ็นต์เป็นยางแต่ไม่มีล็อตสัปดาห์/ปีผลิต เพิ่มสต็อกเป็นจำนวนเหมือนอะไหล่ทั่วไป
+  const tracksLots = tracksTireLots(currentItem?.category?.name);
+  const isUsedTire = currentItem?.category?.name === USED_TIRE_CATEGORY;
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const {
@@ -82,8 +88,8 @@ const RepairItemDetailDialog = ({
   // reset() เปล่าๆ จะล้างแถวยางจนหมดแล้วไม่งอกกลับ เพราะ TireLotInput ไม่ได้ถูก unmount
   // (ฟอร์มแค่ยุบด้วย CSS) ตัวสร้างแถวแรกจึงทำงานไปแล้วครั้งเดียว — ต้องคืนแถวว่างให้เอง
   const resetStockForm = useCallback(() => {
-    reset(isTire ? { tireLots: [{ dotCode: "", quantity: "" }] } : {});
-  }, [reset, isTire]);
+    reset(tracksLots ? { tireLots: [{ dotCode: "", quantity: "" }] } : {});
+  }, [reset, tracksLots]);
 
   useEffect(() => {
     if (!open) {
@@ -111,19 +117,23 @@ const RepairItemDetailDialog = ({
     else run();
   };
 
-  const handleShowAddStock = () => {
-    setIsAddStockVisible(true);
+  // เลื่อนตามไปพร้อมกับที่ฟอร์มขยาย ให้เป็นจังหวะเดียว
+  // ถ้ารอขยายเสร็จค่อยเลื่อน ของที่ไดอะล็อกยังไม่เต็มจอ (ยางเปอร์เซ็นต์ที่ไม่มีรายการล็อต)
+  // จะเห็นไดอะล็อกยืดก่อนแล้วค่อยเลื่อนลงอีกที เป็นสองจังหวะ
+  // ตรึงไว้ที่ล่างสุดทุกเฟรมจนหมดเวลาขยาย (200ms) เผื่อเฟรมสุดท้ายไว้อีกนิด
+  const pinDialogToBottom = () => {
+    const until = performance.now() + 260;
+    const step = () => {
+      const scroller = dialogScroller();
+      if (scroller) scroller.scrollTop = scroller.scrollHeight;
+      if (performance.now() < until) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   };
 
-  // เลื่อนหลังฟอร์มขยายเสร็จจริง ไม่ใช่เดาเวลาให้ตรงกับ transition
-  // ถ้าเลื่อนระหว่างที่ยังขยายอยู่ ปลายทางจะถูกคำนวณจากความสูงที่ยังไม่เต็ม แล้วเนื้อหางอกตามทีหลัง = กระตุก
-  const handleAddStockTransitionEnd = (e) => {
-    if (e.propertyName !== "grid-template-rows") return;
-    if (!isAddStockVisible) return;
-    dialogScroller()?.scrollTo({
-      top: Number.MAX_SAFE_INTEGER,
-      behavior: "smooth",
-    });
+  const handleShowAddStock = () => {
+    setIsAddStockVisible(true);
+    pinDialogToBottom();
   };
 
   const handleCancelAddStock = () => {
@@ -137,7 +147,7 @@ const RepairItemDetailDialog = ({
 
   // DOT 4 หลักคือ WWYY (สัปดาห์+ปี ค.ศ. 2 หลักท้าย) เช่น 0126 = สัปดาห์ 1 ปี 2026
   const tireLotSummary = (() => {
-    if (!isTire) return [];
+    if (!tracksLots) return [];
 
     const rows = new Map();
     for (const lot of currentItem.tireLots || []) {
@@ -216,37 +226,15 @@ const RepairItemDetailDialog = ({
       name: currentItem.name,
       attributes: currentItem.attributes,
       isTire,
+      isUsedTire,
     });
   })();
 
-  const renderProductInfo = () => {
-    if (
-      isTire &&
-      currentItem.attributes &&
-      currentItem.attributes.aspectRatio
-    ) {
-      return (
-        <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">
-          {currentItem.brand} {currentItem.attributes.width}/
-          {currentItem.attributes.aspectRatio}R
-          {currentItem.attributes.rimDiameter} {currentItem.name}
-        </h2>
-      );
-    } else if (isTire && currentItem.attributes) {
-      return (
-        <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">
-          {currentItem.brand} {currentItem.attributes.width}R
-          {currentItem.attributes.rimDiameter} {currentItem.name}
-        </h2>
-      );
-    }
-
-    return (
-      <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">
-        {currentItem.brand} {currentItem.name}
-      </h2>
-    );
-  };
+  const renderProductInfo = () => (
+    <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">
+      {itemDisplayName}
+    </h2>
+  );
 
   // เขียน "ไดอะล็อกของชิ้นนี้เปิดอยู่" ลง URL ของหน้าที่กำลังจะจากไป
   // แทนที่รายการเดิมในประวัติ กดย้อนกลับมาไดอะล็อกจึงเปิดค้างไว้เหมือนตอนจากไป
@@ -288,8 +276,11 @@ const RepairItemDetailDialog = ({
         name: currentItem.name,
         attributes: currentItem.attributes,
         isTire,
+        isUsedTire,
       }),
-      ...(isService || !currentItem.brand ? {} : { brand: currentItem.brand }),
+      ...(isService || isUsedTire || !currentItem.brand
+        ? {}
+        : { brand: currentItem.brand }),
       from: returnTo,
     });
     navigate(
@@ -298,13 +289,13 @@ const RepairItemDetailDialog = ({
   };
 
   const onSubmit = async (data) => {
-    const addedLots = isTire
+    const addedLots = tracksLots
       ? (data.tireLots || []).map((lot) => ({
           dotCode: String(lot.dotCode || "").trim(),
           quantity: Number(lot.quantity) || 0,
         }))
       : [];
-    const addedQuantity = isTire
+    const addedQuantity = tracksLots
       ? addedLots.reduce((sum, lot) => sum + lot.quantity, 0)
       : Number(data.quantity);
 
@@ -312,8 +303,8 @@ const RepairItemDetailDialog = ({
     try {
       await withMinDuration(() =>
         updatePartStock(currentItem.id, {
-          quantity: isTire ? undefined : addedQuantity,
-          lots: isTire ? addedLots : undefined,
+          quantity: tracksLots ? undefined : addedQuantity,
+          lots: tracksLots ? addedLots : undefined,
         }),
       );
       toast.success("เพิ่มสต็อกเรียบร้อยแล้ว");
@@ -323,7 +314,7 @@ const RepairItemDetailDialog = ({
       const updatedItem = {
         ...currentItem,
         stockQuantity: currentItem.stockQuantity + addedQuantity,
-        tireLots: isTire
+        tireLots: tracksLots
           ? mergeTireLots(currentItem.tireLots, addedLots)
           : currentItem.tireLots,
       };
@@ -360,6 +351,20 @@ const RepairItemDetailDialog = ({
               แสดงข้อมูลรายละเอียด{isService ? "บริการ" : "อะไหล่"}{" "}
               {currentItem.brand} {currentItem.name}
             </DialogDescription>
+            {/* ปุ่มดูข้อมูล ไม่ใช่ปุ่มสั่งงาน จึงแยกขึ้นมาไว้มุมบน ตรงข้ามปุ่มปิด
+                กดได้เสมอโดยไม่ต้องเลื่อน รวมถึงตอนฟอร์มเพิ่มสต็อกเปิดอยู่
+                เหลือแต่ไอคอนได้เพราะคนใช้มีแต่พนักงานร้านที่เปิดหน้าต่างนี้ทุกวัน */}
+            <button
+              onClick={handleShowUsage}
+              autoFocus={false}
+              aria-label="ประวัติการใช้"
+              title="ประวัติการใช้"
+              // สีน้ำเงินอ่อนแบบวงกลมไอคอนหัวข้ออื่นในระบบ แยกจากปุ่มปิดสีเทาฝั่งขวา
+              // ให้รู้ว่าเป็นปุ่มพาไปดูต่อ ไม่ใช่ปุ่มปิดอีกตัว
+              className="bg-primary/10 absolute top-1/2 left-[20px] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full"
+            >
+              <History size={20} className="text-primary" />
+            </button>
             <button
               onClick={() => onOpenChange(false)}
               autoFocus={false}
@@ -516,7 +521,7 @@ const RepairItemDetailDialog = ({
                         </p>
                       </div>
 
-                      {isTire && tireLotSummary.length > 0 && (
+                      {tracksLots && tireLotSummary.length > 0 && (
                         <div className="space-y-[8px] border-t border-gray-200 pt-[8px]">
                           <p className="text-subtle-dark text-lg font-medium md:text-xl">
                             สัปดาห์/ปีผลิต:
@@ -584,7 +589,6 @@ const RepairItemDetailDialog = ({
                 // inert กันไม่ให้ Tab เข้าไปในช่องที่ถูกซ่อนอยู่
                 <div
                   inert={!isAddStockVisible}
-                  onTransitionEnd={handleAddStockTransitionEnd}
                   // grid-rows 0fr→1fr ขยายไปหา "ความสูงจริงของเนื้อหา" ไม่ต้องเดาเป็นตัวเลข
                   // (max-h ตายตัวจะตัดแถวที่เกินทิ้ง พอกรอกได้หลายล็อตแล้วเกินง่ายมาก)
                   className={`grid transition-all duration-200 ${
@@ -604,7 +608,7 @@ const RepairItemDetailDialog = ({
                         className="space-y-[16px]"
                       >
                         {/* ยางรับเข้าทีละหลาย DOT ได้ ใช้ตัวกรอกชุดเดียวกับฟอร์มเพิ่ม/แก้ไขรายการ */}
-                        {isTire ? (
+                        {tracksLots ? (
                           <TireLotInput
                             control={control}
                             register={register}
@@ -676,18 +680,6 @@ const RepairItemDetailDialog = ({
           <div className="flex-shrink-0 px-[16px] pb-[16px]">
             {/* ประวัติการใช้เป็นการดูข้อมูล ไม่ใช่การแก้ของ จึงแยกออกจากแถวปุ่มลงมือทำ
                 วางเป็นแถวเต็มความกว้างแบบรายการที่กดเข้าไปดูต่อได้ */}
-            {!isAddStockVisible && (
-              <button
-                onClick={handleShowUsage}
-                className="font-athiti text-subtle-dark mb-[16px] flex h-11 w-full cursor-pointer items-center gap-[8px] rounded-[10px] bg-gray-50 px-[12px] text-lg font-semibold md:text-xl"
-              >
-                <History className="text-primary h-5 w-5 shrink-0" />
-                <span className="min-w-0 flex-1 truncate text-left">
-                  ประวัติการใช้
-                </span>
-                <ChevronRight className="text-subtle-light h-5 w-5 shrink-0" />
-              </button>
-            )}
             <div className="flex items-center gap-[16px]">
               {!isService && !isAddStockVisible && (
                 <button

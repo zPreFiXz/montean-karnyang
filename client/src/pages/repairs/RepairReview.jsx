@@ -82,7 +82,10 @@ const RepairReview = () => {
 
   // ข้อมูลลูกค้าไม่บังคับกรอก — ถ้าไม่มีสักช่องก็ไม่ต้องแสดงส่วนนี้ในเอกสาร
   const hasCustomerInfo = Boolean(
-    repairData.name || repairData.address || repairData.phoneNumber,
+    repairData.name ||
+    repairData.address ||
+    repairData.phoneNumber ||
+    repairData.taxId,
   );
 
   const totalPrice = repairItems.reduce(
@@ -115,6 +118,7 @@ const RepairReview = () => {
       const repair = {
         name: repairData.name,
         address: repairData.address,
+        taxId: repairData.taxId,
         phoneNumber: repairData.phoneNumber,
         brand: repairData.brand,
         model: repairData.model,
@@ -128,7 +132,9 @@ const RepairReview = () => {
         ...(repairData.noVehicle ? { noVehicle: true } : {}),
         ...(isSale ? { paymentMethod } : {}),
         repairItems: repairItems.map((item) => {
-          const isPart = !!(item.partNumber && item.brand);
+          // ดูแค่รหัสอะไหล่ บริการไม่มีรหัส ส่วนยี่ห้อเว้นว่างได้ (ยางเปอร์เซ็นต์ไม่มียี่ห้อ)
+          // ถ้าเช็กยี่ห้อด้วย อะไหล่ที่ไม่มียี่ห้อจะถูกส่งเป็นบริการแล้วบันทึกไม่ผ่าน
+          const isPart = !!item.partNumber;
           return {
             ...(isPart ? { partId: item.id } : { serviceId: item.id }),
             // ชื่อที่พิมพ์เองต้องส่งไปด้วย ไม่งั้นเซิร์ฟเวอร์จะประกอบชื่อจากคลังทับ
@@ -137,6 +143,8 @@ const RepairReview = () => {
             ...(!item.name || (isPart && !item.hasCustomName)
               ? {}
               : { itemName: item.name }),
+            // หน่วยที่พิมพ์เองมีแต่บรรทัดอะไหล่อื่นๆ อะไหล่จากคลังใช้หน่วยในคลัง
+            ...(!isPart && item.unit ? { itemUnit: item.unit } : {}),
             unitPrice: Number(item.sellingPrice),
             quantity: item.quantity,
             ...(item.side ? { side: item.side } : {}),
@@ -285,6 +293,19 @@ const RepairReview = () => {
                         : "ไม่ระบุ"}
                     </p>
                   </div>
+                  {/* ลูกค้าส่วนใหญ่ไม่มีเลขนี้ ขึ้นเฉพาะตอนกรอกมา ไม่ต้องมีแถว "ไม่ระบุ" เพิ่มทุกบิล */}
+                  {repairData.taxId && (
+                    // ป้ายยาวกับเลข 13 หลักรวมกันเกินความกว้างมือถือ จอแคบเลขจึงตกไปบรรทัดล่างชิดขวา
+                    // จอกว้างพอก็ยังอยู่บรรทัดเดียวเหมือนแถวอื่น
+                    <div className="flex flex-wrap justify-between gap-x-[12px]">
+                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                        เลขประจำตัวผู้เสียภาษีอากร:
+                      </p>
+                      <p className="text-normal ml-auto text-lg font-semibold text-nowrap md:text-xl">
+                        {repairData.taxId}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

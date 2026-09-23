@@ -5,9 +5,14 @@ export const listVehicles = async (search) => {
 };
 
 // ค้นรถจากทะเบียนตอนกรอกบิล คืน null ถ้าไม่เคยมี
-export const lookupVehicleByPlate = async (plate, province) => {
+// excludeRepairId = บิลที่กำลังแก้อยู่ ไม่นับเป็นครั้งที่เคยมา
+export const lookupVehicleByPlate = async (
+  plate,
+  province,
+  excludeRepairId,
+) => {
   return await apiClient.get("/vehicles/lookup", {
-    params: { plate, province },
+    params: { plate, province, excludeRepairId },
   });
 };
 

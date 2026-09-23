@@ -86,6 +86,11 @@ export const repairSchema = z
       .regex(/^[0-9]{10}$/, "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก")
       .optional()
       .or(z.literal("")),
+    taxId: z
+      .string()
+      .regex(/^[0-9]{13}$/, "กรุณากรอกเลขประจำตัวผู้เสียภาษีอากร 13 หลัก")
+      .optional()
+      .or(z.literal("")),
     brand: z.string().optional(),
     model: z.string().optional(),
     plateLetters: z.string().optional(),
@@ -194,7 +199,9 @@ export const partServiceSchema = z
     const isSuspensionCategory = kind
       ? kind === "suspension"
       : data.categoryId === 2;
-    const isTireCategory = kind ? kind === "tire" : data.categoryId === 3;
+    const isTireCategory = kind
+      ? kind === "tire" || kind === "usedTire"
+      : data.categoryId === 3;
 
     if (isServiceCategory) {
       if (!data.name || data.name.trim() === "") {
@@ -213,7 +220,8 @@ export const partServiceSchema = z
         });
       }
 
-      if (!data.name || data.name.trim() === "") {
+      // ยางเปอร์เซ็นต์ไม่มีช่องรุ่น ชื่อถูกตั้งให้เองตอนบันทึก
+      if (kind !== "usedTire" && (!data.name || data.name.trim() === "")) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "กรุณากรอกรุ่น",
@@ -239,7 +247,8 @@ export const partServiceSchema = z
 
       // ไม่ต้องเช็คว่ามีอย่างน้อย 1 แถว — TireLotInput เตรียมแถวแรกให้เสมอ
       // และปิดปุ่มลบเมื่อเหลือแถวเดียว จำนวนแถวจึงเป็น 0 ไม่ได้
-      const lots = data.tireLots || [];
+      // ยางเปอร์เซ็นต์ไม่มีล็อต กรอกจำนวนสต็อกช่องเดียวแทน
+      const lots = kind === "usedTire" ? [] : data.tireLots || [];
       lots.forEach((lot, index) => {
         const dot = String(lot.dotCode ?? "").trim();
         // "ไม่ระบุ" = ยางเก่าที่ backfill มา (ไม่รู้ DOT) — ยอมรับได้ ไม่ต้องบังคับ 4 หลัก

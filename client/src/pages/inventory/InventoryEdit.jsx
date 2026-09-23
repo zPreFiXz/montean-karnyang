@@ -18,10 +18,16 @@ import { useNavigate } from "react-router";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { partServiceSchema } from "@/utils/schemas";
-import { units, TIRE_UNIT } from "@/constants/units";
+import {
+  TIRE_UNIT,
+  useUnitOptions,
+  invalidateUnitOptions,
+} from "@/constants/units";
 import {
   VEHICLE_COMPATIBLE_CATEGORIES,
   isTireCategoryName,
+  tracksTireLots,
+  USED_TIRE_CATEGORY,
   getCategoryKind,
 } from "@/constants/categories";
 import { ChevronLeft, LoaderCircle } from "lucide-react";
@@ -36,6 +42,7 @@ import { sortTireLots } from "@/utils/tireLot";
 import { SIDE_OPTIONS, toPerSide, toSideOptionId } from "@/utils/suspension";
 
 const InventoryEdit = () => {
+  const { partUnitOptions, serviceUnitOptions } = useUnitOptions();
   const {
     register,
     handleSubmit,
@@ -217,6 +224,22 @@ const InventoryEdit = () => {
     return isTireCategoryName(selectedCategory?.name);
   };
 
+  // ยางเปอร์เซ็นต์ใช้ชื่อเดียวกันหมดตามด้วยเบอร์ ไม่ต้องกรอกยี่ห้อกับรุ่น
+  const isUsedTire = () => isTireCategory() && !isLotTracked();
+
+  // ยางใหม่กรอกสต็อกเป็นล็อตตามสัปดาห์/ปีผลิต ยางเปอร์เซ็นต์กรอกจำนวนตรงๆ
+  const isLotTracked = () => {
+    if (inventory && inventory.category) {
+      return tracksTireLots(inventory.category.name);
+    }
+
+    const selectedCategoryId = watch("categoryId");
+    const selectedCategory = category.find(
+      (cat) => cat.id === selectedCategoryId,
+    );
+    return tracksTireLots(selectedCategory?.name);
+  };
+
   const isSuspensionCategory = () => {
     if (inventory && inventory.category) {
       return inventory.category.name === "ช่วงล่าง";
@@ -352,13 +375,13 @@ const InventoryEdit = () => {
       if (!isServiceCategory()) {
         partData = {
           partNumber: data.partNumber,
-          brand: data.brand,
-          name: data.name,
+          brand: isUsedTire() ? "" : data.brand,
+          name: isUsedTire() ? USED_TIRE_CATEGORY : data.name,
           costPrice: data.costPrice,
           sellingPrice: data.sellingPrice,
           unit: data.unit,
           // ยาง: สต็อกมาจากผลรวมล็อต (backend คำนวณ) ไม่ต้องส่ง stockQuantity
-          stockQuantity: isTireCategory() ? undefined : data.stockQuantity,
+          stockQuantity: isLotTracked() ? undefined : data.stockQuantity,
           minStockLevel: data.minStockLevel,
           attributes: isTireCategory()
             ? {
@@ -372,7 +395,7 @@ const InventoryEdit = () => {
                   perSide: toPerSide(data.suspensionType),
                 }
               : undefined,
-          tireLots: isTireCategory()
+          tireLots: isLotTracked()
             ? (data.tireLots || []).map((lot) => ({
                 dotCode: lot.dotCode,
                 quantity: Number(lot.quantity) || 0,
@@ -390,6 +413,7 @@ const InventoryEdit = () => {
           name: data.name,
           price: data.price,
           description: data.description || undefined,
+          unit: data.unit?.trim() || undefined,
           categoryId: data.categoryId,
         };
       }
@@ -398,9 +422,11 @@ const InventoryEdit = () => {
 
       if (itemType === "service") {
         await withMinDuration(() => updateService(id, serviceData));
+        invalidateUnitOptions();
         toast.success("แก้ไขบริการเรียบร้อยแล้ว");
       } else {
         await withMinDuration(() => updatePart(id, partData));
+        invalidateUnitOptions();
         toast.success("แก้ไขอะไหล่เรียบร้อยแล้ว");
       }
 
@@ -479,16 +505,46 @@ const InventoryEdit = () => {
                   errors={errors}
                 />
 
-                <FormInput
-                  register={register}
-                  name="price"
-                  label="ราคา (บาท)"
-                  type="number"
-                  placeholder="เช่น 400"
-                  color="subtle-dark"
-                  errors={errors}
-                  inputMode="numeric"
-                />
+                {/* ราคากับหน่วยอยู่แถวเดียวกัน อ่านต่อกันได้ว่า "100 บาท ต่อ ล้อ"
+                    หน่วยเว้นว่างได้ บริการส่วนใหญ่คิดเป็นครั้ง ไม่ต้องบอกหน่วย */}
+                <div className="mt-[16px] px-[20px]">
+                  <div className="grid grid-cols-2 gap-[8px]">
+                    <FormInput
+                      register={register}
+                      name="price"
+                      label="ราคา (บาท)"
+                      type="number"
+                      placeholder="เช่น 400"
+                      color="subtle-dark"
+                      customClass="w-full"
+                      errors={errors}
+                      hideErrorMessage
+                      inputMode="numeric"
+                    />
+                    <div className="w-full">
+                      <ComboBox
+                        label="หน่วย"
+                        color="text-subtle-dark"
+                        labelClass="text-xl"
+                        options={serviceUnitOptions}
+                        value={watch("unit") || ""}
+                        onChange={(value) =>
+                          setValue("unit", value, { shouldValidate: true })
+                        }
+                        creatable
+                        createLabel={(text) => `เพิ่มหน่วย "${text}"`}
+                        customClass="text-lg md:text-xl"
+                        errors={errors}
+                        hideErrorMessage
+                        name="unit"
+                      />
+                    </div>
+                  </div>
+                  <FieldErrorList
+                    className="mt-[6px]"
+                    messages={[errors.price?.message, errors.unit?.message]}
+                  />
+                </div>
               </div>
             )}
 
@@ -517,31 +573,35 @@ const InventoryEdit = () => {
                   errors={errors}
                 />
 
-                <FormInput
-                  register={register}
-                  name="brand"
-                  label="ยี่ห้อ"
-                  type="text"
-                  placeholder={
-                    isTireCategory() ? "เช่น LINGLONG" : "เช่น VALVOLINE"
-                  }
-                  color="subtle-dark"
-                  errors={errors}
-                />
+                {!isUsedTire() && (
+                  <>
+                    <FormInput
+                      register={register}
+                      name="brand"
+                      label="ยี่ห้อ"
+                      type="text"
+                      placeholder={
+                        isTireCategory() ? "เช่น LINGLONG" : "เช่น VALVOLINE"
+                      }
+                      color="subtle-dark"
+                      errors={errors}
+                    />
 
-                <FormInput
-                  register={register}
-                  name="name"
-                  label={isTireCategory() ? "รุ่น" : "ชื่ออะไหล่"}
-                  type="text"
-                  placeholder={
-                    isTireCategory()
-                      ? "เช่น GREEN-Max HP010"
-                      : "เช่น SYNTHETIC COMMONRAIL 5W-30"
-                  }
-                  color="subtle-dark"
-                  errors={errors}
-                />
+                    <FormInput
+                      register={register}
+                      name="name"
+                      label={isTireCategory() ? "รุ่น" : "ชื่ออะไหล่"}
+                      type="text"
+                      placeholder={
+                        isTireCategory()
+                          ? "เช่น GREEN-Max HP010"
+                          : "เช่น SYNTHETIC COMMONRAIL 5W-30"
+                      }
+                      color="subtle-dark"
+                      errors={errors}
+                    />
+                  </>
+                )}
 
                 {/* ยาง */}
                 {isTireCategory() && (
@@ -707,7 +767,9 @@ const InventoryEdit = () => {
                       label="หน่วย"
                       color="text-subtle-dark"
                       labelClass="text-xl"
-                      options={units}
+                      options={partUnitOptions}
+                      creatable
+                      createLabel={(text) => `เพิ่มหน่วย "${text}"`}
                       value={watch("unit")}
                       onChange={(value) =>
                         setValue("unit", value, {
@@ -727,7 +789,7 @@ const InventoryEdit = () => {
                   value={watch("unit") || ""}
                 />
                 {/* ยางไม่มีช่องจำนวนสต็อก (คิดจากผลรวมล็อต) สต็อกขั้นต่ำจึงอยู่เต็มแถวไปเลย */}
-                {isTireCategory() ? (
+                {isLotTracked() ? (
                   <>
                     <TireLotInput
                       control={control}
