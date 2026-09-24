@@ -5,6 +5,10 @@ import { ICON_MAP, DEFAULT_ICON } from "@/components/icons/categoryIcons";
 import { LoaderCircle } from "lucide-react";
 import { toastError } from "@/utils/handleError";
 
+// หมวดหมู่แทบไม่เปลี่ยน จำไว้ข้ามการเปลี่ยนหน้า กลับมาแล้วแถบขึ้นทันทีไม่ต้องหมุนรอ
+// ยังดึงใหม่ทับเงียบๆ ทุกครั้ง เผื่อเพิ่งเพิ่มหรือเรียงหมวดใหม่
+let categoryCache = null;
+
 // syncUrl=false สำหรับที่ที่ไม่ควรแตะ URL เช่นไดอะล็อกที่เปิดทับหน้าอื่นอยู่
 const CategoryList = ({
   activeCategory,
@@ -12,8 +16,8 @@ const CategoryList = ({
   syncUrl = true,
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [category, setCategory] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [category, setCategory] = useState(categoryCache || []);
+  const [isLoading, setIsLoading] = useState(!categoryCache);
   const stripRef = useRef(null);
   const activeRef = useRef(null);
 
@@ -59,7 +63,6 @@ const CategoryList = ({
 
   const fetchCategory = async () => {
     try {
-      setIsLoading(true);
       const res = await listCategories();
       const categoryWithIcons = res.data
         .map((item) => ({
@@ -68,6 +71,7 @@ const CategoryList = ({
         }))
         // เรียงตามลำดับที่ตั้งไว้ในฐานข้อมูล ไม่ใช่ลำดับที่เพิ่มเข้าระบบ
         .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+      categoryCache = categoryWithIcons;
       setCategory(categoryWithIcons);
     } catch (error) {
       toastError(error);

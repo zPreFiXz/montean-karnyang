@@ -1,11 +1,12 @@
 import { Link, useLocation } from "react-router";
 import { Plus } from "./icons/Icons";
 import { MENU_ITEMS, isActivePath } from "@/constants/menu";
-import { resetCurrentPage } from "@/utils/pageReset";
+import { useResetCurrentPage } from "@/utils/pageReset";
 
 // แถบเมนูซ้ายสำหรับจอ desktop
 const LeftSidebar = () => {
   const location = useLocation();
+  const resetCurrentPage = useResetCurrentPage();
 
   return (
     <nav className="shadow-primary hidden min-h-[calc(100vh-73px)] w-64 flex-col items-center gap-6 px-4 lg:flex">
@@ -29,8 +30,10 @@ const LeftSidebar = () => {
             to={item.path}
             className="flex w-full justify-center"
             aria-current={isActive ? "page" : undefined}
-            onClick={() => {
-              if (location.pathname === item.path) resetCurrentPage();
+            onClick={(e) => {
+              if (location.pathname !== item.path) return;
+              e.preventDefault();
+              resetCurrentPage(item.path);
             }}
           >
             <div

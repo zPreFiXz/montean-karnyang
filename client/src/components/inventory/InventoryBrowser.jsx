@@ -32,6 +32,10 @@ const NO_CATEGORY_GROUP = "ไม่มีหมวดหมู่";
 const inventoryCache = new Map();
 const cacheKey = (categoryName, searchTerm, filterParams) =>
   JSON.stringify([categoryName, searchTerm, filterParams]);
+// รายการอะไหล่ (ใช้ทำตัวเลือกตัวกรอง) กับลำดับหมวดหมู่ (ใช้เรียงกลุ่ม) ก็จำไว้เหมือนกัน
+// ไม่งั้นกลับมาหน้านี้แล้วกลุ่มจะสลับที่ทีหลังตอนลำดับหมวดโหลดเสร็จ
+let partsListCache = null;
+let categoryOrderCache = null;
 
 // หน้าคลังกับไดอะล็อกเลือกอะไหล่ลงบิลคือหน้าจอเดียวกัน ต่างแค่ "กดการ์ดแล้วเกิดอะไร"
 // จึงรวมค้นหา/หมวดหมู่/ตัวกรองยาง/การจัดกลุ่ม/ข้อความว่างไว้ที่นี่ที่เดียว
@@ -54,14 +58,39 @@ const InventoryBrowser = ({
   const [localCategory, setLocalCategory] = useState("ทั้งหมด");
   const [localSearch, setLocalSearch] = useState("");
 
-  const [inventory, setInventory] = useState([]);
-  const [partsList, setPartsList] = useState([]);
-  const [categoryOrder, setCategoryOrder] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-
   // หน้าคลังเก็บตัวกรองยางไว้ใน URL ด้วย เพื่อให้กลับมาจากหน้าอื่น (เช่นหน้าแก้ไข) แล้วยังกรองค้างอยู่
   const initialTireFilter = (key) =>
     syncUrl ? searchParams.get(key) || "" : "";
+
+  // หยิบผลที่จำไว้ตั้งแต่เฟรมแรก กลับจากหน้าแก้ไขแล้วรายการต้องอยู่ที่เดิมทันที
+  // ถ้ารอไปหยิบใน effect จะมีหนึ่งเฟรมที่เป็นตัวโหลดกับรายการว่าง เห็นเป็นกระพริบ
+  // กุญแจต้องประกอบแบบเดียวกับตอนโหลดจริงด้านล่าง ไม่งั้นจะหาไม่เจอ
+  const [initialCached] = useState(() => {
+    const startCategory = syncUrl
+      ? searchParams.get("category") || "ทั้งหมด"
+      : "ทั้งหมด";
+    const startSearch = syncUrl ? searchParams.get("search") : null;
+    const filters = isTireCategoryName(startCategory)
+      ? {
+          width: initialTireFilter("width"),
+          aspectRatio: initialTireFilter("aspectRatio"),
+          rimDiameter: initialTireFilter("rimDiameter"),
+          brand: initialTireFilter("brand"),
+        }
+      : {};
+    return inventoryCache.get(
+      cacheKey(
+        startCategory === "ทั้งหมด" ? null : startCategory,
+        startSearch,
+        filters,
+      ),
+    );
+  });
+
+  const [inventory, setInventory] = useState(initialCached || []);
+  const [partsList, setPartsList] = useState(partsListCache || []);
+  const [categoryOrder, setCategoryOrder] = useState(categoryOrderCache || []);
+  const [isLoading, setIsLoading] = useState(!initialCached);
 
   // เปิดไว้ก่อนเมื่อรู้รุ่นรถ เพราะส่วนใหญ่ต้องการของที่ใส่ได้จริง แต่ปิดได้ตลอด
   // (อะไหล่บางตัวใส่ข้ามรุ่นได้ แต่ยังไม่ได้บันทึกรุ่นนั้นไว้)
@@ -191,13 +220,13 @@ const InventoryBrowser = ({
           listParts(),
           listCategories(),
         ]);
+        partsListCache = partsRes.data || [];
+        categoryOrderCache = [...(categoriesRes.data || [])]
+          .sort((a, b) => a.id - b.id)
+          .map((c) => c.name);
         if (!mounted) return;
-        setPartsList(partsRes.data || []);
-        setCategoryOrder(
-          [...(categoriesRes.data || [])]
-            .sort((a, b) => a.id - b.id)
-            .map((c) => c.name),
-        );
+        setPartsList(partsListCache);
+        setCategoryOrder(categoryOrderCache);
       } catch (error) {
         toastError(error, "โหลดรายการอะไหล่ไม่สำเร็จ");
         setPartsList([]);

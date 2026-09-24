@@ -12,7 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   DEFAULT_LABOR_SERVICE_NAME,
   PLACEHOLDER_SERVICE_NAMES,
-  isPartPlaceholderItem,
+  isPartLikeItem,
   isDiscountItem,
 } from "@/constants/services";
 import { editNamePriceSchema } from "@/utils/schemas";
@@ -43,7 +43,7 @@ const EditRepairItemDialog = ({
   // ป้ายช่องชื่อจึงต้องเรียกตามสิ่งที่ช่างกำลังกรอกจริง
   const nameLabel = isDiscount
     ? "ชื่อส่วนลด"
-    : !isService || isPartPlaceholderItem({ name: currentName, isPartLine })
+    : !isService || isPartLikeItem({ name: currentName, isPartLine })
       ? "ชื่ออะไหล่"
       : "ชื่อบริการ";
 
@@ -200,7 +200,7 @@ const EditRepairItemDialog = ({
 
                   {/* บันทึกของร้าน เช่น "ต้องขันสลักใหม่"
                       อยู่บรรทัดเดียวกับป้ายก่อน ยาวเกินค่อยตกบรรทัดลงมา
-                      ข้อความชิดซ้าย ทุกบรรทัดจึงเริ่มที่ขอบเดียวกัน */}
+                      ค่าชิดขวาเหมือนแถวอื่นในกล่อง ตกบรรทัดแล้วทุกบรรทัดจบที่ขอบขวาเดียวกัน */}
                   {description && (
                     <div className="flex gap-[12px]">
                       <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
@@ -209,7 +209,7 @@ const EditRepairItemDialog = ({
                       {/* ไม่ใส่กฎตัดคำใดๆ เพราะภาษาไทยเขียนติดกันทั้งประโยค
                           ถ้าใส่ เบราว์เซอร์จะมองเป็นคำเดียวแล้วตัดตรงไหนก็ได้ (ตั้ง|ศูนย์)
                           ปล่อยให้ตัดตามพจนานุกรมไทยตามภาษาที่ประกาศไว้ในหน้าเว็บ */}
-                      <p className="text-normal min-w-0 flex-1 text-lg font-semibold whitespace-pre-line md:text-xl">
+                      <p className="text-normal min-w-0 flex-1 text-right text-lg font-semibold whitespace-pre-line md:text-xl">
                         {description}
                       </p>
                     </div>

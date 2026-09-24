@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { saveScrollPosition } from "@/utils/scrollPosition";
 import {
   Edit,
@@ -34,6 +34,7 @@ import {
   tracksTireLots,
   USED_TIRE_CATEGORY,
 } from "@/constants/categories";
+import { isPartLikeItem } from "@/constants/services";
 import { formatCurrency, formatQuantity } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
@@ -64,6 +65,8 @@ const RepairItemDetailDialog = ({
   onStockUpdate,
 }) => {
   const [isAddStockVisible, setIsAddStockVisible] = useState(false);
+  // ฟอร์มหายช้ากว่าปุ่มด้านล่าง: ปุ่มกลับมาทันทีที่กดยกเลิก ส่วนฟอร์มรอเลื่อนขึ้นบนเสร็จก่อน
+  const [isStockFormShown, setIsStockFormShown] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(item);
@@ -94,6 +97,7 @@ const RepairItemDetailDialog = ({
   useEffect(() => {
     if (!open) {
       setIsAddStockVisible(false);
+      setIsStockFormShown(false);
       resetStockForm();
     }
   }, [open, resetStockForm]);
@@ -117,33 +121,51 @@ const RepairItemDetailDialog = ({
     else run();
   };
 
-  // เลื่อนตามไปพร้อมกับที่ฟอร์มขยาย ให้เป็นจังหวะเดียว
-  // ถ้ารอขยายเสร็จค่อยเลื่อน ของที่ไดอะล็อกยังไม่เต็มจอ (ยางเปอร์เซ็นต์ที่ไม่มีรายการล็อต)
-  // จะเห็นไดอะล็อกยืดก่อนแล้วค่อยเลื่อนลงอีกที เป็นสองจังหวะ
-  // ตรึงไว้ที่ล่างสุดทุกเฟรมจนหมดเวลาขยาย (200ms) เผื่อเฟรมสุดท้ายไว้อีกนิด
-  const pinDialogToBottom = () => {
-    const until = performance.now() + 260;
-    const step = () => {
-      const scroller = dialogScroller();
-      if (scroller) scroller.scrollTop = scroller.scrollHeight;
-      if (performance.now() < until) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
+  // ไดอะล็อกคงขนาดเดิมตลอด ฟอร์มเพิ่มสต็อกโผล่มารอไว้ใต้เนื้อหา แล้วเลื่อนลงไปหา
+  // ถ้าให้ไดอะล็อกยืดตามฟอร์ม ตัวที่เนื้อหาสั้น (ไม่มีรูป) จะยืดหดทั้งกล่อง ไม่เหมือนตัวที่มีรูปซึ่งสูงเต็มเพดานอยู่แล้ว
+  // จึงล็อกความสูงไว้ก่อนเปิดฟอร์ม แล้วปลดตอนฟอร์มหายไป ขนาดจะกลับเท่าเดิมพอดี
+  const contentRef = useRef(null);
+  const lockDialogHeight = () => {
+    const el = contentRef.current;
+    if (el) el.style.height = `${el.getBoundingClientRect().height}px`;
+  };
+  const unlockDialogHeight = () => {
+    if (contentRef.current) contentRef.current.style.height = "";
   };
 
   const handleShowAddStock = () => {
+    lockDialogHeight();
     setIsAddStockVisible(true);
-    pinDialogToBottom();
+    setIsStockFormShown(true);
+    // รอให้ฟอร์มถูกวาดก่อน ปลายทางถึงจะรวมความสูงของฟอร์มแล้ว
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const scroller = dialogScroller();
+        scroller?.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" });
+      }),
+    );
+  };
+
+  // เลื่อนกลับขึ้นบนก่อน แล้วค่อยเอาฟอร์มออก ไม่งั้นเนื้อหาหดใต้มือระหว่างที่ยังอยู่ล่างสุด
+  const closeAddStock = () => {
+    setIsAddStockVisible(false);
+    scrollDialogTo(0);
+    setTimeout(() => {
+      setIsStockFormShown(false);
+      resetStockForm();
+      unlockDialogHeight();
+    }, 300);
   };
 
   const handleCancelAddStock = () => {
-    setIsAddStockVisible(false);
-    resetStockForm();
+    closeAddStock();
   };
 
   if (!currentItem) return null;
 
   const isService = currentItem.type === "service";
+  // จุ๊บลมเก็บเป็นบริการแต่เรียกว่าอะไหล่ (ดู PART_LIKE_SERVICE_NAMES)
+  const readsAsService = isService && !isPartLikeItem(currentItem);
 
   // DOT 4 หลักคือ WWYY (สัปดาห์+ปี ค.ศ. 2 หลักท้าย) เช่น 0126 = สัปดาห์ 1 ปี 2026
   const tireLotSummary = (() => {
@@ -308,8 +330,6 @@ const RepairItemDetailDialog = ({
         }),
       );
       toast.success("เพิ่มสต็อกเรียบร้อยแล้ว");
-      setIsAddStockVisible(false);
-      resetStockForm();
 
       const updatedItem = {
         ...currentItem,
@@ -320,7 +340,7 @@ const RepairItemDetailDialog = ({
       };
       setCurrentItem(updatedItem);
 
-      scrollDialogTo(0);
+      closeAddStock();
 
       if (onStockUpdate) {
         onStockUpdate();
@@ -336,6 +356,7 @@ const RepairItemDetailDialog = ({
     <div>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
+          ref={contentRef}
           // สูงเท่าเนื้อหา แต่ไม่เกิน 85% ของจอ (เกินแล้วให้ส่วนเนื้อหาเลื่อนเอง)
           className="flex max-h-[85svh] w-full flex-col p-0"
           showCloseButton={false}
@@ -345,10 +366,10 @@ const RepairItemDetailDialog = ({
         >
           <div className="relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]">
             <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
-              รายละเอียด{isService ? "บริการ" : "อะไหล่"}
+              รายละเอียด{readsAsService ? "บริการ" : "อะไหล่"}
             </DialogTitle>
             <DialogDescription className="sr-only">
-              แสดงข้อมูลรายละเอียด{isService ? "บริการ" : "อะไหล่"}{" "}
+              แสดงข้อมูลรายละเอียด{readsAsService ? "บริการ" : "อะไหล่"}{" "}
               {currentItem.brand} {currentItem.name}
             </DialogDescription>
             {/* ปุ่มดูข้อมูล ไม่ใช่ปุ่มสั่งงาน จึงแยกขึ้นมาไว้มุมบน ตรงข้ามปุ่มปิด
@@ -445,7 +466,7 @@ const RepairItemDetailDialog = ({
                   )}
 
                   {/* อยู่บรรทัดเดียวกับป้ายก่อน ยาวเกินค่อยตกบรรทัดลงมา
-                      ข้อความชิดซ้าย ทุกบรรทัดจึงเริ่มที่ขอบเดียวกัน */}
+                      ค่าชิดขวาเหมือนแถวอื่นในกล่อง ตกบรรทัดแล้วทุกบรรทัดจบที่ขอบขวาเดียวกัน */}
                   {currentItem.description && (
                     <div className="flex gap-[12px]">
                       <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
@@ -454,7 +475,7 @@ const RepairItemDetailDialog = ({
                       {/* ไม่ใส่กฎตัดคำใดๆ เพราะภาษาไทยเขียนติดกันทั้งประโยค
                           ถ้าใส่ เบราว์เซอร์จะมองเป็นคำเดียวแล้วตัดตรงไหนก็ได้ (ตั้ง|ศูนย์)
                           ปล่อยให้ตัดตามพจนานุกรมไทยตามภาษาที่ประกาศไว้ในหน้าเว็บ */}
-                      <p className="text-normal min-w-0 flex-1 text-lg font-semibold whitespace-pre-line md:text-xl">
+                      <p className="text-normal min-w-0 flex-1 text-right text-lg font-semibold whitespace-pre-line md:text-xl">
                         {currentItem.description}
                       </p>
                     </div>
@@ -604,8 +625,9 @@ const RepairItemDetailDialog = ({
                   inert={!isAddStockVisible}
                   // grid-rows 0fr→1fr ขยายไปหา "ความสูงจริงของเนื้อหา" ไม่ต้องเดาเป็นตัวเลข
                   // (max-h ตายตัวจะตัดแถวที่เกินทิ้ง พอกรอกได้หลายล็อตแล้วเกินง่ายมาก)
-                  className={`grid transition-all duration-200 ${
-                    isAddStockVisible
+                  // ไม่ใส่จังหวะขยาย ฟอร์มต้องสูงเต็มตั้งแต่เฟรมแรก ปลายทางของการเลื่อนลงจะได้ถูก
+                  className={`grid ${
+                    isStockFormShown
                       ? "grid-rows-[1fr] opacity-100"
                       : "grid-rows-[0fr] opacity-0"
                   }`}

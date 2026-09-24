@@ -1,7 +1,7 @@
 import { X, Image as ImageIcon } from "lucide-react";
 import { SparePart } from "@/components/icons/Icons";
 import { formatCurrency } from "@/utils/formats";
-import { isPartPlaceholderItem } from "@/constants/services";
+import { isPartLikeItem } from "@/constants/services";
 import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
 import { formatProductName } from "@/utils/tireSize";
 import {
@@ -18,8 +18,7 @@ const PartPreviewDialog = ({ part, price, open, onOpenChange }) => {
   if (!part) return null;
 
   // บรรทัด "อะไหล่อื่นๆ" อยู่ในหมวดบริการแต่ความหมายคืออะไหล่ จึงยังเรียกว่าอะไหล่
-  const isService =
-    part.category?.name === "บริการ" && !isPartPlaceholderItem(part);
+  const isService = part.category?.name === "บริการ" && !isPartLikeItem(part);
 
   // ชื่อเต็มแบบเดียวกับที่การ์ดใช้ คือยี่ห้อ + ขนาดยาง + รุ่น
   // ชื่อในคลังเก็บแค่รุ่น ("MA579") ถ้าโชว์อย่างเดียวจะไม่รู้ว่ายี่ห้ออะไรและขนาดไหน
@@ -94,7 +93,7 @@ const PartPreviewDialog = ({ part, price, open, onOpenChange }) => {
             )}
 
             {/* อยู่บรรทัดเดียวกับป้ายก่อน ยาวเกินค่อยตกบรรทัดลงมา
-                ข้อความชิดซ้าย ทุกบรรทัดจึงเริ่มที่ขอบเดียวกัน */}
+                ค่าชิดขวาเหมือนแถวอื่นในกล่อง ตกบรรทัดแล้วทุกบรรทัดจบที่ขอบขวาเดียวกัน */}
             {part.description && (
               <div className="flex gap-[12px]">
                 <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
@@ -102,7 +101,7 @@ const PartPreviewDialog = ({ part, price, open, onOpenChange }) => {
                 </p>
                 {/* ไม่ใส่กฎตัดคำใดๆ เพราะภาษาไทยเขียนติดกันทั้งประโยค
                     ถ้าใส่ เบราว์เซอร์จะมองเป็นคำเดียวแล้วตัดตรงไหนก็ได้ (ตั้ง|ศูนย์) */}
-                <p className="text-normal min-w-0 flex-1 text-lg font-semibold whitespace-pre-line md:text-xl">
+                <p className="text-normal min-w-0 flex-1 text-right text-lg font-semibold whitespace-pre-line md:text-xl">
                   {part.description}
                 </p>
               </div>

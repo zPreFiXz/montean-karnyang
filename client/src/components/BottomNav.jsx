@@ -1,15 +1,17 @@
 import { Link, useLocation } from "react-router";
 import { Plus } from "./icons/Icons";
 import { MENU_ITEMS, isActivePath } from "@/constants/menu";
-import { resetCurrentPage } from "@/utils/pageReset";
+import { useResetCurrentPage } from "@/utils/pageReset";
 
-const NavButton = ({ icon: Icon, label, to, isActive, isCurrentPage }) => (
+const NavButton = ({ icon: Icon, label, to, isActive, onResetPage }) => (
   <Link
     to={to}
     aria-label={label}
     aria-current={isActive ? "page" : undefined}
-    onClick={() => {
-      if (isCurrentPage) resetCurrentPage();
+    onClick={(e) => {
+      if (!onResetPage) return;
+      e.preventDefault();
+      onResetPage(to);
     }}
   >
     <div className="flex flex-col items-center">
@@ -34,6 +36,7 @@ const NavButton = ({ icon: Icon, label, to, isActive, isCurrentPage }) => (
 // แถบนำทางล่างสำหรับจอมือถือ/แท็บเล็ต
 const BottomNav = () => {
   const location = useLocation();
+  const resetCurrentPage = useResetCurrentPage();
   const [home, inspection, vehicles, inventory] = MENU_ITEMS;
 
   const renderItem = (item) => (
@@ -43,7 +46,9 @@ const BottomNav = () => {
       label={item.shortLabel}
       to={item.path}
       isActive={isActivePath(item.path, location.pathname)}
-      isCurrentPage={location.pathname === item.path}
+      onResetPage={
+        location.pathname === item.path ? resetCurrentPage : undefined
+      }
     />
   );
 

@@ -425,11 +425,9 @@ const InventoryEdit = () => {
       if (itemType === "service") {
         await withMinDuration(() => updateService(id, serviceData));
         invalidateUnitOptions();
-        toast.success("แก้ไขบริการเรียบร้อยแล้ว");
       } else {
         await withMinDuration(() => updatePart(id, partData));
         invalidateUnitOptions();
-        toast.success("แก้ไขอะไหล่เรียบร้อยแล้ว");
       }
 
       // ดึงข้อมูลหลังแก้มาตั้งแต่ตอนนี้ ระหว่างที่ปุ่มยังหมุนอยู่ แล้วส่งติดไปกับหน้าถัดไป
@@ -447,6 +445,13 @@ const InventoryEdit = () => {
         // บันทึกเสร็จแล้วกลับหน้าคลัง ถือเป็นการย้อนกลับ ตำแหน่งที่เลื่อนค้างไว้ต้องกลับมาด้วย
         state: { restoreScroll: true, ...(openItem ? { openItem } : {}) },
       });
+      // แจ้งหลังเปลี่ยนหน้า ให้ขึ้นพร้อมไดอะล็อกของรายการที่เพิ่งแก้
+      // ถ้าแจ้งตั้งแต่บันทึกเสร็จ จะขึ้นก่อนไดอะล็อกเกือบครึ่งวินาที ระหว่างที่รอดึงข้อมูลล่าสุด
+      toast.success(
+        isServiceCategory()
+          ? "แก้ไขบริการเรียบร้อยแล้ว"
+          : "แก้ไขอะไหล่เรียบร้อยแล้ว",
+      );
 
       reset();
       setSelectedImage(null);
@@ -568,8 +573,8 @@ const InventoryEdit = () => {
                   type="text"
                   placeholder={
                     isTireCategory()
-                      ? "เช่น LL1855515GMHP010"
-                      : "เช่น VVLSC5W30"
+                      ? "เช่น LL-1855515GMHP010"
+                      : "เช่น VVL-STTCMR5W30"
                   }
                   color="subtle-dark"
                   errors={errors}

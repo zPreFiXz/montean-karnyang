@@ -47,7 +47,7 @@ import { repairSchema } from "@/utils/schemas";
 import { CarRepair, SparePart } from "@/components/icons/Icons";
 import { toastError } from "@/utils/handleError";
 import {
-  isPartPlaceholderItem,
+  isPartLikeItem,
   isSingleQuantityItem,
   hasTypedUnit,
   isDiscountItem,
@@ -600,7 +600,7 @@ const SuspensionInspection = () => {
           ...prev,
           withRowId({
             ...itemWithSide,
-            isPartLine: isPartPlaceholderItem(itemWithSide),
+            isPartLine: isPartLikeItem(itemWithSide),
             // บรรทัดส่วนลดเก็บราคาติดลบ ยอดรวมจึงหักออกให้เอง
             isDiscountLine: isDiscountItem(itemWithSide),
             quantity: 1,
@@ -1428,8 +1428,13 @@ const SuspensionInspection = () => {
   // ปุ่มเดียวกันวางสองที่ (มือถือ/จอใหญ่) ประกาศไว้ที่เดียวจะได้ไม่หลุดกันเวลาแก้
   // ซื้อยางแล้วร้านแถมจุ๊บลมกับถ่วงล้อทุกเส้น ครบสี่เส้นแถมตั้งศูนย์ด้วย
   // ไม่ใส่ให้เองอัตโนมัติ เพราะบางคนเอายางไปใส่เอง ไม่ได้ถ่วงล้อที่ร้าน
+  // นับเฉพาะยางใหม่ ยางเปอร์เซ็นต์ขายราคามือสองจึงไม่มีของแถม
   const tireCount = repairItems
-    .filter((item) => isTireCategoryName(item.category?.name))
+    .filter(
+      (item) =>
+        isTireCategoryName(item.category?.name) &&
+        item.category?.name !== USED_TIRE_CATEGORY,
+    )
     .reduce((sum, item) => sum + Number(item.quantity || 0), 0);
 
   const freebieNames = [
@@ -2006,7 +2011,7 @@ const SuspensionInspection = () => {
                                   {isDiscountItem(item) ? (
                                     <TicketPercent className="h-9 w-9" />
                                   ) : !item.partNumber &&
-                                    !isPartPlaceholderItem(item) ? (
+                                    !isPartLikeItem(item) ? (
                                     <Wrench className="h-9 w-9" />
                                   ) : (
                                     <SparePart className="h-10 w-10" />
@@ -2391,7 +2396,7 @@ const SuspensionInspection = () => {
                                 {isDiscountItem(item) ? (
                                   <TicketPercent className="h-9 w-9" />
                                 ) : !item.partNumber &&
-                                  !isPartPlaceholderItem(item) ? (
+                                  !isPartLikeItem(item) ? (
                                   <Wrench className="h-9 w-9" />
                                 ) : (
                                   <SparePart className="h-10 w-10" />
@@ -2703,7 +2708,7 @@ const SuspensionInspection = () => {
         currentName={editingItem?.name || ""}
         // ทุกบรรทัดพิมพ์ชื่อทับได้ ตัวเชื่อมกับอะไหล่ยังอยู่ รูปกับรหัสจึงยังตามของจริง
         canEditName
-        isPartLine={isPartPlaceholderItem(editingItem)}
+        isPartLine={isPartLikeItem(editingItem)}
         isDiscountLine={isDiscountItem(editingItem)}
       />
 

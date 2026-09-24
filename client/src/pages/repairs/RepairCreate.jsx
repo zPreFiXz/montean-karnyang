@@ -46,7 +46,7 @@ import {
   USED_TIRE_CATEGORY,
 } from "@/constants/categories";
 import {
-  isPartPlaceholderItem,
+  isPartLikeItem,
   isSingleQuantityItem,
   hasTypedUnit,
   isDiscountItem,
@@ -554,7 +554,7 @@ const RepairCreate = () => {
           withRowId({
             ...item,
             // จำไว้ว่าบรรทัดนี้เป็นอะไหล่ที่ซื้อมาใช้เลย ชื่อจะถูกพิมพ์ทับทีหลัง
-            isPartLine: isPartPlaceholderItem(item),
+            isPartLine: isPartLikeItem(item),
             // บรรทัดส่วนลดเก็บราคาติดลบ ยอดรวมจึงหักออกให้เอง
             isDiscountLine: isDiscountItem(item),
             // ไดอะล็อกส่งสต็อกที่เบิกได้จริงมาทาง quantity (คิดสต็อกที่คืนจากบิลเดิมแล้ว)
@@ -717,8 +717,13 @@ const RepairCreate = () => {
   // โผล่เมื่อมีของตั้งแต่สองรายการ เพราะมีชิ้นเดียวไม่มีอะไรให้สลับ
   // ซื้อยางแล้วร้านแถมจุ๊บลมกับถ่วงล้อทุกเส้น ครบสี่เส้นแถมตั้งศูนย์ด้วย
   // ไม่ใส่ให้เองอัตโนมัติ เพราะบางคนเอายางไปใส่เอง ไม่ได้ถ่วงล้อที่ร้าน
+  // นับเฉพาะยางใหม่ ยางเปอร์เซ็นต์ขายราคามือสองจึงไม่มีของแถม
   const tireCount = repairItems
-    .filter((item) => isTireCategoryName(item.category?.name))
+    .filter(
+      (item) =>
+        isTireCategoryName(item.category?.name) &&
+        item.category?.name !== USED_TIRE_CATEGORY,
+    )
     .reduce((sum, item) => sum + Number(item.quantity || 0), 0);
 
   const freebieNames = [
@@ -1351,7 +1356,7 @@ const RepairCreate = () => {
                                 {isDiscountItem(item) ? (
                                   <TicketPercent className="h-9 w-9" />
                                 ) : item.category?.name === "บริการ" &&
-                                  !isPartPlaceholderItem(item) ? (
+                                  !isPartLikeItem(item) ? (
                                   <Wrench className="h-9 w-9" />
                                 ) : (
                                   <SparePart className="h-10 w-10" />
@@ -1603,7 +1608,7 @@ const RepairCreate = () => {
                               {isDiscountItem(item) ? (
                                 <TicketPercent className="h-9 w-9" />
                               ) : item.category?.name === "บริการ" &&
-                                !isPartPlaceholderItem(item) ? (
+                                !isPartLikeItem(item) ? (
                                 <Wrench className="h-9 w-9" />
                               ) : (
                                 <SparePart className="h-10 w-10" />
@@ -1792,7 +1797,7 @@ const RepairCreate = () => {
         currentName={editingItem?.name || ""}
         // ทุกบรรทัดพิมพ์ชื่อทับได้ ตัวเชื่อมกับอะไหล่ยังอยู่ รูปกับรหัสจึงยังตามของจริง
         canEditName
-        isPartLine={isPartPlaceholderItem(editingItem)}
+        isPartLine={isPartLikeItem(editingItem)}
         isDiscountLine={isDiscountItem(editingItem)}
       />
 

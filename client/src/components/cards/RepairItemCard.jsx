@@ -1,11 +1,7 @@
 import { Image, Wrench, TicketPercent } from "lucide-react";
 import { formatCurrency, formatQuantity } from "@/utils/formats";
 import { onKeyActivate } from "@/utils/a11y";
-import {
-  isPartPlaceholderItem,
-  isDiscountItem,
-  lineUnit,
-} from "@/constants/services";
+import { isPartLikeItem, isDiscountItem, lineUnit } from "@/constants/services";
 import { SparePart } from "@/components/icons/Icons";
 import { soldLotEntries } from "@/utils/tireLot";
 import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
@@ -48,7 +44,7 @@ const RepairItemCard = ({ item, variant, onClick }) => {
   const unit = variant === "detail" ? lineUnit(item) : item.unit;
   const isService = variant === "detail" ? !!item.service : !item.partNumber;
   // อะไหล่ที่ซื้อมาใช้เลยถูกบันทึกเป็นบริการ แต่ควรอ่านว่าเป็นอะไหล่
-  const isPartLine = isPartPlaceholderItem(item);
+  const isPartLine = isPartLikeItem(item);
   const soldLots = variant === "detail" ? soldLotEntries(item.soldLots) : [];
 
   return (

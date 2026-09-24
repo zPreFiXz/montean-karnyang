@@ -23,7 +23,7 @@ import {
 import { formatDateShort } from "@/utils/formats";
 import {
   isDiscountItem,
-  isPartPlaceholderItem,
+  isPartLikeItem,
   PART_PLACEHOLDER_SERVICE_NAME,
   SERVICE_PLACEHOLDER_SERVICE_NAME,
 } from "@/constants/services";
@@ -126,7 +126,7 @@ const InventoryUsage = () => {
 
   const usageNoun = isDiscountItem({ name: itemName })
     ? "ส่วนลด"
-    : isService && !isPartPlaceholderItem({ name: itemName })
+    : isService && !isPartLikeItem({ name: itemName })
       ? "บริการ"
       : "อะไหล่";
 
@@ -172,7 +172,7 @@ const InventoryUsage = () => {
                     (ประแจของ Icons ฝังเส้นสีขาวไว้ กรอบรูปพื้นขาวจึงต้องใช้ตัวที่รับสีตามข้อความ) */}
                 {isDiscountItem({ name: itemName }) ? (
                   <TicketPercent className="h-9 w-9" />
-                ) : isService && !isPartPlaceholderItem({ name: itemName }) ? (
+                ) : isService && !isPartLikeItem({ name: itemName }) ? (
                   <WrenchOutline className="h-9 w-9" />
                 ) : (
                   <SparePart className="h-10 w-10" />

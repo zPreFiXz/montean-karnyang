@@ -44,7 +44,7 @@ import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import ComboBox from "@/components/ui/ComboBox";
 import PartPreviewDialog from "@/components/dialogs/PartPreviewDialog";
 import {
-  isPartPlaceholderItem,
+  isPartLikeItem,
   isSingleQuantityItem,
   hasTypedUnit,
   lineUnit,
@@ -454,7 +454,7 @@ const RepairDetail = () => {
         // ชื่อที่บันทึกไว้มาก่อน เพราะบริการอย่างค่าแรงพิมพ์ชื่อเองได้
         name: ri.itemName || ri.service?.name || "",
         // ชื่อบนบรรทัดถูกพิมพ์ทับไปแล้ว ดูจากชื่อบริการต้นทางว่าเป็นบรรทัดอะไหล่ไหม
-        isPartLine: isPartPlaceholderItem(ri),
+        isPartLine: isPartLikeItem(ri),
         isSingleLine: isSingleQuantityItem(ri),
         isTypedUnitLine: hasTypedUnit(ri),
         unit: lineUnit(ri),
@@ -598,7 +598,7 @@ const RepairDetail = () => {
     name: item.itemName,
     // ชื่อบนบรรทัดถูกพิมพ์ทับไปแล้ว ดูจากบริการต้นทางว่าเป็นบรรทัดอะไหล่ไหม
     // ไม่งั้นหน้าต่างจะขึ้นว่า "รายละเอียดบริการ" ทั้งที่เป็นอะไหล่ที่ซื้อมาต่างหาก
-    isPartLine: isPartPlaceholderItem(item),
+    isPartLine: isPartLikeItem(item),
     category: item.part?.category || item.service?.category || null,
     partNumber: item.part?.partNumber || null,
     description: item.part?.description || item.service?.description || null,

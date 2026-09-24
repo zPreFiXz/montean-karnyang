@@ -398,7 +398,7 @@ const InventoryCreate = () => {
                 label="รหัสอะไหล่"
                 type="text"
                 placeholder={
-                  isTireCategory() ? "เช่น LL1855515GMHP010" : "เช่น VVLSC5W30"
+                  isTireCategory() ? "เช่น LL-1855515GMHP010" : "เช่น VVL-STTCMR5W30"
                 }
                 color="subtle-dark"
                 errors={errors}
