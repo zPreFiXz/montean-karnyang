@@ -18,11 +18,8 @@ export const PART_UNITS = [
   "ลิตร",
 ];
 
-// บริการส่วนใหญ่คิดเป็นครั้งจึงไม่ต้องมีหน่วย ที่มีหน่วยคืองานที่นับจำนวนได้
-export const SERVICE_UNITS = ["ล้อ", "รู", "คัน", "ครั้ง", "เส้น", "จุด"];
-
 // ตัวเลือกแรกของหน่วยบริการ ค่าว่าง = ไม่มีหน่วย
-export const NO_UNIT_OPTION = { id: "", name: "ไม่ระบุหน่วย" };
+export const NO_UNIT_OPTION = { id: "", name: "ไม่มีหน่วย" };
 
 const collator = new Intl.Collator("th");
 
@@ -61,9 +58,10 @@ export const useUnitOptions = () => {
 
   return {
     partUnitOptions: toOptions(PART_UNITS, used.partUnits),
+    // บริการไม่มีหน่วยตั้งต้น ใช้หน่วยที่ร้านเคยใช้จริงเท่านั้น เรียงตามที่ใช้บ่อยจากเซิร์ฟเวอร์
     serviceUnitOptions: [
       NO_UNIT_OPTION,
-      ...toOptions(SERVICE_UNITS, used.serviceUnits),
+      ...used.serviceUnits.map((name) => ({ name })),
     ],
   };
 };

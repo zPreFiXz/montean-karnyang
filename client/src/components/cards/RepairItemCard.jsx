@@ -1,7 +1,11 @@
 import { Image, Wrench, TicketPercent } from "lucide-react";
 import { formatCurrency, formatQuantity } from "@/utils/formats";
 import { onKeyActivate } from "@/utils/a11y";
-import { isPartPlaceholderItem, isDiscountItem } from "@/constants/services";
+import {
+  isPartPlaceholderItem,
+  isDiscountItem,
+  lineUnit,
+} from "@/constants/services";
 import { SparePart } from "@/components/icons/Icons";
 import { soldLotEntries } from "@/utils/tireLot";
 import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
@@ -41,8 +45,7 @@ const RepairItemCard = ({ item, variant, onClick }) => {
   const itemName = variant === "detail" ? detailName : item.name;
   const unitPrice =
     variant === "detail" ? Number(item.unitPrice) : Number(item.sellingPrice);
-  const unit =
-    variant === "detail" ? item.itemUnit || item.part?.unit || "" : item.unit;
+  const unit = variant === "detail" ? lineUnit(item) : item.unit;
   const isService = variant === "detail" ? !!item.service : !item.partNumber;
   // อะไหล่ที่ซื้อมาใช้เลยถูกบันทึกเป็นบริการ แต่ควรอ่านว่าเป็นอะไหล่
   const isPartLine = isPartPlaceholderItem(item);
@@ -108,7 +111,12 @@ const RepairItemCard = ({ item, variant, onClick }) => {
             </div>
           )}
           <p className="text-subtle-dark line-clamp-1 text-base font-semibold md:text-lg">
-            {formatCurrency(unitPrice)} × {formatQuantity(item.quantity)} {unit}
+            {formatCurrency(unitPrice)}
+            {/* บริการที่ไม่มีหน่วยคิดเป็นครั้ง "× 1" ไม่ได้บอกอะไรเพิ่ม เหลือแค่ราคา
+                ทำเกินหนึ่งครั้งยังต้องบอก ไม่งั้นราคาต่อหน่วยกับยอดรวมทางขวาจะไม่ตรงกัน */}
+            {isService && !isPartLine && !unit && Number(item.quantity) === 1
+              ? null
+              : ` × ${formatQuantity(item.quantity)} ${unit || ""}`.trimEnd()}
           </p>
         </div>
       </div>

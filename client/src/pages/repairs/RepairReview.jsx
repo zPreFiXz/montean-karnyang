@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "react-router";
+import { hasTypedUnit } from "@/constants/services";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
 import { groupBySidePairs } from "@/utils/repairItemGroups";
@@ -143,8 +144,9 @@ const RepairReview = () => {
             ...(!item.name || (isPart && !item.hasCustomName)
               ? {}
               : { itemName: item.name }),
-            // หน่วยที่พิมพ์เองมีแต่บรรทัดอะไหล่อื่นๆ อะไหล่จากคลังใช้หน่วยในคลัง
-            ...(!isPart && item.unit ? { itemUnit: item.unit } : {}),
+            // เก็บหน่วยลงบิลเฉพาะรายการเปล่าที่ช่างพิมพ์หน่วยเอง (อะไหล่อื่นๆ บริการอื่นๆ)
+            // อะไหล่กับบริการปกติดึงหน่วยจากคลังตอนแสดงผล แก้หน่วยในคลังแล้วบิลทุกใบตามกัน
+            ...(hasTypedUnit(item) && item.unit ? { itemUnit: item.unit } : {}),
             unitPrice: Number(item.sellingPrice),
             quantity: item.quantity,
             ...(item.side ? { side: item.side } : {}),

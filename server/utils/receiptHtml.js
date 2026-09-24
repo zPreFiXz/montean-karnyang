@@ -93,8 +93,16 @@ const formatQuantity = (value) => {
   return Number.isInteger(number) ? String(number) : String(number);
 };
 
-// อะไหล่อื่นๆ ใช้หน่วยที่ช่างพิมพ์ไว้ในบิล ไม่ได้พิมพ์หรือเป็นงานบริการก็เขียนแต่จำนวน
-const unitOf = (item) => item.itemUnit || item.part?.unit || "";
+// ตรงกับ lineUnit ฝั่งหน้าเว็บ: หน่วยที่พิมพ์ในบิลก่อน ไม่มีค่อยใช้หน่วยของอะไหล่หรือบริการตอนนี้
+// รายการเปล่า (อะไหล่อื่นๆ บริการอื่นๆ) ไม่ใช้หน่วยของตัวบริการ เพราะแต่ละบรรทัดเป็นของคนละอย่าง
+const TYPED_UNIT_SERVICE_NAMES = ["อะไหล่อื่นๆ", "บริการอื่นๆ"];
+const unitOf = (item) =>
+  item.itemUnit ||
+  item.part?.unit ||
+  (TYPED_UNIT_SERVICE_NAMES.includes(item.service?.name)
+    ? ""
+    : item.service?.unit) ||
+  "";
 
 // งานที่คิดครั้งเดียวต่อคันเว้นช่องจำนวนไว้ (ตรงกับ SINGLE_QUANTITY_SERVICE_NAMES ฝั่งหน้าเว็บ)
 // บิลเก่าที่เคยใส่เกินหนึ่งยังต้องเขียน ไม่งั้นราคาต่อหน่วยกับจำนวนเงินจะไม่ตรงกัน
@@ -408,6 +416,9 @@ const VEHICLE_COMPATIBLE_CATEGORIES = [
   "ไส้กรอง",
 ];
 
+// ใบที่ปิดชื่อเต็มแล้ว หมวดเหล่านี้ยังต้องมียี่ห้อ (ตรงกับ FULL_NAME_CATEGORIES ฝั่งหน้าเว็บ)
+const FULL_NAME_CATEGORIES = ["ยาง", "ยางเปอร์เซ็นต์", "แบตเตอรี่"];
+
 const workName = (item) => {
   // พิมพ์ชื่อทับไว้เอง = ตั้งใจให้ขึ้นแบบนั้น ไม่ต้องย่อทับ (ตรงกับ shortWorkName ฝั่งหน้าเว็บ)
   if (
@@ -436,6 +447,17 @@ const workName = (item) => {
       const size = name.match(/\(\s*(\d+(?:\.\d+)?)\s*L\s*\)/i);
       if (base) return size ? `(${Number(size[1])}L) ${base}` : base;
     }
+  }
+
+  // หมวดอื่น (สายพาน ใบปัดน้ำฝน ฯลฯ) ชื่อในบิลประกอบจาก "ยี่ห้อ ชื่อ" ตัดยี่ห้อที่นำหน้าออก
+  // ยางกับแบตเตอรี่เขียนเต็มเสมอ ลูกค้าซื้อตามยี่ห้อ และรับประกันก็ผูกกับยี่ห้อ
+  const brand = String(item.part?.brand || "").trim();
+  if (
+    brand &&
+    !FULL_NAME_CATEGORIES.includes(item.part?.category?.name) &&
+    name.startsWith(`${brand} `)
+  ) {
+    return name.slice(brand.length + 1).trim();
   }
 
   return item.itemName;

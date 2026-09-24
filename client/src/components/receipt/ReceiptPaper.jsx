@@ -4,7 +4,11 @@ import { getDisplayBrand } from "@/utils/repairDisplay";
 import { getPartType } from "@/utils/suspension";
 import { getOilSize } from "@/utils/oil";
 import { VEHICLE_COMPATIBLE_CATEGORIES } from "@/constants/categories";
-import { isDiscountItem, isSingleQuantityItem } from "@/constants/services";
+import {
+  isDiscountItem,
+  isSingleQuantityItem,
+  lineUnit,
+} from "@/constants/services";
 
 // ข้อมูลร้านที่พิมพ์ไว้บนหัวใบเสร็จเล่มกระดาษ ใช้ชุดเดียวกันเพื่อให้ใบที่พิมพ์ออกมาหน้าตาเหมือนกัน
 export const SHOP = {
@@ -27,6 +31,9 @@ const PAYMENT_BOXES = [
 
 // ช่างดูจากชนิดอะไหล่ ไม่ได้ดูยี่ห้อหรือรุ่น ชื่อในบิลมีทั้งสองอย่างต่อท้ายจนยาว
 // ของช่วงล่างจึงตัดเหลือคำแรกของชื่อในคลัง ซึ่งเป็นชนิดอะไหล่พอดี (ลูกหมากบน คันชักนอก)
+// ใบที่ปิดชื่อเต็มแล้ว หมวดเหล่านี้ยังต้องมียี่ห้อ (ตรงกับ FULL_NAME_CATEGORIES ฝั่งเซิร์ฟเวอร์)
+const FULL_NAME_CATEGORIES = ["ยาง", "ยางเปอร์เซ็นต์", "แบตเตอรี่"];
+
 export const shortWorkName = (item) => {
   // พิมพ์ชื่อทับไว้เอง = ตั้งใจให้ขึ้นแบบนั้น ไม่ต้องย่อทับ
   // ชื่อที่ระบบประกอบเองจะมีชื่อในคลังอยู่ข้างในเสมอ ถ้าไม่มีแปลว่าถูกพิมพ์ใหม่
@@ -60,6 +67,17 @@ export const shortWorkName = (item) => {
     }
   }
 
+  // หมวดอื่น (สายพาน ใบปัดน้ำฝน ฯลฯ) ชื่อในบิลประกอบจาก "ยี่ห้อ ชื่อ" ตัดยี่ห้อที่นำหน้าออก
+  // ยางกับแบตเตอรี่เขียนเต็มเสมอ ลูกค้าซื้อตามยี่ห้อ และรับประกันก็ผูกกับยี่ห้อ
+  const brand = String(item.part?.brand || "").trim();
+  if (
+    brand &&
+    !FULL_NAME_CATEGORIES.includes(item.part?.category?.name) &&
+    name.startsWith(`${brand} `)
+  ) {
+    return name.slice(brand.length + 1).trim();
+  }
+
   return item.itemName;
 };
 
@@ -74,9 +92,8 @@ const formatMoney = (value) =>
 const formatAmount = (value) =>
   Number(value) === 0 ? "-" : formatMoney(value);
 
-// อะไหล่อื่นๆ ใช้หน่วยที่ช่างพิมพ์ไว้ในบิล ไม่ได้พิมพ์หรือเป็นงานบริการ
-// ก็เขียนแต่จำนวนเปล่าๆ เหมือนที่เขียนมือในเล่ม
-export const unitOf = (item) => item.itemUnit || item.part?.unit || "";
+// ไม่มีหน่วยก็เขียนแต่จำนวนเปล่าๆ เหมือนที่เขียนมือในเล่ม
+export const unitOf = lineUnit;
 
 // งานที่คิดครั้งเดียวต่อคันเว้นช่องจำนวนไว้ เหมือนที่เขียนมือในเล่ม
 // บิลเก่าที่เคยใส่เกินหนึ่งยังต้องเขียน ไม่งั้นราคาต่อหน่วยกับจำนวนเงินจะไม่ตรงกัน

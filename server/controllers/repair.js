@@ -879,10 +879,12 @@ exports.printRepairReceipt = async (req, res, next) => {
               select: {
                 unit: true,
                 name: true,
+                // ใบที่ปิดชื่อเต็มต้องรู้ยี่ห้อ ถึงจะตัดยี่ห้อออกจากหน้าชื่อได้
+                brand: true,
                 category: { select: { name: true } },
               },
             },
-            service: { select: { name: true } },
+            service: { select: { name: true, unit: true } },
           },
         },
       },

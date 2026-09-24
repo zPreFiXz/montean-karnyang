@@ -493,6 +493,19 @@ const RepairItemDetailDialog = ({
                       )}
                     </p>
                   </div>
+
+                  {/* บริการเก็บหน่วยไว้ในกล่องราคาเพราะไม่มีกล่องสต็อก อะไหล่บอกหน่วยในกล่องสต็อกอยู่แล้ว
+                      บริการที่ไม่มีหน่วย (คิดเป็นครั้ง) ไม่ต้องมีแถวนี้ */}
+                  {isService && currentItem.unit && (
+                    <div className="flex justify-between">
+                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                        หน่วย:
+                      </p>
+                      <p className="text-normal text-lg font-semibold md:text-xl">
+                        {currentItem.unit}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {!isService && (

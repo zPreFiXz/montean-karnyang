@@ -69,6 +69,17 @@ export const hasTypedUnit = (item) =>
   TYPED_UNIT_SERVICE_NAMES.includes(item?.service?.name) ||
   (!item?.partNumber && TYPED_UNIT_SERVICE_NAMES.includes(item?.name));
 
+// หน่วยของบรรทัดในบิล: ที่พิมพ์ไว้ในบิลก่อน ไม่มีค่อยใช้หน่วยของอะไหล่หรือบริการตอนนี้
+// บิลเก่าที่บันทึกก่อนบริการจะมีหน่วยจึงขึ้นหน่วยตามไปด้วย แบบเดียวกับอะไหล่ที่อ่านจากสต็อกสดๆ
+// รายการเปล่า (อะไหล่อื่นๆ บริการอื่นๆ) ไม่ใช้หน่วยของตัวบริการ เพราะแต่ละบรรทัดเป็นของคนละอย่าง
+export const lineUnit = (item) =>
+  item?.itemUnit ||
+  item?.part?.unit ||
+  (TYPED_UNIT_SERVICE_NAMES.includes(item?.service?.name)
+    ? ""
+    : item?.service?.unit) ||
+  "";
+
 // รายการที่ไม่ได้อยู่หมวดไหน โผล่รวมกันเหนือกลุ่มบริการตอนดูทั้งหมด
 // เรียงตามลำดับนี้ ไม่ใช่ลำดับที่เซิร์ฟเวอร์ส่งมา
 export const isNoCategoryItem = (item) =>

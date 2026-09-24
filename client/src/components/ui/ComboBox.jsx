@@ -190,7 +190,7 @@ const ComboBox = ({
                   ref={inputRef}
                   value={search}
                   onValueChange={setSearch}
-                  placeholder={creatable ? "ค้นหาหรือพิมพ์เพิ่ม" : "ค้นหา"}
+                  placeholder={creatable ? "ค้นหาหรือเพิ่มใหม่" : "ค้นหา"}
                   className={`font-athiti text-normal h-9 font-medium ${
                     customClass || "text-lg md:text-xl"
                   }`}

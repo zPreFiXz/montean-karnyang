@@ -47,6 +47,7 @@ import {
   isPartPlaceholderItem,
   isSingleQuantityItem,
   hasTypedUnit,
+  lineUnit,
 } from "@/constants/services";
 import FieldErrorList from "@/components/forms/FieldErrorList";
 import { toast } from "sonner";
@@ -456,7 +457,7 @@ const RepairDetail = () => {
         isPartLine: isPartPlaceholderItem(ri),
         isSingleLine: isSingleQuantityItem(ri),
         isTypedUnitLine: hasTypedUnit(ri),
-        unit: ri.itemUnit || "",
+        unit: lineUnit(ri),
         sellingPrice: Number(ri.unitPrice),
         category: ri.service?.category,
         secureUrl: null,

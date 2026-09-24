@@ -124,6 +124,8 @@ const InventoryEdit = () => {
         if (item.type === "service") {
           setValue("name", item.name);
           setValue("price", item.price);
+          // ไม่ใส่ตรงนี้ ช่องจะขึ้นว่าไม่ระบุหน่วย แล้วกดบันทึกซ้ำหน่วยที่ตั้งไว้จะหายไป
+          setValue("unit", item.unit || "");
         } else {
           setValue("partNumber", item.partNumber);
           // อะไหล่ที่ไม่มียี่ห้อเก็บเป็น null ในฐานข้อมูล แต่ช่องกรอกต้องการข้อความ
