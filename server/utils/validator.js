@@ -164,6 +164,8 @@ exports.serviceSchema = z.object({
   description: z.string().optional(),
   // บริการส่วนใหญ่คิดเป็นครั้ง ไม่ต้องมีหน่วย ใส่เฉพาะที่นับเป็นชิ้นได้ (ล้อ รู)
   unit: z.string().trim().max(20, "หน่วยยาวเกินไป").optional(),
+  // ทำแยกซ้าย-ขวา (เช่นตั้งลูกปืนล้อ) = ตอนหยิบลงบิลจะถามว่าฝั่งไหน
+  perSide: z.boolean().optional(),
   categoryId: z.coerce.number(),
 });
 

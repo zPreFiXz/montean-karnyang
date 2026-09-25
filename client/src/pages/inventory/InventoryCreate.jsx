@@ -270,6 +270,7 @@ const InventoryCreate = () => {
           price: data.price,
           description: data.description || undefined,
           unit: data.unit?.trim() || undefined,
+          perSide: toPerSide(data.suspensionType),
           categoryId: data.categoryId,
         };
       }
@@ -376,6 +377,18 @@ const InventoryCreate = () => {
                 <FieldErrorList
                   className="mt-[6px]"
                   messages={[errors.price?.message, errors.unit?.message]}
+                />
+              </div>
+              {/* บริการที่ทำทีละข้าง (ตั้งลูกปืนล้อ) ตอนหยิบลงบิลจะถามว่าฝั่งไหน เหมือนอะไหล่ */}
+              <div className="my-[16px] px-[20px]">
+                <ComboBox
+                  label="ข้าง"
+                  color="text-subtle-dark"
+                  labelClass="text-xl"
+                  options={SIDE_OPTIONS}
+                  value={watch("suspensionType") || "single"}
+                  onChange={(value) => setValue("suspensionType", value)}
+                  name="suspensionType"
                 />
               </div>
             </div>
@@ -530,7 +543,7 @@ const InventoryCreate = () => {
               {!isTireCategory() && (
                 <div className="my-[16px] px-[20px]">
                   <ComboBox
-                    label="การติดตั้ง"
+                    label="ข้าง"
                     color="text-subtle-dark"
                     labelClass="text-xl"
                     options={SIDE_OPTIONS}
@@ -544,7 +557,7 @@ const InventoryCreate = () => {
                         shouldTouch: true,
                       })
                     }
-                    placeholder="-- เลือกการติดตั้ง --"
+                    placeholder="-- เลือกข้าง --"
                     errors={errors}
                     name="suspensionType"
                   />

@@ -13,7 +13,7 @@ exports.listServices = async (req, res, next) => {
 
 exports.createService = async (req, res, next) => {
   try {
-    const { name, price, description, unit, categoryId } = req.body;
+    const { name, price, description, unit, perSide, categoryId } = req.body;
 
     const service = await prisma.service.findUnique({
       where: { name },
@@ -29,6 +29,7 @@ exports.createService = async (req, res, next) => {
         price,
         description: description || null,
         unit: unit || null,
+        perSide: !!perSide,
         categoryId,
       },
     });
@@ -43,7 +44,7 @@ exports.updateService = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const { name, price, description, unit, categoryId } = req.body;
+    const { name, price, description, unit, perSide, categoryId } = req.body;
 
     const service = await prisma.service.findUnique({
       where: { name },
@@ -66,6 +67,7 @@ exports.updateService = async (req, res, next) => {
           price,
           description: description || null,
           unit: unit || null,
+          perSide: !!perSide,
           categoryId,
         },
       });

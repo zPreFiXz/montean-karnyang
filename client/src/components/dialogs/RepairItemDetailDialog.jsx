@@ -452,10 +452,12 @@ const RepairItemDetailDialog = ({
                     </p>
                   </div>
 
-                  {currentItem.category?.name === "ช่วงล่าง" && (
+                  {/* ช่วงล่างบอกทุกตัว ของหมวดอื่นกับบริการบอกเฉพาะตัวที่แยกซ้าย-ขวา (ตัวที่จะถูกถามข้างตอนลงบิล) */}
+                  {(currentItem.category?.name === "ช่วงล่าง" ||
+                    isPerSide(currentItem.attributes)) && (
                     <div className="flex justify-between">
                       <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                        การติดตั้ง:
+                        ข้าง:
                       </p>
                       <p className="text-normal text-lg font-semibold md:text-xl">
                         {isPerSide(currentItem.attributes)

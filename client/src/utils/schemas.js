@@ -308,7 +308,7 @@ export const partServiceSchema = z
       if (!data.suspensionType || data.suspensionType.trim() === "") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "กรุณาเลือกการติดตั้ง",
+          message: "กรุณาเลือกข้าง",
           path: ["suspensionType"],
         });
       }

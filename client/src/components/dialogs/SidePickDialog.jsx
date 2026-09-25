@@ -24,10 +24,10 @@ const SidePickDialog = ({ isOpen, onClose, onPick, itemName, remaining }) => (
     >
       <div className="relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]">
         <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
-          ติดตั้งฝั่งไหน
+          เลือกข้าง
         </DialogTitle>
         <DialogDescription className="sr-only">
-          เลือกฝั่งที่ติดตั้ง {itemName}
+          เลือกข้างของ {itemName}
         </DialogDescription>
         <button
           onClick={onClose}

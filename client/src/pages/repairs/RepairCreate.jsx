@@ -545,10 +545,10 @@ const RepairCreate = () => {
       .filter((line) => isSamePart(line, item))
       .reduce((sum, line) => sum + Number(line.quantity || 0), 0);
 
-  // อะไหล่ที่ตั้งว่าแยกซ้าย-ขวา ถามฝั่งก่อนลงบิล ที่เหลือลงบิลเลย
+  // อะไหล่หรือบริการที่ตั้งว่าแยกซ้าย-ขวา ถามฝั่งก่อนลงบิล ที่เหลือลงบิลเลย
   const [sidePickItem, setSidePickItem] = useState(null);
   const handleAddItemToRepair = (item) => {
-    if (item.partNumber && isPerSide(item.attributes)) {
+    if (isPerSide(item.attributes)) {
       setSidePickItem(item);
       return;
     }
@@ -1858,7 +1858,8 @@ const RepairCreate = () => {
         onPick={handlePickSide}
         itemName={sidePickItem ? getProductName(sidePickItem) : ""}
         remaining={
-          sidePickItem && !isUnlimitedStockItem(sidePickItem)
+          // บริการไม่มีสต็อก เลือกทั้งสองข้างได้เสมอ
+          sidePickItem?.partNumber && !isUnlimitedStockItem(sidePickItem)
             ? Number(sidePickItem.quantity ?? 0) - usedOfPart(sidePickItem)
             : null
         }

@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from "react-router";
 import { hasTypedUnit } from "@/constants/services";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
-import { groupBySidePairs } from "@/utils/repairItemGroups";
+import { groupBySidePairs, mergeSidesInOrder } from "@/utils/repairItemGroups";
 import { useEffect, useState } from "react";
 import FormButton from "@/components/forms/FormButton";
 import RepairItemCard from "@/components/cards/RepairItemCard";
@@ -98,15 +98,20 @@ const RepairReview = () => {
     return repairItems.filter((item) => item.side === side);
   };
 
+  // แบ่งหัวข้อตามฝั่งเฉพาะบิลเช็กช่วงล่าง ที่ช่างทำงานเป็นฝั่งๆ
+  // งานซ่อมทั่วไปเรียงรายการเดียวตามลำดับในบิล ฝั่งดูจากป้ายที่มุมรูปแทน (เหมือนหน้ากรอกบิล)
+  const isSuspensionBill = location.state?.from === "suspension";
+
   // ของที่เปลี่ยนทั้งสองข้างยุบเป็นบรรทัดเดียว ที่เหลือแยกฝั่งตามเดิม
-  const { bothSides, leftOnly, rightOnly } = groupBySidePairs(
-    getItemsBySide("left"),
-    getItemsBySide("right"),
-  );
-  const otherItems = getItemsBySide("other");
-  const generalItems = repairItems.filter(
-    (item) => !item.side || item.side === "general",
-  );
+  const { bothSides, leftOnly, rightOnly } = isSuspensionBill
+    ? groupBySidePairs(getItemsBySide("left"), getItemsBySide("right"))
+    : { bothSides: [], leftOnly: [], rightOnly: [] };
+  const otherItems = isSuspensionBill ? getItemsBySide("other") : [];
+  const generalRows = isSuspensionBill
+    ? repairItems
+        .filter((item) => !item.side || item.side === "general")
+        .map((item) => ({ item, sideLabel: "" }))
+    : mergeSidesInOrder(repairItems);
 
   const handleConfirmRepair = async () => {
     if (isSale && !paymentMethod) {
@@ -421,6 +426,7 @@ const RepairReview = () => {
                         key={`both-m-${index}`}
                         item={item}
                         variant="summary"
+                        sideLabel="R-L"
                         onClick={() => setPreviewItem(item)}
                       />
                     ))}
@@ -441,6 +447,7 @@ const RepairReview = () => {
                         key={`left-${index}`}
                         item={item}
                         variant="summary"
+                        sideLabel="L"
                         onClick={() => setPreviewItem(item)}
                       />
                     ))}
@@ -461,6 +468,7 @@ const RepairReview = () => {
                         key={`right-${index}`}
                         item={item}
                         variant="summary"
+                        sideLabel="R"
                         onClick={() => setPreviewItem(item)}
                       />
                     ))}
@@ -489,7 +497,7 @@ const RepairReview = () => {
               )}
 
               {/* รายการซ่อมเพิ่มเติม */}
-              {generalItems.length > 0 && (
+              {generalRows.length > 0 && (
                 <div className="mb-[16px] px-[20px]">
                   {location.state?.from === "suspension" && (
                     <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
@@ -498,11 +506,12 @@ const RepairReview = () => {
                     </p>
                   )}
                   <div className="space-y-[12px]">
-                    {generalItems.map((item, index) => (
+                    {generalRows.map(({ item, sideLabel }, index) => (
                       <RepairItemCard
                         key={`general-${index}`}
                         item={item}
                         variant="summary"
+                        sideLabel={sideLabel}
                         onClick={() => setPreviewItem(item)}
                       />
                     ))}
@@ -581,6 +590,7 @@ const RepairReview = () => {
                       key={`both-d-${index}`}
                       item={item}
                       variant="summary"
+                      sideLabel="R-L"
                       onClick={() => setPreviewItem(item)}
                     />
                   ))}
@@ -601,6 +611,7 @@ const RepairReview = () => {
                       key={`left-${index}`}
                       item={item}
                       variant="summary"
+                      sideLabel="L"
                       onClick={() => setPreviewItem(item)}
                     />
                   ))}
@@ -621,6 +632,7 @@ const RepairReview = () => {
                       key={`right-${index}`}
                       item={item}
                       variant="summary"
+                      sideLabel="R"
                       onClick={() => setPreviewItem(item)}
                     />
                   ))}
@@ -649,7 +661,7 @@ const RepairReview = () => {
             )}
 
             {/* รายการซ่อมเพิ่มเติม */}
-            {generalItems.length > 0 && (
+            {generalRows.length > 0 && (
               <div className="mb-[16px]">
                 {location.state?.from === "suspension" && (
                   <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
@@ -658,11 +670,12 @@ const RepairReview = () => {
                   </p>
                 )}
                 <div className="space-y-[12px]">
-                  {generalItems.map((item, index) => (
+                  {generalRows.map(({ item, sideLabel }, index) => (
                     <RepairItemCard
                       key={`general-${index}`}
                       item={item}
                       variant="summary"
+                      sideLabel={sideLabel}
                       onClick={() => setPreviewItem(item)}
                     />
                   ))}

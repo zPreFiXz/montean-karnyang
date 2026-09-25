@@ -126,6 +126,7 @@ const InventoryEdit = () => {
           setValue("price", item.price);
           // ไม่ใส่ตรงนี้ ช่องจะขึ้นว่าไม่ระบุหน่วย แล้วกดบันทึกซ้ำหน่วยที่ตั้งไว้จะหายไป
           setValue("unit", item.unit || "");
+          setValue("suspensionType", toSideOptionId(item.attributes));
         } else {
           setValue("partNumber", item.partNumber);
           // อะไหล่ที่ไม่มียี่ห้อเก็บเป็น null ในฐานข้อมูล แต่ช่องกรอกต้องการข้อความ
@@ -414,6 +415,7 @@ const InventoryEdit = () => {
           price: data.price,
           description: data.description || undefined,
           unit: data.unit?.trim() || undefined,
+          perSide: toPerSide(data.suspensionType),
           categoryId: data.categoryId,
         };
       }
@@ -548,6 +550,18 @@ const InventoryEdit = () => {
                   <FieldErrorList
                     className="mt-[6px]"
                     messages={[errors.price?.message, errors.unit?.message]}
+                  />
+                </div>
+                {/* บริการที่ทำทีละข้าง (ตั้งลูกปืนล้อ) ตอนหยิบลงบิลจะถามว่าฝั่งไหน เหมือนอะไหล่ */}
+                <div className="my-[16px] px-[20px]">
+                  <ComboBox
+                    label="ข้าง"
+                    color="text-subtle-dark"
+                    labelClass="text-xl"
+                    options={SIDE_OPTIONS}
+                    value={watch("suspensionType") || "single"}
+                    onChange={(value) => setValue("suspensionType", value)}
+                    name="suspensionType"
                   />
                 </div>
               </div>
@@ -704,7 +718,7 @@ const InventoryEdit = () => {
                 {!isTireCategory() && (
                   <div className="my-[16px] px-[20px]">
                     <ComboBox
-                      label="การติดตั้ง"
+                      label="ข้าง"
                       color="text-subtle-dark"
                       labelClass="text-xl"
                       options={SIDE_OPTIONS}
@@ -718,7 +732,7 @@ const InventoryEdit = () => {
                           shouldTouch: true,
                         })
                       }
-                      placeholder="-- เลือกการติดตั้ง --"
+                      placeholder="-- เลือกข้าง --"
                       errors={errors}
                       name="suspensionType"
                     />

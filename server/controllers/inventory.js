@@ -12,7 +12,8 @@ const mapServiceToInventoryItem = (service) => ({
   unit: service.unit || null,
   stockQuantity: 0,
   minStockLevel: 0,
-  attributes: null,
+  // รูปเดียวกับอะไหล่ (attributes.perSide) หน้าเว็บจะได้ใช้ตัวเช็กฝั่งตัวเดียวกัน
+  attributes: { perSide: !!service.perSide },
   compatibleVehicles: null,
   publicId: null,
   secureUrl: null,
