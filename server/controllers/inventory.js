@@ -233,19 +233,24 @@ exports.listInventoryRepairs = async (req, res, next) => {
 };
 
 // หน่วยที่เคยใช้แล้ว แยกของอะไหล่กับบริการ ช่องเลือกหน่วยเอาไปแสดงเป็นรายการ
-// หน่วยที่พิมพ์เพิ่มครั้งเดียวจึงโผล่ให้เลือกครั้งต่อไปเอง
-// บริการเอามาจากทั้งหน่วยที่ตั้งไว้กับบริการและที่พิมพ์ในบิล (บรรทัดบริการอื่นๆ)
+// ไม่มีรายการตั้งต้นในโค้ด หน่วยที่พิมพ์เพิ่มครั้งเดียวจึงโผล่ให้เลือกครั้งต่อไปเอง
+// อะไหล่: หน่วยที่ตั้งไว้กับอะไหล่ในคลัง + ที่พิมพ์บนบรรทัดอะไหล่อื่นๆ ในบิล
+// บริการ: หน่วยที่ตั้งไว้กับบริการ + ที่พิมพ์บนบรรทัดบริการอื่นๆ ในบิล
 // เรียงตามจำนวนครั้งที่ใช้ ตัวที่ใช้บ่อยอยู่บนสุด
 exports.listUnits = async (req, res, next) => {
   try {
-    const [parts, services, billLines] = await Promise.all([
-      prisma.part.findMany({ select: { unit: true }, distinct: ["unit"] }),
+    const [parts, services, partLines, serviceLines] = await Promise.all([
+      prisma.part.groupBy({ by: ["unit"], _count: { _all: true } }),
       prisma.service.groupBy({
         by: ["unit"],
         where: { unit: { not: null } },
         _count: { _all: true },
       }),
-      // อะไหล่อื่นๆ อยู่ในตารางบริการก็จริง แต่หน่วยที่พิมพ์เป็นหน่วยของอะไหล่ ไม่นับรวม
+      prisma.repairItem.groupBy({
+        by: ["itemUnit"],
+        where: { itemUnit: { not: null }, service: { name: "อะไหล่อื่นๆ" } },
+        _count: { _all: true },
+      }),
       prisma.repairItem.groupBy({
         by: ["itemUnit"],
         where: {
@@ -257,23 +262,23 @@ exports.listUnits = async (req, res, next) => {
       }),
     ]);
 
-    const counts = new Map();
-    const add = (unit, count) => {
-      const name = String(unit || "").trim();
-      if (name) counts.set(name, (counts.get(name) || 0) + count);
+    const rank = (...sources) => {
+      const counts = new Map();
+      for (const [rows, field] of sources) {
+        for (const row of rows) {
+          const name = String(row[field] || "").trim();
+          if (name) counts.set(name, (counts.get(name) || 0) + row._count._all);
+        }
+      }
+      return [...counts.entries()]
+        .sort((a, b) => b[1] - a[1] || collator.compare(a[0], b[0]))
+        .map(([name]) => name);
     };
-    services.forEach((row) => add(row.unit, row._count._all));
-    billLines.forEach((row) => add(row.itemUnit, row._count._all));
 
-    const serviceUnits = [...counts.entries()]
-      .sort((a, b) => b[1] - a[1] || collator.compare(a[0], b[0]))
-      .map(([name]) => name);
-
-    const partUnits = parts
-      .map((row) => String(row.unit || "").trim())
-      .filter(Boolean);
-
-    res.json({ partUnits, serviceUnits });
+    res.json({
+      partUnits: rank([parts, "unit"], [partLines, "itemUnit"]),
+      serviceUnits: rank([services, "unit"], [serviceLines, "itemUnit"]),
+    });
   } catch (error) {
     next(error);
   }

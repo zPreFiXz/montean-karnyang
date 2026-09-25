@@ -392,11 +392,9 @@ const InventoryEdit = () => {
                 rimDiameter: data.rimDiameter,
                 construction: data.construction || DEFAULT_TIRE_CONSTRUCTION,
               }
-            : isSuspensionCategory()
-              ? {
-                  perSide: toPerSide(data.suspensionType),
-                }
-              : undefined,
+            : {
+                perSide: toPerSide(data.suspensionType),
+              },
           tireLots: isLotTracked()
             ? (data.tireLots || []).map((lot) => ({
                 dotCode: lot.dotCode,
@@ -700,15 +698,20 @@ const InventoryEdit = () => {
                   </div>
                 )}
 
-                {/* ช่วงล่าง */}
-                {isSuspensionCategory() && (
+                {/* อะไหล่ทุกหมวด (ยกเว้นยาง) บอกได้ว่าติดตั้งแยกซ้าย-ขวาไหม เช่น โช้ค ไฟหน้า ใบปัดน้ำฝน
+                    แยกซ้าย-ขวา = ตอนหยิบลงบิลจะถามว่าฝั่งไหน ใบเสร็จต่อท้าย (L) (R) (R-L) ให้เอง
+                    ช่วงล่างบังคับเลือก เพราะหน้าเช็กช่วงล่างใช้แบ่งช่องซ้าย/ขวา หมวดอื่นถือว่าไม่แยกข้างถ้าไม่ได้เลือก */}
+                {!isTireCategory() && (
                   <div className="my-[16px] px-[20px]">
                     <ComboBox
                       label="การติดตั้ง"
                       color="text-subtle-dark"
                       labelClass="text-xl"
                       options={SIDE_OPTIONS}
-                      value={watch("suspensionType")}
+                      value={
+                        watch("suspensionType") ||
+                        (isSuspensionCategory() ? undefined : "single")
+                      }
                       onChange={(value) =>
                         setValue("suspensionType", value, {
                           shouldValidate: true,

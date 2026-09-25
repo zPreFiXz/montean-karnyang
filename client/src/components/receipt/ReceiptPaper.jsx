@@ -92,18 +92,20 @@ const formatMoney = (value) =>
 const formatAmount = (value) =>
   Number(value) === 0 ? "-" : formatMoney(value);
 
-// ไม่มีหน่วยก็เขียนแต่จำนวนเปล่าๆ เหมือนที่เขียนมือในเล่ม
 export const unitOf = lineUnit;
 
-// งานที่คิดครั้งเดียวต่อคันเว้นช่องจำนวนไว้ เหมือนที่เขียนมือในเล่ม
-// บิลเก่าที่เคยใส่เกินหนึ่งยังต้องเขียน ไม่งั้นราคาต่อหน่วยกับจำนวนเงินจะไม่ตรงกัน
-export const quantityLabel = (item, quantity) =>
-  isSingleQuantityItem(item) && quantity === 1
+// เว้นช่องจำนวนไว้เมื่อเป็นหนึ่งเดียวและไม่มีหน่วยให้บอก (ค่าแรง บริการที่คิดเป็นครั้ง) เหมือนที่เขียนมือในเล่ม
+// รวมถึงงานที่คิดครั้งเดียวต่อคันแม้จะตั้งหน่วยไว้
+// เกินหนึ่งยังต้องเขียน ไม่งั้นราคาต่อหน่วยกับจำนวนเงินจะไม่ตรงกัน
+export const quantityLabel = (item, quantity) => {
+  const unit = unitOf(item);
+  return (!unit || isSingleQuantityItem(item)) && quantity === 1
     ? ""
-    : `${formatQuantity(quantity)} ${unitOf(item)}`.trim();
+    : `${formatQuantity(quantity)} ${unit}`.trim();
+};
 
 // บิลเช็กช่วงล่างเก็บข้างที่ใส่ไว้กับแต่ละบรรทัด ใบจึงต้องบอกด้วยว่าเปลี่ยนของข้างไหน
-// ของชิ้นเดียวกันที่ใส่ทั้งสองข้างยุบเป็นแถวเดียวแล้วห้อยท้ายว่า L-R
+// ของชิ้นเดียวกันที่ใส่ทั้งสองข้างยุบเป็นแถวเดียวแล้วห้อยท้ายว่า R-L
 export const mergeBySide = (items) => {
   const rows = [];
   const byKey = new Map();
@@ -132,7 +134,7 @@ export const mergeBySide = (items) => {
     ...row,
     sideLabel:
       row.sides.includes("L") && row.sides.includes("R")
-        ? "L-R"
+        ? "R-L"
         : row.sides[0] || "",
   }));
 };

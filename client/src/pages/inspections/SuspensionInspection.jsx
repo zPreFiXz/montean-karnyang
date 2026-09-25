@@ -756,8 +756,9 @@ const SuspensionInspection = () => {
                   ? -Math.abs(newPrice)
                   : newPrice,
                 // จำว่าชื่อนี้พิมพ์เอง เพื่อไม่ให้ถูกชื่อจากคลังเขียนทับตอนบันทึกและตอนย่อชื่อบนใบเสร็จ
-                ...(newName
-                  ? { name: newName, hasCustomName: newName !== item.name }
+                // ไม่ได้แก้ชื่อ (ยังตรงกับชื่อเต็มที่ประกอบจากคลัง) ปล่อยให้ประกอบจากคลังเหมือนเดิม
+                ...(newName && newName !== getProductName(item)
+                  ? { name: newName, hasCustomName: true }
                   : {}),
               }
             : item,
@@ -2705,7 +2706,9 @@ const SuspensionInspection = () => {
         description={editingItem?.description}
         productImage={editingItem?.secureUrl}
         isService={editingItem?.category?.name === "บริการ"}
-        currentName={editingItem?.name || ""}
+        // ชื่อเต็มแบบที่เห็นบนการ์ด (ยี่ห้อ + ขนาดยาง + รุ่น) ไม่ใช่ชื่อในคลังเปล่าๆ
+        // ไม่งั้นแก้แค่ตัวอักษรเดียว ยี่ห้อกับขนาดจะหายไปทั้งชุด เพราะชื่อที่พิมพ์เองคือทั้งบรรทัด
+        currentName={editingItem ? getProductName(editingItem) : ""}
         // ทุกบรรทัดพิมพ์ชื่อทับได้ ตัวเชื่อมกับอะไหล่ยังอยู่ รูปกับรหัสจึงยังตามของจริง
         canEditName
         isPartLine={isPartLikeItem(editingItem)}

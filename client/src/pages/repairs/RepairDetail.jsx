@@ -53,7 +53,7 @@ import FieldErrorList from "@/components/forms/FieldErrorList";
 import { toast } from "sonner";
 import RepairItemCard from "@/components/cards/RepairItemCard";
 import { toastError } from "@/utils/handleError";
-import { groupBySidePairs } from "@/utils/repairItemGroups";
+import { groupBySidePairs, mergeSidesInOrder } from "@/utils/repairItemGroups";
 import { isPerSide } from "@/utils/suspension";
 import {
   getPaymentMethodText,
@@ -1111,14 +1111,17 @@ const RepairDetail = () => {
                   </div>
                 ) : (
                   <div className="space-y-[16px]">
-                    {repair.repairItems.map((item, index) => (
-                      <RepairItemCard
-                        key={index}
-                        item={item}
-                        variant="detail"
-                        onClick={() => setPreviewItem(item)}
-                      />
-                    ))}
+                    {mergeSidesInOrder(repair.repairItems).map(
+                      ({ item, sideLabel }, index) => (
+                        <RepairItemCard
+                          key={index}
+                          item={item}
+                          variant="detail"
+                          sideLabel={sideLabel}
+                          onClick={() => setPreviewItem(item)}
+                        />
+                      ),
+                    )}
                   </div>
                 )}
               </div>

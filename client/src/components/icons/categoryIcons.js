@@ -24,7 +24,7 @@ export const ICON_MAP = {
   ยางใน: Innertube,
   น้ำมัน: Oil,
   กรอง: OilFilter,
-  เบรค: Brake,
+  เบรก: Brake,
   โช๊คอัพ: Shock,
   ระบบส่งกำลัง: Gear,
   แบตเตอรี่: Battery,

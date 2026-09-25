@@ -49,3 +49,43 @@ export const groupBySidePairs = (leftItems = [], rightItems = []) => {
 };
 
 export const groupTotal = sumQuantity;
+
+// บิลงานซ่อมทั่วไปไม่ได้แบ่งหัวข้อตามฝั่ง แสดงเรียงตามลำดับในบิล
+// ของที่ใส่ทั้งซ้ายและขวายุบเป็นบรรทัดเดียวตรงตำแหน่งของบรรทัดแรก พร้อมป้ายว่าฝั่งไหน
+// side ในบิลที่บันทึกแล้วเป็นตัวใหญ่ (LEFT) ส่วนในหน้ากรอกเป็นตัวเล็ก (left) จึงเทียบแบบไม่สนตัวพิมพ์
+const SIDE_TEXT = { left: "L", right: "R" };
+
+export const mergeSidesInOrder = (items = []) => {
+  const sideOf = (item) => String(item.side || "").toLowerCase();
+  const rows = [];
+  const openLeft = new Map();
+  const openRight = new Map();
+
+  for (const item of items) {
+    const side = sideOf(item);
+    if (side !== "left" && side !== "right") {
+      rows.push({ item, sideLabel: "" });
+      continue;
+    }
+
+    const key = keyOf(item);
+    const waiting = side === "left" ? openRight : openLeft;
+    const pair = waiting.get(key)?.shift();
+    if (pair) {
+      pair.item = {
+        ...pair.item,
+        quantity: Number(pair.item.quantity || 0) + Number(item.quantity || 0),
+      };
+      pair.sideLabel = "R-L";
+      continue;
+    }
+
+    const row = { item, sideLabel: SIDE_TEXT[side] };
+    rows.push(row);
+    const own = side === "left" ? openLeft : openRight;
+    if (!own.has(key)) own.set(key, []);
+    own.get(key).push(row);
+  }
+
+  return rows;
+};

@@ -53,15 +53,32 @@ exports.updateService = async (req, res, next) => {
       createError(400, "ชื่อบริการนี้มีอยู่ในระบบแล้ว");
     }
 
-    await prisma.service.update({
-      where: { id: Number(id) },
-      data: {
-        name,
-        price,
-        description: description || null,
-        unit: unit || null,
-        categoryId,
-      },
+    await prisma.$transaction(async (tx) => {
+      const before = await tx.service.findUnique({
+        where: { id: Number(id) },
+        select: { name: true },
+      });
+
+      await tx.service.update({
+        where: { id: Number(id) },
+        data: {
+          name,
+          price,
+          description: description || null,
+          unit: unit || null,
+          categoryId,
+        },
+      });
+
+      // ชื่อในบิลเก่าตามชื่อในคลัง แบบเดียวกับอะไหล่ (ดู updatePart)
+      // เปลี่ยนเฉพาะบรรทัดที่ยังเป็นชื่อเดิมตรงตัว บรรทัดที่ถูกพิมพ์ชื่อทับในบิลไว้คงไว้ตามที่คนเขียน
+      // อยู่ใน transaction เดียวกัน ถ้าเปลี่ยนชื่อในบิลไม่สำเร็จ บริการก็ไม่ถูกแก้ด้วย
+      if (before && before.name !== name) {
+        await tx.repairItem.updateMany({
+          where: { serviceId: Number(id), itemName: before.name },
+          data: { itemName: name },
+        });
+      }
     });
 
     res.json({ message: "แก้ไขบริการเรียบร้อยแล้ว" });

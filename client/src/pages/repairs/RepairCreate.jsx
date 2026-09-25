@@ -57,6 +57,8 @@ import {
 } from "@/constants/services";
 import { SparePart } from "@/components/icons/Icons";
 import EditQuantityDialog from "@/components/dialogs/EditQuantityDialog";
+import SidePickDialog from "@/components/dialogs/SidePickDialog";
+import { isPerSide } from "@/utils/suspension";
 import { onKeyActivate } from "@/utils/a11y";
 import { withViewTransition } from "@/utils/viewTransition";
 import { withOtherBrandLast } from "@/utils/vehicleBrand";
@@ -79,6 +81,9 @@ const VEHICLE_FIELDS = [
   "province",
   "mileage",
 ];
+// ฝั่งที่เลือกไว้ ห้อยท้ายชื่อบนการ์ด
+const SIDE_LABELS = { left: "L", right: "R" };
+
 const SUBMIT_FEEDBACK_MS = 400;
 
 // ล้างฟอร์มต้องไล่ชื่อช่องให้ครบ — reset({}) เปล่าๆ ไม่ได้เขียนค่าว่างลงช่องที่ไม่ได้คุมด้วย React
@@ -344,19 +349,24 @@ const RepairCreate = () => {
     return modelsForBrand;
   };
 
+  // ชื่อเดียวกับที่ใช้ทั้งหน้า (ชื่อที่พิมพ์เองขึ้นตามนั้น ไม่เติมยี่ห้อซ้ำหน้า)
   const renderProductInfo = (item) => {
     return (
       <p className="text-normal line-clamp-1 w-full text-base leading-tight font-semibold md:text-lg">
-        {formatProductName({
-          brand: item.brand,
-          name: item.name,
-          attributes: item.attributes,
-          isTire: isTireCategoryName(item.category?.name),
-          isUsedTire: item.category?.name === USED_TIRE_CATEGORY,
-        })}
+        {getProductName(item)}
       </p>
     );
   };
+
+  // ป้ายฝั่งทับมุมซ้ายบนของรูป จุดที่ตามองก่อน และไม่กินที่ของชื่อกับราคา
+  // การ์ดซ้ายกับขวาของชิ้นเดียวกันหน้าตาเหมือนกันทุกอย่าง ป้ายนี้จึงต้องเห็นชัดตั้งแต่กวาดตา
+  // ใช้ตัวย่อเดียวกับที่ใบเสร็จเขียน (L) (R) (R-L)
+  const renderSideBadge = (item) =>
+    SIDE_LABELS[item.side] ? (
+      <span className="bg-primary text-surface absolute -top-[6px] -left-[6px] z-10 rounded-[6px] px-[6px] text-sm leading-[20px] font-semibold shadow-sm md:text-base">
+        {SIDE_LABELS[item.side]}
+      </span>
+    ) : null;
 
   // เลือกลูกค้าที่เคยบันทึกไว้ — เติมทั้งสามช่องให้ตรงกับที่เก็บไว้ แก้ทับได้ตามปกติ
   // ทะเบียนเก็บเป็น "ตัวอักษร เว้นวรรค ตัวเลข" ให้ตรงกับที่บันทึกไว้ตอนสร้างบิล
@@ -527,26 +537,60 @@ const RepairCreate = () => {
     }, 200);
   };
 
+  // อะไหล่ตัวเดียวกันทุกบรรทัดในบิล (ซ้ายกับขวาเป็นคนละบรรทัด) ใช้คิดเพดานสต็อกรวม
+  const isSamePart = (a, b) =>
+    !!a.partNumber && a.partNumber === b.partNumber && a.id === b.id;
+  const usedOfPart = (item, lines = repairItems) =>
+    lines
+      .filter((line) => isSamePart(line, item))
+      .reduce((sum, line) => sum + Number(line.quantity || 0), 0);
+
+  // อะไหล่ที่ตั้งว่าแยกซ้าย-ขวา ถามฝั่งก่อนลงบิล ที่เหลือลงบิลเลย
+  const [sidePickItem, setSidePickItem] = useState(null);
   const handleAddItemToRepair = (item) => {
+    if (item.partNumber && isPerSide(item.attributes)) {
+      setSidePickItem(item);
+      return;
+    }
+    addItemLine(item);
+  };
+
+  // ทั้งสองข้าง = สองบรรทัด ซ้ายหนึ่งขวาหนึ่ง แบบเดียวกับหน้าเช็กช่วงล่าง
+  // หน้าสรุป หน้ารายละเอียด และใบเสร็จยุบกลับเป็นบรรทัดเดียว "ซ้าย-ขวา" ให้เอง
+  const handlePickSide = (side) => {
+    const item = sidePickItem;
+    setSidePickItem(null);
+    if (!item) return;
+    if (side === "both") {
+      addItemLine(item, "left");
+      addItemLine(item, "right");
+    } else {
+      addItemLine(item, side);
+    }
+  };
+
+  const addItemLine = (item, side = null) => {
     setRepairItems((prev) => {
       const index = prev.findIndex(
         (i) =>
           i.partNumber === item.partNumber &&
           i.brand === item.brand &&
-          i.name === item.name,
+          i.name === item.name &&
+          (i.side || null) === side,
       );
       if (index !== -1) {
         return prev.map((i, idx) => {
           if (idx !== index || isSingleQuantityItem(i)) return i;
 
           // เลือกซ้ำจากไดอะล็อกไม่ได้ผ่านปุ่มบวก จึงต้องกันเพดานตรงนี้ด้วย
+          // นับบรรทัดอื่นของอะไหล่ตัวเดียวกันด้วย (อีกฝั่ง) ไม่งั้นสองฝั่งรวมกันเกินสต็อกได้
           const limit = i.availableStock ?? i.stockQuantity ?? 0;
-          const capped =
-            i.partNumber && !isUnlimitedStockItem(i)
-              ? Math.min(i.quantity + 1, limit)
-              : i.quantity + 1;
+          const canAdd =
+            !i.partNumber ||
+            isUnlimitedStockItem(i) ||
+            usedOfPart(i, prev) < limit;
 
-          return { ...i, quantity: capped };
+          return { ...i, quantity: canAdd ? i.quantity + 1 : i.quantity };
         });
       } else {
         return [
@@ -561,6 +605,7 @@ const RepairCreate = () => {
             // เก็บไว้ก่อนถูกทับเป็น 1 เพื่อใช้เป็นเพดานของปุ่มบวก
             availableStock: item.quantity,
             quantity: 1,
+            side,
             sellingPrice: item.sellingPrice,
             // ราคาตั้งต้นจากคลัง ไว้เทียบตอนแก้ราคา — sellingPrice จะถูกทับเมื่อปรับราคาให้ลูกค้า
             basePrice: item.sellingPrice,
@@ -583,11 +628,12 @@ const RepairCreate = () => {
   // กลับมาจากหน้าอื่นไม่ได้ผ่านไดอะล็อก จึงถอยไปใช้สต็อกที่ติดมากับตัวอะไหล่
   // บริการและรายการที่พิมพ์ชื่อเองไม่มีสต็อก จึงไม่จำกัด
   const isAtStockLimit = (item) => {
-    if (!item.partNumber || !item.brand) return false;
+    if (!item.partNumber) return false;
     // ของที่ตวงจากถังใหญ่ไม่มีเพดาน กดเพิ่มได้เรื่อยๆ
     if (isUnlimitedStockItem(item)) return false;
     const limit = item.availableStock ?? item.stockQuantity ?? 0;
-    return item.quantity >= limit;
+    // รวมทุกบรรทัดของอะไหล่ตัวนี้ ซ้ายกับขวาใช้สต็อกกองเดียวกัน
+    return usedOfPart(item) >= limit;
   };
 
   // เอารายการออกจนเหลือชิ้นเดียว ปุ่มสลับโหมดจะหายไป ถ้าไม่ปิดโหมดให้ด้วย
@@ -680,8 +726,9 @@ const RepairCreate = () => {
                   ? -Math.abs(newPrice)
                   : newPrice,
                 // จำว่าชื่อนี้พิมพ์เอง เพื่อไม่ให้ถูกชื่อจากคลังเขียนทับตอนบันทึกและตอนย่อชื่อบนใบเสร็จ
-                ...(newName
-                  ? { name: newName, hasCustomName: newName !== item.name }
+                // ไม่ได้แก้ชื่อ (ยังตรงกับชื่อเต็มที่ประกอบจากคลัง) ปล่อยให้ประกอบจากคลังเหมือนเดิม
+                ...(newName && newName !== getProductName(item)
+                  ? { name: newName, hasCustomName: true }
                   : {}),
               }
             : item,
@@ -1342,7 +1389,8 @@ const RepairCreate = () => {
                         className="shadow-primary bg-surface relative flex h-[92px] min-w-0 flex-1 cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
                       >
                         <div className="flex min-w-0 flex-1 items-center gap-[8px]">
-                          <div className="shadow-primary bg-surface flex h-[60px] w-[60px] items-center justify-center rounded-[10px] border border-gray-200">
+                          <div className="shadow-primary bg-surface relative flex h-[60px] w-[60px] items-center justify-center rounded-[10px] border border-gray-200">
+                            {renderSideBadge(item)}
                             {item.secureUrl ? (
                               <img
                                 src={item.secureUrl}
@@ -1596,7 +1644,8 @@ const RepairCreate = () => {
                       className="shadow-primary bg-surface relative flex h-[92px] min-w-0 flex-1 cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
                     >
                       <div className="flex min-w-0 flex-1 items-center gap-[8px]">
-                        <div className="shadow-primary bg-surface flex h-[60px] w-[60px] items-center justify-center rounded-[10px] border border-gray-200">
+                        <div className="shadow-primary bg-surface relative flex h-[60px] w-[60px] items-center justify-center rounded-[10px] border border-gray-200">
+                          {renderSideBadge(item)}
                           {item.secureUrl ? (
                             <img
                               src={item.secureUrl}
@@ -1794,11 +1843,25 @@ const RepairCreate = () => {
         description={editingItem?.description}
         productImage={editingItem?.secureUrl}
         isService={editingItem?.category?.name === "บริการ"}
-        currentName={editingItem?.name || ""}
+        // ชื่อเต็มแบบที่เห็นบนการ์ด (ยี่ห้อ + ขนาดยาง + รุ่น) ไม่ใช่ชื่อในคลังเปล่าๆ
+        // ไม่งั้นแก้แค่ตัวอักษรเดียว ยี่ห้อกับขนาดจะหายไปทั้งชุด เพราะชื่อที่พิมพ์เองคือทั้งบรรทัด
+        currentName={editingItem ? getProductName(editingItem) : ""}
         // ทุกบรรทัดพิมพ์ชื่อทับได้ ตัวเชื่อมกับอะไหล่ยังอยู่ รูปกับรหัสจึงยังตามของจริง
         canEditName
         isPartLine={isPartLikeItem(editingItem)}
         isDiscountLine={isDiscountItem(editingItem)}
+      />
+
+      <SidePickDialog
+        isOpen={!!sidePickItem}
+        onClose={() => setSidePickItem(null)}
+        onPick={handlePickSide}
+        itemName={sidePickItem ? getProductName(sidePickItem) : ""}
+        remaining={
+          sidePickItem && !isUnlimitedStockItem(sidePickItem)
+            ? Number(sidePickItem.quantity ?? 0) - usedOfPart(sidePickItem)
+            : null
+        }
       />
 
       <EditQuantityDialog
@@ -1812,8 +1875,10 @@ const RepairCreate = () => {
         maxQuantity={
           quantityItem?.item?.partNumber &&
           !isUnlimitedStockItem(quantityItem.item)
-            ? (quantityItem.item.availableStock ??
-              quantityItem.item.stockQuantity)
+            ? // หักจำนวนที่อีกฝั่งใช้ไปแล้ว บรรทัดนี้จะได้ไม่พาสองฝั่งรวมกันเกินสต็อก
+              (quantityItem.item.availableStock ??
+                quantityItem.item.stockQuantity) -
+              (usedOfPart(quantityItem.item) - quantityItem.item.quantity)
             : undefined
         }
         allowDecimal={allowsDecimalQuantity(quantityItem?.item)}

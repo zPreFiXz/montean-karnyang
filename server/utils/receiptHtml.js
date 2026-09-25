@@ -104,15 +104,20 @@ const unitOf = (item) =>
     : item.service?.unit) ||
   "";
 
-// งานที่คิดครั้งเดียวต่อคันเว้นช่องจำนวนไว้ (ตรงกับ SINGLE_QUANTITY_SERVICE_NAMES ฝั่งหน้าเว็บ)
-// บิลเก่าที่เคยใส่เกินหนึ่งยังต้องเขียน ไม่งั้นราคาต่อหน่วยกับจำนวนเงินจะไม่ตรงกัน
+// เว้นช่องจำนวนไว้เมื่อเป็นหนึ่งเดียวและไม่มีหน่วยให้บอก (ค่าแรง บริการที่คิดเป็นครั้ง)
+// รวมถึงงานที่คิดครั้งเดียวต่อคันแม้จะตั้งหน่วยไว้ (ตรงกับ quantityLabel ฝั่งหน้าเว็บ)
+// เกินหนึ่งยังต้องเขียน ไม่งั้นราคาต่อหน่วยกับจำนวนเงินจะไม่ตรงกัน
 const SINGLE_QUANTITY_SERVICE_NAMES = ["ค่าแรง", "ตั้งศูนย์", "สลับยาง+ถ่วงล้อ"];
-const quantityLabel = (item, quantity) =>
-  SINGLE_QUANTITY_SERVICE_NAMES.includes(item.service?.name) && quantity === 1
+const quantityLabel = (item, quantity) => {
+  const unit = unitOf(item);
+  const isSingle =
+    !unit || SINGLE_QUANTITY_SERVICE_NAMES.includes(item.service?.name);
+  return isSingle && quantity === 1
     ? ""
-    : `${formatQuantity(quantity)} ${unitOf(item)}`.trim();
+    : `${formatQuantity(quantity)} ${unit}`.trim();
+};
 
-// ของชิ้นเดียวกันที่ใส่ทั้งสองข้างยุบเป็นแถวเดียวแล้วห้อยท้ายว่า L-R
+// ของชิ้นเดียวกันที่ใส่ทั้งสองข้างยุบเป็นแถวเดียวแล้วห้อยท้ายว่า R-L
 const mergeBySide = (items) => {
   const rows = [];
   const byKey = new Map();
@@ -141,7 +146,7 @@ const mergeBySide = (items) => {
     ...row,
     sideLabel:
       row.sides.includes("L") && row.sides.includes("R")
-        ? "L-R"
+        ? "R-L"
         : row.sides[0] || "",
   }));
 };
@@ -409,7 +414,7 @@ const buildReceiptHtml = (repair, options) =>
 // หมวดที่อะไหล่ผูกกับรุ่นรถ ต้องตรงกับ VEHICLE_COMPATIBLE_CATEGORIES ฝั่งหน้าเว็บ
 const VEHICLE_COMPATIBLE_CATEGORIES = [
   "ช่วงล่าง",
-  "เบรค",
+  "เบรก",
   "โช๊คอัพ",
   "ระบบส่งกำลัง",
   "กรอง",

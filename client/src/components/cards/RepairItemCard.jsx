@@ -7,7 +7,8 @@ import { soldLotEntries } from "@/utils/tireLot";
 import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
 import { formatProductName } from "@/utils/tireSize";
 
-const RepairItemCard = ({ item, variant, onClick }) => {
+// sideLabel = ฝั่งที่ติดตั้ง (L / R / R-L) สำหรับหน้าที่ไม่ได้แบ่งหัวข้อตามฝั่ง
+const RepairItemCard = ({ item, variant, onClick, sideLabel }) => {
   // ชื่อในบิลถูกอัปเดตให้ตรงกับคลังตั้งแต่ตอนแก้ชื่ออะไหล่แล้ว (ดู updatePart ฝั่งเซิร์ฟเวอร์)
   // ตรงนี้จึงอ่านค่าที่บันทึกไว้ตรงๆ และของที่ถูกลบออกจากคลังก็ยังมีชื่อเดิมให้อ่าน
   const detailName = item.itemName;
@@ -60,7 +61,13 @@ const RepairItemCard = ({ item, variant, onClick }) => {
       }`}
     >
       <div className="flex min-w-0 flex-1 items-center gap-[8px]">
-        <div className="shadow-primary bg-surface flex shrink-0 items-center justify-center rounded-[10px] border border-gray-200">
+        <div className="shadow-primary bg-surface relative flex shrink-0 items-center justify-center rounded-[10px] border border-gray-200">
+          {/* ป้ายฝั่งทับมุมรูป (เหมือนการ์ดในหน้ากรอกบิล) */}
+          {sideLabel && (
+            <span className="bg-primary text-surface absolute -top-[6px] -left-[6px] z-10 rounded-[6px] px-[6px] text-sm leading-[20px] font-semibold shadow-sm md:text-base">
+              {sideLabel}
+            </span>
+          )}
           {imageUrl ? (
             <div className="h-[60px] w-[60px]">
               <img
