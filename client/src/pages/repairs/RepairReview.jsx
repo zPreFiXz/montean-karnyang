@@ -2,7 +2,11 @@ import { useLocation, useNavigate } from "react-router";
 import { hasTypedUnit } from "@/constants/services";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
-import { groupBySidePairs, mergeSidesInOrder } from "@/utils/repairItemGroups";
+import {
+  expandBothSides,
+  groupBySidePairs,
+  mergeSidesInOrder,
+} from "@/utils/repairItemGroups";
 import { useEffect, useState } from "react";
 import FormButton from "@/components/forms/FormButton";
 import RepairItemCard from "@/components/cards/RepairItemCard";
@@ -113,6 +117,14 @@ const RepairReview = () => {
         .map((item) => ({ item, sideLabel: "" }))
     : mergeSidesInOrder(repairItems);
 
+  // นับตามการ์ดที่เห็น ของที่ใส่ทั้งซ้ายและขวานับเป็นรายการเดียว ไม่ใช่สองบรรทัดในฐานข้อมูล
+  const displayedItemCount =
+    bothSides.length +
+    leftOnly.length +
+    rightOnly.length +
+    otherItems.length +
+    generalRows.length;
+
   const handleConfirmRepair = async () => {
     if (isSale && !paymentMethod) {
       toast.error("กรุณาเลือกวิธีชำระเงิน");
@@ -137,7 +149,8 @@ const RepairReview = () => {
         type: repairData.type,
         ...(repairData.noVehicle ? { noVehicle: true } : {}),
         ...(isSale ? { paymentMethod } : {}),
-        repairItems: repairItems.map((item) => {
+        // บรรทัดทั้งสองข้างจากหน้ากรอกบิล แตกเป็นซ้ายหนึ่งขวาหนึ่งก่อนบันทึก ฐานข้อมูลเก็บเป็นรายข้าง
+        repairItems: expandBothSides(repairItems).map((item) => {
           // ดูแค่รหัสอะไหล่ บริการไม่มีรหัส ส่วนยี่ห้อเว้นว่างได้ (ยางเปอร์เซ็นต์ไม่มียี่ห้อ)
           // ถ้าเช็กยี่ห้อด้วย อะไหล่ที่ไม่มียี่ห้อจะถูกส่งเป็นบริการแล้วบันทึกไม่ผ่าน
           const isPart = !!item.partNumber;
@@ -177,12 +190,10 @@ const RepairReview = () => {
           targetIdx < currentIdx
         ) {
           navigate(targetIdx - currentIdx);
-        } else if (window.history.length > 2) {
-          // อ่านลำดับในประวัติไม่ได้ ก็ถอยตามจำนวนหน้าที่เส้นทางแก้ไขซ้อนไว้เอง
-          // จากหน้าบิลมีสองหน้าเสมอ คือหน้ากรอกงานกับหน้าสรุปนี้
-          navigate(-2);
         } else {
-          // เปิดลิงก์เข้ามาตรงๆ ไม่มีประวัติให้ถอย จึงเปิดหน้าบิลให้ใหม่
+          // ไม่รู้ตำแหน่งหน้าบิลในประวัติ (เปิดลิงก์เข้ามาตรงๆ หรือข้อมูลหลุดระหว่างทาง)
+          // เปิดหน้าบิลใหม่แทนการเดาว่าต้องถอยกี่หน้า เพราะถ้าย้อนไปแก้กลับไปกลับมา
+          // จำนวนหน้าที่ซ้อนไว้จะไม่เท่าเดิม ถอยผิดจำนวนแล้วไปค้างที่หน้ากรอกบิล
           navigate(`/repairs/${editRepairId}`, {
             replace: true,
             state: { returnTo, currentDate },
@@ -227,6 +238,9 @@ const RepairReview = () => {
       repairItems,
       scrollToItems,
       editRepairId,
+      // ตำแหน่งของหน้าก่อนเข้าบิลในประวัติ ต้องติดไปด้วยทุกครั้งที่ย้อนไปแก้
+      // ไม่งั้นกดบันทึกรอบถัดไปจะไม่รู้ว่าต้องถอยกลับไปที่ไหน แล้วไปค้างที่หน้ากรอกบิล
+      backIdx,
       origin,
       statusSlug,
       vehicleId,
@@ -525,7 +539,7 @@ const RepairReview = () => {
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                   <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
-                    รวม {repairItems.length} รายการ
+                    รวม {displayedItemCount} รายการ
                   </p>
                 </div>
                 <div className="flex flex-col items-end">
@@ -689,7 +703,7 @@ const RepairReview = () => {
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
                 <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
-                  รวม {repairItems.length} รายการ
+                  รวม {displayedItemCount} รายการ
                 </p>
               </div>
               <div className="flex flex-col items-end">

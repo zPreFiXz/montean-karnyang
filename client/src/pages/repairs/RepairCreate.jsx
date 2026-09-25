@@ -58,6 +58,10 @@ import {
 import { SparePart } from "@/components/icons/Icons";
 import EditQuantityDialog from "@/components/dialogs/EditQuantityDialog";
 import SidePickDialog from "@/components/dialogs/SidePickDialog";
+import {
+  collapseSidePairs,
+  countDisplayedItems,
+} from "@/utils/repairItemGroups";
 import { isPerSide } from "@/utils/suspension";
 import { onKeyActivate } from "@/utils/a11y";
 import { withViewTransition } from "@/utils/viewTransition";
@@ -82,7 +86,7 @@ const VEHICLE_FIELDS = [
   "mileage",
 ];
 // ฝั่งที่เลือกไว้ ห้อยท้ายชื่อบนการ์ด
-const SIDE_LABELS = { left: "L", right: "R" };
+const SIDE_LABELS = { left: "L", right: "R", both: "R-L" };
 
 const SUBMIT_FEEDBACK_MS = 400;
 
@@ -222,18 +226,21 @@ const RepairCreate = () => {
 
         // รายการที่กู้คืนมาไม่ได้ผ่านไดอะล็อก จึงยังไม่มีเพดานของปุ่มบวกติดมาด้วย
         setRepairItems(
-          savedItems.map(withRowId).map((it) => {
-            if (it.availableStock !== undefined) return it;
-            const key =
-              it.id != null
-                ? `id:${it.id}`
-                : `${it.partNumber}|${it.brand}|${it.name || ""}`;
-            return {
-              ...it,
-              availableStock: (it.stockQuantity || 0) + (map[key] || 0),
-              basePrice: it.basePrice ?? it.sellingPrice,
-            };
-          }),
+          // ซ้ายกับขวาที่มาจากบิลที่บันทึกแล้ว (หรือจากหน้าเช็กช่วงล่าง) รวมกลับเป็นบรรทัดทั้งสองข้าง
+          collapseSidePairs(savedItems)
+            .map(withRowId)
+            .map((it) => {
+              if (it.availableStock !== undefined) return it;
+              const key =
+                it.id != null
+                  ? `id:${it.id}`
+                  : `${it.partNumber}|${it.brand}|${it.name || ""}`;
+              return {
+                ...it,
+                availableStock: (it.stockQuantity || 0) + (map[key] || 0),
+                basePrice: it.basePrice ?? it.sellingPrice,
+              };
+            }),
         );
       }
 
@@ -251,6 +258,7 @@ const RepairCreate = () => {
           ? {
               editRepairId: location.state.editRepairId,
               stockNotDeducted: location.state.stockNotDeducted,
+              backIdx: location.state.backIdx,
             }
           : {}),
         ...(location.state?.origin ? { origin: location.state.origin } : {}),
@@ -555,19 +563,16 @@ const RepairCreate = () => {
     addItemLine(item);
   };
 
-  // ทั้งสองข้าง = สองบรรทัด ซ้ายหนึ่งขวาหนึ่ง แบบเดียวกับหน้าเช็กช่วงล่าง
-  // หน้าสรุป หน้ารายละเอียด และใบเสร็จยุบกลับเป็นบรรทัดเดียว "ซ้าย-ขวา" ให้เอง
+  // ทั้งสองข้าง = บรรทัดเดียว ป้าย R-L จำนวนเริ่มที่ 2 ชิ้น
+  // ตอนบันทึกค่อยแตกเป็นซ้ายหนึ่งขวาหนึ่ง (ดู expandBothSides) ใบเสร็จจะรวมกลับเป็น (R-L) ให้เอง
   const handlePickSide = (side) => {
     const item = sidePickItem;
     setSidePickItem(null);
-    if (!item) return;
-    if (side === "both") {
-      addItemLine(item, "left");
-      addItemLine(item, "right");
-    } else {
-      addItemLine(item, side);
-    }
+    if (item) addItemLine(item, side);
   };
+
+  // บรรทัดทั้งสองข้างเพิ่มลดทีละคู่ จำนวนนับเป็นชิ้นรวม (2 4 6) ให้ราคารวมคิดตรงๆ ได้เหมือนบรรทัดอื่น
+  const stepOf = (item) => (item.side === "both" ? 2 : 1);
 
   const addItemLine = (item, side = null) => {
     setRepairItems((prev) => {
@@ -585,12 +590,13 @@ const RepairCreate = () => {
           // เลือกซ้ำจากไดอะล็อกไม่ได้ผ่านปุ่มบวก จึงต้องกันเพดานตรงนี้ด้วย
           // นับบรรทัดอื่นของอะไหล่ตัวเดียวกันด้วย (อีกฝั่ง) ไม่งั้นสองฝั่งรวมกันเกินสต็อกได้
           const limit = i.availableStock ?? i.stockQuantity ?? 0;
+          const step = stepOf(i);
           const canAdd =
             !i.partNumber ||
             isUnlimitedStockItem(i) ||
-            usedOfPart(i, prev) < limit;
+            usedOfPart(i, prev) + step <= limit;
 
-          return { ...i, quantity: canAdd ? i.quantity + 1 : i.quantity };
+          return { ...i, quantity: canAdd ? i.quantity + step : i.quantity };
         });
       } else {
         return [
@@ -604,8 +610,10 @@ const RepairCreate = () => {
             // ไดอะล็อกส่งสต็อกที่เบิกได้จริงมาทาง quantity (คิดสต็อกที่คืนจากบิลเดิมแล้ว)
             // เก็บไว้ก่อนถูกทับเป็น 1 เพื่อใช้เป็นเพดานของปุ่มบวก
             availableStock: item.quantity,
-            quantity: 1,
+            quantity: side === "both" ? 2 : 1,
             side,
+            // เลือกข้างเองในหน้านี้ ไปหน้าเช็กช่วงล่างแล้วยังอยู่ในรายการซ่อมเพิ่มเติม ไม่ถูกย้ายเข้าแท็บซ้าย/ขวา
+            pickedSide: !!side,
             sellingPrice: item.sellingPrice,
             // ราคาตั้งต้นจากคลัง ไว้เทียบตอนแก้ราคา — sellingPrice จะถูกทับเมื่อปรับราคาให้ลูกค้า
             basePrice: item.sellingPrice,
@@ -633,7 +641,8 @@ const RepairCreate = () => {
     if (isUnlimitedStockItem(item)) return false;
     const limit = item.availableStock ?? item.stockQuantity ?? 0;
     // รวมทุกบรรทัดของอะไหล่ตัวนี้ ซ้ายกับขวาใช้สต็อกกองเดียวกัน
-    return usedOfPart(item) >= limit;
+    // บรรทัดทั้งสองข้างกดบวกทีละสองชิ้น ต้องเหลือพอสองชิ้น
+    return usedOfPart(item) + stepOf(item) > limit;
   };
 
   // เอารายการออกจนเหลือชิ้นเดียว ปุ่มสลับโหมดจะหายไป ถ้าไม่ปิดโหมดให้ด้วย
@@ -660,7 +669,16 @@ const RepairCreate = () => {
     if (!quantityItem) return;
     setRepairItems((prev) =>
       prev.map((item, i) =>
-        i === quantityItem.index ? { ...item, quantity } : item,
+        i === quantityItem.index
+          ? {
+              ...item,
+              // ทั้งสองข้างต้องเป็นจำนวนคู่ พิมพ์เลขคี่มาปัดขึ้นเป็นคู่ถัดไป
+              quantity:
+                item.side === "both"
+                  ? Math.max(2, Math.ceil(quantity / 2) * 2)
+                  : quantity,
+            }
+          : item,
       ),
     );
   };
@@ -674,7 +692,9 @@ const RepairCreate = () => {
   const handleIncreaseQuantity = (index) => {
     setRepairItems((prev) =>
       prev.map((item, i) =>
-        i === index ? { ...item, quantity: item.quantity + 1 } : item,
+        i === index
+          ? { ...item, quantity: item.quantity + stepOf(item) }
+          : item,
       ),
     );
   };
@@ -682,8 +702,8 @@ const RepairCreate = () => {
   const handleDecreaseQuantity = (index) => {
     setRepairItems((prev) =>
       prev.map((item, i) =>
-        i === index && item.quantity > 1
-          ? { ...item, quantity: item.quantity - 1 }
+        i === index && item.quantity > stepOf(item)
+          ? { ...item, quantity: item.quantity - stepOf(item) }
           : item,
       ),
     );
@@ -1480,14 +1500,14 @@ const RepairCreate = () => {
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      if (item.quantity <= 1) {
+                                      if (item.quantity <= stepOf(item)) {
                                         setRemovingIndex(index);
                                         return;
                                       }
                                       handleDecreaseQuantity(index);
                                     }}
                                     aria-label={
-                                      item.quantity <= 1
+                                      item.quantity <= stepOf(item)
                                         ? "เอารายการออก"
                                         : "ลดจำนวน"
                                     }
@@ -1552,7 +1572,7 @@ const RepairCreate = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col">
                       <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
-                        รวม {repairItems.length} รายการ
+                        รวม {countDisplayedItems(repairItems)} รายการ
                       </p>
                     </div>
                     <div className="flex flex-col items-end">
@@ -1733,14 +1753,14 @@ const RepairCreate = () => {
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    if (item.quantity <= 1) {
+                                    if (item.quantity <= stepOf(item)) {
                                       setRemovingIndex(index);
                                       return;
                                     }
                                     handleDecreaseQuantity(index);
                                   }}
                                   aria-label={
-                                    item.quantity <= 1
+                                    item.quantity <= stepOf(item)
                                       ? "เอารายการออก"
                                       : "ลดจำนวน"
                                   }
@@ -1805,7 +1825,7 @@ const RepairCreate = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
                     <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
-                      รวม {repairItems.length} รายการ
+                      รวม {countDisplayedItems(repairItems)} รายการ
                     </p>
                   </div>
                   <div className="flex flex-col items-end">

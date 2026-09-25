@@ -1,4 +1,5 @@
 import PageSpinner from "@/components/ui/PageSpinner";
+import { countDisplayedItems } from "@/utils/repairItemGroups";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { ChevronLeft, LoaderCircle, Trash2, Wrench } from "lucide-react";
@@ -117,7 +118,7 @@ const VehicleDetail = () => {
                     >
                       <RepairCard
                         icon={Wrench}
-                        itemCount={item.repairItems?.length}
+                        itemCount={countDisplayedItems(item.repairItems)}
                         customerName={item.customer?.name}
                         dateText={formatDate(item.createdAt)}
                         price={Number(item.totalPrice) || 0}

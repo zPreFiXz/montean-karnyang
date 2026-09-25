@@ -70,6 +70,7 @@ import {
   USED_TIRE_CATEGORY,
 } from "@/constants/categories";
 import EditQuantityDialog from "@/components/dialogs/EditQuantityDialog";
+import { collapseSidePairs, expandBothSides } from "@/utils/repairItemGroups";
 import { scrollToNewRow } from "@/utils/scrollToNewRow";
 import CollapsibleRow from "@/components/ui/CollapsibleRow";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
@@ -99,6 +100,9 @@ const PART_TYPE_ORDER = [
 const OTHER_TAB_ORDER = ["คันส่งกลาง", "โช้คหน้า", "โช้คหลัง"];
 
 // หน่วงสั้นๆ ให้เห็นตัวหมุนก่อนหน้าจอเปลี่ยน (ไม่ได้รอเซิร์ฟเวอร์ ข้อมูลส่งต่อผ่าน state ล้วน)
+// ข้างของรายการซ่อมเพิ่มเติมที่เลือกมาจากหน้างานซ่อม
+const SIDE_BADGE_LABELS = { left: "L", right: "R", both: "R-L" };
+
 const SUBMIT_FEEDBACK_MS = 400;
 
 // ล้างฟอร์มต้องไล่ชื่อช่องให้ครบ — reset({}) เปล่าๆ ไม่ได้เขียนค่าว่างลงช่องที่ไม่ได้คุมด้วย React
@@ -336,33 +340,45 @@ const SuspensionInspection = () => {
     }
 
     if (savedItems && Array.isArray(savedItems)) {
-      const manualItems = savedItems.filter((i) => !i.side);
       // บริการรายข้างก็มีข้างเหมือนอะไหล่ แยกออกมาก่อนไม่ให้ปนเข้าเซ็ตของอะไหล่
       const isPerSideServiceItem = (i) =>
         !i.partNumber && i.name === PER_SIDE_SERVICE_NAME;
+      // ของที่เลือกข้างมาจากหน้างานซ่อม (pickedSide) หรืออะไหล่หมวดอื่นที่มีข้าง (เบรก ไฟ)
+      // อยู่ในรายการซ่อมเพิ่มเติมพร้อมป้ายข้าง ไม่ย้ายเข้าแท็บ เพราะแท็บมีแต่อะไหล่ช่วงล่างของรุ่นรถนี้
+      const isTabItem = (i) =>
+        !!i.side &&
+        !i.pickedSide &&
+        (i.side === "other" ||
+          isPerSideServiceItem(i) ||
+          i.category?.name === "ช่วงล่าง");
+      const tabItems = savedItems.filter(isTabItem);
+      // ซ้ายกับขวาของชิ้นเดียวกัน รวมกลับเป็นบรรทัดทั้งสองข้าง (R-L) แบบเดียวกับหน้างานซ่อม
+      const manualItems = collapseSidePairs(
+        savedItems.filter((i) => !isTabItem(i)),
+      );
       setPerSideServiceSides({
-        left: savedItems.some(
+        left: tabItems.some(
           (i) => i.side === "left" && isPerSideServiceItem(i),
         ),
-        right: savedItems.some(
+        right: tabItems.some(
           (i) => i.side === "right" && isPerSideServiceItem(i),
         ),
       });
-      const leftIds = savedItems
+      const leftIds = tabItems
         .filter((i) => i.side === "left" && !isPerSideServiceItem(i))
         .map((i) => i.id);
-      const rightIds = savedItems
+      const rightIds = tabItems
         .filter((i) => i.side === "right" && !isPerSideServiceItem(i))
         .map((i) => i.id);
-      const otherIds = savedItems
+      const otherIds = tabItems
         .filter((i) => i.side === "other")
         .map((i) => i.id);
 
       // ราคาที่แก้ไว้ติดมากับรายการที่กู้คืน ต้องดึงกลับเข้า priceOverrides
       // ไม่งั้นราคาจะเด้งกลับเป็นราคาตั้งต้นทุกครั้งที่ย้อนกลับมาจากหน้าสรุป
       const restoredPrices = {};
-      for (const it of savedItems) {
-        if (it?.side && it?.id != null && it?.sellingPrice != null) {
+      for (const it of tabItems) {
+        if (it?.id != null && it?.sellingPrice != null) {
           restoredPrices[it.id] = Number(it.sellingPrice);
         }
       }
@@ -654,12 +670,17 @@ const SuspensionInspection = () => {
   // เบิกได้ไม่เกินสต็อกที่มีอยู่จริง — บริการ (เช่นค่าแรง) และรายการที่พิมพ์ชื่อเองไม่มีสต็อก จึงไม่จำกัด
   // ต้องหักของชิ้นเดียวกันที่ติ๊กไว้ในแท็บออกด้วย เพราะใช้สต็อกก้อนเดียวกัน
   // (availableStock เป็นค่า ณ ตอนหยิบเข้ามา ไม่อัปเดตตามการติ๊กแท็บทีหลัง)
+  // บรรทัดทั้งสองข้าง (มาจากหน้างานซ่อม) เพิ่มลดทีละคู่ เหมือนในหน้างานซ่อม
+  const stepOf = (item) => (item.side === "both" ? 2 : 1);
+
   const isAtStockLimit = (item) => {
-    if (!item.partNumber || !item.brand) return false;
+    if (!item.partNumber) return false;
     // ของที่ตวงจากถังใหญ่ไม่มีเพดาน กดเพิ่มได้เรื่อยๆ
     if (isUnlimitedStockItem(item)) return false;
     const stock = item.availableStock ?? item.stockQuantity ?? 0;
-    return item.quantity >= stock - getTabSelectedCountForItem(item);
+    return (
+      item.quantity + stepOf(item) > stock - getTabSelectedCountForItem(item)
+    );
   };
 
   const handleRemoveItem = () => {
@@ -698,7 +719,16 @@ const SuspensionInspection = () => {
     if (!quantityItem) return;
     setRepairItems((prev) =>
       prev.map((item, i) =>
-        i === quantityItem.index ? { ...item, quantity } : item,
+        i === quantityItem.index
+          ? {
+              ...item,
+              // ทั้งสองข้างต้องเป็นจำนวนคู่ พิมพ์เลขคี่มาปัดขึ้นเป็นคู่ถัดไป
+              quantity:
+                item.side === "both"
+                  ? Math.max(2, Math.ceil(quantity / 2) * 2)
+                  : quantity,
+            }
+          : item,
       ),
     );
   };
@@ -712,7 +742,9 @@ const SuspensionInspection = () => {
   const handleIncreaseQuantity = (index) => {
     setRepairItems((prev) =>
       prev.map((item, i) =>
-        i === index ? { ...item, quantity: item.quantity + 1 } : item,
+        i === index
+          ? { ...item, quantity: item.quantity + stepOf(item) }
+          : item,
       ),
     );
   };
@@ -720,12 +752,20 @@ const SuspensionInspection = () => {
   const handleDecreaseQuantity = (index) => {
     setRepairItems((prev) =>
       prev.map((item, i) =>
-        i === index && item.quantity > 1
-          ? { ...item, quantity: item.quantity - 1 }
+        i === index && item.quantity > stepOf(item)
+          ? { ...item, quantity: item.quantity - stepOf(item) }
           : item,
       ),
     );
   };
+
+  // ป้ายข้างทับมุมรูป แบบเดียวกับการ์ดในหน้างานซ่อม
+  const renderSideBadge = (item) =>
+    SIDE_BADGE_LABELS[item.side] ? (
+      <span className="bg-primary text-surface absolute -top-[6px] -left-[6px] z-10 rounded-[6px] px-[6px] text-sm leading-[20px] font-semibold shadow-sm md:text-base">
+        {SIDE_BADGE_LABELS[item.side]}
+      </span>
+    ) : null;
 
   const handlePriceClick = (index, item) => {
     try {
@@ -1085,7 +1125,8 @@ const SuspensionInspection = () => {
     try {
       await new Promise((resolve) => setTimeout(resolve, SUBMIT_FEEDBACK_MS));
 
-      const allRepairItems = buildAllRepairItems();
+      // บรรทัดทั้งสองข้างในรายการเพิ่มเติม แตกเป็นซ้ายหนึ่งขวาหนึ่งก่อนส่งไปหน้าสรุป (ฐานข้อมูลเก็บเป็นรายข้าง)
+      const allRepairItems = expandBothSides(buildAllRepairItems());
 
       navigate("/repairs/review", {
         state: {
@@ -2000,7 +2041,8 @@ const SuspensionInspection = () => {
                           className="shadow-primary bg-surface relative flex h-[92px] w-full cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
                         >
                           <div className="flex min-w-0 flex-1 items-center gap-[8px]">
-                            <div className="shadow-primary bg-surface flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[10px] border border-gray-200">
+                            <div className="shadow-primary bg-surface relative flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[10px] border border-gray-200">
+                              {renderSideBadge(item)}
                               {item.secureUrl ? (
                                 <img
                                   src={item.secureUrl}
@@ -2090,14 +2132,14 @@ const SuspensionInspection = () => {
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        if (item.quantity <= 1) {
+                                        if (item.quantity <= stepOf(item)) {
                                           setRemovingIndex(index);
                                           return;
                                         }
                                         handleDecreaseQuantity(index);
                                       }}
                                       aria-label={
-                                        item.quantity <= 1
+                                        item.quantity <= stepOf(item)
                                           ? "เอารายการออก"
                                           : "ลดจำนวน"
                                       }
@@ -2385,7 +2427,8 @@ const SuspensionInspection = () => {
                         className="shadow-primary bg-surface relative flex h-[92px] w-full cursor-pointer items-center justify-between gap-[8px] rounded-[10px] px-[8px]"
                       >
                         <div className="flex min-w-0 flex-1 items-center gap-[8px]">
-                          <div className="shadow-primary bg-surface flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[10px] border border-gray-200">
+                          <div className="shadow-primary bg-surface relative flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[10px] border border-gray-200">
+                            {renderSideBadge(item)}
                             {item.secureUrl ? (
                               <img
                                 src={item.secureUrl}
@@ -2473,14 +2516,14 @@ const SuspensionInspection = () => {
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      if (item.quantity <= 1) {
+                                      if (item.quantity <= stepOf(item)) {
                                         setRemovingIndex(index);
                                         return;
                                       }
                                       handleDecreaseQuantity(index);
                                     }}
                                     aria-label={
-                                      item.quantity <= 1
+                                      item.quantity <= stepOf(item)
                                         ? "เอารายการออก"
                                         : "ลดจำนวน"
                                     }

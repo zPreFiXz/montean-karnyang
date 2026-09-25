@@ -53,7 +53,11 @@ import FieldErrorList from "@/components/forms/FieldErrorList";
 import { toast } from "sonner";
 import RepairItemCard from "@/components/cards/RepairItemCard";
 import { toastError } from "@/utils/handleError";
-import { groupBySidePairs, mergeSidesInOrder } from "@/utils/repairItemGroups";
+import {
+  groupBySidePairs,
+  mergeSidesInOrder,
+  countDisplayedItems,
+} from "@/utils/repairItemGroups";
 import { isPerSide } from "@/utils/suspension";
 import {
   getPaymentMethodText,
@@ -1133,7 +1137,7 @@ const RepairDetail = () => {
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                   <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
-                    รวม {repair.repairItems?.length || 0} รายการ
+                    รวม {countDisplayedItems(repair.repairItems)} รายการ
                   </p>
                 </div>
                 <div className="flex flex-col items-end">

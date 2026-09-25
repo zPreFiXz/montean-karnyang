@@ -63,6 +63,11 @@ export const mergeSidesInOrder = (items = []) => {
 
   for (const item of items) {
     const side = sideOf(item);
+    // หน้ากรอกบิลเก็บ "ทั้งสองข้าง" เป็นบรรทัดเดียวอยู่แล้ว
+    if (side === "both") {
+      rows.push({ item, sideLabel: "R-L" });
+      continue;
+    }
     if (side !== "left" && side !== "right") {
       rows.push({ item, sideLabel: "" });
       continue;
@@ -89,3 +94,60 @@ export const mergeSidesInOrder = (items = []) => {
 
   return rows;
 };
+
+// หน้ากรอกบิลถือ "ทั้งสองข้าง" เป็นบรรทัดเดียว (side = "both", จำนวนนับเป็นชิ้นรวมสองข้าง)
+// แต่ฐานข้อมูล ใบเสร็จ และหน้าเช็กช่วงล่างรู้จักแค่ซ้ายกับขวา จึงแตกเป็นสองบรรทัดก่อนส่งออกจากหน้ากรอก
+export const expandBothSides = (items = []) =>
+  items.flatMap((item) =>
+    item.side === "both"
+      ? [
+          { ...item, side: "left", quantity: item.quantity / 2 },
+          { ...item, side: "right", quantity: item.quantity / 2 },
+        ]
+      : [item],
+  );
+
+// กลับกันตอนเปิดบิลมาแก้: ซ้ายกับขวาของชิ้นเดียวกัน จำนวนเท่ากัน รวมกลับเป็นบรรทัด "ทั้งสองข้าง"
+// จำนวนไม่เท่ากัน (ซ้าย 2 ขวา 1) คงไว้เป็นสองบรรทัดตามเดิม เพราะรวมแล้วแบ่งกลับไม่ได้
+export const collapseSidePairs = (items = []) => {
+  const used = new Set();
+  const rows = [];
+
+  items.forEach((item, index) => {
+    if (used.has(index)) return;
+    const side = String(item.side || "").toLowerCase();
+    if (side !== "left" && side !== "right") {
+      rows.push(item);
+      return;
+    }
+
+    const other = side === "left" ? "right" : "left";
+    const partner = items.findIndex(
+      (candidate, i) =>
+        i !== index &&
+        !used.has(i) &&
+        String(candidate.side || "").toLowerCase() === other &&
+        keyOf(candidate) === keyOf(item) &&
+        Number(candidate.quantity) === Number(item.quantity),
+    );
+
+    if (partner === -1) {
+      rows.push(item);
+      return;
+    }
+
+    used.add(partner);
+    rows.push({
+      ...item,
+      side: "both",
+      quantity: Number(item.quantity) + Number(items[partner].quantity),
+    });
+  });
+
+  return rows;
+};
+
+// จำนวนรายการที่บอกคน: ของชิ้นเดียวกันที่ใส่ทั้งซ้ายและขวานับเป็นรายการเดียว
+// ตรงกับที่หน้าจอยุบเป็นการ์ดเดียว (R-L) และที่ใบเสร็จยุบเป็นแถวเดียว
+export const countDisplayedItems = (items = []) =>
+  mergeSidesInOrder(items).length;
