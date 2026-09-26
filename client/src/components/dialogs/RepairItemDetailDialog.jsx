@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import FormInput from "@/components/forms/FormInput";
 import TireLotInput from "@/components/forms/TireLotInput";
+import DescriptionNote from "@/components/ui/DescriptionNote";
 import FormButton from "@/components/forms/FormButton";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -425,6 +426,11 @@ const RepairItemDetailDialog = ({
                 </div>
               )}
 
+              {/* ต่อจากรูป ก่อนข้อมูลทั่วไป บันทึกของร้านต้องเห็นก่อนตัวเลขอื่น */}
+              {currentItem.description && (
+                <DescriptionNote text={currentItem.description} />
+              )}
+
               <div className="mt-[16px] space-y-[8px]">
                 {!isService && (
                   <p className="font-athiti text-normal text-[22px] font-semibold md:text-2xl">
@@ -463,22 +469,6 @@ const RepairItemDetailDialog = ({
                         {isPerSide(currentItem.attributes)
                           ? "แยกซ้าย-ขวา"
                           : "ไม่แยกข้าง"}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* อยู่บรรทัดเดียวกับป้ายก่อน ยาวเกินค่อยตกบรรทัดลงมา
-                      ค่าชิดขวาเหมือนแถวอื่นในกล่อง ตกบรรทัดแล้วทุกบรรทัดจบที่ขอบขวาเดียวกัน */}
-                  {currentItem.description && (
-                    <div className="flex gap-[12px]">
-                      <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
-                        รายละเอียด:
-                      </p>
-                      {/* ไม่ใส่กฎตัดคำใดๆ เพราะภาษาไทยเขียนติดกันทั้งประโยค
-                          ถ้าใส่ เบราว์เซอร์จะมองเป็นคำเดียวแล้วตัดตรงไหนก็ได้ (ตั้ง|ศูนย์)
-                          ปล่อยให้ตัดตามพจนานุกรมไทยตามภาษาที่ประกาศไว้ในหน้าเว็บ */}
-                      <p className="text-normal min-w-0 flex-1 text-right text-lg font-semibold whitespace-pre-line md:text-xl">
-                        {currentItem.description}
                       </p>
                     </div>
                   )}

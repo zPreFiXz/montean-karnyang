@@ -1,4 +1,5 @@
 import { X, Image as ImageIcon } from "lucide-react";
+import DescriptionNote from "@/components/ui/DescriptionNote";
 import { SparePart } from "@/components/icons/Icons";
 import { formatCurrency } from "@/utils/formats";
 import { isPartLikeItem } from "@/constants/services";
@@ -80,6 +81,11 @@ const PartPreviewDialog = ({ part, price, open, onOpenChange }) => {
             </div>
           )}
 
+          {/* ต่อจากรูป ก่อนข้อมูลอื่น บันทึกของร้านต้องเห็นก่อนตัดสินใจเลือก */}
+          {part.description && (
+            <DescriptionNote text={part.description} className="mt-[16px]" />
+          )}
+
           <div className="mt-[16px] space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
             {part.partNumber && (
               <div className="flex justify-between gap-[12px]">
@@ -88,21 +94,6 @@ const PartPreviewDialog = ({ part, price, open, onOpenChange }) => {
                 </p>
                 <p className="text-normal min-w-0 text-right text-lg font-semibold break-words md:text-xl">
                   {part.partNumber}
-                </p>
-              </div>
-            )}
-
-            {/* อยู่บรรทัดเดียวกับป้ายก่อน ยาวเกินค่อยตกบรรทัดลงมา
-                ค่าชิดขวาเหมือนแถวอื่นในกล่อง ตกบรรทัดแล้วทุกบรรทัดจบที่ขอบขวาเดียวกัน */}
-            {part.description && (
-              <div className="flex gap-[12px]">
-                <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
-                  รายละเอียด:
-                </p>
-                {/* ไม่ใส่กฎตัดคำใดๆ เพราะภาษาไทยเขียนติดกันทั้งประโยค
-                    ถ้าใส่ เบราว์เซอร์จะมองเป็นคำเดียวแล้วตัดตรงไหนก็ได้ (ตั้ง|ศูนย์) */}
-                <p className="text-normal min-w-0 flex-1 text-right text-lg font-semibold whitespace-pre-line md:text-xl">
-                  {part.description}
                 </p>
               </div>
             )}

@@ -26,6 +26,7 @@ import {
 import {
   VEHICLE_COMPATIBLE_CATEGORIES,
   isTireCategoryName,
+  PER_SIDE_CATEGORIES,
   tracksTireLots,
   USED_TIRE_CATEGORY,
   getCategoryKind,
@@ -255,6 +256,14 @@ const InventoryEdit = () => {
     return selectedCategory?.name === "ช่วงล่าง";
   };
 
+  const allowsSideChoice = () => {
+    const selectedCategory = category.find(
+      (cat) => cat.id === watch("categoryId"),
+    );
+    const name = selectedCategory?.name ?? inventory?.category?.name;
+    return PER_SIDE_CATEGORIES.includes(name);
+  };
+
   const hasVehicleCompatibility = () => {
     const selectedCategoryId = watch("categoryId");
     const selectedCategory = category.find(
@@ -394,7 +403,10 @@ const InventoryEdit = () => {
                 construction: data.construction || DEFAULT_TIRE_CONSTRUCTION,
               }
             : {
-                perSide: toPerSide(data.suspensionType),
+                // เปลี่ยนหมวดไปหมวดที่ไม่มีช่องนี้ ค่าที่เคยเปิดไว้ต้องไม่ติดไปด้วย
+                perSide:
+                  (isSuspensionCategory() || allowsSideChoice()) &&
+                  toPerSide(data.suspensionType),
               },
           tireLots: isLotTracked()
             ? (data.tireLots || []).map((lot) => ({
@@ -512,6 +524,19 @@ const InventoryEdit = () => {
                   errors={errors}
                 />
 
+                {/* บริการที่ทำทีละข้าง (ตั้งลูกปืนล้อ) ตอนหยิบลงบิลจะถามว่าข้างไหน เหมือนอะไหล่ */}
+                <div className="my-[16px] px-[20px]">
+                  <ComboBox
+                    label="ข้าง"
+                    color="text-subtle-dark"
+                    labelClass="text-xl"
+                    options={SIDE_OPTIONS}
+                    value={watch("suspensionType") || "single"}
+                    onChange={(value) => setValue("suspensionType", value)}
+                    name="suspensionType"
+                  />
+                </div>
+
                 {/* ราคากับหน่วยอยู่แถวเดียวกัน อ่านต่อกันได้ว่า "100 บาท ต่อ ล้อ"
                     หน่วยเว้นว่างได้ บริการส่วนใหญ่คิดเป็นครั้ง ไม่ต้องบอกหน่วย */}
                 <div className="mt-[16px] px-[20px]">
@@ -550,18 +575,6 @@ const InventoryEdit = () => {
                   <FieldErrorList
                     className="mt-[6px]"
                     messages={[errors.price?.message, errors.unit?.message]}
-                  />
-                </div>
-                {/* บริการที่ทำทีละข้าง (ตั้งลูกปืนล้อ) ตอนหยิบลงบิลจะถามว่าฝั่งไหน เหมือนอะไหล่ */}
-                <div className="my-[16px] px-[20px]">
-                  <ComboBox
-                    label="ข้าง"
-                    color="text-subtle-dark"
-                    labelClass="text-xl"
-                    options={SIDE_OPTIONS}
-                    value={watch("suspensionType") || "single"}
-                    onChange={(value) => setValue("suspensionType", value)}
-                    name="suspensionType"
                   />
                 </div>
               </div>
@@ -712,10 +725,9 @@ const InventoryEdit = () => {
                   </div>
                 )}
 
-                {/* อะไหล่ทุกหมวด (ยกเว้นยาง) บอกได้ว่าติดตั้งแยกซ้าย-ขวาไหม เช่น โช้ค ไฟหน้า ใบปัดน้ำฝน
-                    แยกซ้าย-ขวา = ตอนหยิบลงบิลจะถามว่าฝั่งไหน ใบเสร็จต่อท้าย (L) (R) (R-L) ให้เอง
-                    ช่วงล่างบังคับเลือก เพราะหน้าเช็กช่วงล่างใช้แบ่งช่องซ้าย/ขวา หมวดอื่นถือว่าไม่แยกข้างถ้าไม่ได้เลือก */}
-                {!isTireCategory() && (
+                {/* ช่วงล่างต้องเลือกข้างทุกตัว หน้าเช็กช่วงล่างใช้แบ่งแท็บซ้าย/ขวา
+                  หมวดที่มีของแยกข้าง (เบรก ไฟ ฯลฯ) ก็มีช่องนี้ แต่ตั้งไว้ไม่แยกข้างให้ก่อน หมวดอื่นไม่ต้องเห็น */}
+                {(isSuspensionCategory() || allowsSideChoice()) && (
                   <div className="my-[16px] px-[20px]">
                     <ComboBox
                       label="ข้าง"

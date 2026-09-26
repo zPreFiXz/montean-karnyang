@@ -32,6 +32,8 @@ import {
   Gift,
   TicketPercent,
   Trash2,
+  LoaderCircle,
+  ChevronLeft,
 } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import {
@@ -200,6 +202,26 @@ const SuspensionInspection = () => {
   const editingRef = useRef(!!location.state?.editRepairId);
   if (location.state?.editRepairId) editingRef.current = true;
   const isEditing = editingRef.current;
+
+  // แก้บิลเดิมอยู่แล้วอยากกลับโดยไม่บันทึก ถอยกลับไปที่หน้าบิลใบนั้น
+  // ใช้ตำแหน่งในประวัติเดียวกับตอนบันทึก (backIdx) เพราะถ้าเคยย้อนไปมากับหน้าสรุป
+  // จะมีหน้ากรอกบิลซ้อนอยู่ในประวัติ ถอยทีละหน้าจะวนกลับมาเจอหน้ากรอกบิลอีก
+  const handleCancelEdit = () => {
+    const backIdx =
+      location.state?.backIdx ?? window.history.state?.usr?.backIdx;
+    const currentIdx = window.history.state?.idx;
+    const targetIdx = backIdx + 1;
+    if (
+      typeof backIdx === "number" &&
+      typeof currentIdx === "number" &&
+      targetIdx >= 0 &&
+      targetIdx < currentIdx
+    ) {
+      navigate(targetIdx - currentIdx);
+    } else {
+      navigate(-1);
+    }
+  };
 
   const initialSelectedRef = useRef({
     left: new Set(),
@@ -1154,6 +1176,29 @@ const SuspensionInspection = () => {
   const hasNoCompatibleParts =
     hasVehicleSelected && compatibleParts.length === 0;
 
+  // ปุ่มย้ายไปงานซ่อมทั่วไป คู่กับปุ่ม "เช็กช่วงล่างต่อ" ในหน้างานซ่อม
+  // ย้ายได้เฉพาะตอนไม่ได้เลือกอะไหล่ช่วงล่างในแท็บ เพราะหน้างานซ่อมไม่มีแท็บซ้าย/ขวา/อื่นๆ ให้ของพวกนั้นไปอยู่
+  // (รายการซ่อมเพิ่มเติมย้ายตามไปได้ทั้งหมด)
+  const [isSwitchingToGeneral, setIsSwitchingToGeneral] = useState(false);
+  const hasTabSelection =
+    selectedLeftParts.size > 0 ||
+    selectedRightParts.size > 0 ||
+    selectedOtherParts.size > 0 ||
+    countPerSideService() > 0;
+
+  const handleSwitchButton = async () => {
+    // หน่วงสั้นๆ ให้เห็นตัวหมุนก่อน ไม่งั้นกดแล้วเงียบจนไม่รู้ว่ากดติด
+    setIsSwitchingToGeneral(true);
+    await new Promise((resolve) => setTimeout(resolve, SUBMIT_FEEDBACK_MS));
+    setIsSwitchingToGeneral(false);
+
+    if (hasTabSelection) {
+      toast.error("ยกเลิกอะไหล่ช่วงล่างที่เลือกไว้ก่อน");
+      return;
+    }
+    handleSwitchToGeneralRepair();
+  };
+
   // ยกข้อมูลที่กรอกไว้ไปด้วย ไม่ต้องพิมพ์ใหม่ทั้งชุดตอนรถจอดรออยู่
   const handleSwitchToGeneralRepair = () => {
     // บิลย้ายไปอยู่ในมือหน้างานซ่อมแล้ว ร่างของหน้านี้จึงหมดหน้าที่
@@ -1695,21 +1740,39 @@ const SuspensionInspection = () => {
         <div className="xl:shadow-primary flex flex-1 flex-col xl:h-fit xl:w-1/2 xl:flex-initial xl:rounded-2xl xl:bg-white">
           <div className="flex items-center justify-between gap-[8px] px-[20px] pt-[16px]">
             <div className="flex min-w-0 items-center gap-[8px]">
-              <div className="bg-surface/20 xl:bg-primary/10 flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full">
-                <CarRepair color="#ffffff" className="h-6 w-6 xl:hidden" />
-                <CarRepair
-                  color="#1976d2"
-                  className="hidden h-6 w-6 xl:block"
-                />
-              </div>
+              {isEditing ? (
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  aria-label="กลับไปหน้ารายละเอียดงานซ่อม"
+                  className="bg-surface/20 xl:bg-primary/10 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+                >
+                  <ChevronLeft className="text-surface xl:hidden" />
+                  <ChevronLeft className="text-primary hidden xl:block" />
+                </button>
+              ) : (
+                <div className="bg-surface/20 xl:bg-primary/10 flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full">
+                  <CarRepair color="#ffffff" className="h-6 w-6 xl:hidden" />
+                  <CarRepair
+                    color="#1976d2"
+                    className="hidden h-6 w-6 xl:block"
+                  />
+                </div>
+              )}
               <div className="min-w-0">
                 <p className="text-surface xl:text-primary truncate text-2xl font-semibold md:text-[26px]">
-                  เช็กช่วงล่าง
+                  {/* ใบประเมินราคายังไม่ใช่งานซ่อม (ดูได้จาก stockNotDeducted ที่หน้ารายละเอียดส่งมา) */}
+                  {isEditing
+                    ? location.state?.stockNotDeducted
+                      ? "แก้ไขใบประเมินราคา"
+                      : "แก้ไขงานซ่อม"
+                    : "เช็กช่วงล่าง"}
                 </p>
               </div>
             </div>
             {/* โผล่เฉพาะตอนมีอะไรให้ล้างจริง ไม่ใช่ปุ่มที่กดแล้วไม่เกิดอะไรค้างอยู่บนหัวเรื่อง */}
-            {hasAnythingToClear && (
+            {/* แก้บิลที่บันทึกแล้ว ไม่ให้ล้างทั้งบิลกลางทาง กลับไปหน้าบิลแทนถ้าไม่อยากแก้ */}
+            {hasAnythingToClear && !isEditing && (
               <button
                 type="button"
                 onClick={() => setIsClearConfirmOpen(true)}
@@ -1964,6 +2027,20 @@ const SuspensionInspection = () => {
               color="surface"
               errors={errors}
             />
+
+            <div className="mt-[16px] flex justify-center px-[20px]">
+              <button
+                type="button"
+                onClick={handleSwitchButton}
+                disabled={isSwitchingToGeneral}
+                className="border-surface text-surface xl:border-primary xl:text-primary flex h-[41px] cursor-pointer items-center justify-center rounded-[20px] border px-[20px] text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
+              >
+                {isSwitchingToGeneral && (
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                ทำเป็นงานซ่อมทั่วไป
+              </button>
+            </div>
 
             <div className="hidden pb-[24px] xl:block" />
 

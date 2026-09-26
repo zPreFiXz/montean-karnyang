@@ -18,6 +18,7 @@ import {
   Gift,
   Trash2,
   LoaderCircle,
+  ChevronLeft,
 } from "lucide-react";
 import FormInput from "@/components/forms/FormInput";
 import CustomerNameInput from "@/components/forms/CustomerNameInput";
@@ -173,6 +174,26 @@ const RepairCreate = () => {
   const editingRef = useRef(!!location.state?.editRepairId);
   if (location.state?.editRepairId) editingRef.current = true;
   const isEditing = editingRef.current;
+
+  // แก้บิลเดิมอยู่แล้วอยากกลับโดยไม่บันทึก ถอยกลับไปที่หน้าบิลใบนั้น
+  // ใช้ตำแหน่งในประวัติเดียวกับตอนบันทึก (backIdx) เพราะถ้าเคยย้อนไปมากับหน้าสรุป
+  // จะมีหน้ากรอกบิลซ้อนอยู่ในประวัติ ถอยทีละหน้าจะวนกลับมาเจอหน้ากรอกบิลอีก
+  const handleCancelEdit = () => {
+    const backIdx =
+      location.state?.backIdx ?? window.history.state?.usr?.backIdx;
+    const currentIdx = window.history.state?.idx;
+    const targetIdx = backIdx + 1;
+    if (
+      typeof backIdx === "number" &&
+      typeof currentIdx === "number" &&
+      targetIdx >= 0 &&
+      targetIdx < currentIdx
+    ) {
+      navigate(targetIdx - currentIdx);
+    } else {
+      navigate(-1);
+    }
+  };
 
   // รุ่นรถที่มีอะไหล่ระบุว่าใช้ได้ ใช้ตัดสินว่ากดเช็กช่วงล่างต่อได้ไหม
   // null = ยังโหลดไม่เสร็จ ระหว่างนั้นไม่ปิดปุ่ม ดีกว่าห้ามกดทั้งที่อาจกดได้
@@ -504,6 +525,9 @@ const RepairCreate = () => {
           },
           repairItems: repairItems,
           editRepairId: location.state?.editRepairId,
+          // ใบประเมินราคายังไม่เคยเบิกของ ต้องติดไปกลับพร้อมกับหน้าสรุป
+          // ไม่งั้นย้อนกลับมาแก้แล้วจะบวกของในบิลคืนเข้าสต็อกที่เบิกได้ ทั้งที่ยังไม่เคยหักออก
+          stockNotDeducted: location.state?.stockNotDeducted,
           backIdx: location.state?.backIdx,
           origin: location.state?.origin || location.state?.from,
           statusSlug: location.state?.statusSlug,
@@ -568,7 +592,7 @@ const RepairCreate = () => {
   const handlePickSide = (side) => {
     const item = sidePickItem;
     setSidePickItem(null);
-    if (item) addItemLine(item, side);
+    if (item) addItemLine(item, side === "none" ? null : side);
   };
 
   // บรรทัดทั้งสองข้างเพิ่มลดทีละคู่ จำนวนนับเป็นชิ้นรวม (2 4 6) ให้ราคารวมคิดตรงๆ ได้เหมือนบรรทัดอื่น
@@ -1012,18 +1036,45 @@ const RepairCreate = () => {
       <div className="xl:shadow-primary flex flex-1 flex-col xl:h-fit xl:w-1/2 xl:flex-initial xl:rounded-2xl xl:bg-white">
         <div className="flex items-center justify-between gap-[8px] px-[20px] pt-[16px]">
           <div className="flex min-w-0 items-center gap-[8px]">
-            <div className="bg-surface/20 xl:bg-primary/10 flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full">
-              <Plus color="#ffffff" className="xl:hidden" />
-              <Plus className="text-primary hidden xl:block" />
-            </div>
+            {isEditing ? (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                aria-label="กลับไปหน้ารายละเอียดงานซ่อม"
+                className="bg-surface/20 xl:bg-primary/10 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+              >
+                <ChevronLeft className="text-surface xl:hidden" />
+                <ChevronLeft className="text-primary hidden xl:block" />
+              </button>
+            ) : (
+              <div className="bg-surface/20 xl:bg-primary/10 flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full">
+                <Plus color="#ffffff" className="xl:hidden" />
+                <Plus className="text-primary hidden xl:block" />
+              </div>
+            )}
             <div className="min-w-0">
               <p className="text-surface xl:text-primary truncate text-2xl font-semibold md:text-[26px]">
-                {isSale ? "ขายอะไหล่" : isService ? "งานบริการ" : "งานซ่อมใหม่"}
+                {/* ตอนแก้บิลเดิมเรียกตามชนิดบิลแบบเดียวกับตอนเปิดบิลใหม่
+                    ใบประเมินราคายังไม่ใช่งานซ่อม (ดูได้จาก stockNotDeducted ที่หน้ารายละเอียดส่งมา) */}
+                {isEditing
+                  ? location.state?.stockNotDeducted
+                    ? "แก้ไขใบประเมินราคา"
+                    : isSale
+                      ? "แก้ไขการขายอะไหล่"
+                      : isService
+                        ? "แก้ไขงานบริการ"
+                        : "แก้ไขงานซ่อม"
+                  : isSale
+                    ? "ขายอะไหล่"
+                    : isService
+                      ? "งานบริการ"
+                      : "งานซ่อมใหม่"}
               </p>
             </div>
           </div>
           {/* โผล่เฉพาะตอนมีอะไรให้ล้างจริง ไม่ใช่ปุ่มที่กดแล้วไม่เกิดอะไรค้างอยู่บนหัวเรื่อง */}
-          {hasAnythingToClear && (
+          {/* แก้บิลที่บันทึกแล้ว ไม่ให้ล้างทั้งบิลกลางทาง กลับไปหน้าบิลแทนถ้าไม่อยากแก้ */}
+          {hasAnythingToClear && !isEditing && (
             <button
               type="button"
               onClick={() => setIsClearConfirmOpen(true)}

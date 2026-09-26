@@ -238,6 +238,7 @@ const RepairReview = () => {
       repairItems,
       scrollToItems,
       editRepairId,
+      stockNotDeducted: location.state?.stockNotDeducted,
       // ตำแหน่งของหน้าก่อนเข้าบิลในประวัติ ต้องติดไปด้วยทุกครั้งที่ย้อนไปแก้
       // ไม่งั้นกดบันทึกรอบถัดไปจะไม่รู้ว่าต้องถอยกลับไปที่ไหน แล้วไปค้างที่หน้ากรอกบิล
       backIdx,
