@@ -36,6 +36,7 @@ model Customer {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   repairs          Repair[]
+  billingNotes     BillingNote[]
 
   @@index([organizationType])
 }
@@ -148,6 +149,10 @@ model Repair {
   completedAt   DateTime?
   paymentMethod PaymentMethod?
   paidAt        DateTime?
+  // เลขเอกสารที่ออกให้บิลนี้ ออกครั้งเดียวแล้วไม่เปลี่ยน บิลเครดิตที่จ่ายแล้วจึงมีทั้งเลขใบส่งของและเลขใบเสร็จ
+  receiptNo     String?        @unique @db.VarChar(20)
+  deliveryNo    String?        @unique @db.VarChar(20)
+  quotationNo   String?        @unique @db.VarChar(20)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   user          User           @relation(fields: [userId], references: [id], onDelete: Restrict)
@@ -233,4 +238,27 @@ enum AttendanceType {
   LUNCH_RETURN
   LUNCH_RETURN_LATE
   CLOCK_OUT
+}
+
+// ตัวนับเลขเอกสารแยกตามประเภทและเดือน (period เป็นปี พ.ศ. 2 หลักกับเดือน เช่น 6909)
+model DocumentCounter {
+  prefix String @db.VarChar(4)
+  period String @db.VarChar(4)
+  lastNo Int
+
+  @@id([prefix, period])
+}
+
+// ใบวางบิลไม่ได้เก็บเป็นเอกสาร ทุกครั้งที่พิมพ์คือสรุปบิลค้างใหม่ จึงจำไว้แค่ว่าชุดบิลไหนได้เลขอะไร
+// พิมพ์ชุดเดิมซ้ำได้เลขเดิม ชุดบิลเปลี่ยนก็ได้เลขใหม่
+model BillingNote {
+  id         Int      @id @default(autoincrement())
+  number     String   @unique @db.VarChar(20)
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId Int
+  // sha1 ของเลขบิลที่เรียงแล้ว รายการบิลยาวเกินกว่าจะทำดัชนีตรงๆ
+  repairKey  String   @db.Char(40)
+  createdAt  DateTime @default(now())
+
+  @@unique([customerId, repairKey])
 }

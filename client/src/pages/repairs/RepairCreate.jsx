@@ -87,7 +87,7 @@ const VEHICLE_FIELDS = [
   "mileage",
 ];
 // ฝั่งที่เลือกไว้ ห้อยท้ายชื่อบนการ์ด
-const SIDE_LABELS = { left: "L", right: "R", both: "R-L" };
+const SIDE_LABELS = { left: "L", right: "R", both: "L-R" };
 
 const SUBMIT_FEEDBACK_MS = 400;
 
@@ -121,6 +121,7 @@ const RepairCreate = () => {
     watch,
     getValues,
     reset,
+    trigger,
   } = useForm({
     resolver: zodResolver(repairSchema),
   });
@@ -389,7 +390,7 @@ const RepairCreate = () => {
 
   // ป้ายฝั่งทับมุมซ้ายบนของรูป จุดที่ตามองก่อน และไม่กินที่ของชื่อกับราคา
   // การ์ดซ้ายกับขวาของชิ้นเดียวกันหน้าตาเหมือนกันทุกอย่าง ป้ายนี้จึงต้องเห็นชัดตั้งแต่กวาดตา
-  // ใช้ตัวย่อเดียวกับที่ใบเสร็จเขียน (L) (R) (R-L)
+  // ใช้ตัวย่อเดียวกับที่ใบเสร็จเขียน (L) (R) (L-R)
   const renderSideBadge = (item) =>
     SIDE_LABELS[item.side] ? (
       <span className="bg-primary text-surface absolute -top-[6px] -left-[6px] z-10 rounded-[6px] px-[6px] text-sm leading-[20px] font-semibold shadow-sm md:text-base">
@@ -429,6 +430,14 @@ const RepairCreate = () => {
     setIsCheckingSuspension(true);
     await new Promise((resolve) => setTimeout(resolve, SUBMIT_FEEDBACK_MS));
     setIsCheckingSuspension(false);
+
+    // หน้าเช็กช่วงล่างเลือกอะไหล่ตามรุ่นรถ ยังไม่รู้รุ่นก็ไม่มีอะไหล่ให้เลือก
+    // ใช้ตัวตรวจชุดเดียวกับปุ่มถัดไป ช่องที่ขาดขึ้นกรอบแดงพร้อมข้อความ แล้วเลื่อนไปหาช่องแรกที่ขาด
+    if (!watch("brand") || !watch("model")) {
+      await trigger(["brand", "model"]);
+      onInvalid(watch("brand") ? { model: true } : { brand: true });
+      return;
+    }
 
     // ไปหน้าโน้นก็เลือกอะไหล่ไม่ได้ บอกเหตุผลแล้วอยู่หน้านี้ต่อ
     if (!hasSuspensionParts) {
@@ -587,8 +596,8 @@ const RepairCreate = () => {
     addItemLine(item);
   };
 
-  // ทั้งสองข้าง = บรรทัดเดียว ป้าย R-L จำนวนเริ่มที่ 2 ชิ้น
-  // ตอนบันทึกค่อยแตกเป็นซ้ายหนึ่งขวาหนึ่ง (ดู expandBothSides) ใบเสร็จจะรวมกลับเป็น (R-L) ให้เอง
+  // ทั้งสองข้าง = บรรทัดเดียว ป้าย L-R จำนวนเริ่มที่ 2 ชิ้น
+  // ตอนบันทึกค่อยแตกเป็นซ้ายหนึ่งขวาหนึ่ง (ดู expandBothSides) ใบเสร็จจะรวมกลับเป็น (L-R) ให้เอง
   const handlePickSide = (side) => {
     const item = sidePickItem;
     setSidePickItem(null);

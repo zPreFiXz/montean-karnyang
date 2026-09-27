@@ -7,7 +7,7 @@ import { getDisplayBrand, getRepairTitle } from "@/utils/repairDisplay";
 // ต้องตรงกับ buildOrganizationBillHtml ใน server/utils/receiptHtml.js
 const money = (value) => Number(value || 0).toLocaleString("th-TH");
 
-const CreditSummaryPaper = ({ customer, repairs }) => {
+const CreditSummaryPaper = ({ customer, repairs, billingNo }) => {
   const total = repairs.reduce(
     (sum, repair) => sum + Number(repair.totalPrice || 0),
     0,
@@ -15,9 +15,19 @@ const CreditSummaryPaper = ({ customer, repairs }) => {
 
   return (
     <>
-      <div className="text-center">
-        <p className="text-[15pt] font-semibold">ใบวางบิล</p>
-        <p className="text-[17pt] font-semibold">{SHOP.name}</p>
+      {/* เลขที่วางมุมขวาบนแบบใบเสร็จ ฝั่งซ้ายมีเงาของมันแบบมองไม่เห็นไว้ ชื่อเอกสารจะได้อยู่กลางพอดี */}
+      <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-[8px]">
+        <span />
+        <div className="text-center">
+          <p className="text-[15pt] font-semibold">ใบวางบิล</p>
+          <p className="text-[17pt] font-semibold">{SHOP.name}</p>
+        </div>
+        <p className="flex items-end justify-end gap-[4px] whitespace-nowrap">
+          เลขที่
+          <span className="min-w-[42px] border-b border-dotted border-black text-center font-semibold">
+            {billingNo || ""}
+          </span>
+        </p>
       </div>
 
       <p className="mt-[2px] text-center">{SHOP.address}</p>
@@ -36,7 +46,7 @@ const CreditSummaryPaper = ({ customer, repairs }) => {
       <table className="mt-[8px] w-full table-fixed border-collapse">
         <thead>
           <tr className="bg-gray-200">
-            <th className="w-[52px] border border-black p-[3px] font-semibold">
+            <th className="w-[112px] border border-black p-[3px] font-semibold">
               เลขที่
             </th>
             <th className="w-[86px] border border-black p-[3px] font-semibold">
@@ -53,8 +63,9 @@ const CreditSummaryPaper = ({ customer, repairs }) => {
         <tbody>
           {repairs.map((repair) => (
             <tr key={repair.id}>
-              <td className="border border-black px-[4px] text-center">
-                {repair.id}
+              {/* บิลเครดิตอ้างเลขใบส่งของที่ลูกค้าเซ็นรับไว้ บิลที่จ่ายแล้วตั้งแต่แรกมีแต่เลขใบเสร็จ */}
+              <td className="border border-black px-[4px] text-center whitespace-nowrap">
+                {repair.deliveryNo || repair.receiptNo || repair.id}
               </td>
               <td className="border border-black px-[4px] text-center">
                 {formatDateShort(repair.createdAt)}

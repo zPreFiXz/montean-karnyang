@@ -441,7 +441,7 @@ const RepairReview = () => {
                         key={`both-m-${index}`}
                         item={item}
                         variant="summary"
-                        sideLabel="R-L"
+                        sideLabel="L-R"
                         onClick={() => setPreviewItem(item)}
                       />
                     ))}
@@ -605,7 +605,7 @@ const RepairReview = () => {
                       key={`both-d-${index}`}
                       item={item}
                       variant="summary"
-                      sideLabel="R-L"
+                      sideLabel="L-R"
                       onClick={() => setPreviewItem(item)}
                     />
                   ))}

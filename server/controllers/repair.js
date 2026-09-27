@@ -2,7 +2,12 @@ const { Prisma } = require("@prisma/client");
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
 const { buildReceiptHtml, buildJobSheetHtml } = require("../utils/receiptHtml");
-const { printReceipt } = require("../utils/printReceipt");
+const { printReceipt, htmlToImages } = require("../utils/printReceipt");
+const {
+  assignRepairDocumentNo,
+  releaseRepairDocumentNo,
+  docNosSkippedOnDelete,
+} = require("../utils/documentNumber");
 const {
   buildPartItemName,
   buildServiceItemName,
@@ -435,7 +440,11 @@ exports.getRepair = async (req, res, next) => {
       createError(404, "ไม่พบงานซ่อม");
     }
 
-    res.json(repair);
+    // กล่องยืนยันการลบใช้เตือนว่าเลขไหนจะขาดช่วง
+    res.json({
+      ...repair,
+      docNosSkippedOnDelete: await docNosSkippedOnDelete(prisma, repair),
+    });
   } catch (error) {
     next(error);
   }
@@ -562,6 +571,8 @@ exports.createRepair = async (req, res, next) => {
       if (repairItems?.length) {
         await createRepairItemsAndDecrementStock(tx, repair.id, repairItems);
       }
+
+      await assignRepairDocumentNo(tx, repair.id);
     });
 
     res.json({ message: "สร้างงานซ่อมเรียบร้อยแล้ว" });
@@ -729,6 +740,8 @@ exports.updateRepair = async (req, res, next) => {
             : { customer: { disconnect: true } }),
         },
       });
+
+      await assignRepairDocumentNo(tx, Number(id));
     });
 
     res.json({ message: "แก้ไขงานซ่อมเรียบร้อยแล้ว" });
@@ -771,6 +784,7 @@ exports.deleteRepair = async (req, res, next) => {
       }
 
       await tx.repairItem.deleteMany({ where: { repairId: Number(id) } });
+      await releaseRepairDocumentNo(tx, repair);
       await tx.repair.delete({ where: { id: Number(id) } });
     });
 
@@ -846,6 +860,8 @@ exports.updateRepairStatus = async (req, res, next) => {
         where: { id: Number(id) },
         data,
       });
+
+      await assignRepairDocumentNo(tx, Number(id));
     });
 
     res.json({
@@ -856,59 +872,78 @@ exports.updateRepairStatus = async (req, res, next) => {
   }
 };
 
+// พิมพ์กับบันทึกเป็นรูปใช้หน้าเอกสารชุดเดียวกัน รูปที่ส่งให้ลูกค้าจึงเหมือนกระดาษที่พิมพ์ออกมาทุกอย่าง
+const buildRepairDocument = async (id, body) => {
+  const repair = await prisma.repair.findUnique({
+    where: { id: Number(id) },
+    include: {
+      customer: true,
+      vehicle: {
+        include: {
+          licensePlate: { select: { plateNumber: true, province: true } },
+          vehicleModel: { select: { brand: true, model: true } },
+        },
+      },
+      user: { select: { name: true } },
+      repairItems: {
+        include: {
+          part: {
+            select: {
+              unit: true,
+              name: true,
+              // ใบที่ปิดชื่อเต็มต้องรู้ยี่ห้อ ถึงจะตัดยี่ห้อออกจากหน้าชื่อได้
+              brand: true,
+              category: { select: { name: true } },
+            },
+          },
+          service: { select: { name: true, unit: true } },
+        },
+      },
+    },
+  });
+
+  if (!repair) {
+    createError(404, "ไม่พบงานซ่อม");
+  }
+
+  // หน้าเว็บบอกมาว่าจะเอาข้อมูลลูกค้าติดไปด้วยไหม ไม่ส่งมาก็ถือว่าเอา
+  const showCustomer = body?.showCustomer !== false;
+  // ชื่ออะไหล่แบบเต็มปิดไว้เป็นค่าเริ่มต้น เท่ากับสวิตช์ในหน้าตัวอย่าง
+  const showBrand = body?.showBrand === true;
+  const isJobSheet = body?.docType === "job";
+
+  const html = isJobSheet
+    ? buildJobSheetHtml(repair)
+    : buildReceiptHtml(repair, { showCustomer, showBrand });
+
+  return { repair, html, isJobSheet };
+};
+
 // สั่งพิมพ์ใบเสร็จออกเครื่องพิมพ์ที่ต่อกับเครื่องที่รันเซิร์ฟเวอร์
 // มีไว้ให้กดจากมือถือแล้วกระดาษออกที่ร้านได้ โดยไม่ต้องเดินไปกดที่คอม
 exports.printRepairReceipt = async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    const repair = await prisma.repair.findUnique({
-      where: { id: Number(id) },
-      include: {
-        customer: true,
-        vehicle: {
-          include: {
-            licensePlate: { select: { plateNumber: true, province: true } },
-            vehicleModel: { select: { brand: true, model: true } },
-          },
-        },
-        user: { select: { name: true } },
-        repairItems: {
-          include: {
-            part: {
-              select: {
-                unit: true,
-                name: true,
-                // ใบที่ปิดชื่อเต็มต้องรู้ยี่ห้อ ถึงจะตัดยี่ห้อออกจากหน้าชื่อได้
-                brand: true,
-                category: { select: { name: true } },
-              },
-            },
-            service: { select: { name: true, unit: true } },
-          },
-        },
-      },
-    });
-
-    if (!repair) {
-      createError(404, "ไม่พบงานซ่อม");
-    }
-
-    // หน้าเว็บบอกมาว่าจะเอาข้อมูลลูกค้าติดไปด้วยไหม ไม่ส่งมาก็ถือว่าเอา
-    const showCustomer = req.body?.showCustomer !== false;
-    // ชื่ออะไหล่แบบเต็มปิดไว้เป็นค่าเริ่มต้น เท่ากับสวิตช์ในหน้าตัวอย่าง
-    const showBrand = req.body?.showBrand === true;
-    const isJobSheet = req.body?.docType === "job";
-
-    const html = isJobSheet
-      ? buildJobSheetHtml(repair)
-      : buildReceiptHtml(repair, { showCustomer, showBrand });
+    const { repair, html, isJobSheet } = await buildRepairDocument(
+      req.params.id,
+      req.body,
+    );
 
     await printReceipt(html, repair.id);
 
     res.json({
       message: isJobSheet ? "สั่งพิมพ์ใบสั่งซ่อมแล้ว" : "สั่งพิมพ์ใบเสร็จแล้ว",
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ส่งใบเป็นรูปให้ลูกค้าทางแชท แทนการพิมพ์กระดาษ ใบหลายแผ่นได้รูปละแผ่น
+exports.renderRepairImages = async (req, res, next) => {
+  try {
+    const { html } = await buildRepairDocument(req.params.id, req.body);
+    const images = await htmlToImages(html);
+    res.json({ images });
   } catch (error) {
     next(error);
   }

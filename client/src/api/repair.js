@@ -38,3 +38,17 @@ export const printRepairReceipt = async (id, options = {}) => {
     docType,
   });
 };
+
+// ใบเดียวกับที่พิมพ์ แต่ได้เป็นรูป (ข้อความ base64 แผ่นละรูป) ไว้ส่งให้ลูกค้าทางแชท
+export const renderRepairImages = async (id, options = {}) => {
+  const {
+    showCustomer = true,
+    showBrand = false,
+    docType = "receipt",
+  } = options;
+  return await apiClient.post(`/repairs/${id}/image`, {
+    showCustomer,
+    showBrand,
+    docType,
+  });
+};

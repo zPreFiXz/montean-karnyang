@@ -42,12 +42,61 @@ const SHOP = {
 
 const MIN_ROWS = 10;
 
+// ตรงกับ estimateNameLines ฝั่งหน้าเว็บ (ReceiptPaper) แก้ต้องแก้คู่กัน
+// ชื่อยาวตกเป็นสองบรรทัดในใบเสร็จ แถวสูงเกือบเท่าตัว ถ้านับทุกแถวเป็นหนึ่ง
+// แผ่นที่มีชื่อยาวหลายแถวจะล้นกระดาษ ท้ายใบ (ช่องลงชื่อ) ถูกตัดหายไปเงียบๆ
+// จึงประมาณจำนวนบรรทัดจากความกว้างตัวอักษร (วัดจากฟอนต์ของใบเสร็จ ช่องรายการกว้างราว 236 จุด)
+// เผื่อไว้ราวหนึ่งในสิบ ประมาณเกินดีกว่าขาด ขาดคือกระดาษล้น เกินแค่มีบรรทัดว่างเพิ่ม
+// สระบน-ล่างกับวรรณยุกต์ซ้อนอยู่บนตัวอักษรอื่น ไม่กินความกว้าง
+const NAME_LINE_WIDTH = 217;
+const THAI_COMBINING = /[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/;
+const charWidth = (ch) => {
+  if (THAI_COMBINING.test(ch)) return 0;
+  if (/[\u0E00-\u0E7F]/.test(ch)) return 6;
+  if (/[A-Z]/.test(ch)) return 9;
+  if (/[a-z]/.test(ch)) return 7;
+  if (/[0-9]/.test(ch)) return 8;
+  if (ch === " ") return 4;
+  return 6;
+};
+const estimateNameLines = (text) => {
+  const width = [...String(text || "")].reduce(
+    (sum, ch) => sum + charWidth(ch),
+    0,
+  );
+  return Math.max(1, Math.ceil(width / NAME_LINE_WIDTH));
+};
+
+// แบ่งแผ่นตามจำนวนบรรทัดที่ใช้จริง แผ่นละไม่เกิน MIN_ROWS บรรทัด
+const paginateRows = (rows, linesOf) => {
+  const pages = [[]];
+  let used = 0;
+  for (const row of rows) {
+    const lines = linesOf(row);
+    if (used + lines > MIN_ROWS && pages[pages.length - 1].length > 0) {
+      pages.push([]);
+      used = 0;
+    }
+    pages[pages.length - 1].push(row);
+    used += lines;
+  }
+  return pages;
+};
+
 // เรียกว่าใบเสร็จรับเงินได้เฉพาะตอนรับเงินแล้วจริง
 // ใบประเมินราคา = ยังไม่ได้ซ่อม เป็นใบเสนอราคา / เครดิต = ซ่อมแล้วแต่ยังไม่ได้เงิน เป็นใบส่งของ
 const receiptDocTitle = (repair) => {
   if (repair.status === "ESTIMATE") return "ใบเสนอราคา";
   if (repair.status === "CREDIT") return "ใบส่งของ";
   return "ใบเสร็จรับเงิน";
+};
+
+// เลขที่ของใบที่กำลังพิมพ์ ตามชนิดเอกสารของสถานะตอนนี้
+// ใบเสร็จมีเลขตั้งแต่เปิดบิล พิมพ์ไปเก็บเงินก่อนจ่ายได้ เลขเดียวกับหลังจ่าย
+const receiptDocNo = (repair) => {
+  if (repair.status === "ESTIMATE") return repair.quotationNo || repair.id;
+  if (repair.status === "CREDIT") return repair.deliveryNo || repair.id;
+  return repair.receiptNo || repair.id;
 };
 
 const PAYMENT_BOXES = [
@@ -107,7 +156,11 @@ const unitOf = (item) =>
 // เว้นช่องจำนวนไว้เมื่อเป็นหนึ่งเดียวและไม่มีหน่วยให้บอก (ค่าแรง บริการที่คิดเป็นครั้ง)
 // รวมถึงงานที่คิดครั้งเดียวต่อคันแม้จะตั้งหน่วยไว้ (ตรงกับ quantityLabel ฝั่งหน้าเว็บ)
 // เกินหนึ่งยังต้องเขียน ไม่งั้นราคาต่อหน่วยกับจำนวนเงินจะไม่ตรงกัน
-const SINGLE_QUANTITY_SERVICE_NAMES = ["ค่าแรง", "ตั้งศูนย์", "สลับยาง+ถ่วงล้อ"];
+const SINGLE_QUANTITY_SERVICE_NAMES = [
+  "ค่าแรง",
+  "ตั้งศูนย์",
+  "สลับยาง+ถ่วงล้อ",
+];
 const quantityLabel = (item, quantity) => {
   const unit = unitOf(item);
   const isSingle =
@@ -117,7 +170,7 @@ const quantityLabel = (item, quantity) => {
     : `${formatQuantity(quantity)} ${unit}`.trim();
 };
 
-// ของชิ้นเดียวกันที่ใส่ทั้งสองข้างยุบเป็นแถวเดียวแล้วห้อยท้ายว่า R-L
+// ของชิ้นเดียวกันที่ใส่ทั้งสองข้างยุบเป็นแถวเดียวแล้วห้อยท้ายว่า L-R
 const mergeBySide = (items) => {
   const rows = [];
   const byKey = new Map();
@@ -146,7 +199,7 @@ const mergeBySide = (items) => {
     ...row,
     sideLabel:
       row.sides.includes("L") && row.sides.includes("R")
-        ? "R-L"
+        ? "L-R"
         : row.sides[0] || "",
   }));
 };
@@ -159,7 +212,9 @@ const receiptPagesHtml = (
 ) => {
   // ชื่อเอกสารเปลี่ยนตามสถานะ (ตรงกับ receiptDocTitle ฝั่งหน้าเว็บ)
   const docTitle = receiptDocTitle(repair);
-  const issuedAt = new Date(repair.paidAt || repair.createdAt || Date.now());
+  // วันเปิดบิล ไม่ใช่วันรับเงิน ร้านพิมพ์ใบเสร็จไปยื่นก่อนเก็บเงิน พิมพ์ซ้ำหลังจ่ายแล้วต้องได้ใบเหมือนเดิม
+  // ใบเสนอราคาที่ลูกค้าตกลงซ่อม วันเปิดบิลถูกนับใหม่เป็นวันเริ่มซ่อมอยู่แล้ว
+  const issuedAt = new Date(repair.createdAt || Date.now());
   const day = issuedAt.getDate();
   const month = issuedAt.toLocaleDateString("th-TH", { month: "long" });
   const year = String(issuedAt.getFullYear() + 543).slice(-2);
@@ -186,27 +241,26 @@ const receiptPagesHtml = (
   const rows = mergeBySide(
     (repair.repairItems || []).filter((item) => !isDiscount(item)),
   );
-  // บิลที่มีรายการเกินหนึ่งหน้าให้แยกเป็นใบต่อไป แผ่นละ MIN_ROWS บรรทัด
-  // ยอดรวมกับส่วนลดอยู่แผ่นสุดท้ายแผ่นเดียว (ตรงกับ buildReceiptPages ฝั่งหน้าเว็บ)
-  const pages = [];
-  for (
-    let start = 0;
-    start < rows.length || pages.length === 0;
-    start += MIN_ROWS
-  ) {
-    pages.push(rows.slice(start, start + MIN_ROWS));
-  }
+  // บิลที่มีรายการเกินหนึ่งหน้าให้แยกเป็นใบต่อไป แผ่นละ MIN_ROWS บรรทัด (นับบรรทัดที่ชื่อยาวตกลงมาด้วย)
+  // ยอดรวมกับส่วนลดต่อท้ายแผ่นสุดท้ายเสมอ (ตรงกับ buildReceiptPages ฝั่งหน้าเว็บ)
+  const rowName = ({ item, sideLabel }) => {
+    const base = showBrand ? item.itemName : workName(item);
+    return sideLabel ? `${base} (${sideLabel})` : base;
+  };
+  const rowLines = (row) => estimateNameLines(rowName(row));
+  const pages = paginateRows(rows, rowLines);
 
   const summaryRows = discountItems.length ? discountItems.length + 1 : 1;
-  if (pages[pages.length - 1].length + summaryRows > MIN_ROWS) pages.push([]);
+  // แถวยอดรวมกับส่วนลดต่อท้ายแผ่นสุดท้ายเสมอ ไม่นับเป็นหนึ่งใน MIN_ROWS รายการ
+  // กระดาษยังเหลือที่ใต้ตารางราวห้าบรรทัด รายการเต็มสิบแถวก็ยังมีที่ให้ยอดรวมอยู่แผ่นเดียวกัน
+  // ไม่ขึ้นแผ่นใหม่ที่มีแต่ยอดรวม และไม่ยกรายการไปแผ่นใหม่ให้บิลสิบรายการกลายเป็นสองแผ่น
   // ยอดในบิลหักส่วนลดไปแล้ว ยอดก่อนหักจึงต้องบวกกลับ (ส่วนลดเก็บเป็นเลขติดลบ)
   const total = Number(repair.totalPrice || 0);
   const subtotal = total - discountTotal;
 
   const rowHtml = ({ item, quantity, sideLabel }) => {
     const amount = Number(item.unitPrice) * quantity;
-    const base = showBrand ? item.itemName : workName(item);
-    const name = sideLabel ? `${base} (${sideLabel})` : base;
+    const name = rowName({ item, sideLabel });
     return `<tr>
         <td class="c">${escapeHtml(quantityLabel(item, quantity))}</td>
         <td class="wrap">${escapeHtml(name)}</td>
@@ -253,16 +307,17 @@ const receiptPagesHtml = (
   // เนื้อของกระดาษหนึ่งแผ่น เรียกซ้ำตามจำนวนหน้า
   const pageHtml = (pageRows, pageIndex) => {
     const isLastPage = pageIndex === pages.length - 1;
+    const usedLines = pageRows.reduce((sum, row) => sum + rowLines(row), 0);
     const blankRows = Math.max(
       0,
-      MIN_ROWS - pageRows.length - (isLastPage ? summaryRows : 0),
+      MIN_ROWS - usedLines - (isLastPage ? summaryRows : 0),
     );
     const emptyRows = Array.from({ length: blankRows })
       .map(() => "<tr><td></td><td></td><td></td><td></td></tr>")
       .join("");
-    // บิลหลายแผ่นเขียนเลขต่อเนื่องแบบ 122/1 122/2 ตามแบบเอกสารต่อเนื่องของไทย
-    const receiptNo =
-      pages.length > 1 ? `${repair.id}/${pageIndex + 1}` : repair.id;
+    // บิลหลายแผ่นเขียนเลขต่อเนื่องแบบ RE-6909-0001/1 RE-6909-0001/2 ตามแบบเอกสารต่อเนื่องของไทย
+    const docNo = receiptDocNo(repair);
+    const receiptNo = pages.length > 1 ? `${docNo}/${pageIndex + 1}` : docNo;
 
     return `<div class="receipt-paper">
   <div class="head">
@@ -353,8 +408,10 @@ const RECEIPT_STYLES = `
     break-after: page;
   }
   .receipt-paper:last-of-type { break-after: auto; }
-  .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  /* สามช่องกว้างเท่ากันซ้ายขวา ชื่อเอกสารอยู่กลางแผ่นเสมอ ถึงเลขที่ทางขวาจะยาวกว่าเล่มที่ทางซ้าย */
+  .head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 8px; }
   .head .side { white-space: nowrap; display: flex; align-items: flex-end; gap: 4px; }
+  .head .side:last-child { justify-content: flex-end; }
   .dotted { border-bottom: 1px dotted #000; }
   .title { text-align: center; }
   .title .doc { font-size: 15pt; font-weight: 600; }
@@ -638,7 +695,7 @@ const repairTitle = (repair) => {
 
 // ใบวางบิลของหน่วยงานหรือร้านค้า: แผ่นเดียวจบ สรุปว่ามีบิลอะไรบ้างรวมเท่าไหร่
 // (ใบเสร็จของแต่ละบิลพิมพ์แยกจากหน้าบิลนั้นได้อยู่แล้ว ไม่ต้องแนบมาด้วยทุกครั้ง)
-const buildOrganizationBillHtml = (customer, repairs) => {
+const buildOrganizationBillHtml = (customer, repairs, billingNo) => {
   const total = repairs.reduce(
     (sum, repair) => sum + Number(repair.totalPrice || 0),
     0,
@@ -647,7 +704,7 @@ const buildOrganizationBillHtml = (customer, repairs) => {
   const rows = repairs
     .map(
       (repair) => `<tr>
-        <td class="c">${repair.id}</td>
+        <td class="c" style="white-space:nowrap">${escapeHtml(repair.deliveryNo || repair.receiptNo || String(repair.id))}</td>
         <td class="c">${escapeHtml(formatThaiDate(repair.createdAt))}</td>
         <td>${escapeHtml(repairTitle(repair))}</td>
         <td class="r">${formatMoney(Number(repair.totalPrice || 0))}</td>
@@ -656,11 +713,13 @@ const buildOrganizationBillHtml = (customer, repairs) => {
     .join("");
 
   const summary = `<div class="receipt-paper">
-  <div class="head" style="justify-content:center">
+  <div class="head">
+    <span></span>
     <div class="title">
       <div class="doc">ใบวางบิล</div>
       <div class="shop">${SHOP.name}</div>
     </div>
+    <p class="side">เลขที่<span class="dotted" style="min-width:42px;text-align:center;font-weight:600">${escapeHtml(billingNo || "")}</span></p>
   </div>
 
   <p class="center" style="margin:2px 0 0">${SHOP.address}</p>
@@ -671,7 +730,7 @@ const buildOrganizationBillHtml = (customer, repairs) => {
   <table style="margin-top:8px">
     <thead>
       <tr>
-        <th style="width:52px">เลขที่</th>
+        <th style="width:112px">เลขที่</th>
         <th style="width:86px">วันที่</th>
         <th>รายการ</th>
         <th style="width:92px">จำนวนเงิน</th>

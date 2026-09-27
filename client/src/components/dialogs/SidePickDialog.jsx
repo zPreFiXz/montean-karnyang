@@ -10,10 +10,11 @@ import {
 // แตะตัวเลือกแล้วจบเลย ไม่ต้องกดยืนยันอีกรอบ เพราะเลือกผิดก็ลบบรรทัดแล้วเลือกใหม่ได้
 // ป้ายเป็นตัวย่อเดียวกับที่ขึ้นบนการ์ดและใบเสร็จ การ์ดตัวเลือกหน้าตาเดียวกับหน้าต่างประเภทลูกค้า
 // ไม่ใช้ลูกศร เพราะ L คือซ้ายของรถ ไม่ใช่ซ้ายของคนดู ช่างที่ยืนหันหน้าเข้าหารถ ลูกศรจะชี้ผิดข้าง
+// เรียงตามตำแหน่งจริง: L อยู่ซ้าย R อยู่ขวา ทั้งสองข้างอยู่ตรงกลางระหว่างสองข้าง
 const OPTIONS = [
   { value: "left", code: "L" },
+  { value: "both", code: "L-R", needs: 2 },
   { value: "right", code: "R" },
-  { value: "both", code: "R-L", needs: 2 },
 ];
 
 const SidePickDialog = ({ isOpen, onClose, onPick, itemName, remaining }) => (
@@ -48,7 +49,7 @@ const SidePickDialog = ({ isOpen, onClose, onPick, itemName, remaining }) => (
 
         <div className="mt-[16px] flex gap-[8px]">
           {OPTIONS.map(({ value, code, needs }) => {
-            // R-L ใช้สองชิ้น สต็อกเหลือชิ้นเดียวเลือกไม่ได้
+            // L-R ใช้สองชิ้น สต็อกเหลือชิ้นเดียวเลือกไม่ได้
             const isDisabled =
               needs != null && remaining != null && remaining < needs;
 
@@ -68,16 +69,17 @@ const SidePickDialog = ({ isOpen, onClose, onPick, itemName, remaining }) => (
 
         {remaining != null && remaining < 2 && (
           <p className="text-subtle-light mt-[8px] text-center text-base font-medium md:text-lg">
-            สต็อกเหลือไม่พอสำหรับ R-L
+            สต็อกเหลือไม่พอสำหรับ L-R
           </p>
         )}
 
-        {/* ใช้นานๆ ครั้ง (ขายหน้าร้านให้ลูกค้าไปใส่เอง) จึงเป็นปุ่มรองแบบปุ่มยกเลิก ไม่ใช่การ์ดใบที่สี่
+        {/* ใช้นานๆ ครั้ง (ขายหน้าร้านให้ลูกค้าไปใส่เอง) จึงเตี้ยกว่าและตัวหนังสือสีเทา ดูรองจาก L / L-R / R
+            แต่หน้าตาเป็นการ์ดชุดเดียวกัน ไม่ใช่ปุ่มขาวขอบมนแบบปุ่มยกเลิก ไม่งั้นจะนึกว่ากดแล้วปิดหน้าต่างเฉยๆ
             ลงบิลเป็นบรรทัดปกติ ไม่มีป้ายข้าง ใบเสร็จไม่ต่อท้ายอะไร */}
         <button
           type="button"
           onClick={() => onPick("none")}
-          className="font-athiti bg-surface text-subtle-dark border-subtle-light mt-[16px] flex h-[41px] w-full cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold md:text-xl"
+          className="font-athiti active:border-primary active:bg-primary/5 text-subtle-dark mt-[8px] flex h-[48px] w-full cursor-pointer items-center justify-center rounded-[10px] border border-gray-200 bg-gray-50 text-lg font-semibold duration-300 md:text-xl"
         >
           ไม่ระบุข้าง
         </button>

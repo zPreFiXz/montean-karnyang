@@ -65,7 +65,7 @@ export const mergeSidesInOrder = (items = []) => {
     const side = sideOf(item);
     // หน้ากรอกบิลเก็บ "ทั้งสองข้าง" เป็นบรรทัดเดียวอยู่แล้ว
     if (side === "both") {
-      rows.push({ item, sideLabel: "R-L" });
+      rows.push({ item, sideLabel: "L-R" });
       continue;
     }
     if (side !== "left" && side !== "right") {
@@ -81,7 +81,7 @@ export const mergeSidesInOrder = (items = []) => {
         ...pair.item,
         quantity: Number(pair.item.quantity || 0) + Number(item.quantity || 0),
       };
-      pair.sideLabel = "R-L";
+      pair.sideLabel = "L-R";
       continue;
     }
 
@@ -148,6 +148,6 @@ export const collapseSidePairs = (items = []) => {
 };
 
 // จำนวนรายการที่บอกคน: ของชิ้นเดียวกันที่ใส่ทั้งซ้ายและขวานับเป็นรายการเดียว
-// ตรงกับที่หน้าจอยุบเป็นการ์ดเดียว (R-L) และที่ใบเสร็จยุบเป็นแถวเดียว
+// ตรงกับที่หน้าจอยุบเป็นการ์ดเดียว (L-R) และที่ใบเสร็จยุบเป็นแถวเดียว
 export const countDisplayedItems = (items = []) =>
   mergeSidesInOrder(items).length;

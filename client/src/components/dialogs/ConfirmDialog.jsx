@@ -22,6 +22,8 @@ const ConfirmDialog = ({
   itemName = "",
   // บรรทัดขยายใต้ชิป สำหรับกรณีที่ชื่ออย่างเดียวยังระบุตัวไม่ชัด (เช่น ทะเบียนรถ ต้องรู้ยี่ห้อรุ่นด้วย)
   itemDetail = "",
+  // ข้อความเตือนสั้นๆ ใต้ชิป สำหรับผลที่คนกดคาดไม่ถึง (เช่นลบแล้วเลขเอกสารขาดช่วง)
+  note = "",
   // ปุ่มยืนยันบอกสิ่งที่จะเกิดขึ้นจริง กล่องนี้ใช้กับงานล้างข้อมูลด้วย ไม่ได้มีแต่งานลบ
   confirmLabel = "ลบ",
   // แดงคือลบทิ้ง งานที่ไม่ได้ทำลายอะไรให้ส่งสีหลักของระบบมาแทน
@@ -128,7 +130,7 @@ const ConfirmDialog = ({
             {title}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            {`${title} ${itemName} ${itemDetail}`.trim()}
+            {`${title} ${itemName} ${itemDetail} ${note}`.trim()}
           </DialogDescription>
           <button
             onClick={onClose}
@@ -152,6 +154,11 @@ const ConfirmDialog = ({
                 </>
               )}
             </span>
+          )}
+          {note && (
+            <p className="text-subtle-dark mt-[12px] text-center text-base font-medium md:text-lg">
+              {note}
+            </p>
           )}
         </div>
 

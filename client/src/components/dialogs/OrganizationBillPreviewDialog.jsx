@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { X, Printer } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import CreditSummaryPaper from "@/components/receipt/CreditSummaryPaper";
@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { printOrganizationBill } from "@/api/customer";
+import { peekOrganizationBillNo, printOrganizationBill } from "@/api/customer";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
 
@@ -56,6 +56,20 @@ const OrganizationBillPreviewDialog = ({
   const [fitScale, setFitScale] = useState(estimateFitScale);
   const [isPrinting, setIsPrinting] = useState(false);
   const [isMeasured, setIsMeasured] = useState(false);
+  const [billingNo, setBillingNo] = useState("");
+
+  // ถามเลขทุกครั้งที่เปิด ชุดบิลอาจเปลี่ยนไปจากรอบก่อนแล้ว ถามไม่ได้ก็เว้นช่องว่างไว้ ตอนพิมพ์ยังได้เลขครบ
+  useEffect(() => {
+    if (!open || !customer?.id) return;
+    let isCurrent = true;
+    setBillingNo("");
+    peekOrganizationBillNo(customer.id, month)
+      .then((res) => isCurrent && setBillingNo(res.data?.number || ""))
+      .catch(() => {});
+    return () => {
+      isCurrent = false;
+    };
+  }, [open, customer?.id, month]);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -122,7 +136,7 @@ const OrganizationBillPreviewDialog = ({
 
   if (!customer || !repairs?.length) return null;
 
-  // เรียงตามเลขที่ใบเสร็จจากน้อยไปมาก ให้ตรงกับใบที่พิมพ์ออกมาจริง
+  // เรียงตามลำดับที่เปิดบิล ให้ตรงกับใบที่พิมพ์ออกมาจริง
   // (หน้าที่เรียกใช้เรียงใหม่สุดขึ้นก่อน ซึ่งเหมาะกับการอ่านบนจอ แต่คนละเรื่องกับบนกระดาษ)
   const ordered = [...repairs].sort((a, b) => a.id - b.id);
 
@@ -188,7 +202,11 @@ const OrganizationBillPreviewDialog = ({
                 className="receipt-paper font-athiti h-[210mm] w-[148mm] origin-top-left overflow-hidden bg-white p-[10mm] text-[11pt] leading-tight text-black"
                 style={{ transform: `scale(${scale})` }}
               >
-                <CreditSummaryPaper customer={customer} repairs={ordered} />
+                <CreditSummaryPaper
+                  customer={customer}
+                  repairs={ordered}
+                  billingNo={billingNo}
+                />
               </div>
             </div>
           </div>

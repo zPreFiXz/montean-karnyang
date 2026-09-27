@@ -11,6 +11,7 @@ const {
   listOrganizations,
   listOrganizationRepairs,
   printOrganizationBill,
+  peekOrganizationBillNo,
 } = require("../controllers/customer");
 
 router.get("/customers", authCheck, listCustomers);
@@ -20,6 +21,11 @@ router.get(
   "/customers/organizations/:id/repairs",
   authCheck,
   listOrganizationRepairs,
+);
+router.get(
+  "/customers/organizations/:id/billing-no",
+  authCheck,
+  peekOrganizationBillNo,
 );
 router.post(
   "/customers/organizations/:id/print",

@@ -1,8 +1,9 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { X, Printer } from "lucide-react";
+import { X, Printer, Download, LoaderCircle } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import ReceiptPaper, {
   hasShortenableName,
+  receiptDocNo,
   receiptDocTitle,
   receiptPageCount,
 } from "@/components/receipt/ReceiptPaper";
@@ -14,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { printRepairReceipt } from "@/api/repair";
+import { printRepairReceipt, renderRepairImages } from "@/api/repair";
 import { isSaleRepair, isNoVehicleRepair } from "@/utils/repairDisplay";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
@@ -55,6 +56,18 @@ const estimateFitScale = () => {
   );
 };
 
+// ไฟล์รูปจากเซิร์ฟเวอร์เป็นข้อความ base64 แปลงเป็นไฟล์แล้วสั่งดาวน์โหลดทีละแผ่น
+const downloadPng = (base64, fileName) => {
+  const bytes = Uint8Array.from(atob(base64), (ch) => ch.charCodeAt(0));
+  const url = URL.createObjectURL(new Blob([bytes], { type: "image/png" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  // ปล่อยให้เบราว์เซอร์เริ่มดาวน์โหลดก่อนค่อยคืนหน่วยความจำ
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
 const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
   // ตัวอย่างบนจอกับใบที่พิมพ์ต้องเป็นกระดาษแผ่นเดียวกันเป๊ะ
   // จึงวาดด้วยขนาดจริงของ A5 (หักขอบกระดาษแล้ว) แล้วย่อทั้งแผ่นให้พอดีความกว้างไดอะล็อก
@@ -67,6 +80,7 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
   // ขนาดที่ทำให้ทั้งแผ่นพอดีกรอบ คิดจากทั้งกว้างและสูง จะได้เห็นครบโดยไม่ต้องเลื่อน
   const [fitScale, setFitScale] = useState(estimateFitScale);
   const [isPrintingAtShop, setIsPrintingAtShop] = useState(false);
+  const [isSavingImage, setIsSavingImage] = useState(false);
   // ลูกค้าบางรายไม่อยากให้ชื่อกับที่อยู่ขึ้นบนใบ ปิดได้ก่อนสั่งพิมพ์
   const [showCustomer, setShowCustomer] = useState(true);
   // ชื่อในบิลมียี่ห้อกับรุ่นรถต่อท้ายจนยาว ใบเสร็จจึงตัดเหลือแค่ชนิดอะไหล่ไว้ก่อน
@@ -160,7 +174,8 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
 
   // ใบเสร็จยาวเกินหนึ่งแผ่นจะถูกแยกเป็นหลายใบ ใบสั่งซ่อมยังเป็นแผ่นเดียวเสมอ
   // (คำนวณหลังเช็กว่ามีบิลแล้ว หน้าที่ยังโหลดไม่เสร็จจะส่งค่าว่างมา)
-  const pageCount = docType === "job" ? 1 : receiptPageCount(repair);
+  const pageCount =
+    docType === "job" ? 1 : receiptPageCount(repair, { showBrand });
 
   const customerName = repair.customer?.name || "";
   const customerAddress = repair.customer?.address || "";
@@ -200,6 +215,41 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
       );
     } finally {
       setIsPrintingAtShop(false);
+    }
+  };
+
+  // รูปทำจากหน้าเอกสารชุดเดียวกับที่พิมพ์ ลูกค้าได้รูปหน้าตาเหมือนกระดาษจริง
+  const handleSaveImage = async () => {
+    if (isSavingImage) return;
+
+    try {
+      setIsSavingImage(true);
+      const res = await withMinDuration(() =>
+        renderRepairImages(repair.id, { showCustomer, showBrand, docType }),
+      );
+      const images = res.data?.images || [];
+      const fileBase =
+        docType === "job"
+          ? `ใบสั่งซ่อม-${repair.id}`
+          : `${receiptDocTitle(repair)}-${receiptDocNo(repair)}`;
+
+      // บางเบราว์เซอร์บล็อกการดาวน์โหลดหลายไฟล์ที่สั่งพร้อมกัน จึงเว้นจังหวะให้ทีละแผ่น
+      for (const [index, image] of images.entries()) {
+        const suffix = images.length > 1 ? `-${index + 1}` : "";
+        downloadPng(image, `${fileBase}${suffix}.png`);
+        if (index < images.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
+      }
+      toast.success(
+        images.length > 1
+          ? `บันทึกรูปแล้ว ${images.length} แผ่น`
+          : "บันทึกรูปแล้ว",
+      );
+    } catch (error) {
+      toastError(error, "บันทึกรูปไม่ได้ ลองใหม่อีกครั้ง");
+    } finally {
+      setIsSavingImage(false);
     }
   };
 
@@ -361,13 +411,19 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
         </div>
 
         <div className="receipt-chrome flex-shrink-0 px-[16px] pt-[8px] pb-[16px]">
-          <div className="flex gap-[16px]">
+          <div className="flex gap-[8px]">
             <button
               type="button"
-              onClick={() => onOpenChange(false)}
-              className="font-athiti bg-surface text-subtle-dark border-subtle-light flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold md:text-xl"
+              onClick={handleSaveImage}
+              disabled={isSavingImage}
+              className="font-athiti bg-surface text-primary border-primary flex h-[41px] flex-1 cursor-pointer items-center justify-center gap-[8px] rounded-[20px] border text-lg font-semibold whitespace-nowrap duration-300 disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
             >
-              ปิด
+              {isSavingImage ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              บันทึกรูป
             </button>
             <FormButton
               label={

@@ -29,7 +29,7 @@ const findChrome = () => {
   return found;
 };
 
-const htmlToPdf = async (html) => {
+const withPage = async (html, work) => {
   const browser = await puppeteer.launch({
     executablePath: findChrome(),
     headless: true,
@@ -38,17 +38,37 @@ const htmlToPdf = async (html) => {
 
   try {
     const page = await browser.newPage();
-    // waitUntil networkidle0 เพื่อให้ฟอนต์จากเน็ต (ถ้ามี) โหลดเสร็จก่อนแปลงเป็น PDF
+    // ขนาดหน้าต่างเท่ากระดาษ A5 (148 x 210 มม.) รูปที่ถ่ายจะได้จัดหน้าเหมือนใบที่พิมพ์
+    // ความละเอียดสองเท่า ตัวหนังสือในรูปจะคมตอนลูกค้าซูมดูในโทรศัพท์
+    await page.setViewport({ width: 560, height: 794, deviceScaleFactor: 2 });
+    // waitUntil networkidle0 เพื่อให้ฟอนต์จากเน็ต (ถ้ามี) โหลดเสร็จก่อนแปลง
     await page.setContent(html, { waitUntil: "networkidle0" });
-    return await page.pdf({
-      format: "A5",
-      printBackground: true,
-      margin: { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" },
-    });
+    return await work(page);
   } finally {
     await browser.close();
   }
 };
+
+const htmlToPdf = (html) =>
+  withPage(html, (page) =>
+    page.pdf({
+      format: "A5",
+      printBackground: true,
+      margin: { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" },
+    }),
+  );
+
+// ใบเสร็จหลายแผ่นได้รูปละแผ่น ใบสั่งซ่อมไม่มีกรอบแผ่นแยก ทั้งหน้าคือหนึ่งแผ่น จึงถ่ายทั้งหน้าต่าง
+const htmlToImages = (html) =>
+  withPage(html, async (page) => {
+    const sheets = await page.$$(".receipt-paper");
+    const shots = sheets.length
+      ? await Promise.all(
+          sheets.map((sheet) => sheet.screenshot({ type: "png" })),
+        )
+      : [await page.screenshot({ type: "png" })];
+    return shots.map((shot) => Buffer.from(shot).toString("base64"));
+  });
 
 const run = (command, args) =>
   new Promise((resolve, reject) => {
@@ -68,10 +88,7 @@ const ensurePrinterReady = async (printerName) => {
     const printer = require("pdf-to-printer");
     const printers = await printer.getPrinters().catch(() => []);
     if (printers.length === 0) {
-      createError(
-        503,
-        "ไม่พบเครื่องพิมพ์ ตรวจสอบสายและเปิดเครื่อง",
-      );
+      createError(503, "ไม่พบเครื่องพิมพ์ ตรวจสอบสายและเปิดเครื่อง");
     }
 
     // ถามสถานะจริงของเครื่อง ถ้าถามไม่ได้ก็ปล่อยผ่าน ดีกว่าบล็อกการพิมพ์เพราะตัวเช็กเอง
@@ -83,20 +100,14 @@ const ensurePrinterReady = async (printerName) => {
     ]).catch(() => "");
 
     if (/offline|error|paused/i.test(status)) {
-      createError(
-        503,
-        "เครื่องพิมพ์ไม่พร้อม ตรวจสอบสายและเปิดเครื่อง",
-      );
+      createError(503, "เครื่องพิมพ์ไม่พร้อม ตรวจสอบสายและเปิดเครื่อง");
     }
     return;
   }
 
   const listing = await run("lpstat", ["-p"]).catch(() => "");
   if (!listing.trim()) {
-    createError(
-      503,
-      "ไม่พบเครื่องพิมพ์ ตรวจสอบสายและเปิดเครื่อง",
-    );
+    createError(503, "ไม่พบเครื่องพิมพ์ ตรวจสอบสายและเปิดเครื่อง");
   }
 
   // ดูเฉพาะย่อหน้าของเครื่องที่จะใช้ ไม่งั้นเครื่องอื่นที่ออฟไลน์จะทำให้ทั้งระบบพิมพ์ไม่ได้
@@ -106,10 +117,7 @@ const ensurePrinterReady = async (printerName) => {
     : blocks[0] || "";
 
   if (/offline|ออฟไลน์|disabled|ปิดใช้งาน/i.test(block)) {
-    createError(
-      503,
-      "เครื่องพิมพ์ไม่พร้อม ตรวจสอบสายและเปิดเครื่อง",
-    );
+    createError(503, "เครื่องพิมพ์ไม่พร้อม ตรวจสอบสายและเปิดเครื่อง");
   }
 };
 
@@ -169,4 +177,4 @@ const printReceipt = async (html, fileTag) => {
   }
 };
 
-module.exports = { printReceipt };
+module.exports = { printReceipt, htmlToImages };

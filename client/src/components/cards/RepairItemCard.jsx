@@ -7,7 +7,7 @@ import { soldLotEntries } from "@/utils/tireLot";
 import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
 import { formatProductName } from "@/utils/tireSize";
 
-// sideLabel = ฝั่งที่ติดตั้ง (L / R / R-L) สำหรับหน้าที่ไม่ได้แบ่งหัวข้อตามฝั่ง
+// sideLabel = ฝั่งที่ติดตั้ง (L / R / L-R) สำหรับหน้าที่ไม่ได้แบ่งหัวข้อตามฝั่ง
 const RepairItemCard = ({ item, variant, onClick, sideLabel }) => {
   // ชื่อในบิลถูกอัปเดตให้ตรงกับคลังตั้งแต่ตอนแก้ชื่ออะไหล่แล้ว (ดู updatePart ฝั่งเซิร์ฟเวอร์)
   // ตรงนี้จึงอ่านค่าที่บันทึกไว้ตรงๆ และของที่ถูกลบออกจากคลังก็ยังมีชื่อเดิมให้อ่าน

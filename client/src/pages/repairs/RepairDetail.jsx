@@ -40,6 +40,7 @@ import { organizationLabel, creditPathFor } from "@/constants/organizations";
 import { Building2, Store, SquarePen, IdCard } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import ReceiptPreviewDialog from "@/components/dialogs/ReceiptPreviewDialog";
+import { receiptDocNo } from "@/components/receipt/ReceiptPaper";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import ComboBox from "@/components/ui/ComboBox";
 import PartPreviewDialog from "@/components/dialogs/PartPreviewDialog";
@@ -384,6 +385,11 @@ const RepairDetail = () => {
   const paidOnCreate = isSaleRepair(repair);
 
   const statusInfo = getStatusInfo(repair?.status) ?? DEFAULT_STATUS_INFO;
+  const docNo = receiptDocNo(repair);
+  // คำนำหน้า DO กับ QT บอกชนิดใบอยู่แล้ว เหมือนหัวข้อที่ขึ้นเลข RE ลอยๆ
+  const earlierDocNos = [repair?.deliveryNo, repair?.quotationNo].filter(
+    (no) => no && no !== docNo,
+  );
   const StatusIcon = statusInfo?.icon;
 
   // DB เก็บ side เป็นตัวพิมพ์ใหญ่ (enum LEFT/RIGHT/OTHER) — แปลงเป็นตัวเล็กให้ตรง UI state
@@ -747,12 +753,32 @@ const RepairDetail = () => {
           <PageSpinner />
         ) : (
           <div>
-            <div className="mb-[16px] flex items-center justify-between px-[20px]">
-              <p
-                className={`text-[22px] leading-tight font-semibold md:text-2xl ${statusInfo.color}`}
-              >
-                รหัสการซ่อม: {repair.id}
-              </p>
+            <div className="mb-[16px] flex items-center justify-between gap-[8px] px-[20px]">
+              {/* บิลที่ออกเอกสารแล้วแสดงเลขเอกสารแทนรหัส คำนำหน้า RE DO QT บอกชนิดใบอยู่แล้ว
+                  เลขของใบก่อนหน้า (ใบส่งของของบิลเครดิตที่จ่ายแล้ว) อยู่บรรทัดรอง ลูกค้าถือใบไหนมาก็หาเจอ */}
+              {docNo !== repair.id ? (
+                <div className="min-w-0">
+                  <p
+                    className={`truncate text-[22px] leading-tight font-semibold md:text-2xl ${statusInfo.color}`}
+                  >
+                    {docNo}
+                  </p>
+                  {earlierDocNos.map((no) => (
+                    <p
+                      key={no}
+                      className="text-subtle-dark truncate text-base leading-tight font-medium md:text-lg"
+                    >
+                      {no}
+                    </p>
+                  ))}
+                </div>
+              ) : (
+                <p
+                  className={`text-[22px] leading-tight font-semibold md:text-2xl ${statusInfo.color}`}
+                >
+                  รหัสการซ่อม: {repair.id}
+                </p>
+              )}
               <div className="flex items-center gap-2">
                 <div className={`rounded-full p-1 ${statusInfo.bg}`}>
                   <StatusIcon size={18} className="text-surface" />
@@ -1397,6 +1423,12 @@ const RepairDetail = () => {
         title={`ยืนยันการลบ${deleteTargetName}`}
         itemName={getRepairTitle(repair)}
         itemDetail={confirmItemDetail}
+        // ลบบิลล่าสุดได้เลขคืน ไม่ต้องเตือน เตือนเฉพาะเลขที่มีบิลใหม่กว่าได้เลขต่อไปแล้ว
+        note={
+          repair?.docNosSkippedOnDelete?.length
+            ? `เลขที่ ${repair.docNosSkippedOnDelete.join(", ")} จะขาดช่วง เพราะมีบิลใหม่กว่าได้เลขถัดไปแล้ว`
+            : ""
+        }
       />
     </div>
   );

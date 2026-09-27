@@ -105,7 +105,7 @@ export const quantityLabel = (item, quantity) => {
 };
 
 // บิลเช็กช่วงล่างเก็บข้างที่ใส่ไว้กับแต่ละบรรทัด ใบจึงต้องบอกด้วยว่าเปลี่ยนของข้างไหน
-// ของชิ้นเดียวกันที่ใส่ทั้งสองข้างยุบเป็นแถวเดียวแล้วห้อยท้ายว่า R-L
+// ของชิ้นเดียวกันที่ใส่ทั้งสองข้างยุบเป็นแถวเดียวแล้วห้อยท้ายว่า L-R
 export const mergeBySide = (items) => {
   const rows = [];
   const byKey = new Map();
@@ -134,7 +134,7 @@ export const mergeBySide = (items) => {
     ...row,
     sideLabel:
       row.sides.includes("L") && row.sides.includes("R")
-        ? "R-L"
+        ? "L-R"
         : row.sides[0] || "",
   }));
 };
@@ -149,8 +149,17 @@ export const receiptDocTitle = (repair) => {
   return "ใบเสร็จรับเงิน";
 };
 
+// เลขที่ของใบตามชนิดเอกสารของสถานะตอนนี้ ต้องตรงกับ receiptDocNo ใน server/utils/receiptHtml.js
+// ใบเสร็จมีเลขตั้งแต่เปิดบิล พิมพ์ไปเก็บเงินก่อนจ่ายได้ เลขเดียวกับหลังจ่าย
+export const receiptDocNo = (repair) => {
+  if (repair?.status === "ESTIMATE") return repair.quotationNo || repair.id;
+  if (repair?.status === "CREDIT") return repair.deliveryNo || repair.id;
+  return repair?.receiptNo || repair?.id;
+};
+
 export const receiptHeaderInfo = (repair) => {
-  const issuedAt = new Date(repair.paidAt || repair.createdAt || Date.now());
+  // วันเปิดบิล ไม่ใช่วันรับเงิน ต้องตรงกับ buildReceiptHtml ใน server/utils/receiptHtml.js
+  const issuedAt = new Date(repair.createdAt || Date.now());
   const plate = repair.vehicle?.licensePlate;
 
   return {
@@ -165,32 +174,69 @@ export const receiptHeaderInfo = (repair) => {
   };
 };
 
-// บิลที่มีรายการเกินหนึ่งหน้าให้แยกเป็นใบต่อไป แผ่นละ MIN_ROWS บรรทัด
-// ยอดรวมกับส่วนลดอยู่แผ่นสุดท้ายแผ่นเดียว ไม่งั้นอ่านแล้วนึกว่าจ่ายหลายรอบ
-export const buildReceiptPages = (repair) => {
+// ชื่อยาวตกเป็นสองบรรทัดในใบเสร็จ แถวสูงเกือบเท่าตัว ถ้านับทุกแถวเป็นหนึ่ง
+// แผ่นที่มีชื่อยาวหลายแถวจะล้นกระดาษ ท้ายใบ (ช่องลงชื่อ) ถูกตัดหายไปเงียบๆ
+// จึงประมาณจำนวนบรรทัดจากความกว้างตัวอักษร (วัดจากฟอนต์ของใบเสร็จ ช่องรายการกว้างราว 236 จุด)
+// เผื่อไว้ราวหนึ่งในสิบ ประมาณเกินดีกว่าขาด ขาดคือกระดาษล้น เกินแค่มีบรรทัดว่างเพิ่ม
+// สระบน-ล่างกับวรรณยุกต์ซ้อนอยู่บนตัวอักษรอื่น ไม่กินความกว้าง
+const NAME_LINE_WIDTH = 217;
+const THAI_COMBINING = /[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/;
+const charWidth = (ch) => {
+  if (THAI_COMBINING.test(ch)) return 0;
+  if (/[\u0E00-\u0E7F]/.test(ch)) return 6;
+  if (/[A-Z]/.test(ch)) return 9;
+  if (/[a-z]/.test(ch)) return 7;
+  if (/[0-9]/.test(ch)) return 8;
+  if (ch === " ") return 4;
+  return 6;
+};
+export const estimateNameLines = (text) => {
+  const width = [...String(text || "")].reduce(
+    (sum, ch) => sum + charWidth(ch),
+    0,
+  );
+  return Math.max(1, Math.ceil(width / NAME_LINE_WIDTH));
+};
+
+// แบ่งแผ่นตามจำนวนบรรทัดที่ใช้จริง แผ่นละไม่เกิน MIN_ROWS บรรทัด
+const paginateRows = (rows, linesOf) => {
+  const pages = [[]];
+  let used = 0;
+  for (const row of rows) {
+    const lines = linesOf(row);
+    if (used + lines > MIN_ROWS && pages[pages.length - 1].length > 0) {
+      pages.push([]);
+      used = 0;
+    }
+    pages[pages.length - 1].push(row);
+    used += lines;
+  }
+  return pages;
+};
+
+// ชื่อบนแถวของใบเสร็จ ตามสวิตช์ชื่ออะไหล่แบบเต็ม และห้อยข้างที่ใส่ไว้ท้ายชื่อ
+const rowName = ({ item, sideLabel }, showBrand) => {
+  const base = showBrand ? item.itemName : shortWorkName(item);
+  return sideLabel ? `${base} (${sideLabel})` : base;
+};
+
+export const rowLines = (row, showBrand) =>
+  estimateNameLines(rowName(row, showBrand));
+
+// บิลที่มีรายการเกินหนึ่งหน้าให้แยกเป็นใบต่อไป แผ่นละ MIN_ROWS บรรทัด (นับบรรทัดที่ชื่อยาวตกลงมาด้วย)
+// ยอดรวมกับส่วนลดต่อท้ายแผ่นสุดท้ายเสมอ ไม่นับเป็นหนึ่งใน MIN_ROWS
+// กระดาษยังเหลือที่ใต้ตารางราวห้าบรรทัด รายการเต็มสิบบรรทัดก็ยังมีที่ให้ยอดรวมอยู่แผ่นเดียวกัน
+export const buildReceiptPages = (repair, { showBrand = true } = {}) => {
   const allItems = repair?.repairItems || [];
   const discountItems = allItems.filter(isDiscountItem);
   const rows = mergeBySide(allItems.filter((item) => !isDiscountItem(item)));
-
-  const pages = [];
-  for (
-    let start = 0;
-    start < rows.length || pages.length === 0;
-    start += MIN_ROWS
-  ) {
-    pages.push(rows.slice(start, start + MIN_ROWS));
-  }
-
-  // แถวยอดรวมกับส่วนลดกินที่ของแผ่นสุดท้าย ถ้าไม่พอก็ขึ้นแผ่นใหม่ให้
-  const lastPage = pages[pages.length - 1];
-  const summaryRows = discountItems.length ? discountItems.length + 1 : 1;
-  if (lastPage.length + summaryRows > MIN_ROWS) pages.push([]);
+  const pages = paginateRows(rows, (row) => rowLines(row, showBrand));
 
   return { pages, discountItems };
 };
 
-export const receiptPageCount = (repair) =>
-  buildReceiptPages(repair).pages.length;
+export const receiptPageCount = (repair, options) =>
+  buildReceiptPages(repair, options).pages.length;
 
 // เนื้อในของใบเสร็จหนึ่งแผ่น กระดาษกับการย่อขนาดอยู่ที่ ReceiptPreviewDialog
 const ReceiptPaper = ({
@@ -205,7 +251,7 @@ const ReceiptPaper = ({
   const customerAddress = repair.customer?.address || "";
   const customerTaxId = repair.customer?.taxId || "";
 
-  const { pages, discountItems } = buildReceiptPages(repair);
+  const { pages, discountItems } = buildReceiptPages(repair, { showBrand });
   const pageCount = pages.length;
   const items = pages[pageIndex] || [];
   const isLastPage = pageIndex === pageCount - 1;
@@ -221,7 +267,11 @@ const ReceiptPaper = ({
       ? discountItems.length + 1
       : 1
     : 0;
-  const blankRows = Math.max(0, MIN_ROWS - items.length - summaryRows);
+  const usedLines = items.reduce(
+    (sum, row) => sum + rowLines(row, showBrand),
+    0,
+  );
+  const blankRows = Math.max(0, MIN_ROWS - usedLines - summaryRows);
   // ยอดในบิลหักส่วนลดไปแล้ว ยอดก่อนหักจึงต้องบวกกลับ (ส่วนลดเก็บเป็นเลขติดลบ)
   const total = Number(repair.totalPrice || 0);
   const subtotal = total - discountTotal;
@@ -239,9 +289,11 @@ const ReceiptPaper = ({
         </div>
         <p className="flex items-end justify-end gap-[4px] whitespace-nowrap">
           เลขที่
-          {/* บิลหลายแผ่นเขียนเลขต่อเนื่องแบบ 122/1 122/2 ตามแบบเอกสารต่อเนื่องของไทย */}
+          {/* บิลหลายแผ่นเขียนเลขต่อเนื่องแบบ RE-6909-0001/1 RE-6909-0001/2 ตามแบบเอกสารต่อเนื่องของไทย */}
           <span className="min-w-[42px] border-b border-dotted border-black text-center font-semibold">
-            {pageCount > 1 ? `${repair.id}/${pageIndex + 1}` : repair.id}
+            {pageCount > 1
+              ? `${receiptDocNo(repair)}/${pageIndex + 1}`
+              : receiptDocNo(repair)}
           </span>
         </p>
       </div>

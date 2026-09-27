@@ -93,6 +93,9 @@ const RepairList = () => {
       repair?.vehicle?.vehicleModel?.brand,
       repair?.vehicle?.vehicleModel?.model,
       repair?.customer?.name,
+      repair?.receiptNo,
+      repair?.deliveryNo,
+      repair?.quotationNo,
     ]
       .filter(Boolean)
       .some((field) => String(field).toLowerCase().includes(search));

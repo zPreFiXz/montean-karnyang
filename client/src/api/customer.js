@@ -24,6 +24,13 @@ export const listOrganizationRepairs = async (id, scope) => {
   });
 };
 
+// เลขใบวางบิลที่จะได้ถ้าพิมพ์ตอนนี้ (ชุดบิลเดิมได้เลขเดิม) ไว้แสดงในหน้าตัวอย่าง
+export const peekOrganizationBillNo = async (id, month) => {
+  return await apiClient.get(`/customers/organizations/${id}/billing-no`, {
+    params: month ? { month } : {},
+  });
+};
+
 // พิมพ์ใบวางบิล: ใบสรุปยอดค้างหนึ่งแผ่น ตามด้วยใบเสร็จของแต่ละบิล
 // ส่ง month (เช่น 2026-09) มาเมื่อพิมพ์ของเดือนนั้น ไม่ส่ง = บิลที่ยังค้างชำระทั้งหมด
 export const printOrganizationBill = async (id, month) => {

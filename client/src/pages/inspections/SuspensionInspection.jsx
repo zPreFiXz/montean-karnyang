@@ -72,6 +72,7 @@ import {
   USED_TIRE_CATEGORY,
 } from "@/constants/categories";
 import EditQuantityDialog from "@/components/dialogs/EditQuantityDialog";
+import SidePickDialog from "@/components/dialogs/SidePickDialog";
 import { collapseSidePairs, expandBothSides } from "@/utils/repairItemGroups";
 import { scrollToNewRow } from "@/utils/scrollToNewRow";
 import CollapsibleRow from "@/components/ui/CollapsibleRow";
@@ -103,7 +104,7 @@ const OTHER_TAB_ORDER = ["คันส่งกลาง", "โช้คหน�
 
 // หน่วงสั้นๆ ให้เห็นตัวหมุนก่อนหน้าจอเปลี่ยน (ไม่ได้รอเซิร์ฟเวอร์ ข้อมูลส่งต่อผ่าน state ล้วน)
 // ข้างของรายการซ่อมเพิ่มเติมที่เลือกมาจากหน้างานซ่อม
-const SIDE_BADGE_LABELS = { left: "L", right: "R", both: "R-L" };
+const SIDE_BADGE_LABELS = { left: "L", right: "R", both: "L-R" };
 
 const SUBMIT_FEEDBACK_MS = 400;
 
@@ -374,7 +375,7 @@ const SuspensionInspection = () => {
           isPerSideServiceItem(i) ||
           i.category?.name === "ช่วงล่าง");
       const tabItems = savedItems.filter(isTabItem);
-      // ซ้ายกับขวาของชิ้นเดียวกัน รวมกลับเป็นบรรทัดทั้งสองข้าง (R-L) แบบเดียวกับหน้างานซ่อม
+      // ซ้ายกับขวาของชิ้นเดียวกัน รวมกลับเป็นบรรทัดทั้งสองข้าง (L-R) แบบเดียวกับหน้างานซ่อม
       const manualItems = collapseSidePairs(
         savedItems.filter((i) => !isTabItem(i)),
       );
@@ -611,25 +612,56 @@ const SuspensionInspection = () => {
     setValue("taxId", customer.taxId || "", { shouldValidate: true });
   };
 
+  // อะไหล่หรือบริการที่ตั้งว่าแยกซ้าย-ขวา ถามข้างก่อนลงรายการซ่อมเพิ่มเติม เหมือนหน้างานซ่อม
+  // (อะไหล่ช่วงล่างของรุ่นนี้เลือกข้างจากแท็บอยู่แล้ว ที่มาทางนี้คือของหมวดอื่น เช่น เบรก ไฟ)
+  const [sidePickItem, setSidePickItem] = useState(null);
   const handleAddItemToRepair = (item) => {
+    if (isPerSide(item.attributes)) {
+      setSidePickItem(item);
+      return;
+    }
+    addItemLine(item);
+  };
+
+  const handlePickSide = (side) => {
+    const item = sidePickItem;
+    setSidePickItem(null);
+    if (item) addItemLine(item, side === "none" ? null : side);
+  };
+
+  // ชิ้นเดียวกันทุกบรรทัดในรายการเพิ่มเติม ใช้คิดว่าเหลือพอให้เลือกทั้งสองข้างไหม
+  const usedOfPartInList = (item) =>
+    repairItems
+      .filter(
+        (line) =>
+          !!line.partNumber &&
+          line.partNumber === item.partNumber &&
+          line.id === item.id,
+      )
+      .reduce((sum, line) => sum + Number(line.quantity || 0), 0);
+
+  const addItemLine = (item, side = null) => {
     setRepairItems((prev) => {
       const itemWithSide = {
         ...item,
-        side: null,
+        side,
+        // เลือกข้างเองจากหน้าต่างเลือกข้าง อยู่ในรายการเพิ่มเติม ไม่ถูกย้ายเข้าแท็บตอนกลับจากหน้าสรุป
+        pickedSide: !!side,
       };
 
       const index = prev.findIndex(
         (i) =>
           i.partNumber === itemWithSide.partNumber &&
           i.brand === itemWithSide.brand &&
-          i.name === itemWithSide.name,
+          i.name === itemWithSide.name &&
+          (i.side || null) === side,
       );
       if (index !== -1) {
         return prev.map((i, idx) =>
           idx === index && !isSingleQuantityItem(i)
             ? {
                 ...i,
-                quantity: i.quantity + 1,
+                quantity: i.quantity + stepOf(i),
               }
             : i,
         );
@@ -641,7 +673,8 @@ const SuspensionInspection = () => {
             isPartLine: isPartLikeItem(itemWithSide),
             // บรรทัดส่วนลดเก็บราคาติดลบ ยอดรวมจึงหักออกให้เอง
             isDiscountLine: isDiscountItem(itemWithSide),
-            quantity: 1,
+            // ทั้งสองข้างเป็นบรรทัดเดียว ป้าย L-R เริ่มที่ 2 ชิ้น
+            quantity: side === "both" ? 2 : 1,
             sellingPrice: itemWithSide.sellingPrice,
             // ราคาตั้งต้นจากคลัง ไว้เทียบตอนแก้ราคา (sellingPrice จะถูกทับเมื่อปรับราคา)
             basePrice: itemWithSide.sellingPrice,
@@ -1172,7 +1205,7 @@ const SuspensionInspection = () => {
   };
 
   const hasVehicleSelected = Boolean(watch("brand") && watch("model"));
-  // รถรุ่นนี้ยังไม่ได้ผูกอะไหล่ = เช็กตามตำแหน่งไม่ได้ ต้องไปทำเป็นงานซ่อมทั่วไป
+  // รถรุ่นนี้ยังไม่ได้ผูกอะไหล่ = เช็กตามตำแหน่งไม่ได้ ต้องเปลี่ยนเป็นงานซ่อมทั่วไป
   const hasNoCompatibleParts =
     hasVehicleSelected && compatibleParts.length === 0;
 
@@ -1208,6 +1241,9 @@ const SuspensionInspection = () => {
       state: {
         repairData: getValues(),
         repairItems,
+        // เลื่อนลงไปที่รายการซ่อมเลย เหมือนตอนกดเช็กช่วงล่างต่อจากหน้างานซ่อม
+        // ข้อมูลรถกับลูกค้ายกมาครบแล้ว สิ่งที่อยากเห็นคือรายการที่ย้ายตามมา
+        scrollToItems: true,
         // แก้บิลเดิมอยู่ต้องบอกต่อไปด้วย ไม่งั้นหน้างานซ่อมจะนึกว่าเป็นบิลใหม่
         // แล้วเก็บบิลนี้เป็นร่างไปโผล่ตอนเปิดบิลใหม่ และกดบันทึกจะกลายเป็นบิลซ้ำอีกใบ
         editRepairId: location.state?.editRepairId,
@@ -1296,7 +1332,7 @@ const SuspensionInspection = () => {
               onClick={handleSwitchToGeneralRepair}
               className="border-primary text-primary bg-surface flex h-[41px] cursor-pointer items-center justify-center rounded-[20px] border px-[20px] text-lg font-semibold md:text-xl"
             >
-              ทำเป็นงานซ่อมทั่วไป
+              เปลี่ยนเป็นงานซ่อมทั่วไป
             </button>
           )}
         </div>
@@ -2038,7 +2074,7 @@ const SuspensionInspection = () => {
                 {isSwitchingToGeneral && (
                   <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                ทำเป็นงานซ่อมทั่วไป
+                เปลี่ยนเป็นงานซ่อมทั่วไป
               </button>
             </div>
 
@@ -2833,6 +2869,21 @@ const SuspensionInspection = () => {
         canEditName
         isPartLine={isPartLikeItem(editingItem)}
         isDiscountLine={isDiscountItem(editingItem)}
+      />
+
+      <SidePickDialog
+        isOpen={!!sidePickItem}
+        onClose={() => setSidePickItem(null)}
+        onPick={handlePickSide}
+        itemName={sidePickItem ? getProductName(sidePickItem) : ""}
+        remaining={
+          // บริการไม่มีสต็อก เลือกทั้งสองข้างได้เสมอ
+          sidePickItem?.partNumber && !isUnlimitedStockItem(sidePickItem)
+            ? Number(sidePickItem.quantity ?? 0) -
+              usedOfPartInList(sidePickItem) -
+              getTabSelectedCountForItem(sidePickItem)
+            : null
+        }
       />
 
       <EditQuantityDialog

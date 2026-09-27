@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   Menu,
@@ -15,6 +15,7 @@ import InventoryCard from "@/components/cards/InventoryCard";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
 import StatusCard from "@/components/cards/StatusCard";
 import { listInventory } from "@/api/inventory";
+import { listCategories } from "@/api/category";
 import {
   formatCurrency,
   formatDateWithWeekday,
@@ -100,6 +101,60 @@ const Dashboard = () => {
   });
   // แสดงครบทุกรายการ ไม่ตัดจำนวน — การเตือนที่ซ่อนของบางส่วนไว้ทำให้เชื่อผิดว่าเห็นครบแล้ว
   const stockAlertCount = outOfStockItems.length + lowStockItems.length;
+
+  // แยกตามหมวด ร้านสั่งของเป็นเจ้าๆ (ยางจากร้านยาง แบตจากร้านแบต) จะได้เห็นว่าต้องสั่งอะไรจากใครบ้าง
+  // เรียงหมวดตามแถบหมวดหมู่ในหน้าสต็อก ในหมวดเดียวกันของหมดขึ้นก่อนของใกล้หมดเหมือนเดิม
+  const [categoryOrder, setCategoryOrder] = useState([]);
+  useEffect(() => {
+    listCategories()
+      .then((res) =>
+        setCategoryOrder(
+          [...(res.data || [])]
+            .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+            .map((c) => c.name),
+        ),
+      )
+      .catch(() => {
+        // ไม่รู้ลำดับหมวดก็ยังแยกกลุ่มได้ แค่เรียงตามลำดับที่เจอ
+      });
+  }, []);
+
+  const stockAlertGroups = useMemo(() => {
+    const groups = new Map();
+    for (const item of [...outOfStockItems, ...lowStockItems]) {
+      const name = item?.category?.name || "อื่นๆ";
+      if (!groups.has(name)) groups.set(name, []);
+      groups.get(name).push(item);
+    }
+    const rank = (name) => {
+      const i = categoryOrder.indexOf(name);
+      return i === -1 ? categoryOrder.length : i;
+    };
+    return [...groups.entries()]
+      .map(([name, items]) => ({ name, items }))
+      .sort((a, b) => rank(a.name) - rank(b.name));
+  }, [outOfStockItems, lowStockItems, categoryOrder]);
+
+  // มีหมวดเดียวไม่ต้องมีหัวข้อ ไม่มีอะไรให้แยก หัวข้อหน้าตาเดียวกับหน้าสต็อกตอนดูทั้งหมด
+  const renderStockAlerts = (keyPrefix) =>
+    stockAlertGroups.map((group, index) => (
+      <div key={`${keyPrefix}-${group.name}`}>
+        {stockAlertGroups.length > 1 && (
+          <div
+            className={`flex items-center gap-[8px] ${index > 0 ? "mt-[16px]" : ""}`}
+          >
+            <p className="text-subtle-dark text-lg font-semibold md:text-xl">
+              {group.name}
+            </p>
+            <span className="text-subtle-light text-lg md:text-xl">
+              ({group.items.length})
+            </span>
+            <div className="bg-subtle-light/40 h-px flex-1" />
+          </div>
+        )}
+        {group.items.map((item) => renderStockCard(item, keyPrefix))}
+      </div>
+    ));
 
   // แสดงยี่ห้อ+รุ่น หรือแค่รุ่นถ้ายี่ห้อเป็น "อื่นๆ"
   const handleLogout = async () => {
@@ -253,14 +308,7 @@ const Dashboard = () => {
                   <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
                 </div>
               ) : (
-                <div>
-                  {outOfStockItems.map((item) =>
-                    renderStockCard(item, "desk-out"),
-                  )}
-                  {lowStockItems.map((item) =>
-                    renderStockCard(item, "desk-low"),
-                  )}
-                </div>
+                <div>{renderStockAlerts("desk")}</div>
               )}
             </div>
           </div>
@@ -448,12 +496,7 @@ const Dashboard = () => {
                   <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
                 </div>
               ) : (
-                <>
-                  {outOfStockItems.map((item) =>
-                    renderStockCard(item, "m-out"),
-                  )}
-                  {lowStockItems.map((item) => renderStockCard(item, "m-low"))}
-                </>
+                <>{renderStockAlerts("m")}</>
               )}
             </div>
           )}

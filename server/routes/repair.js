@@ -18,6 +18,7 @@ const {
   updateRepairStatus,
   deleteRepair,
   printRepairReceipt,
+  renderRepairImages,
 } = require("../controllers/repair");
 
 router.get("/repairs", authCheck, listRepairs);
@@ -26,6 +27,7 @@ router.post("/repairs", authCheck, validate(repairSchema), createRepair);
 router.put("/repairs/:id", authCheck, validate(repairSchema), updateRepair);
 router.delete("/repairs/:id", authCheck, deleteRepair);
 router.post("/repairs/:id/print", authCheck, printRepairReceipt);
+router.post("/repairs/:id/image", authCheck, renderRepairImages);
 router.patch(
   "/repairs/:id/status",
   authCheck,
