@@ -143,6 +143,7 @@ const RepairReview = () => {
         // ทะเบียนไทยเขียนเว้นวรรค ไม่ใช่ขีด — ต้องตรงกับที่ RepairDetail แยกกลับตอนกดแก้ไข
         plate: `${repairData.plateLetters} ${repairData.plateNumbers}`,
         province: getProvinceName(repairData.province),
+        fleetNo: repairData.fleetNo?.trim() || "",
         description: repairData.description,
         ...(repairData.mileage ? { mileage: Number(repairData.mileage) } : {}),
         totalPrice: totalPrice,
@@ -366,6 +367,16 @@ const RepairReview = () => {
                         : "ไม่ระบุ"}
                     </p>
                   </div>
+                  {repairData.fleetNo?.trim() && (
+                    <div className="flex justify-between">
+                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                        เบอร์รถ:
+                      </p>
+                      <p className="text-normal text-lg font-semibold md:text-xl">
+                        {repairData.fleetNo.trim()}
+                      </p>
+                    </div>
+                  )}
                   <div className="flex items-start justify-between">
                     <p className="text-subtle-dark flex-shrink-0 text-lg font-medium md:text-xl">
                       เลขกิโลเมตร:

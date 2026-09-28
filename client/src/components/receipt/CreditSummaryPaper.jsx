@@ -75,6 +75,8 @@ const CreditSummaryPaper = ({ customer, repairs, billingNo }) => {
                 {getRepairTitle(repair) === "ไม่ระบุทะเบียนรถ"
                   ? getDisplayBrand(repair.vehicle?.vehicleModel) || "งานซ่อม"
                   : getRepairTitle(repair)}
+                {/* บริษัทที่มีรถหลายคันเรียกรถด้วยเบอร์ ฝ่ายบัญชีจะเทียบกับรายการของเขาได้ง่าย */}
+                {repair.vehicle?.fleetNo && ` เบอร์รถ ${repair.vehicle.fleetNo}`}
               </td>
               <td className="border border-black px-[4px] text-right">
                 {money(repair.totalPrice)}

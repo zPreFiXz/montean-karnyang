@@ -6,6 +6,7 @@ const { printReceipt, htmlToImages } = require("../utils/printReceipt");
 const {
   assignRepairDocumentNo,
   releaseRepairDocumentNo,
+  releaseReceiptNo,
   docNosSkippedOnDelete,
 } = require("../utils/documentNumber");
 const {
@@ -461,6 +462,7 @@ exports.createRepair = async (req, res, next) => {
       model,
       plate,
       province,
+      fleetNo,
       description,
       mileage,
       totalPrice,
@@ -469,6 +471,7 @@ exports.createRepair = async (req, res, next) => {
       noVehicle,
       repairItems,
     } = req.body;
+    const fleet = fleetNo?.trim() || null;
 
     // ห่อทั้งหมดใน transaction: ถ้าพังกลางทางจะ rollback ไม่เหลือข้อมูลค้างครึ่ง
     const isSale = type === "SALE";
@@ -504,7 +507,14 @@ exports.createRepair = async (req, res, next) => {
               data: {
                 vehicleModelId: vehicleModel.id,
                 licensePlateId: licensePlate.id,
+                fleetNo: fleet,
               },
+            });
+          } else if (fleet && vehicle.fleetNo !== fleet) {
+            // เปิดบิลใหม่แล้วเว้นช่องเบอร์ไว้ = ไม่ได้กรอก ไม่ใช่ตั้งใจลบ จึงเปลี่ยนเฉพาะตอนกรอกมา
+            vehicle = await tx.vehicle.update({
+              where: { id: vehicle.id },
+              data: { fleetNo: fleet },
             });
           }
         } else {
@@ -516,17 +526,28 @@ exports.createRepair = async (req, res, next) => {
             data: {
               vehicleModelId: vehicleModel.id,
               licensePlateId: licensePlate.id,
+              fleetNo: fleet,
             },
           });
         }
       } else {
+        // รถไม่มีทะเบียนรุ่นเดียวกันใช้แถวรถร่วมกัน รถที่มีเบอร์จึงแยกคันตามเบอร์
+        // ไม่งั้นใส่เบอร์ให้คันหนึ่ง ทุกคันรุ่นเดียวกันที่ไม่มีทะเบียนจะได้เบอร์นั้นไปด้วย
         vehicle = await tx.vehicle.findFirst({
-          where: { vehicleModelId: vehicleModel.id, licensePlateId: null },
+          where: {
+            vehicleModelId: vehicleModel.id,
+            licensePlateId: null,
+            fleetNo: fleet,
+          },
         });
 
         if (!vehicle) {
           vehicle = await tx.vehicle.create({
-            data: { vehicleModelId: vehicleModel.id, licensePlateId: null },
+            data: {
+              vehicleModelId: vehicleModel.id,
+              licensePlateId: null,
+              fleetNo: fleet,
+            },
           });
         }
       }
@@ -593,6 +614,7 @@ exports.updateRepair = async (req, res, next) => {
       model,
       plate,
       province,
+      fleetNo,
       description,
       mileage,
       totalPrice,
@@ -601,6 +623,7 @@ exports.updateRepair = async (req, res, next) => {
       noVehicle,
       repairItems,
     } = req.body;
+    const fleet = fleetNo?.trim() || null;
 
     // ห่อทั้งหมดใน transaction: คืนสต็อก + ลบ/สร้างรายการใหม่ + อัปเดตบิล ต้อง atomic
     const isSale = type === "SALE";
@@ -641,20 +664,27 @@ exports.updateRepair = async (req, res, next) => {
           });
         }
 
+        // หน้าแก้ไขเติมเบอร์เดิมไว้ให้แล้ว ช่องว่างตอนแก้จึงแปลว่าลบเบอร์ออก
         vehicle = await tx.vehicle.upsert({
           where: { id: currentRepair.vehicleId ?? 0 },
           update: {
             vehicleModelId: vehicleModel.id,
             licensePlateId: licensePlate.id,
+            fleetNo: fleet,
           },
           create: {
             vehicleModelId: vehicleModel.id,
             licensePlateId: licensePlate.id,
+            fleetNo: fleet,
           },
         });
       } else {
         const existingVehicle = await tx.vehicle.findFirst({
-          where: { vehicleModelId: vehicleModel.id, licensePlateId: null },
+          where: {
+            vehicleModelId: vehicleModel.id,
+            licensePlateId: null,
+            fleetNo: fleet,
+          },
         });
 
         if (existingVehicle && existingVehicle.id !== currentRepair.vehicleId) {
@@ -662,12 +692,20 @@ exports.updateRepair = async (req, res, next) => {
         } else if (currentRepair.vehicleId) {
           vehicle = await tx.vehicle.update({
             where: { id: currentRepair.vehicleId },
-            data: { vehicleModelId: vehicleModel.id, licensePlateId: null },
+            data: {
+              vehicleModelId: vehicleModel.id,
+              licensePlateId: null,
+              fleetNo: fleet,
+            },
           });
         } else {
           // บิลเดิมเป็นการขายหน้าร้าน ยังไม่เคยมีรถผูกไว้
           vehicle = await tx.vehicle.create({
-            data: { vehicleModelId: vehicleModel.id, licensePlateId: null },
+            data: {
+              vehicleModelId: vehicleModel.id,
+              licensePlateId: null,
+              fleetNo: fleet,
+            },
           });
         }
       }
@@ -861,6 +899,7 @@ exports.updateRepairStatus = async (req, res, next) => {
         data,
       });
 
+      if (toEstimate) await releaseReceiptNo(tx, Number(id));
       await assignRepairDocumentNo(tx, Number(id));
     });
 

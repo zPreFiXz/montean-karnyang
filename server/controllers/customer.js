@@ -223,6 +223,7 @@ const findBillRepairs = async (id, month) => {
       createdAt: true,
       vehicle: {
         select: {
+          fleetNo: true,
           licensePlate: { select: { plateNumber: true, province: true } },
           vehicleModel: { select: { brand: true, model: true } },
         },

@@ -96,6 +96,7 @@ export const repairSchema = z
     plateLetters: z.string().optional(),
     plateNumbers: z.string().optional(),
     province: z.string().optional(),
+    fleetNo: z.string().max(20, "เบอร์รถยาวเกิน 20 ตัวอักษร").optional(),
     description: z.string().optional(),
     mileage: z
       .string()

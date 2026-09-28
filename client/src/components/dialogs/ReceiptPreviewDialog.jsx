@@ -3,6 +3,7 @@ import { X, Printer, Download, LoaderCircle } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import ReceiptPaper, {
   hasShortenableName,
+  jobSheetNo,
   receiptDocNo,
   receiptDocTitle,
   receiptPageCount,
@@ -228,14 +229,17 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
         renderRepairImages(repair.id, { showCustomer, showBrand, docType }),
       );
       const images = res.data?.images || [];
-      const fileBase =
-        docType === "job"
-          ? `ใบสั่งซ่อม-${repair.id}`
-          : `${receiptDocTitle(repair)}-${receiptDocNo(repair)}`;
+      // ชื่อไฟล์เป็นเลขเอกสารล้วน คำนำหน้า RE DO QT บอกชนิดใบอยู่แล้ว และไม่มีภาษาไทยที่บางระบบอ่านเพี้ยน
+      // บิลที่ยังไม่ได้เลข ใช้ชื่อใบนำหน้ารหัสการซ่อม จะได้รู้ว่าเป็นไฟล์อะไร
+      const docNo =
+        docType === "job" ? jobSheetNo(repair) : receiptDocNo(repair);
+      const title = docType === "job" ? "ใบสั่งซ่อม" : receiptDocTitle(repair);
+      const fileBase = docNo === repair.id ? `${title}-${repair.id}` : docNo;
 
       // บางเบราว์เซอร์บล็อกการดาวน์โหลดหลายไฟล์ที่สั่งพร้อมกัน จึงเว้นจังหวะให้ทีละแผ่น
       for (const [index, image] of images.entries()) {
-        const suffix = images.length > 1 ? `-${index + 1}` : "";
+        // ขีดล่าง ไม่ใช่ขีด เลขเอกสารใช้ขีดคั่นอยู่แล้ว ต่อ -1 จะอ่านเหมือนเลขเอกสารอีกใบ
+        const suffix = images.length > 1 ? `_${index + 1}` : "";
         downloadPng(image, `${fileBase}${suffix}.png`);
         if (index < images.length - 1) {
           await new Promise((resolve) => setTimeout(resolve, 300));

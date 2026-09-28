@@ -10,7 +10,7 @@ import RepairCard from "@/components/cards/RepairCard";
 import { toastError } from "@/utils/handleError";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
-import { getDisplayBrand } from "@/utils/repairDisplay";
+import { getDisplayBrand, getVehicleSubtitle } from "@/utils/repairDisplay";
 
 const VehicleDetail = () => {
   const { id } = useParams();
@@ -90,7 +90,7 @@ const VehicleDetail = () => {
                     : "ไม่ระบุทะเบียนรถ"}
                 </p>
                 <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                  {getDisplayBrand(vehicle?.vehicleModel)}
+                  {getVehicleSubtitle(vehicle)}
                 </p>
               </div>
             </div>

@@ -33,6 +33,7 @@ import ComboBox from "@/components/ui/ComboBox";
 import { listVehicleModels } from "@/api/vehicleModel";
 import { listParts } from "@/api/part";
 import KnownVehicleHint from "@/components/forms/KnownVehicleHint";
+import FleetNoField from "@/components/forms/FleetNoField";
 import { listInventory } from "@/api/inventory";
 import { repairSchema } from "@/utils/schemas";
 import { provinces } from "@/constants/provinces";
@@ -84,6 +85,7 @@ const VEHICLE_FIELDS = [
   "plateLetters",
   "plateNumbers",
   "province",
+  "fleetNo",
   "mileage",
 ];
 // ฝั่งที่เลือกไว้ ห้อยท้ายชื่อบนการ์ด
@@ -103,6 +105,7 @@ const EMPTY_FORM = {
   plateLetters: "",
   plateNumbers: "",
   province: "",
+  fleetNo: "",
   mileage: "",
   description: "",
 };
@@ -125,6 +128,8 @@ const RepairCreate = () => {
   } = useForm({
     resolver: zodResolver(repairSchema),
   });
+  // นับรอบที่กดล้างฟอร์ม ใช้เป็น key ให้ช่องเบอร์รถเริ่มใหม่แบบยุบ
+  const [clearCount, setClearCount] = useState(0);
   const [isCustomerInfoOpen, setIsCustomerInfoOpen] = useState(false);
   // งานซ่อม = ผูกกับรถ, ขายอะไหล่ = ลูกค้าซื้อของกลับไปเอง ไม่ได้เอารถมา
   // GENERAL = งานซ่อมผูกกับรถ, SERVICE = งานบริการที่ไม่ต้องเก็บประวัติรถ, SALE = ขายอะไหล่หน้าร้าน
@@ -412,6 +417,10 @@ const RepairCreate = () => {
     const model = vehicle.vehicleModel;
     if (model?.brand) setValue("brand", model.brand, { shouldValidate: true });
     if (model?.model) setValue("model", model.model, { shouldValidate: true });
+    // เบอร์รถผูกกับตัวรถเหมือนยี่ห้อ เติมให้เฉพาะตอนช่องยังว่าง ไม่ทับเบอร์ที่เพิ่งพิมพ์ไว้
+    if (vehicle.fleetNo && !getValues("fleetNo")) {
+      setValue("fleetNo", vehicle.fleetNo, { shouldValidate: true });
+    }
   };
 
   const handleSelectCustomer = (customer) => {
@@ -472,6 +481,8 @@ const RepairCreate = () => {
   // ล้างทุกอย่างเริ่มใหม่ เช่นลูกค้าเปลี่ยนใจ หรือกรอกผิดคันจนแก้ทีละช่องช้ากว่า
   const handleClearForm = () => {
     reset(EMPTY_FORM);
+    // ช่องเบอร์รถที่กางไว้ยุบกลับเป็นปุ่มเล็กเหมือนฟอร์มใหม่
+    setClearCount((count) => count + 1);
     setRepairItems([]);
     setRestoredStockMap({});
     // ไม่แตะโหมดบิล เพราะมันคือฟอร์มที่กำลังใช้อยู่ ไม่ใช่ข้อมูลที่กรอก
@@ -1345,6 +1356,12 @@ const RepairCreate = () => {
                   onFill={handleFillKnownVehicle}
                 />
               </div>
+              <FleetNoField
+                key={clearCount}
+                register={register}
+                errors={errors}
+                value={watch("fleetNo")}
+              />
               <FormInput
                 register={register}
                 name="mileage"

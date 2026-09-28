@@ -46,6 +46,7 @@ exports.repairSchema = z
     model: z.string().optional(),
     plate: z.string().optional(),
     province: z.string().optional(),
+    fleetNo: z.string().trim().max(20, "เบอร์รถยาวเกิน 20 ตัวอักษร").optional(),
     description: z.string().optional(),
     mileage: z.preprocess(
       (v) => (v === "" || v == null ? undefined : v),

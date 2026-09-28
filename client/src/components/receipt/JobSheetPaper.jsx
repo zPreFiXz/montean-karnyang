@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import { formatQuantity } from "@/utils/formats";
+import { jobSheetNo } from "@/components/receipt/ReceiptPaper";
 import {
   DEFAULT_LABOR_SERVICE_NAME,
   isDiscountItem,
@@ -61,7 +62,7 @@ const JobSheetPaper = ({ repair }) => {
         <p className="flex items-end gap-[4px] text-[12pt] whitespace-nowrap">
           เลขที่
           <span className="min-w-[42px] border-b border-dotted border-black text-center font-semibold">
-            {repair.id}
+            {jobSheetNo(repair)}
           </span>
         </p>
       </div>
@@ -70,6 +71,12 @@ const JobSheetPaper = ({ repair }) => {
       <div className="mt-[10px] flex items-baseline justify-between gap-[12px] whitespace-nowrap">
         <p className="text-[22pt] leading-none font-semibold">
           {plateText || "ไม่ระบุทะเบียนรถ"}
+          {/* ช่างหารถบริษัทในลานจอดจากเบอร์ข้างรถได้เร็วกว่าทะเบียน */}
+          {repair.vehicle?.fleetNo && (
+            <span className="ml-[8px] text-[16pt]">
+              เบอร์รถ {repair.vehicle.fleetNo}
+            </span>
+          )}
         </p>
         <p className="min-w-0 truncate text-[16pt] leading-none font-semibold">
           {vehicleName}

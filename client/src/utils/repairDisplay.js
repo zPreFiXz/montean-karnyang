@@ -22,6 +22,16 @@ export const getDisplayBrand = (vehicleModel) => {
   return `${brand} ${model}`.trim();
 };
 
+// บรรทัดรองของรถ: ยี่ห้อรุ่น ตามด้วยเบอร์รถถ้ามี (รถบริษัทที่มีเบอร์ข้างรถ เช่น รถน้ำแข็ง No.12)
+// เขียน "เบอร์รถ" เต็มทุกที่ เพราะ "เบอร์" คำเดียวคนมักอ่านเป็นเบอร์โทรศัพท์
+export const getVehicleSubtitle = (vehicle) =>
+  [
+    getDisplayBrand(vehicle?.vehicleModel),
+    vehicle?.fleetNo && `เบอร์รถ ${vehicle.fleetNo}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
 // งานบริการทุกใบขึ้นหัวว่า "งานบริการ" เหมือนกันหมดจนแยกไม่ออกว่าใบไหนคืองานอะไร
 // จึงยกชื่องานในบิลขึ้นมาเป็นหัวแทน แต่เฉพาะงานที่รู้จักในลิสต์นี้เท่านั้น
 // ชื่อที่ช่างพิมพ์เองในบิลยาวไม่แน่นอน ขึ้นหัวการ์ดแล้วโดนตัดกลางคำ สู้ขึ้นว่างานบริการไม่ได้
@@ -83,5 +93,5 @@ export const getRepairSubtitle = (repair) => {
   if (isSaleRepair(repair) || isNoVehicleRepair(repair)) {
     return repair?.customer?.name || "ลูกค้าทั่วไป";
   }
-  return getDisplayBrand(repair?.vehicle?.vehicleModel);
+  return getVehicleSubtitle(repair?.vehicle);
 };

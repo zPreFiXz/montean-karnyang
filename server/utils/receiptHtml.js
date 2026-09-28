@@ -2,6 +2,13 @@ const fs = require("fs");
 const path = require("path");
 const { bahtText } = require("./bahtText");
 
+// QR รับเงินพร้อมเพย์ของร้าน (Thai QR ไม่ระบุยอด) ฝังในไฟล์เหมือนฟอนต์ ไม่ต้องพึ่งเน็ตตอนพิมพ์
+// ต้องตรงกับ client/public/payment-qr.svg
+const PAYMENT_QR_SRC = `data:image/svg+xml;base64,${fs
+  .readFileSync(path.join(__dirname, "..", "assets", "payment-qr.svg"))
+  .toString("base64")}`;
+const PAYMENT_QR_NAME = "มณเฑียรการยาง";
+
 // ฝังฟอนต์ Athiti ลงในไฟล์เลย ใบที่พิมพ์จะได้ตัวหนังสือเหมือนตัวอย่างบนจอ
 // ฝังแทนการโหลดจาก Google Fonts เพราะเครื่องที่ร้านอาจไม่มีเน็ตตอนสั่งพิมพ์
 const fontFace = (weight, kind) => {
@@ -83,6 +90,28 @@ const paginateRows = (rows, linesOf) => {
   return pages;
 };
 
+// QR รับเงินใต้ช่องลงชื่อกินที่ท้ายแผ่นสุดท้าย บิลทั่วไปที่ว่างใต้ตารางพอ
+// แต่แผ่นสุดท้ายที่รายการเต็มแล้วยังมีแถวส่วนลดต่อท้าย จะล้นแผ่น จึงยกรายการท้ายไปขึ้นแผ่นใหม่
+// นับบรรทัดที่เห็นจริงในตาราง: รายการ + ยอดรวม (มีส่วนลดเพิ่มแถวรวมเป็นเงินกับแถวส่วนลดแต่ละแถว)
+// ค่าวัดจากหน้าเอกสารจริงใน Chrome ใบส่งของมีแถววิธีจ่ายกับแถวเช็คเพิ่ม จึงรับได้น้อยกว่าสองบรรทัด
+const QR_PAGE_LINES = 13;
+const QR_PAGE_LINES_WITH_PAYMENT_ROWS = 11;
+const summaryLinesOf = (discountCount) =>
+  discountCount ? discountCount + 2 : 1;
+const makeRoomForQr = (pages, linesOf, summaryRows, limit) => {
+  const last = [...pages[pages.length - 1]];
+  const moved = [];
+  let used = last.reduce((sum, row) => sum + linesOf(row), 0);
+
+  while (used + summaryRows > limit && last.length > 1) {
+    const row = last.pop();
+    moved.unshift(row);
+    used -= linesOf(row);
+  }
+
+  return moved.length ? [...pages.slice(0, -1), last, moved] : pages;
+};
+
 // เรียกว่าใบเสร็จรับเงินได้เฉพาะตอนรับเงินแล้วจริง
 // ใบประเมินราคา = ยังไม่ได้ซ่อม เป็นใบเสนอราคา / เครดิต = ซ่อมแล้วแต่ยังไม่ได้เงิน เป็นใบส่งของ
 const receiptDocTitle = (repair) => {
@@ -98,6 +127,10 @@ const receiptDocNo = (repair) => {
   if (repair.status === "CREDIT") return repair.deliveryNo || repair.id;
   return repair.receiptNo || repair.id;
 };
+
+// ใบสั่งซ่อมใช้ตัวเลขชุดเดียวกับใบเสร็จ เปลี่ยนแค่คำนำหน้าเป็น JO (ต้องตรงกับ jobSheetNo ฝั่งหน้าเว็บ)
+const jobSheetNo = (repair) =>
+  repair.receiptNo ? repair.receiptNo.replace(/^RE-/, "JO-") : repair.id;
 
 const PAYMENT_BOXES = [
   { label: "เงินสด", method: "CASH" },
@@ -225,6 +258,10 @@ const receiptPagesHtml = (
     : "";
   const model = repair.vehicle?.vehicleModel;
   const vehicleName = displayBrand(model);
+  // รถส่วนใหญ่ไม่มีเบอร์ ขึ้นเฉพาะคันที่มี ไม่เว้นช่องว่างรกใบ (ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
+  const fleetHtml = repair.vehicle?.fleetNo
+    ? `<span style="white-space:nowrap">เบอร์รถ</span><span class="dotted" style="min-width:40px;padding:0 6px;text-align:center;font-weight:600;white-space:nowrap">${escapeHtml(repair.vehicle.fleetNo)}</span>`
+    : "";
 
   // ส่วนลดไม่ใช่ของที่ขาย ยกออกจากตารางไปไว้เป็นแถวใต้ยอดรวมแทน (ตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
   // ราคาติดลบมีแต่ส่วนลดเท่านั้น ใช้เป็นตาข่ายรองรับบรรทัดที่ถูกเปลี่ยนชื่อ
@@ -248,9 +285,19 @@ const receiptPagesHtml = (
     return sideLabel ? `${base} (${sideLabel})` : base;
   };
   const rowLines = (row) => estimateNameLines(rowName(row));
-  const pages = paginateRows(rows, rowLines);
-
   const summaryRows = discountItems.length ? discountItems.length + 1 : 1;
+  const showPaymentQr = repair.status !== "ESTIMATE";
+  const pages = showPaymentQr
+    ? makeRoomForQr(
+        paginateRows(rows, rowLines),
+        rowLines,
+        summaryLinesOf(discountTotal ? discountItems.length : 0),
+        repair.status === "CREDIT"
+          ? QR_PAGE_LINES_WITH_PAYMENT_ROWS
+          : QR_PAGE_LINES,
+      )
+    : paginateRows(rows, rowLines);
+
   // แถวยอดรวมกับส่วนลดต่อท้ายแผ่นสุดท้ายเสมอ ไม่นับเป็นหนึ่งใน MIN_ROWS รายการ
   // กระดาษยังเหลือที่ใต้ตารางราวห้าบรรทัด รายการเต็มสิบแถวก็ยังมีที่ให้ยอดรวมอยู่แผ่นเดียวกัน
   // ไม่ขึ้นแผ่นใหม่ที่มีแต่ยอดรวม และไม่ยกรายการไปแผ่นใหม่ให้บิลสิบรายการกลายเป็นสองแผ่น
@@ -340,7 +387,7 @@ const receiptPagesHtml = (
 
   <div class="fields">
 ${customerFields}
-    <p>ยี่ห้อ-รุ่นรถ<span class="dotted v">${escapeHtml(vehicleName)}</span>ทะเบียนรถ<span class="dotted v">${escapeHtml(plateText)}</span></p>
+    <p>ยี่ห้อ-รุ่นรถ<span class="dotted v car-name">${escapeHtml(vehicleName)}</span>ทะเบียนรถ<span class="dotted v car-plate">${escapeHtml(plateText)}</span>${fleetHtml}</p>
   </div>
 
   <table>
@@ -359,28 +406,39 @@ ${customerFields}
     </tbody>
   </table>
 
-  <div class="pays">${paymentBoxes}</div>
-
-  <div class="bank">
-    <span class="bank-field">ธนาคาร<span class="dotted"></span></span>
-    <span class="bank-field">เลขที่<span class="dotted"></span></span>
-    <span class="bank-field">ลงวันที่<span class="dotted"></span></span>
-    <span class="bank-field">จำนวนเงิน<span class="dotted"></span></span>
-  </div>
+  ${paymentHtml}
 
   <div class="sign">
     <p>ลงชื่อ<span class="dotted" style="flex:1"></span>ผู้รับเงิน</p>
     <p>ลงชื่อ<span class="dotted" style="flex:1"></span>ผู้จ่ายเงิน</p>
   </div>
+
+  ${isLastPage && showPaymentQr ? paymentQrHtml : ""}
 </div>`;
   };
 
+  // ช่องวิธีจ่ายกับแถวเช็คมีเฉพาะใบส่งของ ลูกค้าเครดิตจ่ายทีหลัง ต้องจดว่าจ่ายทางไหน
+  // ใบเสร็จกับใบเสนอราคาไม่ต้องมี (ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
   const paymentBoxes = PAYMENT_BOXES.map(
     (box) =>
       `<span class="pay"><span class="box">${
         box.method && repair.paymentMethod === box.method ? "✓" : ""
       }</span>${box.label}</span>`,
   ).join("");
+  const paymentHtml =
+    repair.status === "CREDIT"
+      ? `<div class="pays">${paymentBoxes}</div>
+
+  <div class="bank">
+    <span class="bank-field">ธนาคาร<span class="dotted"></span></span>
+    <span class="bank-field">เลขที่<span class="dotted"></span></span>
+    <span class="bank-field">ลงวันที่<span class="dotted"></span></span>
+    <span class="bank-field">จำนวนเงิน<span class="dotted"></span></span>
+  </div>`
+      : "";
+
+  // ชิดขวาใต้ช่องลงชื่อ เฉพาะแผ่นสุดท้ายที่มียอดรวม ใบเสนอราคายังไม่ถึงตอนจ่ายเงินจึงไม่มี
+  const paymentQrHtml = `<div class="qr"><img src="${PAYMENT_QR_SRC}" alt="QR รับเงิน" /><p>${PAYMENT_QR_NAME}</p></div>`;
 
   // คืนเฉพาะแผ่นกระดาษ เพื่อให้เอาไปต่อกับใบอื่นในเอกสารเดียวได้
   return pages.map(pageHtml).join("");
@@ -422,6 +480,9 @@ const RECEIPT_STYLES = `
   .fields { margin-top: 6px; }
   .fields p { display: flex; align-items: flex-end; gap: 6px; margin: 0 0 5px; }
   .fields .v { flex: 1; text-align: center; font-weight: 600; }
+  /* แถวรถต้องอยู่บรรทัดเดียว ไม่งั้นแผ่นสูงเกินที่คิดไว้ตอนแบ่งแผ่น ทะเบียนห้ามตัด ยี่ห้อ-รุ่นยอมหดแล้วต่อท้ายด้วย … */
+  .fields .car-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fields .car-plate { flex: 0 0 auto; min-width: 90px; padding: 0 8px; white-space: nowrap; }
   table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 8px; font-size: inherit; }
   thead tr, tr.sum { background: #e5e7eb; }
   th, td { border: 1px solid #000; padding: 2px 4px; height: 22px; }
@@ -442,6 +503,9 @@ const RECEIPT_STYLES = `
   .bank { display: flex; align-items: flex-end; gap: 8px; margin-top: 6px; }
   .bank-field { display: flex; align-items: flex-end; gap: 4px; flex: 1; white-space: nowrap; }
   .bank-field .dotted { flex: 1; }
+  .qr { width: fit-content; margin: 10px 0 0 auto; display: flex; flex-direction: column; align-items: center; white-space: nowrap; font-size: 9pt; line-height: 1.25; }
+  .qr img { display: block; width: 19mm; height: 19mm; }
+  .qr p { margin: 2px 0 0; }
   .sign { display: flex; gap: 16px; margin-top: 22px; }
   .sign p { display: flex; align-items: flex-end; gap: 4px; flex: 1; margin: 0; }
 `;
@@ -462,7 +526,7 @@ ${body}
 
 const buildReceiptHtml = (repair, options) =>
   receiptDocument(
-    `${receiptDocTitle(repair)} ${repair.id}`,
+    `${receiptDocTitle(repair)} ${receiptDocNo(repair)}`,
     receiptPagesHtml(repair, options),
   );
 
@@ -604,7 +668,7 @@ const buildJobSheetHtml = (repair) => {
 <html lang="th">
 <head>
 <meta charset="utf-8" />
-<title>ใบสั่งซ่อม ${repair.id}</title>
+<title>ใบสั่งซ่อม ${jobSheetNo(repair)}</title>
 <style>
   ${FONT_FACES}
   @page { size: A5 portrait; margin: 0; }
@@ -645,11 +709,15 @@ const buildJobSheetHtml = (repair) => {
 <body>
   <div class="head">
     <p class="doc">ใบสั่งซ่อม</p>
-    <p class="no">เลขที่<span class="dotted" style="min-width:42px;text-align:center;font-weight:600">${repair.id}</span></p>
+    <p class="no">เลขที่<span class="dotted" style="min-width:42px;text-align:center;font-weight:600">${jobSheetNo(repair)}</span></p>
   </div>
 
   <div class="car">
-    <div class="plate">${escapeHtml(plateText || "ไม่ระบุทะเบียนรถ")}</div>
+    <div class="plate">${escapeHtml(plateText || "ไม่ระบุทะเบียนรถ")}${
+      repair.vehicle?.fleetNo
+        ? `<span style="margin-left:8px;font-size:16pt">เบอร์รถ ${escapeHtml(repair.vehicle.fleetNo)}</span>`
+        : ""
+    }</div>
     <div class="model">${escapeHtml(vehicleName)}</div>
   </div>
 
@@ -685,12 +753,16 @@ const repairTitle = (repair) => {
   if (repair.type === "SALE") return "ขายอะไหล่หน้าร้าน";
   if (!repair.vehicle) return "งานบริการ";
 
-  const plate = repair.vehicle?.licensePlate;
+  // บริษัทที่มีรถหลายคันเรียกรถด้วยเบอร์ ฝ่ายบัญชีจะเทียบกับรายการของเขาได้ง่าย
+  const fleet = repair.vehicle.fleetNo
+    ? ` เบอร์รถ ${repair.vehicle.fleetNo}`
+    : "";
+  const plate = repair.vehicle.licensePlate;
   if (plate?.plateNumber) {
-    return `${formatPlate(plate.plateNumber)} ${plate.province || ""}`.trim();
+    return `${`${formatPlate(plate.plateNumber)} ${plate.province || ""}`.trim()}${fleet}`;
   }
   // รถที่ไม่มีทะเบียน บอกยี่ห้อกับรุ่นแทน จะได้ยังรู้ว่าเป็นคันไหน
-  return displayBrand(repair.vehicle?.vehicleModel) || "งานซ่อม";
+  return `${displayBrand(repair.vehicle.vehicleModel) || "งานซ่อม"}${fleet}`;
 };
 
 // ใบวางบิลของหน่วยงานหรือร้านค้า: แผ่นเดียวจบ สรุปว่ามีบิลอะไรบ้างรวมเท่าไหร่

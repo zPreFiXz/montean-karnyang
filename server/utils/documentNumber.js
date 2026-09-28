@@ -64,11 +64,7 @@ const assignRepairDocumentNo = async (tx, repairId) => {
     repair.status,
   );
   if (needsReceipt && !repair.receiptNo) {
-    data.receiptNo = await nextDocumentNo(
-      tx,
-      PREFIX.receipt,
-      repair.createdAt,
-    );
+    data.receiptNo = await nextDocumentNo(tx, PREFIX.receipt, repair.createdAt);
   }
   if (repair.status === "CREDIT" && !repair.deliveryNo) {
     data.deliveryNo = await nextDocumentNo(
@@ -134,6 +130,30 @@ const releaseRepairDocumentNo = async (tx, repair) => {
   }
 };
 
+// บิลที่เปลี่ยนเป็นใบเสนอราคายังไม่ได้ซ่อม ลูกค้าอาจไม่ตกลงเลย เลขใบเสร็จที่ได้ตอนเปิดบิลจึงยังไม่ควรจองไว้
+// คืนได้เฉพาะตอนยังเป็นเลขล่าสุด (มักบันทึกเป็นใบเสนอราคาทันทีหลังเปิดบิล) ตกลงซ่อมแล้วค่อยได้เลขใหม่
+// ถ้ามีบิลใหม่กว่าได้เลขถัดไปแล้ว เก็บเลขเดิมไว้ใช้ตอนตกลงซ่อม ดีกว่าปล่อยให้เลขขาดช่วง
+const releaseReceiptNo = async (tx, repairId) => {
+  const repair = await tx.repair.findUnique({
+    where: { id: repairId },
+    select: { receiptNo: true },
+  });
+  const { releasable } = await splitDocNosOnDelete(tx, {
+    receiptNo: repair?.receiptNo,
+  });
+  if (!releasable.length) return;
+
+  const [{ prefix, period }] = releasable;
+  await tx.documentCounter.update({
+    where: { prefix_period: { prefix, period } },
+    data: { lastNo: { decrement: 1 } },
+  });
+  await tx.repair.update({
+    where: { id: repairId },
+    data: { receiptNo: null },
+  });
+};
+
 const billingKeyOf = (repairIds) =>
   crypto
     .createHash("sha1")
@@ -169,6 +189,7 @@ const issueBillingNo = (prisma, customerId, repairIds) =>
 module.exports = {
   assignRepairDocumentNo,
   releaseRepairDocumentNo,
+  releaseReceiptNo,
   docNosSkippedOnDelete,
   peekBillingNo,
   issueBillingNo,

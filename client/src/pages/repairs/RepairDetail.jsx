@@ -414,6 +414,7 @@ const RepairDetail = () => {
       plateNumbers,
       // ฟอร์มงานซ่อมเก็บจังหวัดเป็นชื่อ ไม่ใช่ id — ส่ง id ไปดรอปดาวน์จะหาค่าไม่เจอแล้วช่องว่าง
       province: provinceName,
+      fleetNo: repair?.vehicle?.fleetNo || "",
       description: repair?.description || "",
       mileage: repair?.mileage != null ? String(repair.mileage) : "",
       type: repair?.type || "GENERAL",

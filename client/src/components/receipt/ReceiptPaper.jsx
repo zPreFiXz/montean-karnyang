@@ -21,6 +21,9 @@ export const SHOP = {
 // ใบเสร็จกระดาษมีเส้นว่างไว้เขียนเพิ่ม ใบที่พิมพ์จึงเติมแถวเปล่าให้ตารางสูงเท่ากันทุกใบ
 const MIN_ROWS = 10;
 
+// ชื่อบัญชีที่ขึ้นเมื่อสแกน QR รับเงิน (ไฟล์ public/payment-qr.svg ต้องตรงกับ server/assets/payment-qr.svg)
+const PAYMENT_QR_NAME = "มณเฑียรการยาง";
+
 // ช่องติ๊กวิธีจ่ายบนใบเสร็จ เรียงตามที่ร้านใช้บ่อย (เช็คไม่มีในระบบ เว้นไว้ให้ติ๊กมือ)
 const PAYMENT_BOXES = [
   { label: "เงินสด", method: "CASH" },
@@ -157,6 +160,11 @@ export const receiptDocNo = (repair) => {
   return repair?.receiptNo || repair?.id;
 };
 
+// ใบสั่งซ่อมใช้ตัวเลขชุดเดียวกับใบเสร็จของบิลนั้น เปลี่ยนแค่คำนำหน้าเป็น JO ให้บอกชนิดใบถูก
+// ช่างกับหน้าร้านจับคู่ใบกันด้วยตัวเลขได้ทันที (ต้องตรงกับ jobSheetNo ใน server/utils/receiptHtml.js)
+export const jobSheetNo = (repair) =>
+  repair?.receiptNo ? repair.receiptNo.replace(/^RE-/, "JO-") : repair?.id;
+
 export const receiptHeaderInfo = (repair) => {
   // วันเปิดบิล ไม่ใช่วันรับเงิน ต้องตรงกับ buildReceiptHtml ใน server/utils/receiptHtml.js
   const issuedAt = new Date(repair.createdAt || Date.now());
@@ -171,6 +179,7 @@ export const receiptHeaderInfo = (repair) => {
     plateText: plate?.plateNumber
       ? `${formatPlate(plate.plateNumber)} ${plate.province || ""}`.trim()
       : "",
+    fleetNo: repair.vehicle?.fleetNo || "",
   };
 };
 
@@ -214,6 +223,28 @@ const paginateRows = (rows, linesOf) => {
   return pages;
 };
 
+// QR รับเงินใต้ช่องลงชื่อกินที่ท้ายแผ่นสุดท้าย บิลทั่วไปที่ว่างใต้ตารางพอ
+// แต่แผ่นสุดท้ายที่รายการเต็มแล้วยังมีแถวส่วนลดต่อท้าย จะล้นแผ่น จึงยกรายการท้ายไปขึ้นแผ่นใหม่
+// นับบรรทัดที่เห็นจริงในตาราง: รายการ + ยอดรวม (มีส่วนลดเพิ่มแถวรวมเป็นเงินกับแถวส่วนลดแต่ละแถว)
+// ค่าวัดจากหน้าเอกสารจริงใน Chrome ใบส่งของมีแถววิธีจ่ายกับแถวเช็คเพิ่ม จึงรับได้น้อยกว่าสองบรรทัด
+const QR_PAGE_LINES = 13;
+const QR_PAGE_LINES_WITH_PAYMENT_ROWS = 11;
+const summaryLinesOf = (discountCount) =>
+  discountCount ? discountCount + 2 : 1;
+const makeRoomForQr = (pages, linesOf, summaryRows, limit) => {
+  const last = [...pages[pages.length - 1]];
+  const moved = [];
+  let used = last.reduce((sum, row) => sum + linesOf(row), 0);
+
+  while (used + summaryRows > limit && last.length > 1) {
+    const row = last.pop();
+    moved.unshift(row);
+    used -= linesOf(row);
+  }
+
+  return moved.length ? [...pages.slice(0, -1), last, moved] : pages;
+};
+
 // ชื่อบนแถวของใบเสร็จ ตามสวิตช์ชื่ออะไหล่แบบเต็ม และห้อยข้างที่ใส่ไว้ท้ายชื่อ
 const rowName = ({ item, sideLabel }, showBrand) => {
   const base = showBrand ? item.itemName : shortWorkName(item);
@@ -230,7 +261,23 @@ export const buildReceiptPages = (repair, { showBrand = true } = {}) => {
   const allItems = repair?.repairItems || [];
   const discountItems = allItems.filter(isDiscountItem);
   const rows = mergeBySide(allItems.filter((item) => !isDiscountItem(item)));
-  const pages = paginateRows(rows, (row) => rowLines(row, showBrand));
+  const linesOf = (row) => rowLines(row, showBrand);
+  const discountTotal = discountItems.reduce(
+    (sum, item) => sum + Number(item.unitPrice) * Number(item.quantity),
+    0,
+  );
+  // ต้องตรงกับ receiptPagesHtml ฝั่งเซิร์ฟเวอร์
+  const pages =
+    repair?.status === "ESTIMATE"
+      ? paginateRows(rows, linesOf)
+      : makeRoomForQr(
+          paginateRows(rows, linesOf),
+          linesOf,
+          summaryLinesOf(discountTotal ? discountItems.length : 0),
+          repair?.status === "CREDIT"
+            ? QR_PAGE_LINES_WITH_PAYMENT_ROWS
+            : QR_PAGE_LINES,
+        );
 
   return { pages, discountItems };
 };
@@ -245,7 +292,7 @@ const ReceiptPaper = ({
   showBrand = true,
   pageIndex = 0,
 }) => {
-  const { day, month, year, vehicleName, plateText } =
+  const { day, month, year, vehicleName, plateText, fleetNo } =
     receiptHeaderInfo(repair);
   const customerName = repair.customer?.name || "";
   const customerAddress = repair.customer?.address || "";
@@ -255,6 +302,7 @@ const ReceiptPaper = ({
   const pageCount = pages.length;
   const items = pages[pageIndex] || [];
   const isLastPage = pageIndex === pageCount - 1;
+  const showPaymentQr = isLastPage && repair.status !== "ESTIMATE";
 
   // ส่วนลดไม่ใช่ของที่ขาย ยกออกจากตารางไปไว้เป็นแถวใต้ยอดรวมแทน อ่านง่ายกว่าปนอยู่กลางรายการ
   const discountTotal = discountItems.reduce(
@@ -347,14 +395,24 @@ const ReceiptPaper = ({
         {/* รถอยู่บรรทัดของตัวเอง เพราะใบเสร็จของร้านยางต้องรู้ว่าเป็นของคันไหน */}
         <p className="flex items-end gap-[6px]">
           <span className="whitespace-nowrap">ยี่ห้อ-รุ่นรถ</span>
-          {/* สองช่องกว้างเท่ากัน แบ่งที่ว่างที่เหลือคนละครึ่ง */}
-          <span className="flex-1 border-b border-dotted border-black text-center font-semibold">
+          {/* แถวรถต้องอยู่บรรทัดเดียว ไม่งั้นแผ่นสูงเกินที่คิดไว้ตอนแบ่งแผ่น
+              ทะเบียนห้ามตัด ยี่ห้อ-รุ่นยอมหดแล้วต่อท้ายด้วย … (ต้องตรงกับ receiptHtml.js) */}
+          <span className="min-w-0 flex-1 truncate border-b border-dotted border-black text-center font-semibold">
             {vehicleName}
           </span>
           <span className="whitespace-nowrap">ทะเบียนรถ</span>
-          <span className="flex-1 border-b border-dotted border-black text-center font-semibold">
+          <span className="min-w-[90px] flex-none border-b border-dotted border-black px-[8px] text-center font-semibold whitespace-nowrap">
             {plateText}
           </span>
+          {/* รถส่วนใหญ่ไม่มีเบอร์ ขึ้นเฉพาะคันที่มี ไม่เว้นช่องว่างรกใบ (ต้องตรงกับ receiptHtml.js) */}
+          {fleetNo && (
+            <>
+              <span className="whitespace-nowrap">เบอร์รถ</span>
+              <span className="min-w-[40px] border-b border-dotted border-black px-[6px] text-center font-semibold whitespace-nowrap">
+                {fleetNo}
+              </span>
+            </>
+          )}
         </p>
       </div>
 
@@ -450,31 +508,36 @@ const ReceiptPaper = ({
         </tbody>
       </table>
 
-      {/* เล่มกระดาษมีแค่เงินสดกับเช็ค แต่ร้านรับโอนกับบัตรด้วย จึงเพิ่มอีกสองช่อง
-                ติ๊กให้เองตามวิธีที่บันทึกไว้ในบิล */}
-      <div className="mt-[8px] flex items-center gap-[20px]">
-        {PAYMENT_BOXES.map((box) => (
-          <span key={box.label} className="flex items-center gap-[6px]">
-            <span className="flex h-[13px] w-[13px] items-center justify-center border border-black text-[10px] leading-none">
-              {/* เช็คไม่มีในระบบ (method เป็นว่าง) บิลที่ยังไม่ได้เก็บเงินก็ว่างเหมือนกัน
+      {/* ช่องวิธีจ่ายกับแถวเช็คมีเฉพาะใบส่งของ ลูกค้าเครดิตจ่ายทีหลัง ต้องจดว่าจ่ายทางไหน
+          ใบเสร็จกับใบเสนอราคาไม่ต้องมี (ต้องตรงกับ receiptHtml.js ฝั่งเซิร์ฟเวอร์)
+          เล่มกระดาษมีแค่เงินสดกับเช็ค แต่ร้านรับโอนกับบัตรด้วย จึงเพิ่มอีกสองช่อง */}
+      {repair.status === "CREDIT" && (
+        <>
+          <div className="mt-[8px] flex items-center gap-[20px]">
+            {PAYMENT_BOXES.map((box) => (
+              <span key={box.label} className="flex items-center gap-[6px]">
+                <span className="flex h-[13px] w-[13px] items-center justify-center border border-black text-[10px] leading-none">
+                  {/* เช็คไม่มีในระบบ (method เป็นว่าง) บิลที่ยังไม่ได้เก็บเงินก็ว่างเหมือนกัน
                   ต้องเช็คว่ามีวิธีจ่ายจริงก่อน ไม่งั้นจะไปติ๊กช่องเช็คให้เอง */}
-              {box.method && repair.paymentMethod === box.method ? "✓" : ""}
-            </span>
-            {box.label}
-          </span>
-        ))}
-      </div>
+                  {box.method && repair.paymentMethod === box.method ? "✓" : ""}
+                </span>
+                {box.label}
+              </span>
+            ))}
+          </div>
 
-      {/* แถวของเช็คในเล่มจริง เว้นว่างไว้ให้เขียนมือเหมือนเดิม
+          {/* แถวของเช็คในเล่มจริง เว้นว่างไว้ให้เขียนมือเหมือนเดิม
           สี่ช่องกว้างเท่ากัน แบ่งที่ว่างเท่าๆ กัน อ่านเป็นแถวเดียวกันได้ */}
-      <div className="mt-[6px] flex items-end gap-[8px]">
-        {["ธนาคาร", "เลขที่", "ลงวันที่", "จำนวนเงิน"].map((label) => (
-          <span key={label} className="flex flex-1 items-end gap-[4px]">
-            <span className="whitespace-nowrap">{label}</span>
-            <span className="flex-1 border-b border-dotted border-black" />
-          </span>
-        ))}
-      </div>
+          <div className="mt-[6px] flex items-end gap-[8px]">
+            {["ธนาคาร", "เลขที่", "ลงวันที่", "จำนวนเงิน"].map((label) => (
+              <span key={label} className="flex flex-1 items-end gap-[4px]">
+                <span className="whitespace-nowrap">{label}</span>
+                <span className="flex-1 border-b border-dotted border-black" />
+              </span>
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="mt-[22px] flex justify-between gap-[16px]">
         <p className="flex flex-1 items-end gap-[4px]">
@@ -488,6 +551,19 @@ const ReceiptPaper = ({
           ผู้จ่ายเงิน
         </p>
       </div>
+
+      {/* QR รับเงินชิดขวาใต้ช่องลงชื่อ เฉพาะแผ่นสุดท้ายที่มียอดรวม ใบเสนอราคายังไม่ถึงตอนจ่ายเงินจึงไม่มี
+          แผ่นสุดท้ายที่แน่นเกินจะวาง QR ได้ ถูกยกรายการท้ายไปแผ่นใหม่ตั้งแต่ตอนแบ่งแผ่น (ดู makeRoomForQr) */}
+      {showPaymentQr && (
+        <div className="mt-[10px] ml-auto flex w-fit flex-col items-center text-[9pt] leading-tight whitespace-nowrap">
+          <img
+            src="/payment-qr.svg"
+            alt="QR รับเงิน"
+            className="block h-[19mm] w-[19mm]"
+          />
+          <p className="mt-[2px]">{PAYMENT_QR_NAME}</p>
+        </div>
+      )}
     </>
   );
 };
