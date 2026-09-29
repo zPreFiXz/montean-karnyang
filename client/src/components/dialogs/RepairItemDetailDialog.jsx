@@ -91,8 +91,14 @@ const RepairItemDetailDialog = ({
 
   // reset() เปล่าๆ จะล้างแถวยางจนหมดแล้วไม่งอกกลับ เพราะ TireLotInput ไม่ได้ถูก unmount
   // (ฟอร์มแค่ยุบด้วย CSS) ตัวสร้างแถวแรกจึงทำงานไปแล้วครั้งเดียว — ต้องคืนแถวว่างให้เอง
+  // ช่องจำนวนก็ต้องใส่ค่าว่างให้ชัดเหมือนกัน reset({}) ไม่เขียนทับช่องที่ไม่ได้คุมด้วย React
+  // ตัวเลขของอะไหล่ชิ้นก่อนจึงค้างอยู่ในช่องตอนเปิดอะไหล่ชิ้นถัดไป
   const resetStockForm = useCallback(() => {
-    reset(tracksLots ? { tireLots: [{ dotCode: "", quantity: "" }] } : {});
+    reset(
+      tracksLots
+        ? { tireLots: [{ dotCode: "", quantity: "" }] }
+        : { quantity: "" },
+    );
   }, [reset, tracksLots]);
 
   useEffect(() => {

@@ -8,6 +8,10 @@ const PAYMENT_QR_SRC = `data:image/svg+xml;base64,${fs
   .readFileSync(path.join(__dirname, "..", "assets", "payment-qr.svg"))
   .toString("base64")}`;
 const PAYMENT_QR_NAME = "มณเฑียรการยาง";
+// โลโก้พร้อมเพย์เหนือ QR บอกลูกค้าว่าสแกนด้วยแอปธนาคารไหนก็ได้ (ต้องตรงกับ client/public/promptpay-logo-bw.jpg)
+const PROMPTPAY_LOGO_SRC = `data:image/jpeg;base64,${fs
+  .readFileSync(path.join(__dirname, "..", "assets", "promptpay-logo.jpg"))
+  .toString("base64")}`;
 
 // ฝังฟอนต์ Athiti ลงในไฟล์เลย ใบที่พิมพ์จะได้ตัวหนังสือเหมือนตัวอย่างบนจอ
 // ฝังแทนการโหลดจาก Google Fonts เพราะเครื่องที่ร้านอาจไม่มีเน็ตตอนสั่งพิมพ์
@@ -93,9 +97,9 @@ const paginateRows = (rows, linesOf) => {
 // QR รับเงินใต้ช่องลงชื่อกินที่ท้ายแผ่นสุดท้าย บิลทั่วไปที่ว่างใต้ตารางพอ
 // แต่แผ่นสุดท้ายที่รายการเต็มแล้วยังมีแถวส่วนลดต่อท้าย จะล้นแผ่น จึงยกรายการท้ายไปขึ้นแผ่นใหม่
 // นับบรรทัดที่เห็นจริงในตาราง: รายการ + ยอดรวม (มีส่วนลดเพิ่มแถวรวมเป็นเงินกับแถวส่วนลดแต่ละแถว)
-// ค่าวัดจากหน้าเอกสารจริงใน Chrome ใบส่งของมีแถววิธีจ่ายกับแถวเช็คเพิ่ม จึงรับได้น้อยกว่าสองบรรทัด
+// ค่าวัดจากหน้าเอกสารจริงใน Chrome ใบส่งของไม่มี QR จึงรับได้มากกว่า แม้มีแถววิธีจ่ายกับบรรทัดต้นฉบับ/สำเนาเพิ่ม
 const QR_PAGE_LINES = 13;
-const QR_PAGE_LINES_WITH_PAYMENT_ROWS = 11;
+const DELIVERY_PAGE_LINES = 14;
 const summaryLinesOf = (discountCount) =>
   discountCount ? discountCount + 2 : 1;
 const makeRoomForQr = (pages, linesOf, summaryRows, limit) => {
@@ -241,7 +245,7 @@ const mergeBySide = (items) => {
 // แผ่นกระดาษของใบเสร็จหนึ่งใบ (ไม่รวมโครงเอกสาร) ใบยาวเกินหนึ่งแผ่นจะได้หลายแผ่น
 const receiptPagesHtml = (
   repair,
-  { showCustomer = true, showBrand = true } = {},
+  { showCustomer = true, showBrand = true, copyLabel = null } = {},
 ) => {
   // ชื่อเอกสารเปลี่ยนตามสถานะ (ตรงกับ receiptDocTitle ฝั่งหน้าเว็บ)
   const docTitle = receiptDocTitle(repair);
@@ -250,7 +254,7 @@ const receiptPagesHtml = (
   const issuedAt = new Date(repair.createdAt || Date.now());
   const day = issuedAt.getDate();
   const month = issuedAt.toLocaleDateString("th-TH", { month: "long" });
-  const year = String(issuedAt.getFullYear() + 543).slice(-2);
+  const year = String(issuedAt.getFullYear() + 543);
 
   const plate = repair.vehicle?.licensePlate;
   const plateText = plate?.plateNumber
@@ -286,15 +290,27 @@ const receiptPagesHtml = (
   };
   const rowLines = (row) => estimateNameLines(rowName(row));
   const summaryRows = discountItems.length ? discountItems.length + 1 : 1;
-  const showPaymentQr = repair.status !== "ESTIMATE";
-  const pages = showPaymentQr
+  // QR มีเฉพาะใบเสร็จ ใบเสนอราคายังไม่ถึงตอนจ่าย ใบส่งของลูกค้าจ่ายทีหลังตามใบวางบิล
+  const showPaymentQr = !["ESTIMATE", "CREDIT"].includes(repair.status);
+  // คนเซ็นตามหน้าที่ของใบ ใบส่งของกับใบเสนอราคายังไม่มีการรับเงิน (ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
+  const signLabels =
+    repair.status === "CREDIT"
+      ? ["ผู้รับของ", "ผู้ส่งของ"]
+      : repair.status === "ESTIMATE"
+        ? ["ผู้เสนอราคา", "ผู้อนุมัติ"]
+        : ["ผู้รับเงิน", "ผู้จ่ายเงิน"];
+  // ใบส่งของไม่มี QR แต่มีแถววิธีจ่ายเงินกับบรรทัดต้นฉบับ/สำเนาใต้ชื่อใบ แผ่นสุดท้ายจึงรับได้จำกัดเหมือนกัน
+  const lastPageLimit = showPaymentQr
+    ? QR_PAGE_LINES
+    : repair.status === "CREDIT"
+      ? DELIVERY_PAGE_LINES
+      : null;
+  const pages = lastPageLimit
     ? makeRoomForQr(
         paginateRows(rows, rowLines),
         rowLines,
         summaryLinesOf(discountTotal ? discountItems.length : 0),
-        repair.status === "CREDIT"
-          ? QR_PAGE_LINES_WITH_PAYMENT_ROWS
-          : QR_PAGE_LINES,
+        lastPageLimit,
       )
     : paginateRows(rows, rowLines);
 
@@ -366,11 +382,12 @@ const receiptPagesHtml = (
     const docNo = receiptDocNo(repair);
     const receiptNo = pages.length > 1 ? `${docNo}/${pageIndex + 1}` : docNo;
 
-    return `<div class="receipt-paper">
+    return `<div class="receipt-paper receipt-fill"><div class="page-body">
   <div class="head">
-    <p class="side">เล่มที่<span class="dotted" style="width:70px"></span></p>
+    <span></span>
     <div class="title">
       <div class="doc">${docTitle}</div>
+      ${copyLabel ? `<div class="copy">(${copyLabel})</div>` : ""}
       <div class="shop">${SHOP.name}</div>
     </div>
     <p class="side">เลขที่<span class="dotted" style="min-width:42px;text-align:center;font-weight:600">${receiptNo}</span></p>
@@ -409,10 +426,11 @@ ${customerFields}
   ${paymentHtml}
 
   <div class="sign">
-    <p>ลงชื่อ<span class="dotted" style="flex:1"></span>ผู้รับเงิน</p>
-    <p>ลงชื่อ<span class="dotted" style="flex:1"></span>ผู้จ่ายเงิน</p>
+    <p>ลงชื่อ<span class="dotted" style="flex:1"></span>${signLabels[0]}</p>
+    <p>ลงชื่อ<span class="dotted" style="flex:1"></span>${signLabels[1]}</p>
   </div>
 
+  </div>
   ${isLastPage && showPaymentQr ? paymentQrHtml : ""}
 </div>`;
   };
@@ -438,7 +456,7 @@ ${customerFields}
       : "";
 
   // ชิดขวาใต้ช่องลงชื่อ เฉพาะแผ่นสุดท้ายที่มียอดรวม ใบเสนอราคายังไม่ถึงตอนจ่ายเงินจึงไม่มี
-  const paymentQrHtml = `<div class="qr"><img src="${PAYMENT_QR_SRC}" alt="QR รับเงิน" /><p>${PAYMENT_QR_NAME}</p></div>`;
+  const paymentQrHtml = `<div class="qr-area"><div class="qr"><img class="pp" src="${PROMPTPAY_LOGO_SRC}" alt="พร้อมเพย์" /><img class="code" src="${PAYMENT_QR_SRC}" alt="QR รับเงิน" /><p class="name">${PAYMENT_QR_NAME}</p><p class="hint">สแกนเพื่อชำระเงิน</p></div></div>`;
 
   // คืนเฉพาะแผ่นกระดาษ เพื่อให้เอาไปต่อกับใบอื่นในเอกสารเดียวได้
   return pages.map(pageHtml).join("");
@@ -466,13 +484,14 @@ const RECEIPT_STYLES = `
     break-after: page;
   }
   .receipt-paper:last-of-type { break-after: auto; }
-  /* สามช่องกว้างเท่ากันซ้ายขวา ชื่อเอกสารอยู่กลางแผ่นเสมอ ถึงเลขที่ทางขวาจะยาวกว่าเล่มที่ทางซ้าย */
+  /* สามช่องกว้างเท่ากันซ้ายขวา ช่องซ้ายเว้นว่าง ชื่อเอกสารจึงอยู่กลางแผ่นเสมอ ไม่ถูกเลขที่ทางขวาดันเยื้อง */
   .head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 8px; }
   .head .side { white-space: nowrap; display: flex; align-items: flex-end; gap: 4px; }
   .head .side:last-child { justify-content: flex-end; }
   .dotted { border-bottom: 1px dotted #000; }
   .title { text-align: center; }
   .title .doc { font-size: 15pt; font-weight: 600; }
+  .title .copy { font-size: 11pt; }
   .title .shop { font-size: 17pt; font-weight: 600; }
   .center { text-align: center; }
   .date-row { display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px; }
@@ -503,9 +522,27 @@ const RECEIPT_STYLES = `
   .bank { display: flex; align-items: flex-end; gap: 8px; margin-top: 6px; }
   .bank-field { display: flex; align-items: flex-end; gap: 4px; flex: 1; white-space: nowrap; }
   .bank-field .dotted { flex: 1; }
-  .qr { width: fit-content; margin: 10px 0 0 auto; display: flex; flex-direction: column; align-items: center; white-space: nowrap; font-size: 9pt; line-height: 1.25; }
-  .qr img { display: block; width: 19mm; height: 19mm; }
-  .qr p { margin: 2px 0 0; }
+  /* QR ขยายเต็มที่ว่างท้ายแผ่นสุดท้าย บิลสั้นได้ QR ใหญ่ บิลที่แผ่นเกือบเต็มได้ QR เล็กลงเอง ไม่ล้นแผ่น
+     โลโก้กว้าง 0.7 เท่าของ QR (สูงราว 0.2345 เท่า) บวกระยะห่างใต้โลโก้ ชื่อร้าน และบรรทัดสแกนรวม 46px จึงหารด้วย 1.2345
+     สูตรอิงความสูงที่เหลือจริงของแผ่น (cqh) ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ */
+  .receipt-fill { display: flex; flex-direction: column; }
+  .receipt-fill .page-body { flex: none; }
+  .qr-area { flex: 1 1 0; min-height: 0; padding-top: 10px; container-type: size; display: flex; justify-content: center; align-items: flex-end; }
+  .qr { --q: min(45mm, calc((100cqh - 46px) / 1.2345)); display: flex; flex-direction: column; align-items: center; white-space: nowrap; line-height: 1.25; }
+  .qr .pp { display: block; width: calc(var(--q) * 0.7); height: auto; margin-bottom: 6px; }
+  .qr .code { display: block; width: var(--q); height: var(--q); }
+  .qr .name { margin: 2px 0 0; font-size: 11pt; font-weight: 600; }
+  .qr .hint { margin: 0; font-size: 11pt; }
+  /* ที่เหลือน้อย ยอมตัดของประกอบออกทีละอย่าง ให้ QR ยังใหญ่พอสแกน (ไม่ต่ำกว่าราว 19 มม.)
+     ตัดโลโก้ก่อน ถ้ายังไม่พอค่อยตัดบรรทัดสแกนเพื่อชำระเงิน ชื่อร้านเก็บไว้เสมอ เพราะลูกค้าใช้เทียบกับชื่อที่แอปธนาคารขึ้น */
+  @container (max-height: 134px) {
+    .qr { --q: calc(100cqh - 40px); }
+    .qr .pp { display: none; }
+  }
+  @container (max-height: 111px) {
+    .qr { --q: calc(100cqh - 21px); }
+    .qr .hint { display: none; }
+  }
   .sign { display: flex; gap: 16px; margin-top: 22px; }
   .sign p { display: flex; align-items: flex-end; gap: 4px; flex: 1; margin: 0; }
 `;
@@ -524,10 +561,19 @@ ${body}
 </body>
 </html>`;
 
-const buildReceiptHtml = (repair, options) =>
+// ใบส่งของพิมพ์สองชุดในงานพิมพ์เดียว ต้นฉบับให้ลูกค้า สำเนาให้ลูกค้าเซ็นรับแล้วร้านเก็บไว้
+// withCopy = false คือเอาเฉพาะต้นฉบับ (บันทึกเป็นรูปส่งให้ลูกค้า ไม่ต้องมีสำเนา)
+const buildReceiptHtml = (repair, { withCopy = true, ...options } = {}) =>
   receiptDocument(
     `${receiptDocTitle(repair)} ${receiptDocNo(repair)}`,
-    receiptPagesHtml(repair, options),
+    repair.status === "CREDIT"
+      ? [
+          receiptPagesHtml(repair, { ...options, copyLabel: "ต้นฉบับ" }),
+          ...(withCopy
+            ? [receiptPagesHtml(repair, { ...options, copyLabel: "สำเนา" })]
+            : []),
+        ].join("")
+      : receiptPagesHtml(repair, options),
   );
 
 // ช่างดูจากชนิดอะไหล่ ไม่ได้ดูยี่ห้อหรือรุ่น จึงตัดชื่อของช่วงล่างเหลือคำแรกของชื่อในคลัง

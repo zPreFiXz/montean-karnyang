@@ -2054,6 +2054,7 @@ const SuspensionInspection = () => {
               register={register}
               errors={errors}
               value={watch("fleetNo")}
+              onClear={() => setValue("fleetNo", "", { shouldValidate: true })}
             />
 
             <FormInput

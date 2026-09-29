@@ -129,6 +129,8 @@ const sendToPrinter = async (filePath, printerName) => {
     await printer.print(filePath, {
       ...(printerName ? { printer: printerName } : {}),
       paperSize: "A5",
+      // พิมพ์ขาวดำเสมอ เครื่องสีจะได้ไม่ผสมหมึกสีมาทำสีดำ ประหยัดตลับสี
+      monochrome: true,
     });
     return;
   }
@@ -137,6 +139,11 @@ const sendToPrinter = async (filePath, printerName) => {
     ...(printerName ? ["-d", printerName] : []),
     "-o",
     "media=A5",
+    // พิมพ์ขาวดำเสมอ (สองชื่อเพราะไดรเวอร์แต่ละรุ่นรู้จักคนละชื่อ ตัวที่ไม่รู้จักจะถูกข้ามไป)
+    "-o",
+    "print-color-mode=monochrome",
+    "-o",
+    "ColorModel=Gray",
     filePath,
   ]);
 };

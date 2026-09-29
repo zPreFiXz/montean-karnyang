@@ -5,6 +5,7 @@ import ReceiptPaper, {
   hasShortenableName,
   jobSheetNo,
   receiptDocNo,
+  receiptCopyLabels,
   receiptDocTitle,
   receiptPageCount,
 } from "@/components/receipt/ReceiptPaper";
@@ -177,6 +178,11 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
   // (คำนวณหลังเช็กว่ามีบิลแล้ว หน้าที่ยังโหลดไม่เสร็จจะส่งค่าว่างมา)
   const pageCount =
     docType === "job" ? 1 : receiptPageCount(repair, { showBrand });
+
+  const copyLabels = docType === "job" ? [null] : receiptCopyLabels(repair);
+  const sheets = copyLabels.flatMap((copyLabel) =>
+    Array.from({ length: pageCount }, (_, page) => ({ page, copyLabel })),
+  );
 
   const customerName = repair.customer?.name || "";
   const customerAddress = repair.customer?.address || "";
@@ -383,9 +389,10 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
           {/* กรอบเท่าขนาดแผ่นหลังย่อ กันไม่ให้พื้นที่เลื่อนยาวเท่าขนาดกระดาษจริง
               เพราะการย่อเป็นการแปลงภาพ ขนาดในการจัดหน้ายังเท่าเดิม */}
           <div className="flex flex-col items-center gap-[12px]">
-            {Array.from({ length: pageCount }).map((_, page) => (
+            {/* ใบส่งของมีต้นฉบับกับสำเนา แสดงครบทุกแผ่นตามลำดับที่เครื่องพิมพ์จะพิมพ์ออกมา */}
+            {sheets.map(({ page, copyLabel }, sheetIndex) => (
               <div
-                key={page}
+                key={`${copyLabel}-${page}`}
                 style={{
                   width: PAPER_WIDTH_MM * MM * scale,
                   height: PAPER_HEIGHT_MM * MM * scale,
@@ -394,8 +401,11 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
               >
                 {/* กระดาษจริง: ตัวนี้คือสิ่งเดียวที่ถูกพิมพ์ (ดูกฎ @media print ใน index.css) */}
                 <div
-                  ref={page === 0 ? paperRef : undefined}
-                  className="receipt-paper font-athiti h-[210mm] w-[148mm] origin-top-left overflow-hidden bg-white p-[10mm] text-[11pt] leading-tight text-black"
+                  ref={sheetIndex === 0 ? paperRef : undefined}
+                  // ใบเสร็จเป็น flex แนวตั้ง ให้ QR ท้ายแผ่นขยายเต็มที่ว่างที่เหลือ
+                  className={`receipt-paper font-athiti h-[210mm] w-[148mm] origin-top-left overflow-hidden bg-white p-[10mm] text-[11pt] leading-tight text-black ${
+                    docType === "job" ? "" : "flex flex-col"
+                  }`}
                   style={{ transform: `scale(${scale})` }}
                 >
                   {docType === "job" ? (
@@ -406,6 +416,7 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
                       showCustomer={showCustomer}
                       showBrand={showBrand}
                       pageIndex={page}
+                      copyLabel={copyLabel}
                     />
                   )}
                 </div>

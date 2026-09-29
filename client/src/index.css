@@ -306,3 +306,63 @@
     break-after: auto;
   }
 }
+
+/* QR รับเงินท้ายใบเสร็จ ขยายเต็มที่ว่างที่เหลือของแผ่นสุดท้าย บิลสั้นได้ QR ใหญ่ บิลที่แผ่นเกือบเต็มได้ QR เล็กลงเอง
+   สูตรอิงความสูงที่เหลือจริงของแผ่น (cqh) ต้องตรงกับ .qr-area ใน server/utils/receiptHtml.js
+   โลโก้กว้าง 0.7 เท่าของ QR (สูงราว 0.2345 เท่า) บวกระยะห่างใต้โลโก้ ชื่อร้าน และบรรทัดสแกนรวม 46px จึงหารด้วย 1.2345 */
+.receipt-qr-area {
+  flex: 1 1 0;
+  min-height: 0;
+  padding-top: 10px;
+  container-type: size;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+.receipt-qr {
+  --q: min(45mm, calc((100cqh - 46px) / 1.2345));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  white-space: nowrap;
+  line-height: 1.25;
+}
+.receipt-qr-logo {
+  /* ไฟล์เป็นโทนเทาอยู่แล้ว กรองซ้ำเผื่อใครเปลี่ยนไฟล์เป็นโลโก้สี ใบจะได้ขาวดำเหมือนที่พิมพ์เสมอ */
+  filter: grayscale(1);
+  display: block;
+  width: calc(var(--q) * 0.7);
+  height: auto;
+  margin-bottom: 6px;
+}
+.receipt-qr-code {
+  display: block;
+  width: var(--q);
+  height: var(--q);
+}
+.receipt-qr-name {
+  margin-top: 2px;
+  font-size: 11pt;
+  font-weight: 600;
+}
+.receipt-qr-hint {
+  font-size: 11pt;
+}
+/* ที่เหลือน้อย ยอมตัดของประกอบออกทีละอย่าง ให้ QR ยังใหญ่พอสแกน (ไม่ต่ำกว่าราว 19 มม.)
+   ตัดโลโก้ก่อน ถ้ายังไม่พอค่อยตัดบรรทัดสแกนเพื่อชำระเงิน ชื่อร้านเก็บไว้เสมอ เพราะลูกค้าใช้เทียบกับชื่อที่แอปธนาคารขึ้น */
+@container (max-height: 134px) {
+  .receipt-qr {
+    --q: calc(100cqh - 40px);
+  }
+  .receipt-qr-logo {
+    display: none;
+  }
+}
+@container (max-height: 111px) {
+  .receipt-qr {
+    --q: calc(100cqh - 21px);
+  }
+  .receipt-qr-hint {
+    display: none;
+  }
+}

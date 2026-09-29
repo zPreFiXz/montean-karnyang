@@ -912,7 +912,7 @@ exports.updateRepairStatus = async (req, res, next) => {
 };
 
 // พิมพ์กับบันทึกเป็นรูปใช้หน้าเอกสารชุดเดียวกัน รูปที่ส่งให้ลูกค้าจึงเหมือนกระดาษที่พิมพ์ออกมาทุกอย่าง
-const buildRepairDocument = async (id, body) => {
+const buildRepairDocument = async (id, body, { forImage = false } = {}) => {
   const repair = await prisma.repair.findUnique({
     where: { id: Number(id) },
     include: {
@@ -953,7 +953,12 @@ const buildRepairDocument = async (id, body) => {
 
   const html = isJobSheet
     ? buildJobSheetHtml(repair)
-    : buildReceiptHtml(repair, { showCustomer, showBrand });
+    : // รูปส่งให้ลูกค้าทางแชท ไม่ต้องมีสำเนาของใบส่งของ
+      buildReceiptHtml(repair, {
+        showCustomer,
+        showBrand,
+        withCopy: !forImage,
+      });
 
   return { repair, html, isJobSheet };
 };
@@ -980,7 +985,9 @@ exports.printRepairReceipt = async (req, res, next) => {
 // ส่งใบเป็นรูปให้ลูกค้าทางแชท แทนการพิมพ์กระดาษ ใบหลายแผ่นได้รูปละแผ่น
 exports.renderRepairImages = async (req, res, next) => {
   try {
-    const { html } = await buildRepairDocument(req.params.id, req.body);
+    const { html } = await buildRepairDocument(req.params.id, req.body, {
+      forImage: true,
+    });
     const images = await htmlToImages(html);
     res.json({ images });
   } catch (error) {
