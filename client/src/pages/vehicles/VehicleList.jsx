@@ -8,7 +8,7 @@ import { listVehicles } from "@/api/vehicle";
 import { Document } from "@/components/icons/Icons";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { toastError } from "@/utils/handleError";
-import { getVehicleSubtitle } from "@/utils/repairDisplay";
+import { getDisplayBrand } from "@/utils/repairDisplay";
 import { formatPlate } from "@/utils/formats";
 import {
   saveScrollPosition,
@@ -159,7 +159,7 @@ const VehicleList = () => {
                         ? `${formatPlate(item.licensePlate.plateNumber)} ${item.licensePlate.province}`
                         : "ไม่ระบุทะเบียนรถ"
                     }
-                    brand={getVehicleSubtitle(item)}
+                    brand={getDisplayBrand(item.vehicleModel)}
                     note={item.repairs?.[0]?.customer?.name}
                   />
                 </Link>

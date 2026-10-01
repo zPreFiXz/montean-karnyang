@@ -93,5 +93,6 @@ export const getRepairSubtitle = (repair) => {
   if (isSaleRepair(repair) || isNoVehicleRepair(repair)) {
     return repair?.customer?.name || "ลูกค้าทั่วไป";
   }
-  return getVehicleSubtitle(repair?.vehicle);
+  // การ์ดในรายการไม่ขึ้นเบอร์รถ บรรทัดสั้นอ่านง่าย เบอร์รถดูได้ในหน้ารายละเอียด
+  return getDisplayBrand(repair?.vehicle?.vehicleModel);
 };

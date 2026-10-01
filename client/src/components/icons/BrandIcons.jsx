@@ -21,6 +21,8 @@ const BRAND_MAP = {
   chevrolet: { label: "Chevrolet", file: "chevrolet.png" },
   hyundai: { label: "Hyundai", file: "hyundai.png" },
   tata: { label: "Tata", file: "tata.png" },
+  byd: { label: "BYD", file: "byd.png" },
+  chery: { label: "Chery", file: "chery.png" },
 };
 
 const findBrandKey = (brandText) => {

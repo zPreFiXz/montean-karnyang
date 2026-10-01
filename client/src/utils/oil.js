@@ -14,7 +14,7 @@ export const sortOilSizes = (sizes = []) =>
 
 // ของที่ตวงจากถังใหญ่ ไม่ได้นับเป็นชิ้น สต็อกในระบบจึงไม่ใช่เพดานของการเบิก
 // เทียบด้วยคำที่อยู่ในชื่อ เพราะชื่อจริงมียี่ห้อกับขนาดต่อท้าย ("VALVOLINE น้ำมันเกียร์ (4L)")
-export const UNLIMITED_STOCK_KEYWORDS = ["น้ำมันเกียร์"];
+export const UNLIMITED_STOCK_KEYWORDS = ["น้ำมันเกียร์", "น้ำมันเฟืองท้าย"];
 
 export const isUnlimitedStockItem = (item) => {
   const name = String(item?.name || item?.itemName || "");

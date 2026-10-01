@@ -190,7 +190,8 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
   const hasCustomerInfo = !!(
     customerName ||
     customerAddress ||
-    repair.customer?.taxId
+    repair.customer?.taxId ||
+    repair.customer?.phoneNumber
   );
   // ใบสั่งซ่อมมีไว้ส่งงานให้ช่างที่ทำกับรถ ใช้กับงานซ่อมทั่วไปและงานเช็กช่วงล่าง
   // งานบริการที่ไม่ผูกรถกับบิลขายอะไหล่หน้าร้านจบที่หน้าร้าน ไม่มีงานให้ส่งต่อ

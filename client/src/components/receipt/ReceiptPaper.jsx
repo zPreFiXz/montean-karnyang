@@ -1,4 +1,4 @@
-import { formatQuantity, formatPlate } from "@/utils/formats";
+import { formatQuantity, formatPlate, formatPhone } from "@/utils/formats";
 import { bahtText } from "@/utils/bahtText";
 import { getDisplayBrand } from "@/utils/repairDisplay";
 import { getPartType } from "@/utils/suspension";
@@ -165,6 +165,11 @@ export const receiptDocNo = (repair) => {
 export const jobSheetNo = (repair) =>
   repair?.receiptNo ? repair.receiptNo.replace(/^RE-/, "JO-") : repair?.id;
 
+// กรุงเทพมหานครยาวจนดันยี่ห้อ-รุ่นในแถวรถให้ถูกตัด บนกระดาษจึงเขียนย่อแบบที่ใช้กันทั่วไป
+// (ต้องตรงกับ shortProvince ใน server/utils/receiptHtml.js)
+export const shortProvince = (province) =>
+  province === "กรุงเทพมหานคร" ? "กรุงเทพฯ" : province || "";
+
 export const receiptHeaderInfo = (repair) => {
   // วันเปิดบิล ไม่ใช่วันรับเงิน ต้องตรงกับ buildReceiptHtml ใน server/utils/receiptHtml.js
   const issuedAt = new Date(repair.createdAt || Date.now());
@@ -177,7 +182,7 @@ export const receiptHeaderInfo = (repair) => {
     year: String(issuedAt.getFullYear() + 543),
     vehicleName: getDisplayBrand(repair.vehicle?.vehicleModel) || "",
     plateText: plate?.plateNumber
-      ? `${formatPlate(plate.plateNumber)} ${plate.province || ""}`.trim()
+      ? `${formatPlate(plate.plateNumber)} ${shortProvince(plate.province)}`.trim()
       : "",
     fleetNo: repair.vehicle?.fleetNo || "",
   };
@@ -208,12 +213,12 @@ export const estimateNameLines = (text) => {
 };
 
 // แบ่งแผ่นตามจำนวนบรรทัดที่ใช้จริง แผ่นละไม่เกิน MIN_ROWS บรรทัด
-const paginateRows = (rows, linesOf) => {
+const paginateRows = (rows, linesOf, maxLines = MIN_ROWS) => {
   const pages = [[]];
   let used = 0;
   for (const row of rows) {
     const lines = linesOf(row);
-    if (used + lines > MIN_ROWS && pages[pages.length - 1].length > 0) {
+    if (used + lines > maxLines && pages[pages.length - 1].length > 0) {
       pages.push([]);
       used = 0;
     }
@@ -227,7 +232,7 @@ const paginateRows = (rows, linesOf) => {
 // แต่แผ่นสุดท้ายที่รายการเต็มแล้วยังมีแถวส่วนลดต่อท้าย จะล้นแผ่น จึงยกรายการท้ายไปขึ้นแผ่นใหม่
 // นับบรรทัดที่เห็นจริงในตาราง: รายการ + ยอดรวม (มีส่วนลดเพิ่มแถวรวมเป็นเงินกับแถวส่วนลดแต่ละแถว)
 // ค่าวัดจากหน้าเอกสารจริงใน Chrome ใบส่งของไม่มี QR จึงรับได้มากกว่า แม้มีแถววิธีจ่ายกับบรรทัดต้นฉบับ/สำเนาเพิ่ม
-const QR_PAGE_LINES = 13;
+const QR_PAGE_LINES = 11;
 const DELIVERY_PAGE_LINES = 14;
 const summaryLinesOf = (discountCount) =>
   discountCount ? discountCount + 2 : 1;
@@ -309,6 +314,7 @@ const ReceiptPaper = ({
   const customerName = repair.customer?.name || "";
   const customerAddress = repair.customer?.address || "";
   const customerTaxId = repair.customer?.taxId || "";
+  const customerPhone = repair.customer?.phoneNumber || "";
 
   const { pages, discountItems } = buildReceiptPages(repair, { showBrand });
   const pageCount = pages.length;
@@ -395,10 +401,17 @@ const ReceiptPaper = ({
         <div className="mt-[6px] space-y-[5px]">
           {/* ปิดสวิตช์แล้วเว้นช่องไว้เฉยๆ ไม่เอาบรรทัดออก
                 ใบจะได้หน้าตาเหมือนเดิมทุกครั้งและเขียนมือเพิ่มทีหลังได้ */}
-          <p className="flex items-end gap-[6px]">
-            <span className="whitespace-nowrap">ชื่อลูกค้า</span>
-            <span className="flex-1 border-b border-dotted border-black text-center font-semibold">
+          {/* แถวชื่อลูกค้ากับแถวรถแบ่งครึ่งซ้ายขวา ช่องกรอกของสองแถวตรงกันเป็นคอลัมน์ อ่านง่าย
+              ป้ายกว้างเท่าป้ายที่ยาวที่สุดของคอลัมน์ ฝั่งซ้ายกว้างกว่าเล็กน้อยให้ชื่อหน่วยงานเต็มไม่ถูกตัด
+              (ต้องตรงกับ p.pair ใน receiptHtml.js) */}
+          <p className="grid grid-cols-[60px_minmax(0,1.22fr)_74px_1fr] items-end gap-[6px] whitespace-nowrap">
+            <span>ชื่อลูกค้า</span>
+            <span className="truncate border-b border-dotted border-black text-center font-semibold">
               {showCustomer ? customerName : ""}
+            </span>
+            <span>เบอร์โทรศัพท์</span>
+            <span className="border-b border-dotted border-black text-center font-semibold">
+              {showCustomer && customerPhone ? formatPhone(customerPhone) : ""}
             </span>
           </p>
           <p className="flex items-end gap-[6px]">
@@ -417,26 +430,27 @@ const ReceiptPaper = ({
             </span>
           </p>
           {/* รถอยู่บรรทัดของตัวเอง เพราะใบเสร็จของร้านยางต้องรู้ว่าเป็นของคันไหน */}
-          <p className="flex items-end gap-[6px]">
-            <span className="whitespace-nowrap">ยี่ห้อ-รุ่นรถ</span>
-            {/* แถวรถต้องอยู่บรรทัดเดียว ไม่งั้นแผ่นสูงเกินที่คิดไว้ตอนแบ่งแผ่น
-              ทะเบียนห้ามตัด ยี่ห้อ-รุ่นยอมหดแล้วต่อท้ายด้วย … (ต้องตรงกับ receiptHtml.js) */}
-            <span className="min-w-0 flex-1 truncate border-b border-dotted border-black text-center font-semibold">
+          <p className="grid grid-cols-[60px_minmax(0,1.22fr)_74px_1fr] items-end gap-[6px] whitespace-nowrap">
+            <span>ยี่ห้อ-รุ่นรถ</span>
+            {/* ยี่ห้อ-รุ่นยาวเกินยอมตัดเป็น … ฝั่งขวา (ทะเบียน เบอร์รถ) ห้ามตัด ถ้าไม่พอจะเบียดฝั่งซ้ายแทน */}
+            <span className="truncate border-b border-dotted border-black text-center font-semibold">
               {vehicleName}
             </span>
-            <span className="whitespace-nowrap">ทะเบียนรถ</span>
-            <span className="min-w-[90px] flex-none border-b border-dotted border-black px-[8px] text-center font-semibold whitespace-nowrap">
-              {plateText}
+            <span>ทะเบียนรถ</span>
+            <span className="flex items-end gap-[6px]">
+              <span className="flex-1 border-b border-dotted border-black text-center font-semibold">
+                {plateText}
+              </span>
+              {/* รถส่วนใหญ่ไม่มีเบอร์ ขึ้นเฉพาะคันที่มี ช่องกว้างพอดีเลข */}
+              {fleetNo && (
+                <>
+                  <span>เบอร์รถ</span>
+                  <span className="border-b border-dotted border-black px-[2px] text-center font-semibold">
+                    {fleetNo}
+                  </span>
+                </>
+              )}
             </span>
-            {/* รถส่วนใหญ่ไม่มีเบอร์ ขึ้นเฉพาะคันที่มี ไม่เว้นช่องว่างรกใบ (ต้องตรงกับ receiptHtml.js) */}
-            {fleetNo && (
-              <>
-                <span className="whitespace-nowrap">เบอร์รถ</span>
-                <span className="min-w-[40px] border-b border-dotted border-black px-[6px] text-center font-semibold whitespace-nowrap">
-                  {fleetNo}
-                </span>
-              </>
-            )}
           </p>
         </div>
 

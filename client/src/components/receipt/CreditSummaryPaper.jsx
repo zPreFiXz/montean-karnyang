@@ -1,4 +1,4 @@
-import { SHOP } from "@/components/receipt/ReceiptPaper";
+import { SHOP, shortProvince } from "@/components/receipt/ReceiptPaper";
 import { bahtText } from "@/utils/bahtText";
 import { formatDateShort } from "@/utils/formats";
 import { getDisplayBrand, getRepairTitle } from "@/utils/repairDisplay";
@@ -74,9 +74,10 @@ const CreditSummaryPaper = ({ customer, repairs, billingNo }) => {
                 {/* รถที่ไม่มีทะเบียน บอกยี่ห้อกับรุ่นแทน จะได้ยังรู้ว่าเป็นคันไหน */}
                 {getRepairTitle(repair) === "ไม่ระบุทะเบียนรถ"
                   ? getDisplayBrand(repair.vehicle?.vehicleModel) || "งานซ่อม"
-                  : getRepairTitle(repair)}
+                  : getRepairTitle(repair, shortProvince)}
                 {/* บริษัทที่มีรถหลายคันเรียกรถด้วยเบอร์ ฝ่ายบัญชีจะเทียบกับรายการของเขาได้ง่าย */}
-                {repair.vehicle?.fleetNo && ` เบอร์รถ ${repair.vehicle.fleetNo}`}
+                {repair.vehicle?.fleetNo &&
+                  ` เบอร์รถ ${repair.vehicle.fleetNo}`}
               </td>
               <td className="border border-black px-[4px] text-right">
                 {money(repair.totalPrice)}

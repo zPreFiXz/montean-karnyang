@@ -71,6 +71,7 @@ import {
   isNoVehicleRepair,
   getRepairTitle,
   getRepairSubtitle,
+  getVehicleSubtitle,
 } from "@/utils/repairDisplay";
 import { usePrefetchPages } from "@/routes/pageImports";
 
@@ -836,7 +837,7 @@ const RepairDetail = () => {
                     ต่างจากการ์ดในลิสต์ที่มีบรรทัดเดียว จึงต้องยัดชื่อลูกค้าไว้ในนั้น */}
                 {!isSaleRepair(repair) && !isNoVehicleRepair(repair) && (
                   <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                    {getRepairSubtitle(repair)}
+                    {getVehicleSubtitle(repair?.vehicle)}
                   </p>
                 )}
               </div>

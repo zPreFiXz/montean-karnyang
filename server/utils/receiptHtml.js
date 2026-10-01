@@ -79,12 +79,12 @@ const estimateNameLines = (text) => {
 };
 
 // แบ่งแผ่นตามจำนวนบรรทัดที่ใช้จริง แผ่นละไม่เกิน MIN_ROWS บรรทัด
-const paginateRows = (rows, linesOf) => {
+const paginateRows = (rows, linesOf, maxLines = MIN_ROWS) => {
   const pages = [[]];
   let used = 0;
   for (const row of rows) {
     const lines = linesOf(row);
-    if (used + lines > MIN_ROWS && pages[pages.length - 1].length > 0) {
+    if (used + lines > maxLines && pages[pages.length - 1].length > 0) {
       pages.push([]);
       used = 0;
     }
@@ -98,7 +98,7 @@ const paginateRows = (rows, linesOf) => {
 // แต่แผ่นสุดท้ายที่รายการเต็มแล้วยังมีแถวส่วนลดต่อท้าย จะล้นแผ่น จึงยกรายการท้ายไปขึ้นแผ่นใหม่
 // นับบรรทัดที่เห็นจริงในตาราง: รายการ + ยอดรวม (มีส่วนลดเพิ่มแถวรวมเป็นเงินกับแถวส่วนลดแต่ละแถว)
 // ค่าวัดจากหน้าเอกสารจริงใน Chrome ใบส่งของไม่มี QR จึงรับได้มากกว่า แม้มีแถววิธีจ่ายกับบรรทัดต้นฉบับ/สำเนาเพิ่ม
-const QR_PAGE_LINES = 13;
+const QR_PAGE_LINES = 11;
 const DELIVERY_PAGE_LINES = 14;
 const summaryLinesOf = (discountCount) =>
   discountCount ? discountCount + 2 : 1;
@@ -115,6 +115,11 @@ const makeRoomForQr = (pages, linesOf, summaryRows, limit) => {
 
   return moved.length ? [...pages.slice(0, -1), last, moved] : pages;
 };
+
+// กรุงเทพมหานครยาวจนดันยี่ห้อ-รุ่นในแถวรถให้ถูกตัด บนกระดาษจึงเขียนย่อแบบที่ใช้กันทั่วไป
+// (ต้องตรงกับ shortProvince ใน client/src/components/receipt/ReceiptPaper.jsx)
+const shortProvince = (province) =>
+  province === "กรุงเทพมหานคร" ? "กรุงเทพฯ" : province || "";
 
 // เรียกว่าใบเสร็จรับเงินได้เฉพาะตอนรับเงินแล้วจริง
 // ใบประเมินราคา = ยังไม่ได้ซ่อม เป็นใบเสนอราคา / เครดิต = ซ่อมแล้วแต่ยังไม่ได้เงิน เป็นใบส่งของ
@@ -144,6 +149,18 @@ const PAYMENT_BOXES = [
 ];
 
 // ทะเบียนเก็บเป็น "กษ 9037" แต่แสดงคั่นด้วยขีด ให้ตรงกับที่หน้าเว็บแสดง
+// 0812345678 → 081-234-5678 (ตรงกับ formatPhone ใน client/src/utils/formats.js)
+const formatPhone = (phoneNumber) => {
+  const digits = String(phoneNumber ?? "").replace(/\D/g, "");
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  if (digits.length === 9) {
+    return `${digits.slice(0, 2)}-${digits.slice(2, 5)}-${digits.slice(5)}`;
+  }
+  return String(phoneNumber ?? "");
+};
+
 const formatPlate = (plateNumber) => {
   const text = String(plateNumber || "").trim();
   if (!text) return "";
@@ -258,13 +275,14 @@ const receiptPagesHtml = (
 
   const plate = repair.vehicle?.licensePlate;
   const plateText = plate?.plateNumber
-    ? `${formatPlate(plate.plateNumber)} ${plate.province || ""}`.trim()
+    ? `${formatPlate(plate.plateNumber)} ${shortProvince(plate.province)}`.trim()
     : "";
   const model = repair.vehicle?.vehicleModel;
   const vehicleName = displayBrand(model);
   // รถส่วนใหญ่ไม่มีเบอร์ ขึ้นเฉพาะคันที่มี ไม่เว้นช่องว่างรกใบ (ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
+  // เบอร์รถมีแค่ไม่กี่ตัว ช่องกว้างพอดีเลข ไม่จองที่ไว้ ยี่ห้อ-รุ่นกับทะเบียนจะได้ที่มากที่สุด
   const fleetHtml = repair.vehicle?.fleetNo
-    ? `<span style="white-space:nowrap">เบอร์รถ</span><span class="dotted" style="min-width:40px;padding:0 6px;text-align:center;font-weight:600;white-space:nowrap">${escapeHtml(repair.vehicle.fleetNo)}</span>`
+    ? `<span style="white-space:nowrap">เบอร์รถ</span><span class="dotted fleet">${escapeHtml(repair.vehicle.fleetNo)}</span>`
     : "";
 
   // ส่วนลดไม่ใช่ของที่ขาย ยกออกจากตารางไปไว้เป็นแถวใต้ยอดรวมแทน (ตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
@@ -357,9 +375,12 @@ const receiptPagesHtml = (
       </tr>`;
 
   // ปิดข้อมูลลูกค้า = เว้นช่องไว้ ไม่เอาบรรทัดออก ใบจะได้หน้าตาเหมือนกันทุกครั้ง
-  const customerFields = `<p>ชื่อลูกค้า<span class="dotted v">${
+  // เบอร์โทรอยู่ท้ายบรรทัดชื่อ ใบไม่สูงขึ้น ขึ้นเฉพาะลูกค้าที่มีเบอร์ และปิดตามสวิตช์ข้อมูลลูกค้า
+  // (ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
+  const phone = showCustomer ? formatPhone(repair.customer?.phoneNumber) : "";
+  const customerFields = `<p class="pair">ชื่อลูกค้า<span class="dotted v cut">${
     showCustomer ? escapeHtml(repair.customer?.name || "") : ""
-  }</span></p>
+  }</span>เบอร์โทรศัพท์<span class="dotted v">${escapeHtml(phone)}</span></p>
     <p>ที่อยู่<span class="dotted v">${
       showCustomer ? escapeHtml(repair.customer?.address || "") : ""
     }</span></p>
@@ -404,7 +425,7 @@ const receiptPagesHtml = (
 
   <div class="fields">
 ${customerFields}
-    <p>ยี่ห้อ-รุ่นรถ<span class="dotted v car-name">${escapeHtml(vehicleName)}</span>ทะเบียนรถ<span class="dotted v car-plate">${escapeHtml(plateText)}</span>${fleetHtml}</p>
+    <p class="pair">ยี่ห้อ-รุ่นรถ<span class="dotted v cut">${escapeHtml(vehicleName)}</span>ทะเบียนรถ<span class="car-right"><span class="dotted v">${escapeHtml(plateText)}</span>${fleetHtml}</span></p>
   </div>
 
   <table>
@@ -500,8 +521,15 @@ const RECEIPT_STYLES = `
   .fields p { display: flex; align-items: flex-end; gap: 6px; margin: 0 0 5px; }
   .fields .v { flex: 1; text-align: center; font-weight: 600; }
   /* แถวรถต้องอยู่บรรทัดเดียว ไม่งั้นแผ่นสูงเกินที่คิดไว้ตอนแบ่งแผ่น ทะเบียนห้ามตัด ยี่ห้อ-รุ่นยอมหดแล้วต่อท้ายด้วย … */
-  .fields .car-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .fields .car-plate { flex: 0 0 auto; min-width: 90px; padding: 0 8px; white-space: nowrap; }
+  /* แถวชื่อลูกค้ากับแถวรถแบ่งครึ่งซ้ายขวาเท่ากัน ช่องกรอกของสองแถวตรงกันเป็นคอลัมน์ อ่านง่าย
+     ป้ายกว้างเท่าป้ายที่ยาวที่สุดของคอลัมน์ (ยี่ห้อ-รุ่นรถ / เบอร์โทรศัพท์) ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ
+     ฝั่งซ้ายกว้างกว่าเล็กน้อยให้ชื่อหน่วยงานเต็มอย่าง "องค์การบริหารส่วนตำบลน้ำอ้อม" ไม่ถูกตัด
+     ฝั่งซ้ายยาวเกินยอมตัดเป็น … ฝั่งขวา (ทะเบียน เบอร์รถ) ห้ามตัด ถ้าไม่พอจะเบียดฝั่งซ้ายแทน */
+  .fields p.pair { display: grid; grid-template-columns: 60px minmax(0, 1.22fr) 74px 1fr; white-space: nowrap; }
+  .fields .cut { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fields .car-right { display: flex; align-items: flex-end; gap: 6px; white-space: nowrap; }
+  .fields .car-right .v { white-space: nowrap; }
+  .fields .fleet { flex: none; padding: 0 2px; text-align: center; font-weight: 600; white-space: nowrap; }
   table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 8px; font-size: inherit; }
   thead tr, tr.sum { background: #e5e7eb; }
   th, td { border: 1px solid #000; padding: 2px 4px; height: 22px; }
@@ -522,27 +550,19 @@ const RECEIPT_STYLES = `
   .bank { display: flex; align-items: flex-end; gap: 8px; margin-top: 6px; }
   .bank-field { display: flex; align-items: flex-end; gap: 4px; flex: 1; white-space: nowrap; }
   .bank-field .dotted { flex: 1; }
-  /* QR ขยายเต็มที่ว่างท้ายแผ่นสุดท้าย บิลสั้นได้ QR ใหญ่ บิลที่แผ่นเกือบเต็มได้ QR เล็กลงเอง ไม่ล้นแผ่น
-     โลโก้กว้าง 0.7 เท่าของ QR (สูงราว 0.2345 เท่า) บวกระยะห่างใต้โลโก้ ชื่อร้าน และบรรทัดสแกนรวม 46px จึงหารด้วย 1.2345
-     สูตรอิงความสูงที่เหลือจริงของแผ่น (cqh) ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ */
+  /* กลุ่ม QR เริ่มใต้ช่องลงชื่อ 8 จุด แล้วขยายเต็มที่ว่างที่เหลือจนถึงขอบล่าง บิลสั้นได้ QR ใหญ่ บิลแน่นได้เล็กลง
+     แสดงครบชุดเสมอ (โลโก้ QR ชื่อร้าน บรรทัดสแกน) แผ่นสุดท้ายรับรายการได้ตาม QR_PAGE_LINES ให้ QR ไม่เล็กกว่า 22 มม.
+     (บิล 10 รายการไม่มีส่วนลดยังจบในแผ่นเดียว)
+     ขนาดคิดจากความสูงที่เหลือจริง (cqh): โลโก้สูง 0.2345 เท่าของ QR บวกระยะใต้โลโก้ ชื่อร้าน บรรทัดสแกน รวม 43px
+     ต้องตรงกับ .receipt-qr ใน client/src/index.css */
   .receipt-fill { display: flex; flex-direction: column; }
   .receipt-fill .page-body { flex: none; }
-  .qr-area { flex: 1 1 0; min-height: 0; padding-top: 10px; container-type: size; display: flex; justify-content: center; align-items: flex-end; }
-  .qr { --q: min(45mm, calc((100cqh - 46px) / 1.2345)); display: flex; flex-direction: column; align-items: center; white-space: nowrap; line-height: 1.25; }
-  .qr .pp { display: block; width: calc(var(--q) * 0.7); height: auto; margin-bottom: 6px; }
+  .qr-area { flex: 1 1 0; min-height: 0; padding-top: 8px; container-type: size; display: flex; justify-content: center; align-items: flex-start; }
+  .qr { --q: calc((100cqh - 44px) / 1.2345); display: flex; flex-direction: column; align-items: center; white-space: nowrap; line-height: 1.25; }
+  .qr .pp { display: block; width: calc(var(--q) * 0.7); height: auto; margin-bottom: 4px; }
   .qr .code { display: block; width: var(--q); height: var(--q); }
   .qr .name { margin: 2px 0 0; font-size: 11pt; font-weight: 600; }
   .qr .hint { margin: 0; font-size: 11pt; }
-  /* ที่เหลือน้อย ยอมตัดของประกอบออกทีละอย่าง ให้ QR ยังใหญ่พอสแกน (ไม่ต่ำกว่าราว 19 มม.)
-     ตัดโลโก้ก่อน ถ้ายังไม่พอค่อยตัดบรรทัดสแกนเพื่อชำระเงิน ชื่อร้านเก็บไว้เสมอ เพราะลูกค้าใช้เทียบกับชื่อที่แอปธนาคารขึ้น */
-  @container (max-height: 134px) {
-    .qr { --q: calc(100cqh - 40px); }
-    .qr .pp { display: none; }
-  }
-  @container (max-height: 111px) {
-    .qr { --q: calc(100cqh - 21px); }
-    .qr .hint { display: none; }
-  }
   .sign { display: flex; gap: 16px; margin-top: 22px; }
   .sign p { display: flex; align-items: flex-end; gap: 4px; flex: 1; margin: 0; }
 `;
@@ -640,7 +660,7 @@ const workName = (item) => {
 const buildJobSheetHtml = (repair) => {
   const plate = repair.vehicle?.licensePlate;
   const plateText = plate?.plateNumber
-    ? `${formatPlate(plate.plateNumber)} ${plate.province || ""}`.trim()
+    ? `${formatPlate(plate.plateNumber)} ${shortProvince(plate.province)}`.trim()
     : "";
   const model = repair.vehicle?.vehicleModel;
   const vehicleName = displayBrand(model);
@@ -805,7 +825,7 @@ const repairTitle = (repair) => {
     : "";
   const plate = repair.vehicle.licensePlate;
   if (plate?.plateNumber) {
-    return `${`${formatPlate(plate.plateNumber)} ${plate.province || ""}`.trim()}${fleet}`;
+    return `${`${formatPlate(plate.plateNumber)} ${shortProvince(plate.province)}`.trim()}${fleet}`;
   }
   // รถที่ไม่มีทะเบียน บอกยี่ห้อกับรุ่นแทน จะได้ยังรู้ว่าเป็นคันไหน
   return `${displayBrand(repair.vehicle.vehicleModel) || "งานซ่อม"}${fleet}`;
