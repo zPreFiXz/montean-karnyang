@@ -34,6 +34,7 @@ const VehicleDetail = lazy(pageImports.VehicleDetail);
 const UserList = lazy(pageImports.UserList);
 const EmployeeList = lazy(pageImports.EmployeeList);
 const SalesReport = lazy(pageImports.SalesReport);
+const TopItemsReport = lazy(pageImports.TopItemsReport);
 const AttendanceReport = lazy(pageImports.AttendanceReport);
 const NotFound = lazy(pageImports.NotFound);
 
@@ -137,6 +138,7 @@ const AppRoutes = () => {
           <Route path="users" element={<UserList />} />
           <Route path="employees" element={<EmployeeList />} />
           <Route path="reports/sales" element={<SalesReport />} />
+          <Route path="reports/top-items" element={<TopItemsReport />} />
           <Route path="reports/attendance" element={<AttendanceReport />} />
         </Route>
 

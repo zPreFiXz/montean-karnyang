@@ -24,6 +24,7 @@ export const pageImports = {
   UserList: () => import("@/pages/admin/UserList"),
   EmployeeList: () => import("@/pages/admin/EmployeeList"),
   SalesReport: () => import("@/pages/reports/SalesReport"),
+  TopItemsReport: () => import("@/pages/reports/TopItemsReport"),
   AttendanceReport: () => import("@/pages/reports/AttendanceReport"),
   NotFound: () => import("@/pages/NotFound"),
 };

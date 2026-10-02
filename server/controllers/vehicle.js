@@ -90,7 +90,11 @@ exports.lookupVehicleByPlate = async (req, res, next) => {
 
     // กำลังแก้บิลเดิมอยู่ บิลใบนั้นไม่นับเป็นครั้งที่เคยมา ไม่งั้นรถที่มาครั้งแรกจะขึ้นว่ามาแล้ว 1 ครั้ง
     const excludeId = Number(excludeRepairId) || null;
-    const otherRepairs = excludeId ? { id: { not: excludeId } } : {};
+    // ใบเสนอราคาไม่นับเป็นครั้งที่มา รถยังไม่ได้เข้ามาซ่อมจริง ลูกค้าแค่ถามราคา
+    const otherRepairs = {
+      status: { not: "ESTIMATE" },
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+    };
 
     const vehicle = await prisma.vehicle.findFirst({
       where: {

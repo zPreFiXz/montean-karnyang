@@ -6,16 +6,12 @@ import {
   useScrollRestoration,
 } from "@/utils/scrollPosition";
 import {
-  ChevronLeft,
-  ChevronRight,
   LoaderCircle,
-  Calendar as CalendarIcon,
+  TrendingUp,
   Wrench as WrenchOutline,
 } from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
 import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
-import { Calendar } from "@/components/ui/calendar";
-import { CalendarMonth } from "@/components/ui/CalendarMonth";
 import {
   formatCurrency,
   formatDateWithWeekday,
@@ -33,12 +29,11 @@ import {
   getRepairTitle,
   getRepairSubtitle,
 } from "@/utils/repairDisplay";
-import { CalendarYear } from "@/components/ui/CalendarYear";
+import ReportPeriodHeader from "@/components/reports/ReportPeriodHeader";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  getDateRange,
+  getPeriodType as periodTypeOf,
+} from "@/utils/reportPeriod";
 
 const SalesReport = () => {
   const location = useLocation();
@@ -48,7 +43,6 @@ const SalesReport = () => {
   // มีข้อมูลค้างในสโตร์อยู่แล้ว (กลับมาจากหน้าบิล) ให้โชว์ของเดิมได้เลย
   // แล้วค่อยดึงใหม่เงียบๆ ไม่ต้องขึ้นตัวโหลดคั่นให้หน้ากระพริบ
   const [isLoading, setIsLoading] = useState(repairs.length === 0);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(() => {
     if (location.state?.currentDate) {
       return new Date(location.state.currentDate);
@@ -85,65 +79,7 @@ const SalesReport = () => {
     }
   };
 
-  const getPeriodType = () => {
-    const period = searchParams.get("period");
-    if (period === "weekly") return "weekly";
-    if (period === "monthly") return "monthly";
-    if (period === "yearly") return "yearly";
-    return "daily";
-  };
-
-  const getDateRange = (date, type) => {
-    const startDate = new Date(date);
-    let endDate = new Date(date);
-
-    switch (type) {
-      // วัน - เริ่มต้น 00:00:00 ถึง 23:59:59
-      case "daily":
-        startDate.setHours(0, 0, 0, 0);
-        endDate = new Date(startDate);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      // สัปดาห์ - เริ่มต้นจากวันจันทร์
-      case "weekly": {
-        const dayOfWeek = startDate.getDay();
-        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-
-        startDate.setDate(startDate.getDate() - daysFromMonday);
-        startDate.setHours(0, 0, 0, 0);
-
-        endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + 6);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      }
-      // เดือน
-      case "monthly":
-        startDate.setDate(1);
-        startDate.setHours(0, 0, 0, 0);
-        endDate = new Date(startDate);
-
-        endDate.setMonth(endDate.getMonth() + 1, 1);
-        endDate.setDate(endDate.getDate() - 1);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      // ปี
-      case "yearly":
-        startDate.setMonth(0, 1);
-        startDate.setHours(0, 0, 0, 0);
-        endDate = new Date(startDate);
-        endDate.setMonth(11, 31);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      default:
-        startDate.setHours(0, 0, 0, 0);
-        endDate = new Date(startDate);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-    }
-
-    return { startDate, endDate };
-  };
+  const getPeriodType = () => periodTypeOf(searchParams);
 
   const getReportsData = () => {
     const periodType = getPeriodType();
@@ -181,67 +117,6 @@ const SalesReport = () => {
     };
   };
 
-  const getDisplayDate = () => {
-    const periodType = getPeriodType();
-    const { startDate, endDate } = getDateRange(currentDate, periodType);
-
-    switch (periodType) {
-      case "daily":
-        return formatDateWithWeekday(currentDate);
-      case "weekly":
-        return `${startDate.toLocaleDateString("th-TH", {
-          day: "numeric",
-          month: "short",
-        })} - ${endDate.toLocaleDateString("th-TH", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        })}`;
-      case "monthly":
-        return currentDate.toLocaleDateString("th-TH", {
-          year: "numeric",
-          month: "long",
-        });
-      case "yearly":
-        return currentDate.toLocaleDateString("th-TH", {
-          year: "numeric",
-        });
-      default:
-        return "";
-    }
-  };
-
-  const changeDate = (direction) => {
-    const periodType = getPeriodType();
-    const newDate = new Date(currentDate);
-
-    switch (periodType) {
-      case "daily":
-        newDate.setDate(newDate.getDate() + (direction === "next" ? 1 : -1));
-        break;
-      case "weekly":
-        newDate.setDate(newDate.getDate() + (direction === "next" ? 7 : -7));
-        break;
-      case "monthly":
-        newDate.setMonth(newDate.getMonth() + (direction === "next" ? 1 : -1));
-        break;
-      case "yearly":
-        newDate.setFullYear(
-          newDate.getFullYear() + (direction === "next" ? 1 : -1),
-        );
-        break;
-    }
-
-    setCurrentDate(newDate);
-  };
-
-  const handleDateSelect = (date) => {
-    if (date) {
-      setCurrentDate(date);
-      setIsCalendarOpen(false);
-    }
-  };
-
   const periodType = getPeriodType();
   const { totalRevenue, repairs: periodRepairs } = getReportsData();
 
@@ -269,163 +144,18 @@ const SalesReport = () => {
 
   return (
     <div>
-      <div className="bg-gradient-primary h-[265px] w-full px-[20px] py-[16px] md:h-[285px]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-[8px]">
-            <button
-              onClick={() => navigate("/dashboard")}
-              aria-label="ย้อนกลับ"
-              className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
-            >
-              <ChevronLeft className="text-surface" />
-            </button>
-            <p className="text-surface text-2xl font-semibold md:text-[26px]">
-              รายงานยอดขาย
-            </p>
-          </div>
-          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-            <PopoverTrigger asChild>
-              <button className="text-surface flex cursor-pointer items-center gap-[8px]">
-                <CalendarIcon className="h-5 w-5" />
-                <p className="text-xl font-semibold md:text-[22px]">
-                  {periodType === "yearly"
-                    ? "เลือกปี"
-                    : periodType === "monthly"
-                      ? "เลือกเดือน"
-                      : periodType === "weekly"
-                        ? "เลือกสัปดาห์"
-                        : "เลือกวัน"}
-                </p>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-auto p-0"
-              align="end"
-              onOpenAutoFocus={(e) => e.preventDefault()}
-              onCloseAutoFocus={(e) => e.preventDefault()}
-            >
-              {periodType === "monthly" ? (
-                <CalendarMonth
-                  mode="single"
-                  defaultMonth={currentDate}
-                  selected={currentDate}
-                  onSelect={handleDateSelect}
-                  initialFocus
-                  captionLayout="dropdown"
-                  monthFormat="long"
-                  fromYear={2025}
-                  toYear={2035}
-                  className="rounded-md shadow-sm"
-                  autoFocus={false}
-                />
-              ) : periodType === "yearly" ? (
-                <CalendarYear
-                  mode="single"
-                  defaultMonth={currentDate}
-                  selected={currentDate}
-                  onSelect={handleDateSelect}
-                  initialFocus
-                  captionLayout="dropdown"
-                  fromYear={2025}
-                  toYear={2035}
-                  className="rounded-md shadow-sm"
-                  autoFocus={false}
-                />
-              ) : (
-                <Calendar
-                  mode="single"
-                  defaultMonth={currentDate}
-                  selected={currentDate}
-                  onSelect={handleDateSelect}
-                  initialFocus
-                  captionLayout="dropdown"
-                  monthFormat="long"
-                  fromYear={2025}
-                  toYear={2035}
-                  className="rounded-md shadow-sm"
-                  autoFocus={false}
-                />
-              )}
-            </PopoverContent>
-          </Popover>
-        </div>
-        <div className="mt-[16px] flex justify-center gap-[16px]">
-          <Link
-            to="/admin/reports/sales?period=daily"
-            state={{ currentDate: new Date().toISOString() }}
-            className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-lg font-semibold md:h-[40px] md:w-[95px] md:text-xl ${
-              getPeriodType() === "daily"
-                ? "text-surface bg-primary border-white"
-                : "border-subtle-light text-subtle-light bg-surface"
-            }`}
-          >
-            วัน
-          </Link>
-          <Link
-            to="/admin/reports/sales?period=weekly"
-            state={{ currentDate: new Date().toISOString() }}
-            className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-lg font-semibold md:h-[40px] md:w-[95px] md:text-xl ${
-              getPeriodType() === "weekly"
-                ? "text-surface bg-primary border-white"
-                : "border-subtle-light text-subtle-light bg-surface"
-            }`}
-          >
-            สัปดาห์
-          </Link>
-          <Link
-            to="/admin/reports/sales?period=monthly"
-            state={{ currentDate: new Date().toISOString() }}
-            className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-lg font-semibold md:h-[40px] md:w-[95px] md:text-xl ${
-              getPeriodType() === "monthly"
-                ? "text-surface bg-primary border-white"
-                : "border-subtle-light text-subtle-light bg-surface"
-            }`}
-          >
-            เดือน
-          </Link>
-          <Link
-            to="/admin/reports/sales?period=yearly"
-            state={{ currentDate: new Date().toISOString() }}
-            className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-lg font-semibold md:h-[40px] md:w-[95px] md:text-xl ${
-              getPeriodType() === "yearly"
-                ? "text-surface bg-primary border-white"
-                : "border-subtle-light text-subtle-light bg-surface"
-            }`}
-          >
-            ปี
-          </Link>
-        </div>
-        <div className="flex items-center justify-center pt-[16px]">
-          <div className="text-surface text-[22px] font-semibold md:text-2xl">
-            {getDisplayDate()}
-          </div>
-        </div>
-        <div className="mt-[16px] flex w-full items-center justify-between px-[20px]">
-          <button
-            onClick={() => changeDate("prev")}
-            className="bg-surface flex h-[44px] w-[44px] cursor-pointer items-center justify-center rounded-full md:h-[48px] md:w-[48px]"
-          >
-            <ChevronLeft
-              className="text-primary mr-[2px] h-6 w-6 md:h-[26px] md:w-[26px]"
-              strokeWidth={2.5}
-            />
-          </button>
-          <div className="flex flex-col items-center">
-            <p className="text-surface text-[32px] font-semibold md:text-[34px]">
-              {formatCurrency(totalRevenue)}
-            </p>
-          </div>
-          <button
-            onClick={() => changeDate("next")}
-            className="bg-surface flex h-[44px] w-[44px] cursor-pointer items-center justify-center rounded-full md:h-[48px] md:w-[48px]"
-          >
-            <ChevronRight
-              className="text-primary ml-[2px] h-6 w-6 md:h-[26px] md:w-[26px]"
-              strokeWidth={2.5}
-            />
-          </button>
-        </div>
-      </div>
+      <ReportPeriodHeader
+        title="รายงานยอดขาย"
+        basePath="/admin/reports/sales"
+        periodType={periodType}
+        currentDate={currentDate}
+        onDateChange={setCurrentDate}
+        onBack={() => navigate("/dashboard")}
+      >
+        <p className="text-surface text-[32px] font-semibold md:text-[34px]">
+          {formatCurrency(totalRevenue)}
+        </p>
+      </ReportPeriodHeader>
       <div className="bg-surface -mt-[16px] flex min-h-[calc(100svh-249px)] w-full flex-col rounded-tl-2xl rounded-tr-2xl px-[20px] pb-[112px] md:min-h-[calc(100svh-269px)] xl:pb-[16px]">
         {revenueByPaymentMethod.length > 0 && (
           <div className="mt-[16px] space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
@@ -446,13 +176,23 @@ const SalesReport = () => {
           <div className="bg-status-paid flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full">
             <Paid />
           </div>
-          <p className="text-normal text-[22px] font-semibold md:text-2xl">
-            {/* ลิสต์นี้คือทุกบิลที่เก็บเงินแล้วในช่วงที่เลือก มีทั้งงานซ่อม งานบริการ และขายอะไหล่
-                เรียกรวมว่างานซ่อมไม่ตรงกับของที่อยู่ข้างล่าง */}
+          {/* ลิสต์นี้คือทุกบิลที่เก็บเงินแล้วในช่วงที่เลือก มีทั้งงานซ่อม งานบริการ และขายอะไหล่
+              เรียกรวมว่างานซ่อมไม่ตรงกับของที่อยู่ข้างล่าง
+              จำนวนในวงเล็บแบบเดียวกับหัวข้อแจ้งเตือนสต็อก สั้นพอให้ปุ่มสินค้าขายดีอยู่บรรทัดเดียวกันบนมือถือ */}
+          <p className="text-normal text-[22px] font-semibold whitespace-nowrap md:text-2xl">
             {periodRepairs.length > 0
-              ? `ยอดขาย (${periodRepairs.length} รายการ)`
+              ? `ยอดขาย (${periodRepairs.length})`
               : "ยอดขาย"}
           </p>
+          {/* ไปดูว่าช่วงนี้ขายอะไหล่อะไรได้มาก ใช้ช่วงเวลาเดียวกับที่เปิดอยู่ */}
+          <Link
+            to={`/admin/reports/top-items?period=${periodType}`}
+            state={{ currentDate: currentDate.toISOString() }}
+            className="bg-primary/10 text-primary ml-auto flex h-[36px] shrink-0 items-center gap-[6px] rounded-full px-[12px] text-lg font-semibold md:text-xl"
+          >
+            <TrendingUp className="h-5 w-5" />
+            สินค้าขายดี
+          </Link>
         </div>
         {isLoading ? (
           <div className="flex flex-1 items-center justify-center">
