@@ -1,5 +1,9 @@
 import { Image, Wrench, AlertTriangle, TicketPercent } from "lucide-react";
-import { formatCurrency, formatQuantity } from "@/utils/formats";
+import {
+  formatCurrency,
+  formatPriceRange,
+  formatQuantity,
+} from "@/utils/formats";
 import { tracksStock } from "@/utils/stock";
 import { isPartLikeItem, isDiscountItem } from "@/constants/services";
 import { isUnlimitedStockItem } from "@/utils/oil";
@@ -17,6 +21,8 @@ const InventoryCard = ({
   attributes,
   secureUrl,
   category,
+  // ช่วงราคาที่เคยขายจริง มีเฉพาะยางเปอร์เซ็นต์ (สภาพไม่เท่ากัน ราคาตั้งใช้กับทุกเส้นไม่ได้)
+  soldPriceRange,
   // หน้าจอที่ยึดสต็อกจริงล้วน (เช่นไดอะล็อกเลือกอะไหล่ลงบิล) ให้เตือน "สต็อกหมด" เมื่อเหลือ 0
   // แม้อะไหล่ตัวนั้นจะไม่ได้ตั้งสต็อกขั้นต่ำไว้ก็ตาม เพราะเบิกไม่ได้อยู่ดี
   alwaysWarnEmpty = false,
@@ -100,6 +106,11 @@ const InventoryCard = ({
                   {`จำนวน: ${formatQuantity(quantity)} ${unit}`}
                 </p>
               ))
+            )}
+            {soldPriceRange && (
+              <p className="text-subtle-dark truncate text-base font-semibold md:text-lg">
+                {`ขายจริง ${formatPriceRange(soldPriceRange)}`}
+              </p>
             )}
           </div>
         </div>

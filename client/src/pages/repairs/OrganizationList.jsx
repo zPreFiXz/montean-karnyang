@@ -207,8 +207,14 @@ const OrganizationList = () => {
                     />
                   )
                 }
-                licensePlate={getRepairTitle(item)}
-                brand={getRepairSubtitle(item)}
+                // ตามเก็บเงินกับคน จึงขึ้นชื่อลูกค้าเป็นบรรทัดหลักเหมือนการ์ดหน่วยงานและร้านค้า
+                // บรรทัดรองบอกว่าเป็นบิลของรถคันไหน (หรืองานอะไร) ไม่มีชื่อก็ขึ้นแบบการ์ดบิลปกติ
+                licensePlate={item.customer?.name || getRepairTitle(item)}
+                brand={
+                  item.customer?.name
+                    ? getRepairTitle(item)
+                    : getRepairSubtitle(item)
+                }
                 note={formatDateShort(item.createdAt)}
                 price={Number(item.totalPrice) || 0}
               />
@@ -237,10 +243,13 @@ const OrganizationList = () => {
                 licensePlate={item.name}
                 // ไม่บอกประเภทซ้ำ เพราะกองที่เลือกอยู่กับไอคอนบอกไปแล้วสองชั้น
                 // เดือนของบิลค้างที่เก่าสุดมาก่อน แล้วค่อยบอกว่ากี่บิล
+                // ไม่มีบิลค้างก็ไม่มีเดือนให้บอก ขึ้นแค่จำนวนบิล ไม่มีขีดคั่นนำหน้าลอยๆ
                 brand={
-                  item.oldestUnpaidAt ? formatMonth(item.oldestUnpaidAt) : ""
+                  item.oldestUnpaidAt
+                    ? formatMonth(item.oldestUnpaidAt)
+                    : `${item.creditCount} บิล`
                 }
-                note={`${item.creditCount} บิล`}
+                note={item.oldestUnpaidAt ? `${item.creditCount} บิล` : ""}
                 price={item.creditTotal}
               />
             </Link>

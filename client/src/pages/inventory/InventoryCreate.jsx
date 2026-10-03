@@ -1,3 +1,4 @@
+import { canHaveServiceImage } from "@/constants/services";
 import FormInput from "@/components/forms/FormInput";
 import TireConstructionToggle from "@/components/forms/TireConstructionToggle";
 import { useForm } from "react-hook-form";
@@ -222,6 +223,10 @@ const InventoryCreate = () => {
     });
   };
 
+  // อะไหล่มีรูปเสมอ บริการมีรูปได้เฉพาะของชิ้นจริง (จุ๊บลม) อะไหล่อื่นๆ ไม่มีรูป
+  const canHaveImage =
+    !isServiceCategory() || canHaveServiceImage(watch("name"));
+
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
@@ -229,7 +234,7 @@ const InventoryCreate = () => {
       let serviceData = {};
       let image = null;
 
-      if (selectedImage) {
+      if (selectedImage && canHaveImage) {
         const resizedImage = await resizeImage(selectedImage);
         const res = await uploadImage(resizedImage);
 
@@ -283,6 +288,7 @@ const InventoryCreate = () => {
           description: data.description || undefined,
           unit: data.unit?.trim() || undefined,
           perSide: toPerSide(data.suspensionType),
+          image: image || undefined,
           categoryId: data.categoryId,
         };
       }
@@ -341,6 +347,15 @@ const InventoryCreate = () => {
           {/* บริการ */}
           {isServiceCategory() && (
             <div className="mb-[16px]">
+              {/* จุ๊บลมใส่รูปได้เหมือนอะไหล่ งานบริการทั่วไปกับอะไหล่อื่นๆ ไม่มีรูปให้ใส่
+                รูปอยู่ก่อนชื่อ ลำดับเดียวกับฟอร์มอะไหล่ */}
+              {canHaveServiceImage(watch("name")) && (
+                <FormUploadImage
+                  label="รูปภาพ"
+                  setSelectedImage={setSelectedImage}
+                  selectedImage={selectedImage}
+                />
+              )}
               <FormInput
                 register={register}
                 name="name"

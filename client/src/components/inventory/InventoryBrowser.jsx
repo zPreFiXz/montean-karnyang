@@ -19,7 +19,11 @@ import {
 } from "@/constants/services";
 import { getPartType } from "@/utils/suspension";
 import { getOilSize, sortOilSizes } from "@/utils/oil";
-import { isTireCategoryName, OIL_CATEGORY } from "@/constants/categories";
+import {
+  isTireCategoryName,
+  OIL_CATEGORY,
+  USED_TIRE_CATEGORY,
+} from "@/constants/categories";
 
 // เรียงชื่อชนิดอะไหล่ตามตัวอักษรไทย
 const thaiCollator = new Intl.Collator("th");
@@ -115,9 +119,23 @@ const InventoryBrowser = ({
   const search = syncUrl ? searchParams.get("search") : localSearch || null;
   const category = activeCategory === "ทั้งหมด" ? null : activeCategory;
 
+  // ยางเปอร์เซ็นต์ไม่มียี่ห้อ ยี่ห้อที่เลือกค้างมาจากหมวดยางต้องไม่ติดไปกรองจนไม่เหลือสักเส้น
+  const isUsedTireCategory = activeCategory === USED_TIRE_CATEGORY;
+
+  // เปลี่ยนจากหมวดยางมายางเปอร์เซ็นต์ ล้างยี่ห้อที่เลือกค้างไว้ ไม่งั้นตัวเลือกขนาดจะว่างหมด
+  useEffect(() => {
+    if (isUsedTireCategory && tireBrand) setTireBrand("");
+  }, [isUsedTireCategory, tireBrand]);
+
   const buildFilterParams = (override = {}) =>
     isTireCategoryName(activeCategory)
-      ? { width, aspectRatio, rimDiameter, brand: tireBrand, ...override }
+      ? {
+          width,
+          aspectRatio,
+          rimDiameter,
+          brand: isUsedTireCategory ? "" : tireBrand,
+          ...override,
+        }
       : {};
 
   const handleFilter = async (categoryName, searchTerm, filterParams = {}) => {
@@ -400,7 +418,12 @@ const InventoryBrowser = ({
       .sort((a, b) => rank(a.name) - rank(b.name));
   }, [visibleInventory, activeCategory, categoryOrder]);
 
-  const hasTireFilter = !!(width || aspectRatio || rimDiameter || tireBrand);
+  const hasTireFilter = !!(
+    width ||
+    aspectRatio ||
+    rimDiameter ||
+    (!isUsedTireCategory && tireBrand)
+  );
 
   // ไม่มีตัวเลือกให้เลือก = ปิดช่องไว้ (เช่น 195R14 ไม่มีแก้มยาง) แต่ถ้าเลือกค่าไว้แล้ว
   // ต้องเปิดไว้เสมอ ไม่งั้นผู้ใช้จะแก้หรือล้างค่านั้นไม่ได้
@@ -463,6 +486,7 @@ const InventoryBrowser = ({
           tireLots={item.tireLots}
           secureUrl={item.secureUrl}
           category={item.category?.name}
+          soldPriceRange={item.soldPriceRange}
           {...cardProps}
         />
       </div>
@@ -541,10 +565,22 @@ const InventoryBrowser = ({
       )}
 
       {isTireCategoryName(activeCategory) && (
-        <div className="mt-[16px] flex w-full flex-col gap-[12px]">
+        <div
+          className={`mt-[16px] flex w-full flex-col ${isUsedTireCategory ? "" : "gap-[12px]"}`}
+        >
           <div>
+            {/* ยางเปอร์เซ็นต์เป็นยางเก่าคละยี่ห้อ ไม่ได้เก็บยี่ห้อไว้ จึงกรองได้แค่ขนาด ไม่มีหัวข้อ
+                แต่แถวนี้ยังสูงเท่าเดิมตลอด (หัวข้อล่องหนค้ำไว้) ปุ่มล้างตัวกรองโผล่แล้วช่องขนาดจะไม่เลื่อนลง
+                ไม่งั้นเลือกหน้ายางเสร็จ ช่องแก้มยางขยับหนีนิ้วที่กำลังจะกด */}
             <div className="mb-[8px] flex items-center justify-between">
-              <span className="text-xl font-medium md:text-[22px]">ยี่ห้อ</span>
+              <span
+                aria-hidden={isUsedTireCategory}
+                className={`text-xl font-medium md:text-[22px] ${
+                  isUsedTireCategory ? "invisible" : ""
+                }`}
+              >
+                ยี่ห้อ
+              </span>
               {hasTireFilter && (
                 <button
                   type="button"
@@ -556,17 +592,19 @@ const InventoryBrowser = ({
                 </button>
               )}
             </div>
-            <ComboBox
-              options={availableTireBrands.map((b) => ({ name: b }))}
-              value={tireBrand}
-              onChange={(v) => {
-                setTireBrand(v);
-                debouncedFilter();
-              }}
-              placeholder="-- เลือกยี่ห้อ --"
-              disabled={isFilterLocked(availableTireBrands, tireBrand)}
-              customClass="text-lg md:text-xl"
-            />
+            {!isUsedTireCategory && (
+              <ComboBox
+                options={availableTireBrands.map((b) => ({ name: b }))}
+                value={tireBrand}
+                onChange={(v) => {
+                  setTireBrand(v);
+                  debouncedFilter();
+                }}
+                placeholder="-- เลือกยี่ห้อ --"
+                disabled={isFilterLocked(availableTireBrands, tireBrand)}
+                customClass="text-lg md:text-xl"
+              />
+            )}
           </div>
 
           <div className="flex items-end gap-[8px]">

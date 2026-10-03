@@ -167,6 +167,8 @@ exports.serviceSchema = z.object({
   unit: z.string().trim().max(20, "หน่วยยาวเกินไป").optional(),
   // ทำแยกซ้าย-ขวา (เช่นตั้งลูกปืนล้อ) = ตอนหยิบลงบิลจะถามว่าฝั่งไหน
   perSide: z.boolean().optional(),
+  // รูปของบริการที่เป็นของชิ้นหนึ่ง (จุ๊บลม) รูปแบบเดียวกับรูปอะไหล่
+  image: z.any().optional(),
   categoryId: z.coerce.number(),
 });
 

@@ -129,7 +129,7 @@ const TopItemsReport = () => {
             {ranked.map((item, index) => {
               const rank = index + 1;
               const name = itemName(item);
-              const imageUrl = item.part?.secureUrl;
+              const imageUrl = item.secureUrl;
               return (
                 <div
                   key={item.key}

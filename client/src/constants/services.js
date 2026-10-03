@@ -29,6 +29,11 @@ export const isPartPlaceholderItem = (item) =>
 // "เปลี่ยนจุ๊บลม" ไม่อยู่ในนี้ เพราะเป็นค่าแรงถอดของเก่าใส่ของใหม่
 export const PART_LIKE_SERVICE_NAMES = ["จุ๊บลม"];
 
+// บริการที่ใส่รูปได้ คือของชิ้นจริงที่มีหน้าตาให้ดู (จุ๊บลม)
+// อะไหล่อื่นๆ ไม่มีรูป เพราะเป็นรายการเปล่าที่พิมพ์ชื่อของคนละอย่างทับทุกครั้ง
+export const canHaveServiceImage = (name) =>
+  PART_LIKE_SERVICE_NAMES.includes(String(name || "").trim());
+
 // ใช้ตัดสินหน้าตาอย่างเดียว (อ่านเป็นอะไหล่หรือบริการ) ไม่ได้ย้ายกลุ่มในหน้าสต็อก
 // ต่างจาก isPartPlaceholderItem ที่ใช้จัดอะไหล่อื่นๆ ไปไว้กลุ่มบนสุดด้วย
 export const isPartLikeItem = (item) =>

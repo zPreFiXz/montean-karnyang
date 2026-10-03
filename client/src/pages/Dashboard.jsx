@@ -197,6 +197,7 @@ const Dashboard = () => {
         tireLots={item.tireLots}
         secureUrl={item.secureUrl}
         category={item.category?.name}
+        soldPriceRange={item.soldPriceRange}
       />
     </div>
   );

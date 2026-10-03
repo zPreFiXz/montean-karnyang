@@ -1,3 +1,4 @@
+import { isPartLikeItem, canHaveServiceImage } from "@/constants/services";
 import FormInput from "@/components/forms/FormInput";
 import TireConstructionToggle from "@/components/forms/TireConstructionToggle";
 import { useForm } from "react-hook-form";
@@ -341,6 +342,15 @@ const InventoryEdit = () => {
     });
   };
 
+  // จุ๊บลมเก็บเป็นบริการ (ไม่นับสต็อก) แต่คนใช้มองเป็นอะไหล่ หน้านี้จึงเรียกว่าอะไหล่ทุกจุด
+  // ดูจากชื่อที่บันทึกไว้ ไม่ใช่ชื่อที่กำลังพิมพ์ หัวข้อจะได้ไม่เปลี่ยนไปมาระหว่างแก้ชื่อ
+  const readsAsPart = isServiceCategory() && isPartLikeItem(inventory);
+  const itemWord = !isServiceCategory() || readsAsPart ? "อะไหล่" : "บริการ";
+
+  // อะไหล่มีรูปเสมอ บริการมีรูปได้เฉพาะของชิ้นจริง (จุ๊บลม) อะไหล่อื่นๆ ไม่มีรูป
+  const canHaveImage =
+    !isServiceCategory() || canHaveServiceImage(watch("name"));
+
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
@@ -348,7 +358,9 @@ const InventoryEdit = () => {
       let serviceData = {};
       let image = null;
 
-      if (selectedImage && typeof selectedImage !== "string") {
+      if (!canHaveImage) {
+        // บริการทั่วไปไม่มีรูป ไม่ต้องแตะ (ส่งไปเป็นค่าว่างของ image = ไม่เปลี่ยน)
+      } else if (selectedImage && typeof selectedImage !== "string") {
         const resizedImage = await resizeImage(selectedImage);
         const res = await uploadImage(resizedImage);
 
@@ -428,6 +440,7 @@ const InventoryEdit = () => {
           description: data.description || undefined,
           unit: data.unit?.trim() || undefined,
           perSide: toPerSide(data.suspensionType),
+          image: canHaveImage ? image : undefined,
           categoryId: data.categoryId,
         };
       }
@@ -459,11 +472,7 @@ const InventoryEdit = () => {
       });
       // แจ้งหลังเปลี่ยนหน้า ให้ขึ้นพร้อมไดอะล็อกของรายการที่เพิ่งแก้
       // ถ้าแจ้งตั้งแต่บันทึกเสร็จ จะขึ้นก่อนไดอะล็อกเกือบครึ่งวินาที ระหว่างที่รอดึงข้อมูลล่าสุด
-      toast.success(
-        isServiceCategory()
-          ? "แก้ไขบริการเรียบร้อยแล้ว"
-          : "แก้ไขอะไหล่เรียบร้อยแล้ว",
-      );
+      toast.success(`แก้ไข${itemWord}เรียบร้อยแล้ว`);
 
       reset();
       setSelectedImage(null);
@@ -486,7 +495,7 @@ const InventoryEdit = () => {
           <ChevronLeft className="text-surface" />
         </button>
         <p className="text-surface text-2xl font-semibold md:text-[26px]">
-          {isServiceCategory() ? "แก้ไขบริการ" : "แก้ไขอะไหล่"}
+          {`แก้ไข${itemWord}`}
         </p>
       </div>
       <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl">
@@ -514,12 +523,23 @@ const InventoryEdit = () => {
             {/* บริการ */}
             {isServiceCategory() && (
               <div className="mb-[16px]">
+                {/* จุ๊บลมใส่รูปได้เหมือนอะไหล่ งานบริการทั่วไปกับอะไหล่อื่นๆ ไม่มีรูปให้ใส่
+                รูปอยู่ก่อนชื่อ ลำดับเดียวกับฟอร์มอะไหล่ */}
+                {canHaveServiceImage(watch("name")) && (
+                  <FormUploadImage
+                    label="รูปภาพอะไหล่"
+                    setSelectedImage={setSelectedImage}
+                    selectedImage={selectedImage}
+                    publicId={inventory?.publicId}
+                    onMarkForDeletion={setIsImageMarkedForDeletion}
+                  />
+                )}
                 <FormInput
                   register={register}
                   name="name"
-                  label="ชื่อบริการ"
+                  label={`ชื่อ${itemWord}`}
                   type="text"
-                  placeholder="เช่น ตั้งศูนย์"
+                  placeholder={readsAsPart ? "เช่น จุ๊บลม" : "เช่น ตั้งศูนย์"}
                   color="subtle-dark"
                   errors={errors}
                 />

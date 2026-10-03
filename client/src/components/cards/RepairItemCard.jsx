@@ -38,7 +38,11 @@ const RepairItemCard = ({ item, variant, onClick, sideLabel }) => {
     );
   };
 
-  const imageUrl = variant === "detail" ? item.part?.secureUrl : item.secureUrl;
+  // บริการที่เป็นของชิ้นหนึ่ง (จุ๊บลม) มีรูปได้เหมือนอะไหล่
+  const imageUrl =
+    variant === "detail"
+      ? item.part?.secureUrl || item.service?.secureUrl
+      : item.secureUrl;
   const itemName = variant === "detail" ? detailName : item.name;
   const unitPrice =
     variant === "detail" ? Number(item.unitPrice) : Number(item.sellingPrice);

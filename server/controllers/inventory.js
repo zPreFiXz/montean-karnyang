@@ -15,10 +15,37 @@ const mapServiceToInventoryItem = (service) => ({
   // รูปเดียวกับอะไหล่ (attributes.perSide) หน้าเว็บจะได้ใช้ตัวเช็กฝั่งตัวเดียวกัน
   attributes: { perSide: !!service.perSide },
   compatibleVehicles: null,
-  publicId: null,
-  secureUrl: null,
+  publicId: service.publicId || null,
+  secureUrl: service.secureUrl || null,
   category: { name: service.category.name },
 });
+
+// ยางเปอร์เซ็นต์สภาพไม่เท่ากัน ราคาตั้งในคลังใช้กับทุกเส้นไม่ได้ จึงบอกช่วงราคาที่เคยขายจริงไว้ให้ตั้งราคา
+// นับจากบรรทัดที่ผูกกับรหัสอะไหล่ตัวนั้น ทุกบิลที่ไม่ใช่ใบเสนอราคา ไม่นับราคา 0 (ใส่ไว้ก่อนตั้งราคาจริง)
+const USED_TIRE_CATEGORY = "ยางเปอร์เซ็นต์";
+const soldPriceRanges = async (partIds) => {
+  if (partIds.length === 0) return new Map();
+  const rows = await prisma.repairItem.groupBy({
+    by: ["partId"],
+    where: {
+      partId: { in: partIds },
+      unitPrice: { gt: 0 },
+      repair: { status: { not: "ESTIMATE" } },
+    },
+    _min: { unitPrice: true },
+    _max: { unitPrice: true },
+  });
+  return new Map(
+    rows.map((row) => [
+      row.partId,
+      { min: row._min.unitPrice, max: row._max.unitPrice },
+    ]),
+  );
+};
+const usedTireIds = (parts) =>
+  parts
+    .filter((part) => part.category?.name === USED_TIRE_CATEGORY)
+    .map((part) => part.id);
 
 // เรียงไทย/อังกฤษ/ตัวเลขให้ถูกหลักภาษา (localeCompare เปล่าๆ เรียงสระนำภาษาไทยผิด)
 const collator = new Intl.Collator("th", {
@@ -112,11 +139,14 @@ exports.listInventory = async (req, res, next) => {
       );
     });
 
+    const priceRanges = await soldPriceRanges(usedTireIds(filteredParts));
+
     const inventory = [
       ...filteredParts.map((item) => ({
         ...item,
         type: "part",
         category: { name: item.category.name },
+        soldPriceRange: priceRanges.get(item.id) || null,
       })),
       ...services.map(mapServiceToInventoryItem),
     ].sort(compareInventory);
@@ -144,10 +174,12 @@ exports.getInventory = async (req, res, next) => {
       });
 
       if (inventory) {
+        const priceRanges = await soldPriceRanges(usedTireIds([inventory]));
         inventory = {
           ...inventory,
           type: "part",
           category: { name: inventory.category.name },
+          soldPriceRange: priceRanges.get(inventory.id) || null,
         };
       }
     } else if (type === "service") {

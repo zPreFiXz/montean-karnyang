@@ -36,7 +36,11 @@ import {
   USED_TIRE_CATEGORY,
 } from "@/constants/categories";
 import { isPartLikeItem } from "@/constants/services";
-import { formatCurrency, formatQuantity } from "@/utils/formats";
+import {
+  formatCurrency,
+  formatQuantity,
+  formatPriceRange,
+} from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
 import { tracksStock } from "@/utils/stock";
@@ -512,6 +516,18 @@ const RepairItemDetailDialog = ({
                       )}
                     </p>
                   </div>
+
+                  {/* ยางเปอร์เซ็นต์สภาพไม่เท่ากัน บอกช่วงราคาที่เคยขายจริงไว้ใช้ตั้งราคาตอนเปิดบิล */}
+                  {currentItem.soldPriceRange && (
+                    <div className="flex justify-between gap-[8px]">
+                      <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
+                        ราคาขายจริง:
+                      </p>
+                      <p className="text-normal text-right text-lg font-semibold md:text-xl">
+                        {formatPriceRange(currentItem.soldPriceRange)}
+                      </p>
+                    </div>
+                  )}
 
                   {/* บริการเก็บหน่วยไว้ในกล่องราคาเพราะไม่มีกล่องสต็อก อะไหล่บอกหน่วยในกล่องสต็อกอยู่แล้ว
                       บริการที่ไม่มีหน่วย (คิดเป็นครั้ง) ไม่ต้องมีแถวนี้ */}

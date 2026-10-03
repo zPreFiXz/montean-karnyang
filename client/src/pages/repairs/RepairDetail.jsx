@@ -472,7 +472,8 @@ const RepairDetail = () => {
         unit: lineUnit(ri),
         sellingPrice: Number(ri.unitPrice),
         category: ri.service?.category,
-        secureUrl: null,
+        // บริการที่เป็นของชิ้นหนึ่ง (จุ๊บลม) มีรูปได้ งานบริการทั่วไปไม่มี
+        secureUrl: ri.service?.secureUrl || null,
         quantity: ri.quantity || 1,
         side: toUiSide(ri.side),
       };
@@ -614,7 +615,7 @@ const RepairDetail = () => {
     category: item.part?.category || item.service?.category || null,
     partNumber: item.part?.partNumber || null,
     description: item.part?.description || item.service?.description || null,
-    secureUrl: item.part?.secureUrl || null,
+    secureUrl: item.part?.secureUrl || item.service?.secureUrl || null,
     sellingPrice: Number(item.unitPrice),
   });
 

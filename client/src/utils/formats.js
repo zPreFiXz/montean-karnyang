@@ -78,6 +78,15 @@ export function formatQuantity(value) {
   return String(Number(number.toFixed(2)));
 }
 
+// ช่วงราคาที่เคยขายของยางเปอร์เซ็นต์ ขายราคาเดียวมาตลอดก็บอกราคาเดียว
+export function formatPriceRange(range) {
+  if (!range) return "";
+  const money = (value) => Number(value).toLocaleString("th-TH");
+  return range.min === range.max
+    ? `${money(range.min)} บาท`
+    : `${money(range.min)}–${money(range.max)} บาท`;
+}
+
 export function formatCurrency(amount) {
   if (amount === null || amount === undefined) return "ไม่ระบุ";
   if (typeof amount !== "number") return "0 บาท";

@@ -40,7 +40,9 @@ exports.listTopItems = async (req, res, next) => {
             category: { select: { name: true } },
           },
         },
-        service: { select: { id: true, name: true, unit: true } },
+        service: {
+          select: { id: true, name: true, unit: true, secureUrl: true },
+        },
       },
     });
 
@@ -83,6 +85,8 @@ exports.listTopItems = async (req, res, next) => {
               ? item.itemName || serviceName
               : serviceName || item.itemName,
           unit: item.part?.unit || item.itemUnit || item.service?.unit || "",
+          // จุ๊บลมเป็นบริการที่มีรูปได้ (ดู Service.secureUrl)
+          secureUrl: item.part?.secureUrl || item.service?.secureUrl || null,
           quantity: 0,
           revenue: 0,
         });
