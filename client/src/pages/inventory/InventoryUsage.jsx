@@ -94,8 +94,8 @@ const InventoryUsage = () => {
 
   // เรียกตามสิ่งที่คนกำลังดูจริง ไม่ใช่ตามชนิดที่เก็บในระบบ
   // ส่วนลดกับอะไหล่อื่นๆ ถูกเก็บในหมวดบริการ แต่ความหมายคนละอย่างกับงานบริการ
-  const [search, setSearch] = useState("");
-  const keyword = search.trim();
+  // คำค้นอยู่ใน URL (SearchBar เขียนให้เอง) กดเข้าไปดูบิลแล้วกดย้อนกลับ คำค้นกับผลค้นหายังอยู่
+  const keyword = (searchParams.get("search") || "").trim();
 
   // เฉพาะสองตัวนี้เท่านั้นที่เป็นรายการเปล่าไว้พิมพ์ชื่อทับ ชื่อในบิลจึงต่างกันทุกใบ
   // ของอื่นใช้ชื่อจากคลังเหมือนกันหมด ไม่มีอะไรให้ค้น
@@ -190,11 +190,7 @@ const InventoryUsage = () => {
             ช่องค้นหาไว้ไล่หาบิลจากชื่อที่ตั้งไว้ตอนนั้น รวมถึงทะเบียนและชื่อลูกค้า */}
         {!isLoading && isRenamable && usages.length > 0 && (
           <div className="pt-[16px]">
-            <SearchBar
-              placeholder="ค้นหาชื่อในบิล"
-              value={search}
-              onSearch={setSearch}
-            />
+            <SearchBar placeholder="ค้นหาชื่อในบิล" />
           </div>
         )}
 
