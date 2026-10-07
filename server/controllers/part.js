@@ -31,6 +31,17 @@ exports.listParts = async (req, res, next) => {
   }
 };
 
+// ชุดน้ำมันเครื่องผูกกับตัวเก็บน้ำมัน ไม่ผูกก็ล้างทั้งสองช่อง (เปลี่ยนกลับเป็นอะไหล่ที่นับสต็อกเอง)
+// ห้ามผูกกับตัวเอง ไม่งั้นขายแล้วตัดสต็อกวนที่ตัวเดิม
+const oilKitFields = (oilSourceId, oilLiters, selfId) => {
+  if (oilSourceId && oilSourceId === selfId) {
+    createError(400, "ชุดน้ำมันผูกกับตัวเองไม่ได้");
+  }
+  return oilSourceId
+    ? { oilSourceId, oilLiters }
+    : { oilSourceId: null, oilLiters: null };
+};
+
 exports.createPart = async (req, res, next) => {
   try {
     const {
@@ -48,6 +59,8 @@ exports.createPart = async (req, res, next) => {
       image,
       categoryId,
       tireLots,
+      oilSourceId,
+      oilLiters,
     } = req.body;
 
     const part = await prisma.part.findUnique({
@@ -77,6 +90,7 @@ exports.createPart = async (req, res, next) => {
         publicId: image?.publicId,
         secureUrl: image?.secureUrl,
         categoryId,
+        ...oilKitFields(oilSourceId, oilLiters),
         tireLots: lots ? { create: lots } : undefined,
       },
     });
@@ -106,6 +120,8 @@ exports.updatePart = async (req, res, next) => {
       image,
       categoryId,
       tireLots,
+      oilSourceId,
+      oilLiters,
     } = req.body;
 
     const part = await prisma.part.findUnique({
@@ -133,6 +149,7 @@ exports.updatePart = async (req, res, next) => {
       publicId: image?.publicId,
       secureUrl: image?.secureUrl,
       categoryId,
+      ...oilKitFields(oilSourceId, oilLiters, Number(id)),
     };
 
     // ยาง: แทนที่ล็อตทั้งชุดตามที่ฟอร์มส่งมา (ลบเก่า สร้างใหม่) ใน transaction เดียวกับการอัปเดต Part

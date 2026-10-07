@@ -63,6 +63,13 @@ const mergeTireLots = (lots = [], added = []) =>
     );
   }, lots || []);
 
+// ปุ่มลัดเพิ่มสต็อกน้ำมันที่นับเป็นลิตร ตามขนาดที่ร้านซื้อเข้า
+const LITRE_SHORTCUTS = [
+  { litres: 1, label: "+1 ขวด" },
+  { litres: 4, label: "+4 ลิตร" },
+  { litres: 6, label: "+6 ลิตร" },
+];
+
 const RepairItemDetailDialog = ({
   item,
   open,
@@ -87,6 +94,8 @@ const RepairItemDetailDialog = ({
     reset,
     control,
     watch,
+    setValue,
+    getValues,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(updateStockSchema),
@@ -173,6 +182,8 @@ const RepairItemDetailDialog = ({
   };
 
   if (!currentItem) return null;
+
+  const isOilKit = !!(currentItem.oilSourceId && currentItem.oilSource);
 
   const isService = currentItem.type === "service";
   // จุ๊บลมเก็บเป็นบริการแต่เรียกว่าอะไหล่ (ดู PART_LIKE_SERVICE_NAMES)
@@ -550,24 +561,62 @@ const RepairItemDetailDialog = ({
                       ข้อมูลสต็อก
                     </p>
                     <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
-                      <div className="flex justify-between">
-                        <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                          จำนวนสต็อก:
-                        </p>
-                        <p
-                          className={`text-lg font-semibold md:text-xl ${stockStatus.textColor}`}
-                        >
-                          {currentItem.stockQuantity} {currentItem.unit}
-                        </p>
-                      </div>
-                      <div className="flex justify-between">
-                        <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                          สต็อกขั้นต่ำ:
-                        </p>
-                        <p className="text-normal text-lg font-semibold md:text-xl">
-                          {currentItem.minStockLevel} {currentItem.unit}
-                        </p>
-                      </div>
+                      {/* ชุดน้ำมันเครื่องตัดสต็อกที่ตัวเก็บน้ำมัน บอกว่าผูกกับตัวไหน เหลือเท่าไหร่ ชุดละกี่ลิตร */}
+                      {isOilKit && (
+                        <>
+                          <div className="flex justify-between gap-[8px]">
+                            <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
+                              ใช้น้ำมัน:
+                            </p>
+                            <p className="text-normal text-right text-lg font-semibold md:text-xl">
+                              {[
+                                currentItem.oilSource.brand,
+                                currentItem.oilSource.name,
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
+                            </p>
+                          </div>
+                          <div className="flex justify-between">
+                            <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                              น้ำมันเหลือ:
+                            </p>
+                            <p className="text-normal text-lg font-semibold md:text-xl">
+                              {`${formatQuantity(currentItem.oilSource.stockQuantity)} ลิตร`}
+                            </p>
+                          </div>
+                          <div className="flex justify-between">
+                            <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                              ใช้ชุดละ:
+                            </p>
+                            <p className="text-normal text-lg font-semibold md:text-xl">
+                              {`${formatQuantity(currentItem.oilLiters)} ลิตร`}
+                            </p>
+                          </div>
+                        </>
+                      )}
+                      {!isOilKit && (
+                        <>
+                          <div className="flex justify-between">
+                            <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                              จำนวนสต็อก:
+                            </p>
+                            <p
+                              className={`text-lg font-semibold md:text-xl ${stockStatus.textColor}`}
+                            >
+                              {currentItem.stockQuantity} {currentItem.unit}
+                            </p>
+                          </div>
+                          <div className="flex justify-between">
+                            <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                              สต็อกขั้นต่ำ:
+                            </p>
+                            <p className="text-normal text-lg font-semibold md:text-xl">
+                              {currentItem.minStockLevel} {currentItem.unit}
+                            </p>
+                          </div>
+                        </>
+                      )}
 
                       {tracksLots && tireLotSummary.length > 0 && (
                         <div className="space-y-[8px] border-t border-gray-200 pt-[8px]">
@@ -689,6 +738,30 @@ const RepairItemDetailDialog = ({
                             customClass="px-0 pt-[16px]"
                           />
                         )}
+                        {!tracksLots && currentItem.unit === "ลิตร" && (
+                          // น้ำมันซื้อเป็นแกลลอน 4 / 6 ลิตรกับขวด 1 ลิตร กดตามของที่ถืออยู่ ไม่ต้องคิดเลข
+                          <div className="mt-[8px] flex gap-[8px]">
+                            {LITRE_SHORTCUTS.map((shortcut) => (
+                              <button
+                                key={shortcut.litres}
+                                type="button"
+                                onClick={() =>
+                                  setValue(
+                                    "quantity",
+                                    String(
+                                      (Number(getValues("quantity")) || 0) +
+                                        shortcut.litres,
+                                    ),
+                                    { shouldValidate: true },
+                                  )
+                                }
+                                className="border-primary text-primary bg-surface flex h-[36px] flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-base font-semibold md:text-lg"
+                              >
+                                {shortcut.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
 
                         {/* เผยฟอร์มแล้วต้องมีทางถอย — ปุ่มยกเลิกใช้สไตล์เดียวกับไดอะล็อกอื่น
                           (ขาว+ขอบ ไม่ใช่พื้นเทา เพราะกล่องฟอร์มเป็น bg-gray-50 จะกลืนกัน) */}
@@ -730,7 +803,8 @@ const RepairItemDetailDialog = ({
             {/* ประวัติการใช้เป็นการดูข้อมูล ไม่ใช่การแก้ของ จึงแยกออกจากแถวปุ่มลงมือทำ
                 วางเป็นแถวเต็มความกว้างแบบรายการที่กดเข้าไปดูต่อได้ */}
             <div className="flex items-center gap-[16px]">
-              {!isService && !isAddStockVisible && (
+              {/* ชุดน้ำมันไม่มีสต็อกของตัวเอง เพิ่มสต็อกที่ตัวเก็บน้ำมันแทน */}
+              {!isService && !isOilKit && !isAddStockVisible && (
                 <button
                   onClick={handleShowAddStock}
                   className="font-athiti text-surface bg-gradient-primary flex h-11 flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] text-lg font-semibold md:text-xl"

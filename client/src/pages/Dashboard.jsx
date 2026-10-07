@@ -198,6 +198,7 @@ const Dashboard = () => {
         secureUrl={item.secureUrl}
         category={item.category?.name}
         soldPriceRange={item.soldPriceRange}
+        oilSource={item.oilSource}
       />
     </div>
   );

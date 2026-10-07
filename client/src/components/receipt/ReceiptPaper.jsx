@@ -401,17 +401,11 @@ const ReceiptPaper = ({
         <div className="mt-[6px] space-y-[5px]">
           {/* ปิดสวิตช์แล้วเว้นช่องไว้เฉยๆ ไม่เอาบรรทัดออก
                 ใบจะได้หน้าตาเหมือนเดิมทุกครั้งและเขียนมือเพิ่มทีหลังได้ */}
-          {/* แถวชื่อลูกค้ากับแถวรถแบ่งครึ่งซ้ายขวา ช่องกรอกของสองแถวตรงกันเป็นคอลัมน์ อ่านง่าย
-              ป้ายกว้างเท่าป้ายที่ยาวที่สุดของคอลัมน์ ฝั่งซ้ายกว้างกว่าเล็กน้อยให้ชื่อหน่วยงานเต็มไม่ถูกตัด
-              (ต้องตรงกับ p.pair ใน receiptHtml.js) */}
-          <p className="grid grid-cols-[60px_minmax(0,1.22fr)_74px_1fr] items-end gap-[6px] whitespace-nowrap">
-            <span>ชื่อลูกค้า</span>
-            <span className="truncate border-b border-dotted border-black text-center font-semibold">
+          {/* ชื่อลูกค้าเต็มบรรทัด ชื่อหน่วยงานยาวๆ จะไม่ถูกตัด (ต้องตรงกับ receiptHtml.js) */}
+          <p className="flex items-end gap-[6px]">
+            <span className="whitespace-nowrap">ชื่อลูกค้า</span>
+            <span className="min-w-0 flex-1 truncate border-b border-dotted border-black text-center font-semibold">
               {showCustomer ? customerName : ""}
-            </span>
-            <span>เบอร์โทรศัพท์</span>
-            <span className="border-b border-dotted border-black text-center font-semibold">
-              {showCustomer && customerPhone ? formatPhone(customerPhone) : ""}
             </span>
           </p>
           <p className="flex items-end gap-[6px]">
@@ -420,17 +414,24 @@ const ReceiptPaper = ({
               {showCustomer ? customerAddress : ""}
             </span>
           </p>
-          {/* ลูกค้าส่วนใหญ่ไม่มีเลขนี้ บรรทัดจึงว่างไว้ให้เขียนมือได้เหมือนในเล่ม */}
-          <p className="flex items-end gap-[6px]">
-            <span className="whitespace-nowrap">
-              เลขประจำตัวผู้เสียภาษีอากร
+          {/* เลขผู้เสียภาษีกับเบอร์โทรเป็นตัวเลขสั้นทั้งคู่ จึงแบ่งบรรทัดเดียวกันคนละครึ่ง
+              ลูกค้าส่วนใหญ่ไม่มีเลขผู้เสียภาษี ช่องว่างไว้ให้เขียนมือได้เหมือนในเล่ม */}
+          {/* ใช้คอลัมน์ชุดเดียวกับแถวรถ เบอร์โทรจึงตรงกับทะเบียนรถพอดี (ต้องตรงกับ p.halves ใน receiptHtml.js)
+              เลขผู้เสียภาษีกินสองคอลัมน์แรก เพราะป้ายยาว ฝั่งซ้ายจึงกว้างพอใส่ป้ายกับเลข 13 หลัก */}
+          <p className="grid grid-cols-[60px_minmax(0,1.7fr)_74px_1fr] items-end gap-[6px] whitespace-nowrap">
+            <span className="col-span-2 flex items-end gap-[6px]">
+              <span>เลขประจำตัวผู้เสียภาษีอากร</span>
+              <span className="flex-1 border-b border-dotted border-black px-[4px] text-center font-semibold">
+                {showCustomer ? customerTaxId : ""}
+              </span>
             </span>
-            <span className="flex-1 border-b border-dotted border-black text-center font-semibold">
-              {showCustomer ? customerTaxId : ""}
+            <span>เบอร์โทรศัพท์</span>
+            <span className="border-b border-dotted border-black text-center font-semibold">
+              {showCustomer && customerPhone ? formatPhone(customerPhone) : ""}
             </span>
           </p>
           {/* รถอยู่บรรทัดของตัวเอง เพราะใบเสร็จของร้านยางต้องรู้ว่าเป็นของคันไหน */}
-          <p className="grid grid-cols-[60px_minmax(0,1.22fr)_74px_1fr] items-end gap-[6px] whitespace-nowrap">
+          <p className="grid grid-cols-[60px_minmax(0,1.7fr)_74px_1fr] items-end gap-[6px] whitespace-nowrap">
             <span>ยี่ห้อ-รุ่นรถ</span>
             {/* ยี่ห้อ-รุ่นยาวเกินยอมตัดเป็น … ฝั่งขวา (ทะเบียน เบอร์รถ) ห้ามตัด ถ้าไม่พอจะเบียดฝั่งซ้ายแทน */}
             <span className="truncate border-b border-dotted border-black text-center font-semibold">

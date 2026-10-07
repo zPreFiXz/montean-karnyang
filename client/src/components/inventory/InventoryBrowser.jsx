@@ -18,7 +18,7 @@ import {
   NO_CATEGORY_ORDER,
 } from "@/constants/services";
 import { getPartType } from "@/utils/suspension";
-import { getOilSize, sortOilSizes } from "@/utils/oil";
+import { oilSizeOf, sortOilSizes } from "@/utils/oil";
 import {
   isTireCategoryName,
   OIL_CATEGORY,
@@ -289,7 +289,7 @@ const InventoryBrowser = ({
   const oilSizeOptions = useMemo(() => {
     const sizes = partsList
       .filter((p) => p?.category?.name === OIL_CATEGORY)
-      .map((p) => getOilSize(p.name))
+      .map((p) => oilSizeOf(p))
       .filter(Boolean);
 
     return sortOilSizes([...new Set(sizes)]);
@@ -369,7 +369,7 @@ const InventoryBrowser = ({
 
   const filteredByOilSize =
     activeCategory === OIL_CATEGORY && oilSize
-      ? filteredByPartType.filter((item) => getOilSize(item.name) === oilSize)
+      ? filteredByPartType.filter((item) => oilSizeOf(item) === oilSize)
       : filteredByPartType;
 
   // "อะไหล่อื่นๆ" กับ "ส่วนลด" ไม่ใช่บริการของร้าน เป็นบรรทัดเปล่าไว้ใส่ในบิล
@@ -487,6 +487,7 @@ const InventoryBrowser = ({
           secureUrl={item.secureUrl}
           category={item.category?.name}
           soldPriceRange={item.soldPriceRange}
+          oilSource={item.oilSource}
           {...cardProps}
         />
       </div>

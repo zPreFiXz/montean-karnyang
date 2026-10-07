@@ -64,7 +64,11 @@ import {
 import { onKeyActivate } from "@/utils/a11y";
 import { isPerSide, getPartType } from "@/utils/suspension";
 import { formatProductName } from "@/utils/tireSize";
-import { isUnlimitedStockItem } from "@/utils/oil";
+import {
+  isUnlimitedStockItem,
+  isMultiUseOil,
+  oilUseLineName,
+} from "@/utils/oil";
 import { withViewTransition } from "@/utils/viewTransition";
 import {
   isTireCategoryName,
@@ -74,6 +78,7 @@ import {
 } from "@/constants/categories";
 import EditQuantityDialog from "@/components/dialogs/EditQuantityDialog";
 import SidePickDialog from "@/components/dialogs/SidePickDialog";
+import OilUsePickDialog from "@/components/dialogs/OilUsePickDialog";
 import { collapseSidePairs, expandBothSides } from "@/utils/repairItemGroups";
 import { scrollToNewRow } from "@/utils/scrollToNewRow";
 import CollapsibleRow from "@/components/ui/CollapsibleRow";
@@ -623,7 +628,26 @@ const SuspensionInspection = () => {
   // อะไหล่หรือบริการที่ตั้งว่าแยกซ้าย-ขวา ถามข้างก่อนลงรายการซ่อมเพิ่มเติม เหมือนหน้างานซ่อม
   // (อะไหล่ช่วงล่างของรุ่นนี้เลือกข้างจากแท็บอยู่แล้ว ที่มาทางนี้คือของหมวดอื่น เช่น เบรก ไฟ)
   const [sidePickItem, setSidePickItem] = useState(null);
+  // น้ำมันขวดลิตรถามก่อนว่าใช้เติมอะไร ชื่อบรรทัดเป็น "ยี่ห้อ งาน เกรด" (ดู isMultiUseOil)
+  const [oilUseItem, setOilUseItem] = useState(null);
+  const handlePickOilUse = (use) => {
+    const item = oilUseItem;
+    setOilUseItem(null);
+    if (!item) return;
+    // ชื่อที่ได้คือชื่อเต็มของบรรทัดแล้ว ไม่ต้องให้การ์ดเติมยี่ห้อซ้ำ ตอนบันทึกส่งชื่อนี้ไปเป็นชื่อในบิล
+    // งานต่างกันชื่อต่างกัน จึงแยกเป็นคนละบรรทัด แต่ยังนับสต็อกกองเดียวกัน (ดู isSamePart)
+    addItemLine({
+      ...item,
+      name: oilUseLineName(item, use),
+      hasCustomName: true,
+    });
+  };
+
   const handleAddItemToRepair = (item) => {
+    if (isMultiUseOil(item)) {
+      setOilUseItem(item);
+      return;
+    }
     if (isPerSide(item.attributes)) {
       setSidePickItem(item);
       return;
@@ -2889,6 +2913,12 @@ const SuspensionInspection = () => {
         isDiscountLine={isDiscountItem(editingItem)}
       />
 
+      <OilUsePickDialog
+        isOpen={!!oilUseItem}
+        onClose={() => setOilUseItem(null)}
+        onPick={handlePickOilUse}
+        itemName={oilUseItem ? getProductName(oilUseItem) : ""}
+      />
       <SidePickDialog
         isOpen={!!sidePickItem}
         onClose={() => setSidePickItem(null)}

@@ -1,5 +1,6 @@
 import { isPartLikeItem, canHaveServiceImage } from "@/constants/services";
 import FormInput from "@/components/forms/FormInput";
+import OilKitFields from "@/components/forms/OilKitFields";
 import TireConstructionToggle from "@/components/forms/TireConstructionToggle";
 import { useForm } from "react-hook-form";
 import FormButton from "@/components/forms/FormButton";
@@ -31,6 +32,7 @@ import {
   tracksTireLots,
   USED_TIRE_CATEGORY,
   getCategoryKind,
+  OIL_CATEGORY,
 } from "@/constants/categories";
 import { ChevronLeft, LoaderCircle } from "lucide-react";
 import FieldErrorList from "@/components/forms/FieldErrorList";
@@ -146,6 +148,11 @@ const InventoryEdit = () => {
           );
           setValue("stockQuantity", item.stockQuantity);
           setValue("minStockLevel", item.minStockLevel);
+          setValue("oilSourceId", item.oilSourceId || "");
+          setValue(
+            "oilLiters",
+            item.oilLiters != null ? String(Number(item.oilLiters)) : "",
+          );
 
           if (item.attributes) {
             setValue("width", item.attributes.width || "");
@@ -233,6 +240,12 @@ const InventoryEdit = () => {
   const isUsedTire = () => isTireCategory() && !isLotTracked();
 
   // ยางใหม่กรอกสต็อกเป็นล็อตตามสัปดาห์/ปีผลิต ยางเปอร์เซ็นต์กรอกจำนวนตรงๆ
+  // หมวดน้ำมัน: ชุดน้ำมันเครื่องผูกกับตัวเก็บน้ำมันได้ (ดู OilKitFields)
+  const isOilCategory = () =>
+    category.find((item) => item.id === watch("categoryId"))?.name ===
+    OIL_CATEGORY;
+  const isOilKit = isOilCategory() && !!watch("oilSourceId");
+
   const isLotTracked = () => {
     if (inventory && inventory.category) {
       return tracksTireLots(inventory.category.name);
@@ -406,7 +419,10 @@ const InventoryEdit = () => {
           unit: data.unit,
           // ยาง: สต็อกมาจากผลรวมล็อต (backend คำนวณ) ไม่ต้องส่ง stockQuantity
           stockQuantity: isLotTracked() ? undefined : data.stockQuantity,
-          minStockLevel: data.minStockLevel,
+          // ชุดน้ำมันไม่เตือนสต็อกของตัวเอง เตือนที่ตัวเก็บน้ำมันแทน
+          minStockLevel: isOilKit ? 0 : data.minStockLevel,
+          oilSourceId: isOilKit ? Number(data.oilSourceId) : null,
+          oilLiters: isOilKit ? Number(data.oilLiters) : null,
           attributes: isTireCategory()
             ? {
                 width: data.width,
@@ -845,7 +861,17 @@ const InventoryEdit = () => {
                   value={watch("unit") || ""}
                 />
                 {/* ยางไม่มีช่องจำนวนสต็อก (คิดจากผลรวมล็อต) สต็อกขั้นต่ำจึงอยู่เต็มแถวไปเลย */}
-                {isLotTracked() ? (
+                {isOilCategory() && (
+                  <OilKitFields
+                    register={register}
+                    setValue={setValue}
+                    watch={watch}
+                    errors={errors}
+                    selfId={inventory?.id}
+                  />
+                )}
+                {/* ชุดน้ำมันที่ใช้น้ำมันจากตัวเก็บแล้วไม่มีสต็อกของตัวเอง จึงไม่มีช่องสต็อก */}
+                {isOilKit ? null : isLotTracked() ? (
                   <>
                     <TireLotInput
                       control={control}

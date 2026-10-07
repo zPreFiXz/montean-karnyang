@@ -23,11 +23,16 @@ const InventoryCard = ({
   category,
   // ช่วงราคาที่เคยขายจริง มีเฉพาะยางเปอร์เซ็นต์ (สภาพไม่เท่ากัน ราคาตั้งใช้กับทุกเส้นไม่ได้)
   soldPriceRange,
+  // ชุดน้ำมันเครื่องผูกกับตัวเก็บน้ำมัน ใช้แค่ตัดสินว่าต้องเตือนตอนหมด
+  oilSource,
   // หน้าจอที่ยึดสต็อกจริงล้วน (เช่นไดอะล็อกเลือกอะไหล่ลงบิล) ให้เตือน "สต็อกหมด" เมื่อเหลือ 0
   // แม้อะไหล่ตัวนั้นจะไม่ได้ตั้งสต็อกขั้นต่ำไว้ก็ตาม เพราะเบิกไม่ได้อยู่ดี
   alwaysWarnEmpty = false,
 }) => {
   const isTire = isTireCategoryName(category);
+  // ชุดน้ำมันได้จำนวนชุดที่น้ำมันในตัวเก็บพอขาย (คิดที่เซิร์ฟเวอร์) แสดงแบบอะไหล่ทั่วไป
+  // ไม่มีสต็อกขั้นต่ำของตัวเอง แต่เหลือ 0 ชุดก็ต้องเตือนว่าหมด
+  const warnEmpty = alwaysWarnEmpty || !!oilSource;
   const isService = category === "บริการ";
 
   const renderProductInfo = () => {
@@ -85,7 +90,7 @@ const InventoryCard = ({
               </p>
             ) : (
               !isService &&
-              (!alwaysWarnEmpty && !tracksStock(minStockLevel) ? (
+              (!warnEmpty && !tracksStock(minStockLevel) ? (
                 <p className="text-subtle-dark text-base font-semibold md:text-lg">
                   {`จำนวน: ${formatQuantity(quantity)} ${unit}`}
                 </p>

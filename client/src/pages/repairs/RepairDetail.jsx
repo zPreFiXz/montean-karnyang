@@ -1,3 +1,4 @@
+import { isMultiUseOil } from "@/utils/oil";
 import PageSpinner from "@/components/ui/PageSpinner";
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
@@ -436,8 +437,11 @@ const RepairDetail = () => {
         // ชื่อที่ระบบประกอบเองจะมีชื่อในคลังอยู่ข้างในเสมอ ถ้าไม่มีแปลว่าถูกพิมพ์ทับไว้
         // บรรทัดที่พิมพ์ทับต้องยกชื่อจากบิลกลับเข้าฟอร์ม ไม่งั้นเปิดแก้ไขแล้วชื่อจะหาย
         // (บรรทัดปกติใช้ชื่อในคลัง เพราะการ์ดในฟอร์มเติมยี่ห้อกับขนาดยางให้เองอยู่แล้ว)
+        // น้ำมันที่เลือกงานไว้ ชื่อในบิลมีชื่อในคลังอยู่ด้วย แต่ต้องยกชื่อเต็มกลับมา ไม่งั้นงานที่เลือกจะหาย
         const hasCustomName =
-          !!ri.part.name && !String(ri.itemName || "").includes(ri.part.name);
+          (!!ri.part.name &&
+            !String(ri.itemName || "").includes(ri.part.name)) ||
+          (isMultiUseOil(ri.part) && !!ri.itemName);
 
         return {
           id: ri.part.id,

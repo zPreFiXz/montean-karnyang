@@ -53,6 +53,9 @@ export const SparePart = ({ className = "" }) => {
   );
 };
 
+// หมวดอื่นๆ ในแถบหมวดหมู่ ใช้น็อตตัวเดียวกับการ์ดอะไหล่ที่ไม่มีรูป ขนาดเท่าไอคอนหมวดอื่น
+export const OtherParts = () => <SparePart className="h-10 w-10" />;
+
 // ไอคอนสถานะเครดิต — ใช้ชุดเดียวกับไอคอนสถานะอื่นที่เป็นสีขาวบนวงกลมสี
 export const Credit = () => <Wallet className="h-7 w-7 text-white" />;
 

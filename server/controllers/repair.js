@@ -1,6 +1,7 @@
 const { Prisma } = require("@prisma/client");
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
+const { OIL_SOURCE_SELECT, withOilKitStock } = require("../utils/oilKit");
 const { buildReceiptHtml, buildJobSheetHtml } = require("../utils/receiptHtml");
 const { printReceipt, htmlToImages } = require("../utils/printReceipt");
 const {
@@ -221,21 +222,38 @@ const restoreTireLotsFromSoldLots = async (tx, partId, soldLots) => {
   }
 };
 
+// ชุดน้ำมันเครื่องไม่มีสต็อกของตัวเอง ตัด/คืนที่ตัวเก็บน้ำมันแทน เป็นลิตร (จำนวนชุด × ลิตรต่อชุด)
+// ของอื่นตัด/คืนที่ตัวเอง ตามจำนวนในบิล
+const stockTargetOf = (part, partId, quantity) =>
+  part?.oilSourceId && part?.oilLiters
+    ? {
+        partId: part.oilSourceId,
+        amount: Number(quantity) * Number(part.oilLiters),
+      }
+    : { partId, amount: quantity };
+
+const moveStock = async (tx, part, partId, quantity, direction) => {
+  const target = stockTargetOf(part, partId, quantity);
+  await tx.part.update({
+    where: { id: target.partId },
+    data: { stockQuantity: { [direction]: target.amount } },
+  });
+};
+
 // ใบประเมินราคายังไม่ได้ลงมือซ่อม ของจึงต้องอยู่ในคลังตามเดิม
 // ย้ายเข้า/ออกจากสถานะนี้เมื่อไหร่ก็คืนหรือตัดสต็อกให้ตรงกับความจริงตอนนั้น
 const restoreStockForRepair = async (tx, repairId) => {
   const items = await tx.repairItem.findMany({
     where: { repairId },
-    include: { part: { select: { name: true } } },
+    include: {
+      part: { select: { name: true, oilSourceId: true, oilLiters: true } },
+    },
   });
 
   for (const item of items) {
     if (!item.partId || isUnlimitedStockPart(item.part)) continue;
 
-    await tx.part.update({
-      where: { id: item.partId },
-      data: { stockQuantity: { increment: item.quantity } },
-    });
+    await moveStock(tx, item.part, item.partId, item.quantity, "increment");
     await restoreTireLotsFromSoldLots(tx, item.partId, item.soldLots);
     // ล็อตถูกคืนเข้าคลังแล้ว บรรทัดนี้จึงไม่ได้ถืออะไรอยู่
     await tx.repairItem.update({
@@ -248,17 +266,16 @@ const restoreStockForRepair = async (tx, repairId) => {
 const deductStockForRepair = async (tx, repairId) => {
   const items = await tx.repairItem.findMany({
     where: { repairId },
-    include: { part: { select: { name: true } } },
+    include: {
+      part: { select: { name: true, oilSourceId: true, oilLiters: true } },
+    },
   });
 
   for (const item of items) {
     if (!item.partId || isUnlimitedStockPart(item.part)) continue;
 
     const soldLots = await deductTireLotsFifo(tx, item.partId, item.quantity);
-    await tx.part.update({
-      where: { id: item.partId },
-      data: { stockQuantity: { decrement: item.quantity } },
-    });
+    await moveStock(tx, item.part, item.partId, item.quantity, "decrement");
     await tx.repairItem.update({
       where: { id: item.id },
       data: { soldLots: soldLots ?? Prisma.DbNull },
@@ -287,6 +304,8 @@ const createRepairItemsAndDecrementStock = async (
             brand: true,
             name: true,
             attributes: true,
+            oilSourceId: true,
+            oilLiters: true,
             category: { select: { name: true } },
           },
         })
@@ -313,10 +332,13 @@ const createRepairItemsAndDecrementStock = async (
       !isUnlimitedStockPart(partById.get(item.partId))
     ) {
       soldLots = await deductTireLotsFifo(tx, item.partId, item.quantity);
-      await tx.part.update({
-        where: { id: item.partId },
-        data: { stockQuantity: { decrement: item.quantity } },
-      });
+      await moveStock(
+        tx,
+        partById.get(item.partId),
+        item.partId,
+        item.quantity,
+        "decrement",
+      );
     }
 
     await tx.repairItem.create({
@@ -425,6 +447,7 @@ exports.getRepair = async (req, res, next) => {
             part: {
               include: {
                 category: true,
+                oilSource: OIL_SOURCE_SELECT,
               },
             },
             service: {
@@ -444,6 +467,10 @@ exports.getRepair = async (req, res, next) => {
     // กล่องยืนยันการลบใช้เตือนว่าเลขไหนจะขาดช่วง
     res.json({
       ...repair,
+      // ชุดน้ำมันบอกสต็อกเป็นจำนวนชุดที่น้ำมันในตัวเก็บพอขาย หน้าแก้ไขบิลจะได้กันเบิกเกินของจริง
+      repairItems: repair.repairItems.map((item) =>
+        item.part ? { ...item, part: withOilKitStock(item.part) } : item,
+      ),
       docNosSkippedOnDelete: await docNosSkippedOnDelete(prisma, repair),
     });
   } catch (error) {
@@ -723,17 +750,22 @@ exports.updateRepair = async (req, res, next) => {
       // คืนสต็อกจากรายการเดิม ก่อนลบทิ้ง
       const existingItems = await tx.repairItem.findMany({
         where: { repairId: Number(id) },
-        include: { part: { select: { name: true } } },
+        include: {
+          part: { select: { name: true, oilSourceId: true, oilLiters: true } },
+        },
       });
 
       if (!isEstimate) {
         for (const item of existingItems) {
           // ของที่ตวงจากถังใหญ่ไม่เคยถูกตัดสต็อก จึงไม่มีอะไรให้คืน คืนไปจะกลายเป็นสต็อกงอก
           if (item.partId && !isUnlimitedStockPart(item.part)) {
-            await tx.part.update({
-              where: { id: item.partId },
-              data: { stockQuantity: { increment: item.quantity } },
-            });
+            await moveStock(
+              tx,
+              item.part,
+              item.partId,
+              item.quantity,
+              "increment",
+            );
             await restoreTireLotsFromSoldLots(tx, item.partId, item.soldLots);
           }
         }
@@ -805,17 +837,22 @@ exports.deleteRepair = async (req, res, next) => {
     await prisma.$transaction(async (tx) => {
       const items = await tx.repairItem.findMany({
         where: { repairId: Number(id) },
-        include: { part: { select: { name: true } } },
+        include: {
+          part: { select: { name: true, oilSourceId: true, oilLiters: true } },
+        },
       });
 
       // ใบประเมินราคาไม่เคยเบิกของออกจากคลัง ลบทิ้งจึงไม่มีอะไรให้คืน
       if (repair.status !== "ESTIMATE") {
         for (const item of items) {
           if (item.partId && !isUnlimitedStockPart(item.part)) {
-            await tx.part.update({
-              where: { id: item.partId },
-              data: { stockQuantity: { increment: item.quantity } },
-            });
+            await moveStock(
+              tx,
+              item.part,
+              item.partId,
+              item.quantity,
+              "increment",
+            );
             await restoreTireLotsFromSoldLots(tx, item.partId, item.soldLots);
           }
         }

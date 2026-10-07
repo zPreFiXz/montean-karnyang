@@ -179,10 +179,25 @@ export const partServiceSchema = z
     // ช่วงล่าง
     suspensionType: z.string().optional(),
 
+    // ชุดน้ำมันเครื่อง: ตัวเก็บน้ำมันที่ตัดสต็อกแทน กับกี่ลิตรต่อชุด
+    oilSourceId: z.any().optional(),
+    oilLiters: z.preprocess(
+      (v) => (v == null ? "" : String(v)),
+      z.string().optional(),
+    ),
+
     // บริการ
     price: z.coerce.number().optional().default(0),
   })
   .superRefine((data, ctx) => {
+    if (data.oilSourceId && !(Number(data.oilLiters) > 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "กรุณากรอกปริมาณน้ำมันต่อชุด",
+        path: ["oilLiters"],
+      });
+    }
+
     if (!data.categoryId) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

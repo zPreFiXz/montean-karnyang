@@ -1,5 +1,6 @@
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
+const { OIL_SOURCE_SELECT, withOilKitStock } = require("../utils/oilKit");
 
 // แปลง service ให้มีโครงสร้างเดียวกับ part เพื่อให้ client แสดงคลังสินค้ารวมกันได้
 const mapServiceToInventoryItem = (service) => ({
@@ -116,6 +117,7 @@ exports.listInventory = async (req, res, next) => {
         include: {
           category: true,
           tireLots: { orderBy: { createdAt: "asc" } },
+          oilSource: OIL_SOURCE_SELECT,
         },
       }),
       prisma.service.findMany({
@@ -142,7 +144,7 @@ exports.listInventory = async (req, res, next) => {
     const priceRanges = await soldPriceRanges(usedTireIds(filteredParts));
 
     const inventory = [
-      ...filteredParts.map((item) => ({
+      ...filteredParts.map(withOilKitStock).map((item) => ({
         ...item,
         type: "part",
         category: { name: item.category.name },
@@ -170,6 +172,7 @@ exports.getInventory = async (req, res, next) => {
         include: {
           category: true,
           tireLots: { orderBy: { createdAt: "asc" } },
+          oilSource: OIL_SOURCE_SELECT,
         },
       });
 

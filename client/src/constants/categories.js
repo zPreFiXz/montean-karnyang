@@ -1,4 +1,8 @@
-import { isUnlimitedStockItem } from "@/utils/oil";
+import {
+  isLooseEngineOilItem,
+  isMultiUseOil,
+  isUnlimitedStockItem,
+} from "@/utils/oil";
 // ชื่อหมวดหมู่ที่โค้ดต้องรู้จัก เก็บไว้ที่เดียวเพราะมีหลายหน้าเช็กชื่อเดียวกัน
 export const SERVICE_CATEGORY = "บริการ";
 export const SUSPENSION_CATEGORY = "ช่วงล่าง";
@@ -17,9 +21,12 @@ export const tracksTireLots = (name) =>
 // น้ำมันตวงขายเป็นลิตร ครึ่งลิตรก็ขายได้ หมวดอื่นนับเป็นชิ้นจึงเป็นจำนวนเต็มเสมอ
 export const OIL_CATEGORY = "น้ำมัน";
 
-// น้ำมันเกียร์กับน้ำมันเฟืองท้ายตวงจากถังใหญ่ จึงเบิกเป็นลิตรครึ่งลิตรได้
+// น้ำมันเกียร์กับน้ำมันเฟืองท้ายตวงจากถังใหญ่ น้ำมันเครื่องขวดลิตรเปิดตวงได้ จึงเบิกเป็นลิตรครึ่งลิตรได้
 // ที่เหลือขายเป็นขวดหรือชิ้น จำนวนต้องเป็นจำนวนเต็ม
-export const allowsDecimalQuantity = (item) => isUnlimitedStockItem(item);
+export const allowsDecimalQuantity = (item) =>
+  isUnlimitedStockItem(item) ||
+  isMultiUseOil(item) ||
+  isLooseEngineOilItem(item);
 
 // ใช้แทนการเช็กรหัสหมวดหมู่ตรงๆ ในตัวตรวจข้อมูล เพราะรหัสของแต่ละเครื่องไม่ตรงกัน
 export const getCategoryKind = (name) => {

@@ -106,6 +106,10 @@ model Part {
   compatibleVehicles Json?
   publicId           String?
   secureUrl          String?
+  oilSource          Part?        @relation("OilKit", fields: [oilSourceId], references: [id], onDelete: SetNull)
+  oilSourceId        Int?
+  oilLiters          Decimal?     @db.Decimal(6, 2)
+  oilKits            Part[]       @relation("OilKit")
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   category           Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)

@@ -378,15 +378,17 @@ const receiptPagesHtml = (
   // เบอร์โทรอยู่ท้ายบรรทัดชื่อ ใบไม่สูงขึ้น ขึ้นเฉพาะลูกค้าที่มีเบอร์ และปิดตามสวิตช์ข้อมูลลูกค้า
   // (ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
   const phone = showCustomer ? formatPhone(repair.customer?.phoneNumber) : "";
-  const customerFields = `<p class="pair">ชื่อลูกค้า<span class="dotted v cut">${
+  // ชื่อลูกค้าเต็มบรรทัด ชื่อหน่วยงานยาวๆ จะไม่ถูกตัด
+  // เลขผู้เสียภาษีกับเบอร์โทรเป็นตัวเลขสั้นทั้งคู่ จึงแบ่งบรรทัดเดียวกันคนละครึ่ง
+  const customerFields = `<p>ชื่อลูกค้า<span class="dotted v cut">${
     showCustomer ? escapeHtml(repair.customer?.name || "") : ""
-  }</span>เบอร์โทรศัพท์<span class="dotted v">${escapeHtml(phone)}</span></p>
+  }</span></p>
     <p>ที่อยู่<span class="dotted v">${
       showCustomer ? escapeHtml(repair.customer?.address || "") : ""
     }</span></p>
-    <p>เลขประจำตัวผู้เสียภาษีอากร<span class="dotted v">${
+    <p class="halves"><span class="half">เลขประจำตัวผู้เสียภาษีอากร<span class="dotted v">${
       showCustomer ? escapeHtml(repair.customer?.taxId || "") : ""
-    }</span></p>`;
+    }</span></span><span class="half">เบอร์โทรศัพท์<span class="dotted v">${escapeHtml(phone)}</span></span></p>`;
 
   // เนื้อของกระดาษหนึ่งแผ่น เรียกซ้ำตามจำนวนหน้า
   const pageHtml = (pageRows, pageIndex) => {
@@ -525,7 +527,14 @@ const RECEIPT_STYLES = `
      ป้ายกว้างเท่าป้ายที่ยาวที่สุดของคอลัมน์ (ยี่ห้อ-รุ่นรถ / เบอร์โทรศัพท์) ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ
      ฝั่งซ้ายกว้างกว่าเล็กน้อยให้ชื่อหน่วยงานเต็มอย่าง "องค์การบริหารส่วนตำบลน้ำอ้อม" ไม่ถูกตัด
      ฝั่งซ้ายยาวเกินยอมตัดเป็น … ฝั่งขวา (ทะเบียน เบอร์รถ) ห้ามตัด ถ้าไม่พอจะเบียดฝั่งซ้ายแทน */
-  .fields p.pair { display: grid; grid-template-columns: 60px minmax(0, 1.22fr) 74px 1fr; white-space: nowrap; }
+  /* แถวเลขผู้เสียภาษี/เบอร์โทรใช้คอลัมน์ชุดเดียวกับแถวรถ เบอร์โทรจึงตรงกับทะเบียนรถพอดี
+     เลขผู้เสียภาษีกินสองคอลัมน์แรก (ป้ายยาว) ฝั่งซ้ายจึงต้องกว้างพอใส่ป้ายกับเลข 13 หลัก */
+  .fields p.halves { display: grid; grid-template-columns: 60px minmax(0, 1.7fr) 74px 1fr; gap: 6px; white-space: nowrap; }
+  .fields p.halves .half:first-child { grid-column: span 2; }
+  .fields p.halves .half:last-child { display: contents; }
+  .fields .half { display: flex; align-items: flex-end; gap: 6px; }
+  .fields .half .v { padding: 0 4px; }
+  .fields p.pair { display: grid; grid-template-columns: 60px minmax(0, 1.7fr) 74px 1fr; white-space: nowrap; }
   .fields .cut { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .fields .car-right { display: flex; align-items: flex-end; gap: 6px; white-space: nowrap; }
   .fields .car-right .v { white-space: nowrap; }

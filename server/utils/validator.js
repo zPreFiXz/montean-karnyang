@@ -136,6 +136,19 @@ exports.partSchema = z
     description: z.string().optional(),
     image: z.any().optional(),
     categoryId: z.coerce.number(),
+    // ชุดน้ำมันเครื่อง: ตัวเก็บน้ำมันที่ใช้ กับกี่ลิตรต่อชุด ส่งค่าว่างมาคือไม่ผูก (อะไหล่ทั่วไป)
+    oilSourceId: z.preprocess(
+      (v) => (v === "" || v == null ? null : v),
+      z.coerce.number().int().positive().nullable().optional(),
+    ),
+    oilLiters: z.preprocess(
+      (v) => (v === "" || v == null ? null : v),
+      z.coerce
+        .number({ message: "ปริมาณน้ำมันต้องเป็นตัวเลข" })
+        .gt(0, "ปริมาณน้ำมันต้องมากกว่า 0")
+        .nullable()
+        .optional(),
+    ),
     // ล็อตยาง (DOT + จำนวน) — ต้องอยู่ในสคีมา ไม่งั้น validate() จะตัดทิ้งก่อนถึงคอนโทรลเลอร์
     tireLots: z
       .array(
@@ -150,6 +163,13 @@ exports.partSchema = z
       .optional(),
   })
   .superRefine((data, ctx) => {
+    if (data.oilSourceId && !data.oilLiters) {
+      ctx.addIssue({
+        code: "custom",
+        message: "กรุณากรอกปริมาณน้ำมันต่อชุด",
+        path: ["oilLiters"],
+      });
+    }
     if (!data.tireLots && data.stockQuantity === undefined) {
       ctx.addIssue({
         code: "custom",

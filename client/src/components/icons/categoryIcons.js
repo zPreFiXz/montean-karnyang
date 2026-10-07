@@ -14,6 +14,7 @@ import {
   Suspension,
   UsedTire,
   OilFilter,
+  OtherParts,
 } from "@/components/icons/Icons";
 
 export const ICON_MAP = {
@@ -32,6 +33,8 @@ export const ICON_MAP = {
   สายพาน: Belt,
   ใบปัดน้ำฝน: Wiper,
   ไส้กรอง: Filter,
+  // อะไหล่จิปาถะที่ไม่เข้าหมวดไหน ใช้ไอคอนน็อตตัวเดียวกับการ์ดอะไหล่ที่ไม่มีรูป
+  อื่นๆ: OtherParts,
 };
 
 export const DEFAULT_ICON = ToolBox;
