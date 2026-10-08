@@ -13,7 +13,6 @@ const {
 const {
   buildPartItemName,
   buildServiceItemName,
-  isUnlimitedStockPart,
 } = require("../utils/repairItemName");
 
 // หา/สร้างรุ่นรถตามยี่ห้อ+รุ่น (ใช้ทั้งตอนสร้างและแก้ไขรายการซ่อม)
@@ -251,7 +250,7 @@ const restoreStockForRepair = async (tx, repairId) => {
   });
 
   for (const item of items) {
-    if (!item.partId || isUnlimitedStockPart(item.part)) continue;
+    if (!item.partId) continue;
 
     await moveStock(tx, item.part, item.partId, item.quantity, "increment");
     await restoreTireLotsFromSoldLots(tx, item.partId, item.soldLots);
@@ -272,7 +271,7 @@ const deductStockForRepair = async (tx, repairId) => {
   });
 
   for (const item of items) {
-    if (!item.partId || isUnlimitedStockPart(item.part)) continue;
+    if (!item.partId) continue;
 
     const soldLots = await deductTireLotsFifo(tx, item.partId, item.quantity);
     await moveStock(tx, item.part, item.partId, item.quantity, "decrement");
@@ -324,13 +323,7 @@ const createRepairItemsAndDecrementStock = async (
   // สร้างทีละรายการ: ยางต้องตัดล็อต FIFO ก่อนเพื่อรู้ DOT ที่ขาย แล้วบันทึกลง RepairItem
   for (const item of repairItems) {
     let soldLots = null;
-    // ของที่ตวงจากถังใหญ่ (น้ำมันเกียร์ น้ำมันเฟืองท้าย) ไม่ได้นับเป็นชิ้น ตัดสต็อกแล้วเลขจะติดลบไปเรื่อยๆ
-    // จึงบันทึกลงบิลอย่างเดียว ไม่แตะสต็อก
-    if (
-      deductStock &&
-      item.partId &&
-      !isUnlimitedStockPart(partById.get(item.partId))
-    ) {
+    if (deductStock && item.partId) {
       soldLots = await deductTireLotsFifo(tx, item.partId, item.quantity);
       await moveStock(
         tx,
@@ -522,11 +515,9 @@ exports.createRepair = async (req, res, next) => {
         });
 
         if (licensePlate) {
-          vehicle = await tx.vehicle.findFirst({
-            where: {
-              licensePlateId: licensePlate.id,
-              vehicleModelId: vehicleModel.id,
-            },
+          // ทะเบียนผูกได้กับรถคันเดียว กรอกรุ่นต่างจากเดิมจึงแก้รุ่นของคันเดิมแทนสร้างคันใหม่
+          vehicle = await tx.vehicle.findUnique({
+            where: { licensePlateId: licensePlate.id },
           });
 
           if (!vehicle) {
@@ -537,11 +528,17 @@ exports.createRepair = async (req, res, next) => {
                 fleetNo: fleet,
               },
             });
-          } else if (fleet && vehicle.fleetNo !== fleet) {
+          } else if (
+            vehicle.vehicleModelId !== vehicleModel.id ||
+            (fleet && vehicle.fleetNo !== fleet)
+          ) {
             // เปิดบิลใหม่แล้วเว้นช่องเบอร์ไว้ = ไม่ได้กรอก ไม่ใช่ตั้งใจลบ จึงเปลี่ยนเฉพาะตอนกรอกมา
             vehicle = await tx.vehicle.update({
               where: { id: vehicle.id },
-              data: { fleetNo: fleet },
+              data: {
+                vehicleModelId: vehicleModel.id,
+                ...(fleet && { fleetNo: fleet }),
+              },
             });
           }
         } else {
@@ -684,6 +681,7 @@ exports.updateRepair = async (req, res, next) => {
       } else if (plate && province) {
         let licensePlate = await tx.licensePlate.findUnique({
           where: { plateNumber_province: { plateNumber: plate, province } },
+          include: { vehicle: { select: { id: true } } },
         });
         if (!licensePlate) {
           licensePlate = await tx.licensePlate.create({
@@ -691,20 +689,27 @@ exports.updateRepair = async (req, res, next) => {
           });
         }
 
+        const currentVehicle = currentRepair.vehicleId
+          ? await tx.vehicle.findUnique({
+              where: { id: currentRepair.vehicleId },
+              select: { id: true, licensePlateId: true },
+            })
+          : null;
+
+        // ทะเบียนผูกได้กับรถคันเดียว ถ้าทะเบียนนี้มีรถอยู่แล้วต้องย้ายบิลไปคันนั้น
+        // รถเดิมที่ไม่มีทะเบียนเป็นแถวที่บิลรุ่นเดียวกันใช้ร่วมกัน ห้ามแก้ทับ ต้องสร้างคันใหม่
         // หน้าแก้ไขเติมเบอร์เดิมไว้ให้แล้ว ช่องว่างตอนแก้จึงแปลว่าลบเบอร์ออก
-        vehicle = await tx.vehicle.upsert({
-          where: { id: currentRepair.vehicleId ?? 0 },
-          update: {
-            vehicleModelId: vehicleModel.id,
-            licensePlateId: licensePlate.id,
-            fleetNo: fleet,
-          },
-          create: {
-            vehicleModelId: vehicleModel.id,
-            licensePlateId: licensePlate.id,
-            fleetNo: fleet,
-          },
-        });
+        const targetId =
+          licensePlate.vehicle?.id ??
+          (currentVehicle?.licensePlateId ? currentVehicle.id : null);
+        const data = {
+          vehicleModelId: vehicleModel.id,
+          licensePlateId: licensePlate.id,
+          fleetNo: fleet,
+        };
+        vehicle = targetId
+          ? await tx.vehicle.update({ where: { id: targetId }, data })
+          : await tx.vehicle.create({ data });
       } else {
         const existingVehicle = await tx.vehicle.findFirst({
           where: {
@@ -757,8 +762,7 @@ exports.updateRepair = async (req, res, next) => {
 
       if (!isEstimate) {
         for (const item of existingItems) {
-          // ของที่ตวงจากถังใหญ่ไม่เคยถูกตัดสต็อก จึงไม่มีอะไรให้คืน คืนไปจะกลายเป็นสต็อกงอก
-          if (item.partId && !isUnlimitedStockPart(item.part)) {
+          if (item.partId) {
             await moveStock(
               tx,
               item.part,
@@ -845,7 +849,7 @@ exports.deleteRepair = async (req, res, next) => {
       // ใบประเมินราคาไม่เคยเบิกของออกจากคลัง ลบทิ้งจึงไม่มีอะไรให้คืน
       if (repair.status !== "ESTIMATE") {
         for (const item of items) {
-          if (item.partId && !isUnlimitedStockPart(item.part)) {
+          if (item.partId) {
             await moveStock(
               tx,
               item.part,

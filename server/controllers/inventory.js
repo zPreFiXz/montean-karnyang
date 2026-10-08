@@ -23,25 +23,36 @@ const mapServiceToInventoryItem = (service) => ({
 
 // ยางเปอร์เซ็นต์สภาพไม่เท่ากัน ราคาตั้งในคลังใช้กับทุกเส้นไม่ได้ จึงบอกช่วงราคาที่เคยขายจริงไว้ให้ตั้งราคา
 // นับจากบรรทัดที่ผูกกับรหัสอะไหล่ตัวนั้น ทุกบิลที่ไม่ใช่ใบเสนอราคา ไม่นับราคา 0 (ใส่ไว้ก่อนตั้งราคาจริง)
+// ได้ทั้งช่วงราคา (โชว์บนการ์ด) และทุกราคาพร้อมจำนวนเส้น (โชว์ใน dialog) เรียงถูกไปแพง
 const USED_TIRE_CATEGORY = "ยางเปอร์เซ็นต์";
-const soldPriceRanges = async (partIds) => {
+const soldPriceStats = async (partIds) => {
   if (partIds.length === 0) return new Map();
   const rows = await prisma.repairItem.groupBy({
-    by: ["partId"],
+    by: ["partId", "unitPrice"],
     where: {
       partId: { in: partIds },
       unitPrice: { gt: 0 },
       repair: { status: { not: "ESTIMATE" } },
     },
-    _min: { unitPrice: true },
-    _max: { unitPrice: true },
+    _sum: { quantity: true },
+    orderBy: { unitPrice: "asc" },
   });
-  return new Map(
-    rows.map((row) => [
-      row.partId,
-      { min: row._min.unitPrice, max: row._max.unitPrice },
-    ]),
-  );
+  const stats = new Map();
+  for (const row of rows) {
+    const entry = stats.get(row.partId) || { prices: [] };
+    entry.prices.push({
+      price: row.unitPrice,
+      quantity: Number(row._sum.quantity) || 0,
+    });
+    stats.set(row.partId, entry);
+  }
+  for (const entry of stats.values()) {
+    entry.range = {
+      min: entry.prices[0].price,
+      max: entry.prices[entry.prices.length - 1].price,
+    };
+  }
+  return stats;
 };
 const usedTireIds = (parts) =>
   parts
@@ -141,14 +152,15 @@ exports.listInventory = async (req, res, next) => {
       );
     });
 
-    const priceRanges = await soldPriceRanges(usedTireIds(filteredParts));
+    const priceStats = await soldPriceStats(usedTireIds(filteredParts));
 
     const inventory = [
       ...filteredParts.map(withOilKitStock).map((item) => ({
         ...item,
         type: "part",
         category: { name: item.category.name },
-        soldPriceRange: priceRanges.get(item.id) || null,
+        soldPriceRange: priceStats.get(item.id)?.range || null,
+        soldPrices: priceStats.get(item.id)?.prices || null,
       })),
       ...services.map(mapServiceToInventoryItem),
     ].sort(compareInventory);
@@ -177,12 +189,13 @@ exports.getInventory = async (req, res, next) => {
       });
 
       if (inventory) {
-        const priceRanges = await soldPriceRanges(usedTireIds([inventory]));
+        const priceStats = await soldPriceStats(usedTireIds([inventory]));
         inventory = {
           ...inventory,
           type: "part",
           category: { name: inventory.category.name },
-          soldPriceRange: priceRanges.get(inventory.id) || null,
+          soldPriceRange: priceStats.get(inventory.id)?.range || null,
+          soldPrices: priceStats.get(inventory.id)?.prices || null,
         };
       }
     } else if (type === "service") {

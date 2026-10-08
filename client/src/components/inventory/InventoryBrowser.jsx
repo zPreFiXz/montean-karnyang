@@ -17,18 +17,84 @@ import {
   isNoCategoryItem,
   NO_CATEGORY_ORDER,
 } from "@/constants/services";
-import { getPartType } from "@/utils/suspension";
-import { oilSizeOf, sortOilSizes } from "@/utils/oil";
+import { compareSuspensionTypes, getPartType } from "@/utils/suspension";
+import { oilSizeOf } from "@/utils/oil";
 import {
   isTireCategoryName,
   OIL_CATEGORY,
   USED_TIRE_CATEGORY,
 } from "@/constants/categories";
 
-// เรียงชื่อชนิดอะไหล่ตามตัวอักษรไทย
-const thaiCollator = new Intl.Collator("th");
-
 const NO_CATEGORY_GROUP = "ไม่มีหมวดหมู่";
+
+// น้ำมันเรียงตามขนาดจากเล็กไปใหญ่ (1L ก่อน) ตัวที่ไม่มีขนาดในชื่อแยกตามชนิดต่อท้าย
+const OIL_TYPE_ORDER = [
+  "แหวนรองน็อต",
+  "โอริงรองน็อต",
+  "น้ำกลั่น",
+  "น้ำมันเกียร์",
+  "น้ำมันเบรก",
+  "น้ำมันพาวเวอร์",
+  "น้ำยาหม้อน้ำ",
+];
+const oilGroupOf = (item) =>
+  oilSizeOf(item) ||
+  OIL_TYPE_ORDER.find((type) => item.name?.startsWith(type)) ||
+  "อื่นๆ";
+const oilGroupRank = (item) => {
+  const size = parseFloat(oilSizeOf(item));
+  if (size) return size;
+  const i = OIL_TYPE_ORDER.indexOf(oilGroupOf(item));
+  return 1e6 + (i === -1 ? OIL_TYPE_ORDER.length : i);
+};
+const byOilSize = (items) =>
+  [...items].sort((a, b) => oilGroupRank(a) - oilGroupRank(b));
+
+// ยางเรียงตามยี่ห้อ A-Z เหมือนตัวเลือกยี่ห้อ ตัวที่ไม่มียี่ห้อไว้ท้ายสุด ในยี่ห้อเดียวกันคงลำดับเดิม
+const NO_BRAND_GROUP = "ไม่ระบุยี่ห้อ";
+const tireBrandOf = (item) => String(item.brand || "").trim() || NO_BRAND_GROUP;
+const byTireBrand = (items) =>
+  [...items].sort((a, b) => {
+    const brandA = tireBrandOf(a);
+    const brandB = tireBrandOf(b);
+    if (brandA === brandB) return 0;
+    if (brandA === NO_BRAND_GROUP) return 1;
+    if (brandB === NO_BRAND_GROUP) return -1;
+    return brandA.localeCompare(brandB, "th");
+  });
+
+// ยางเปอร์เซ็นต์กับยางในลูกค้าถามหาตามขอบ เรียงขอบเล็กไปใหญ่ ตัวที่ไม่มีขอบไว้ท้ายสุด
+// ยางในไม่มีช่องขอบ จึงอ่านจากขนาดในชื่อ (ยางใน 750-16 = ขอบ 16)
+const RIM_GROUP_CATEGORIES = [USED_TIRE_CATEGORY, "ยางใน"];
+const NO_RIM_GROUP = "ไม่ระบุขอบ";
+const rimOf = (item) =>
+  parseFloat(item.attributes?.rimDiameter) ||
+  parseFloat(String(item.name || "").match(/\d-(\d+(?:\.\d+)?)/)?.[1]) ||
+  Infinity;
+const rimGroupOf = (item) =>
+  rimOf(item) === Infinity ? NO_RIM_GROUP : `ขอบ ${rimOf(item)}`;
+const byRim = (items) => [...items].sort((a, b) => rimOf(a) - rimOf(b));
+
+// หมวดที่แบ่งหัวข้อตามคำขึ้นต้นของชื่อ เรียงหัวข้อตามลำดับนี้ ที่ไม่เข้าพวกไปอยู่ "อื่นๆ" ท้ายสุด
+const TYPE_GROUP_ORDER = {
+  เบรก: ["ตะปูเบรก", "กระบอกเบรก", "ผ้าเบรกหน้า", "ก้ามเบรกหลัง"],
+  ไส้กรอง: ["กรองอากาศ", "กรองแอร์"],
+};
+// ชื่อบางตัวสะกด "เบรค" จึงเทียบหลังแปลงเป็น "เบรก"
+const typeGroupOf = (category, item) => {
+  const name = (item.name || "").replace(/เบรค/g, "เบรก");
+  return (
+    TYPE_GROUP_ORDER[category].find((type) => name.startsWith(type)) || "อื่นๆ"
+  );
+};
+const byTypeGroup = (category, items) => {
+  const order = TYPE_GROUP_ORDER[category];
+  const rank = (item) => {
+    const i = order.indexOf(typeGroupOf(category, item));
+    return i === -1 ? order.length : i;
+  };
+  return [...items].sort((a, b) => rank(a) - rank(b));
+};
 
 // จำผลค้นล่าสุดของแต่ละเงื่อนไขไว้ กลับเข้าหน้าคลังอีกครั้งจะได้มีของโชว์ตั้งแต่เฟรมแรก
 // ไม่ต้องขึ้นตัวโหลดคั่นให้หน้ากระพริบ แล้วค่อยดึงใหม่ทับเงียบๆ
@@ -274,25 +340,20 @@ const InventoryBrowser = ({
     [partsList, activeCategory],
   );
 
-  // ชนิดอะไหล่ช่วงล่างที่มีอยู่จริงในคลัง เรียงตามตัวอักษรไทย
+  // ชนิดอะไหล่ช่วงล่างที่มีอยู่จริงในคลัง เรียงตามลำดับที่ช่างไล่ตรวจ เหมือนหน้าเช็กช่วงล่าง
   const partTypeOptions = useMemo(() => {
     const types = partsList
       .filter((p) => p?.category?.name === "ช่วงล่าง")
       .map((p) => getPartType(p.name));
 
-    return Array.from(new Set(types)).sort((a, b) =>
-      thaiCollator.compare(a, b),
-    );
+    return Array.from(new Set(types)).sort(compareSuspensionTypes);
   }, [partsList]);
 
   // ขนาดบรรจุของน้ำมันที่มีอยู่จริงในคลัง เรียงจากขวดเล็กไปใหญ่
+  // ตัวเลือกตรงกับหัวข้อที่แบ่งไว้ในหมวดน้ำมัน (ขนาดก่อน แล้วตามด้วยชนิด)
   const oilSizeOptions = useMemo(() => {
-    const sizes = partsList
-      .filter((p) => p?.category?.name === OIL_CATEGORY)
-      .map((p) => oilSizeOf(p))
-      .filter(Boolean);
-
-    return sortOilSizes([...new Set(sizes)]);
+    const oils = partsList.filter((p) => p?.category?.name === OIL_CATEGORY);
+    return [...new Set(byOilSize(oils).map(oilGroupOf))];
   }, [partsList]);
 
   // ตัวเลือกของแต่ละช่องกรองด้วย "ช่องอื่นทั้งหมด" ยกเว้นตัวเอง เพื่อให้เลือกช่องไหนก่อนก็ได้
@@ -369,19 +430,58 @@ const InventoryBrowser = ({
 
   const filteredByOilSize =
     activeCategory === OIL_CATEGORY && oilSize
-      ? filteredByPartType.filter((item) => oilSizeOf(item) === oilSize)
+      ? filteredByPartType.filter((item) => oilGroupOf(item) === oilSize)
       : filteredByPartType;
 
   // "อะไหล่อื่นๆ" กับ "ส่วนลด" ไม่ใช่บริการของร้าน เป็นบรรทัดเปล่าไว้ใส่ในบิล
   // จึงไม่อยู่ในหมวดไหน โผล่เฉพาะตอนดูทั้งหมด แล้ววางไว้เหนือกลุ่มบริการ
+  // ช่วงล่างเรียงตามชนิดตามลำดับที่ช่างไล่ตรวจ (ลูกหมากปีกนกบนก่อน) ในชนิดเดียวกันคงลำดับเดิมจากเซิร์ฟเวอร์
+  const bySuspensionType = (items) =>
+    [...items].sort((a, b) =>
+      compareSuspensionTypes(getPartType(a.name), getPartType(b.name)),
+    );
+
   const visibleInventory = (
     activeCategory === "บริการ"
       ? sortServices(filteredByOilSize)
-      : filteredByOilSize
+      : activeCategory === "ช่วงล่าง"
+        ? bySuspensionType(filteredByOilSize)
+        : activeCategory === OIL_CATEGORY
+          ? byOilSize(filteredByOilSize)
+          : TYPE_GROUP_ORDER[activeCategory]
+            ? byTypeGroup(activeCategory, filteredByOilSize)
+            : activeCategory === "ยาง"
+              ? byTireBrand(filteredByOilSize)
+              : RIM_GROUP_CATEGORIES.includes(activeCategory)
+                ? byRim(filteredByOilSize)
+                : filteredByOilSize
   ).filter((item) => activeCategory === "ทั้งหมด" || !isNoCategoryItem(item));
 
   // หมวด "ทั้งหมด" แยกหัวข้อตามหมวดหมู่ เรียงกลุ่มให้ตรงกับแถบหมวดหมู่ด้านบน
+  // ช่วงล่าง เบรก ไส้กรองแยกหัวข้อตามชนิด ยางแยกตามยี่ห้อ ยางเปอร์เซ็นต์กับยางในแยกตามขอบ น้ำมันแยกตามขนาด ลำดับกลุ่มมาจากที่เรียงไว้แล้วใน visibleInventory
   const inventoryGroups = useMemo(() => {
+    const groupKeyOf =
+      activeCategory === "ช่วงล่าง"
+        ? (item) => getPartType(item.name)
+        : activeCategory === OIL_CATEGORY
+          ? oilGroupOf
+          : TYPE_GROUP_ORDER[activeCategory]
+            ? (item) => typeGroupOf(activeCategory, item)
+            : activeCategory === "ยาง"
+              ? tireBrandOf
+              : RIM_GROUP_CATEGORIES.includes(activeCategory)
+                ? rimGroupOf
+                : null;
+    if (groupKeyOf) {
+      const groups = new Map();
+      for (const item of visibleInventory) {
+        const key = groupKeyOf(item);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(item);
+      }
+      return [...groups.entries()].map(([name, items]) => ({ name, items }));
+    }
+
     if (activeCategory !== "ทั้งหมด") return null;
 
     const groups = new Map();
@@ -407,13 +507,19 @@ const InventoryBrowser = ({
         items:
           name === "บริการ"
             ? sortServices(items)
-            : name === NO_CATEGORY_GROUP
-              ? [...items].sort(
-                  (a, b) =>
-                    NO_CATEGORY_ORDER.indexOf(a.name) -
-                    NO_CATEGORY_ORDER.indexOf(b.name),
-                )
-              : items,
+            : name === "ช่วงล่าง"
+              ? bySuspensionType(items)
+              : name === OIL_CATEGORY
+                ? byOilSize(items)
+                : TYPE_GROUP_ORDER[name]
+                  ? byTypeGroup(name, items)
+                  : name === NO_CATEGORY_GROUP
+                    ? [...items].sort(
+                        (a, b) =>
+                          NO_CATEGORY_ORDER.indexOf(a.name) -
+                          NO_CATEGORY_ORDER.indexOf(b.name),
+                      )
+                    : items,
       }))
       .sort((a, b) => rank(a.name) - rank(b.name));
   }, [visibleInventory, activeCategory, categoryOrder]);
@@ -633,9 +739,7 @@ const InventoryBrowser = ({
       {activeCategory === "ช่วงล่าง" && (
         <div className="mt-[16px] w-full">
           <div className="mb-[8px] flex items-center justify-between">
-            <span className="text-xl font-medium md:text-[22px]">
-              ชนิดอะไหล่
-            </span>
+            <span className="text-xl font-medium md:text-[22px]">ประเภท</span>
             {partType && (
               <button
                 type="button"
@@ -651,7 +755,7 @@ const InventoryBrowser = ({
             options={partTypeOptions.map((t) => ({ name: t }))}
             value={partType}
             onChange={setPartType}
-            placeholder="-- เลือกชนิดอะไหล่ --"
+            placeholder="-- เลือกประเภท --"
             disabled={isFilterLocked(partTypeOptions, partType)}
             customClass="text-lg md:text-xl"
           />
@@ -661,9 +765,7 @@ const InventoryBrowser = ({
       {activeCategory === OIL_CATEGORY && oilSizeOptions.length > 0 && (
         <div className="mt-[16px] w-full">
           <div className="mb-[8px] flex items-center justify-between">
-            <span className="text-xl font-medium md:text-[22px]">
-              จำนวนลิตร
-            </span>
+            <span className="text-xl font-medium md:text-[22px]">ประเภท</span>
             {oilSize && (
               <button
                 type="button"
@@ -679,7 +781,7 @@ const InventoryBrowser = ({
             options={oilSizeOptions.map((size) => ({ name: size }))}
             value={oilSize}
             onChange={setOilSize}
-            placeholder="-- เลือกจำนวนลิตร --"
+            placeholder="-- เลือกประเภท --"
             customClass="text-lg md:text-xl"
           />
         </div>

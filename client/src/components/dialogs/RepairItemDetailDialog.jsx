@@ -9,6 +9,7 @@ import {
   Info,
   Trash,
   History,
+  ShoppingCart,
 } from "lucide-react";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import {
@@ -36,11 +37,7 @@ import {
   USED_TIRE_CATEGORY,
 } from "@/constants/categories";
 import { isPartLikeItem } from "@/constants/services";
-import {
-  formatCurrency,
-  formatQuantity,
-  formatPriceRange,
-} from "@/utils/formats";
+import { formatCurrency, formatQuantity } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
 import { tracksStock } from "@/utils/stock";
@@ -228,6 +225,23 @@ const RepairItemDetailDialog = ({
     const quantity = Number(currentItem.stockQuantity) || 0;
     const amount =
       `${formatQuantity(quantity)} ${currentItem.unit || ""}`.trim();
+
+    // ชุดน้ำมันไม่มีขั้นต่ำของตัวเอง (จำนวนชุดคิดจากน้ำมันที่ผูกไว้) บอกแค่ว่าเติมได้กี่ชุดหรือหมดแล้ว
+    if (isOilKit) {
+      return quantity === 0
+        ? {
+            color: "bg-destructive",
+            textColor: "text-destructive",
+            Icon: AlertTriangle,
+            label: "สต็อกหมด",
+          }
+        : {
+            color: "bg-status-completed",
+            textColor: "text-status-completed",
+            Icon: Check,
+            label: `จำนวน ${amount}`,
+          };
+    }
 
     // ไม่ได้สต็อกไว้ → เหลือเท่าไหร่ก็ปกติ ไม่มีเกณฑ์ให้เทียบ
     if (!tracksStock(currentItem.minStockLevel)) {
@@ -528,15 +542,28 @@ const RepairItemDetailDialog = ({
                     </p>
                   </div>
 
-                  {/* ยางเปอร์เซ็นต์สภาพไม่เท่ากัน บอกช่วงราคาที่เคยขายจริงไว้ใช้ตั้งราคาตอนเปิดบิล */}
-                  {currentItem.soldPriceRange && (
-                    <div className="flex justify-between gap-[8px]">
-                      <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
-                        ราคาขายจริง:
+                  {/* ยางเปอร์เซ็นต์สภาพไม่เท่ากัน บอกทุกราคาที่เคยขายจริงกับจำนวนไว้ใช้ตั้งราคาตอนเปิดบิล
+                      ช่วงราคาอย่างเดียวกว้างเกิน ไม่รู้ว่าส่วนใหญ่ขายราคาไหน */}
+                  {currentItem.soldPrices?.length > 0 && (
+                    <div>
+                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                        ประวัติราคาขาย:
                       </p>
-                      <p className="text-normal text-right text-lg font-semibold md:text-xl">
-                        {formatPriceRange(currentItem.soldPriceRange)}
-                      </p>
+                      {currentItem.soldPrices.map(({ price, quantity }) => (
+                        <div
+                          key={price}
+                          className="flex justify-between pl-[16px] tabular-nums"
+                        >
+                          <p className="text-normal text-lg font-semibold md:text-xl">
+                            {formatCurrency(Number(price))}
+                          </p>
+                          <p className="text-subtle-dark text-lg font-semibold md:text-xl">
+                            {[formatQuantity(quantity), currentItem.unit]
+                              .filter(Boolean)
+                              .join(" ")}
+                          </p>
+                        </div>
+                      ))}
                     </div>
                   )}
 
@@ -803,11 +830,29 @@ const RepairItemDetailDialog = ({
             {/* ประวัติการใช้เป็นการดูข้อมูล ไม่ใช่การแก้ของ จึงแยกออกจากแถวปุ่มลงมือทำ
                 วางเป็นแถวเต็มความกว้างแบบรายการที่กดเข้าไปดูต่อได้ */}
             <div className="flex items-center gap-[16px]">
+              {/* ลูกค้ามาถามของจากหน้าคลังบ่อย กดตะกร้าแล้วไปลงบิลใหม่ทันที ไม่ต้องไปค้นซ้ำในหน้าบิล
+                  เกณฑ์ปิดปุ่มเดียวกับการ์ดในไดอะล็อกเพิ่มรายการ */}
+              <button
+                onClick={() =>
+                  navigate("/repairs/new", {
+                    state: { addItem: currentItem },
+                  })
+                }
+                disabled={
+                  !!currentItem.partNumber && !(currentItem.stockQuantity > 0)
+                }
+                aria-label="เพิ่มลงรายการซ่อม"
+                title="เพิ่มลงรายการซ่อม"
+                className="font-athiti text-primary bg-primary-soft flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-[20px] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ShoppingCart className="h-4 w-4" />
+              </button>
               {/* ชุดน้ำมันไม่มีสต็อกของตัวเอง เพิ่มสต็อกที่ตัวเก็บน้ำมันแทน */}
               {!isService && !isOilKit && !isAddStockVisible && (
                 <button
                   onClick={handleShowAddStock}
-                  className="font-athiti text-surface bg-gradient-primary flex h-11 flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] text-lg font-semibold md:text-xl"
+                  // ข้อความยาวกว่าแก้ไข จึงกว้างกว่า ไม่งั้นไอคอนกับข้อความเบียดกัน
+                  className="font-athiti text-surface bg-gradient-primary flex h-11 flex-[3] cursor-pointer items-center justify-center gap-[4px] rounded-[20px] text-lg font-semibold md:text-xl"
                 >
                   <Plus className="h-4 w-4" />
                   เพิ่มสต็อก
@@ -816,7 +861,7 @@ const RepairItemDetailDialog = ({
               <button
                 onClick={handleEdit}
                 autoFocus={false}
-                className="font-athiti text-primary border-primary bg-surface flex h-11 flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] border text-lg font-semibold md:text-xl"
+                className="font-athiti text-primary border-primary bg-surface flex h-11 flex-[2] cursor-pointer items-center justify-center gap-[4px] rounded-[20px] border text-lg font-semibold md:text-xl"
               >
                 <Edit className="h-4 w-4" />
                 แก้ไข

@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { X } from "lucide-react";
-import { isUnlimitedStockItem } from "@/utils/oil";
+import ItemPreviewDialog from "@/components/dialogs/ItemPreviewDialog";
 
 const AddRepairItemDialog = ({
   children,
@@ -20,6 +20,7 @@ const AddRepairItemDialog = ({
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
+  const [previewItem, setPreviewItem] = useState(null);
   const restoredStockMapRef = useRef({});
 
   // ผูกกับตัวอะไหล่ ไม่ใช่ชื่อ เพราะชื่อบนบรรทัดในบิลถูกพิมพ์ทับได้
@@ -58,17 +59,14 @@ const AddRepairItemDialog = ({
     setReloadToken((n) => n + 1);
   };
 
+  const isOutOfStock = (item) =>
+    !!item.partNumber && getStockInfo(item).remainingAddable <= 0;
+
   const handleAddItemToRepair = (item) => {
-    const { displayStock, remainingAddable } = getStockInfo(item);
+    const { displayStock } = getStockInfo(item);
 
     // กันไว้อีกชั้นเผื่อกดผ่านคีย์บอร์ด — เกณฑ์เดียวกับที่ใช้ปิดการ์ด
-    if (
-      item.partNumber &&
-      remainingAddable <= 0 &&
-      !isUnlimitedStockItem(item)
-    ) {
-      return;
-    }
+    if (isOutOfStock(item)) return;
 
     onAddItem({ ...item, quantity: displayStock });
     setIsDialogOpen(false);
@@ -112,20 +110,31 @@ const AddRepairItemDialog = ({
               const { remainingAddable } = getStockInfo(item);
               return {
                 // การ์ดในไดอะล็อกบอก "เบิกได้อีกเท่าไหร่" ไม่ใช่ "คลังมีเท่าไหร่"
-                // ของที่ไม่นับสต็อกไม่มีเพดาน ส่งค่าที่ไม่จำกัดไปแทนจำนวนที่เบิกได้
-                quantity: isUnlimitedStockItem(item)
-                  ? Infinity
-                  : Math.max(remainingAddable, 0),
-                alwaysWarnEmpty: !isUnlimitedStockItem(item),
-                disabled:
-                  !!item.partNumber &&
-                  remainingAddable <= 0 &&
-                  !isUnlimitedStockItem(item),
+                quantity: Math.max(remainingAddable, 0),
+                alwaysWarnEmpty: true,
+                disabled: isOutOfStock(item),
+                onImageClick: () => setPreviewItem(item),
               };
             }}
           />
         </div>
       </DialogContent>
+
+      <ItemPreviewDialog
+        item={previewItem}
+        quantity={
+          previewItem?.partNumber
+            ? Math.max(getStockInfo(previewItem).remainingAddable, 0)
+            : null
+        }
+        canPick={!!previewItem && !isOutOfStock(previewItem)}
+        onPick={() => {
+          const item = previewItem;
+          setPreviewItem(null);
+          handleAddItemToRepair(item);
+        }}
+        onClose={() => setPreviewItem(null)}
+      />
     </Dialog>
   );
 };

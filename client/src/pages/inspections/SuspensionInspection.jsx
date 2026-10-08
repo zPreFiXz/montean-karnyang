@@ -62,13 +62,13 @@ import {
   freebieQuantityFor,
 } from "@/constants/services";
 import { onKeyActivate } from "@/utils/a11y";
-import { isPerSide, getPartType } from "@/utils/suspension";
-import { formatProductName } from "@/utils/tireSize";
 import {
-  isUnlimitedStockItem,
-  isMultiUseOil,
-  oilUseLineName,
-} from "@/utils/oil";
+  isPerSide,
+  getPartType,
+  SUSPENSION_PART_TYPE_ORDER,
+} from "@/utils/suspension";
+import { formatProductName } from "@/utils/tireSize";
+import { oilUseLineName, oilUsesOf } from "@/utils/oil";
 import { withViewTransition } from "@/utils/viewTransition";
 import {
   isTireCategoryName,
@@ -94,16 +94,6 @@ const byPartName = (a, b) => thaiCollator.compare(a?.name || "", b?.name || "");
 
 const TAB_ORDER = ["left", "right", "other"];
 
-// ลำดับที่ช่างไล่ตรวจช่วงล่างจริง ไม่ใช่ตามตัวอักษร — ชนิดที่ไม่อยู่ในลิสต์ตกไปท้ายสุด
-const PART_TYPE_ORDER = [
-  "ลูกหมากปีกนกล่าง",
-  "ลูกหมากแร็ค",
-  "ยางกันฝุ่นแร็ค",
-  "คันชักนอก",
-  "ลูกหมากปีกนกบน",
-  "ลูกหมากกันโคลงหน้า",
-  "ยางกันโคลง",
-];
 // สามชนิดที่ช่างไล่ตรวจประจำในแท็บ "อื่นๆ" ให้ขึ้นก่อนตามลำดับนี้
 // ชนิดอื่นยังขึ้นเหมือนกัน แค่ไปต่อท้ายเรียงตามตัวอักษร
 const OTHER_TAB_ORDER = ["คันส่งกลาง", "โช้คหน้า", "โช้คหลัง"];
@@ -459,7 +449,9 @@ const SuspensionInspection = () => {
           };
         }),
       );
-      restoredRef.current = true;
+      // ย้อนกลับมาจากหน้าสรุปหรือแก้บิลเดิม รายการตั้งต้นถูกตัดสินไปแล้ว (อาจลบค่าแรงออกเอง) ไม่ต้องเติมซ้ำ
+      // มาจากหน้างานซ่อมด้วยปุ่มเช็กช่วงล่างต่อ = เพิ่งเป็นงานช่วงล่าง ต้องเติมค่าแรงกับตั้งศูนย์ให้
+      restoredRef.current = !restored.addSuspensionDefaults;
     }
 
     if (hideMoreFields) {
@@ -628,7 +620,7 @@ const SuspensionInspection = () => {
   // อะไหล่หรือบริการที่ตั้งว่าแยกซ้าย-ขวา ถามข้างก่อนลงรายการซ่อมเพิ่มเติม เหมือนหน้างานซ่อม
   // (อะไหล่ช่วงล่างของรุ่นนี้เลือกข้างจากแท็บอยู่แล้ว ที่มาทางนี้คือของหมวดอื่น เช่น เบรก ไฟ)
   const [sidePickItem, setSidePickItem] = useState(null);
-  // น้ำมันขวดลิตรถามก่อนว่าใช้เติมอะไร ชื่อบรรทัดเป็น "ยี่ห้อ งาน เกรด" (ดู isMultiUseOil)
+  // น้ำมันที่ใช้ได้หลายงานถามก่อนว่าใช้เติมอะไร ชื่อบรรทัดเป็น "ยี่ห้อ งาน เกรด" (ดู oilUsesOf)
   const [oilUseItem, setOilUseItem] = useState(null);
   const handlePickOilUse = (use) => {
     const item = oilUseItem;
@@ -644,7 +636,7 @@ const SuspensionInspection = () => {
   };
 
   const handleAddItemToRepair = (item) => {
-    if (isMultiUseOil(item)) {
+    if (oilUsesOf(item).length > 0) {
       setOilUseItem(item);
       return;
     }
@@ -762,8 +754,6 @@ const SuspensionInspection = () => {
 
   const isAtStockLimit = (item) => {
     if (!item.partNumber) return false;
-    // ของที่ตวงจากถังใหญ่ไม่มีเพดาน กดเพิ่มได้เรื่อยๆ
-    if (isUnlimitedStockItem(item)) return false;
     const stock = item.availableStock ?? item.stockQuantity ?? 0;
     return (
       item.quantity + stepOf(item) > stock - getTabSelectedCountForItem(item)
@@ -1015,8 +1005,8 @@ const SuspensionInspection = () => {
     }
     // เรียงกลุ่มตามลำดับที่ช่างไล่ตรวจ ชนิดที่ไม่อยู่ในลิสต์ตกไปท้ายสุดเรียงตามตัวอักษร
     const rank = (type) => {
-      const index = PART_TYPE_ORDER.indexOf(type);
-      return index === -1 ? PART_TYPE_ORDER.length : index;
+      const index = SUSPENSION_PART_TYPE_ORDER.indexOf(type);
+      return index === -1 ? SUSPENSION_PART_TYPE_ORDER.length : index;
     };
 
     return [...groups.entries()]
@@ -1405,7 +1395,7 @@ const SuspensionInspection = () => {
                     aria-disabled={isDisabled || undefined}
                     onKeyDown={onKeyActivate(toggle)}
                     onClick={toggle}
-                    // ปกติสูงเท่าการ์ดอื่นในระบบ แต่ยอมให้ยืดได้เมื่อมีบรรทัด "สต็อกหมด" เพิ่มเข้ามา
+                    // สูงเท่าการ์ดอื่นในระบบ ยอมให้ยืดได้เผื่อชื่อยาวสองบรรทัด
                     className={`shadow-primary flex min-h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] border-2 px-[8px] py-[8px] transition-colors duration-200 ${
                       selectedThis
                         ? "bg-primary/5 border-primary"
@@ -1455,40 +1445,45 @@ const SuspensionInspection = () => {
                             รหัสอะไหล่: {part.partNumber}
                           </p>
                         )}
-                        {/* ราคากับดินสอเป็นปุ่มเดียวกัน สูง 44px ตามขนาดขั้นต่ำของเป้ากดบนมือถือ
-                        (ระยะขอบในติดลบชดเชยไม่ให้การ์ดสูงขึ้น) — กดพลาดที่นี่ = ติ๊กเลือกอะไหล่
-                        โดยไม่ตั้งใจ จึงต้องกดง่ายกว่าไอคอนเปล่าๆ 20px */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            if (!selectedThis) return;
-                            e.stopPropagation();
-                            handleEditCompatiblePrice(part);
-                          }}
-                          aria-label={
-                            selectedThis
-                              ? `แก้ไขราคา ${part.name}`
-                              : `ราคา ${part.name}`
-                          }
-                          className="-my-[8px] flex h-[44px] w-fit cursor-pointer items-center gap-2 self-start"
-                        >
-                          <span
-                            className={`text-xl leading-tight font-semibold duration-200 md:text-[22px] ${
-                              selectedThis ? "text-primary" : "text-subtle-dark"
-                            }`}
+                        {/* สต็อกหมดอยู่บรรทัดเดียวกับราคา ทางขวา การ์ดจึงสูงเท่าการ์ดอื่นเสมอ */}
+                        <div className="flex items-center gap-[12px]">
+                          {/* ราคากับดินสอเป็นปุ่มเดียวกัน สูง 44px ตามขนาดขั้นต่ำของเป้ากดบนมือถือ
+                          (ระยะขอบในติดลบชดเชยไม่ให้การ์ดสูงขึ้น) — กดพลาดที่นี่ = ติ๊กเลือกอะไหล่
+                          โดยไม่ตั้งใจ จึงต้องกดง่ายกว่าไอคอนเปล่าๆ 20px */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              if (!selectedThis) return;
+                              e.stopPropagation();
+                              handleEditCompatiblePrice(part);
+                            }}
+                            aria-label={
+                              selectedThis
+                                ? `แก้ไขราคา ${part.name}`
+                                : `ราคา ${part.name}`
+                            }
+                            className="-my-[8px] flex h-[44px] w-fit cursor-pointer items-center gap-2 self-start"
                           >
-                            {formatCurrency(getPriceForPart(part))}
-                          </span>
-                          {selectedThis && (
-                            <SquarePen className="text-primary h-5 w-5 shrink-0" />
+                            <span
+                              className={`text-xl leading-tight font-semibold duration-200 md:text-[22px] ${
+                                selectedThis
+                                  ? "text-primary"
+                                  : "text-subtle-dark"
+                              }`}
+                            >
+                              {formatCurrency(getPriceForPart(part))}
+                            </span>
+                            {selectedThis && (
+                              <SquarePen className="text-primary h-5 w-5 shrink-0" />
+                            )}
+                          </button>
+                          {isDisabled && (
+                            <p className="text-destructive flex items-center gap-[4px] text-base leading-tight font-semibold md:text-lg">
+                              <AlertTriangle className="text-destructive h-5 w-5" />
+                              <span>สต็อกหมด</span>
+                            </p>
                           )}
-                        </button>
-                        {isDisabled && (
-                          <p className="text-destructive flex items-center gap-[4px] text-base leading-tight font-semibold md:text-lg">
-                            <AlertTriangle className="text-destructive h-5 w-5" />
-                            <span>สต็อกหมด</span>
-                          </p>
-                        )}
+                        </div>
                       </div>
                     </div>
 
@@ -2918,6 +2913,7 @@ const SuspensionInspection = () => {
         onClose={() => setOilUseItem(null)}
         onPick={handlePickOilUse}
         itemName={oilUseItem ? getProductName(oilUseItem) : ""}
+        uses={oilUseItem ? oilUsesOf(oilUseItem) : []}
       />
       <SidePickDialog
         isOpen={!!sidePickItem}
@@ -2926,7 +2922,7 @@ const SuspensionInspection = () => {
         itemName={sidePickItem ? getProductName(sidePickItem) : ""}
         remaining={
           // บริการไม่มีสต็อก เลือกทั้งสองข้างได้เสมอ
-          sidePickItem?.partNumber && !isUnlimitedStockItem(sidePickItem)
+          sidePickItem?.partNumber
             ? Number(sidePickItem.quantity ?? 0) -
               usedOfPartInList(sidePickItem) -
               getTabSelectedCountForItem(sidePickItem)
@@ -2942,8 +2938,7 @@ const SuspensionInspection = () => {
         productName={quantityItem ? getProductName(quantityItem.item) : ""}
         unit={quantityItem?.item?.unit || ""}
         maxQuantity={
-          quantityItem?.item?.partNumber &&
-          !isUnlimitedStockItem(quantityItem.item)
+          quantityItem?.item?.partNumber
             ? (quantityItem.item.availableStock ??
               quantityItem.item.stockQuantity)
             : undefined

@@ -13,16 +13,17 @@ export const getOilSize = (name) => {
 export const oilSizeOf = (item) =>
   getOilSize(item?.name) || (isMultiUseOil(item) ? "1L" : "");
 
-// เรียงตามปริมาตรจริง ไม่ใช่ตามตัวอักษร ไม่งั้น 20L จะมาก่อน 4L
-export const sortOilSizes = (sizes = []) =>
-  [...sizes].sort((a, b) => parseFloat(a) - parseFloat(b));
+// น้ำมันเกียร์/เฟืองท้ายตวงขายเป็นลิตร ใส่ทศนิยมได้ ตัดสต็อกตามจริงเหมือนอะไหล่อื่น
+// เทียบด้วยคำที่อยู่ในชื่อ เพราะชื่อบรรทัดในบิลมียี่ห้อนำหน้า ("VALVOLINE น้ำมันเฟืองท้าย (80W90)")
+const GEAR_OIL_KEYWORDS = ["น้ำมันเกียร์", "น้ำมันเฟืองท้าย"];
 
-// ของที่ตวงจากถังใหญ่ ไม่ได้นับเป็นชิ้น สต็อกในระบบจึงไม่ใช่เพดานของการเบิก
-// เทียบด้วยคำที่อยู่ในชื่อ เพราะชื่อจริงมียี่ห้อกับขนาดต่อท้าย ("VALVOLINE น้ำมันเกียร์ (4L)")
-export const UNLIMITED_STOCK_KEYWORDS = ["น้ำมันเกียร์", "น้ำมันเฟืองท้าย"];
+export const isGearOilItem = (item) => {
+  const name = String(item?.name || item?.itemName || "");
+  return GEAR_OIL_KEYWORDS.some((keyword) => name.includes(keyword));
+};
 
 // น้ำมันเครื่องขวดลิตร (ไม่ใช่ชุดน้ำมันเครื่อง+ไส้กรอง) บางทีเปิดขวดตวงเติมเกียร์หรือเติมเพิ่ม
-// จึงขายเป็นลิตรครึ่งลิตรได้ แต่ยังตัดสต็อกตามจริง (ต่างจากน้ำมันเกียร์ที่ตวงจากถังไม่นับสต็อก)
+// จึงขายเป็นลิตรครึ่งลิตรได้
 // ดูเฉพาะชื่อที่ขึ้นต้นด้วยน้ำมันเครื่อง (มีขนาดในวงเล็บนำหน้าได้) ไม่งั้นกรองน้ำมันเครื่อง
 // หรือแหวนรองน็อตถ่ายน้ำมันเครื่องจะใส่ทศนิยมได้ไปด้วย
 const LOOSE_ENGINE_OIL_PATTERN =
@@ -35,7 +36,7 @@ export const isLooseEngineOilItem = (item) =>
 
 // น้ำมันขวดลิตรตัวเดียวใช้ได้หลายงาน ในคลังเก็บแค่ยี่ห้อกับเกรด (เช่น SUPER COMMONRAIL (15W40))
 // ตอนหยิบลงบิลถามว่าใช้เติมอะไร แล้วชื่อในบิลเป็น "ยี่ห้อ งาน เกรด" ตัดสต็อกที่ตัวเดียวกันเสมอ
-// ดูจากหมวดน้ำมัน หน่วยลิตร ที่ไม่ใช่ชุดน้ำมัน (มีตัวเก็บ) และไม่ใช่น้ำมันจากถังใหญ่ที่ไม่นับสต็อก
+// ดูจากหมวดน้ำมัน หน่วยลิตร ที่ไม่ใช่ชุดน้ำมัน (มีตัวเก็บ) และไม่ใช่น้ำมันเกียร์ (มีตัวเลือกของตัวเอง)
 // ไม่ดูจากชื่อ เพราะชื่อในคลังไม่มีคำว่าน้ำมันเครื่องแล้ว
 export const OIL_USES = ["น้ำมันเครื่อง", "น้ำมันเกียร์", "น้ำมันเฟืองท้าย"];
 
@@ -47,15 +48,32 @@ export const isMultiUseOil = (item) => {
     item?.unit === "ลิตร" &&
     !!item?.partNumber &&
     !item?.oilSourceId &&
-    !isUnlimitedStockItem(item)
+    !isGearOilItem(item)
   );
 };
 
-// ชื่อบรรทัดในบิลของน้ำมันที่เลือกงานแล้ว ยี่ห้อนำหน้าเหมือนชื่ออะไหล่อื่น
-export const oilUseLineName = (item, use) =>
-  [item?.brand, use, item?.name].filter(Boolean).join(" ");
+// น้ำมันเกียร์เกรด 80W90/85W140 เติมเฟืองท้ายได้ด้วย ส่วน ATF กับ 75W85 ใช้กับเกียร์อย่างเดียว
+const DIFF_CAPABLE_GEAR_OIL = /^น้ำมันเกียร์.*(80W90|85W140)/i;
+const GEAR_OIL_USES = ["น้ำมันเกียร์", "น้ำมันเฟืองท้าย"];
 
-export const isUnlimitedStockItem = (item) => {
-  const name = String(item?.name || item?.itemName || "");
-  return UNLIMITED_STOCK_KEYWORDS.some((keyword) => name.includes(keyword));
-};
+// งานที่ให้เลือกตอนหยิบลงบิล ว่างแปลว่าลงบิลเลยไม่ต้องถาม
+export const oilUsesOf = (item) =>
+  isMultiUseOil(item)
+    ? OIL_USES
+    : DIFF_CAPABLE_GEAR_OIL.test(String(item?.name || "").trim())
+      ? GEAR_OIL_USES
+      : [];
+
+// ชื่อบรรทัดในบิลของน้ำมันที่เลือกงานแล้ว ยี่ห้อนำหน้าเหมือนชื่ออะไหล่อื่น
+// ตัดชื่องานเดิมในชื่อคลังออกก่อน ไม่งั้นได้ "น้ำมันเฟืองท้าย น้ำมันเกียร์ (80W90)"
+export const oilUseLineName = (item, use) =>
+  [
+    item?.brand,
+    use,
+    String(item?.name || "").replace(
+      /^น้ำมัน(เครื่อง|เกียร์|เฟืองท้าย)\s*/,
+      "",
+    ),
+  ]
+    .filter(Boolean)
+    .join(" ");

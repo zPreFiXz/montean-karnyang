@@ -40,11 +40,7 @@ import { provinces } from "@/constants/provinces";
 import { formatCurrency, formatPhone, formatQuantity } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 import { formatProductName } from "@/utils/tireSize";
-import {
-  isUnlimitedStockItem,
-  isMultiUseOil,
-  oilUseLineName,
-} from "@/utils/oil";
+import { oilUseLineName, oilUsesOf } from "@/utils/oil";
 import {
   isTireCategoryName,
   allowsDecimalQuantity,
@@ -220,12 +216,13 @@ const RepairCreate = () => {
   useEffect(() => {
     // ไม่มี state แปลว่าเข้าหน้านี้ตรงๆ — ถ้ามีร่างค้างไว้ให้กู้กลับมา
     // (ออกไปเพิ่มสต็อกกลางคัน กดย้อนกลับพลาด หรือเครื่องรีเฟรชหน้าเอง)
+    // มาจากปุ่มตะกร้าถือเป็นการเข้าหน้าตรงๆ ต้องกู้ร่างก่อน แล้วค่อยเพิ่มของต่อท้าย (ดู cartItemHandledRef)
+    const navState = location.state?.addItem ? null : location.state;
     const restored =
-      location.state || (!draftRestoredRef.current && loadDraft(DRAFT_REPAIR));
+      navState || (!draftRestoredRef.current && loadDraft(DRAFT_REPAIR));
     draftRestoredRef.current = true;
     // บอกให้รู้ว่าของที่เห็นมาจากไหน ไม่งั้นเปิดหน้าบิลใหม่แล้วเจอข้อมูลกรอกไว้จะงงว่าซ้ำกับอะไร
-    if (restored && !location.state)
-      toast.info("กู้คืนข้อมูลที่กรอกค้างไว้แล้ว");
+    if (restored && !navState) toast.info("กู้คืนข้อมูลที่กรอกค้างไว้แล้ว");
 
     if (restored) {
       const { repairData, repairItems: savedItems } = restored;
@@ -470,6 +467,8 @@ const RepairCreate = () => {
         // เลื่อนลงไปที่ส่วนเลือกอะไหล่เลย เพราะข้อมูลรถกับลูกค้ายกมาแล้ว
         // ยกเว้นยังไม่ได้เลือกรถ ซึ่งต้องกรอกด้านบนก่อน ไม่งั้นจะเลื่อนพ้นช่องที่ต้องกรอก
         scrollToItems: !!(watch("brand") && watch("model")),
+        // เพิ่งเปลี่ยนเป็นงานช่วงล่าง ยังไม่มีค่าแรงกับตั้งศูนย์ที่บิลช่วงล่างใส่ให้เสมอ
+        addSuspensionDefaults: true,
         editRepairId: location.state?.editRepairId,
         stockNotDeducted: location.state?.stockNotDeducted,
         backIdx: location.state?.backIdx,
@@ -604,7 +603,7 @@ const RepairCreate = () => {
 
   // อะไหล่หรือบริการที่ตั้งว่าแยกซ้าย-ขวา ถามฝั่งก่อนลงบิล ที่เหลือลงบิลเลย
   const [sidePickItem, setSidePickItem] = useState(null);
-  // น้ำมันขวดลิตรถามก่อนว่าใช้เติมอะไร ชื่อบรรทัดเป็น "ยี่ห้อ งาน เกรด" (ดู isMultiUseOil)
+  // น้ำมันที่ใช้ได้หลายงานถามก่อนว่าใช้เติมอะไร ชื่อบรรทัดเป็น "ยี่ห้อ งาน เกรด" (ดู oilUsesOf)
   const [oilUseItem, setOilUseItem] = useState(null);
   const handlePickOilUse = (use) => {
     const item = oilUseItem;
@@ -620,7 +619,7 @@ const RepairCreate = () => {
   };
 
   const handleAddItemToRepair = (item) => {
-    if (isMultiUseOil(item)) {
+    if (oilUsesOf(item).length > 0) {
       setOilUseItem(item);
       return;
     }
@@ -630,6 +629,31 @@ const RepairCreate = () => {
     }
     addItemLine(item);
   };
+
+  // ปุ่มตะกร้าในรายละเอียดอะไหล่/บริการส่งของมาทาง state ทำครั้งเดียว แล้วล้าง state ทิ้ง
+  // ไม่งั้นรีเฟรชหรือย้อนกลับมาจะได้ของซ้ำอีกชิ้น (ร่างเก็บชิ้นแรกไว้แล้ว)
+  // ผ่านทางเดียวกับไดอะล็อกเพิ่มรายการ ของที่ต้องเลือกข้างหรือเลือกงานน้ำมันจึงยังถามก่อน
+  const cartItemHandledRef = useRef(false);
+  useEffect(() => {
+    const cartItem = location.state?.addItem;
+    if (!cartItem || cartItemHandledRef.current) return;
+    cartItemHandledRef.current = true;
+    handleAddItemToRepair({
+      ...cartItem,
+      quantity: cartItem.stockQuantity ?? 0,
+    });
+    window.history.replaceState(
+      { ...window.history.state, usr: null },
+      document.title,
+      window.location.pathname,
+    );
+    scrollToNewRow(() => {
+      const headers = document.querySelectorAll("[data-repair-items-top]");
+      return [...headers].find((el) => el.offsetParent !== null);
+    }, "start");
+    // handleAddItemToRepair สร้างใหม่ทุกเรนเดอร์ ทำงานครั้งเดียวตาม state ที่ส่งมาก็พอ
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   // ทั้งสองข้าง = บรรทัดเดียว ป้าย L-R จำนวนเริ่มที่ 2 ชิ้น
   // ตอนบันทึกค่อยแตกเป็นซ้ายหนึ่งขวาหนึ่ง (ดู expandBothSides) ใบเสร็จจะรวมกลับเป็น (L-R) ให้เอง
@@ -659,10 +683,7 @@ const RepairCreate = () => {
           // นับบรรทัดอื่นของอะไหล่ตัวเดียวกันด้วย (อีกฝั่ง) ไม่งั้นสองฝั่งรวมกันเกินสต็อกได้
           const limit = i.availableStock ?? i.stockQuantity ?? 0;
           const step = stepOf(i);
-          const canAdd =
-            !i.partNumber ||
-            isUnlimitedStockItem(i) ||
-            usedOfPart(i, prev) + step <= limit;
+          const canAdd = !i.partNumber || usedOfPart(i, prev) + step <= limit;
 
           return { ...i, quantity: canAdd ? i.quantity + step : i.quantity };
         });
@@ -705,8 +726,6 @@ const RepairCreate = () => {
   // บริการและรายการที่พิมพ์ชื่อเองไม่มีสต็อก จึงไม่จำกัด
   const isAtStockLimit = (item) => {
     if (!item.partNumber) return false;
-    // ของที่ตวงจากถังใหญ่ไม่มีเพดาน กดเพิ่มได้เรื่อยๆ
-    if (isUnlimitedStockItem(item)) return false;
     const limit = item.availableStock ?? item.stockQuantity ?? 0;
     // รวมทุกบรรทัดของอะไหล่ตัวนี้ ซ้ายกับขวาใช้สต็อกกองเดียวกัน
     // บรรทัดทั้งสองข้างกดบวกทีละสองชิ้น ต้องเหลือพอสองชิ้น
@@ -1447,7 +1466,7 @@ const RepairCreate = () => {
                 <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
                   <ClipboardList className="text-primary h-6 w-6" />
                 </div>
-                <p className="text-[22px] font-semibold md:text-2xl">
+                <p className="text-lg font-semibold whitespace-nowrap sm:text-xl md:text-[22px]">
                   รายการซ่อม
                 </p>
                 {reorderButton}
@@ -1459,7 +1478,7 @@ const RepairCreate = () => {
                 restoredStockMap={restoredStockMap}
                 vehicle={{ brand: watch("brand"), model: watch("model") }}
               >
-                <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
+                <p className="text-primary cursor-pointer text-lg font-semibold whitespace-nowrap sm:text-xl md:text-[22px]">
                   + เพิ่มรายการซ่อม
                 </p>
               </AddRepairItemDialog>
@@ -1712,9 +1731,7 @@ const RepairCreate = () => {
               <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
                 <ClipboardList className="text-primary h-6 w-6" />
               </div>
-              <p className="text-[22px] font-semibold md:text-2xl">
-                รายการซ่อม
-              </p>
+              <p className="text-xl font-semibold md:text-[22px]">รายการซ่อม</p>
               {reorderButton}
               {freebieButton}
             </div>
@@ -1981,6 +1998,7 @@ const RepairCreate = () => {
         onClose={() => setOilUseItem(null)}
         onPick={handlePickOilUse}
         itemName={oilUseItem ? getProductName(oilUseItem) : ""}
+        uses={oilUseItem ? oilUsesOf(oilUseItem) : []}
       />
       <SidePickDialog
         isOpen={!!sidePickItem}
@@ -1989,7 +2007,7 @@ const RepairCreate = () => {
         itemName={sidePickItem ? getProductName(sidePickItem) : ""}
         remaining={
           // บริการไม่มีสต็อก เลือกทั้งสองข้างได้เสมอ
-          sidePickItem?.partNumber && !isUnlimitedStockItem(sidePickItem)
+          sidePickItem?.partNumber
             ? Number(sidePickItem.quantity ?? 0) - usedOfPart(sidePickItem)
             : null
         }
@@ -2004,8 +2022,7 @@ const RepairCreate = () => {
         unit={quantityItem?.item?.unit || ""}
         // บริการไม่มีสต็อก จึงไม่จำกัดจำนวน
         maxQuantity={
-          quantityItem?.item?.partNumber &&
-          !isUnlimitedStockItem(quantityItem.item)
+          quantityItem?.item?.partNumber
             ? // หักจำนวนที่อีกฝั่งใช้ไปแล้ว บรรทัดนี้จะได้ไม่พาสองฝั่งรวมกันเกินสต็อก
               (quantityItem.item.availableStock ??
                 quantityItem.item.stockQuantity) -

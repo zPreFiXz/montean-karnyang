@@ -27,3 +27,29 @@ export const getPartType = (name) =>
   String(name || "")
     .trim()
     .split(/\s+/)[0] || "อื่นๆ";
+
+// ลำดับที่ช่างไล่ตรวจช่วงล่างจริง ไม่ใช่ตามตัวอักษร — ชนิดที่ไม่อยู่ในลิสต์ตกไปท้ายสุด
+// ใช้ทั้งหน้าเช็กช่วงล่าง หน้าคลัง และหน้าต่างเลือกอะไหล่ลงบิล แก้ที่นี่ที่เดียวเปลี่ยนทุกหน้า
+export const SUSPENSION_PART_TYPE_ORDER = [
+  "ลูกหมากปีกนกบน",
+  "สลักปีกนกบน",
+  "ลูกหมากปีกนกล่าง",
+  "ลูกหมากแร็ค",
+  "ยางกันฝุ่นแร็ค",
+  "คันชักนอก",
+  "คันชักนอก-ใน",
+  "ลูกหมากกันโคลงหน้า",
+  "สกรูกันโคลง",
+  "ยางกันโคลง",
+];
+
+const typeCollator = new Intl.Collator("th", { numeric: true });
+
+// อันดับของชนิดตามลำดับที่ช่างไล่ตรวจ ชนิดที่ไม่อยู่ในลิสต์ไปท้าย
+export const suspensionTypeRank = (type) => {
+  const index = SUSPENSION_PART_TYPE_ORDER.indexOf(type);
+  return index === -1 ? SUSPENSION_PART_TYPE_ORDER.length : index;
+};
+
+export const compareSuspensionTypes = (a, b) =>
+  suspensionTypeRank(a) - suspensionTypeRank(b) || typeCollator.compare(a, b);

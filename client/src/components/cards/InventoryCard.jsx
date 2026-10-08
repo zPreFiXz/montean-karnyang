@@ -6,7 +6,6 @@ import {
 } from "@/utils/formats";
 import { tracksStock } from "@/utils/stock";
 import { isPartLikeItem, isDiscountItem } from "@/constants/services";
-import { isUnlimitedStockItem } from "@/utils/oil";
 import { SparePart } from "@/components/icons/Icons";
 import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
 import { formatProductName } from "@/utils/tireSize";
@@ -28,6 +27,8 @@ const InventoryCard = ({
   // หน้าจอที่ยึดสต็อกจริงล้วน (เช่นไดอะล็อกเลือกอะไหล่ลงบิล) ให้เตือน "สต็อกหมด" เมื่อเหลือ 0
   // แม้อะไหล่ตัวนั้นจะไม่ได้ตั้งสต็อกขั้นต่ำไว้ก็ตาม เพราะเบิกไม่ได้อยู่ดี
   alwaysWarnEmpty = false,
+  // มีเมื่อการ์ดอยู่ในหน้าต่างเลือกรายการ กดรูปเพื่อดูรายละเอียดแทนการเลือกลงบิล
+  onImageClick,
 }) => {
   const isTire = isTireCategoryName(category);
   // ชุดน้ำมันได้จำนวนชุดที่น้ำมันในตัวเก็บพอขาย (คิดที่เซิร์ฟเวอร์) แสดงแบบอะไหล่ทั่วไป
@@ -54,7 +55,26 @@ const InventoryCard = ({
     <div className="flex items-center gap-[16px]">
       <div className="shadow-primary bg-surface flex h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] px-[8px]">
         <div className="flex min-w-0 flex-1 items-center gap-[8px]">
-          <div className="shadow-primary bg-surface flex shrink-0 items-center justify-center rounded-[10px] border border-gray-200">
+          <div
+            {...(onImageClick && {
+              role: "button",
+              tabIndex: 0,
+              "aria-label": `ดูรายละเอียด ${name}`,
+              onClick: (e) => {
+                e.stopPropagation();
+                onImageClick();
+              },
+              onKeyDown: (e) => {
+                if (e.key !== "Enter" && e.key !== " ") return;
+                e.preventDefault();
+                e.stopPropagation();
+                onImageClick();
+              },
+            })}
+            className={`shadow-primary bg-surface flex shrink-0 items-center justify-center rounded-[10px] border border-gray-200 ${
+              onImageClick ? "cursor-zoom-in" : ""
+            }`}
+          >
             {secureUrl ? (
               <div className="h-[60px] w-[60px]">
                 <img
@@ -82,14 +102,7 @@ const InventoryCard = ({
           <div className="flex min-w-0 flex-col">
             {renderProductInfo()}
 
-            {/* ของที่ตวงจากถังใหญ่เบิกได้ตลอด เหลือ 0 จึงไม่ใช่ของหมด
-                แสดงจำนวนตามปกติ ไม่ต้องขึ้นคำเตือนสีแดง */}
-            {!isService && isUnlimitedStockItem({ name }) ? (
-              <p className="text-subtle-dark text-base font-semibold md:text-lg">
-                {`จำนวน: ${formatQuantity(quantity)} ${unit || ""}`}
-              </p>
-            ) : (
-              !isService &&
+            {!isService &&
               (!warnEmpty && !tracksStock(minStockLevel) ? (
                 <p className="text-subtle-dark text-base font-semibold md:text-lg">
                   {`จำนวน: ${formatQuantity(quantity)} ${unit}`}
@@ -110,11 +123,10 @@ const InventoryCard = ({
                 <p className="text-subtle-dark text-base font-semibold md:text-lg">
                   {`จำนวน: ${formatQuantity(quantity)} ${unit}`}
                 </p>
-              ))
-            )}
+              ))}
             {soldPriceRange && (
               <p className="text-subtle-dark truncate text-base font-semibold md:text-lg">
-                {`ขายจริง ${formatPriceRange(soldPriceRange)}`}
+                {`เคยขาย ${formatPriceRange(soldPriceRange)}`}
               </p>
             )}
           </div>

@@ -5,11 +5,10 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { OIL_USES } from "@/utils/oil";
 
-// น้ำมันขวดลิตรตัวเดียวใช้ได้หลายงาน ถามตอนหยิบลงบิลว่าใช้เติมอะไร ชื่อในบิลจะได้บอกงานที่ทำ
+// น้ำมันตัวเดียวใช้ได้หลายงาน (ดู oilUsesOf) ถามตอนหยิบลงบิลว่าใช้เติมอะไร ชื่อในบิลจะได้บอกงานที่ทำ
 // แตะแล้วจบเลยเหมือนหน้าต่างเลือกข้าง การ์ดตัวเลือกหน้าตาชุดเดียวกัน
-const OilUsePickDialog = ({ isOpen, onClose, onPick, itemName }) => (
+const OilUsePickDialog = ({ isOpen, onClose, onPick, itemName, uses }) => (
   <Dialog open={isOpen} onOpenChange={onClose}>
     <DialogContent
       className="flex max-h-[85svh] w-full flex-col p-0"
@@ -40,7 +39,7 @@ const OilUsePickDialog = ({ isOpen, onClose, onPick, itemName }) => (
         )}
 
         <div className="mt-[16px] flex gap-[8px]">
-          {OIL_USES.map((use) => (
+          {uses.map((use) => (
             <button
               key={use}
               type="button"

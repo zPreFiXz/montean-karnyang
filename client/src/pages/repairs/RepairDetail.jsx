@@ -384,7 +384,14 @@ const RepairDetail = () => {
 
   // บิลขายหน้าร้านเก็บเงินตอนสร้างบิล เวลาทั้งสามช่วงจึงเป็นวินาทีเดียวกัน
   // งานบริการเดินสถานะปกติ จึงมีเวลาแยกแต่ละช่วงเหมือนงานซ่อม
-  const paidOnCreate = isSaleRepair(repair);
+  // บิลขายหน้าร้านที่จ่ายทันที เกิดและจบพร้อมกัน มีแค่เวลาเดียว
+  // บิลขายที่ติดเครดิต (ร้านค้ามักเป็นแบบนี้) ขายวันหนึ่ง จ่ายอีกวัน ต้องเห็นทั้งสองเวลา
+  // ไม่งั้นกล่องเวลาว่างเปล่าระหว่างรอเก็บเงิน เพราะยังไม่มีเวลาชำระเงินให้แสดง
+  const isSale = isSaleRepair(repair);
+  const paidOnCreate =
+    isSale &&
+    !!repair?.paidAt &&
+    Math.abs(new Date(repair.paidAt) - new Date(repair.createdAt)) < 60 * 1000;
 
   const statusInfo = getStatusInfo(repair?.status) ?? DEFAULT_STATUS_INFO;
   const docNo = receiptDocNo(repair);
@@ -1290,14 +1297,15 @@ const RepairDetail = () => {
                   <>
                     <div className="flex justify-between">
                       <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                        เริ่มซ่อม:
+                        {isSale ? "ขาย:" : "เริ่มซ่อม:"}
                       </p>
                       <p className="text-normal text-lg font-medium md:text-xl">
                         {formatDate(repair.createdAt)} |{" "}
                         {formatTime(repair.createdAt)} น.
                       </p>
                     </div>
-                    {repair.completedAt && (
+                    {/* บิลขายไม่มีช่วงซ่อม ไม่ต้องมีเวลาซ่อมเสร็จ */}
+                    {!isSale && repair.completedAt && (
                       <div className="flex justify-between">
                         <p className="text-subtle-dark text-lg font-medium md:text-xl">
                           ซ่อมเสร็จสิ้น:
