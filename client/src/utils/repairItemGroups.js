@@ -1,3 +1,5 @@
+import { PER_SIDE_SERVICE_NAME } from "@/constants/services";
+
 // อะไหล่ตัวเดียวกันที่เปลี่ยนทั้งซ้ายและขวา ยุบเป็นบรรทัดเดียว "ซ้าย-ขวา × 2"
 // เพราะร้านพูดกับลูกค้าแบบนั้น ไม่มีใครพูดว่าซ้ายหนึ่งขวาหนึ่ง
 // ยุบเฉพาะตอนแสดงผล — ในฐานข้อมูลยังเป็นสองรายการแยกฝั่ง ประวัติจึงยังบอกได้ว่าเปลี่ยนข้างไหน
@@ -151,3 +153,12 @@ export const collapseSidePairs = (items = []) => {
 // ตรงกับที่หน้าจอยุบเป็นการ์ดเดียว (L-R) และที่ใบเสร็จยุบเป็นแถวเดียว
 export const countDisplayedItems = (items = []) =>
   mergeSidesInOrder(items).length;
+
+// ของที่ติ๊กจากแท็บซ้าย/ขวา/อื่นๆ ในหน้าเช็กช่วงล่าง ที่เหลือคือรายการซ่อมเพิ่มเติม
+// ของที่เลือกข้างมาเอง (pickedSide) หรืออะไหล่หมวดอื่นที่มีข้าง (เบรก ไฟ) อยู่ในรายการเพิ่มเติมพร้อมป้ายข้าง
+export const isSuspensionTabItem = (item) =>
+  !!item.side &&
+  !item.pickedSide &&
+  (item.side === "other" ||
+    (!item.partNumber && item.name === PER_SIDE_SERVICE_NAME) ||
+    item.category?.name === "ช่วงล่าง");

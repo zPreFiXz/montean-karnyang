@@ -8,7 +8,8 @@ import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
 import { formatProductName } from "@/utils/tireSize";
 
 // sideLabel = ฝั่งที่ติดตั้ง (L / R / L-R) สำหรับหน้าที่ไม่ได้แบ่งหัวข้อตามฝั่ง
-const RepairItemCard = ({ item, variant, onClick, sideLabel }) => {
+// rightSlot แทนที่ยอดรวมทางขวา (โหมดจัดเรียงใส่ลูกศรตรงนี้ เหมือนหน้ากรอกบิล)
+const RepairItemCard = ({ item, variant, onClick, sideLabel, rightSlot }) => {
   // ชื่อในบิลถูกอัปเดตให้ตรงกับคลังตั้งแต่ตอนแก้ชื่ออะไหล่แล้ว (ดู updatePart ฝั่งเซิร์ฟเวอร์)
   // ตรงนี้จึงอ่านค่าที่บันทึกไว้ตรงๆ และของที่ถูกลบออกจากคลังก็ยังมีชื่อเดิมให้อ่าน
   const detailName = item.itemName;
@@ -128,9 +129,11 @@ const RepairItemCard = ({ item, variant, onClick, sideLabel }) => {
         </div>
       </div>
 
-      <p className="text-primary shrink-0 text-[22px] font-semibold text-nowrap md:text-2xl">
-        {formatCurrency(unitPrice * item.quantity)}
-      </p>
+      {rightSlot ?? (
+        <p className="text-primary shrink-0 text-[22px] font-semibold text-nowrap md:text-2xl">
+          {formatCurrency(unitPrice * item.quantity)}
+        </p>
+      )}
     </div>
   );
 };

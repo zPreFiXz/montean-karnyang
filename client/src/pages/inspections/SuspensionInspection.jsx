@@ -79,7 +79,11 @@ import {
 import EditQuantityDialog from "@/components/dialogs/EditQuantityDialog";
 import SidePickDialog from "@/components/dialogs/SidePickDialog";
 import OilUsePickDialog from "@/components/dialogs/OilUsePickDialog";
-import { collapseSidePairs, expandBothSides } from "@/utils/repairItemGroups";
+import {
+  collapseSidePairs,
+  expandBothSides,
+  isSuspensionTabItem,
+} from "@/utils/repairItemGroups";
 import { scrollToNewRow } from "@/utils/scrollToNewRow";
 import CollapsibleRow from "@/components/ui/CollapsibleRow";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
@@ -169,6 +173,10 @@ const SuspensionInspection = () => {
   // โหมดจัดเรียงของ "รายการซ่อมเพิ่มเติม" — ของที่ติ๊กตามตำแหน่งซ้าย/ขวาไม่เกี่ยว
   // เพราะลำดับของมันมาจากตำแหน่งบนรถ ไม่ใช่ลำดับที่ช่างอยากให้อยู่
   const [isReordering, setIsReordering] = useState(false);
+  // หน้าสรุปย้ายก้อนช่วงล่างไปไว้ระหว่างรายการซ่อมเพิ่มเติมได้ หน้านี้แค่จำตำแหน่งไว้ส่งต่อ
+  // = จำนวนรายการซ่อมเพิ่มเติมที่อยู่ก่อนก้อนช่วงล่างในบิล
+  // ไม่มีช่องในฐานข้อมูล ลำดับในบิลคือตัวบันทึก ตอนเปิดแก้ไขหรือย้อนกลับมาอ่านจากลำดับบรรทัด
+  const [tabBlockIndex, setTabBlockIndex] = useState(0);
 
   // แจกรหัสประจำแถวตอนของเข้ามาในบิล ใช้เป็น key ของ React และชื่อสำหรับอนิเมชันสลับที่
   // ต้องแจกเอง ไม่ใช้รหัสอะไหล่ เพราะของชิ้นเดียวกันอยู่ได้หลายแถว
@@ -365,15 +373,15 @@ const SuspensionInspection = () => {
       // บริการรายข้างก็มีข้างเหมือนอะไหล่ แยกออกมาก่อนไม่ให้ปนเข้าเซ็ตของอะไหล่
       const isPerSideServiceItem = (i) =>
         !i.partNumber && i.name === PER_SIDE_SERVICE_NAME;
-      // ของที่เลือกข้างมาจากหน้างานซ่อม (pickedSide) หรืออะไหล่หมวดอื่นที่มีข้าง (เบรก ไฟ)
-      // อยู่ในรายการซ่อมเพิ่มเติมพร้อมป้ายข้าง ไม่ย้ายเข้าแท็บ เพราะแท็บมีแต่อะไหล่ช่วงล่างของรุ่นรถนี้
-      const isTabItem = (i) =>
-        !!i.side &&
-        !i.pickedSide &&
-        (i.side === "other" ||
-          isPerSideServiceItem(i) ||
-          i.category?.name === "ช่วงล่าง");
+      // แท็บมีแต่อะไหล่ช่วงล่างของรุ่นรถนี้ ที่เหลือกลับไปอยู่รายการซ่อมเพิ่มเติม
+      const isTabItem = isSuspensionTabItem;
       const tabItems = savedItems.filter(isTabItem);
+      const firstTabIndex = savedItems.findIndex(isTabItem);
+      setTabBlockIndex(
+        firstTabIndex === -1
+          ? 0
+          : collapseSidePairs(savedItems.slice(0, firstTabIndex)).length,
+      );
       // ซ้ายกับขวาของชิ้นเดียวกัน รวมกลับเป็นบรรทัดทั้งสองข้าง (L-R) แบบเดียวกับหน้างานซ่อม
       const manualItems = collapseSidePairs(
         savedItems.filter((i) => !isTabItem(i)),
@@ -1106,7 +1114,7 @@ const SuspensionInspection = () => {
 
   // อะไหล่ที่ติ๊กตามตำแหน่งเก็บไว้เป็นเซ็ตของ id ต้องคลี่กลับเป็นรายการเต็มก่อน
   // ทั้งตอนส่งไปหน้าสรุปและตอนเก็บร่าง
-  const buildAllRepairItems = () => [
+  const buildTabItems = () => [
     ...Array.from(selectedLeftParts)
       .map((id) => getPartsForSide("left").find((p) => p.id === id))
       .filter(Boolean)
@@ -1142,7 +1150,12 @@ const SuspensionInspection = () => {
         quantity: 1,
         side,
       })),
-    ...repairItems,
+  ];
+
+  const buildAllRepairItems = () => [
+    ...repairItems.slice(0, tabBlockIndex),
+    ...buildTabItems(),
+    ...repairItems.slice(tabBlockIndex),
   ];
 
   // เก็บร่างไว้ระหว่างพิมพ์ จะได้ออกจากหน้าไปเพิ่มสต็อกแล้วกลับมากรอกต่อได้
@@ -1187,6 +1200,7 @@ const SuspensionInspection = () => {
       other: new Set(),
     };
     setPriceOverrides({});
+    setTabBlockIndex(0);
     setRestoredStockMap({});
     setActiveTab("left");
     setIsCustomerInfoOpen(false);

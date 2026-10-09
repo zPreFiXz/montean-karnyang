@@ -60,13 +60,6 @@ const mergeTireLots = (lots = [], added = []) =>
     );
   }, lots || []);
 
-// ปุ่มลัดเพิ่มสต็อกน้ำมันที่นับเป็นลิตร ตามขนาดที่ร้านซื้อเข้า
-const LITRE_SHORTCUTS = [
-  { litres: 1, label: "+1 ขวด" },
-  { litres: 4, label: "+4 ลิตร" },
-  { litres: 6, label: "+6 ลิตร" },
-];
-
 const RepairItemDetailDialog = ({
   item,
   open,
@@ -91,8 +84,6 @@ const RepairItemDetailDialog = ({
     reset,
     control,
     watch,
-    setValue,
-    getValues,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(updateStockSchema),
@@ -765,30 +756,6 @@ const RepairItemDetailDialog = ({
                             customClass="px-0 pt-[16px]"
                           />
                         )}
-                        {!tracksLots && currentItem.unit === "ลิตร" && (
-                          // น้ำมันซื้อเป็นแกลลอน 4 / 6 ลิตรกับขวด 1 ลิตร กดตามของที่ถืออยู่ ไม่ต้องคิดเลข
-                          <div className="mt-[8px] flex gap-[8px]">
-                            {LITRE_SHORTCUTS.map((shortcut) => (
-                              <button
-                                key={shortcut.litres}
-                                type="button"
-                                onClick={() =>
-                                  setValue(
-                                    "quantity",
-                                    String(
-                                      (Number(getValues("quantity")) || 0) +
-                                        shortcut.litres,
-                                    ),
-                                    { shouldValidate: true },
-                                  )
-                                }
-                                className="border-primary text-primary bg-surface flex h-[36px] flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-base font-semibold md:text-lg"
-                              >
-                                {shortcut.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
 
                         {/* เผยฟอร์มแล้วต้องมีทางถอย — ปุ่มยกเลิกใช้สไตล์เดียวกับไดอะล็อกอื่น
                           (ขาว+ขอบ ไม่ใช่พื้นเทา เพราะกล่องฟอร์มเป็น bg-gray-50 จะกลืนกัน) */}
@@ -829,7 +796,7 @@ const RepairItemDetailDialog = ({
           <div className="flex-shrink-0 px-[16px] pb-[16px]">
             {/* ประวัติการใช้เป็นการดูข้อมูล ไม่ใช่การแก้ของ จึงแยกออกจากแถวปุ่มลงมือทำ
                 วางเป็นแถวเต็มความกว้างแบบรายการที่กดเข้าไปดูต่อได้ */}
-            <div className="flex items-center gap-[16px]">
+            <div className="flex items-center gap-[8px]">
               {/* ลูกค้ามาถามของจากหน้าคลังบ่อย กดตะกร้าแล้วไปลงบิลใหม่ทันที ไม่ต้องไปค้นซ้ำในหน้าบิล
                   เกณฑ์ปิดปุ่มเดียวกับการ์ดในไดอะล็อกเพิ่มรายการ */}
               <button
@@ -851,8 +818,7 @@ const RepairItemDetailDialog = ({
               {!isService && !isOilKit && !isAddStockVisible && (
                 <button
                   onClick={handleShowAddStock}
-                  // ข้อความยาวกว่าแก้ไข จึงกว้างกว่า ไม่งั้นไอคอนกับข้อความเบียดกัน
-                  className="font-athiti text-surface bg-gradient-primary flex h-11 flex-[3] cursor-pointer items-center justify-center gap-[4px] rounded-[20px] text-lg font-semibold md:text-xl"
+                  className="font-athiti text-surface bg-gradient-primary flex h-11 flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] text-lg font-semibold md:text-xl"
                 >
                   <Plus className="h-4 w-4" />
                   เพิ่มสต็อก
@@ -861,7 +827,7 @@ const RepairItemDetailDialog = ({
               <button
                 onClick={handleEdit}
                 autoFocus={false}
-                className="font-athiti text-primary border-primary bg-surface flex h-11 flex-[2] cursor-pointer items-center justify-center gap-[4px] rounded-[20px] border text-lg font-semibold md:text-xl"
+                className="font-athiti text-primary border-primary bg-surface flex h-11 flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] border text-lg font-semibold md:text-xl"
               >
                 <Edit className="h-4 w-4" />
                 แก้ไข

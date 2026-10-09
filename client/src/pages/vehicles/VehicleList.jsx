@@ -124,10 +124,16 @@ const VehicleList = () => {
         <div className="bg-surface/20 flex h-[40px] w-[40px] items-center justify-center rounded-full">
           <Document color="#ffffff" />
         </div>
-        <div>
+        <div className="flex items-center gap-[8px]">
           <p className="text-surface text-2xl font-semibold md:text-[26px]">
             ประวัติรถ
           </p>
+          {/* จำนวนรถในลิสต์ตอนนี้ ตอนค้นหาจึงเป็นจำนวนที่ตรงคำค้น ไม่ขึ้นระหว่างโหลดหรือตอนไม่มีสักคัน */}
+          {!isLoading && vehicles.length > 0 && (
+            <span className="text-surface/70 shrink-0 text-xl font-medium md:text-[22px]">
+              ({vehicles.length})
+            </span>
+          )}
         </div>
       </div>
       <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">

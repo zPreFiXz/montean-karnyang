@@ -211,6 +211,7 @@ const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
       await withMinDuration(() =>
         printRepairReceipt(repair.id, { showCustomer, showBrand, docType }),
       );
+      onOpenChange(false);
       toast.success(
         docType === "job"
           ? "สั่งพิมพ์ใบสั่งซ่อมแล้ว"

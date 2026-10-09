@@ -3,8 +3,10 @@ import { hasTypedUnit } from "@/constants/services";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
 import {
+  collapseSidePairs,
   expandBothSides,
   groupBySidePairs,
+  isSuspensionTabItem,
   mergeSidesInOrder,
 } from "@/utils/repairItemGroups";
 import { useEffect, useState } from "react";
@@ -23,6 +25,9 @@ import {
   Ellipsis,
   Wrench,
   ClipboardList,
+  ArrowUpDown,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import ComboBox from "@/components/ui/ComboBox";
 import PartPreviewDialog from "@/components/dialogs/PartPreviewDialog";
@@ -31,7 +36,39 @@ import {
   CREDIT_OPTION_ID,
 } from "@/constants/paymentMethods";
 import { usePrefetchPages } from "@/routes/pageImports";
+import { withViewTransition } from "@/utils/viewTransition";
 import { getDisplayBrand } from "@/utils/repairDisplay";
+
+// บิลเช็กช่วงล่างจัดเรียงเป็นก้อน: อะไหล่จากแท็บซ้าย/ขวา/อื่นๆ ทั้งหมดเป็นก้อนเดียว ย้ายไปด้วยกัน
+// รายการซ่อมเพิ่มเติมเป็นก้อนละรายการ (ซ้าย-ขวาของชิ้นเดียวกันยุบเป็นก้อนเดียว)
+// ไม่มีช่องลำดับในฐานข้อมูล ลำดับบรรทัดที่ส่งไปคือตัวบันทึก จึงสร้างก้อนจากลำดับที่ส่งมาได้เสมอ
+const buildUnits = (items = []) => {
+  const units = [];
+  let extras = [];
+  const flushExtras = () => {
+    for (const item of collapseSidePairs(extras)) {
+      units.push({
+        type: "extra",
+        item,
+        key: item.rowId || `extra-${units.length}`,
+      });
+    }
+    extras = [];
+  };
+
+  for (const item of items) {
+    if (!isSuspensionTabItem(item)) {
+      extras.push(item);
+    } else if (!units.some((unit) => unit.type === "tab")) {
+      flushExtras();
+      units.push({ type: "tab", key: "tab" });
+    }
+  }
+  flushExtras();
+  return units;
+};
+
+const SIDE_BADGE = { both: "L-R", left: "L", right: "R" };
 
 const RepairReview = () => {
   // เตรียมโค้ดของหน้าที่มักไปต่อจากหน้านี้ กดแล้วจะได้ไม่ต้องรอโหลด
@@ -59,6 +96,20 @@ const RepairReview = () => {
   const [paymentMethod, setPaymentMethod] = useState(
     repairData?.paymentMethod || "",
   );
+
+  const isSuspensionBill = location.state?.from === "suspension";
+  const tabItems =
+    isSuspensionBill && repairItems
+      ? repairItems.filter(isSuspensionTabItem)
+      : [];
+  const [units, setUnits] = useState(() => buildUnits(repairItems));
+  const [isReordering, setIsReordering] = useState(false);
+  const orderedItems = isSuspensionBill
+    ? expandBothSides(
+        units.flatMap((unit) => (unit.type === "tab" ? tabItems : [unit.item])),
+      )
+    : repairItems;
+  const extraUnits = units.filter((unit) => unit.type === "extra");
 
   // หัวเรื่องบอกว่ากำลังสรุปบิลแบบไหน ใช้คำเดียวกับปุ่มเลือกประเภทบิลในหน้ากรอก
   // บิลช่วงล่างเป็นงานซ่อมที่ผูกกับรถเหมือนกัน แต่มาจากคนละหน้าและหน้าตาสรุปต่างกัน
@@ -99,12 +150,11 @@ const RepairReview = () => {
   );
 
   const getItemsBySide = (side) => {
-    return repairItems.filter((item) => item.side === side);
+    return tabItems.filter((item) => item.side === side);
   };
 
   // แบ่งหัวข้อตามฝั่งเฉพาะบิลเช็กช่วงล่าง ที่ช่างทำงานเป็นฝั่งๆ
   // งานซ่อมทั่วไปเรียงรายการเดียวตามลำดับในบิล ฝั่งดูจากป้ายที่มุมรูปแทน (เหมือนหน้ากรอกบิล)
-  const isSuspensionBill = location.state?.from === "suspension";
 
   // ของที่เปลี่ยนทั้งสองข้างยุบเป็นบรรทัดเดียว ที่เหลือแยกฝั่งตามเดิม
   const { bothSides, leftOnly, rightOnly } = isSuspensionBill
@@ -112,9 +162,10 @@ const RepairReview = () => {
     : { bothSides: [], leftOnly: [], rightOnly: [] };
   const otherItems = isSuspensionBill ? getItemsBySide("other") : [];
   const generalRows = isSuspensionBill
-    ? repairItems
-        .filter((item) => !item.side || item.side === "general")
-        .map((item) => ({ item, sideLabel: "" }))
+    ? extraUnits.map(({ item }) => ({
+        item,
+        sideLabel: SIDE_BADGE[item.side] || "",
+      }))
     : mergeSidesInOrder(repairItems);
 
   // นับตามการ์ดที่เห็น ของที่ใส่ทั้งซ้ายและขวานับเป็นรายการเดียว ไม่ใช่สองบรรทัดในฐานข้อมูล
@@ -151,7 +202,7 @@ const RepairReview = () => {
         ...(repairData.noVehicle ? { noVehicle: true } : {}),
         ...(isSale ? { paymentMethod } : {}),
         // บรรทัดทั้งสองข้างจากหน้ากรอกบิล แตกเป็นซ้ายหนึ่งขวาหนึ่งก่อนบันทึก ฐานข้อมูลเก็บเป็นรายข้าง
-        repairItems: expandBothSides(repairItems).map((item) => {
+        repairItems: expandBothSides(orderedItems).map((item) => {
           // ดูแค่รหัสอะไหล่ บริการไม่มีรหัส ส่วนยี่ห้อเว้นว่างได้ (ยางเปอร์เซ็นต์ไม่มียี่ห้อ)
           // ถ้าเช็กยี่ห้อด้วย อะไหล่ที่ไม่มียี่ห้อจะถูกส่งเป็นบริการแล้วบันทึกไม่ผ่าน
           const isPart = !!item.partNumber;
@@ -236,7 +287,7 @@ const RepairReview = () => {
     const from = location.state?.from;
     const backState = {
       repairData,
-      repairItems,
+      repairItems: orderedItems,
       scrollToItems,
       editRepairId,
       stockNotDeducted: location.state?.stockNotDeducted,
@@ -259,6 +310,164 @@ const RepairReview = () => {
       navigate("/repairs/new", { state: backState, replace: true });
     }
   };
+
+  const renderCard = (item, sideLabel, key, rightSlot) => (
+    <RepairItemCard
+      key={key}
+      item={item}
+      variant="summary"
+      sideLabel={sideLabel}
+      rightSlot={rightSlot}
+      onClick={() => !isReordering && setPreviewItem(item)}
+    />
+  );
+
+  const renderGroup = (
+    Icon,
+    title,
+    items,
+    sideLabel,
+    keyPrefix,
+    headerRight,
+  ) => (
+    <div key={keyPrefix} className="mb-[16px]">
+      <div className="mb-[8px] flex items-center justify-between gap-[8px]">
+        <p className="text-primary flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
+          <Icon className="mt-[2px]" />
+          {title}
+        </p>
+        {headerRight}
+      </div>
+      <div className="space-y-[12px]">
+        {items.map((item, index) =>
+          renderCard(item, sideLabel, `${keyPrefix}-${index}`),
+        )}
+      </div>
+    </div>
+  );
+
+  // อะไหล่จากแท็บช่วงล่างทั้งก้อน แบ่งหัวข้อตามฝั่งเหมือนเดิม
+  // ลูกศรของทั้งก้อนอยู่ที่หัวข้อแรกของก้อน เพราะการ์ดในก้อนย้ายแยกกันไม่ได้
+  const renderTabGroups = (headerRight) =>
+    [
+      [ArrowLeftRight, "รายการซ่อมข้างซ้าย-ขวา", bothSides, "L-R", "both"],
+      [ArrowLeft, "รายการซ่อมข้างซ้าย", leftOnly, "L", "left"],
+      [ArrowRight, "รายการซ่อมข้างขวา", rightOnly, "R", "right"],
+      [Ellipsis, "รายการซ่อมอื่นๆ", otherItems, undefined, "other"],
+    ]
+      .filter(([, , items]) => items.length > 0)
+      .map((group, index) =>
+        renderGroup(...group, index === 0 ? headerRight : null),
+      );
+
+  const handleMoveUnit = (index, direction) => {
+    const target = index + direction;
+    if (target < 0 || target >= units.length) return;
+    withViewTransition(() =>
+      setUnits((prev) => {
+        const next = [...prev];
+        [next[index], next[target]] = [next[target], next[index]];
+        return next;
+      }),
+    );
+  };
+
+  // ปุ่มลูกศรหน้าตาเดียวกับโหมดจัดเรียงในหน้ากรอกบิล
+  const renderMoveButtons = (index) => (
+    <div className="flex shrink-0 items-center gap-[8px]">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleMoveUnit(index, -1);
+        }}
+        disabled={index === 0}
+        aria-label="เลื่อนขึ้น"
+        className="text-subtle-dark flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        <ChevronUp className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleMoveUnit(index, 1);
+        }}
+        disabled={index === units.length - 1}
+        aria-label="เลื่อนลง"
+        className="text-subtle-dark flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        <ChevronDown className="h-4 w-4" />
+      </button>
+    </div>
+  );
+
+  // บิลเช็กช่วงล่าง: เรียงตามก้อน ลำดับที่เห็นคือลำดับในบิล
+  // รายการซ่อมเพิ่มเติมที่อยู่ติดกันขึ้นหัวข้อครั้งเดียวตอนเริ่มช่วง
+  const renderSuspensionUnits = (variant) =>
+    units.map((unit, index) => {
+      const startsExtras =
+        unit.type === "extra" &&
+        (index === 0 || units[index - 1].type !== "extra");
+      return (
+        <div key={unit.key}>
+          {startsExtras && (
+            <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
+              <Wrench className="mb-[2px] inline" />
+              รายการซ่อมเพิ่มเติม
+            </p>
+          )}
+          <div
+            style={{ viewTransitionName: `review-${variant}-${unit.key}` }}
+            className={
+              unit.type === "tab"
+                ? isReordering
+                  ? "mb-[16px] rounded-[10px] border border-gray-200 px-[8px] pt-[8px]"
+                  : ""
+                : "mb-[12px]"
+            }
+          >
+            {unit.type === "tab"
+              ? renderTabGroups(isReordering && renderMoveButtons(index))
+              : renderCard(
+                  unit.item,
+                  SIDE_BADGE[unit.item.side],
+                  unit.key,
+                  isReordering ? renderMoveButtons(index) : undefined,
+                )}
+          </div>
+        </div>
+      );
+    });
+
+  // บิลทั่วไปเรียงรายการเดียวตามลำดับในบิล ฝั่งดูจากป้ายที่มุมรูป
+  const renderGeneralRows = () =>
+    generalRows.length > 0 && (
+      <div className="mb-[16px] space-y-[12px]">
+        {generalRows.map(({ item, sideLabel }, index) =>
+          renderCard(item, sideLabel, `general-${index}`),
+        )}
+      </div>
+    );
+
+  const renderItemList = (variant) =>
+    isSuspensionBill ? renderSuspensionUnits(variant) : renderGeneralRows();
+
+  const reorderButton = isSuspensionBill && units.length > 1 && (
+    <button
+      type="button"
+      onClick={() => setIsReordering((prev) => !prev)}
+      aria-pressed={isReordering}
+      aria-label={isReordering ? "ออกจากโหมดจัดเรียง" : "จัดเรียงรายการซ่อม"}
+      className={`flex h-[32px] w-[32px] shrink-0 cursor-pointer items-center justify-center rounded-[8px] border duration-300 ${
+        isReordering
+          ? "bg-primary border-primary text-surface"
+          : "text-subtle-dark border-gray-200 bg-gray-100"
+      }`}
+    >
+      <ArrowUpDown className="h-4 w-4" />
+    </button>
+  );
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-[100svh] flex-col xl:min-h-[calc(100vh-73px)] xl:flex-row xl:items-start xl:gap-[16px] xl:bg-transparent xl:px-[16px] xl:pt-[24px] xl:pb-[24px] xl:shadow-none">
@@ -427,9 +636,12 @@ const RepairReview = () => {
           <div className="xl:hidden">
             <div className="mb-[16px]">
               <div className="mb-[16px] flex items-center justify-between px-[20px]">
-                <p className="text-[22px] font-semibold md:text-2xl">
-                  รายการซ่อม
-                </p>
+                <div className="flex items-center gap-[8px]">
+                  <p className="text-[22px] font-semibold md:text-2xl">
+                    รายการซ่อม
+                  </p>
+                  {reorderButton}
+                </div>
                 <button
                   onClick={() => handleGoBack(true)}
                   className="text-primary flex cursor-pointer items-center gap-[4px] text-xl font-semibold md:text-[22px]"
@@ -438,112 +650,7 @@ const RepairReview = () => {
                   แก้ไขรายการซ่อม
                 </button>
               </div>
-
-              {/* เปลี่ยนทั้งสองข้าง — ยุบเป็นบรรทัดเดียว */}
-              {bothSides.length > 0 && (
-                <div className="mb-[16px] px-[20px]">
-                  <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                    <ArrowLeftRight className="mt-[2px]" />
-                    รายการซ่อมข้างซ้าย-ขวา
-                  </p>
-                  <div className="space-y-[12px]">
-                    {bothSides.map((item, index) => (
-                      <RepairItemCard
-                        key={`both-m-${index}`}
-                        item={item}
-                        variant="summary"
-                        sideLabel="L-R"
-                        onClick={() => setPreviewItem(item)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* รายการฝั่งซ้าย */}
-              {leftOnly.length > 0 && (
-                <div className="mb-[16px] px-[20px]">
-                  <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                    <ArrowLeft className="mt-[2px]" />
-                    รายการซ่อมข้างซ้าย
-                  </p>
-                  <div className="space-y-[12px]">
-                    {leftOnly.map((item, index) => (
-                      <RepairItemCard
-                        key={`left-${index}`}
-                        item={item}
-                        variant="summary"
-                        sideLabel="L"
-                        onClick={() => setPreviewItem(item)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* รายการฝั่งขวา */}
-              {rightOnly.length > 0 && (
-                <div className="mb-[16px] px-[20px]">
-                  <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                    <ArrowRight className="mt-[2px]" />
-                    รายการซ่อมข้างขวา
-                  </p>
-                  <div className="space-y-[12px]">
-                    {rightOnly.map((item, index) => (
-                      <RepairItemCard
-                        key={`right-${index}`}
-                        item={item}
-                        variant="summary"
-                        sideLabel="R"
-                        onClick={() => setPreviewItem(item)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* รายการอื่นๆ */}
-              {otherItems.length > 0 && (
-                <div className="mb-[16px] px-[20px]">
-                  <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                    <Ellipsis className="mt-[2px]" />
-                    รายการซ่อมอื่นๆ
-                  </p>
-                  <div className="space-y-[12px]">
-                    {otherItems.map((item, index) => (
-                      <RepairItemCard
-                        key={`other-${index}`}
-                        item={item}
-                        variant="summary"
-                        onClick={() => setPreviewItem(item)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* รายการซ่อมเพิ่มเติม */}
-              {generalRows.length > 0 && (
-                <div className="mb-[16px] px-[20px]">
-                  {location.state?.from === "suspension" && (
-                    <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                      <Wrench className="mb-[2px] inline" />
-                      รายการซ่อมเพิ่มเติม
-                    </p>
-                  )}
-                  <div className="space-y-[12px]">
-                    {generalRows.map(({ item, sideLabel }, index) => (
-                      <RepairItemCard
-                        key={`general-${index}`}
-                        item={item}
-                        variant="summary"
-                        sideLabel={sideLabel}
-                        onClick={() => setPreviewItem(item)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="px-[20px]">{renderItemList("m")}</div>
             </div>
 
             {/* สรุปยอดรวม */}
@@ -593,6 +700,7 @@ const RepairReview = () => {
               <p className="text-[22px] font-semibold md:text-2xl">
                 รายการซ่อม
               </p>
+              {reorderButton}
             </div>
             <button
               onClick={() => handleGoBack(true)}
@@ -602,113 +710,7 @@ const RepairReview = () => {
               แก้ไขรายการซ่อม
             </button>
           </div>
-          <div className="px-[20px] pt-[16px]">
-            {/* เปลี่ยนทั้งสองข้าง — ยุบเป็นบรรทัดเดียว */}
-            {bothSides.length > 0 && (
-              <div className="mb-[16px] px-[20px]">
-                <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                  <ArrowLeftRight className="mt-[2px]" />
-                  รายการซ่อมข้างซ้าย-ขวา
-                </p>
-                <div className="space-y-[12px]">
-                  {bothSides.map((item, index) => (
-                    <RepairItemCard
-                      key={`both-d-${index}`}
-                      item={item}
-                      variant="summary"
-                      sideLabel="L-R"
-                      onClick={() => setPreviewItem(item)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* รายการฝั่งซ้าย */}
-            {leftOnly.length > 0 && (
-              <div className="mb-[16px]">
-                <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                  <ArrowLeft className="mt-[2px]" />
-                  รายการซ่อมข้างซ้าย
-                </p>
-                <div className="space-y-[12px]">
-                  {leftOnly.map((item, index) => (
-                    <RepairItemCard
-                      key={`left-${index}`}
-                      item={item}
-                      variant="summary"
-                      sideLabel="L"
-                      onClick={() => setPreviewItem(item)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* รายการฝั่งขวา */}
-            {rightOnly.length > 0 && (
-              <div className="mb-[16px]">
-                <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                  <ArrowRight className="mt-[2px]" />
-                  รายการซ่อมข้างขวา
-                </p>
-                <div className="space-y-[12px]">
-                  {rightOnly.map((item, index) => (
-                    <RepairItemCard
-                      key={`right-${index}`}
-                      item={item}
-                      variant="summary"
-                      sideLabel="R"
-                      onClick={() => setPreviewItem(item)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* รายการอื่นๆ */}
-            {otherItems.length > 0 && (
-              <div className="mb-[16px]">
-                <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                  <Ellipsis className="mt-[2px]" />
-                  รายการซ่อมอื่นๆ
-                </p>
-                <div className="space-y-[12px]">
-                  {otherItems.map((item, index) => (
-                    <RepairItemCard
-                      key={`other-${index}`}
-                      item={item}
-                      variant="summary"
-                      onClick={() => setPreviewItem(item)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* รายการซ่อมเพิ่มเติม */}
-            {generalRows.length > 0 && (
-              <div className="mb-[16px]">
-                {location.state?.from === "suspension" && (
-                  <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                    <Wrench className="mb-[2px] inline" />
-                    รายการซ่อมเพิ่มเติม
-                  </p>
-                )}
-                <div className="space-y-[12px]">
-                  {generalRows.map(({ item, sideLabel }, index) => (
-                    <RepairItemCard
-                      key={`general-${index}`}
-                      item={item}
-                      variant="summary"
-                      sideLabel={sideLabel}
-                      onClick={() => setPreviewItem(item)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <div className="px-[20px] pt-[16px]">{renderItemList("d")}</div>
 
           {/* Desktop: สรุปยอดรวม */}
           <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] my-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">

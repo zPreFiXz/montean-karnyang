@@ -10,10 +10,10 @@ import {
   Minus,
   ChevronDown,
   ContactRound,
-  ClipboardList,
   X,
   ChevronUp,
   ArrowUpDown,
+  ClipboardList,
   TicketPercent,
   Gift,
   Trash2,
@@ -1463,10 +1463,10 @@ const RepairCreate = () => {
               className="flex items-center justify-between px-[20px] pt-[16px]"
             >
               <div className="flex items-center gap-[8px]">
-                <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
-                  <ClipboardList className="text-primary h-6 w-6" />
+                <div className="bg-primary/10 flex h-[32px] w-[32px] items-center justify-center rounded-full">
+                  <ClipboardList className="text-primary h-5 w-5" />
                 </div>
-                <p className="text-lg font-semibold whitespace-nowrap sm:text-xl md:text-[22px]">
+                <p className="text-[22px] font-semibold md:text-2xl">
                   รายการซ่อม
                 </p>
                 {reorderButton}
@@ -1478,7 +1478,7 @@ const RepairCreate = () => {
                 restoredStockMap={restoredStockMap}
                 vehicle={{ brand: watch("brand"), model: watch("model") }}
               >
-                <p className="text-primary cursor-pointer text-lg font-semibold whitespace-nowrap sm:text-xl md:text-[22px]">
+                <p className="text-primary cursor-pointer text-lg font-semibold md:text-xl">
                   + เพิ่มรายการซ่อม
                 </p>
               </AddRepairItemDialog>
@@ -1728,10 +1728,12 @@ const RepairCreate = () => {
             className="flex items-center justify-between px-[20px] pt-[16px]"
           >
             <div className="flex items-center gap-[8px]">
-              <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
-                <ClipboardList className="text-primary h-6 w-6" />
+              <div className="bg-primary/10 flex h-[32px] w-[32px] items-center justify-center rounded-full">
+                <ClipboardList className="text-primary h-5 w-5" />
               </div>
-              <p className="text-xl font-semibold md:text-[22px]">รายการซ่อม</p>
+              <p className="text-[22px] font-semibold md:text-2xl">
+                รายการซ่อม
+              </p>
               {reorderButton}
               {freebieButton}
             </div>
@@ -1741,7 +1743,7 @@ const RepairCreate = () => {
               restoredStockMap={restoredStockMap}
               vehicle={{ brand: watch("brand"), model: watch("model") }}
             >
-              <p className="text-primary cursor-pointer text-xl font-semibold md:text-[22px]">
+              <p className="text-primary cursor-pointer text-lg font-semibold md:text-xl">
                 + เพิ่มรายการซ่อม
               </p>
             </AddRepairItemDialog>
