@@ -105,12 +105,22 @@ exports.lookupVehicleByPlate = async (req, res, next) => {
         vehicleModel: true,
         // จำนวนบิลทั้งหมดของรถคันนี้ ใช้บอกว่าเคยมากี่ครั้ง
         _count: { select: { repairs: { where: otherRepairs } } },
+        // ครั้งล่าสุดที่มา: วันที่ เลขกิโลเมตร งานที่ทำ และลูกค้า ไว้ให้ช่างรู้ว่าครั้งก่อนทำอะไรไป
         repairs: {
-          where: { customerId: { not: null }, ...otherRepairs },
+          where: otherRepairs,
           select: {
             createdAt: true,
+            mileage: true,
             customer: {
               select: { name: true, phoneNumber: true, address: true },
+            },
+            repairItems: {
+              select: {
+                itemName: true,
+                part: { select: { name: true } },
+                service: { select: { name: true } },
+              },
+              orderBy: { id: "asc" },
             },
           },
           orderBy: { createdAt: "desc" },

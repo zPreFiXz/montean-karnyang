@@ -214,6 +214,11 @@ const SuspensionInspection = () => {
   // แก้บิลเดิมอยู่แล้วอยากกลับโดยไม่บันทึก ถอยกลับไปที่หน้าบิลใบนั้น
   // ใช้ตำแหน่งในประวัติเดียวกับตอนบันทึก (backIdx) เพราะถ้าเคยย้อนไปมากับหน้าสรุป
   // จะมีหน้ากรอกบิลซ้อนอยู่ในประวัติ ถอยทีละหน้าจะวนกลับมาเจอหน้ากรอกบิลอีก
+  // เปิดบิลใหม่จากหน้าประวัติรถ = มีทางกลับไปหน้านั้น (vehicleId ติดมาตลอดทางรวมถึงหน้าสรุป)
+  const canReturnToVehicle =
+    !isEditing &&
+    !!(location.state?.vehicleId ?? window.history.state?.usr?.vehicleId);
+
   const handleCancelEdit = () => {
     const backIdx =
       location.state?.backIdx ?? window.history.state?.usr?.backIdx;
@@ -229,6 +234,12 @@ const SuspensionInspection = () => {
     } else {
       navigate(-1);
     }
+  };
+
+  // ถอยกลับไปหน้าประวัติรถ = ไม่เอาบิลนี้แล้ว ร่างที่เพิ่งเติมให้ไม่ควรค้างไปโผล่ตอนเปิดบิลใหม่
+  const handleBackToVehicle = () => {
+    clearDraft(DRAFT_SUSPENSION);
+    handleCancelEdit();
   };
 
   const initialSelectedRef = useRef({
@@ -338,13 +349,18 @@ const SuspensionInspection = () => {
   useEffect(() => {
     // ไม่มี state แปลว่าเข้าหน้านี้ตรงๆ — ถ้ามีร่างค้างไว้ให้กู้กลับมา
     // (ออกไปเพิ่มสต็อกกลางคัน กดย้อนกลับพลาด หรือเครื่องรีเฟรชหน้าเอง)
+    // ใช้ state เฉพาะตอนที่มีข้อมูลบิลติดมาจริง ย้อนกลับมาจากหน้าอื่นจะเหลือแค่ทางกลับที่ตัดเก็บไว้
+    // ถ้าถือเป็น state จะไม่ได้ของที่กรอกคืน แก้บิลเดิมไม่มีร่างของตัวเอง ห้ามไปหยิบร่างบิลใหม่มาใส่
+    const navState =
+      location.state?.repairData || location.state?.repairItems
+        ? location.state
+        : null;
     const restored =
-      location.state ||
-      (!draftRestoredRef.current && loadDraft(DRAFT_SUSPENSION));
+      navState ||
+      (!isEditing && !draftRestoredRef.current && loadDraft(DRAFT_SUSPENSION));
     draftRestoredRef.current = true;
     // บอกให้รู้ว่าของที่เห็นมาจากไหน ไม่งั้นเปิดหน้าบิลใหม่แล้วเจอข้อมูลกรอกไว้จะงงว่าซ้ำกับอะไร
-    if (restored && !location.state)
-      toast.info("กู้คืนข้อมูลที่กรอกค้างไว้แล้ว");
+    if (restored && !navState) toast.info("กู้คืนข้อมูลที่กรอกค้างไว้แล้ว");
     if (!restored) return;
 
     const {
@@ -487,6 +503,9 @@ const SuspensionInspection = () => {
             backIdx: restored.backIdx,
           }
         : {}),
+      ...(!editRepairId && restored.backIdx != null
+        ? { backIdx: restored.backIdx }
+        : {}),
       ...(location.state?.from ? { from: location.state.from } : {}),
       ...(location.state?.origin ? { origin: location.state.origin } : {}),
       ...(location.state?.statusSlug
@@ -601,19 +620,6 @@ const SuspensionInspection = () => {
     watch("plateLetters") && watch("plateNumbers")
       ? `${watch("plateLetters")} ${watch("plateNumbers")}`
       : "";
-
-  // รถคันเดิมกลับมา เติมแค่ยี่ห้อกับรุ่นรถ เพราะผูกกับตัวรถเสมอไม่ว่าใครขับมา
-  // ไม่เติมข้อมูลลูกค้า เพราะผูกกับบิลแต่ละใบ คนเอารถมาวันนี้อาจไม่ใช่คนเดิม
-  // ถ้าเติมเองแล้วคนกดไม่ทันดู ชื่อผิดจะไปโผล่บนใบเสร็จ (ช่องชื่อลูกค้าเลือกจากรายชื่อเก่าได้อยู่แล้ว)
-  const handleFillKnownVehicle = (vehicle) => {
-    const model = vehicle.vehicleModel;
-    if (model?.brand) setValue("brand", model.brand, { shouldValidate: true });
-    if (model?.model) setValue("model", model.model, { shouldValidate: true });
-    // เบอร์รถผูกกับตัวรถเหมือนยี่ห้อ เติมให้เฉพาะตอนช่องยังว่าง ไม่ทับเบอร์ที่เพิ่งพิมพ์ไว้
-    if (vehicle.fleetNo && !getValues("fleetNo")) {
-      setValue("fleetNo", vehicle.fleetNo, { shouldValidate: true });
-    }
-  };
 
   // เลือกลูกค้าที่เคยบันทึกไว้ — เติมทั้งสามช่องให้ตรงกับที่เก็บไว้ แก้ทับได้ตามปกติ
   const handleSelectCustomer = (customer) => {
@@ -1819,11 +1825,15 @@ const SuspensionInspection = () => {
         <div className="xl:shadow-primary flex flex-1 flex-col xl:h-fit xl:w-1/2 xl:flex-initial xl:rounded-2xl xl:bg-white">
           <div className="flex items-center justify-between gap-[8px] px-[20px] pt-[16px]">
             <div className="flex min-w-0 items-center gap-[8px]">
-              {isEditing ? (
+              {isEditing || canReturnToVehicle ? (
                 <button
                   type="button"
-                  onClick={handleCancelEdit}
-                  aria-label="กลับไปหน้ารายละเอียดงานซ่อม"
+                  onClick={isEditing ? handleCancelEdit : handleBackToVehicle}
+                  aria-label={
+                    isEditing
+                      ? "กลับไปหน้ารายละเอียดงานซ่อม"
+                      : "กลับไปหน้าประวัติรถ"
+                  }
                   className="bg-surface/20 xl:bg-primary/10 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
                 >
                   <ChevronLeft className="text-surface xl:hidden" />
@@ -2076,9 +2086,10 @@ const SuspensionInspection = () => {
               </div>
               <KnownVehicleHint
                 plate={plateText}
+                brand={watch("brand")}
+                model={watch("model")}
                 province={watch("province")}
                 excludeRepairId={location.state?.editRepairId}
-                onFill={handleFillKnownVehicle}
               />
             </div>
 

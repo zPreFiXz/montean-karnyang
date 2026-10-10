@@ -23,7 +23,7 @@ import {
   getRepairTitle,
   getRepairSubtitle,
 } from "@/utils/repairDisplay";
-import { formatDateShort, formatMonth } from "@/utils/formats";
+import { formatDateShort, formatMonth, monthKey } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 import {
   useScrollRestoration,
@@ -95,6 +95,30 @@ const OrganizationList = () => {
   const visibleOrganizations = organizations.filter(
     (item) => item.organizationType === TYPE_OF_TAB[tab],
   );
+
+  // ที่ยังต้องตามเก็บเงินแยกตามเดือนของบิลค้างที่เก่าสุด เดือนเก่าสุดขึ้นก่อนเพราะค้างนานสุด
+  // ที่จ่ายครบแล้วไว้ท้าย หัวข้อหน้าตาเดียวกับหน้าคลัง
+  const unpaidByMonth = new Map();
+  visibleOrganizations
+    .filter((item) => item.creditCount > 0)
+    .sort((a, b) => new Date(a.oldestUnpaidAt) - new Date(b.oldestUnpaidAt))
+    .forEach((item) => {
+      const key = monthKey(item.oldestUnpaidAt);
+      if (!unpaidByMonth.has(key)) {
+        unpaidByMonth.set(key, {
+          name: `ค้างชำระ ${formatMonth(item.oldestUnpaidAt)}`,
+          items: [],
+        });
+      }
+      unpaidByMonth.get(key).items.push(item);
+    });
+  const organizationGroups = [
+    ...unpaidByMonth.values(),
+    {
+      name: "ไม่มีบิลค้าง",
+      items: visibleOrganizations.filter((item) => !(item.creditCount > 0)),
+    },
+  ].filter((group) => group.items.length > 0);
 
   const generalRepairs = repairs
     .filter(
@@ -221,38 +245,45 @@ const OrganizationList = () => {
             </Link>
           ))
         ) : (
-          visibleOrganizations.map((item) => (
-            <Link
-              key={item.id}
-              to={`/organizations/${item.id}`}
-              // ส่งของที่หน้านี้มีอยู่แล้วไปด้วย หน้าปลายทางจะได้ขึ้นหัวได้ทันทีไม่ต้องรอโหลด
-              state={{ organization: item }}
-              className="mt-[16px] block w-full"
-            >
-              {/* ใช้การ์ดตัวเดียวกับรายการบิลทุกหน้า ต่างแค่ของที่ใส่เข้าไป
-                  ชื่อหน่วยงานแทนทะเบียน ประเภทกับจำนวนบิลแทนยี่ห้อรุ่น และยอดค้างแทนยอดบิล */}
-              <CarCard
-                bg="credit"
-                icon={
-                  item.organizationType === "SHOP" ? (
-                    <OutlineCardIcon icon={Store} color="#7c3aed" />
-                  ) : (
-                    <OutlineCardIcon icon={Building2} color="#7c3aed" />
-                  )
-                }
-                licensePlate={item.name}
-                // ไม่บอกประเภทซ้ำ เพราะกองที่เลือกอยู่กับไอคอนบอกไปแล้วสองชั้น
-                // เดือนของบิลค้างที่เก่าสุดมาก่อน แล้วค่อยบอกว่ากี่บิล
-                // ไม่มีบิลค้างก็ไม่มีเดือนให้บอก ขึ้นแค่จำนวนบิล ไม่มีขีดคั่นนำหน้าลอยๆ
-                brand={
-                  item.oldestUnpaidAt
-                    ? formatMonth(item.oldestUnpaidAt)
-                    : `${item.creditCount} บิล`
-                }
-                note={item.oldestUnpaidAt ? `${item.creditCount} บิล` : ""}
-                price={item.creditTotal}
-              />
-            </Link>
+          organizationGroups.map((group) => (
+            <div key={group.name}>
+              <div className="mt-[16px] flex items-center gap-[8px]">
+                <p className="text-subtle-dark text-lg font-semibold md:text-xl">
+                  {group.name}
+                </p>
+                <span className="text-subtle-light text-lg md:text-xl">
+                  ({group.items.length})
+                </span>
+                <div className="bg-subtle-light/40 h-px flex-1" />
+              </div>
+              {group.items.map((item) => (
+                <Link
+                  key={item.id}
+                  to={`/organizations/${item.id}`}
+                  // ส่งของที่หน้านี้มีอยู่แล้วไปด้วย หน้าปลายทางจะได้ขึ้นหัวได้ทันทีไม่ต้องรอโหลด
+                  state={{ organization: item }}
+                  className="mt-[16px] block w-full"
+                >
+                  {/* ใช้การ์ดตัวเดียวกับรายการบิลทุกหน้า ต่างแค่ของที่ใส่เข้าไป
+                      ชื่อหน่วยงานแทนทะเบียน ประเภทกับจำนวนบิลแทนยี่ห้อรุ่น และยอดค้างแทนยอดบิล */}
+                  <CarCard
+                    bg="credit"
+                    icon={
+                      item.organizationType === "SHOP" ? (
+                        <OutlineCardIcon icon={Store} color="#7c3aed" />
+                      ) : (
+                        <OutlineCardIcon icon={Building2} color="#7c3aed" />
+                      )
+                    }
+                    licensePlate={item.name}
+                    // ไม่บอกประเภทซ้ำ เพราะกองที่เลือกอยู่กับไอคอนบอกไปแล้วสองชั้น
+                    // เดือนของบิลค้างอยู่ที่หัวข้อกลุ่มแล้ว การ์ดเหลือแค่จำนวนบิล
+                    brand={`${item.creditCount} บิล`}
+                    price={item.creditTotal}
+                  />
+                </Link>
+              ))}
+            </div>
           ))
         )}
       </div>

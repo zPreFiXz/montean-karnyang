@@ -33,6 +33,36 @@ const VehicleDetail = () => {
     navigate("/vehicles");
   };
 
+  // เปิดบิลใหม่ของรถคันนี้ เติมยี่ห้อ รุ่น ทะเบียน และเบอร์รถให้ ไม่ต้องกรอกซ้ำ
+  // ไม่เติมข้อมูลลูกค้า เพราะคนเอารถมาครั้งนี้อาจไม่ใช่คนเดิม (เหมือนแถบรถคันเดิมในหน้ากรอกบิล)
+  // ทะเบียนแยกตัวอักษรกับตัวเลขแบบเดียวกับตอนเปิดแก้ไขบิล จังหวัดเป็นชื่อเพราะฟอร์มเก็บเป็นชื่อ
+  const startNewBill = (path) => {
+    const plate = vehicle?.licensePlate?.plateNumber || "";
+    const [plateLetters = "", plateNumbers = ""] = plate.split(/[\s-]+/);
+    navigate(path, {
+      state: {
+        repairData: {
+          brand: vehicle?.vehicleModel?.brand || "",
+          model: vehicle?.vehicleModel?.model || "",
+          plateLetters,
+          plateNumbers,
+          province: vehicle?.licensePlate?.province || "",
+          fleetNo: vehicle?.fleetNo || "",
+        },
+        repairItems: [],
+        hideMoreFields: true,
+        // บิลช่วงล่างใบใหม่ต้องได้ค่าแรงกับตั้งศูนย์เหมือนเปิดจากเมนู
+        addSuspensionDefaults: true,
+        // หน้ากรอกบิลขึ้นปุ่มย้อนกลับมาหน้านี้ (ตำแหน่งก่อนหน้านี้หนึ่งขั้น แบบเดียวกับตอนแก้บิล)
+        vehicleId: id,
+        backIdx:
+          typeof window.history.state?.idx === "number"
+            ? window.history.state.idx - 1
+            : null,
+      },
+    });
+  };
+
   const fetchVehicleDetail = async () => {
     setIsLoading(true);
     try {
@@ -93,6 +123,22 @@ const VehicleDetail = () => {
                   {getVehicleSubtitle(vehicle)}
                 </p>
               </div>
+            </div>
+            <div className="mb-[16px] flex gap-[8px] px-[20px]">
+              <button
+                type="button"
+                onClick={() => startNewBill("/inspections/suspension")}
+                className="font-athiti text-primary border-primary bg-surface flex h-11 flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold md:text-xl"
+              >
+                เช็กช่วงล่าง
+              </button>
+              <button
+                type="button"
+                onClick={() => startNewBill("/repairs/new")}
+                className="font-athiti text-primary border-primary bg-surface flex h-11 flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold md:text-xl"
+              >
+                งานซ่อมใหม่
+              </button>
             </div>
             <div className="mb-[16px] flex flex-1 flex-col px-[20px]">
               <div className="mb-[8px] flex items-center justify-between">
