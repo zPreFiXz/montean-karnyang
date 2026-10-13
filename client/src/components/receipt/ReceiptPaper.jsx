@@ -2,7 +2,7 @@ import { formatQuantity, formatPlate, formatPhone } from "@/utils/formats";
 import { bahtText } from "@/utils/bahtText";
 import { getDisplayBrand } from "@/utils/repairDisplay";
 import { getPartType } from "@/utils/suspension";
-import { getOilSize } from "@/utils/oil";
+import { getOilSize, OIL_USES, oilUseLineName } from "@/utils/oil";
 import { VEHICLE_COMPATIBLE_CATEGORIES } from "@/constants/categories";
 import {
   isDiscountItem,
@@ -37,12 +37,19 @@ const PAYMENT_BOXES = [
 // ใบที่ปิดชื่อเต็มแล้ว หมวดเหล่านี้ยังต้องมียี่ห้อ (ตรงกับ FULL_NAME_CATEGORIES ฝั่งเซิร์ฟเวอร์)
 const FULL_NAME_CATEGORIES = ["ยาง", "ยางเปอร์เซ็นต์", "แบตเตอรี่"];
 
+// น้ำมันที่เลือกงานตอนลงบิล ชื่อบรรทัดถูกประกอบใหม่ ("VALVOLINE น้ำมันเฟืองท้าย (80W90)")
+// ไม่มีชื่อในคลังอยู่ข้างใน แต่ระบบประกอบเอง ไม่ใช่ชื่อที่พิมพ์ทับ
+const isOilUseLine = (item) =>
+  !!item.part &&
+  OIL_USES.some((use) => item.itemName === oilUseLineName(item.part, use));
+
 export const shortWorkName = (item) => {
   // พิมพ์ชื่อทับไว้เอง = ตั้งใจให้ขึ้นแบบนั้น ไม่ต้องย่อทับ
   // ชื่อที่ระบบประกอบเองจะมีชื่อในคลังอยู่ข้างในเสมอ ถ้าไม่มีแปลว่าถูกพิมพ์ใหม่
   if (
     item.part?.name &&
-    !String(item.itemName || "").includes(item.part.name)
+    !String(item.itemName || "").includes(item.part.name) &&
+    !isOilUseLine(item)
   ) {
     return item.itemName;
   }
@@ -321,13 +328,14 @@ const ReceiptPaper = ({
   const items = pages[pageIndex] || [];
   const isLastPage = pageIndex === pageCount - 1;
   const showPaymentQr = isLastPage && hasPaymentQr(repair);
+  // ลูกค้าเซ็นซ้าย ร้านเซ็นขวา (ฝั่งผู้ออกเอกสาร) ทุกใบ
   // คนเซ็นตามหน้าที่ของใบ ใบส่งของกับใบเสนอราคายังไม่มีการรับเงิน (ต้องตรงกับ receiptHtml.js ฝั่งเซิร์ฟเวอร์)
   const signLabels =
     repair.status === "CREDIT"
       ? ["ผู้รับของ", "ผู้ส่งของ"]
       : repair.status === "ESTIMATE"
-        ? ["ผู้เสนอราคา", "ผู้อนุมัติ"]
-        : ["ผู้รับเงิน", "ผู้จ่ายเงิน"];
+        ? ["ผู้อนุมัติ", "ผู้เสนอราคา"]
+        : ["ผู้จ่ายเงิน", "ผู้รับเงิน"];
 
   // ส่วนลดไม่ใช่ของที่ขาย ยกออกจากตารางไปไว้เป็นแถวใต้ยอดรวมแทน อ่านง่ายกว่าปนอยู่กลางรายการ
   const discountTotal = discountItems.reduce(

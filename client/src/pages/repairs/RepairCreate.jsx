@@ -330,7 +330,7 @@ const RepairCreate = () => {
         );
       }
     }
-  }, [location.state, setValue]);
+  }, [location.state, setValue, isEditing]);
 
   useEffect(() => {
     setValue("type", isSale ? "SALE" : "GENERAL");

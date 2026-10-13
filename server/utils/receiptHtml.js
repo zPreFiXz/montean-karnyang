@@ -310,13 +310,14 @@ const receiptPagesHtml = (
   const summaryRows = discountItems.length ? discountItems.length + 1 : 1;
   // QR มีเฉพาะใบเสร็จ ใบเสนอราคายังไม่ถึงตอนจ่าย ใบส่งของลูกค้าจ่ายทีหลังตามใบวางบิล
   const showPaymentQr = !["ESTIMATE", "CREDIT"].includes(repair.status);
+  // ลูกค้าเซ็นซ้าย ร้านเซ็นขวา (ฝั่งผู้ออกเอกสาร) ทุกใบ
   // คนเซ็นตามหน้าที่ของใบ ใบส่งของกับใบเสนอราคายังไม่มีการรับเงิน (ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
   const signLabels =
     repair.status === "CREDIT"
       ? ["ผู้รับของ", "ผู้ส่งของ"]
       : repair.status === "ESTIMATE"
-        ? ["ผู้เสนอราคา", "ผู้อนุมัติ"]
-        : ["ผู้รับเงิน", "ผู้จ่ายเงิน"];
+        ? ["ผู้อนุมัติ", "ผู้เสนอราคา"]
+        : ["ผู้จ่ายเงิน", "ผู้รับเงิน"];
   // ใบส่งของไม่มี QR แต่มีแถววิธีจ่ายเงินกับบรรทัดต้นฉบับ/สำเนาใต้ชื่อใบ แผ่นสุดท้ายจึงรับได้จำกัดเหมือนกัน
   const lastPageLimit = showPaymentQr
     ? QR_PAGE_LINES
@@ -620,11 +621,29 @@ const VEHICLE_COMPATIBLE_CATEGORIES = [
 // ใบที่ปิดชื่อเต็มแล้ว หมวดเหล่านี้ยังต้องมียี่ห้อ (ตรงกับ FULL_NAME_CATEGORIES ฝั่งหน้าเว็บ)
 const FULL_NAME_CATEGORIES = ["ยาง", "ยางเปอร์เซ็นต์", "แบตเตอรี่"];
 
+// น้ำมันที่เลือกงานตอนลงบิล ชื่อบรรทัดถูกประกอบใหม่ ("VALVOLINE น้ำมันเฟืองท้าย (80W90)")
+// ไม่มีชื่อในคลังอยู่ข้างใน แต่ระบบประกอบเอง ไม่ใช่ชื่อที่พิมพ์ทับ
+// ต้องประกอบแบบเดียวกับ oilUseLineName ฝั่งหน้าเว็บ (client/src/utils/oil.js)
+const OIL_USES = ["น้ำมันเครื่อง", "น้ำมันเกียร์", "น้ำมันเฟืองท้าย"];
+const isOilUseLine = (item) => {
+  if (!item.part) return false;
+  const grade = String(item.part.name || "").replace(
+    /^น้ำมัน(เครื่อง|เกียร์|เฟืองท้าย)\s*/,
+    "",
+  );
+  return OIL_USES.some(
+    (use) =>
+      item.itemName ===
+      [item.part.brand, use, grade].filter(Boolean).join(" "),
+  );
+};
+
 const workName = (item) => {
   // พิมพ์ชื่อทับไว้เอง = ตั้งใจให้ขึ้นแบบนั้น ไม่ต้องย่อทับ (ตรงกับ shortWorkName ฝั่งหน้าเว็บ)
   if (
     item.part?.name &&
-    !String(item.itemName || "").includes(item.part.name)
+    !String(item.itemName || "").includes(item.part.name) &&
+    !isOilUseLine(item)
   ) {
     return item.itemName;
   }

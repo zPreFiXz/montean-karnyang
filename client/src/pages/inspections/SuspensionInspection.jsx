@@ -157,6 +157,9 @@ const SuspensionInspection = () => {
   });
   const [isPartsLoaded, setIsPartsLoaded] = useState(false);
   const [selectedLeftParts, setSelectedLeftParts] = useState(new Set());
+  // จำนวนของที่ติ๊กในแท็บ เก็บเฉพาะที่มากกว่าหนึ่ง กุญแจคือ "ฝั่ง:รหัสอะไหล่" (ดู tabQty)
+  const [tabQuantities, setTabQuantities] = useState({});
+  const initialTabQuantitiesRef = useRef({});
   const [selectedRightParts, setSelectedRightParts] = useState(new Set());
   const [selectedOtherParts, setSelectedOtherParts] = useState(new Set());
   const [activeTab, setActiveTab] = useState("left");
@@ -430,6 +433,16 @@ const SuspensionInspection = () => {
       }
       setPriceOverrides((prev) => ({ ...prev, ...restoredPrices }));
 
+      // บูชปีกนกข้างหนึ่งใส่ได้หลายตัว จำนวนติดมากับบรรทัดในบิล
+      const restoredQuantities = {};
+      for (const it of tabItems) {
+        if (!isPerSideServiceItem(it) && Number(it.quantity) > 1) {
+          restoredQuantities[`${it.side}:${it.id}`] = Number(it.quantity);
+        }
+      }
+      setTabQuantities(restoredQuantities);
+      initialTabQuantitiesRef.current = restoredQuantities;
+
       const leftSet = new Set(leftIds);
       const rightSet = new Set(rightIds);
       const otherSet = new Set(otherIds);
@@ -524,7 +537,7 @@ const SuspensionInspection = () => {
         window.location.pathname,
       );
     }
-  }, [location.state, setValue]);
+  }, [location.state, setValue, isEditing]);
 
   const fetchVehicleModels = async () => {
     try {
@@ -754,9 +767,9 @@ const SuspensionInspection = () => {
     const part = compatibleParts.find((p) => isSamePart(item, p));
     if (!part) return 0;
     return (
-      Number(selectedLeftParts.has(part.id)) +
-      Number(selectedRightParts.has(part.id)) +
-      Number(selectedOtherParts.has(part.id))
+      tabQty("left", part.id) +
+      tabQty("right", part.id) +
+      tabQty("other", part.id)
     );
   };
 
@@ -960,9 +973,14 @@ const SuspensionInspection = () => {
         : Infinity;
     const isSuspensionPart = part?.category?.name === "ช่วงล่าง";
     const initialCount = isSuspensionPart
-      ? Number(initialSelectedRef.current.left.has(part.id)) +
-        Number(initialSelectedRef.current.right.has(part.id)) +
-        Number(initialSelectedRef.current.other.has(part.id))
+      ? ["left", "right", "other"].reduce(
+          (sum, side) =>
+            sum +
+            (initialSelectedRef.current[side].has(part.id)
+              ? initialTabQuantitiesRef.current[`${side}:${part.id}`] || 1
+              : 0),
+          0,
+        )
       : 0;
     if (stockQty === Infinity) return Infinity;
     return Math.max(stockQty, initialCount);
@@ -985,9 +1003,9 @@ const SuspensionInspection = () => {
     );
 
   const getCurrentSelectedCountForPart = (part) =>
-    Number(selectedLeftParts.has(part.id)) +
-    Number(selectedRightParts.has(part.id)) +
-    Number(selectedOtherParts.has(part.id)) +
+    tabQty("left", part.id) +
+    tabQty("right", part.id) +
+    tabQty("other", part.id) +
     getExtraItemsCountForPart(part);
 
   // ส่งของที่ติ๊กจากแท็บให้ไดอะล็อกรู้ด้วย จะได้หักสต็อกจากก้อนเดียวกัน
@@ -1034,13 +1052,14 @@ const SuspensionInspection = () => {
   const getSelectedTabItems = () =>
     compatibleParts.flatMap((part) => {
       const count =
-        Number(selectedLeftParts.has(part.id)) +
-        Number(selectedRightParts.has(part.id)) +
-        Number(selectedOtherParts.has(part.id));
+        tabQty("left", part.id) +
+        tabQty("right", part.id) +
+        tabQty("other", part.id);
       return count > 0 ? [{ ...part, quantity: count }] : [];
     });
 
   const handlePartSelection = (part, isSelected, side) => {
+    if (!isSelected) setTabQty(side, part.id, 1);
     const _stockQty =
       typeof part?.stockQuantity === "number" ? part.stockQuantity : Infinity;
     const isLeftRight = isPerSide(part?.attributes);
@@ -1083,6 +1102,31 @@ const SuspensionInspection = () => {
       });
     }
   };
+
+  // บูชปีกนก (บน ล่าง เล็ก ใหญ่) กับสลักปีกนกล่าง ข้างหนึ่งใส่หลายตัว ที่เหลือข้างละชิ้นเดียว
+  const allowsTabQuantity = (part) => {
+    const type = getPartType(part?.name);
+    return type.startsWith("บูชปีกนก") || type === "สลักปีกนกล่าง";
+  };
+
+  // ชิ้นที่ติ๊กในแท็บนับเป็นหนึ่ง ยกเว้นบูชปีกนกที่ข้างหนึ่งใส่ได้หลายตัว
+  const tabQty = (side, partId) => {
+    const selected =
+      side === "left"
+        ? selectedLeftParts
+        : side === "right"
+          ? selectedRightParts
+          : selectedOtherParts;
+    return selected.has(partId) ? tabQuantities[`${side}:${partId}`] || 1 : 0;
+  };
+
+  const setTabQty = (side, partId, quantity) =>
+    setTabQuantities((prev) => {
+      const next = { ...prev };
+      if (quantity > 1) next[`${side}:${partId}`] = quantity;
+      else delete next[`${side}:${partId}`];
+      return next;
+    });
 
   const isPartSelected = (partId, side) => {
     if (side === "left") return selectedLeftParts.has(partId);
@@ -1127,7 +1171,7 @@ const SuspensionInspection = () => {
       .map((part) => ({
         ...part,
         sellingPrice: getPriceForPart(part),
-        quantity: 1,
+        quantity: tabQty("left", part.id),
         side: "left",
       })),
     ...Array.from(selectedRightParts)
@@ -1136,7 +1180,7 @@ const SuspensionInspection = () => {
       .map((part) => ({
         ...part,
         sellingPrice: getPriceForPart(part),
-        quantity: 1,
+        quantity: tabQty("right", part.id),
         side: "right",
       })),
     ...Array.from(selectedOtherParts)
@@ -1145,7 +1189,7 @@ const SuspensionInspection = () => {
       .map((part) => ({
         ...part,
         sellingPrice: getPriceForPart(part),
-        quantity: 1,
+        quantity: tabQty("other", part.id),
         side: "other",
       })),
     ...["left", "right"]
@@ -1206,6 +1250,8 @@ const SuspensionInspection = () => {
       other: new Set(),
     };
     setPriceOverrides({});
+    setTabQuantities({});
+    initialTabQuantitiesRef.current = {};
     setTabBlockIndex(0);
     setRestoredStockMap({});
     setActiveTab("left");
@@ -1507,17 +1553,59 @@ const SuspensionInspection = () => {
                       </div>
                     </div>
 
-                    {/* ยังไม่เลือก = วงกลมเปล่ามีเส้นขอบ / เลือกแล้ว = ทึบมีเครื่องหมายถูก
-                    เป็นส่วนหนึ่งของการ์ด ไม่ใช่ปุ่มแยก เพราะกดที่ไหนในการ์ดก็เลือกได้อยู่แล้ว */}
-                    <div
-                      className={`flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-200 ${
-                        selectedThis
-                          ? "bg-gradient-primary text-surface border-transparent"
-                          : "border-subtle-mid text-transparent"
-                      }`}
-                    >
-                      <Check className="h-[16px] w-[16px]" />
-                    </div>
+                    {/* บูชปีกนกข้างหนึ่งใส่ได้หลายตัว เลือกแล้วขึ้นปุ่มจำนวนแทนวงกลม หน้าตาเดียวกับรายการซ่อมเพิ่มเติม
+                        ลดจนเหลือศูนย์ = เอาออก เหมือนกดการ์ดซ้ำ */}
+                    {selectedThis && allowsTabQuantity(part) ? (
+                      <div className="flex shrink-0 items-center gap-[4px]">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const quantity = tabQty(side, part.id);
+                            if (quantity <= 1) {
+                              handlePartSelection(part, false, side);
+                              return;
+                            }
+                            setTabQty(side, part.id, quantity - 1);
+                          }}
+                          aria-label={
+                            tabQty(side, part.id) <= 1
+                              ? "เอารายการออก"
+                              : "ลดจำนวน"
+                          }
+                          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <span className="text-primary min-w-[28px] text-center text-lg font-semibold md:text-xl">
+                          {tabQty(side, part.id)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTabQty(side, part.id, tabQty(side, part.id) + 1);
+                          }}
+                          disabled={currentSelectedAll >= allowedUnits}
+                          aria-label="เพิ่มจำนวน"
+                          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[8px] border border-gray-200 bg-gray-100 disabled:bg-gray-50 disabled:text-gray-300"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      /* ยังไม่เลือก = วงกลมเปล่ามีเส้นขอบ / เลือกแล้ว = ทึบมีเครื่องหมายถูก
+                    เป็นส่วนหนึ่งของการ์ด ไม่ใช่ปุ่มแยก เพราะกดที่ไหนในการ์ดก็เลือกได้อยู่แล้ว */
+                      <div
+                        className={`flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-200 ${
+                          selectedThis
+                            ? "bg-gradient-primary text-surface border-transparent"
+                            : "border-subtle-mid text-transparent"
+                        }`}
+                      >
+                        <Check className="h-[16px] w-[16px]" />
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -2410,18 +2498,16 @@ const SuspensionInspection = () => {
                               getPartsForSide("left").reduce((total, part) => {
                                 return (
                                   total +
-                                  (selectedLeftParts.has(part.id)
-                                    ? getPriceForPart(part)
-                                    : 0)
+                                  getPriceForPart(part) *
+                                    tabQty("left", part.id)
                                 );
                               }, 0) +
                                 getPartsForSide("right").reduce(
                                   (total, part) => {
                                     return (
                                       total +
-                                      (selectedRightParts.has(part.id)
-                                        ? getPriceForPart(part)
-                                        : 0)
+                                      getPriceForPart(part) *
+                                        tabQty("right", part.id)
                                     );
                                   },
                                   0,
@@ -2430,9 +2516,8 @@ const SuspensionInspection = () => {
                                   (total, part) => {
                                     return (
                                       total +
-                                      (selectedOtherParts.has(part.id)
-                                        ? getPriceForPart(part)
-                                        : 0)
+                                      getPriceForPart(part) *
+                                        tabQty("other", part.id)
                                     );
                                   },
                                   0,
@@ -2492,25 +2577,21 @@ const SuspensionInspection = () => {
                             getPartsForSide("left").reduce((total, part) => {
                               return (
                                 total +
-                                (selectedLeftParts.has(part.id)
-                                  ? getPriceForPart(part)
-                                  : 0)
+                                getPriceForPart(part) * tabQty("left", part.id)
                               );
                             }, 0) +
                               getPartsForSide("right").reduce((total, part) => {
                                 return (
                                   total +
-                                  (selectedRightParts.has(part.id)
-                                    ? getPriceForPart(part)
-                                    : 0)
+                                  getPriceForPart(part) *
+                                    tabQty("right", part.id)
                                 );
                               }, 0) +
                               getPartsForSide("other").reduce((total, part) => {
                                 return (
                                   total +
-                                  (selectedOtherParts.has(part.id)
-                                    ? getPriceForPart(part)
-                                    : 0)
+                                  getPriceForPart(part) *
+                                    tabQty("other", part.id)
                                 );
                               }, 0),
                           )}
@@ -2791,25 +2872,21 @@ const SuspensionInspection = () => {
                             getPartsForSide("left").reduce((total, part) => {
                               return (
                                 total +
-                                (selectedLeftParts.has(part.id)
-                                  ? getPriceForPart(part)
-                                  : 0)
+                                getPriceForPart(part) * tabQty("left", part.id)
                               );
                             }, 0) +
                               getPartsForSide("right").reduce((total, part) => {
                                 return (
                                   total +
-                                  (selectedRightParts.has(part.id)
-                                    ? getPriceForPart(part)
-                                    : 0)
+                                  getPriceForPart(part) *
+                                    tabQty("right", part.id)
                                 );
                               }, 0) +
                               getPartsForSide("other").reduce((total, part) => {
                                 return (
                                   total +
-                                  (selectedOtherParts.has(part.id)
-                                    ? getPriceForPart(part)
-                                    : 0)
+                                  getPriceForPart(part) *
+                                    tabQty("other", part.id)
                                 );
                               }, 0) +
                               sumPerSideService() +
@@ -2867,25 +2944,19 @@ const SuspensionInspection = () => {
                           getPartsForSide("left").reduce((total, part) => {
                             return (
                               total +
-                              (selectedLeftParts.has(part.id)
-                                ? getPriceForPart(part)
-                                : 0)
+                              getPriceForPart(part) * tabQty("left", part.id)
                             );
                           }, 0) +
                             getPartsForSide("right").reduce((total, part) => {
                               return (
                                 total +
-                                (selectedRightParts.has(part.id)
-                                  ? getPriceForPart(part)
-                                  : 0)
+                                getPriceForPart(part) * tabQty("right", part.id)
                               );
                             }, 0) +
                             getPartsForSide("other").reduce((total, part) => {
                               return (
                                 total +
-                                (selectedOtherParts.has(part.id)
-                                  ? getPriceForPart(part)
-                                  : 0)
+                                getPriceForPart(part) * tabQty("other", part.id)
                               );
                             }, 0),
                         )}
