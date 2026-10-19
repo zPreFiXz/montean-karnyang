@@ -48,11 +48,15 @@ import PartPreviewDialog from "@/components/dialogs/PartPreviewDialog";
 import {
   isPartLikeItem,
   isSingleQuantityItem,
+  isNoCategoryItem,
   hasTypedUnit,
   lineUnit,
 } from "@/constants/services";
 import FieldErrorList from "@/components/forms/FieldErrorList";
 import { toast } from "sonner";
+import { getInventory } from "@/api/inventory";
+import { useReopenStockItem } from "@/utils/reopenStockItem";
+import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
 import RepairItemCard from "@/components/cards/RepairItemCard";
 import { toastError } from "@/utils/handleError";
 import {
@@ -616,6 +620,31 @@ const RepairDetail = () => {
   };
 
   // แปลงรายการในบิลให้อยู่ในรูปที่หน้าต่างรายละเอียดใช้ได้
+  // บรรทัดที่ผูกกับของในคลังเปิดรายละเอียดของชิ้นนั้นได้ (หน้าต่างเดียวกับหน้าอะไหล่และบริการ)
+  // อะไหล่อื่นๆ บริการที่พิมพ์ชื่อเอง และส่วนลดเป็นบรรทัดเปล่า ไม่มีของในคลังให้ดู
+  // อะไหล่ที่ถูกลบออกจากคลังไปแล้วไม่มี part ติดมา จึงไม่มีปุ่มเอง
+  const stockTargetOf = (item) => {
+    if (item.part?.id) return { type: "part", id: item.part.id };
+    if (item.service?.id && !isNoCategoryItem(item) && !hasTypedUnit(item)) {
+      return { type: "service", id: item.service.id };
+    }
+    return null;
+  };
+
+  // ดึงข้อมูลปัจจุบันจากคลัง ไม่ใช้ของที่ติดมากับบิล เพราะสต็อกกับราคาเปลี่ยนไปแล้วได้
+  const [stockItem, setStockItem] = useState(null);
+  useReopenStockItem(setStockItem);
+  const handleOpenStock = async (target) => {
+    try {
+      const res = await getInventory(target.id, target.type);
+      if (!res.data) return;
+      setPreviewItem(null);
+      setStockItem(res.data);
+    } catch (error) {
+      toastError(error);
+    }
+  };
+
   // ชื่อใช้ของที่บันทึกไว้ในบิล เพราะรวมยี่ห้อกับขนาดยางไว้แล้ว และบริการอาจถูกพิมพ์ชื่อเอง
   // ราคาใช้ราคาที่ขายจริงในบิล ไม่ใช่ราคาปัจจุบันในคลัง
   const toPreviewItem = (item) => ({
@@ -1376,6 +1405,17 @@ const RepairDetail = () => {
         price={previewItem ? Number(previewItem.unitPrice) : undefined}
         open={!!previewItem}
         onOpenChange={(open) => !open && setPreviewItem(null)}
+        onOpenStock={
+          previewItem && stockTargetOf(previewItem)
+            ? () => handleOpenStock(stockTargetOf(previewItem))
+            : undefined
+        }
+      />
+
+      <RepairItemDetailDialog
+        item={stockItem}
+        open={!!stockItem}
+        onOpenChange={(open) => !open && setStockItem(null)}
       />
 
       <ReceiptPreviewDialog

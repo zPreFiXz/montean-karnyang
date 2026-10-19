@@ -37,6 +37,16 @@ import {
   getRepairSubtitle,
 } from "@/utils/repairDisplay";
 import { usePrefetchPages } from "@/routes/pageImports";
+import { useReopenStockItem } from "@/utils/reopenStockItem";
+import {
+  useScrollRestoration,
+  useScrollTracking,
+} from "@/utils/scrollPosition";
+
+// จำของที่โหลดไว้ กดย้อนกลับมาหน้าเต็มตั้งแต่เฟรมแรก จะได้เลื่อนกลับไปที่เดิมได้ทันที
+// แล้วค่อยดึงใหม่ทับเงียบๆ เหมือนหน้าอื่น
+let cachedInventory = null;
+let cachedCategoryOrder = [];
 
 const Dashboard = () => {
   // เตรียมโค้ดของหน้าที่มักไปต่อจากหน้านี้ กดแล้วจะได้ไม่ต้องรอโหลด
@@ -44,30 +54,44 @@ const Dashboard = () => {
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [inventory, setInventory] = useState([]);
-  const [isInventoryLoading, setIsInventoryLoading] = useState(true);
+  const [inventory, setInventory] = useState(cachedInventory || []);
+  const [isInventoryLoading, setIsInventoryLoading] =
+    useState(!cachedInventory);
   const [selectedItem, setSelectedItem] = useState(null);
   const [isItemDetailOpen, setIsItemDetailOpen] = useState(false);
+  useReopenStockItem((item) => {
+    setSelectedItem(item);
+    setIsItemDetailOpen(true);
+  });
   const navigate = useNavigate();
   const { logout, user } = useAuthStore();
   const {
+    repairs,
     fetchRepairs,
     getRepairCountByStatus,
     getTodaySales,
     getRepairsByStatus,
   } = useRepairStore();
+  // รายการซ่อมอยู่ในสโตร์ข้ามหน้าอยู่แล้ว มีของเดิมก็ถือว่าพร้อม
+  const [isRepairsLoading, setIsRepairsLoading] = useState(
+    repairs.length === 0,
+  );
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-    fetchRepairs();
+    fetchRepairs().finally(() => setIsRepairsLoading(false));
     fetchInventory();
   }, [fetchRepairs]);
 
+  // กุญแจ "/" ตรงกับที่ไดอะล็อกรายละเอียดอะไหล่จำไว้ตอนพาออกไปหน้าอื่น
+  useScrollTracking("/");
+  useScrollRestoration("/", !isInventoryLoading && !isRepairsLoading);
+
   const fetchInventory = async () => {
-    setIsInventoryLoading(true);
+    if (!cachedInventory) setIsInventoryLoading(true);
     try {
       const res = await listInventory(null, null);
-      setInventory(res.data || []);
+      cachedInventory = res.data || [];
+      setInventory(cachedInventory);
     } catch (error) {
       toastError(error);
     } finally {
@@ -104,16 +128,15 @@ const Dashboard = () => {
 
   // แยกตามหมวด ร้านสั่งของเป็นเจ้าๆ (ยางจากร้านยาง แบตจากร้านแบต) จะได้เห็นว่าต้องสั่งอะไรจากใครบ้าง
   // เรียงหมวดตามแถบหมวดหมู่ในหน้าสต็อก ในหมวดเดียวกันของหมดขึ้นก่อนของใกล้หมดเหมือนเดิม
-  const [categoryOrder, setCategoryOrder] = useState([]);
+  const [categoryOrder, setCategoryOrder] = useState(cachedCategoryOrder);
   useEffect(() => {
     listCategories()
-      .then((res) =>
-        setCategoryOrder(
-          [...(res.data || [])]
-            .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
-            .map((c) => c.name),
-        ),
-      )
+      .then((res) => {
+        cachedCategoryOrder = [...(res.data || [])]
+          .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+          .map((c) => c.name);
+        setCategoryOrder(cachedCategoryOrder);
+      })
       .catch(() => {
         // ไม่รู้ลำดับหมวดก็ยังแยกกลุ่มได้ แค่เรียงตามลำดับที่เจอ
       });

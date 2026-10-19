@@ -471,6 +471,22 @@ const InventoryEdit = () => {
         invalidateUnitOptions();
       }
 
+      // เปิดมาจากหน้าอื่นนอกหน้าคลัง (หน้าหลัก หน้าบิล) ถอยกลับไปรายการเดิมในประวัติ
+      // หน้านั้นเปิดไดอะล็อกต่อเองด้วยข้อมูลล่าสุด (ดู useReopenStockItem) และไม่มีหน้าบิลซ้อนในประวัติ
+      const from = searchParams.get("from");
+      if (
+        from &&
+        !from.startsWith("/inventory") &&
+        window.history.state?.idx > 0
+      ) {
+        navigate(-1);
+        toast.success(`แก้ไข${itemWord}เรียบร้อยแล้ว`);
+        reset();
+        setSelectedImage(null);
+        setIsImageMarkedForDeletion(false);
+        return;
+      }
+
       // ดึงข้อมูลหลังแก้มาตั้งแต่ตอนนี้ ระหว่างที่ปุ่มยังหมุนอยู่ แล้วส่งติดไปกับหน้าถัดไป
       // เพื่อให้ไดอะล็อกเปิดได้ตั้งแต่เฟรมแรก ไม่ต้องรอยิง API อีกรอบหลังเปลี่ยนหน้า
       let openItem = null;

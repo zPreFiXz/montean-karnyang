@@ -15,7 +15,14 @@ import {
 // ดูรูปกับข้อมูลสั้นๆ ของอะไหล่ก่อนตัดสินใจเลือก
 // ตั้งใจไม่ใช้ RepairItemDetailDialog เพราะตัวนั้นมีปุ่มเพิ่มสต็อก/แก้ไข/ลบ
 // ซึ่งไม่ควรอยู่ตรงหน้าระหว่างกำลังเปิดบิลให้ลูกค้า
-const PartPreviewDialog = ({ part, price, open, onOpenChange }) => {
+// onOpenStock = เปิดรายละเอียดของชิ้นนี้ในคลัง (หน้ารายละเอียดบิลส่งมา) ไม่มีก็ไม่มีปุ่ม
+const PartPreviewDialog = ({
+  part,
+  price,
+  open,
+  onOpenChange,
+  onOpenStock,
+}) => {
   if (!part) return null;
 
   // บรรทัด "อะไหล่อื่นๆ" อยู่ในหมวดบริการแต่ความหมายคืออะไหล่ จึงยังเรียกว่าอะไหล่
@@ -132,6 +139,18 @@ const PartPreviewDialog = ({ part, price, open, onOpenChange }) => {
             </div>
           </div>
         </div>
+
+        {onOpenStock && (
+          <div className="flex-shrink-0 px-[16px] pb-[16px]">
+            <button
+              type="button"
+              onClick={onOpenStock}
+              className="font-athiti text-primary border-primary bg-surface flex h-11 w-full cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold md:text-xl"
+            >
+              ดูในสต็อก
+            </button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

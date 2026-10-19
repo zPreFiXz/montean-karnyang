@@ -1327,10 +1327,22 @@ const SuspensionInspection = () => {
     // บิลย้ายไปอยู่ในมือหน้างานซ่อมแล้ว ร่างของหน้านี้จึงหมดหน้าที่
     clearDraft(DRAFT_SUSPENSION);
 
+    // ค่าแรงที่ยังไม่ได้ใส่ราคากับตั้งศูนย์ ระบบเติมให้เพราะเป็นบิลช่วงล่าง ไม่ได้เช็กช่วงล่างแล้วก็ไม่ต้องยกไป
+    // ตั้งศูนย์ที่แถมกับยางยังต้องอยู่ ค่าแรงที่ใส่ราคาแล้วถือว่าช่างตั้งใจคิดเงิน
+    const [laborName, alignmentName] = SUSPENSION_DEFAULT_SERVICE_NAMES;
+    const carriedItems = repairItems.filter(
+      (item) =>
+        item.partNumber ||
+        !(
+          (item.name === laborName && Number(item.sellingPrice) === 0) ||
+          (item.name === alignmentName && !item.isFreebie)
+        ),
+    );
+
     navigate("/repairs/new", {
       state: {
         repairData: getValues(),
-        repairItems,
+        repairItems: carriedItems,
         // เลื่อนลงไปที่รายการซ่อมเลย เหมือนตอนกดเช็กช่วงล่างต่อจากหน้างานซ่อม
         // ข้อมูลรถกับลูกค้ายกมาครบแล้ว สิ่งที่อยากเห็นคือรายการที่ย้ายตามมา
         scrollToItems: true,

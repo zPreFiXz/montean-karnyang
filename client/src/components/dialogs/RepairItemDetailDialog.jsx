@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { updatePartStock, deletePart } from "@/api/part";
 import { deleteService } from "@/api/service";
 import { useNavigate } from "react-router";
+import { markStockItemOpen } from "@/utils/reopenStockItem";
 import { updateStockSchema } from "@/utils/schemas";
 import useAuthStore from "@/stores/useAuthStore";
 import { formatProductName } from "@/utils/tireSize";
@@ -289,9 +290,11 @@ const RepairItemDetailDialog = ({
   // แทนที่รายการเดิมในประวัติ กดย้อนกลับมาไดอะล็อกจึงเปิดค้างไว้เหมือนตอนจากไป
   const rememberOpenItem = () => {
     // เฉพาะหน้าคลังที่รู้จักพารามิเตอร์นี้ ที่อื่น (เช่นหน้าหลัก) ไม่ต้องมีของแปลกปลอมใน URL
+    // จึงฝากไว้ใน state ของประวัติแทน (ดู useReopenStockItem)
     if (window.location.pathname !== "/inventory") {
       const current = `${window.location.pathname}${window.location.search}`;
       saveScrollPosition(current);
+      markStockItemOpen(currentItem);
       return current;
     }
 
