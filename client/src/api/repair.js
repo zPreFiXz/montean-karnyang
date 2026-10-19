@@ -20,6 +20,10 @@ export const updateRepairStatus = async (id, data) => {
   return await apiClient.patch(`/repairs/${id}/status`, data);
 };
 
+export const cancelRepair = async (id, data = {}) => {
+  return await apiClient.patch(`/repairs/${id}/cancel`, data);
+};
+
 export const deleteRepair = async (id) => {
   return await apiClient.delete(`/repairs/${id}`);
 };

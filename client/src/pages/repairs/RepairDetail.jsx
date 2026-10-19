@@ -2,7 +2,12 @@ import { isMultiUseOil } from "@/utils/oil";
 import PageSpinner from "@/components/ui/PageSpinner";
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
-import { getRepair, updateRepairStatus, deleteRepair } from "@/api/repair";
+import {
+  getRepair,
+  updateRepairStatus,
+  deleteRepair,
+  cancelRepair,
+} from "@/api/repair";
 import { withMinDuration } from "@/utils/withMinDuration";
 import {
   formatDate,
@@ -31,6 +36,7 @@ import {
   Wrench,
   ShoppingBag,
   Trash2,
+  Ban,
   ChevronRight,
 } from "lucide-react";
 import BrandIcons from "@/components/icons/BrandIcons";
@@ -41,7 +47,7 @@ import { organizationLabel, creditPathFor } from "@/constants/organizations";
 import { Building2, Store, SquarePen, IdCard } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import ReceiptPreviewDialog from "@/components/dialogs/ReceiptPreviewDialog";
-import { receiptDocNo } from "@/components/receipt/ReceiptPaper";
+import { asIssued, receiptDocNo } from "@/components/receipt/ReceiptPaper";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import ComboBox from "@/components/ui/ComboBox";
 import PartPreviewDialog from "@/components/dialogs/PartPreviewDialog";
@@ -177,6 +183,16 @@ const RepairDetail = () => {
           softBg: "from-status-credit/10 to-status-credit/5",
           iconColor: "#7c3aed",
           icon: Wallet,
+        };
+      case "CANCELLED":
+        return {
+          text: "ยกเลิกแล้ว",
+          color: "text-destructive",
+          bg: "bg-destructive",
+          softBorder: "border-destructive/30",
+          softBg: "from-destructive/10 to-destructive/5",
+          iconColor: "#ef4444",
+          icon: Ban,
         };
       case "PAID":
         return {
@@ -398,7 +414,8 @@ const RepairDetail = () => {
     Math.abs(new Date(repair.paidAt) - new Date(repair.createdAt)) < 60 * 1000;
 
   const statusInfo = getStatusInfo(repair?.status) ?? DEFAULT_STATUS_INFO;
-  const docNo = receiptDocNo(repair);
+  // บิลที่ยกเลิกยังถือเลขของใบเดิมก่อนยกเลิก
+  const docNo = receiptDocNo(asIssued(repair));
   // คำนำหน้า DO กับ QT บอกชนิดใบอยู่แล้ว เหมือนหัวข้อที่ขึ้นเลข RE ลอยๆ
   const earlierDocNos = [repair?.deliveryNo, repair?.quotationNo].filter(
     (no) => no && no !== docNo,
@@ -612,6 +629,22 @@ const RepairDetail = () => {
       ? ""
       : getRepairSubtitle(repair);
 
+  // ลบได้เฉพาะบิลที่ทุกเลขเป็นเลขล่าสุด (เลขคืนให้บิลถัดไป) บิลอื่นยกเลิกแทน เลขจะได้ไม่ขาดช่วง
+  const isCancelled = repair?.status === "CANCELLED";
+  const canDelete = !repair?.docNosSkippedOnDelete?.length;
+  const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
+
+  const handleCancelRepair = async () => {
+    try {
+      await withMinDuration(() => cancelRepair(repair.id));
+      toast.success(`ยกเลิก${deleteTargetName}เรียบร้อยแล้ว`);
+      setIsCancelConfirmOpen(false);
+      fetchRepairDetail();
+    } catch (error) {
+      toastError(error);
+    }
+  };
+
   const handleDeleteRepair = async () => {
     await withMinDuration(() => deleteRepair(repair.id));
     toast.success(`ลบ${deleteTargetName}เรียบร้อยแล้ว`);
@@ -780,14 +813,27 @@ const RepairDetail = () => {
                 )}
               </button>
             )}
-            {/* วางแยกจากปุ่มหลักด้านล่าง เพื่อไม่ให้นิ้วพลาดไปโดนตอนกดเปลี่ยนสถานะ */}
-            <button
-              onClick={() => setIsDeleteConfirmOpen(true)}
-              aria-label={`ลบ${deleteTargetName}`}
-              className="bg-destructive flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
-            >
-              <Trash2 className="text-surface h-5 w-5" />
-            </button>
+            {/* วางแยกจากปุ่มหลักด้านล่าง เพื่อไม่ให้นิ้วพลาดไปโดนตอนกดเปลี่ยนสถานะ
+                บิลล่าสุดลบได้ บิลอื่นยกเลิกแทน บิลที่ยกเลิกแล้วและไม่ใช่บิลล่าสุดไม่มีปุ่ม */}
+            {canDelete ? (
+              <button
+                onClick={() => setIsDeleteConfirmOpen(true)}
+                aria-label={`ลบ${deleteTargetName}`}
+                className="bg-destructive flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+              >
+                <Trash2 className="text-surface h-5 w-5" />
+              </button>
+            ) : (
+              !isCancelled && (
+                <button
+                  onClick={() => setIsCancelConfirmOpen(true)}
+                  aria-label={`ยกเลิก${deleteTargetName}`}
+                  className="bg-destructive flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+                >
+                  <Ban className="text-surface h-5 w-5" />
+                </button>
+              )
+            )}
           </>
         )}
       </div>
@@ -1011,13 +1057,15 @@ const RepairDetail = () => {
                   <p className="text-normal text-[22px] font-semibold md:text-2xl">
                     รายการซ่อม
                   </p>
-                  <button
-                    onClick={handleEditRepair}
-                    className="text-primary flex cursor-pointer items-center gap-[4px] text-xl font-semibold md:text-[22px]"
-                  >
-                    <Edit className="h-5 w-5" />
-                    แก้ไขรายการซ่อม
-                  </button>
+                  {!isCancelled && (
+                    <button
+                      onClick={handleEditRepair}
+                      className="text-primary flex cursor-pointer items-center gap-[4px] text-xl font-semibold md:text-[22px]"
+                    >
+                      <Edit className="h-5 w-5" />
+                      แก้ไขรายการซ่อม
+                    </button>
+                  )}
                 </div>
                 {repair.type === "SUSPENSION" ? (
                   <div className="space-y-[16px]">
@@ -1239,69 +1287,76 @@ const RepairDetail = () => {
               <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
                 {/* ใบประเมินราคายังไม่มีการเก็บเงิน เลือกวิธีชำระเงินตอนนี้ก็ไม่มีผลอะไร
                     เหลือไว้แค่บรรทัดสถานะ ไม่ต้องมีช่องให้กดเล่น */}
-                {repair.status !== "ESTIMATE" && (
-                  <>
-                    <div className="flex items-center justify-between gap-[8px]">
-                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                        วิธีชำระเงิน:
-                      </p>
-                      {/* บิลที่จ่ายแล้วเป็นเอกสารที่จบแล้ว ทั้งกล่องจึงเป็นข้อความอ่านอย่างเดียว
+                {repair.status !== "ESTIMATE" &&
+                  !(isCancelled && !repair.paymentMethod) && (
+                    <>
+                      <div className="flex items-center justify-between gap-[8px]">
+                        <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                          วิธีชำระเงิน:
+                        </p>
+                        {/* บิลที่จ่ายแล้วเป็นเอกสารที่จบแล้ว ทั้งกล่องจึงเป็นข้อความอ่านอย่างเดียว
                         แต่กดผิดวิธีตอนเก็บเงินเป็นเรื่องที่เกิดได้ จึงมีดินสอให้กดแก้ทีหลัง
                         กดแล้วบรรทัดนั้นค่อยกลายเป็นช่องเลือก เลือกเสร็จบันทึกทันทีแล้วกลับเป็นข้อความ
                         (รูปแบบเดียวกับการกดแก้ราคาที่แถวรายการซ่อม) */}
-                      {repair.status === "PAID" && !isEditingPaidMethod ? (
-                        <button
-                          type="button"
-                          onClick={() => setIsEditingPaidMethod(true)}
-                          aria-label="แก้ไขวิธีชำระเงิน"
-                          className="text-normal flex shrink-0 cursor-pointer items-center gap-[6px] text-lg font-semibold md:text-xl"
-                        >
-                          {getPaymentMethodText(repair.paymentMethod) ||
-                            "ไม่ระบุ"}
-                          <Edit className="text-primary h-4 w-4" />
-                        </button>
-                      ) : (
-                        <div className="w-[210px] shrink-0">
-                          <ComboBox
-                            options={
-                              repair.status === "PAID" ||
-                              repair.status === "CREDIT"
-                                ? PAYMENT_METHODS
-                                : PAYMENT_OPTIONS_WITH_CREDIT
-                            }
-                            value={selectedPaymentMethod}
-                            onChange={(value) => {
-                              setSelectedPaymentMethod(value);
-                              setPaymentMethodError("");
-                              if (repair.status === "PAID") {
-                                handleChangePaidMethod(value);
+                        {/* บิลที่ยกเลิกแก้อะไรไม่ได้แล้ว เหลือแค่ข้อความวิธีที่เคยจ่าย (ถ้ามี) */}
+                        {isCancelled ? (
+                          <p className="text-normal text-lg font-semibold md:text-xl">
+                            {getPaymentMethodText(repair.paymentMethod) ||
+                              "ไม่ระบุ"}
+                          </p>
+                        ) : repair.status === "PAID" && !isEditingPaidMethod ? (
+                          <button
+                            type="button"
+                            onClick={() => setIsEditingPaidMethod(true)}
+                            aria-label="แก้ไขวิธีชำระเงิน"
+                            className="text-normal flex shrink-0 cursor-pointer items-center gap-[6px] text-lg font-semibold md:text-xl"
+                          >
+                            {getPaymentMethodText(repair.paymentMethod) ||
+                              "ไม่ระบุ"}
+                            <Edit className="text-primary h-4 w-4" />
+                          </button>
+                        ) : (
+                          <div className="w-[210px] shrink-0">
+                            <ComboBox
+                              options={
+                                repair.status === "PAID" ||
+                                repair.status === "CREDIT"
+                                  ? PAYMENT_METHODS
+                                  : PAYMENT_OPTIONS_WITH_CREDIT
                               }
-                            }}
-                            placeholder="-- เลือกวิธีชำระเงิน --"
-                            customClass="text-lg md:text-xl"
-                            name="paymentMethod"
-                            errors={
-                              paymentMethodError
-                                ? {
-                                    paymentMethod: {
-                                      message: paymentMethodError,
-                                    },
-                                  }
-                                : undefined
-                            }
-                            hideErrorMessage
-                          />
-                        </div>
-                      )}
-                    </div>
-                    {/* กินความกว้างเต็มกล่องเพื่อให้อยู่บรรทัดเดียว แล้วดันไปชิดขวา
+                              value={selectedPaymentMethod}
+                              onChange={(value) => {
+                                setSelectedPaymentMethod(value);
+                                setPaymentMethodError("");
+                                if (repair.status === "PAID") {
+                                  handleChangePaidMethod(value);
+                                }
+                              }}
+                              placeholder="-- เลือกวิธีชำระเงิน --"
+                              customClass="text-lg md:text-xl"
+                              name="paymentMethod"
+                              errors={
+                                paymentMethodError
+                                  ? {
+                                      paymentMethod: {
+                                        message: paymentMethodError,
+                                      },
+                                    }
+                                  : undefined
+                              }
+                              hideErrorMessage
+                            />
+                          </div>
+                        )}
+                      </div>
+                      {/* กินความกว้างเต็มกล่องเพื่อให้อยู่บรรทัดเดียว แล้วดันไปชิดขวา
                       จะได้อยู่ใต้ช่องที่ต้องแก้ ไม่ใช่ใต้ป้ายที่ไม่มีอะไรให้ทำ */}
-                    <FieldErrorList
-                      messages={[paymentMethodError]}
-                      className="items-end"
-                    />
-                  </>
-                )}
+                      <FieldErrorList
+                        messages={[paymentMethodError]}
+                        className="items-end"
+                      />
+                    </>
+                  )}
                 <div className="flex justify-between">
                   <p className="text-subtle-dark text-lg font-medium md:text-xl">
                     สถานะการซ่อม:
@@ -1355,6 +1410,27 @@ const RepairDetail = () => {
                     <p className="text-normal text-lg font-medium md:text-xl">
                       {formatDate(repair.paidAt)} | {formatTime(repair.paidAt)}{" "}
                       น.
+                    </p>
+                  </div>
+                )}
+                {repair.cancelledAt && (
+                  <div className="flex justify-between">
+                    <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                      ยกเลิก:
+                    </p>
+                    <p className="text-normal text-lg font-medium md:text-xl">
+                      {formatDate(repair.cancelledAt)} |{" "}
+                      {formatTime(repair.cancelledAt)} น.
+                    </p>
+                  </div>
+                )}
+                {repair.cancelReason && (
+                  <div className="flex justify-between gap-[12px]">
+                    <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
+                      เหตุผล:
+                    </p>
+                    <p className="text-normal min-w-0 text-right text-lg font-medium break-words md:text-xl">
+                      {repair.cancelReason}
                     </p>
                   </div>
                 )}
@@ -1478,12 +1554,17 @@ const RepairDetail = () => {
         title={`ยืนยันการลบ${deleteTargetName}`}
         itemName={getRepairTitle(repair)}
         itemDetail={confirmItemDetail}
-        // ลบบิลล่าสุดได้เลขคืน ไม่ต้องเตือน เตือนเฉพาะเลขที่มีบิลใหม่กว่าได้เลขต่อไปแล้ว
-        note={
-          repair?.docNosSkippedOnDelete?.length
-            ? `เลขที่ ${repair.docNosSkippedOnDelete.join(", ")} จะขาดช่วง เพราะมีบิลใหม่กว่าได้เลขถัดไปแล้ว`
-            : ""
-        }
+      />
+
+      <ConfirmDialog
+        isOpen={isCancelConfirmOpen}
+        onClose={() => setIsCancelConfirmOpen(false)}
+        onConfirm={handleCancelRepair}
+        title={`ยืนยันการยกเลิก${deleteTargetName}`}
+        itemName={getRepairTitle(repair)}
+        itemDetail={confirmItemDetail}
+        confirmLabel="ยกเลิกบิล"
+        note="ลบไม่ได้เพราะไม่ใช่บิลล่าสุด ยกเลิกแล้วเลขที่บิลยังอยู่ ของในบิลคืนเข้าสต็อก และไม่นับเป็นยอดขาย"
       />
     </div>
   );

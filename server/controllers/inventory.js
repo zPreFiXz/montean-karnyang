@@ -32,7 +32,7 @@ const soldPriceStats = async (partIds) => {
     where: {
       partId: { in: partIds },
       unitPrice: { gt: 0 },
-      repair: { status: { not: "ESTIMATE" } },
+      repair: { status: { notIn: ["ESTIMATE", "CANCELLED"] } },
     },
     _sum: { quantity: true },
     orderBy: { unitPrice: "asc" },
@@ -230,7 +230,11 @@ exports.listInventoryRepairs = async (req, res, next) => {
     }
 
     const items = await prisma.repairItem.findMany({
-      where: type === "service" ? { serviceId: itemId } : { partId: itemId },
+      // บิลที่ยกเลิกคืนของเข้าคลังไปแล้ว ไม่นับว่าใช้ไป
+      where: {
+        ...(type === "service" ? { serviceId: itemId } : { partId: itemId }),
+        repair: { status: { not: "CANCELLED" } },
+      },
       select: {
         quantity: true,
         unitPrice: true,

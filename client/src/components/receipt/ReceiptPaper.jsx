@@ -149,6 +149,13 @@ export const mergeBySide = (items) => {
   }));
 };
 
+// บิลที่ยกเลิกพิมพ์เป็นใบเดิมก่อนยกเลิก (เลขเดิม ชื่อใบเดิม) แล้วติดคำว่ายกเลิกที่ชื่อใบ
+// (ต้องตรงกับ asIssued ใน server/utils/receiptHtml.js)
+export const asIssued = (repair) =>
+  repair?.status === "CANCELLED"
+    ? { ...repair, status: repair.cancelledStatus || "PAID", isCancelled: true }
+    : repair;
+
 // ข้อมูลหัวใบที่ใบเสร็จกับใบสั่งงานใช้ร่วมกัน
 // ชื่อเอกสารเปลี่ยนตามสถานะ เพราะเรียกว่าใบเสร็จรับเงินได้เฉพาะตอนรับเงินแล้วจริง
 // ใบประเมินราคา = ยังไม่ได้ซ่อม เป็นใบเสนอราคา
@@ -299,7 +306,7 @@ export const buildReceiptPages = (repair, { showBrand = true } = {}) => {
 
 // QR มีเฉพาะใบเสร็จ ใบเสนอราคายังไม่ถึงตอนจ่าย ใบส่งของลูกค้าจ่ายทีหลังตามใบวางบิล
 const hasPaymentQr = (repair) =>
-  !["ESTIMATE", "CREDIT"].includes(repair?.status);
+  !repair?.isCancelled && !["ESTIMATE", "CREDIT"].includes(repair?.status);
 
 // ใบส่งของพิมพ์สองชุด ต้นฉบับให้ลูกค้า สำเนาให้ลูกค้าเซ็นรับแล้วร้านเก็บไว้ (ตรงกับ buildReceiptHtml ฝั่งเซิร์ฟเวอร์)
 export const receiptCopyLabels = (repair) =>
@@ -367,6 +374,7 @@ const ReceiptPaper = ({
           <div className="text-center">
             <p className="text-[15pt] font-semibold">
               {receiptDocTitle(repair)}
+              {repair.isCancelled && " (ยกเลิก)"}
             </p>
             {copyLabel && <p>({copyLabel})</p>}
             <p className="text-[17pt] font-semibold">{SHOP.name}</p>

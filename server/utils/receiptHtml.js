@@ -121,6 +121,13 @@ const makeRoomForQr = (pages, linesOf, summaryRows, limit) => {
 const shortProvince = (province) =>
   province === "กรุงเทพมหานคร" ? "กรุงเทพฯ" : province || "";
 
+// บิลที่ยกเลิกพิมพ์เป็นใบเดิมก่อนยกเลิก (เลขเดิม ชื่อใบเดิม) แล้วติดคำว่ายกเลิกที่ชื่อใบ
+// (ต้องตรงกับ asIssued ใน client/src/components/receipt/ReceiptPaper.jsx)
+const asIssued = (repair) =>
+  repair.status === "CANCELLED"
+    ? { ...repair, status: repair.cancelledStatus || "PAID", isCancelled: true }
+    : repair;
+
 // เรียกว่าใบเสร็จรับเงินได้เฉพาะตอนรับเงินแล้วจริง
 // ใบประเมินราคา = ยังไม่ได้ซ่อม เป็นใบเสนอราคา / เครดิต = ซ่อมแล้วแต่ยังไม่ได้เงิน เป็นใบส่งของ
 const receiptDocTitle = (repair) => {
@@ -309,7 +316,8 @@ const receiptPagesHtml = (
   const rowLines = (row) => estimateNameLines(rowName(row));
   const summaryRows = discountItems.length ? discountItems.length + 1 : 1;
   // QR มีเฉพาะใบเสร็จ ใบเสนอราคายังไม่ถึงตอนจ่าย ใบส่งของลูกค้าจ่ายทีหลังตามใบวางบิล
-  const showPaymentQr = !["ESTIMATE", "CREDIT"].includes(repair.status);
+  const showPaymentQr =
+    !repair.isCancelled && !["ESTIMATE", "CREDIT"].includes(repair.status);
   // ลูกค้าเซ็นซ้าย ร้านเซ็นขวา (ฝั่งผู้ออกเอกสาร) ทุกใบ
   // คนเซ็นตามหน้าที่ของใบ ใบส่งของกับใบเสนอราคายังไม่มีการรับเงิน (ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
   const signLabels =
@@ -410,7 +418,7 @@ const receiptPagesHtml = (
   <div class="head">
     <span></span>
     <div class="title">
-      <div class="doc">${docTitle}</div>
+      <div class="doc">${docTitle}${repair.isCancelled ? " (ยกเลิก)" : ""}</div>
       ${copyLabel ? `<div class="copy">(${copyLabel})</div>` : ""}
       <div class="shop">${SHOP.name}</div>
     </div>
@@ -593,8 +601,9 @@ ${body}
 
 // ใบส่งของพิมพ์สองชุดในงานพิมพ์เดียว ต้นฉบับให้ลูกค้า สำเนาให้ลูกค้าเซ็นรับแล้วร้านเก็บไว้
 // withCopy = false คือเอาเฉพาะต้นฉบับ (บันทึกเป็นรูปส่งให้ลูกค้า ไม่ต้องมีสำเนา)
-const buildReceiptHtml = (repair, { withCopy = true, ...options } = {}) =>
-  receiptDocument(
+const buildReceiptHtml = (rawRepair, { withCopy = true, ...options } = {}) => {
+  const repair = asIssued(rawRepair);
+  return receiptDocument(
     `${receiptDocTitle(repair)} ${receiptDocNo(repair)}`,
     repair.status === "CREDIT"
       ? [
@@ -605,6 +614,7 @@ const buildReceiptHtml = (repair, { withCopy = true, ...options } = {}) =>
         ].join("")
       : receiptPagesHtml(repair, options),
   );
+};
 
 // ช่างดูจากชนิดอะไหล่ ไม่ได้ดูยี่ห้อหรือรุ่น จึงตัดชื่อของช่วงล่างเหลือคำแรกของชื่อในคลัง
 // (ตรงกับ workName ใน client/src/components/receipt/JobSheetPaper.jsx)

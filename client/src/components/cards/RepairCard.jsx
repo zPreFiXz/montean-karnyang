@@ -8,6 +8,7 @@ const statusStyle = {
   PAID: { bg: "bg-status-paid", text: "text-status-paid" },
   CREDIT: { bg: "bg-status-credit", text: "text-status-credit" },
   ESTIMATE: { bg: "bg-status-estimate", text: "text-status-estimate" },
+  CANCELLED: { bg: "bg-destructive", text: "text-destructive line-through" },
 };
 
 const RepairCard = ({

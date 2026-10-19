@@ -92,7 +92,7 @@ exports.lookupVehicleByPlate = async (req, res, next) => {
     const excludeId = Number(excludeRepairId) || null;
     // ใบเสนอราคาไม่นับเป็นครั้งที่มา รถยังไม่ได้เข้ามาซ่อมจริง ลูกค้าแค่ถามราคา
     const otherRepairs = {
-      status: { not: "ESTIMATE" },
+      status: { notIn: ["ESTIMATE", "CANCELLED"] },
       ...(excludeId ? { id: { not: excludeId } } : {}),
     };
 

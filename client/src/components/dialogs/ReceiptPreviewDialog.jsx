@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { X, Printer, Download, LoaderCircle } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import ReceiptPaper, {
+  asIssued,
   hasShortenableName,
   jobSheetNo,
   receiptDocNo,
@@ -70,7 +71,9 @@ const downloadPng = (base64, fileName) => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
-const ReceiptPreviewDialog = ({ repair, open, onOpenChange }) => {
+const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
+  // บิลที่ยกเลิกแสดงเป็นใบเดิมพร้อมคำว่ายกเลิก ตรงกับใบที่เซิร์ฟเวอร์พิมพ์
+  const repair = asIssued(rawRepair);
   // ตัวอย่างบนจอกับใบที่พิมพ์ต้องเป็นกระดาษแผ่นเดียวกันเป๊ะ
   // จึงวาดด้วยขนาดจริงของ A5 (หักขอบกระดาษแล้ว) แล้วย่อทั้งแผ่นให้พอดีความกว้างไดอะล็อก
   // ย่อด้วยการสเกล ไม่ใช่ปรับขนาดตัวอักษร สัดส่วนทุกอย่างจึงเท่าของจริง

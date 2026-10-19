@@ -675,6 +675,10 @@ exports.updateRepair = async (req, res, next) => {
         },
       });
 
+      if (currentRepair?.status === "CANCELLED") {
+        createError(400, CANNOT_EDIT_CANCELLED);
+      }
+
       let vehicle = null;
       if (skipVehicle) {
         vehicle = null;
@@ -824,8 +828,50 @@ exports.updateRepair = async (req, res, next) => {
   }
 };
 
+const CANNOT_EDIT_CANCELLED = "แก้ไขไม่ได้ เพราะบิลนี้ยกเลิกแล้ว";
+
+// ยกเลิกบิลแทนการลบ สำหรับบิลที่ไม่ใช่เลขล่าสุด เลขเอกสารยังอยู่กับบิล ลำดับเลขจึงไม่ขาด
+// คืนของเข้าคลังเหมือนตอนลบ (ใบประเมินราคายังไม่เคยเบิก) และไม่นับเป็นยอดขายหรือครั้งที่มาซ่อม
+exports.cancelRepair = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const reason = String(req.body?.reason || "").trim().slice(0, 200);
+
+    const repair = await prisma.repair.findUnique({
+      where: { id: Number(id) },
+    });
+    if (!repair) {
+      createError(404, "ไม่พบงานซ่อม");
+    }
+    if (repair.status === "CANCELLED") {
+      createError(400, "บิลนี้ยกเลิกไปแล้ว");
+    }
+
+    await prisma.$transaction(async (tx) => {
+      if (repair.status !== "ESTIMATE") {
+        await restoreStockForRepair(tx, Number(id));
+      }
+      await tx.repair.update({
+        where: { id: Number(id) },
+        data: {
+          status: "CANCELLED",
+          cancelledStatus: repair.status,
+          cancelledAt: new Date(),
+          cancelReason: reason || null,
+        },
+      });
+    });
+
+    res.json({ message: "ยกเลิกบิลเรียบร้อยแล้ว" });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ลบบิลทิ้ง: ต้องคืนสต็อกก่อนเสมอ ไม่งั้นอะไหล่จะหายจากคลังทั้งที่ไม่ได้ขายออกไป
 // ใช้ตรรกะคืนของชุดเดียวกับตอนแก้ไขบิล (คืนจำนวน + คืนล็อตยางตาม soldLots)
+// ลบได้เฉพาะบิลที่ทุกเลขเป็นเลขล่าสุดของชุด (หรือยังไม่มีเลข) เลขจะคืนให้บิลถัดไป ไม่ขาดช่วง
+// บิลอื่นต้องยกเลิกแทน
 exports.deleteRepair = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -838,6 +884,13 @@ exports.deleteRepair = async (req, res, next) => {
       createError(404, "ไม่พบงานซ่อม");
     }
 
+    if ((await docNosSkippedOnDelete(prisma, repair)).length > 0) {
+      createError(
+        400,
+        "ลบไม่ได้ เพราะไม่ใช่บิลล่าสุด เลขที่บิลจะขาดช่วง ให้ยกเลิกบิลแทน",
+      );
+    }
+
     await prisma.$transaction(async (tx) => {
       const items = await tx.repairItem.findMany({
         where: { repairId: Number(id) },
@@ -846,8 +899,8 @@ exports.deleteRepair = async (req, res, next) => {
         },
       });
 
-      // ใบประเมินราคาไม่เคยเบิกของออกจากคลัง ลบทิ้งจึงไม่มีอะไรให้คืน
-      if (repair.status !== "ESTIMATE") {
+      // ใบประเมินราคาไม่เคยเบิกของออกจากคลัง บิลที่ยกเลิกคืนของไปแล้วตอนยกเลิก ลบทิ้งจึงไม่มีอะไรให้คืน
+      if (!["ESTIMATE", "CANCELLED"].includes(repair.status)) {
         for (const item of items) {
           if (item.partId) {
             await moveStock(
@@ -885,6 +938,9 @@ exports.updateRepairStatus = async (req, res, next) => {
 
     if (!repair) {
       createError(404, "ไม่พบงานซ่อม");
+    }
+    if (repair.status === "CANCELLED") {
+      createError(400, CANNOT_EDIT_CANCELLED);
     }
 
     const data = { status };

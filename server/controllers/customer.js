@@ -144,7 +144,7 @@ exports.listOrganizationRepairs = async (req, res, next) => {
       where: {
         customerId: Number(id),
         ...(scope === "all"
-          ? { status: { not: "ESTIMATE" } }
+          ? { status: { notIn: ["ESTIMATE", "CANCELLED"] } }
           : { status: "CREDIT" }),
       },
       include: {
@@ -210,7 +210,7 @@ const findBillRepairs = async (id, month) => {
     where: {
       customerId: Number(id),
       ...(isMonthly
-        ? { status: { not: "ESTIMATE" }, createdAt: monthRange }
+        ? { status: { notIn: ["ESTIMATE", "CANCELLED"] }, createdAt: monthRange }
         : { status: "CREDIT" }),
     },
     // ใบวางบิลใช้แค่หัวบิล ไม่ต้องดึงรายการในบิลมาทั้งหมด

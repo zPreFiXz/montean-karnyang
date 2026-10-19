@@ -147,27 +147,31 @@ model Service {
 }
 
 model Repair {
-  id            Int            @id @default(autoincrement())
-  description   String?
-  mileage       Int?
-  totalPrice    Int
-  type          RepairType     @default(GENERAL)
-  status        RepairStatus   @default(IN_PROGRESS)
-  completedAt   DateTime?
-  paymentMethod PaymentMethod?
-  paidAt        DateTime?
-  receiptNo     String?        @unique @db.VarChar(20)
-  deliveryNo    String?        @unique @db.VarChar(20)
-  quotationNo   String?        @unique @db.VarChar(20)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  user          User           @relation(fields: [userId], references: [id], onDelete: Restrict)
-  userId        Int
-  vehicle       Vehicle?       @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
-  vehicleId     Int?
-  customer      Customer?      @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  customerId    Int?
-  repairItems   RepairItem[]
+  id              Int            @id @default(autoincrement())
+  description     String?
+  mileage         Int?
+  totalPrice      Int
+  type            RepairType     @default(GENERAL)
+  status          RepairStatus   @default(IN_PROGRESS)
+  completedAt     DateTime?
+  paymentMethod   PaymentMethod?
+  paidAt          DateTime?
+  // ยกเลิกแทนการลบ เลขเอกสารจึงไม่ขาดช่วง cancelledStatus คือสถานะก่อนยกเลิก (ใช้เลือกชื่อใบตอนพิมพ์)
+  cancelledAt     DateTime?
+  cancelledStatus RepairStatus?
+  cancelReason    String?        @db.VarChar(200)
+  receiptNo       String?        @unique @db.VarChar(20)
+  deliveryNo      String?        @unique @db.VarChar(20)
+  quotationNo     String?        @unique @db.VarChar(20)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  user            User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  userId          Int
+  vehicle         Vehicle?       @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  vehicleId       Int?
+  customer        Customer?      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  customerId      Int?
+  repairItems     RepairItem[]
 }
 
 enum RepairType {
@@ -182,6 +186,7 @@ enum RepairStatus {
   COMPLETED
   CREDIT
   PAID
+  CANCELLED
 }
 
 enum PaymentMethod {
