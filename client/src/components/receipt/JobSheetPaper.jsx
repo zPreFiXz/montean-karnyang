@@ -9,7 +9,7 @@ import {
   mergeBySide,
   unitOf,
   receiptHeaderInfo,
-  shortWorkName,
+  shortWorkNameBase,
 } from "@/components/receipt/ReceiptPaper";
 
 // ใบสั่งซ่อมสำหรับช่าง: อ่านจากระยะห่างได้ ทะเบียนตัวใหญ่สุด งานเป็นรายการมีช่องติ๊ก
@@ -114,7 +114,7 @@ const JobSheetPaper = ({ repair }) => {
                     <tr key={`${group.key}-${item.id}`}>
                       <td className="h-[34px] border border-black" />
                       <td className="border border-black px-[8px] break-words">
-                        {shortWorkName(item)}
+                        {shortWorkNameBase(item)}
                       </td>
                       <td className="border border-black px-[8px] text-center">
                         {`${formatQuantity(quantity)} ${unitOf(item)}`.trim()}
@@ -127,7 +127,7 @@ const JobSheetPaper = ({ repair }) => {
                 <tr key={item.id}>
                   <td className="h-[34px] border border-black" />
                   <td className="border border-black px-[8px] break-words">
-                    {shortWorkName(item)}
+                    {shortWorkNameBase(item)}
                     {sideLabel ? ` (${sideLabel})` : ""}
                   </td>
                   <td className="border border-black px-[8px] text-center">

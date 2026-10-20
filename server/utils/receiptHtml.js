@@ -310,7 +310,7 @@ const receiptPagesHtml = (
   // บิลที่มีรายการเกินหนึ่งหน้าให้แยกเป็นใบต่อไป แผ่นละ MIN_ROWS บรรทัด (นับบรรทัดที่ชื่อยาวตกลงมาด้วย)
   // ยอดรวมกับส่วนลดต่อท้ายแผ่นสุดท้ายเสมอ (ตรงกับ buildReceiptPages ฝั่งหน้าเว็บ)
   const rowName = ({ item, sideLabel }) => {
-    const base = showBrand ? item.itemName : workName(item);
+    const base = showBrand ? item.itemName : receiptWorkName(item);
     return sideLabel ? `${base} (${sideLabel})` : base;
   };
   const rowLines = (row) => estimateNameLines(rowName(row));
@@ -646,6 +646,22 @@ const isOilUseLine = (item) => {
       item.itemName ===
       [item.part.brand, use, grade].filter(Boolean).join(" "),
   );
+};
+
+// ยางในลูกค้าดูแค่ขนาด ชนิดจุ๊บในวงเล็บเป็นเรื่องของช่าง ใบจึงตัดออก ชื่อที่พิมพ์ทับเองไม่แตะ
+// (ต้องตรงกับ shortWorkName ใน client/src/components/receipt/ReceiptPaper.jsx)
+// ใบสั่งซ่อมใช้ workName ตรงๆ ช่างยังต้องรู้ชนิดจุ๊บ
+const INNER_TUBE_CATEGORY = "ยางใน";
+const receiptWorkName = (item) => {
+  const name = workName(item);
+  const isTypedName = !String(item.itemName || "").includes(
+    item.part?.name || "",
+  );
+  return item.part?.category?.name === INNER_TUBE_CATEGORY && !isTypedName
+    ? String(name || "")
+        .replace(/\s*\([^)]*\)/g, "")
+        .trim()
+    : name;
 };
 
 const workName = (item) => {

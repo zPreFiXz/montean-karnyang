@@ -104,3 +104,61 @@ exports.listTopItems = async (req, res, next) => {
     next(error);
   }
 };
+
+// รุ่นรถที่มาบ่อยในช่วงเวลาที่เลือก นับบิลที่เก็บเงินแล้วแบบเดียวกับสินค้าขายดี
+// บิลขายหน้าร้านกับงานที่ไม่ผูกกับรถไม่มีรุ่นให้นับ คันเดียวมาหลายครั้งนับครั้งตามบิล นับคันไม่ซ้ำ
+exports.listTopVehicleModels = async (req, res, next) => {
+  try {
+    const from = new Date(req.query.from);
+    const to = new Date(req.query.to);
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
+      createError(400, "ช่วงเวลาไม่ถูกต้อง");
+    }
+
+    const repairs = await prisma.repair.findMany({
+      where: {
+        status: "PAID",
+        paidAt: { gte: from, lte: to },
+        vehicleId: { not: null },
+      },
+      select: {
+        totalPrice: true,
+        vehicleId: true,
+        vehicle: {
+          select: {
+            vehicleModel: { select: { id: true, brand: true, model: true } },
+          },
+        },
+      },
+    });
+
+    const groups = new Map();
+    for (const repair of repairs) {
+      const model = repair.vehicle?.vehicleModel;
+      if (!model) continue;
+      if (!groups.has(model.id)) {
+        groups.set(model.id, {
+          key: `model:${model.id}`,
+          brand: model.brand,
+          model: model.model,
+          visits: 0,
+          vehicleIds: new Set(),
+          revenue: 0,
+        });
+      }
+      const group = groups.get(model.id);
+      group.visits += 1;
+      group.vehicleIds.add(repair.vehicleId);
+      group.revenue += Number(repair.totalPrice) || 0;
+    }
+
+    res.json(
+      [...groups.values()].map(({ vehicleIds, ...group }) => ({
+        ...group,
+        vehicles: vehicleIds.size,
+      })),
+    );
+  } catch (error) {
+    next(error);
+  }
+};

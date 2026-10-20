@@ -43,7 +43,27 @@ const isOilUseLine = (item) =>
   !!item.part &&
   OIL_USES.some((use) => item.itemName === oilUseLineName(item.part, use));
 
+// ยางในลูกค้าดูแค่ขนาด ชนิดจุ๊บในวงเล็บ ("ยางใน 750-16 (จุ๊บเหล็ก)") เป็นเรื่องของช่าง ใบจึงตัดออก
+// (ต้องตรงกับ workName ใน server/utils/receiptHtml.js)
+const INNER_TUBE_CATEGORY = "ยางใน";
+const withoutParentheses = (name) =>
+  String(name || "")
+    .replace(/\s*\([^)]*\)/g, "")
+    .trim();
+
+// ชื่อที่พิมพ์ทับเองไม่แตะ (ไม่มีชื่อในคลังอยู่ข้างใน)
 export const shortWorkName = (item) => {
+  const name = shortWorkNameBase(item);
+  const isTypedName = !String(item.itemName || "").includes(
+    item.part?.name || "",
+  );
+  return item.part?.category?.name === INNER_TUBE_CATEGORY && !isTypedName
+    ? withoutParentheses(name)
+    : name;
+};
+
+// ใบสั่งซ่อมใช้ตัวนี้ตรงๆ ช่างยังต้องรู้ชนิดจุ๊บของยางใน
+export const shortWorkNameBase = (item) => {
   // พิมพ์ชื่อทับไว้เอง = ตั้งใจให้ขึ้นแบบนั้น ไม่ต้องย่อทับ
   // ชื่อที่ระบบประกอบเองจะมีชื่อในคลังอยู่ข้างในเสมอ ถ้าไม่มีแปลว่าถูกพิมพ์ใหม่
   if (

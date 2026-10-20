@@ -93,7 +93,7 @@ const ReportPeriodHeader = ({
         {PERIOD_TYPES.map((type) => (
           <Link
             key={type.id}
-            to={`${basePath}?period=${type.id}`}
+            to={`${basePath}${basePath.includes("?") ? "&" : "?"}period=${type.id}`}
             state={{ currentDate: new Date().toISOString() }}
             // สลับแท็บแทนที่หน้าเดิม ไม่ซ้อนประวัติ กดย้อนกลับครั้งเดียวก็ออกจากหน้ารายงาน
             // ไม่ต้องย้อนผ่านทุกแท็บที่เคยกด

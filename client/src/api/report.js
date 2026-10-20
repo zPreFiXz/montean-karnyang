@@ -6,3 +6,10 @@ export const listTopItems = async (startDate, endDate) => {
     params: { from: startDate.toISOString(), to: endDate.toISOString() },
   });
 };
+
+// รุ่นรถที่มาบ่อยในช่วงเวลาเดียวกับสินค้าขายดี
+export const listTopVehicleModels = async (startDate, endDate) => {
+  return await apiClient.get("/reports/top-vehicle-models", {
+    params: { from: startDate.toISOString(), to: endDate.toISOString() },
+  });
+};
