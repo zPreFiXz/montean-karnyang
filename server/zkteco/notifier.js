@@ -42,7 +42,9 @@ const createNotifier = ({ prisma }) => {
   const countPresent = (dateKey) => countDistinctEmployees(dateKey);
 
   const countLunchReturned = (dateKey) =>
-    countDistinctEmployees(dateKey, { type: { in: ["LUNCH_RETURN", "LUNCH_RETURN_LATE"] } });
+    countDistinctEmployees(dateKey, {
+      type: { in: ["LUNCH_RETURN", "LUNCH_RETURN_LATE"] },
+    });
 
   const lateEmployeesOf = async (dateKey, type) => {
     const { start, end } = getDayRange(dateKey);
@@ -51,7 +53,10 @@ const createNotifier = ({ prisma }) => {
       select: { statusLabel: true, employee: { select: { name: true } } },
       orderBy: { scannedAt: "asc" },
     });
-    return scans.map((s) => ({ name: s.employee.name, statusLabel: s.statusLabel }));
+    return scans.map((s) => ({
+      name: s.employee.name,
+      statusLabel: s.statusLabel,
+    }));
   };
 
   // ตั้งธงก่อนส่งกันยิงซ้ำระหว่างรอ แล้วคืนธงถ้าส่งไม่ผ่านเพื่อให้รอบหน้าลองใหม่
@@ -63,7 +68,11 @@ const createNotifier = ({ prisma }) => {
     } catch (err) {
       if (err?.ambiguous) {
         // timeout: Telegram อาจรับไปแล้ว คงธงไว้กันส่งซ้ำ — ข้อมูลยังเปิดดูได้ที่หน้ารายงาน
-        log.error("Telegram", `${errorLabel} timed out — treated as sent:`, err);
+        log.error(
+          "Telegram",
+          `${errorLabel} timed out — treated as sent:`,
+          err,
+        );
         return;
       }
       sentOn[kind] = "";
@@ -103,7 +112,8 @@ const createNotifier = ({ prisma }) => {
     await sendOnce(
       "allClockedIn",
       dateKey,
-      async () => allClockedInMessage(await lateEmployeesOf(dateKey, "CLOCK_IN_LATE")),
+      async () =>
+        allClockedInMessage(await lateEmployeesOf(dateKey, "CLOCK_IN_LATE")),
       "All clocked-in message",
     );
   };
@@ -120,7 +130,10 @@ const createNotifier = ({ prisma }) => {
     await sendOnce(
       "allLunchReturned",
       dateKey,
-      async () => allLunchReturnedMessage(await lateEmployeesOf(dateKey, "LUNCH_RETURN_LATE")),
+      async () =>
+        allLunchReturnedMessage(
+          await lateEmployeesOf(dateKey, "LUNCH_RETURN_LATE"),
+        ),
       "All lunch-returned message",
     );
   };
@@ -137,7 +150,12 @@ const createNotifier = ({ prisma }) => {
     await sendOnce(
       "deviceLogFull",
       getDateKey(new Date()),
-      async () => deviceLogFullMessage({ logCounts, logCapacity, percent: percent.toFixed(1) }),
+      async () =>
+        deviceLogFullMessage({
+          logCounts,
+          logCapacity,
+          percent: percent.toFixed(1),
+        }),
       "Device log warning",
     );
   };
@@ -145,14 +163,24 @@ const createNotifier = ({ prisma }) => {
   const checkDayStart = async () => {
     const now = new Date();
     if (!isDue(getMinuteOfDay(now), attCfg.dayStartAtMinutes)) return;
-    await sendOnce("dayStart", getDateKey(now), async () => dayStartMessage(now), "Day start message");
+    await sendOnce(
+      "dayStart",
+      getDateKey(now),
+      async () => dayStartMessage(now),
+      "Day start message",
+    );
   };
 
   const checkDailySummary = async () => {
     const now = new Date();
     if (!isDue(getMinuteOfDay(now), attCfg.summaryAtMinutes)) return;
     const dateKey = getDateKey(now);
-    await sendOnce("summary", dateKey, () => dailySummary(prisma, dateKey), "Daily summary");
+    await sendOnce(
+      "summary",
+      dateKey,
+      () => dailySummary(prisma, dateKey),
+      "Daily summary",
+    );
   };
 
   // ส่งแจ้งเตือนที่ค้าง (notifiedAt = null) รวมรายการช่วงเน็ตหลุด
@@ -192,7 +220,11 @@ const createNotifier = ({ prisma }) => {
       } catch (err) {
         if (err?.ambiguous) {
           // timeout: Telegram อาจรับไปแล้ว ถ้าคืนสิทธิ์จะกลายเป็นแจ้งซ้ำ ยอมเสี่ยงตกหล่นดีกว่า
-          log.error("Telegram", "Send timed out — treated as sent (may be missing):", err);
+          log.error(
+            "Telegram",
+            "Send timed out — treated as sent (may be missing):",
+            err,
+          );
           continue;
         }
         // คืนสิทธิ์ให้รอบหน้าลองใหม่

@@ -17,8 +17,14 @@ const withTimeout = (promise, ms, code) => {
 };
 
 const createDevice = () => {
-  const { ip, port, socketTimeoutMs, connectionTimeoutMs, connectTimeoutMs, fetchTimeoutMs } =
-    config.device;
+  const {
+    ip,
+    port,
+    socketTimeoutMs,
+    connectionTimeoutMs,
+    connectTimeoutMs,
+    fetchTimeoutMs,
+  } = config.device;
   let connection = null;
   let baseListeners = null;
 
@@ -36,7 +42,8 @@ const createDevice = () => {
     if (!socket || !baseListeners) return;
     for (const event of ["data", "close"]) {
       for (const listener of socket.listeners(event)) {
-        if (!baseListeners[event].includes(listener)) socket.removeListener(event, listener);
+        if (!baseListeners[event].includes(listener))
+          socket.removeListener(event, listener);
       }
     }
   };
@@ -55,7 +62,11 @@ const createDevice = () => {
 
     connection = new ZKLib(ip, port, socketTimeoutMs, connectionTimeoutMs);
     try {
-      await withTimeout(connection.createSocket(), connectTimeoutMs, "CONNECT_TIMEOUT");
+      await withTimeout(
+        connection.createSocket(),
+        connectTimeoutMs,
+        "CONNECT_TIMEOUT",
+      );
     } catch (err) {
       await disconnect();
       throw err;
@@ -67,7 +78,11 @@ const createDevice = () => {
   const fetchLogs = async () => {
     if (!connection) throw new Error("ZKLib not connected");
     try {
-      const result = await withTimeout(connection.getAttendances(), fetchTimeoutMs, "FETCH_TIMEOUT");
+      const result = await withTimeout(
+        connection.getAttendances(),
+        fetchTimeoutMs,
+        "FETCH_TIMEOUT",
+      );
       return result?.data || [];
     } finally {
       dropLeakedListeners();

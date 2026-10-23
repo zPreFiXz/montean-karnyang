@@ -1,4 +1,4 @@
-const { PrismaClient, Prisma } = require('@prisma/client');
+const { PrismaClient, Prisma } = require("@prisma/client");
 
 // คอลัมน์ทศนิยม (จำนวนในบิล, สต็อก) ถูกส่งกลับเป็นชนิด Decimal ซึ่งแปลงเป็น JSON เป็น "สตริง"
 // หน้าเว็บทั้งระบบคิดเลขกับค่านี้เหมือนตัวเลขมาตลอด จึงบอกให้แปลงเป็นตัวเลขตอนส่งออก

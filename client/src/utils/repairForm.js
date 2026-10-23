@@ -6,63 +6,9 @@ import {
   lineUnit,
 } from "@/constants/services";
 import { isMultiUseOil } from "@/utils/oil";
-import { isPerSide } from "@/utils/suspension";
 
 // DB เก็บ side เป็นตัวพิมพ์ใหญ่ (enum LEFT/RIGHT/OTHER) — แปลงเป็นตัวเล็กให้ตรง UI state
 export const toUiSide = (side) => (side ? side.toLowerCase() : null);
-
-// บิลช่วงล่างเก็บอะไหล่แยกซ้าย-ขวาเป็นรายบรรทัด แต่บรรทัดเก่าบางใบไม่มีข้าง
-// อะไหล่ที่ตั้งว่าแยกซ้าย-ขวาแต่ไม่มีข้างจึงแบ่งให้ซ้ายขวาสลับกัน แท็บในหน้าเช็กช่วงล่างจะติ๊กได้ถูก
-const toSuspensionItems = (normalizedItems) => {
-  const savedItems = [];
-
-  const lrGroups = {};
-
-  normalizedItems.forEach((item) => {
-    const st = item?.category?.name === "ช่วงล่าง";
-    const itemSide = item.side;
-
-    if (!st || itemSide === null) {
-      savedItems.push({ ...item });
-      return;
-    }
-
-    if (itemSide === "left" || itemSide === "right" || itemSide === "other") {
-      savedItems.push({ ...item, side: itemSide });
-      return;
-    }
-
-    if (isPerSide(item?.attributes)) {
-      const key = `${item.id}-${item.sellingPrice}`;
-      if (!lrGroups[key]) {
-        lrGroups[key] = { base: item, count: 0 };
-      }
-      lrGroups[key].count += item.quantity || 1;
-      return;
-    }
-
-    savedItems.push({ ...item });
-  });
-
-  let assignLeftoverToLeft = true;
-  Object.values(lrGroups).forEach(({ base, count }) => {
-    const pairs = Math.floor(count / 2);
-    const remainder = count % 2;
-    for (let i = 0; i < pairs; i++) {
-      savedItems.push({ ...base, quantity: 1, side: "left" });
-      savedItems.push({ ...base, quantity: 1, side: "right" });
-    }
-    if (remainder === 1) {
-      savedItems.push({
-        ...base,
-        quantity: 1,
-        side: assignLeftoverToLeft ? "left" : "right",
-      });
-      assignLeftoverToLeft = !assignLeftoverToLeft;
-    }
-  });
-  return savedItems;
-};
 
 // แปลงบิลที่บันทึกแล้วกลับเป็นข้อมูลฟอร์ม สำหรับเปิดแก้ไขในหน้ากรอกบิลหรือหน้าเช็กช่วงล่าง
 // คืน { path, repairData, repairItems }
@@ -149,12 +95,11 @@ export const repairToForm = (repair) => {
     };
   });
 
-  const isSuspension = repair.type === "SUSPENSION";
+  // บิลช่วงล่างเก็บข้างไว้ทุกบรรทัดอยู่แล้ว หน้าเช็กช่วงล่างแยกของในแท็บเองจากข้างกับหมวด
   return {
-    path: isSuspension ? "/inspections/suspension" : "/repairs/new",
+    path:
+      repair.type === "SUSPENSION" ? "/inspections/suspension" : "/repairs/new",
     repairData,
-    repairItems: isSuspension
-      ? toSuspensionItems(normalizedItems)
-      : normalizedItems,
+    repairItems: normalizedItems,
   };
 };

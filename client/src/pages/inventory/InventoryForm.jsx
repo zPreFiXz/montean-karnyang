@@ -1,7 +1,9 @@
 import { isPartLikeItem, canHaveServiceImage } from "@/constants/services";
 import FormInput from "@/components/forms/FormInput";
 import OilKitFields from "@/components/forms/OilKitFields";
-import TireConstructionToggle from "@/components/forms/TireConstructionToggle";
+import ServiceFields from "@/components/forms/ServiceFields";
+import StockFields from "@/components/forms/StockFields";
+import TireSizeFields from "@/components/forms/TireSizeFields";
 import { useForm } from "react-hook-form";
 import FormButton from "@/components/forms/FormButton";
 import { createPart, updatePart } from "@/api/part";
@@ -15,7 +17,6 @@ import FormUploadImage from "@/components/forms/FormUploadImage";
 import { resizeImage } from "@/utils/resizeImage";
 import { deleteImage, uploadImage } from "@/api/uploadImage";
 import VehicleCompatibilityInput from "@/components/forms/VehicleCompatibilityInput";
-import TireLotInput from "@/components/forms/TireLotInput";
 import { useNavigate } from "react-router";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,7 +36,6 @@ import {
   OIL_CATEGORY,
 } from "@/constants/categories";
 import { ChevronLeft, LoaderCircle } from "lucide-react";
-import FieldErrorList from "@/components/forms/FieldErrorList";
 import { getInventory } from "@/api/inventory";
 import { useParams, useSearchParams } from "react-router";
 import useAuthStore from "@/stores/useAuthStore";
@@ -48,7 +48,7 @@ import { SIDE_OPTIONS, toPerSide, toSideOptionId } from "@/utils/suspension";
 // เพิ่มกับแก้ไขอะไหล่/บริการใช้ฟอร์มเดียวกัน ต่างกันแค่ที่มาของข้อมูลกับปลายทางหลังบันทึก
 // /inventory/new = เพิ่ม (?category= เลือกหมวดให้ก่อน) /inventory/:id?type= = แก้ไข
 const InventoryForm = () => {
-  const { partUnitOptions, serviceUnitOptions } = useUnitOptions();
+  const { partUnitOptions } = useUnitOptions();
   const {
     register,
     handleSubmit,
@@ -583,84 +583,19 @@ const InventoryForm = () => {
               />
             </div>
 
-            {/* บริการ */}
             {isServiceCategory() && (
-              <div className="mb-[16px]">
-                {/* จุ๊บลมใส่รูปได้เหมือนอะไหล่ งานบริการทั่วไปกับอะไหล่อื่นๆ ไม่มีรูปให้ใส่
-                รูปอยู่ก่อนชื่อ ลำดับเดียวกับฟอร์มอะไหล่ */}
-                {canHaveServiceImage(watch("name")) && (
-                  <FormUploadImage
-                    label="รูปภาพอะไหล่"
-                    setSelectedImage={setSelectedImage}
-                    selectedImage={selectedImage}
-                    publicId={inventory?.publicId}
-                    onMarkForDeletion={setIsImageMarkedForDeletion}
-                  />
-                )}
-                <FormInput
-                  register={register}
-                  name="name"
-                  label={`ชื่อ${itemWord}`}
-                  type="text"
-                  placeholder={readsAsPart ? "เช่น จุ๊บลม" : "เช่น ตั้งศูนย์"}
-                  color="subtle-dark"
-                  errors={errors}
-                />
-
-                {/* บริการที่ทำทีละข้าง (ตั้งลูกปืนล้อ) ตอนหยิบลงบิลจะถามว่าข้างไหน เหมือนอะไหล่ */}
-                <div className="my-[16px] px-[20px]">
-                  <ComboBox
-                    label="ข้าง"
-                    color="text-subtle-dark"
-                    labelClass="text-xl"
-                    options={SIDE_OPTIONS}
-                    value={watch("suspensionType") || "single"}
-                    onChange={(value) => setValue("suspensionType", value)}
-                    name="suspensionType"
-                  />
-                </div>
-
-                {/* ราคากับหน่วยอยู่แถวเดียวกัน อ่านต่อกันได้ว่า "100 บาท ต่อ ล้อ"
-                    หน่วยเว้นว่างได้ บริการส่วนใหญ่คิดเป็นครั้ง ไม่ต้องบอกหน่วย */}
-                <div className="mt-[16px] px-[20px]">
-                  <div className="grid grid-cols-2 gap-[8px]">
-                    <FormInput
-                      register={register}
-                      name="price"
-                      label="ราคา (บาท)"
-                      type="number"
-                      placeholder="เช่น 400"
-                      color="subtle-dark"
-                      customClass="w-full"
-                      errors={errors}
-                      hideErrorMessage
-                      inputMode="numeric"
-                    />
-                    <div className="w-full">
-                      <ComboBox
-                        label="หน่วย"
-                        color="text-subtle-dark"
-                        labelClass="text-xl"
-                        options={serviceUnitOptions}
-                        value={watch("unit") || ""}
-                        onChange={(value) =>
-                          setValue("unit", value, { shouldValidate: true })
-                        }
-                        creatable
-                        createLabel={(text) => `เพิ่มหน่วย "${text}"`}
-                        customClass="text-lg md:text-xl"
-                        errors={errors}
-                        hideErrorMessage
-                        name="unit"
-                      />
-                    </div>
-                  </div>
-                  <FieldErrorList
-                    className="mt-[6px]"
-                    messages={[errors.price?.message, errors.unit?.message]}
-                  />
-                </div>
-              </div>
+              <ServiceFields
+                register={register}
+                watch={watch}
+                setValue={setValue}
+                errors={errors}
+                itemWord={itemWord}
+                readsAsPart={readsAsPart}
+                selectedImage={selectedImage}
+                setSelectedImage={setSelectedImage}
+                publicId={inventory?.publicId}
+                onMarkImageForDeletion={setIsImageMarkedForDeletion}
+              />
             )}
 
             {/* อะไหล่ */}
@@ -718,94 +653,13 @@ const InventoryForm = () => {
                   </>
                 )}
 
-                {/* ยาง */}
                 {isTireCategory() && (
-                  <div className="mt-[16px] px-[20px]">
-                    <div className="flex items-end gap-[8px]">
-                      <FormInput
-                        register={register}
-                        name="width"
-                        label="หน้ายาง"
-                        type="text"
-                        placeholder="มม."
-                        color="subtle-dark"
-                        customClass="w-full min-w-0 flex-1"
-                        errors={errors}
-                        hideErrorMessage
-                        inputMode="decimal"
-                        onWheel={(e) => e.target.blur()}
-                        onInput={(e) => {
-                          // ยางบรรทุกใช้หน่วยนิ้วและมีจุดทศนิยม (7.50R16)
-                          // ต่างจากยางเก๋งที่เป็นมิลลิเมตรจำนวนเต็ม (195/55R15)
-                          e.target.value = e.target.value
-                            .replace(/[^0-9.]/g, "")
-                            .replace(/(\..*)\./g, "$1")
-                            .slice(0, 5);
-                        }}
-                      />
-
-                      {/* ยางบรรทุกไม่มีแก้มยาง (7.50R16) ตัวคั่นจึงไม่ควรค้างอยู่เมื่อช่องกลางว่าง */}
-                      <span
-                        className={`text-subtle-dark flex h-[41px] shrink-0 items-center text-xl font-medium md:text-[22px] ${
-                          watch("aspectRatio") ? "" : "opacity-0"
-                        }`}
-                      >
-                        /
-                      </span>
-
-                      <FormInput
-                        register={register}
-                        name="aspectRatio"
-                        label="แก้มยาง"
-                        type="text"
-                        placeholder="%"
-                        color="subtle-dark"
-                        customClass="w-full min-w-0 flex-1"
-                        errors={errors}
-                        hideErrorMessage
-                        inputMode="numeric"
-                        onWheel={(e) => e.target.blur()}
-                        onInput={(e) => {
-                          e.target.value = e.target.value
-                            .replace(/[^0-9]/g, "")
-                            .slice(0, 2);
-                        }}
-                      />
-
-                      <TireConstructionToggle
-                        value={watch("construction")}
-                        onChange={(next) => setValue("construction", next)}
-                      />
-
-                      <FormInput
-                        register={register}
-                        name="rimDiameter"
-                        label="ขอบ"
-                        type="text"
-                        placeholder="นิ้ว"
-                        color="subtle-dark"
-                        customClass="w-full min-w-0 flex-1"
-                        errors={errors}
-                        hideErrorMessage
-                        inputMode="numeric"
-                        onWheel={(e) => e.target.blur()}
-                        onInput={(e) => {
-                          e.target.value = e.target.value
-                            .replace(/[^0-9]/g, "")
-                            .slice(0, 2);
-                        }}
-                      />
-                    </div>
-
-                    <FieldErrorList
-                      className="mt-[6px]"
-                      messages={[
-                        errors.width?.message,
-                        errors.aspectRatio?.message,
-                        errors.rimDiameter?.message,
-                      ]}
-                    />
-                  </div>
+                  <TireSizeFields
+                    register={register}
+                    watch={watch}
+                    setValue={setValue}
+                    errors={errors}
+                  />
                 )}
 
                 {/* ช่วงล่างต้องเลือกข้างทุกตัว หน้าเช็กช่วงล่างใช้แบ่งแท็บซ้าย/ขวา
@@ -907,7 +761,6 @@ const InventoryForm = () => {
                   type="hidden"
                   value={watch("unit") || ""}
                 />
-                {/* ยางไม่มีช่องจำนวนสต็อก (คิดจากผลรวมล็อต) สต็อกขั้นต่ำจึงอยู่เต็มแถวไปเลย */}
                 {isOilCategory() && (
                   <OilKitFields
                     register={register}
@@ -918,84 +771,17 @@ const InventoryForm = () => {
                   />
                 )}
                 {/* ชุดน้ำมันที่ใช้น้ำมันจากตัวเก็บแล้วไม่มีสต็อกของตัวเอง จึงไม่มีช่องสต็อก */}
-                {isOilKit ? null : isLotTracked() ? (
-                  <>
-                    <TireLotInput
-                      control={control}
-                      register={register}
-                      watch={watch}
-                      errors={errors}
-                      // หน้าแก้ไขยอมให้ไม่มีล็อตได้ ทั้งยางที่ขายหมด (backend ลบล็อตทิ้งไปแล้ว)
-                      // และกรณีล้างล็อตเองจนเหลือ 0 — ต่างจากหน้าเพิ่มที่ยังบังคับอย่างน้อย 1 แถว
-                      allowEmpty={isEdit}
-                    />
-                    <FormInput
-                      register={register}
-                      name="minStockLevel"
-                      label="สต็อกขั้นต่ำ"
-                      type="number"
-                      placeholder="เช่น 3"
-                      color="subtle-dark"
-                      errors={errors}
-                      inputMode="numeric"
-                      onWheel={(e) => e.target.blur()}
-                      onInput={(e) => {
-                        e.target.value = e.target.value.replace(/[^0-9]/g, "");
-                      }}
-                    />
-                  </>
-                ) : (
-                  <div className="mt-[16px] px-[20px]">
-                    <div className="grid grid-cols-2 gap-[8px]">
-                      <FormInput
-                        register={register}
-                        name="stockQuantity"
-                        label="จำนวนสต็อก"
-                        type="number"
-                        placeholder="เช่น 10"
-                        color="subtle-dark"
-                        customClass="w-full"
-                        errors={errors}
-                        hideErrorMessage
-                        inputMode="numeric"
-                        onWheel={(e) => e.target.blur()}
-                        onInput={(e) => {
-                          e.target.value = e.target.value.replace(
-                            /[^0-9]/g,
-                            "",
-                          );
-                        }}
-                      />
-
-                      <FormInput
-                        register={register}
-                        name="minStockLevel"
-                        label="สต็อกขั้นต่ำ"
-                        type="number"
-                        placeholder="เช่น 3"
-                        color="subtle-dark"
-                        customClass="w-full"
-                        errors={errors}
-                        hideErrorMessage
-                        inputMode="numeric"
-                        onWheel={(e) => e.target.blur()}
-                        onInput={(e) => {
-                          e.target.value = e.target.value.replace(
-                            /[^0-9]/g,
-                            "",
-                          );
-                        }}
-                      />
-                    </div>
-
-                    <FieldErrorList
-                      className="mt-[6px]"
-                      messages={[
-                        errors.stockQuantity?.message,
-                        errors.minStockLevel?.message,
-                      ]}
-                    />
-                  </div>
+                {!isOilKit && (
+                  <StockFields
+                    lotTracked={isLotTracked()}
+                    // หน้าแก้ไขยอมให้ไม่มีล็อตได้ ทั้งยางที่ขายหมด (backend ลบล็อตทิ้งไปแล้ว)
+                    // และกรณีล้างล็อตเองจนเหลือ 0 — ต่างจากหน้าเพิ่มที่ยังบังคับอย่างน้อย 1 แถว
+                    allowEmptyLots={isEdit}
+                    control={control}
+                    register={register}
+                    watch={watch}
+                    errors={errors}
+                  />
                 )}
                 {hasVehicleCompatibility() && (
                   <VehicleCompatibilityInput

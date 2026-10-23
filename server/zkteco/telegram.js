@@ -2,13 +2,18 @@ const config = require("./config");
 const { log } = require("./log");
 
 const MAX_RETRIES = 1;
-const NETWORK_ERROR_CODES = new Set(["ENOTFOUND", "ECONNREFUSED", "ECONNRESET"]);
+const NETWORK_ERROR_CODES = new Set([
+  "ENOTFOUND",
+  "ECONNREFUSED",
+  "ECONNRESET",
+]);
 
 // ห้าม retry timeout: sendMessage ไม่ idempotent จะแจ้งเตือนซ้ำ
 const isRetryable = (err) => NETWORK_ERROR_CODES.has(err?.code);
 
 // timeout = ไม่รู้ว่า Telegram รับไปแล้วหรือยัง ผู้เรียกต้องไม่ลองส่งใหม่ ไม่งั้นได้ข้อความซ้ำ
-const isAmbiguous = (err) => err?.name === "AbortError" || err?.ambiguous === true;
+const isAmbiguous = (err) =>
+  err?.name === "AbortError" || err?.ambiguous === true;
 
 // 429 มาพร้อม parameters.retry_after บอกตรงๆ ว่าให้รอกี่วินาที ต้องเชื่อค่านี้
 // ยิงซ้ำก่อนครบเวลา Telegram จะเพิ่มโทษให้ยาวขึ้นอีก
@@ -24,7 +29,10 @@ const parseRetryAfterMs = (bodyText) => {
 
 const sendToChat = async (chatId, text, attempt = 0) => {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), config.telegram.requestTimeoutMs);
+  const timer = setTimeout(
+    () => controller.abort(),
+    config.telegram.requestTimeoutMs,
+  );
   try {
     const response = await fetch(
       `https://api.telegram.org/bot${config.telegram.botToken}/sendMessage`,
@@ -42,7 +50,8 @@ const sendToChat = async (chatId, text, attempt = 0) => {
       throw error;
     }
   } catch (err) {
-    if (attempt < MAX_RETRIES && isRetryable(err)) return sendToChat(chatId, text, attempt + 1);
+    if (attempt < MAX_RETRIES && isRetryable(err))
+      return sendToChat(chatId, text, attempt + 1);
     throw err;
   } finally {
     clearTimeout(timer);
@@ -66,7 +75,8 @@ const splitText = (text) => {
     if (line.length <= limit) {
       current = line;
     } else {
-      for (let i = 0; i < line.length; i += limit) chunks.push(line.slice(i, i + limit));
+      for (let i = 0; i < line.length; i += limit)
+        chunks.push(line.slice(i, i + limit));
       current = "";
     }
   }
@@ -98,7 +108,9 @@ const send = async (message) => {
   const pauseLeftMs = pausedUntil - Date.now();
   if (pauseLeftMs > 0) {
     // ยังโดนลงโทษอยู่: โยน error เงียบๆ ให้ผู้เรียกคืนคิวไว้รอบหน้า ห้ามแตะเน็ต
-    const error = new Error(`Backing off ${Math.ceil(pauseLeftMs / 1_000)}s before next send`);
+    const error = new Error(
+      `Backing off ${Math.ceil(pauseLeftMs / 1_000)}s before next send`,
+    );
     error.backoff = true;
     throw error;
   }
@@ -107,7 +119,9 @@ const send = async (message) => {
   const gapLeftMs = lastSentAt + sendGapMs - Date.now();
   if (gapLeftMs > 0) await delay(gapLeftMs);
 
-  const chunks = splitText(typeof message === "string" ? message : JSON.stringify(message));
+  const chunks = splitText(
+    typeof message === "string" ? message : JSON.stringify(message),
+  );
 
   const results = await Promise.allSettled(
     chatIds.map(async (chatId) => {
@@ -127,7 +141,10 @@ const send = async (message) => {
     return;
   }
 
-  const retryAfterMs = Math.max(0, ...rejected.map((r) => r.reason?.retryAfterMs || 0));
+  const retryAfterMs = Math.max(
+    0,
+    ...rejected.map((r) => r.reason?.retryAfterMs || 0),
+  );
   const pauseMs = backoffFor(consecutiveFailures, retryAfterMs);
   consecutiveFailures += 1;
   pausedUntil = Date.now() + pauseMs;

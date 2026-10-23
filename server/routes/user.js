@@ -6,7 +6,6 @@ const {
   editUserAccountSchema,
 } = require("../utils/validator");
 
-
 // Middlewares
 const { authCheck, adminCheck } = require("../middlewares/auth");
 

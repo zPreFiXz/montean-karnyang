@@ -79,7 +79,7 @@ const RepairCreate = () => {
     reorderButton,
     freebieButton,
     renderItemRows,
-    itemDialogs,
+    renderItemDialogs,
     updateItemPrice,
   } = useBillItems();
   const [isLoading, setIsLoading] = useState(false);
@@ -686,7 +686,7 @@ const RepairCreate = () => {
           )}
         </div>
       </div>
-      {itemDialogs}
+      {renderItemDialogs()}
       <EditPriceDialog
         isOpen={priceDialogOpen}
         onClose={() => setPriceDialogOpen(false)}

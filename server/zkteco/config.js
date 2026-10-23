@@ -14,12 +14,14 @@ const config = {
 
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN,
-    chatIds: [...new Set(
-      (process.env.TELEGRAM_CHAT_IDS || "")
-        .split(/[\s,]+/)
-        .map((id) => id.trim())
-        .filter(Boolean),
-    )],
+    chatIds: [
+      ...new Set(
+        (process.env.TELEGRAM_CHAT_IDS || "")
+          .split(/[\s,]+/)
+          .map((id) => id.trim())
+          .filter(Boolean),
+      ),
+    ],
     requestTimeoutMs: 15_000,
     textLimit: 4_096,
     // Telegram รับราว 1 ข้อความ/วินาที ต่อห้องแชท เว้นจังหวะไว้กันยิงรัวจนโดน 429

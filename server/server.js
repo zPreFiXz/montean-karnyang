@@ -86,7 +86,9 @@ if (existsSync(clientDistPath)) {
       setHeaders: (res, filePath) => {
         res.setHeader(
           "Cache-Control",
-          filePath.endsWith("index.html") ? "no-cache" : "public, max-age=31536000, immutable",
+          filePath.endsWith("index.html")
+            ? "no-cache"
+            : "public, max-age=31536000, immutable",
         );
       },
     }),

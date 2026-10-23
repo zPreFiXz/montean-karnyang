@@ -17,12 +17,18 @@ const createEmployeeCache = (prisma) => {
   let loadedAt = 0;
 
   const warm = async (force = false) => {
-    if (!force && cache.size && Date.now() - loadedAt < rules.employeeCacheTtlMs) return;
+    if (
+      !force &&
+      cache.size &&
+      Date.now() - loadedAt < rules.employeeCacheTtlMs
+    )
+      return;
     const employees = await prisma.employee.findMany({
       select: { id: true, name: true, zkUserId: true },
     });
     cache.clear();
-    for (const emp of employees) if (emp.zkUserId) cache.set(String(emp.zkUserId), emp);
+    for (const emp of employees)
+      if (emp.zkUserId) cache.set(String(emp.zkUserId), emp);
     loadedAt = Date.now();
   };
 
@@ -54,11 +60,20 @@ const formatDuration = (totalMinutes) => {
 
 const lunchReturnStatus = (eventTime, lunchOutTime) => {
   // นาทีหน้าปัด (ตัดวินาที): ออก 12:00:30 กลับ 13:00:10 = 60 นาที ไม่ใช่ 59
-  const restMin = Math.max(0, getMinuteOfDay(eventTime) - getMinuteOfDay(lunchOutTime));
+  const restMin = Math.max(
+    0,
+    getMinuteOfDay(eventTime) - getMinuteOfDay(lunchOutTime),
+  );
   const lateMin = Math.max(0, restMin - rules.lunchBreakMinutes);
   return lateMin > 0
-    ? { type: STATUS.LUNCH_RETURN_LATE, text: `กลับจากพักเที่ยง (พักเกิน ${formatDuration(lateMin)})` }
-    : { type: STATUS.LUNCH_RETURN, text: `กลับจากพักเที่ยง (พัก ${formatDuration(restMin)})` };
+    ? {
+        type: STATUS.LUNCH_RETURN_LATE,
+        text: `กลับจากพักเที่ยง (พักเกิน ${formatDuration(lateMin)})`,
+      }
+    : {
+        type: STATUS.LUNCH_RETURN,
+        text: `กลับจากพักเที่ยง (พัก ${formatDuration(restMin)})`,
+      };
 };
 
 // สถานะอิงจำนวนสแกนที่มีแล้ววันนี้: 0=เข้างาน 1=ออกพัก 2=กลับพัก 3+=เลิกงาน
@@ -74,15 +89,22 @@ const resolveStatus = async (prisma, employeeId, recordTime) => {
   if (!records.length) {
     const late = getMinuteOfDay(eventTime) - rules.lateAfterMinutes;
     return late > 0
-      ? { type: STATUS.CLOCK_IN_LATE, text: `เข้างาน (สาย ${formatDuration(late)})` }
+      ? {
+          type: STATUS.CLOCK_IN_LATE,
+          text: `เข้างาน (สาย ${formatDuration(late)})`,
+        }
       : { type: STATUS.CLOCK_IN, text: rules.stepStatuses[0] };
   }
-  if (records.length === 1) return { type: STATUS.LUNCH_OUT, text: rules.stepStatuses[1] };
-  if (records.length === 2) return lunchReturnStatus(eventTime, records[1].scannedAt);
+  if (records.length === 1)
+    return { type: STATUS.LUNCH_OUT, text: rules.stepStatuses[1] };
+  if (records.length === 2)
+    return lunchReturnStatus(eventTime, records[1].scannedAt);
   return { type: STATUS.CLOCK_OUT, text: rules.stepStatuses[3] };
 };
 
 const save = (prisma, employeeId, type, statusLabel, scannedAt) =>
-  prisma.attendance.create({ data: { employeeId, type, statusLabel, scannedAt } });
+  prisma.attendance.create({
+    data: { employeeId, type, statusLabel, scannedAt },
+  });
 
 module.exports = { STATUS, createEmployeeCache, resolveStatus, save };

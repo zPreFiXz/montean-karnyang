@@ -743,7 +743,9 @@ const useBillItems = ({
   // หน้าต่างที่ผูกกับรายการซ่อม (เลือกงานน้ำมัน เลือกข้าง แก้จำนวน ยืนยันเอาออก) ใช้ทั้งสองหน้า
   // เพดานจำนวนหักของชิ้นเดียวกันในบรรทัดอื่นและของที่จองไว้นอกรายการ (แท็บช่วงล่าง) ออก
   // บริการไม่มีสต็อก จึงไม่จำกัดจำนวน
-  const itemDialogs = (
+  // วาดตอนหน้าเรียกใน JSX ไม่ใช่ตอนเรียก hook เพราะ getReservedCount ของหน้าเช็กช่วงล่าง
+  // อ้างถึงฟังก์ชันที่ประกาศทีหลังในหน้านั้น เรียกระหว่างเรียก hook จะเจอ "ใช้ก่อนประกาศ"
+  const renderItemDialogs = () => (
     <>
       <OilUsePickDialog
         isOpen={!!oilUseItem}
@@ -828,7 +830,7 @@ const useBillItems = ({
     reorderButton,
     freebieButton,
     renderItemRows,
-    itemDialogs,
+    renderItemDialogs,
     updateItemPrice,
   };
 };

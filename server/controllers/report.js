@@ -14,151 +14,143 @@ const isDiscount = (item) =>
 
 // อะไหล่ขายดีในช่วงเวลาที่เลือก นับจากบิลที่เก็บเงินแล้วเท่านั้น ใช้ช่วงเวลาเดียวกับรายงานยอดขาย
 // from/to ส่งมาจากหน้าเว็บที่คิดขอบเขตวันตามเวลาเครื่องของคนดูไว้แล้ว ตรงกับที่รายงานยอดขายแสดง
-exports.listTopItems = async (req, res, next) => {
-  try {
-    const from = new Date(req.query.from);
-    const to = new Date(req.query.to);
-    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
-      createError(400, "ช่วงเวลาไม่ถูกต้อง");
-    }
+exports.listTopItems = async (req, res) => {
+  const from = new Date(req.query.from);
+  const to = new Date(req.query.to);
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
+    createError(400, "ช่วงเวลาไม่ถูกต้อง");
+  }
 
-    const items = await prisma.repairItem.findMany({
-      where: { repair: { status: "PAID", paidAt: { gte: from, lte: to } } },
-      select: {
-        itemName: true,
-        itemUnit: true,
-        unitPrice: true,
-        quantity: true,
-        part: {
-          select: {
-            id: true,
-            brand: true,
-            name: true,
-            unit: true,
-            attributes: true,
-            secureUrl: true,
-            category: { select: { name: true } },
-          },
-        },
-        service: {
-          select: { id: true, name: true, unit: true, secureUrl: true },
+  const items = await prisma.repairItem.findMany({
+    where: { repair: { status: "PAID", paidAt: { gte: from, lte: to } } },
+    select: {
+      itemName: true,
+      itemUnit: true,
+      unitPrice: true,
+      quantity: true,
+      part: {
+        select: {
+          id: true,
+          brand: true,
+          name: true,
+          unit: true,
+          attributes: true,
+          secureUrl: true,
+          category: { select: { name: true } },
         },
       },
-    });
+      service: {
+        select: { id: true, name: true, unit: true, secureUrl: true },
+      },
+    },
+  });
 
-    const groups = new Map();
-    for (const item of items) {
-      if (isDiscount(item)) continue;
+  const groups = new Map();
+  for (const item of items) {
+    if (isDiscount(item)) continue;
 
-      const serviceName = item.service?.name;
-      const isPlaceholder = PLACEHOLDER_SERVICE_NAMES.includes(serviceName);
-      const key = item.part
-        ? `part:${item.part.id}`
-        : item.service && !isPlaceholder
-          ? `service:${item.service.id}`
-          : `name:${serviceName || ""}:${(item.itemName || "").trim()}`;
+    const serviceName = item.service?.name;
+    const isPlaceholder = PLACEHOLDER_SERVICE_NAMES.includes(serviceName);
+    const key = item.part
+      ? `part:${item.part.id}`
+      : item.service && !isPlaceholder
+        ? `service:${item.service.id}`
+        : `name:${serviceName || ""}:${(item.itemName || "").trim()}`;
 
-      if (!groups.has(key)) {
-        groups.set(key, {
-          key,
-          // บรรทัดที่ทั้งอะไหล่และบริการถูกลบจากคลังไปแล้ว เหลือแต่ชื่อในบิล เดิมเป็นอะไหล่
-          // (บริการลบไม่ได้ถ้ามีบิลใช้อยู่ ดู delete guards)
-          kind:
-            item.part ||
-            !item.service ||
-            PART_LIKE_SERVICE_NAMES.includes(serviceName)
-              ? "part"
-              : "service",
-          // อะไหล่ส่งข้อมูลไปให้หน้าเว็บประกอบชื่อเอง (ยางต้องเอาขนาดมาต่อ) บรรทัดอื่นใช้ชื่อในบิล
-          part: item.part
-            ? {
-                brand: item.part.brand,
-                name: item.part.name,
-                attributes: item.part.attributes,
-                category: item.part.category?.name,
-                secureUrl: item.part.secureUrl,
-              }
-            : null,
-          name: item.part
-            ? item.part.name
-            : isPlaceholder
-              ? item.itemName || serviceName
-              : serviceName || item.itemName,
-          unit: item.part?.unit || item.itemUnit || item.service?.unit || "",
-          // จุ๊บลมเป็นบริการที่มีรูปได้ (ดู Service.secureUrl)
-          secureUrl: item.part?.secureUrl || item.service?.secureUrl || null,
-          quantity: 0,
-          revenue: 0,
-        });
-      }
-
-      const group = groups.get(key);
-      const quantity = Number(item.quantity) || 0;
-      group.quantity += quantity;
-      group.revenue += quantity * Number(item.unitPrice || 0);
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        // บรรทัดที่ทั้งอะไหล่และบริการถูกลบจากคลังไปแล้ว เหลือแต่ชื่อในบิล เดิมเป็นอะไหล่
+        // (บริการลบไม่ได้ถ้ามีบิลใช้อยู่ ดู delete guards)
+        kind:
+          item.part ||
+          !item.service ||
+          PART_LIKE_SERVICE_NAMES.includes(serviceName)
+            ? "part"
+            : "service",
+        // อะไหล่ส่งข้อมูลไปให้หน้าเว็บประกอบชื่อเอง (ยางต้องเอาขนาดมาต่อ) บรรทัดอื่นใช้ชื่อในบิล
+        part: item.part
+          ? {
+              brand: item.part.brand,
+              name: item.part.name,
+              attributes: item.part.attributes,
+              category: item.part.category?.name,
+              secureUrl: item.part.secureUrl,
+            }
+          : null,
+        name: item.part
+          ? item.part.name
+          : isPlaceholder
+            ? item.itemName || serviceName
+            : serviceName || item.itemName,
+        unit: item.part?.unit || item.itemUnit || item.service?.unit || "",
+        // จุ๊บลมเป็นบริการที่มีรูปได้ (ดู Service.secureUrl)
+        secureUrl: item.part?.secureUrl || item.service?.secureUrl || null,
+        quantity: 0,
+        revenue: 0,
+      });
     }
 
-    // หน้าสินค้าขายดีดูเฉพาะอะไหล่ ค่าแรงกับงานบริการไม่ใช่ของที่ขาย
-    res.json([...groups.values()].filter((group) => group.kind === "part"));
-  } catch (error) {
-    next(error);
+    const group = groups.get(key);
+    const quantity = Number(item.quantity) || 0;
+    group.quantity += quantity;
+    group.revenue += quantity * Number(item.unitPrice || 0);
   }
+
+  // หน้าสินค้าขายดีดูเฉพาะอะไหล่ ค่าแรงกับงานบริการไม่ใช่ของที่ขาย
+  res.json([...groups.values()].filter((group) => group.kind === "part"));
 };
 
 // รุ่นรถที่มาบ่อยในช่วงเวลาที่เลือก นับบิลที่เก็บเงินแล้วแบบเดียวกับสินค้าขายดี
 // บิลขายหน้าร้านกับงานที่ไม่ผูกกับรถไม่มีรุ่นให้นับ คันเดียวมาหลายครั้งนับครั้งตามบิล นับคันไม่ซ้ำ
-exports.listTopVehicleModels = async (req, res, next) => {
-  try {
-    const from = new Date(req.query.from);
-    const to = new Date(req.query.to);
-    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
-      createError(400, "ช่วงเวลาไม่ถูกต้อง");
-    }
+exports.listTopVehicleModels = async (req, res) => {
+  const from = new Date(req.query.from);
+  const to = new Date(req.query.to);
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
+    createError(400, "ช่วงเวลาไม่ถูกต้อง");
+  }
 
-    const repairs = await prisma.repair.findMany({
-      where: {
-        status: "PAID",
-        paidAt: { gte: from, lte: to },
-        vehicleId: { not: null },
-      },
-      select: {
-        totalPrice: true,
-        vehicleId: true,
-        vehicle: {
-          select: {
-            vehicleModel: { select: { id: true, brand: true, model: true } },
-          },
+  const repairs = await prisma.repair.findMany({
+    where: {
+      status: "PAID",
+      paidAt: { gte: from, lte: to },
+      vehicleId: { not: null },
+    },
+    select: {
+      totalPrice: true,
+      vehicleId: true,
+      vehicle: {
+        select: {
+          vehicleModel: { select: { id: true, brand: true, model: true } },
         },
       },
-    });
+    },
+  });
 
-    const groups = new Map();
-    for (const repair of repairs) {
-      const model = repair.vehicle?.vehicleModel;
-      if (!model) continue;
-      if (!groups.has(model.id)) {
-        groups.set(model.id, {
-          key: `model:${model.id}`,
-          brand: model.brand,
-          model: model.model,
-          visits: 0,
-          vehicleIds: new Set(),
-          revenue: 0,
-        });
-      }
-      const group = groups.get(model.id);
-      group.visits += 1;
-      group.vehicleIds.add(repair.vehicleId);
-      group.revenue += Number(repair.totalPrice) || 0;
+  const groups = new Map();
+  for (const repair of repairs) {
+    const model = repair.vehicle?.vehicleModel;
+    if (!model) continue;
+    if (!groups.has(model.id)) {
+      groups.set(model.id, {
+        key: `model:${model.id}`,
+        brand: model.brand,
+        model: model.model,
+        visits: 0,
+        vehicleIds: new Set(),
+        revenue: 0,
+      });
     }
-
-    res.json(
-      [...groups.values()].map(({ vehicleIds, ...group }) => ({
-        ...group,
-        vehicles: vehicleIds.size,
-      })),
-    );
-  } catch (error) {
-    next(error);
+    const group = groups.get(model.id);
+    group.visits += 1;
+    group.vehicleIds.add(repair.vehicleId);
+    group.revenue += Number(repair.totalPrice) || 0;
   }
+
+  res.json(
+    [...groups.values()].map(({ vehicleIds, ...group }) => ({
+      ...group,
+      vehicles: vehicleIds.size,
+    })),
+  );
 };

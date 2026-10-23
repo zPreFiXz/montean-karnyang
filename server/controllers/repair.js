@@ -147,37 +147,39 @@ const resolveVehicleForEdit = async (
       ? await tx.vehicle.update({ where: { id: targetId }, data })
       : await tx.vehicle.create({ data });
   } else {
-    const existingVehicle = await tx.vehicle.findFirst({
-      where: {
-        vehicleModelId: vehicleModel.id,
-        licensePlateId: null,
-        fleetNo: fleet,
-      },
-    });
-
-    if (existingVehicle && existingVehicle.id !== currentVehicleId) {
-      vehicle = existingVehicle;
-    } else if (currentVehicleId) {
-      vehicle = await tx.vehicle.update({
-        where: { id: currentVehicleId },
+    // ไม่มีทะเบียน = ใช้แถวรถร่วมของรุ่นนั้นแยกตามเบอร์รถ เหมือนบิลใหม่
+    // ห้ามแก้รถคันเดิมของบิลตรงๆ: ถ้าเดิมมีทะเบียน บิลอื่นของรถคันนั้นจะหายทะเบียนไปด้วย
+    // ถ้าเดิมเป็นแถวร่วม บิลอื่นที่ใช้แถวเดียวกันจะเปลี่ยนรุ่นตามไปหมด
+    vehicle =
+      (await tx.vehicle.findFirst({
+        where: {
+          vehicleModelId: vehicleModel.id,
+          licensePlateId: null,
+          fleetNo: fleet,
+        },
+      })) ||
+      (await tx.vehicle.create({
         data: {
           vehicleModelId: vehicleModel.id,
           licensePlateId: null,
           fleetNo: fleet,
         },
-      });
-    } else {
-      // บิลเดิมเป็นการขายหน้าร้าน ยังไม่เคยมีรถผูกไว้
-      vehicle = await tx.vehicle.create({
-        data: {
-          vehicleModelId: vehicleModel.id,
-          licensePlateId: null,
-          fleetNo: fleet,
-        },
-      });
-    }
+      }));
   }
   return vehicle;
+};
+
+// บิลย้ายไปรถคันอื่นแล้ว รถคันเดิมที่ไม่มีทะเบียนและไม่เหลือบิลไหนใช้ ลบทิ้ง ไม่ให้ค้างในประวัติรถ
+// รถที่มีทะเบียนเก็บไว้ ทะเบียนคือประวัติของรถคันนั้น
+const removeOrphanVehicle = async (tx, vehicleId) => {
+  if (!vehicleId) return;
+  const old = await tx.vehicle.findUnique({
+    where: { id: vehicleId },
+    select: { licensePlateId: true, _count: { select: { repairs: true } } },
+  });
+  if (old && !old.licensePlateId && old._count.repairs === 0) {
+    await tx.vehicle.delete({ where: { id: vehicleId } });
+  }
 };
 
 // หา/สร้าง/อัปเดตลูกค้า: จับคู่ด้วยเบอร์โทรก่อน (unique) ถ้าไม่มีเบอร์ค่อยจับคู่ด้วยชื่อ
@@ -513,526 +515,501 @@ const createRepairItemsAndDecrementStock = async (
   }
 };
 
-exports.listRepairs = async (req, res, next) => {
-  try {
-    const repairs = await prisma.repair.findMany({
-      include: {
-        customer: {
-          select: {
-            name: true,
-            // บิลเครดิตของหน่วยงานหรือร้านค้าไปรวมอยู่หน้าหน่วยงานและร้านค้าแทน
-            organizationType: true,
-          },
+exports.listRepairs = async (req, res) => {
+  const repairs = await prisma.repair.findMany({
+    include: {
+      customer: {
+        select: {
+          name: true,
+          // บิลเครดิตของหน่วยงานหรือร้านค้าไปรวมอยู่หน้าหน่วยงานและร้านค้าแทน
+          organizationType: true,
         },
-        // ชื่อรายการใช้ตั้งหัวการ์ดของบิลที่ไม่ผูกกับรถ (ดู getRepairTitle ฝั่งหน้าเว็บ)
-        // partId ไว้แยกว่าบรรทัดไหนเป็นอะไหล่ หัวการ์ดเอาเฉพาะชื่องานบริการ
-        repairItems: {
-          select: {
-            itemName: true,
-            partId: true,
-          },
+      },
+      // ชื่อรายการใช้ตั้งหัวการ์ดของบิลที่ไม่ผูกกับรถ (ดู getRepairTitle ฝั่งหน้าเว็บ)
+      // partId ไว้แยกว่าบรรทัดไหนเป็นอะไหล่ หัวการ์ดเอาเฉพาะชื่องานบริการ
+      repairItems: {
+        select: {
+          itemName: true,
+          partId: true,
         },
-        vehicle: {
-          include: {
-            licensePlate: {
-              select: {
-                plateNumber: true,
-                province: true,
-              },
+      },
+      vehicle: {
+        include: {
+          licensePlate: {
+            select: {
+              plateNumber: true,
+              province: true,
             },
-            vehicleModel: {
-              select: {
-                brand: true,
-                model: true,
-              },
+          },
+          vehicleModel: {
+            select: {
+              brand: true,
+              model: true,
             },
           },
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
 
-    res.json(repairs);
-  } catch (error) {
-    next(error);
-  }
+  res.json(repairs);
 };
 
-exports.getRepair = async (req, res, next) => {
-  try {
-    const { id } = req.params;
+exports.getRepair = async (req, res) => {
+  const { id } = req.params;
 
-    const repair = await prisma.repair.findUnique({
-      where: { id: Number(id) },
-      include: {
-        vehicle: {
-          include: {
-            licensePlate: {
-              select: {
-                plateNumber: true,
-                province: true,
-              },
-            },
-            vehicleModel: {
-              select: {
-                brand: true,
-                model: true,
-              },
+  const repair = await prisma.repair.findUnique({
+    where: { id: Number(id) },
+    include: {
+      vehicle: {
+        include: {
+          licensePlate: {
+            select: {
+              plateNumber: true,
+              province: true,
             },
           },
-        },
-        customer: true,
-        user: {
-          select: {
-            name: true,
-          },
-        },
-        repairItems: {
-          include: {
-            part: {
-              include: {
-                category: true,
-                oilSource: OIL_SOURCE_SELECT,
-              },
-            },
-            service: {
-              include: {
-                category: true,
-              },
+          vehicleModel: {
+            select: {
+              brand: true,
+              model: true,
             },
           },
         },
       },
+      customer: true,
+      user: {
+        select: {
+          name: true,
+        },
+      },
+      repairItems: {
+        include: {
+          part: {
+            include: {
+              category: true,
+              oilSource: OIL_SOURCE_SELECT,
+            },
+          },
+          service: {
+            include: {
+              category: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!repair) {
+    createError(404, "ไม่พบงานซ่อม");
+  }
+
+  // กล่องยืนยันการลบใช้เตือนว่าเลขไหนจะขาดช่วง
+  res.json({
+    ...repair,
+    // ชุดน้ำมันบอกสต็อกเป็นจำนวนชุดที่น้ำมันในตัวเก็บพอขาย หน้าแก้ไขบิลจะได้กันเบิกเกินของจริง
+    repairItems: repair.repairItems.map((item) =>
+      item.part ? { ...item, part: withOilKitStock(item.part) } : item,
+    ),
+    docNosSkippedOnDelete: await docNosSkippedOnDelete(prisma, repair),
+  });
+};
+
+exports.createRepair = async (req, res) => {
+  const {
+    name,
+    address,
+    taxId,
+    phoneNumber,
+    brand,
+    model,
+    plate,
+    province,
+    fleetNo,
+    description,
+    mileage,
+    totalPrice,
+    type,
+    paymentMethod,
+    noVehicle,
+    repairItems,
+  } = req.body;
+  const fleet = fleetNo?.trim() || null;
+
+  // ห่อทั้งหมดใน transaction: ถ้าพังกลางทางจะ rollback ไม่เหลือข้อมูลค้างครึ่ง
+  const isSale = type === "SALE";
+  // ไม่ผูกกับรถ: บิลขายหน้าร้าน หรืองานบริการที่ไม่เก็บประวัติรถ
+  // ข้ามการหา/สร้างรถกับทะเบียนทั้งหมด บิลจึงไม่ไปโผล่ในประวัติรถคันไหน
+  const skipVehicle = isSale || !!noVehicle;
+
+  await prisma.$transaction(async (tx) => {
+    const vehicle = skipVehicle
+      ? null
+      : await resolveVehicleForNewBill(tx, {
+          brand,
+          model,
+          plate,
+          province,
+          fleet,
+        });
+
+    const customer = await resolveCustomer(tx, {
+      name,
+      address,
+      taxId,
+      phoneNumber,
     });
 
-    if (!repair) {
-      createError(404, "ไม่พบงานซ่อม");
+    // ขายหน้าร้าน = ลูกค้าจ่ายแล้วเดินออกไปเลย จึงบันทึกจบในครั้งเดียว
+    // ต่างจากงานบริการที่อาจเก็บเงินทีหลัง จึงเดินสถานะปกติเหมือนงานซ่อม
+    //
+    // ยกเว้นเลือกเครดิต = ของออกจากร้านแล้วแต่ยังไม่ได้เงิน บิลไปพักที่สถานะเครดิต
+    // ไม่มีเวลาชำระเงินและไม่เก็บวิธีจ่าย ยอดจึงยังไม่เข้ารายงานจนกว่าจะตัดเครดิต
+    const isCreditSale = isSale && paymentMethod === "CREDIT";
+    const paidNow = isSale && !isCreditSale ? new Date() : null;
+
+    const repair = await tx.repair.create({
+      data: {
+        description: description || null,
+        mileage: mileage ?? null,
+        totalPrice,
+        type,
+        ...(isCreditSale
+          ? { status: "CREDIT", completedAt: new Date() }
+          : isSale
+            ? {
+                status: "PAID",
+                completedAt: paidNow,
+                paidAt: paidNow,
+                paymentMethod: paymentMethod || "CASH",
+              }
+            : {}),
+        user: { connect: { id: req.user.id } },
+        ...(vehicle ? { vehicle: { connect: { id: vehicle.id } } } : {}),
+        ...(customer ? { customer: { connect: { id: customer.id } } } : {}),
+      },
+    });
+
+    if (repairItems?.length) {
+      await createRepairItemsAndDecrementStock(tx, repair.id, repairItems);
     }
 
-    // กล่องยืนยันการลบใช้เตือนว่าเลขไหนจะขาดช่วง
-    res.json({
-      ...repair,
-      // ชุดน้ำมันบอกสต็อกเป็นจำนวนชุดที่น้ำมันในตัวเก็บพอขาย หน้าแก้ไขบิลจะได้กันเบิกเกินของจริง
-      repairItems: repair.repairItems.map((item) =>
-        item.part ? { ...item, part: withOilKitStock(item.part) } : item,
-      ),
-      docNosSkippedOnDelete: await docNosSkippedOnDelete(prisma, repair),
-    });
-  } catch (error) {
-    next(error);
-  }
+    await assignRepairDocumentNo(tx, repair.id);
+  });
+
+  res.json({ message: "สร้างงานซ่อมเรียบร้อยแล้ว" });
 };
 
-exports.createRepair = async (req, res, next) => {
-  try {
-    const {
-      name,
-      address,
-      taxId,
-      phoneNumber,
-      brand,
-      model,
-      plate,
-      province,
-      fleetNo,
-      description,
-      mileage,
-      totalPrice,
-      type,
-      paymentMethod,
-      noVehicle,
-      repairItems,
-    } = req.body;
-    const fleet = fleetNo?.trim() || null;
+exports.updateRepair = async (req, res) => {
+  const { id } = req.params;
+  const {
+    name,
+    address,
+    taxId,
+    phoneNumber,
+    brand,
+    model,
+    plate,
+    province,
+    fleetNo,
+    description,
+    mileage,
+    totalPrice,
+    type,
+    paymentMethod,
+    noVehicle,
+    repairItems,
+  } = req.body;
+  const fleet = fleetNo?.trim() || null;
 
-    // ห่อทั้งหมดใน transaction: ถ้าพังกลางทางจะ rollback ไม่เหลือข้อมูลค้างครึ่ง
-    const isSale = type === "SALE";
-    // ไม่ผูกกับรถ: บิลขายหน้าร้าน หรืองานบริการที่ไม่เก็บประวัติรถ
-    // ข้ามการหา/สร้างรถกับทะเบียนทั้งหมด บิลจึงไม่ไปโผล่ในประวัติรถคันไหน
-    const skipVehicle = isSale || !!noVehicle;
+  // ห่อทั้งหมดใน transaction: คืนสต็อก + ลบ/สร้างรายการใหม่ + อัปเดตบิล ต้อง atomic
+  const isSale = type === "SALE";
+  const skipVehicle = isSale || !!noVehicle;
 
-    await prisma.$transaction(async (tx) => {
-      const vehicle = skipVehicle
-        ? null
-        : await resolveVehicleForNewBill(tx, {
-            brand,
-            model,
-            plate,
-            province,
-            fleet,
-          });
-
-      const customer = await resolveCustomer(tx, {
-        name,
-        address,
-        taxId,
-        phoneNumber,
-      });
-
-      // ขายหน้าร้าน = ลูกค้าจ่ายแล้วเดินออกไปเลย จึงบันทึกจบในครั้งเดียว
-      // ต่างจากงานบริการที่อาจเก็บเงินทีหลัง จึงเดินสถานะปกติเหมือนงานซ่อม
-      //
-      // ยกเว้นเลือกเครดิต = ของออกจากร้านแล้วแต่ยังไม่ได้เงิน บิลไปพักที่สถานะเครดิต
-      // ไม่มีเวลาชำระเงินและไม่เก็บวิธีจ่าย ยอดจึงยังไม่เข้ารายงานจนกว่าจะตัดเครดิต
-      const isCreditSale = isSale && paymentMethod === "CREDIT";
-      const paidNow = isSale && !isCreditSale ? new Date() : null;
-
-      const repair = await tx.repair.create({
-        data: {
-          description: description || null,
-          mileage: mileage ?? null,
-          totalPrice,
-          type,
-          ...(isCreditSale
-            ? { status: "CREDIT", completedAt: new Date() }
-            : isSale
-              ? {
-                  status: "PAID",
-                  completedAt: paidNow,
-                  paidAt: paidNow,
-                  paymentMethod: paymentMethod || "CASH",
-                }
-              : {}),
-          user: { connect: { id: req.user.id } },
-          ...(vehicle ? { vehicle: { connect: { id: vehicle.id } } } : {}),
-          ...(customer ? { customer: { connect: { id: customer.id } } } : {}),
-        },
-      });
-
-      if (repairItems?.length) {
-        await createRepairItemsAndDecrementStock(tx, repair.id, repairItems);
-      }
-
-      await assignRepairDocumentNo(tx, repair.id);
-    });
-
-    res.json({ message: "สร้างงานซ่อมเรียบร้อยแล้ว" });
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.updateRepair = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const {
-      name,
-      address,
-      taxId,
-      phoneNumber,
-      brand,
-      model,
-      plate,
-      province,
-      fleetNo,
-      description,
-      mileage,
-      totalPrice,
-      type,
-      paymentMethod,
-      noVehicle,
-      repairItems,
-    } = req.body;
-    const fleet = fleetNo?.trim() || null;
-
-    // ห่อทั้งหมดใน transaction: คืนสต็อก + ลบ/สร้างรายการใหม่ + อัปเดตบิล ต้อง atomic
-    const isSale = type === "SALE";
-    const skipVehicle = isSale || !!noVehicle;
-
-    await prisma.$transaction(async (tx) => {
-      const currentRepair = await tx.repair.findUnique({
-        where: { id: Number(id) },
-        select: {
-          vehicleId: true,
-          status: true,
-          customer: {
-            select: {
-              id: true,
-              name: true,
-              phoneNumber: true,
-              address: true,
-              taxId: true,
-            },
+  await prisma.$transaction(async (tx) => {
+    const currentRepair = await tx.repair.findUnique({
+      where: { id: Number(id) },
+      select: {
+        vehicleId: true,
+        status: true,
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            phoneNumber: true,
+            address: true,
+            taxId: true,
           },
         },
-      });
-
-      if (currentRepair?.status === "CANCELLED") {
-        createError(400, CANNOT_EDIT_CANCELLED);
-      }
-
-      const vehicle = skipVehicle
-        ? null
-        : await resolveVehicleForEdit(
-            tx,
-            { brand, model, plate, province, fleet },
-            currentRepair.vehicleId,
-          );
-
-      const customer = await resolveCustomer(
-        tx,
-        { name, address, taxId, phoneNumber },
-        currentRepair.customer,
-      );
-
-      // ใบประเมินราคายังไม่เคยตัดสต็อก จึงไม่มีอะไรให้คืนและไม่ต้องตัดของชุดใหม่
-      // (คืนไปจะกลายเป็นสต็อกงอก แล้วตัดใหม่จะกลายเป็นของหายทั้งที่ยังไม่ได้ซ่อม)
-      const isEstimate = currentRepair.status === "ESTIMATE";
-
-      // คืนสต็อกจากรายการเดิม ก่อนลบทิ้ง
-      const existingItems = await tx.repairItem.findMany({
-        where: { repairId: Number(id) },
-        include: {
-          part: { select: { name: true, oilSourceId: true, oilLiters: true } },
-        },
-      });
-
-      if (!isEstimate) {
-        for (const item of existingItems) {
-          if (item.partId) {
-            await moveStock(
-              tx,
-              item.part,
-              item.partId,
-              item.quantity,
-              "increment",
-            );
-            await restoreTireLotsFromSoldLots(tx, item.partId, item.soldLots);
-          }
-        }
-      }
-
-      await tx.repairItem.deleteMany({ where: { repairId: Number(id) } });
-
-      if (repairItems?.length) {
-        await createRepairItemsAndDecrementStock(
-          tx,
-          Number(id),
-          repairItems,
-          !isEstimate,
-        );
-      }
-
-      await tx.repair.update({
-        where: { id: Number(id) },
-        data: {
-          description: description || null,
-          mileage: mileage ?? null,
-          totalPrice,
-          type,
-          // บิลขายหน้าร้าน: ช่องวิธีชำระเงินในหน้าแก้ไขทำหน้าที่สลับระหว่าง "ได้เงินแล้ว" กับ "ติดเครดิต"
-          // เลือกวิธีจ่ายจริงให้บิลที่ติดเครดิตอยู่ = ตัดเครดิต ยอดเข้ารายงานของวันที่ตัด
-          // เลือกเครดิตให้บิลที่บันทึกว่าจ่ายแล้ว = แก้ที่บันทึกผิด ล้างเวลาชำระเงินกับวิธีจ่ายทิ้ง
-          ...(isSale && paymentMethod
-            ? paymentMethod === "CREDIT"
-              ? { status: "CREDIT", paidAt: null, paymentMethod: null }
-              : {
-                  paymentMethod,
-                  ...(currentRepair.status === "CREDIT"
-                    ? { status: "PAID", paidAt: new Date() }
-                    : {}),
-                }
-            : {}),
-          ...(vehicle
-            ? { vehicle: { connect: { id: vehicle.id } } }
-            : { vehicle: { disconnect: true } }),
-          ...(customer
-            ? { customer: { connect: { id: customer.id } } }
-            : { customer: { disconnect: true } }),
-        },
-      });
-
-      await assignRepairDocumentNo(tx, Number(id));
+      },
     });
 
-    res.json({ message: "แก้ไขงานซ่อมเรียบร้อยแล้ว" });
-  } catch (error) {
-    next(error);
-  }
+    if (currentRepair?.status === "CANCELLED") {
+      createError(400, CANNOT_EDIT_CANCELLED);
+    }
+
+    const vehicle = skipVehicle
+      ? null
+      : await resolveVehicleForEdit(
+          tx,
+          { brand, model, plate, province, fleet },
+          currentRepair.vehicleId,
+        );
+
+    const customer = await resolveCustomer(
+      tx,
+      { name, address, taxId, phoneNumber },
+      currentRepair.customer,
+    );
+
+    // ใบประเมินราคายังไม่เคยตัดสต็อก จึงไม่มีอะไรให้คืนและไม่ต้องตัดของชุดใหม่
+    // (คืนไปจะกลายเป็นสต็อกงอก แล้วตัดใหม่จะกลายเป็นของหายทั้งที่ยังไม่ได้ซ่อม)
+    const isEstimate = currentRepair.status === "ESTIMATE";
+
+    // คืนสต็อกจากรายการเดิม ก่อนลบทิ้ง
+    const existingItems = await tx.repairItem.findMany({
+      where: { repairId: Number(id) },
+      include: {
+        part: { select: { name: true, oilSourceId: true, oilLiters: true } },
+      },
+    });
+
+    if (!isEstimate) {
+      for (const item of existingItems) {
+        if (item.partId) {
+          await moveStock(
+            tx,
+            item.part,
+            item.partId,
+            item.quantity,
+            "increment",
+          );
+          await restoreTireLotsFromSoldLots(tx, item.partId, item.soldLots);
+        }
+      }
+    }
+
+    await tx.repairItem.deleteMany({ where: { repairId: Number(id) } });
+
+    if (repairItems?.length) {
+      await createRepairItemsAndDecrementStock(
+        tx,
+        Number(id),
+        repairItems,
+        !isEstimate,
+      );
+    }
+
+    await tx.repair.update({
+      where: { id: Number(id) },
+      data: {
+        description: description || null,
+        mileage: mileage ?? null,
+        totalPrice,
+        type,
+        // บิลขายหน้าร้าน: ช่องวิธีชำระเงินในหน้าแก้ไขทำหน้าที่สลับระหว่าง "ได้เงินแล้ว" กับ "ติดเครดิต"
+        // เลือกวิธีจ่ายจริงให้บิลที่ติดเครดิตอยู่ = ตัดเครดิต ยอดเข้ารายงานของวันที่ตัด
+        // เลือกเครดิตให้บิลที่บันทึกว่าจ่ายแล้ว = แก้ที่บันทึกผิด ล้างเวลาชำระเงินกับวิธีจ่ายทิ้ง
+        ...(isSale && paymentMethod
+          ? paymentMethod === "CREDIT"
+            ? { status: "CREDIT", paidAt: null, paymentMethod: null }
+            : {
+                paymentMethod,
+                ...(currentRepair.status === "CREDIT"
+                  ? { status: "PAID", paidAt: new Date() }
+                  : {}),
+              }
+          : {}),
+        ...(vehicle
+          ? { vehicle: { connect: { id: vehicle.id } } }
+          : { vehicle: { disconnect: true } }),
+        ...(customer
+          ? { customer: { connect: { id: customer.id } } }
+          : { customer: { disconnect: true } }),
+      },
+    });
+
+    if (currentRepair.vehicleId !== vehicle?.id) {
+      await removeOrphanVehicle(tx, currentRepair.vehicleId);
+    }
+    await assignRepairDocumentNo(tx, Number(id));
+  });
+
+  res.json({ message: "แก้ไขงานซ่อมเรียบร้อยแล้ว" });
 };
 
 const CANNOT_EDIT_CANCELLED = "แก้ไขไม่ได้ เพราะบิลนี้ยกเลิกแล้ว";
 
 // ยกเลิกบิลแทนการลบ สำหรับบิลที่ไม่ใช่เลขล่าสุด เลขเอกสารยังอยู่กับบิล ลำดับเลขจึงไม่ขาด
 // คืนของเข้าคลังเหมือนตอนลบ (ใบประเมินราคายังไม่เคยเบิก) และไม่นับเป็นยอดขายหรือครั้งที่มาซ่อม
-exports.cancelRepair = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const reason = String(req.body?.reason || "")
-      .trim()
-      .slice(0, 200);
+exports.cancelRepair = async (req, res) => {
+  const { id } = req.params;
+  const reason = String(req.body?.reason || "")
+    .trim()
+    .slice(0, 200);
 
-    const repair = await prisma.repair.findUnique({
-      where: { id: Number(id) },
-    });
-    if (!repair) {
-      createError(404, "ไม่พบงานซ่อม");
-    }
-    if (repair.status === "CANCELLED") {
-      createError(400, "บิลนี้ยกเลิกไปแล้ว");
-    }
-
-    await prisma.$transaction(async (tx) => {
-      if (repair.status !== "ESTIMATE") {
-        await restoreStockForRepair(tx, Number(id));
-      }
-      await tx.repair.update({
-        where: { id: Number(id) },
-        data: {
-          status: "CANCELLED",
-          cancelledStatus: repair.status,
-          cancelledAt: new Date(),
-          cancelReason: reason || null,
-        },
-      });
-    });
-
-    res.json({ message: "ยกเลิกบิลเรียบร้อยแล้ว" });
-  } catch (error) {
-    next(error);
+  const repair = await prisma.repair.findUnique({
+    where: { id: Number(id) },
+  });
+  if (!repair) {
+    createError(404, "ไม่พบงานซ่อม");
   }
+  if (repair.status === "CANCELLED") {
+    createError(400, "บิลนี้ยกเลิกไปแล้ว");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    if (repair.status !== "ESTIMATE") {
+      await restoreStockForRepair(tx, Number(id));
+    }
+    await tx.repair.update({
+      where: { id: Number(id) },
+      data: {
+        status: "CANCELLED",
+        cancelledStatus: repair.status,
+        cancelledAt: new Date(),
+        cancelReason: reason || null,
+      },
+    });
+  });
+
+  res.json({ message: "ยกเลิกบิลเรียบร้อยแล้ว" });
 };
 
 // ลบบิลทิ้ง: ต้องคืนสต็อกก่อนเสมอ ไม่งั้นอะไหล่จะหายจากคลังทั้งที่ไม่ได้ขายออกไป
 // ใช้ตรรกะคืนของชุดเดียวกับตอนแก้ไขบิล (คืนจำนวน + คืนล็อตยางตาม soldLots)
 // ลบได้เฉพาะบิลที่ทุกเลขเป็นเลขล่าสุดของชุด (หรือยังไม่มีเลข) เลขจะคืนให้บิลถัดไป ไม่ขาดช่วง
 // บิลอื่นต้องยกเลิกแทน
-exports.deleteRepair = async (req, res, next) => {
-  try {
-    const { id } = req.params;
+exports.deleteRepair = async (req, res) => {
+  const { id } = req.params;
 
-    const repair = await prisma.repair.findUnique({
-      where: { id: Number(id) },
+  const repair = await prisma.repair.findUnique({
+    where: { id: Number(id) },
+  });
+
+  if (!repair) {
+    createError(404, "ไม่พบงานซ่อม");
+  }
+
+  if ((await docNosSkippedOnDelete(prisma, repair)).length > 0) {
+    createError(
+      400,
+      "ลบไม่ได้ เพราะไม่ใช่บิลล่าสุด เลขที่บิลจะขาดช่วง ให้ยกเลิกบิลแทน",
+    );
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const items = await tx.repairItem.findMany({
+      where: { repairId: Number(id) },
+      include: {
+        part: { select: { name: true, oilSourceId: true, oilLiters: true } },
+      },
     });
 
-    if (!repair) {
-      createError(404, "ไม่พบงานซ่อม");
-    }
-
-    if ((await docNosSkippedOnDelete(prisma, repair)).length > 0) {
-      createError(
-        400,
-        "ลบไม่ได้ เพราะไม่ใช่บิลล่าสุด เลขที่บิลจะขาดช่วง ให้ยกเลิกบิลแทน",
-      );
-    }
-
-    await prisma.$transaction(async (tx) => {
-      const items = await tx.repairItem.findMany({
-        where: { repairId: Number(id) },
-        include: {
-          part: { select: { name: true, oilSourceId: true, oilLiters: true } },
-        },
-      });
-
-      // ใบประเมินราคาไม่เคยเบิกของออกจากคลัง บิลที่ยกเลิกคืนของไปแล้วตอนยกเลิก ลบทิ้งจึงไม่มีอะไรให้คืน
-      if (!["ESTIMATE", "CANCELLED"].includes(repair.status)) {
-        for (const item of items) {
-          if (item.partId) {
-            await moveStock(
-              tx,
-              item.part,
-              item.partId,
-              item.quantity,
-              "increment",
-            );
-            await restoreTireLotsFromSoldLots(tx, item.partId, item.soldLots);
-          }
+    // ใบประเมินราคาไม่เคยเบิกของออกจากคลัง บิลที่ยกเลิกคืนของไปแล้วตอนยกเลิก ลบทิ้งจึงไม่มีอะไรให้คืน
+    if (!["ESTIMATE", "CANCELLED"].includes(repair.status)) {
+      for (const item of items) {
+        if (item.partId) {
+          await moveStock(
+            tx,
+            item.part,
+            item.partId,
+            item.quantity,
+            "increment",
+          );
+          await restoreTireLotsFromSoldLots(tx, item.partId, item.soldLots);
         }
       }
+    }
 
-      await tx.repairItem.deleteMany({ where: { repairId: Number(id) } });
-      await releaseRepairDocumentNo(tx, repair);
-      await tx.repair.delete({ where: { id: Number(id) } });
-    });
+    await tx.repairItem.deleteMany({ where: { repairId: Number(id) } });
+    await releaseRepairDocumentNo(tx, repair);
+    await tx.repair.delete({ where: { id: Number(id) } });
+  });
 
-    res.json({ message: "ลบงานซ่อมเรียบร้อยแล้ว" });
-  } catch (error) {
-    next(error);
-  }
+  res.json({ message: "ลบงานซ่อมเรียบร้อยแล้ว" });
 };
 
-exports.updateRepairStatus = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    // status/paymentMethod ผ่าน zod (updateRepairStatusSchema) มาแล้ว
-    const { status, paymentMethod } = req.body;
+exports.updateRepairStatus = async (req, res) => {
+  const { id } = req.params;
+  // status/paymentMethod ผ่าน zod (updateRepairStatusSchema) มาแล้ว
+  const { status, paymentMethod } = req.body;
 
-    const repair = await prisma.repair.findUnique({
-      where: { id: Number(id) },
-    });
+  const repair = await prisma.repair.findUnique({
+    where: { id: Number(id) },
+  });
 
-    if (!repair) {
-      createError(404, "ไม่พบงานซ่อม");
-    }
-    if (repair.status === "CANCELLED") {
-      createError(400, CANNOT_EDIT_CANCELLED);
-    }
-
-    const data = { status };
-
-    if (status === "COMPLETED") {
-      data.completedAt = new Date();
-    } else if (status === "CREDIT") {
-      // ติดเงินไว้ = ซ่อมเสร็จแล้วแต่ยังไม่ได้เงิน ไม่ตั้งเวลาชำระเงินและไม่เก็บวิธีจ่าย
-      // ยอดจะยังไม่ไปโผล่ในรายงานยอดขายจนกว่าจะตัดเครดิต
-      if (!repair.completedAt) {
-        data.completedAt = new Date();
-      }
-      data.paymentMethod = null;
-    } else if (status === "PAID") {
-      // บิลที่จ่ายแล้วและแค่มาแก้วิธีชำระเงิน ต้องคงเวลาที่เก็บเงินไว้ตามเดิม
-      // ไม่งั้นยอดจะย้ายไปอยู่ในรายงานของวันที่มาแก้ ทั้งที่เงินเข้าไปตั้งแต่วันก่อน
-      data.paidAt = repair.paidAt ?? new Date();
-
-      if (repair.status === "IN_PROGRESS" && !repair.completedAt) {
-        data.completedAt = new Date();
-      }
-
-      if (paymentMethod) {
-        data.paymentMethod = paymentMethod;
-      }
-    }
-
-    // เข้า/ออกใบประเมินราคาต้องขยับสต็อกด้วย จึงทำในรายการเดียวกับการเปลี่ยนสถานะ
-    // ถ้าตัดสต็อกไม่ผ่าน (ของถูกใช้ไปหมดระหว่างรอ) สถานะก็ต้องไม่เปลี่ยนตาม
-    const toEstimate = status === "ESTIMATE" && repair.status !== "ESTIMATE";
-    const fromEstimate = repair.status === "ESTIMATE" && status !== "ESTIMATE";
-
-    if (toEstimate) {
-      // ยังไม่ซ่อม จึงไม่มีเวลาซ่อมเสร็จ ไม่มีเวลาชำระเงิน และยังไม่รู้ว่าจะจ่ายทางไหน
-      data.completedAt = null;
-      data.paidAt = null;
-      data.paymentMethod = null;
-    }
-
-    // ใบประเมินราคาถูกเปิดไว้ล่วงหน้าเป็นวันหรือเป็นสัปดาห์ก่อนลูกค้าจะตัดสินใจซ่อม
-    // วันที่ของบิลจึงต้องนับใหม่ตอนเริ่มซ่อมจริง ไม่งั้นงานจะไปเรียงอยู่ท้ายรายการ
-    // และวันที่บนใบเสร็จจะเป็นวันที่ประเมิน ไม่ใช่วันที่ซ่อม
-    if (fromEstimate) {
-      data.createdAt = new Date();
-    }
-
-    await prisma.$transaction(async (tx) => {
-      if (toEstimate) await restoreStockForRepair(tx, Number(id));
-      if (fromEstimate) await deductStockForRepair(tx, Number(id));
-
-      await tx.repair.update({
-        where: { id: Number(id) },
-        data,
-      });
-
-      if (toEstimate) await releaseReceiptNo(tx, Number(id));
-      await assignRepairDocumentNo(tx, Number(id));
-    });
-
-    res.json({
-      message: "อัปเดตสถานะการซ่อมเรียบร้อยแล้ว",
-    });
-  } catch (error) {
-    next(error);
+  if (!repair) {
+    createError(404, "ไม่พบงานซ่อม");
   }
+  if (repair.status === "CANCELLED") {
+    createError(400, CANNOT_EDIT_CANCELLED);
+  }
+
+  const data = { status };
+
+  if (status === "COMPLETED") {
+    data.completedAt = new Date();
+  } else if (status === "CREDIT") {
+    // ติดเงินไว้ = ซ่อมเสร็จแล้วแต่ยังไม่ได้เงิน ไม่ตั้งเวลาชำระเงินและไม่เก็บวิธีจ่าย
+    // ยอดจะยังไม่ไปโผล่ในรายงานยอดขายจนกว่าจะตัดเครดิต
+    if (!repair.completedAt) {
+      data.completedAt = new Date();
+    }
+    data.paymentMethod = null;
+  } else if (status === "PAID") {
+    // บิลที่จ่ายแล้วและแค่มาแก้วิธีชำระเงิน ต้องคงเวลาที่เก็บเงินไว้ตามเดิม
+    // ไม่งั้นยอดจะย้ายไปอยู่ในรายงานของวันที่มาแก้ ทั้งที่เงินเข้าไปตั้งแต่วันก่อน
+    data.paidAt = repair.paidAt ?? new Date();
+
+    if (repair.status === "IN_PROGRESS" && !repair.completedAt) {
+      data.completedAt = new Date();
+    }
+
+    if (paymentMethod) {
+      data.paymentMethod = paymentMethod;
+    }
+  }
+
+  // เข้า/ออกใบประเมินราคาต้องขยับสต็อกด้วย จึงทำในรายการเดียวกับการเปลี่ยนสถานะ
+  // ถ้าตัดสต็อกไม่ผ่าน (ของถูกใช้ไปหมดระหว่างรอ) สถานะก็ต้องไม่เปลี่ยนตาม
+  const toEstimate = status === "ESTIMATE" && repair.status !== "ESTIMATE";
+  const fromEstimate = repair.status === "ESTIMATE" && status !== "ESTIMATE";
+
+  if (toEstimate) {
+    // ยังไม่ซ่อม จึงไม่มีเวลาซ่อมเสร็จ ไม่มีเวลาชำระเงิน และยังไม่รู้ว่าจะจ่ายทางไหน
+    data.completedAt = null;
+    data.paidAt = null;
+    data.paymentMethod = null;
+  }
+
+  // ใบประเมินราคาถูกเปิดไว้ล่วงหน้าเป็นวันหรือเป็นสัปดาห์ก่อนลูกค้าจะตัดสินใจซ่อม
+  // วันที่ของบิลจึงต้องนับใหม่ตอนเริ่มซ่อมจริง ไม่งั้นงานจะไปเรียงอยู่ท้ายรายการ
+  // และวันที่บนใบเสร็จจะเป็นวันที่ประเมิน ไม่ใช่วันที่ซ่อม
+  if (fromEstimate) {
+    data.createdAt = new Date();
+  }
+
+  await prisma.$transaction(async (tx) => {
+    if (toEstimate) await restoreStockForRepair(tx, Number(id));
+    if (fromEstimate) await deductStockForRepair(tx, Number(id));
+
+    await tx.repair.update({
+      where: { id: Number(id) },
+      data,
+    });
+
+    if (toEstimate) await releaseReceiptNo(tx, Number(id));
+    await assignRepairDocumentNo(tx, Number(id));
+  });
+
+  res.json({
+    message: "อัปเดตสถานะการซ่อมเรียบร้อยแล้ว",
+  });
 };
 
 // พิมพ์กับบันทึกเป็นรูปใช้หน้าเอกสารชุดเดียวกัน รูปที่ส่งให้ลูกค้าจึงเหมือนกระดาษที่พิมพ์ออกมาทุกอย่าง
@@ -1089,32 +1066,24 @@ const buildRepairDocument = async (id, body, { forImage = false } = {}) => {
 
 // สั่งพิมพ์ใบเสร็จออกเครื่องพิมพ์ที่ต่อกับเครื่องที่รันเซิร์ฟเวอร์
 // มีไว้ให้กดจากมือถือแล้วกระดาษออกที่ร้านได้ โดยไม่ต้องเดินไปกดที่คอม
-exports.printRepairReceipt = async (req, res, next) => {
-  try {
-    const { repair, html, isJobSheet } = await buildRepairDocument(
-      req.params.id,
-      req.body,
-    );
+exports.printRepairReceipt = async (req, res) => {
+  const { repair, html, isJobSheet } = await buildRepairDocument(
+    req.params.id,
+    req.body,
+  );
 
-    await printReceipt(html, repair.id);
+  await printReceipt(html, repair.id);
 
-    res.json({
-      message: isJobSheet ? "สั่งพิมพ์ใบสั่งซ่อมแล้ว" : "สั่งพิมพ์ใบเสร็จแล้ว",
-    });
-  } catch (error) {
-    next(error);
-  }
+  res.json({
+    message: isJobSheet ? "สั่งพิมพ์ใบสั่งซ่อมแล้ว" : "สั่งพิมพ์ใบเสร็จแล้ว",
+  });
 };
 
 // ส่งใบเป็นรูปให้ลูกค้าทางแชท แทนการพิมพ์กระดาษ ใบหลายแผ่นได้รูปละแผ่น
-exports.renderRepairImages = async (req, res, next) => {
-  try {
-    const { html } = await buildRepairDocument(req.params.id, req.body, {
-      forImage: true,
-    });
-    const images = await htmlToImages(html);
-    res.json({ images });
-  } catch (error) {
-    next(error);
-  }
+exports.renderRepairImages = async (req, res) => {
+  const { html } = await buildRepairDocument(req.params.id, req.body, {
+    forImage: true,
+  });
+  const images = await htmlToImages(html);
+  res.json({ images });
 };

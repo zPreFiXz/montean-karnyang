@@ -267,6 +267,49 @@ const mergeBySide = (items) => {
 
 // showCustomer = false คือใบที่ไม่เอาชื่อ ที่อยู่ และเลขผู้เสียภาษีของลูกค้าติดไปด้วย
 // แผ่นกระดาษของใบเสร็จหนึ่งใบ (ไม่รวมโครงเอกสาร) ใบยาวเกินหนึ่งแผ่นจะได้หลายแผ่น
+// แบ่งรายการเป็นแผ่นของใบเสร็จ แยกจากการวาด HTML ให้ทดสอบเทียบกับฝั่งหน้าเว็บได้
+// (ต้องตรงกับ buildReceiptPages ใน client/src/utils/receipt.js)
+const receiptPages = (repair, { showBrand = true } = {}) => {
+  // ส่วนลดไม่ใช่ของที่ขาย ยกออกจากตารางไปไว้เป็นแถวใต้ยอดรวมแทน (ตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
+  // ราคาติดลบมีแต่ส่วนลดเท่านั้น ใช้เป็นตาข่ายรองรับบรรทัดที่ถูกเปลี่ยนชื่อ
+  const isDiscount = (item) =>
+    (item.service?.name || item.itemName) === "ส่วนลด" ||
+    Number(item.unitPrice) < 0;
+  const discountItems = (repair.repairItems || []).filter(isDiscount);
+  const discountTotal = discountItems.reduce(
+    (sum, item) => sum + Number(item.unitPrice) * Number(item.quantity),
+    0,
+  );
+
+  const rows = mergeBySide(
+    (repair.repairItems || []).filter((item) => !isDiscount(item)),
+  );
+  // บิลที่มีรายการเกินหนึ่งหน้าให้แยกเป็นใบต่อไป แผ่นละ MIN_ROWS บรรทัด (นับบรรทัดที่ชื่อยาวตกลงมาด้วย)
+  // ยอดรวมกับส่วนลดต่อท้ายแผ่นสุดท้ายเสมอ (ตรงกับ buildReceiptPages ฝั่งหน้าเว็บ)
+  const rowName = ({ item, sideLabel }) => {
+    const base = showBrand ? item.itemName : receiptWorkName(item);
+    return sideLabel ? `${base} (${sideLabel})` : base;
+  };
+  const rowLines = (row) => estimateNameLines(rowName(row));
+  // ใบส่งของไม่มี QR แต่มีแถววิธีจ่ายเงินกับบรรทัดต้นฉบับ/สำเนาใต้ชื่อใบ แผ่นสุดท้ายจึงรับได้จำกัดเหมือนกัน
+  const showPaymentQr =
+    !repair.isCancelled && !["ESTIMATE", "CREDIT"].includes(repair.status);
+  const lastPageLimit = showPaymentQr
+    ? QR_PAGE_LINES
+    : repair.status === "CREDIT"
+      ? DELIVERY_PAGE_LINES
+      : null;
+  const pages = lastPageLimit
+    ? makeRoomForQr(
+        paginateRows(rows, rowLines),
+        rowLines,
+        summaryLinesOf(discountTotal ? discountItems.length : 0),
+        lastPageLimit,
+      )
+    : paginateRows(rows, rowLines);
+  return { pages, discountItems, discountTotal, rowName, rowLines };
+};
+
 const receiptPagesHtml = (
   repair,
   { showCustomer = true, showBrand = true, copyLabel = null } = {},
@@ -292,28 +335,10 @@ const receiptPagesHtml = (
     ? `<span style="white-space:nowrap">เบอร์รถ</span><span class="dotted fleet">${escapeHtml(repair.vehicle.fleetNo)}</span>`
     : "";
 
-  // ส่วนลดไม่ใช่ของที่ขาย ยกออกจากตารางไปไว้เป็นแถวใต้ยอดรวมแทน (ตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
-  // ราคาติดลบมีแต่ส่วนลดเท่านั้น ใช้เป็นตาข่ายรองรับบรรทัดที่ถูกเปลี่ยนชื่อ
-  const isDiscount = (item) =>
-    (item.service?.name || item.itemName) === "ส่วนลด" ||
-    Number(item.unitPrice) < 0;
-  const discountItems = (repair.repairItems || []).filter(isDiscount);
-  const discountTotal = discountItems.reduce(
-    (sum, item) => sum + Number(item.unitPrice) * Number(item.quantity),
-    0,
-  );
+  const { pages, discountItems, discountTotal, rowName, rowLines } =
+    receiptPages(repair, { showBrand });
   const hasDiscount = discountTotal !== 0;
 
-  const rows = mergeBySide(
-    (repair.repairItems || []).filter((item) => !isDiscount(item)),
-  );
-  // บิลที่มีรายการเกินหนึ่งหน้าให้แยกเป็นใบต่อไป แผ่นละ MIN_ROWS บรรทัด (นับบรรทัดที่ชื่อยาวตกลงมาด้วย)
-  // ยอดรวมกับส่วนลดต่อท้ายแผ่นสุดท้ายเสมอ (ตรงกับ buildReceiptPages ฝั่งหน้าเว็บ)
-  const rowName = ({ item, sideLabel }) => {
-    const base = showBrand ? item.itemName : receiptWorkName(item);
-    return sideLabel ? `${base} (${sideLabel})` : base;
-  };
-  const rowLines = (row) => estimateNameLines(rowName(row));
   const summaryRows = discountItems.length ? discountItems.length + 1 : 1;
   // QR มีเฉพาะใบเสร็จ ใบเสนอราคายังไม่ถึงตอนจ่าย ใบส่งของลูกค้าจ่ายทีหลังตามใบวางบิล
   const showPaymentQr =
@@ -326,21 +351,6 @@ const receiptPagesHtml = (
       : repair.status === "ESTIMATE"
         ? ["ผู้อนุมัติ", "ผู้เสนอราคา"]
         : ["ผู้จ่ายเงิน", "ผู้รับเงิน"];
-  // ใบส่งของไม่มี QR แต่มีแถววิธีจ่ายเงินกับบรรทัดต้นฉบับ/สำเนาใต้ชื่อใบ แผ่นสุดท้ายจึงรับได้จำกัดเหมือนกัน
-  const lastPageLimit = showPaymentQr
-    ? QR_PAGE_LINES
-    : repair.status === "CREDIT"
-      ? DELIVERY_PAGE_LINES
-      : null;
-  const pages = lastPageLimit
-    ? makeRoomForQr(
-        paginateRows(rows, rowLines),
-        rowLines,
-        summaryLinesOf(discountTotal ? discountItems.length : 0),
-        lastPageLimit,
-      )
-    : paginateRows(rows, rowLines);
-
   // แถวยอดรวมกับส่วนลดต่อท้ายแผ่นสุดท้ายเสมอ ไม่นับเป็นหนึ่งใน MIN_ROWS รายการ
   // กระดาษยังเหลือที่ใต้ตารางราวห้าบรรทัด รายการเต็มสิบแถวก็ยังมีที่ให้ยอดรวมอยู่แผ่นเดียวกัน
   // ไม่ขึ้นแผ่นใหม่ที่มีแต่ยอดรวม และไม่ยกรายการไปแผ่นใหม่ให้บิลสิบรายการกลายเป็นสองแผ่น
@@ -643,8 +653,7 @@ const isOilUseLine = (item) => {
   );
   return OIL_USES.some(
     (use) =>
-      item.itemName ===
-      [item.part.brand, use, grade].filter(Boolean).join(" "),
+      item.itemName === [item.part.brand, use, grade].filter(Boolean).join(" "),
   );
 };
 
@@ -946,4 +955,6 @@ module.exports = {
   buildReceiptHtml,
   buildJobSheetHtml,
   buildOrganizationBillHtml,
+  // ใช้ในเทสต์เทียบกับฝั่งหน้าเว็บเท่านั้น
+  _test: { asIssued, receiptPages, receiptDocNo, receiptDocTitle },
 };

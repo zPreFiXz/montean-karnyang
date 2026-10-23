@@ -1,4 +1,6 @@
 import { PER_SIDE_SERVICE_NAME } from "@/constants/services";
+import { toUiSide } from "@/utils/repairForm";
+import { isPerSide } from "@/utils/suspension";
 
 // อะไหล่ตัวเดียวกันที่เปลี่ยนทั้งซ้ายและขวา ยุบเป็นบรรทัดเดียว "ซ้าย-ขวา × 2"
 // เพราะร้านพูดกับลูกค้าแบบนั้น ไม่มีใครพูดว่าซ้ายหนึ่งขวาหนึ่ง
@@ -157,3 +159,55 @@ export const isSuspensionTabItem = (item) =>
   (item.side === "other" ||
     (!item.partNumber && item.name === PER_SIDE_SERVICE_NAME) ||
     item.category?.name === "ช่วงล่าง");
+
+// บิลช่วงล่างที่บันทึกแล้ว: แยกเป็นกลุ่มซ้าย-ขวา/ซ้าย/ขวา/อื่นๆ/เพิ่มเติม ให้ตรงกับหน้าสรุปก่อนบันทึก
+// บรรทัดแยกข้างที่ไม่ได้ระบุฝั่ง (บิลเก่า) แบ่งเป็นคู่ซ้ายขวา เศษสลับฝั่งกันไป
+export const groupSuspensionDetailItems = (items = []) => {
+  const suspensionItems = items.filter(
+    (ri) => ri.part?.category?.name === "ช่วงล่าง" || ri.side,
+  );
+  const generalItems = items.filter(
+    (ri) => ri.part?.category?.name !== "ช่วงล่าง" && !ri.side,
+  );
+
+  const leftItems = [];
+  const rightItems = [];
+  const otherItems = [];
+  const lrGroups = {};
+
+  suspensionItems.forEach((ri) => {
+    const side = toUiSide(ri.side);
+    if (side === "left") return leftItems.push(ri);
+    if (side === "right") return rightItems.push(ri);
+    if (side === "other") return otherItems.push(ri);
+
+    if (isPerSide(ri.part.attributes)) {
+      const key = `${ri.part.id}-${ri.unitPrice}`;
+      if (!lrGroups[key]) lrGroups[key] = { base: ri, count: 0 };
+      lrGroups[key].count += ri.quantity || 1;
+      return;
+    }
+    otherItems.push(ri);
+  });
+
+  let assignLeftoverToLeft = true;
+  Object.values(lrGroups).forEach(({ base, count }) => {
+    for (let i = 0; i < Math.floor(count / 2); i++) {
+      leftItems.push({ ...base, quantity: 1 });
+      rightItems.push({ ...base, quantity: 1 });
+    }
+    if (count % 2 === 1) {
+      (assignLeftoverToLeft ? leftItems : rightItems).push({
+        ...base,
+        quantity: 1,
+      });
+      assignLeftoverToLeft = !assignLeftoverToLeft;
+    }
+  });
+
+  return {
+    ...groupBySidePairs(leftItems, rightItems),
+    otherItems,
+    generalItems,
+  };
+};

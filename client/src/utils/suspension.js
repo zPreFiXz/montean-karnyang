@@ -58,3 +58,32 @@ export const suspensionTypeRank = (type) => {
 
 export const compareSuspensionTypes = (a, b) =>
   suspensionTypeRank(a) - suspensionTypeRank(b) || typeCollator.compare(a, b);
+
+// จัดอะไหล่เป็นกลุ่มตามชนิด (คำแรกของชื่อ) เรียงกลุ่มตามลำดับที่ช่างไล่ตรวจ
+// ข้อแลกเปลี่ยน: ถ้าตั้งชื่อไม่ตามแบบแผน อะไหล่ตัวนั้นจะกลายเป็นกลุ่มของตัวเอง
+export const groupPartsByType = (parts) => {
+  const groups = new Map();
+  for (const part of parts) {
+    const type = getPartType(part.name);
+    if (!groups.has(type)) groups.set(type, []);
+    groups.get(type).push(part);
+  }
+  return [...groups.entries()]
+    .map(([type, items]) => ({ type, items }))
+    .sort((a, b) => compareSuspensionTypes(a.type, b.type));
+};
+
+// สามชนิดที่ช่างไล่ตรวจประจำในแท็บ "อื่นๆ" ให้ขึ้นก่อนตามลำดับนี้
+// ชนิดอื่นยังขึ้นเหมือนกัน แค่ไปต่อท้ายเรียงตามตัวอักษร
+const OTHER_TAB_ORDER = ["คันส่งกลาง", "โช้คหน้า", "โช้คหลัง"];
+
+export const groupOtherParts = (parts) => {
+  const rank = (type) => {
+    const index = OTHER_TAB_ORDER.indexOf(type);
+    return index === -1 ? OTHER_TAB_ORDER.length : index;
+  };
+  return groupPartsByType(parts).sort(
+    (a, b) =>
+      rank(a.type) - rank(b.type) || typeCollator.compare(a.type, b.type),
+  );
+};

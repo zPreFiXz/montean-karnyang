@@ -47,102 +47,98 @@ const SLOT_KEY_BY_TYPE = {
   CLOCK_OUT: "offWork",
 };
 
-exports.getAttendanceSummary = async (req, res, next) => {
-  try {
-    const dateKey = normalizeDateKey(req.query.date);
-    const { start, end } = getBangkokDayRange(dateKey);
+exports.getAttendanceSummary = async (req, res) => {
+  const dateKey = normalizeDateKey(req.query.date);
+  const { start, end } = getBangkokDayRange(dateKey);
 
-    const employees = await prisma.employee.findMany({
-      orderBy: [{ name: "asc" }, { id: "asc" }],
-      select: {
-        id: true,
-        zkUserId: true,
-        name: true,
-      },
-    });
+  const employees = await prisma.employee.findMany({
+    orderBy: [{ name: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      zkUserId: true,
+      name: true,
+    },
+  });
 
-    const employeeIds = employees.map((employee) => employee.id);
+  const employeeIds = employees.map((employee) => employee.id);
 
-    const attendances = employeeIds.length
-      ? await prisma.attendance.findMany({
-          where: {
-            employeeId: { in: employeeIds },
-            scannedAt: {
-              gte: start,
-              lte: end,
-            },
+  const attendances = employeeIds.length
+    ? await prisma.attendance.findMany({
+        where: {
+          employeeId: { in: employeeIds },
+          scannedAt: {
+            gte: start,
+            lte: end,
           },
-          select: {
-            employeeId: true,
-            type: true,
-            statusLabel: true,
-            scannedAt: true,
-          },
-          orderBy: {
-            scannedAt: "asc",
-          },
-        })
-      : [];
-
-    // สแกนจากรหัสที่ไม่รู้จักถูก worker ข้ามไม่บันทึกลง DB (ดู zkteco/attendance.js)
-    // และ employeeId เป็น required จึงไม่มีทางมีแถวไร้พนักงาน — ค่านี้เป็น 0 เสมอ
-    // (เดิม query ด้วย employeeId: null ซึ่ง Prisma ปฏิเสธ ทำให้ endpoint นี้ 500 ทุกครั้ง)
-    const unknownScanCount = 0;
-
-    const groupedMap = new Map(
-      employees.map((employee) => [
-        employee.id,
-        {
-          ...employee,
-          scanCount: 0,
-          slots: createEmptySlots(),
         },
-      ]),
+        select: {
+          employeeId: true,
+          type: true,
+          statusLabel: true,
+          scannedAt: true,
+        },
+        orderBy: {
+          scannedAt: "asc",
+        },
+      })
+    : [];
+
+  // สแกนจากรหัสที่ไม่รู้จักถูก worker ข้ามไม่บันทึกลง DB (ดู zkteco/attendance.js)
+  // และ employeeId เป็น required จึงไม่มีทางมีแถวไร้พนักงาน — ค่านี้เป็น 0 เสมอ
+  // (เดิม query ด้วย employeeId: null ซึ่ง Prisma ปฏิเสธ ทำให้ endpoint นี้ 500 ทุกครั้ง)
+  const unknownScanCount = 0;
+
+  const groupedMap = new Map(
+    employees.map((employee) => [
+      employee.id,
+      {
+        ...employee,
+        scanCount: 0,
+        slots: createEmptySlots(),
+      },
+    ]),
+  );
+
+  for (const attendance of attendances) {
+    const item = groupedMap.get(attendance.employeeId);
+    if (!item) continue;
+
+    item.scanCount += 1;
+
+    const slotKey = SLOT_KEY_BY_TYPE[attendance.type];
+    if (!slotKey) continue;
+
+    if (!item.slots[slotKey]) {
+      item.slots[slotKey] = {
+        status: attendance.statusLabel,
+        scannedAt: attendance.scannedAt,
+      };
+    }
+  }
+
+  const summary = Array.from(groupedMap.values()).map((item) => {
+    const missingSlots = REQUIRED_SLOT_KEYS.filter(
+      (slotKey) => !item.slots[slotKey],
     );
 
-    for (const attendance of attendances) {
-      const item = groupedMap.get(attendance.employeeId);
-      if (!item) continue;
-
-      item.scanCount += 1;
-
-      const slotKey = SLOT_KEY_BY_TYPE[attendance.type];
-      if (!slotKey) continue;
-
-      if (!item.slots[slotKey]) {
-        item.slots[slotKey] = {
-          status: attendance.statusLabel,
-          scannedAt: attendance.scannedAt,
-        };
-      }
-    }
-
-    const summary = Array.from(groupedMap.values()).map((item) => {
-      const missingSlots = REQUIRED_SLOT_KEYS.filter(
-        (slotKey) => !item.slots[slotKey],
-      );
-
-      return {
-        employeeId: item.id,
-        zkUserId: item.zkUserId,
-        name: item.name,
-        scanCount: item.scanCount,
-        requiredScans: REQUIRED_SLOT_KEYS.length,
-        completed: missingSlots.length === 0,
-        missingSlots,
-        slots: item.slots,
-      };
-    });
-
-    res.json({
-      date: dateKey,
+    return {
+      employeeId: item.id,
+      zkUserId: item.zkUserId,
+      name: item.name,
+      scanCount: item.scanCount,
       requiredScans: REQUIRED_SLOT_KEYS.length,
-      totalEmployees: summary.length,
-      completeEmployees: summary.filter((item) => item.completed).length,
-      unknownScanCount,
-      summary,
-    });
-  } catch (error) {
-    next(error);
-  }
+      completed: missingSlots.length === 0,
+      missingSlots,
+      slots: item.slots,
+    };
+  });
+
+  res.json({
+    date: dateKey,
+    requiredScans: REQUIRED_SLOT_KEYS.length,
+    totalEmployees: summary.length,
+    completeEmployees: summary.filter((item) => item.completed).length,
+    unknownScanCount,
+    summary,
+  });
 };

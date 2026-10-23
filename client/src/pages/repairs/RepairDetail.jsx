@@ -8,25 +8,13 @@ import {
   cancelRepair,
 } from "@/api/repair";
 import { withMinDuration } from "@/utils/withMinDuration";
-import {
-  formatDate,
-  formatTime,
-  formatCurrency,
-  formatPhone,
-} from "@/utils/formats";
+import { formatDate, formatTime, formatCurrency } from "@/utils/formats";
 import {
   ChevronLeft,
   ClipboardList,
   Printer,
   LoaderCircle,
-  CircleUserRound,
-  MapPin,
-  Phone,
   Edit,
-  ArrowLeftRight,
-  ArrowLeft,
-  ArrowRight,
-  Ellipsis,
   Wrench,
   ShoppingBag,
   Trash2,
@@ -37,12 +25,11 @@ import BrandIcons from "@/components/icons/BrandIcons";
 import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import { onKeyActivate } from "@/utils/a11y";
 import OrganizationTypeDialog from "@/components/dialogs/OrganizationTypeDialog";
-import { organizationLabel, creditPathFor } from "@/constants/organizations";
-import { Building2, Store, SquarePen, IdCard } from "lucide-react";
+import { creditPathFor } from "@/constants/organizations";
 import FormButton from "@/components/forms/FormButton";
 import ReceiptPreviewDialog from "@/components/dialogs/ReceiptPreviewDialog";
 import { asIssued, receiptDocNo } from "@/utils/receipt";
-import { repairToForm, toUiSide } from "@/utils/repairForm";
+import { repairToForm } from "@/utils/repairForm";
 import {
   DEFAULT_STATUS_INFO,
   getNextStatus,
@@ -62,14 +49,10 @@ import { toast } from "sonner";
 import { getInventory } from "@/api/inventory";
 import { useReopenStockItem } from "@/utils/reopenStockItem";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
-import RepairItemCard from "@/components/cards/RepairItemCard";
+import RepairDetailCustomer from "@/components/repair-detail/RepairDetailCustomer";
+import RepairDetailItems from "@/components/repair-detail/RepairDetailItems";
 import { toastError } from "@/utils/handleError";
-import {
-  groupBySidePairs,
-  mergeSidesInOrder,
-  countDisplayedItems,
-} from "@/utils/repairItemGroups";
-import { isPerSide } from "@/utils/suspension";
+import { countDisplayedItems } from "@/utils/repairItemGroups";
 import {
   getPaymentMethodText,
   PAYMENT_METHODS,
@@ -84,6 +67,7 @@ import {
   getVehicleSubtitle,
 } from "@/utils/repairDisplay";
 import { usePrefetchPages } from "@/routes/pageImports";
+import { useCreditOrganizationPrompt } from "@/hooks/useCreditOrganizationPrompt";
 
 const RepairDetail = () => {
   // เตรียมโค้ดของหน้าที่มักไปต่อจากหน้านี้ กดแล้วจะได้ไม่ต้องรอโหลด
@@ -108,6 +92,7 @@ const RepairDetail = () => {
   // กดการ์ดในบิลเพื่อดูรูปกับรายละเอียดของสิ่งที่ขายไป
   const [previewItem, setPreviewItem] = useState(null);
   const isCreditSelected = selectedPaymentMethod === CREDIT_OPTION_ID;
+  const orgPrompt = useCreditOrganizationPrompt(repair);
   const paymentSectionRef = useRef(null);
 
   useEffect(() => {
@@ -204,18 +189,7 @@ const RepairDetail = () => {
 
     const needsPaymentMethod = nextStatus === "PAID";
 
-    // ลูกค้ายังไม่เคยตั้งประเภท ถามก่อนแล้วค่อยลงเครดิต ตอบแล้วจะวนกลับมาทำต่อเอง
-    // ถามก่อนเพราะถ้าปิดกล่องทิ้ง บิลจะได้ไม่ถูกลงเครดิตไปแล้วทั้งที่ยังไม่ได้ตอบ
-    if (
-      nextStatus === "CREDIT" &&
-      repair.customer &&
-      !repair.customer.organizationType &&
-      !creditTypeAnsweredRef.current
-    ) {
-      pendingCreditSkipRef.current = skipToCompleted;
-      setIsOrgDialogOpen(true);
-      return;
-    }
+    if (orgPrompt.askBeforeCredit(nextStatus, skipToCompleted)) return;
 
     try {
       if (skipToCompleted) {
@@ -276,15 +250,7 @@ const RepairDetail = () => {
       // ลงเครดิตแล้วพาไปที่กองที่บิลไปอยู่จริง ไม่งั้นจะหาบิลที่เพิ่งลงไม่เจอ
       // เครดิตทุกแบบอยู่หน้าเดียวกันแล้ว ต่างแค่กองย่อย
       if (nextStatus === "CREDIT") {
-        // ประเภทที่เพิ่งเลือกในกล่องยังไม่อยู่ในข้อมูลบิลที่ถืออยู่ ใช้ค่าที่จำไว้ก่อน
-        navigate(
-          creditPathFor(
-            creditTypeAnsweredRef.current
-              ? pendingCreditTypeRef.current
-              : repair.customer?.organizationType,
-          ),
-          { replace: true },
-        );
+        navigate(creditPathFor(orgPrompt.creditType()), { replace: true });
         return;
       }
 
@@ -442,16 +408,6 @@ const RepairDetail = () => {
     navigate(`/vehicles/${repair.vehicle.id}`);
   };
 
-  // บิลเครดิตมักเป็นของหน่วยงานราชการหรือร้านค้าที่มาเคลียร์ทีเดียวตอนสิ้นเดือน
-  // ตั้งประเภทไว้ที่ตัวลูกค้า บิลใบต่อไปของรายเดียวกันจึงถูกรวมให้เอง
-  const [isOrgDialogOpen, setIsOrgDialogOpen] = useState(false);
-  // จำว่ากล่องถูกเปิดระหว่างกำลังลงเครดิตหรือเปล่า (null = ไม่ได้อยู่ในขั้นตอนนั้น)
-  // และตอบว่าอะไร เพื่อให้ลงเครดิตทำต่อได้ทันทีหลังบันทึกประเภท
-  const pendingCreditSkipRef = useRef(null);
-  const creditTypeAnsweredRef = useRef(false);
-  const pendingCreditTypeRef = useRef(null);
-  // ประเภทที่เพิ่งเปลี่ยนระหว่างเปิดบิลนี้ ใช้เลือกปลายทางของปุ่มย้อนกลับ
-  const changedTypeRef = useRef(undefined);
   // ปุ่มขึ้นเฉพาะบิลเครดิต แต่ตัวกล่องต้องเรียกได้ตลอด เพราะหลังกดลงเครดิต
   // ข้อมูลบิลในมือยังเป็นสถานะเดิมอยู่ (ไม่ได้โหลดใหม่ เพราะกำลังจะออกจากหน้า)
   const hasCustomer = !!repair?.customer;
@@ -468,11 +424,11 @@ const RepairDetail = () => {
       location.state?.from !== "vehicle-detail" && !location.state?.returnTo;
 
     if (
-      changedTypeRef.current !== undefined &&
+      orgPrompt.changedType() !== undefined &&
       repair?.status === "CREDIT" &&
       cameFromCreditPage
     ) {
-      navigate(creditPathFor(changedTypeRef.current), { replace: true });
+      navigate(creditPathFor(orgPrompt.changedType()), { replace: true });
       return;
     }
 
@@ -488,16 +444,6 @@ const RepairDetail = () => {
       navigate(-1);
     }
   };
-
-  const hasSingleCustomerLine =
-    [
-      !!repair?.customer?.name,
-      !!(
-        repair?.customer?.phoneNumber ||
-        repair?.customer?.address ||
-        repair?.customer?.taxId
-      ),
-    ].filter(Boolean).length === 1;
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
@@ -672,106 +618,13 @@ const RepairDetail = () => {
               )}
             </div>
             {repair.customer && (
-              <div>
-                <div className="mb-[16px] flex items-start gap-[8px] px-[20px]">
-                  <div
-                    className={`mt-[6px] flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full ${statusInfo.bg}`}
-                  >
-                    {/* ไอคอนบอกประเภทลูกค้าไปเลย กวาดตาแล้วรู้ว่าบิลนี้เป็นของใครแบบไหน
-                        ทั้งสามแบบใช้กรอบเดียวกับไอคอนอื่น จะได้ไม่มีวงไหนดูต่างออกไป */}
-                    <OutlineCardIcon
-                      icon={
-                        repair.customer.organizationType === "GOVERNMENT"
-                          ? Building2
-                          : repair.customer.organizationType === "SHOP"
-                            ? Store
-                            : CircleUserRound
-                      }
-                      color={statusInfo.iconColor}
-                    />
-                  </div>
-                  {/* กรอกมาอย่างเดียว (ชื่อล้วน หรือเบอร์ล้วน) ข้อความจะสูงไม่ถึงวงกลม
-                      ต้องดันให้อยู่กึ่งกลางแกนตั้งเทียบวงกลม ไม่งั้นจะลอยเกาะขอบบน */}
-                  <div
-                    className={
-                      hasSingleCustomerLine
-                        ? "mt-[6px] flex min-h-[45px] min-w-0 flex-1 flex-col justify-center"
-                        : "flex min-w-0 flex-1 flex-col"
-                    }
-                  >
-                    {repair.customer.name && (
-                      <p
-                        className={`text-[22px] font-semibold md:text-2xl ${statusInfo.color} leading-tight`}
-                      >
-                        {repair.customer.name}
-                      </p>
-                    )}
-                    {/* ขึ้นเฉพาะหน่วยงานกับร้านค้า ซึ่งเป็นข้อยกเว้นที่ต้องรู้
-                        ลูกค้าทั่วไปมีเกือบทุกบิล บอกไปก็ไม่ได้อะไรใหม่ ไม่มีบรรทัดนี้ก็แปลว่าทั่วไป
-                        ใช้สีเดียวกับบรรทัดยี่ห้อ-รุ่นรถ เพราะทำหน้าที่เดียวกันคือขยายบรรทัดบน */}
-                    {repair.customer.organizationType && (
-                      <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                        {organizationLabel(repair.customer.organizationType)}
-                      </p>
-                    )}
-                    {(repair.customer.phoneNumber ||
-                      repair.customer.address ||
-                      repair.customer.taxId) && (
-                      <div
-                        className={`flex flex-wrap items-start gap-[8px] ${
-                          repair.customer.name ? "mt-[4px]" : ""
-                        }`}
-                      >
-                        {repair.customer.phoneNumber && (
-                          <div className="flex flex-shrink-0 items-center gap-[4px]">
-                            <Phone size={16} className="text-subtle-dark" />
-                            <a
-                              href={`tel:${repair.customer.phoneNumber}`}
-                              className="text-subtle-dark text-lg leading-tight font-medium underline md:text-xl"
-                            >
-                              {formatPhone(repair.customer.phoneNumber)}
-                            </a>
-                          </div>
-                        )}
-                        {repair.customer.address && (
-                          <div className="flex items-start gap-[4px]">
-                            <MapPin
-                              size={16}
-                              className="text-subtle-dark mt-[2px] flex-shrink-0"
-                            />
-                            <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                              {repair.customer.address}
-                            </p>
-                          </div>
-                        )}
-                        {repair.customer.taxId && (
-                          <div className="flex flex-shrink-0 items-center gap-[4px]">
-                            <IdCard size={16} className="text-subtle-dark" />
-                            <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                              {repair.customer.taxId}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  {/* ตั้งประเภทลูกค้าได้จากบิลเครดิต เพราะเป็นจังหวะที่รู้ว่าใครติดเงินไว้ */}
-                  {canSetOrganization && (
-                    <button
-                      type="button"
-                      onClick={() => setIsOrgDialogOpen(true)}
-                      aria-label="ตั้งประเภทลูกค้า"
-                      title="ตั้งประเภทลูกค้า"
-                      className="bg-subtle-light/15 mt-[6px] flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
-                    >
-                      <SquarePen className="text-subtle-dark h-5 w-5" />
-                    </button>
-                  )}
-                </div>
-              </div>
+              <RepairDetailCustomer
+                customer={repair.customer}
+                statusInfo={statusInfo}
+                // ตั้งประเภทลูกค้าได้จากบิลเครดิต เพราะเป็นจังหวะที่รู้ว่าใครติดเงินไว้
+                onSetOrganization={canSetOrganization ? orgPrompt.open : null}
+              />
             )}
-            {/* เลขไมล์เป็นข้อมูลของรถ ณ วันซ่อม อ่านคู่กับทะเบียนและลูกค้าด้านบน
-                ถ้าไปอยู่หลังยอดรวมจะกลายเป็นของแถมท้ายบิล เพราะยอดรวมเป็นจุดจบสายตาอยู่แล้ว */}
             {/* เลขไมล์เป็นข้อมูลของรถ ณ วันซ่อม อ่านคู่กับทะเบียนและลูกค้าด้านบน
                 แถวเดียวจบ ไม่ต้องมีหัวข้อใหญ่ ไม่งั้นรายการซ่อมถูกดันลงไปไกลโดยไม่จำเป็น */}
             {repair.mileage != null && (
@@ -787,200 +640,12 @@ const RepairDetail = () => {
               </div>
             )}
             {repair.repairItems && (
-              <div className="mb-[16px] px-[20px]">
-                <div className="mb-[8px] flex items-center justify-between">
-                  <p className="text-normal text-[22px] font-semibold md:text-2xl">
-                    รายการซ่อม
-                  </p>
-                  {!isCancelled && (
-                    <button
-                      onClick={handleEditRepair}
-                      className="text-primary flex cursor-pointer items-center gap-[4px] text-xl font-semibold md:text-[22px]"
-                    >
-                      <Edit className="h-5 w-5" />
-                      แก้ไขรายการซ่อม
-                    </button>
-                  )}
-                </div>
-                {repair.type === "SUSPENSION" ? (
-                  <div className="space-y-[16px]">
-                    {(() => {
-                      const suspensionItems = (repair.repairItems || []).filter(
-                        (ri) =>
-                          ri.part?.category?.name === "ช่วงล่าง" || ri.side,
-                      );
-                      const generalItems = (repair.repairItems || []).filter(
-                        (ri) =>
-                          ri.part?.category?.name !== "ช่วงล่าง" && !ri.side,
-                      );
-
-                      const leftItems = [];
-                      const rightItems = [];
-                      const otherItems = [];
-
-                      const lrGroups = {};
-
-                      suspensionItems.forEach((ri) => {
-                        if (toUiSide(ri.side) === "left") {
-                          leftItems.push(ri);
-                          return;
-                        }
-                        if (toUiSide(ri.side) === "right") {
-                          rightItems.push(ri);
-                          return;
-                        }
-                        if (toUiSide(ri.side) === "other") {
-                          otherItems.push(ri);
-                          return;
-                        }
-
-                        const qty = ri.quantity || 1;
-                        if (isPerSide(ri.part.attributes)) {
-                          const key = `${ri.part.id}-${ri.unitPrice}`;
-                          if (!lrGroups[key]) {
-                            lrGroups[key] = { base: ri, count: 0 };
-                          }
-                          lrGroups[key].count += qty;
-                          return;
-                        }
-                        // ไม่แยกข้าง และไม่ได้ระบุตำแหน่งมา -> เข้าช่องอื่นๆ
-                        otherItems.push(ri);
-                      });
-
-                      let assignLeftoverToLeft = true;
-                      Object.values(lrGroups).forEach(({ base, count }) => {
-                        const pairs = Math.floor(count / 2);
-                        const remainder = count % 2;
-                        for (let i = 0; i < pairs; i++) {
-                          leftItems.push({ ...base, quantity: 1 });
-                          rightItems.push({ ...base, quantity: 1 });
-                        }
-                        if (remainder === 1) {
-                          if (assignLeftoverToLeft) {
-                            leftItems.push({ ...base, quantity: 1 });
-                          } else {
-                            rightItems.push({ ...base, quantity: 1 });
-                          }
-                          assignLeftoverToLeft = !assignLeftoverToLeft;
-                        }
-                      });
-
-                      // ของที่เปลี่ยนทั้งสองข้างยุบเป็นบรรทัดเดียว ให้ตรงกับหน้าสรุปก่อนบันทึก
-                      const { bothSides, leftOnly, rightOnly } =
-                        groupBySidePairs(leftItems, rightItems);
-
-                      return (
-                        <div>
-                          {bothSides.length > 0 && (
-                            <div className="mb-[8px]">
-                              <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                                <ArrowLeftRight className="mt-[2px]" />
-                                รายการซ่อมข้างซ้าย-ขวา
-                              </p>
-                              <div className="space-y-[12px]">
-                                {bothSides.map((item, idx) => (
-                                  <RepairItemCard
-                                    key={`both-${idx}`}
-                                    item={item}
-                                    variant="detail"
-                                    onClick={() => setPreviewItem(item)}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {leftOnly.length > 0 && (
-                            <div className="mb-[8px]">
-                              <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                                <ArrowLeft className="mt-[2px]" />
-                                รายการซ่อมข้างซ้าย
-                              </p>
-                              <div className="space-y-[12px]">
-                                {leftOnly.map((item, idx) => (
-                                  <RepairItemCard
-                                    key={`left-${idx}`}
-                                    item={item}
-                                    variant="detail"
-                                    onClick={() => setPreviewItem(item)}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {rightOnly.length > 0 && (
-                            <div className="mb-[8px]">
-                              <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                                <ArrowRight className="mt-[2px]" />
-                                รายการซ่อมข้างขวา
-                              </p>
-                              <div className="space-y-[12px]">
-                                {rightOnly.map((item, idx) => (
-                                  <RepairItemCard
-                                    key={`right-${idx}`}
-                                    item={item}
-                                    variant="detail"
-                                    onClick={() => setPreviewItem(item)}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {otherItems.length > 0 && (
-                            <div className="mb-[8px]">
-                              <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                                <Ellipsis className="mt-[2px]" />
-                                รายการซ่อมอื่นๆ
-                              </p>
-                              <div className="space-y-[12px]">
-                                {otherItems.map((item, idx) => (
-                                  <RepairItemCard
-                                    key={`other-${idx}`}
-                                    item={item}
-                                    variant="detail"
-                                    onClick={() => setPreviewItem(item)}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {generalItems.length > 0 && (
-                            <div className="mb-[8px]">
-                              <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-                                <Wrench className="mt-[2px]" />
-                                รายการซ่อมเพิ่มเติม
-                              </p>
-                              <div className="space-y-[12px]">
-                                {generalItems.map((item, idx) => (
-                                  <RepairItemCard
-                                    key={`general-${idx}`}
-                                    item={item}
-                                    variant="detail"
-                                    onClick={() => setPreviewItem(item)}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                ) : (
-                  <div className="space-y-[16px]">
-                    {mergeSidesInOrder(repair.repairItems).map(
-                      ({ item, sideLabel }, index) => (
-                        <RepairItemCard
-                          key={index}
-                          item={item}
-                          variant="detail"
-                          sideLabel={sideLabel}
-                          onClick={() => setPreviewItem(item)}
-                        />
-                      ),
-                    )}
-                  </div>
-                )}
-              </div>
+              <RepairDetailItems
+                repair={repair}
+                canEdit={!isCancelled}
+                onEdit={handleEditRepair}
+                onItemClick={setPreviewItem}
+              />
             )}
             {/* ยอดรวมเปลี่ยนสีตามสถานะ — จำนวนเงินที่ยังไม่ได้เก็บกับที่เก็บแล้วคนละความหมายกัน */}
             <div
@@ -1237,35 +902,11 @@ const RepairDetail = () => {
 
       {hasCustomer && (
         <OrganizationTypeDialog
-          isOpen={isOrgDialogOpen}
-          // ปิดกล่องโดยไม่ตอบ = ยังไม่ลงเครดิต บิลอยู่สถานะเดิม
-          onClose={() => {
-            pendingCreditSkipRef.current = null;
-            setIsOrgDialogOpen(false);
-          }}
-          customer={repair.customer}
-          // อยู่ระหว่างลงเครดิต ข้อความแจ้งผลจะมาทีเดียวตอนลงเครดิตเสร็จ
-          silent={pendingCreditSkipRef.current !== null}
-          // บิลย้ายกองทันทีที่เปลี่ยนประเภท จึงพาไปที่กองใหม่เลย ไม่ใช่ค้างอยู่หน้าเดิม
-          // แทนที่หน้าบิลในประวัติ กดย้อนกลับจะได้ถึงหน้าที่มาตั้งแต่แรก
-          onSaved={(type) => {
-            setIsOrgDialogOpen(false);
-
-            // ถูกถามระหว่างกำลังลงเครดิต ตอบแล้วก็ลงเครดิตต่อให้จบ
-            if (pendingCreditSkipRef.current !== null) {
-              const skipToCompleted = pendingCreditSkipRef.current;
-              pendingCreditSkipRef.current = null;
-              creditTypeAnsweredRef.current = true;
-              pendingCreditTypeRef.current = type;
-              handleUpdateStatus(skipToCompleted);
-              return;
-            }
-
-            // แก้ป้ายของลูกค้าเฉยๆ บิลที่เปิดอยู่ยังเป็นใบเดิม จึงอยู่หน้านี้ต่อ
-            // โหลดใหม่เพื่อให้บรรทัดประเภทใต้ชื่อตรงกับที่เพิ่งเลือก
-            changedTypeRef.current = type;
-            fetchRepairDetail();
-          }}
+          {...orgPrompt.dialogProps({
+            onResume: handleUpdateStatus,
+            // บิลอยู่หน้าเดิม โหลดใหม่ให้บรรทัดประเภทใต้ชื่อตรงกับที่เพิ่งเลือก
+            onChanged: fetchRepairDetail,
+          })}
         />
       )}
 

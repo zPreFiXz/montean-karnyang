@@ -17,18 +17,14 @@ const normalizeLots = (tireLots) =>
 const sumLotQuantity = (lots) =>
   lots.reduce((total, lot) => total + lot.quantity, 0);
 
-exports.listParts = async (req, res, next) => {
-  try {
-    const parts = await prisma.part.findMany({
-      include: {
-        category: true,
-      },
-    });
+exports.listParts = async (req, res) => {
+  const parts = await prisma.part.findMany({
+    include: {
+      category: true,
+    },
+  });
 
-    res.json(parts);
-  } catch (error) {
-    next(error);
-  }
+  res.json(parts);
 };
 
 // ชุดน้ำมันเครื่องผูกกับตัวเก็บน้ำมัน ไม่ผูกก็ล้างทั้งสองช่อง (เปลี่ยนกลับเป็นอะไหล่ที่นับสต็อกเอง)
@@ -42,223 +38,158 @@ const oilKitFields = (oilSourceId, oilLiters, selfId) => {
     : { oilSourceId: null, oilLiters: null };
 };
 
-exports.createPart = async (req, res, next) => {
-  try {
-    const {
-      partNumber,
-      brand,
-      name,
-      costPrice,
-      sellingPrice,
-      unit,
-      stockQuantity,
-      minStockLevel,
-      attributes,
-      compatibleVehicles,
-      description,
-      image,
-      categoryId,
-      tireLots,
-      oilSourceId,
-      oilLiters,
-    } = req.body;
+// ข้อมูลอะไหล่ที่บันทึกลงฐานข้อมูล ใช้ทั้งตอนเพิ่มและแก้ไข
+// ยางนับสต็อกจากผลรวมล็อต อะไหล่อื่นใช้จำนวนที่กรอกตรงๆ
+const partDataFrom = (body, lots, selfId) => ({
+  partNumber: body.partNumber,
+  // ไม่มียี่ห้อเก็บเป็น null อย่างเดียว ไม่ปนกับค่าว่าง
+  brand: body.brand?.trim() || null,
+  name: body.name,
+  costPrice: body.costPrice,
+  sellingPrice: body.sellingPrice,
+  unit: body.unit,
+  stockQuantity: lots ? sumLotQuantity(lots) : body.stockQuantity,
+  minStockLevel: body.minStockLevel,
+  attributes: body.attributes,
+  compatibleVehicles: body.compatibleVehicles,
+  description: body.description || null,
+  publicId: body.image?.publicId,
+  secureUrl: body.image?.secureUrl,
+  categoryId: body.categoryId,
+  ...oilKitFields(body.oilSourceId, body.oilLiters, selfId),
+});
 
-    const part = await prisma.part.findUnique({
-      where: { partNumber },
-    });
+exports.createPart = async (req, res) => {
+  const { partNumber, tireLots } = req.body;
 
-    if (part) {
-      createError(400, "รหัสอะไหล่นี้มีอยู่ในระบบแล้ว");
-    }
+  const part = await prisma.part.findUnique({
+    where: { partNumber },
+  });
 
-    const lots = normalizeLots(tireLots);
-
-    await prisma.part.create({
-      data: {
-        partNumber,
-        // ไม่มียี่ห้อเก็บเป็น null อย่างเดียว ไม่ปนกับค่าว่าง
-        brand: brand?.trim() || null,
-        name,
-        costPrice,
-        sellingPrice,
-        unit,
-        stockQuantity: lots ? sumLotQuantity(lots) : stockQuantity,
-        minStockLevel,
-        attributes,
-        compatibleVehicles,
-        description: description || null,
-        publicId: image?.publicId,
-        secureUrl: image?.secureUrl,
-        categoryId,
-        ...oilKitFields(oilSourceId, oilLiters),
-        tireLots: lots ? { create: lots } : undefined,
-      },
-    });
-
-    res.json({ message: "เพิ่มอะไหล่เรียบร้อยแล้ว" });
-  } catch (error) {
-    next(error);
+  if (part) {
+    createError(400, "รหัสอะไหล่นี้มีอยู่ในระบบแล้ว");
   }
+
+  const lots = normalizeLots(tireLots);
+
+  await prisma.part.create({
+    data: {
+      ...partDataFrom(req.body, lots),
+      tireLots: lots ? { create: lots } : undefined,
+    },
+  });
+
+  res.json({ message: "เพิ่มอะไหล่เรียบร้อยแล้ว" });
 };
 
-exports.updatePart = async (req, res, next) => {
-  try {
-    const { id } = req.params;
+exports.updatePart = async (req, res) => {
+  const { id } = req.params;
+  const { partNumber, tireLots } = req.body;
 
-    const {
-      partNumber,
-      brand,
-      name,
-      costPrice,
-      sellingPrice,
-      unit,
-      stockQuantity,
-      minStockLevel,
-      attributes,
-      compatibleVehicles,
-      description,
-      image,
-      categoryId,
-      tireLots,
-      oilSourceId,
-      oilLiters,
-    } = req.body;
+  const part = await prisma.part.findUnique({
+    where: { partNumber },
+  });
 
-    const part = await prisma.part.findUnique({
-      where: { partNumber },
-    });
-
-    if (part && part.id !== Number(id)) {
-      createError(400, "รหัสอะไหล่นี้มีอยู่ในระบบแล้ว");
-    }
-
-    const lots = normalizeLots(tireLots);
-
-    const data = {
-      partNumber,
-      brand: brand?.trim() || null,
-      name,
-      costPrice,
-      sellingPrice,
-      unit,
-      stockQuantity: lots ? sumLotQuantity(lots) : stockQuantity,
-      minStockLevel,
-      attributes,
-      compatibleVehicles,
-      description: description || null,
-      publicId: image?.publicId,
-      secureUrl: image?.secureUrl,
-      categoryId,
-      ...oilKitFields(oilSourceId, oilLiters, Number(id)),
-    };
-
-    // ยาง: แทนที่ล็อตทั้งชุดตามที่ฟอร์มส่งมา (ลบเก่า สร้างใหม่) ใน transaction เดียวกับการอัปเดต Part
-    await prisma.$transaction(async (tx) => {
-      // ชื่อที่ระบบเคยประกอบไว้ก่อนแก้ ใช้แยกว่าบรรทัดไหนยังเป็นชื่ออัตโนมัติ
-      const before = await tx.part.findUnique({
-        where: { id: Number(id) },
-        include: { category: true },
-      });
-      const previousName = buildPartItemName(before);
-
-      if (lots) {
-        await tx.tireLot.deleteMany({ where: { partId: Number(id) } });
-        data.tireLots = { create: lots };
-      } else {
-        // กรอกสต็อกเป็นจำนวนตรงๆ (เช่นย้ายยางไปหมวดยางเปอร์เซ็นต์) ล็อตเก่าต้องหายไปด้วย
-        // ไม่งั้นตอนขายจะไปตัดจากล็อตที่ไม่ตรงกับจำนวนในสต็อก
-        await tx.tireLot.deleteMany({ where: { partId: Number(id) } });
-      }
-      const part = await tx.part.update({
-        where: { id: Number(id) },
-        data,
-        include: { category: true },
-      });
-
-      // ชื่อในบิลเก่าตามชื่อในคลัง แก้ที่คลังที่เดียวแล้วประวัติเปลี่ยนตามทุกใบ
-      // ยกเว้นบรรทัดที่ถูกพิมพ์ชื่อทับไว้ในบิล ซึ่งต้องคงไว้ตามที่คนเขียน
-      // ดูจากชื่อเดิม ถ้าตรงกับที่ระบบเคยประกอบไว้แปลว่ายังไม่เคยถูกแก้
-      // อยู่ใน transaction เดียวกัน ถ้าอัปเดตชื่อไม่สำเร็จก็ไม่มีการแก้อะไหล่ด้วย
-      // (บริการไม่ทำแบบนี้ เพราะชื่อบนบรรทัดบริการเป็นชื่อที่ช่างพิมพ์เองในบิลใบนั้น)
-      await tx.repairItem.updateMany({
-        where: { partId: Number(id), itemName: previousName },
-        data: { itemName: buildPartItemName(part) },
-      });
-    });
-
-    res.json({ message: "แก้ไขอะไหล่เรียบร้อยแล้ว" });
-  } catch (error) {
-    next(error);
+  if (part && part.id !== Number(id)) {
+    createError(400, "รหัสอะไหล่นี้มีอยู่ในระบบแล้ว");
   }
-};
 
-exports.updatePartStock = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    // ยางส่ง lots มาได้หลายล็อตในครั้งเดียว ส่วนอะไหล่ทั่วไปส่ง quantity เดี่ยว
-    const { quantity, dotCode, lots: rawLots } = req.body;
-    const partId = Number(id);
+  const lots = normalizeLots(tireLots);
 
-    const lots =
-      normalizeLots(rawLots) || normalizeLots([{ dotCode, quantity }]);
-    // อะไหล่ทั่วไปไม่มี DOT จึงไม่เหลือล็อตหลังกรอง ให้ใช้ quantity ตรงๆ
-    const addQty = lots.length ? sumLotQuantity(lots) : Number(quantity) || 0;
+  const data = partDataFrom(req.body, lots, Number(id));
 
-    if (addQty <= 0) {
-      createError(400, "จำนวนที่เพิ่มต้องมากกว่า 0");
-    }
-
-    // ทั้งชุดอยู่ใน transaction เดียว ถ้าล็อตใดพลาดจะไม่มีอะไรเข้าเลย ไม่ใช่เข้าครึ่งเดียว
-    await prisma.$transaction(async (tx) => {
-      await tx.part.update({
-        where: { id: partId },
-        data: { stockQuantity: { increment: addQty } },
-      });
-
-      // ยาง: merge เข้าล็อต DOT เดิม หรือสร้างล็อตใหม่ ให้ผลรวมล็อตตรงกับ stockQuantity
-      for (const lot of lots) {
-        const existingLot = await tx.tireLot.findFirst({
-          where: { partId, dotCode: lot.dotCode },
-        });
-        if (existingLot) {
-          await tx.tireLot.update({
-            where: { id: existingLot.id },
-            data: { quantity: existingLot.quantity + lot.quantity },
-          });
-        } else {
-          await tx.tireLot.create({
-            data: { partId, dotCode: lot.dotCode, quantity: lot.quantity },
-          });
-        }
-      }
-    });
-
-    res.json({ message: "เพิ่มสต็อกเรียบร้อยแล้ว" });
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.deletePart = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    // บิลเก่าอ้างถึงอะไหล่ตัวนี้อยู่ ถ้าลบทิ้งข้อมูลในบิลจะขาดหาย
-    // (ความสัมพันธ์ตั้งไว้ให้ตัดเป็นค่าว่าง ไม่ได้ห้ามลบเอง จึงต้องกันที่ตรงนี้)
-    const usedInRepair = await prisma.repairItem.findFirst({
-      where: { partId: Number(id) },
-    });
-
-    if (usedInRepair) {
-      createError(400, "ลบไม่ได้ เพราะมีงานซ่อมที่ใช้อะไหล่นี้อยู่");
-    }
-
-    await prisma.part.delete({
+  // ยาง: แทนที่ล็อตทั้งชุดตามที่ฟอร์มส่งมา (ลบเก่า สร้างใหม่) ใน transaction เดียวกับการอัปเดต Part
+  await prisma.$transaction(async (tx) => {
+    // ชื่อที่ระบบเคยประกอบไว้ก่อนแก้ ใช้แยกว่าบรรทัดไหนยังเป็นชื่ออัตโนมัติ
+    const before = await tx.part.findUnique({
       where: { id: Number(id) },
+      include: { category: true },
+    });
+    const previousName = buildPartItemName(before);
+
+    // ล็อตเก่าทิ้งเสมอ ยางสร้างชุดใหม่ตามฟอร์ม
+    // กรอกสต็อกเป็นจำนวนตรงๆ (เช่นย้ายยางไปหมวดยางเปอร์เซ็นต์) ล็อตเก่าต้องหายไปด้วย
+    // ไม่งั้นตอนขายจะไปตัดจากล็อตที่ไม่ตรงกับจำนวนในสต็อก
+    await tx.tireLot.deleteMany({ where: { partId: Number(id) } });
+    if (lots) data.tireLots = { create: lots };
+    const part = await tx.part.update({
+      where: { id: Number(id) },
+      data,
+      include: { category: true },
     });
 
-    res.json({ message: "ลบอะไหล่เรียบร้อยแล้ว" });
-  } catch (error) {
-    next(error);
+    // ชื่อในบิลเก่าตามชื่อในคลัง แก้ที่คลังที่เดียวแล้วประวัติเปลี่ยนตามทุกใบ
+    // ยกเว้นบรรทัดที่ถูกพิมพ์ชื่อทับไว้ในบิล ซึ่งต้องคงไว้ตามที่คนเขียน
+    // ดูจากชื่อเดิม ถ้าตรงกับที่ระบบเคยประกอบไว้แปลว่ายังไม่เคยถูกแก้
+    // อยู่ใน transaction เดียวกัน ถ้าอัปเดตชื่อไม่สำเร็จก็ไม่มีการแก้อะไหล่ด้วย
+    // (บริการไม่ทำแบบนี้ เพราะชื่อบนบรรทัดบริการเป็นชื่อที่ช่างพิมพ์เองในบิลใบนั้น)
+    await tx.repairItem.updateMany({
+      where: { partId: Number(id), itemName: previousName },
+      data: { itemName: buildPartItemName(part) },
+    });
+  });
+
+  res.json({ message: "แก้ไขอะไหล่เรียบร้อยแล้ว" });
+};
+
+exports.updatePartStock = async (req, res) => {
+  const { id } = req.params;
+  // ยางส่ง lots มาได้หลายล็อตในครั้งเดียว ส่วนอะไหล่ทั่วไปส่ง quantity เดี่ยว
+  const { quantity, dotCode, lots: rawLots } = req.body;
+  const partId = Number(id);
+
+  const lots = normalizeLots(rawLots) || normalizeLots([{ dotCode, quantity }]);
+  // อะไหล่ทั่วไปไม่มี DOT จึงไม่เหลือล็อตหลังกรอง ให้ใช้ quantity ตรงๆ
+  const addQty = lots.length ? sumLotQuantity(lots) : Number(quantity) || 0;
+
+  if (addQty <= 0) {
+    createError(400, "จำนวนที่เพิ่มต้องมากกว่า 0");
   }
+
+  // ทั้งชุดอยู่ใน transaction เดียว ถ้าล็อตใดพลาดจะไม่มีอะไรเข้าเลย ไม่ใช่เข้าครึ่งเดียว
+  await prisma.$transaction(async (tx) => {
+    await tx.part.update({
+      where: { id: partId },
+      data: { stockQuantity: { increment: addQty } },
+    });
+
+    // ยาง: merge เข้าล็อต DOT เดิม หรือสร้างล็อตใหม่ ให้ผลรวมล็อตตรงกับ stockQuantity
+    for (const lot of lots) {
+      const existingLot = await tx.tireLot.findFirst({
+        where: { partId, dotCode: lot.dotCode },
+      });
+      if (existingLot) {
+        await tx.tireLot.update({
+          where: { id: existingLot.id },
+          data: { quantity: existingLot.quantity + lot.quantity },
+        });
+      } else {
+        await tx.tireLot.create({
+          data: { partId, dotCode: lot.dotCode, quantity: lot.quantity },
+        });
+      }
+    }
+  });
+
+  res.json({ message: "เพิ่มสต็อกเรียบร้อยแล้ว" });
+};
+
+exports.deletePart = async (req, res) => {
+  const { id } = req.params;
+
+  // บิลเก่าอ้างถึงอะไหล่ตัวนี้อยู่ ถ้าลบทิ้งข้อมูลในบิลจะขาดหาย
+  // (ความสัมพันธ์ตั้งไว้ให้ตัดเป็นค่าว่าง ไม่ได้ห้ามลบเอง จึงต้องกันที่ตรงนี้)
+  const usedInRepair = await prisma.repairItem.findFirst({
+    where: { partId: Number(id) },
+  });
+
+  if (usedInRepair) {
+    createError(400, "ลบไม่ได้ เพราะมีงานซ่อมที่ใช้อะไหล่นี้อยู่");
+  }
+
+  await prisma.part.delete({
+    where: { id: Number(id) },
+  });
+
+  res.json({ message: "ลบอะไหล่เรียบร้อยแล้ว" });
 };

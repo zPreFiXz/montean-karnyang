@@ -5,7 +5,8 @@ const { log } = require("./log");
 
 const { attendance: attCfg } = config;
 
-const scanKey = (employeeId, scannedAt) => `${employeeId}-${new Date(scannedAt).getTime()}`;
+const scanKey = (employeeId, scannedAt) =>
+  `${employeeId}-${new Date(scannedAt).getTime()}`;
 
 // log จากเครื่องถูกดึงมาทั้งหมดทุกรอบ จึงต้องกรองเหลือเฉพาะของวันนี้แล้วเรียงเก่า -> ใหม่
 const todayLogsOf = (logs, start, end) =>
@@ -21,7 +22,8 @@ const lastScanOf = (rows) => {
   const lastScan = new Map();
   for (const row of rows) {
     const t = new Date(row.scannedAt).getTime();
-    if (t > (lastScan.get(row.employeeId) ?? 0)) lastScan.set(row.employeeId, t);
+    if (t > (lastScan.get(row.employeeId) ?? 0))
+      lastScan.set(row.employeeId, t);
   }
   return lastScan;
 };
@@ -38,7 +40,9 @@ const createSync = ({ prisma, employees }) => {
       select: { employeeId: true, scannedAt: true },
     });
 
-    const seen = new Set(existing.map((r) => scanKey(r.employeeId, r.scannedAt)));
+    const seen = new Set(
+      existing.map((r) => scanKey(r.employeeId, r.scannedAt)),
+    );
     const lastScan = lastScanOf(existing);
     const minGapMs = attCfg.minScanGapMinutes * 60_000;
 

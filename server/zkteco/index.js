@@ -5,7 +5,8 @@ const { createSync } = require("./sync");
 const { createNotifier } = require("./notifier");
 const { log } = require("./log");
 
-const zkErrorMessage = (err) => err?.err?.message || err?.message || String(err);
+const zkErrorMessage = (err) =>
+  err?.err?.message || err?.message || String(err);
 
 const startZktecoService = async (prisma) => {
   const { device: deviceCfg, attendance: attCfg } = config;
@@ -32,7 +33,9 @@ const startZktecoService = async (prisma) => {
     try {
       const info = await device.getInfo();
       const { logCounts, logCapacity, userCounts } = info;
-      const percent = logCapacity ? ((logCounts / logCapacity) * 100).toFixed(1) : "?";
+      const percent = logCapacity
+        ? ((logCounts / logCapacity) * 100).toFixed(1)
+        : "?";
       log.info(
         "ZKTeco",
         `Device log ${logCounts}/${logCapacity} (${percent}%), users: ${userCounts}`,
@@ -45,7 +48,9 @@ const startZktecoService = async (prisma) => {
 
   const connect = async () => {
     await device.connect();
-    employees.warm(true).catch((err) => log.warn("Cache", "Employee warmup failed:", err));
+    employees
+      .warm(true)
+      .catch((err) => log.warn("Cache", "Employee warmup failed:", err));
     connected = true;
     reconnecting = false;
     reconnectAttempts = 0;
@@ -78,7 +83,10 @@ const startZktecoService = async (prisma) => {
     } catch (err) {
       const message = zkErrorMessage(err);
       if (err.code === "FETCH_TIMEOUT") {
-        log.warn("ZKTeco", `Fetch timeout (>${deviceCfg.fetchTimeoutMs}ms) — reconnecting`);
+        log.warn(
+          "ZKTeco",
+          `Fetch timeout (>${deviceCfg.fetchTimeoutMs}ms) — reconnecting`,
+        );
       } else {
         log.error("ZKTeco", `Polling error: ${message}`);
       }
@@ -116,11 +124,18 @@ const startZktecoService = async (prisma) => {
   await notifier
     .initDailyFlags()
     .catch((err) =>
-      log.error("Notify", "Init daily flags failed (may resend today's notices):", err),
+      log.error(
+        "Notify",
+        "Init daily flags failed (may resend today's notices):",
+        err,
+      ),
     );
 
   const pollTimerId = setInterval(poll, deviceCfg.pollIntervalMs);
-  const scheduleTimerId = setInterval(checkSchedules, attCfg.scheduleCheckIntervalMs);
+  const scheduleTimerId = setInterval(
+    checkSchedules,
+    attCfg.scheduleCheckIntervalMs,
+  );
 
   const stop = () => {
     stopped = true;

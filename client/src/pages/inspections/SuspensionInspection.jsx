@@ -9,26 +9,56 @@ import { useNavigate, useLocation } from "react-router";
 import { listParts } from "@/api/part";
 import { listInventory } from "@/api/inventory";
 import { formatCurrency } from "@/utils/formats";
-import { Plus, Minus, Check, Wrench, SquarePen, AlertTriangle, ClipboardList, X, LoaderCircle, ChevronLeft } from "lucide-react";
+import {
+  Plus,
+  Minus,
+  Check,
+  Wrench,
+  SquarePen,
+  AlertTriangle,
+  ClipboardList,
+  X,
+  LoaderCircle,
+  ChevronLeft,
+} from "lucide-react";
 import BillTotal from "@/components/cards/BillTotal";
 import CustomerInfoSection from "@/components/bill/CustomerInfoSection";
 import VehicleFields from "@/components/bill/VehicleFields";
 import FormButton from "@/components/forms/FormButton";
-import { DRAFT_SUSPENSION, loadDraft, saveDraft, clearDraft, isDraftWorthSaving } from "@/utils/repairDraft";
+import {
+  DRAFT_SUSPENSION,
+  loadDraft,
+  saveDraft,
+  clearDraft,
+  isDraftWorthSaving,
+} from "@/utils/repairDraft";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { repairSchema } from "@/utils/schemas";
 import { CarRepair, SparePart } from "@/components/icons/Icons";
 import { toastError } from "@/utils/handleError";
-import { isPartLikeItem, isDiscountItem, SUSPENSION_DEFAULT_SERVICE_NAMES, PER_SIDE_SERVICE_NAME } from "@/constants/services";
+import {
+  isPartLikeItem,
+  isDiscountItem,
+  SUSPENSION_DEFAULT_SERVICE_NAMES,
+  PER_SIDE_SERVICE_NAME,
+} from "@/constants/services";
 import { onKeyActivate } from "@/utils/a11y";
-import { isPerSide, getPartType, SUSPENSION_PART_TYPE_ORDER } from "@/utils/suspension";
 import useBillNavigation from "@/hooks/useBillNavigation";
 import useVehicleModels from "@/hooks/useVehicleModels";
 import { focusFirstInvalid } from "@/utils/focusInvalidField";
 import { EMPTY_FORM, SUBMIT_FEEDBACK_MS } from "@/constants/billForm";
-import useBillItems, { getProductName, renderProductInfo } from "@/hooks/useBillItems";
+import useSuspensionTabs from "@/hooks/useSuspensionTabs";
+import { groupOtherParts, groupPartsByType } from "@/utils/suspension";
+import useBillItems, {
+  getProductName,
+  renderProductInfo,
+} from "@/hooks/useBillItems";
 import { SUSPENSION_CATEGORY } from "@/constants/categories";
-import { collapseSidePairs, expandBothSides, isSuspensionTabItem } from "@/utils/repairItemGroups";
+import {
+  collapseSidePairs,
+  expandBothSides,
+  isSuspensionTabItem,
+} from "@/utils/repairItemGroups";
 import { scrollToNewRow } from "@/utils/scrollToNewRow";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import { usePrefetchPages } from "@/routes/pageImports";
@@ -38,10 +68,6 @@ const thaiCollator = new Intl.Collator("th", { numeric: true });
 const byPartName = (a, b) => thaiCollator.compare(a?.name || "", b?.name || "");
 
 const TAB_ORDER = ["left", "right", "other"];
-
-// สามชนิดที่ช่างไล่ตรวจประจำในแท็บ "อื่นๆ" ให้ขึ้นก่อนตามลำดับนี้
-// ชนิดอื่นยังขึ้นเหมือนกัน แค่ไปต่อท้ายเรียงตามตัวอักษร
-const OTHER_TAB_ORDER = ["คันส่งกลาง", "โช้คหน้า", "โช้คหลัง"];
 
 const TAB_LABELS = { left: "ซ้าย", right: "ขวา", other: "อื่นๆ" };
 const SuspensionInspection = () => {
@@ -78,7 +104,7 @@ const SuspensionInspection = () => {
     reorderButton,
     freebieButton,
     renderItemRows,
-    itemDialogs,
+    renderItemDialogs,
     updateItemPrice,
   } = useBillItems({
     // ของชิ้นเดียวกันที่ติ๊กในแท็บใช้สต็อกกองเดียวกับรายการซ่อมเพิ่มเติม
@@ -89,17 +115,29 @@ const SuspensionInspection = () => {
   // บริการรายข้างท้ายแท็บซ้าย/ขวา เก็บแยกจากเซ็ตของอะไหล่
   // เพราะรหัสบริการกับรหัสอะไหล่เป็นคนละชุด ปนกันแล้วจะชนกันเอง
   const [perSideService, setPerSideService] = useState(null);
-  const [perSideServiceSides, setPerSideServiceSides] = useState({
-    left: false,
-    right: false,
-  });
   const [isPartsLoaded, setIsPartsLoaded] = useState(false);
-  const [selectedLeftParts, setSelectedLeftParts] = useState(new Set());
-  // จำนวนของที่ติ๊กในแท็บ เก็บเฉพาะที่มากกว่าหนึ่ง กุญแจคือ "ฝั่ง:รหัสอะไหล่" (ดู tabQty)
-  const [tabQuantities, setTabQuantities] = useState({});
-  const initialTabQuantitiesRef = useRef({});
-  const [selectedRightParts, setSelectedRightParts] = useState(new Set());
-  const [selectedOtherParts, setSelectedOtherParts] = useState(new Set());
+  const {
+    getPartsForSide,
+    tabQty,
+    setTabQty,
+    isPartSelected,
+    allowsTabQuantity,
+    perSideServiceSides,
+    togglePerSideService,
+    countSelectedInTabs,
+    hasTabSelection,
+    getPriceForPart,
+    setPriceOverride,
+    tabTotal,
+    getTabSelectedCountForItem,
+    getCurrentSelectedCountForPart,
+    getAllowedUnitsForPart,
+    getSelectedTabItems,
+    handlePartSelection,
+    buildTabItems,
+    restoreTabs,
+    clearTabs,
+  } = useSuspensionTabs({ compatibleParts, perSideService, repairItems });
   const [activeTab, setActiveTab] = useState("left");
   // ทิศที่เนื้อหาเลื่อนเข้ามา อิงจากตำแหน่งแท็บเดิม กดไปทางขวาก็เลื่อนเข้าจากขวา
   const [slideFrom, setSlideFrom] = useState("right");
@@ -114,7 +152,6 @@ const SuspensionInspection = () => {
   const [editingItem, setEditingItem] = useState(null);
   // ดูรูปกับข้อมูลของอะไหล่ก่อนตัดสินใจเลือก
   const [previewPart, setPreviewPart] = useState(null);
-  const [priceOverrides, setPriceOverrides] = useState({});
   const restoredRef = useRef(false);
   const [_isMoreFieldsVisible, setIsMoreFieldsVisible] = useState(false);
   const [isCustomerInfoOpen, setIsCustomerInfoOpen] = useState(false);
@@ -123,12 +160,6 @@ const SuspensionInspection = () => {
   const draftRestoredRef = useRef(false);
   // บริการตั้งต้นของบิลช่วงล่าง — หามาจากชื่อ เพราะ id ไม่ตรงกันระหว่างเครื่อง
   const [defaultServices, setDefaultServices] = useState([]);
-
-  const initialSelectedRef = useRef({
-    left: new Set(),
-    right: new Set(),
-    other: new Set(),
-  });
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -269,9 +300,6 @@ const SuspensionInspection = () => {
     }
 
     if (savedItems && Array.isArray(savedItems)) {
-      // บริการรายข้างก็มีข้างเหมือนอะไหล่ แยกออกมาก่อนไม่ให้ปนเข้าเซ็ตของอะไหล่
-      const isPerSideServiceItem = (i) =>
-        !i.partNumber && i.name === PER_SIDE_SERVICE_NAME;
       // แท็บมีแต่อะไหล่ช่วงล่างของรุ่นรถนี้ ที่เหลือกลับไปอยู่รายการซ่อมเพิ่มเติม
       const isTabItem = isSuspensionTabItem;
       const tabItems = savedItems.filter(isTabItem);
@@ -285,55 +313,7 @@ const SuspensionInspection = () => {
       const manualItems = collapseSidePairs(
         savedItems.filter((i) => !isTabItem(i)),
       );
-      setPerSideServiceSides({
-        left: tabItems.some(
-          (i) => i.side === "left" && isPerSideServiceItem(i),
-        ),
-        right: tabItems.some(
-          (i) => i.side === "right" && isPerSideServiceItem(i),
-        ),
-      });
-      const leftIds = tabItems
-        .filter((i) => i.side === "left" && !isPerSideServiceItem(i))
-        .map((i) => i.id);
-      const rightIds = tabItems
-        .filter((i) => i.side === "right" && !isPerSideServiceItem(i))
-        .map((i) => i.id);
-      const otherIds = tabItems
-        .filter((i) => i.side === "other")
-        .map((i) => i.id);
-
-      // ราคาที่แก้ไว้ติดมากับรายการที่กู้คืน ต้องดึงกลับเข้า priceOverrides
-      // ไม่งั้นราคาจะเด้งกลับเป็นราคาตั้งต้นทุกครั้งที่ย้อนกลับมาจากหน้าสรุป
-      const restoredPrices = {};
-      for (const it of tabItems) {
-        if (it?.id != null && it?.sellingPrice != null) {
-          restoredPrices[it.id] = Number(it.sellingPrice);
-        }
-      }
-      setPriceOverrides((prev) => ({ ...prev, ...restoredPrices }));
-
-      // บูชปีกนกข้างหนึ่งใส่ได้หลายตัว จำนวนติดมากับบรรทัดในบิล
-      const restoredQuantities = {};
-      for (const it of tabItems) {
-        if (!isPerSideServiceItem(it) && Number(it.quantity) > 1) {
-          restoredQuantities[`${it.side}:${it.id}`] = Number(it.quantity);
-        }
-      }
-      setTabQuantities(restoredQuantities);
-      initialTabQuantitiesRef.current = restoredQuantities;
-
-      const leftSet = new Set(leftIds);
-      const rightSet = new Set(rightIds);
-      const otherSet = new Set(otherIds);
-      setSelectedLeftParts(leftSet);
-      setSelectedRightParts(rightSet);
-      setSelectedOtherParts(otherSet);
-      initialSelectedRef.current = {
-        left: leftSet,
-        right: rightSet,
-        other: otherSet,
-      };
+      restoreTabs(tabItems);
 
       // เฉพาะบิลที่บันทึกแล้ว (แก้ไขบิลเดิม) — ของถูกหักจากคลังไปแล้ว ต้องบวกคืนตอนคำนวณว่าเบิกได้เท่าไหร่
       // ถ้าแค่ย้อนกลับมาจากหน้าสรุป คลังยังไม่ถูกหัก ถ้าบวกคืนจะกลายเป็นมีของมากกว่าความจริง
@@ -448,56 +428,11 @@ const SuspensionInspection = () => {
     }
   };
 
-  // อะไหล่นอกหมวดช่วงล่าง (เช่นน้ำมัน) ไม่มีข้างซ้าย-ขวา จึงอยู่ช่องอื่นๆ เหมือนของที่ไม่แยกข้าง
-  // ถ้าให้เลือกได้ทุกช่องจะเผลอบันทึกว่าติดตั้งข้างซ้าย/ขวา ซึ่งไม่มีความหมายและติดไปกับบิล
-  const getPartsForSide = (side) => {
-    return compatibleParts.filter((part) => {
-      const perSide =
-        part.category?.name === "ช่วงล่าง" && isPerSide(part.attributes);
-
-      if (perSide) return side === "left" || side === "right";
-      // อะไหล่ช่วงล่างที่ไม่ได้ติดตั้งแยกข้างทุกตัวไปอยู่แท็บอื่นๆ
-      // (เดิมรับเฉพาะสามชนิดที่ระบุไว้ ตัวที่เหลือจึงหายไปทั้งที่ผูกกับรุ่นรถไว้แล้ว)
-      return side === "other";
-    });
-  };
-
   // ทะเบียนเก็บเป็น "ตัวอักษร เว้นวรรค ตัวเลข" ให้ตรงกับที่บันทึกไว้ตอนสร้างบิล
   const plateText =
     watch("plateLetters") && watch("plateNumbers")
       ? `${watch("plateLetters")} ${watch("plateNumbers")}`
       : "";
-
-  // บริการรายข้างที่ติ๊กไว้ นับและคิดเงินรวมไปกับของในแท็บ
-  const countPerSideService = () =>
-    Number(!!perSideService && perSideServiceSides.left) +
-    Number(!!perSideService && perSideServiceSides.right);
-
-  const sumPerSideService = () =>
-    countPerSideService() * (perSideService?.sellingPrice || 0);
-
-  // จำนวนที่ติ๊กไว้ในแท็บทั้งสามฝั่ง (นับเฉพาะที่ยังอยู่ในรายการอะไหล่ที่ใช้ได้)
-  const countSelectedInTabs = () =>
-    Array.from(selectedLeftParts).filter((id) =>
-      getPartsForSide("left").some((part) => part.id === id),
-    ).length +
-    Array.from(selectedRightParts).filter((id) =>
-      getPartsForSide("right").some((part) => part.id === id),
-    ).length +
-    Array.from(selectedOtherParts).filter((id) =>
-      getPartsForSide("other").some((part) => part.id === id),
-    ).length +
-    countPerSideService();
-
-  const getTabSelectedCountForItem = (item) => {
-    const part = compatibleParts.find((p) => isSamePart(item, p));
-    if (!part) return 0;
-    return (
-      tabQty("left", part.id) +
-      tabQty("right", part.id) +
-      tabQty("other", part.id)
-    );
-  };
 
   const handlePriceClick = (index, item) => {
     try {
@@ -524,17 +459,8 @@ const SuspensionInspection = () => {
       editingItem.partId &&
       newPrice != null
     ) {
-      setPriceOverrides((prev) => ({
-        ...prev,
-        [editingItem.partId]: newPrice,
-      }));
+      setPriceOverride(editingItem.partId, newPrice);
     }
-  };
-
-  const getPriceForPart = (part) => {
-    if (!part) return 0;
-    const override = priceOverrides?.[part.id];
-    return Number(override != null ? override : part.sellingPrice) || 0;
   };
 
   const handleEditCompatiblePrice = (part) => {
@@ -561,221 +487,8 @@ const SuspensionInspection = () => {
     setPriceDialogOpen(true);
   };
 
-  const getRepairItemsCountExcludingLabor = () => {
-    return repairItems.length;
-  };
-
-  const getAllowedUnitsForPart = (part) => {
-    const stockQty =
-      typeof part?.stockQuantity === "number"
-        ? Math.max(part.stockQuantity, 0)
-        : Infinity;
-    const isSuspensionPart = part?.category?.name === "ช่วงล่าง";
-    const initialCount = isSuspensionPart
-      ? ["left", "right", "other"].reduce(
-          (sum, side) =>
-            sum +
-            (initialSelectedRef.current[side].has(part.id)
-              ? initialTabQuantitiesRef.current[`${side}:${part.id}`] || 1
-              : 0),
-          0,
-        )
-      : 0;
-    if (stockQty === Infinity) return Infinity;
-    return Math.max(stockQty, initialCount);
-  };
-
-  const isSamePart = (item, part) =>
-    !!item?.partNumber &&
-    (item.id === part.id ||
-      (item.partNumber === part.partNumber &&
-        item.brand === part.brand &&
-        item.name === part.name));
-
-  // ของชิ้นเดียวกันอาจถูกหยิบจาก "รายการซ่อมเพิ่มเติม" ด้วย ต้องนับรวมกัน
-  // ไม่งั้นสองที่จะแย่งสต็อกก้อนเดียวกันโดยไม่รู้ตัว
-  const getExtraItemsCountForPart = (part) =>
-    repairItems.reduce(
-      (sum, item) =>
-        isSamePart(item, part) ? sum + (item.quantity || 0) : sum,
-      0,
-    );
-
-  const getCurrentSelectedCountForPart = (part) =>
-    tabQty("left", part.id) +
-    tabQty("right", part.id) +
-    tabQty("other", part.id) +
-    getExtraItemsCountForPart(part);
-
-  // ส่งของที่ติ๊กจากแท็บให้ไดอะล็อกรู้ด้วย จะได้หักสต็อกจากก้อนเดียวกัน
-  // ชื่ออะไหล่ไทยขึ้นต้นด้วยชนิดของมันเสมอ (ลูกหมากล่าง, ลูกหมากบน, คันส่งกลาง)
-  // จึงใช้คำแรกเป็นหัวข้อกลุ่มได้โดยไม่ต้องเพิ่มฟิลด์ใหม่
-  // ข้อแลกเปลี่ยน: ถ้าตั้งชื่อไม่ตามแบบแผน อะไหล่ตัวนั้นจะกลายเป็นกลุ่มของตัวเอง
-  // แท็บอื่นๆ จัดกลุ่มตามลิสต์ที่กำหนดไว้ ไม่ใช่ตามคำแรกของชื่อ
-  // แท็บอื่นๆ จัดกลุ่มตามคำแรกของชื่อเหมือนแท็บซ้ายขวา
-  // แต่สามชนิดที่ช่างไล่ตรวจประจำให้ขึ้นก่อนตามลำดับเดิม ที่เหลือเรียงตามตัวอักษรต่อท้าย
-  const groupOtherParts = (parts) => {
-    const groups = groupPartsByType(parts);
-    const rank = (type) => {
-      const index = OTHER_TAB_ORDER.indexOf(type);
-      return index === -1 ? OTHER_TAB_ORDER.length : index;
-    };
-
-    return [...groups].sort(
-      (a, b) =>
-        rank(a.type) - rank(b.type) || thaiCollator.compare(a.type, b.type),
-    );
-  };
-
-  const groupPartsByType = (parts) => {
-    const groups = new Map();
-    for (const part of parts) {
-      const type = getPartType(part.name);
-      if (!groups.has(type)) groups.set(type, []);
-      groups.get(type).push(part);
-    }
-    // เรียงกลุ่มตามลำดับที่ช่างไล่ตรวจ ชนิดที่ไม่อยู่ในลิสต์ตกไปท้ายสุดเรียงตามตัวอักษร
-    const rank = (type) => {
-      const index = SUSPENSION_PART_TYPE_ORDER.indexOf(type);
-      return index === -1 ? SUSPENSION_PART_TYPE_ORDER.length : index;
-    };
-
-    return [...groups.entries()]
-      .map(([type, items]) => ({ type, items }))
-      .sort(
-        (a, b) =>
-          rank(a.type) - rank(b.type) || thaiCollator.compare(a.type, b.type),
-      );
-  };
-
-  const getSelectedTabItems = () =>
-    compatibleParts.flatMap((part) => {
-      const count =
-        tabQty("left", part.id) +
-        tabQty("right", part.id) +
-        tabQty("other", part.id);
-      return count > 0 ? [{ ...part, quantity: count }] : [];
-    });
-
-  const handlePartSelection = (part, isSelected, side) => {
-    if (!isSelected) setTabQty(side, part.id, 1);
-    const _stockQty =
-      typeof part?.stockQuantity === "number" ? part.stockQuantity : Infinity;
-    const isLeftRight = isPerSide(part?.attributes);
-    const allowedUnits = getAllowedUnitsForPart(part);
-
-    if (side === "left") {
-      setSelectedLeftParts((prev) => {
-        const next = new Set(prev);
-        if (isSelected) next.add(part.id);
-        else next.delete(part.id);
-        return next;
-      });
-      if (isSelected && isLeftRight && allowedUnits === 1) {
-        setSelectedRightParts((prev) => {
-          const next = new Set(prev);
-          next.delete(part.id);
-          return next;
-        });
-      }
-    } else if (side === "right") {
-      setSelectedRightParts((prev) => {
-        const next = new Set(prev);
-        if (isSelected) next.add(part.id);
-        else next.delete(part.id);
-        return next;
-      });
-      if (isSelected && isLeftRight && allowedUnits === 1) {
-        setSelectedLeftParts((prev) => {
-          const next = new Set(prev);
-          next.delete(part.id);
-          return next;
-        });
-      }
-    } else if (side === "other") {
-      setSelectedOtherParts((prev) => {
-        const next = new Set(prev);
-        if (isSelected) next.add(part.id);
-        else next.delete(part.id);
-        return next;
-      });
-    }
-  };
-
-  // บูชปีกนก (บน ล่าง เล็ก ใหญ่) กับสลักปีกนกล่าง ข้างหนึ่งใส่หลายตัว ที่เหลือข้างละชิ้นเดียว
-  const allowsTabQuantity = (part) => {
-    const type = getPartType(part?.name);
-    return type.startsWith("บูชปีกนก") || type === "สลักปีกนกล่าง";
-  };
-
-  // ชิ้นที่ติ๊กในแท็บนับเป็นหนึ่ง ยกเว้นบูชปีกนกที่ข้างหนึ่งใส่ได้หลายตัว
-  const tabQty = (side, partId) => {
-    const selected =
-      side === "left"
-        ? selectedLeftParts
-        : side === "right"
-          ? selectedRightParts
-          : selectedOtherParts;
-    return selected.has(partId) ? tabQuantities[`${side}:${partId}`] || 1 : 0;
-  };
-
-  const setTabQty = (side, partId, quantity) =>
-    setTabQuantities((prev) => {
-      const next = { ...prev };
-      if (quantity > 1) next[`${side}:${partId}`] = quantity;
-      else delete next[`${side}:${partId}`];
-      return next;
-    });
-
-  const isPartSelected = (partId, side) => {
-    if (side === "left") return selectedLeftParts.has(partId);
-    else if (side === "right") return selectedRightParts.has(partId);
-    else if (side === "other") return selectedOtherParts.has(partId);
-    return false;
-  };
-
   const onInvalid = (errs) =>
     focusFirstInvalid(errs, () => setIsCustomerInfoOpen(true));
-
-  // อะไหล่ที่ติ๊กตามตำแหน่งเก็บไว้เป็นเซ็ตของ id ต้องคลี่กลับเป็นรายการเต็มก่อน
-  // ทั้งตอนส่งไปหน้าสรุปและตอนเก็บร่าง
-  const buildTabItems = () => [
-    ...Array.from(selectedLeftParts)
-      .map((id) => getPartsForSide("left").find((p) => p.id === id))
-      .filter(Boolean)
-      .map((part) => ({
-        ...part,
-        sellingPrice: getPriceForPart(part),
-        quantity: tabQty("left", part.id),
-        side: "left",
-      })),
-    ...Array.from(selectedRightParts)
-      .map((id) => getPartsForSide("right").find((p) => p.id === id))
-      .filter(Boolean)
-      .map((part) => ({
-        ...part,
-        sellingPrice: getPriceForPart(part),
-        quantity: tabQty("right", part.id),
-        side: "right",
-      })),
-    ...Array.from(selectedOtherParts)
-      .map((id) => getPartsForSide("other").find((p) => p.id === id))
-      .filter(Boolean)
-      .map((part) => ({
-        ...part,
-        sellingPrice: getPriceForPart(part),
-        quantity: tabQty("other", part.id),
-        side: "other",
-      })),
-    ...["left", "right"]
-      .filter((side) => perSideService && perSideServiceSides[side])
-      .map((side) => ({
-        ...perSideService,
-        sellingPrice: perSideService.sellingPrice,
-        quantity: 1,
-        side,
-      })),
-  ];
 
   const buildAllRepairItems = () => [
     ...repairItems.slice(0, tabBlockIndex),
@@ -815,18 +528,7 @@ const SuspensionInspection = () => {
     // ช่องเบอร์รถที่กางไว้ยุบกลับเป็นปุ่มเล็กเหมือนฟอร์มใหม่
     setClearCount((count) => count + 1);
     setRepairItems([]);
-    setSelectedLeftParts(new Set());
-    setSelectedRightParts(new Set());
-    setSelectedOtherParts(new Set());
-    setPerSideServiceSides({ left: false, right: false });
-    initialSelectedRef.current = {
-      left: new Set(),
-      right: new Set(),
-      other: new Set(),
-    };
-    setPriceOverrides({});
-    setTabQuantities({});
-    initialTabQuantitiesRef.current = {};
+    clearTabs();
     setTabBlockIndex(0);
     setRestoredStockMap({});
     setActiveTab("left");
@@ -878,11 +580,6 @@ const SuspensionInspection = () => {
   // ย้ายได้เฉพาะตอนไม่ได้เลือกอะไหล่ช่วงล่างในแท็บ เพราะหน้างานซ่อมไม่มีแท็บซ้าย/ขวา/อื่นๆ ให้ของพวกนั้นไปอยู่
   // (รายการซ่อมเพิ่มเติมย้ายตามไปได้ทั้งหมด)
   const [isSwitchingToGeneral, setIsSwitchingToGeneral] = useState(false);
-  const hasTabSelection =
-    selectedLeftParts.size > 0 ||
-    selectedRightParts.size > 0 ||
-    selectedOtherParts.size > 0 ||
-    countPerSideService() > 0;
 
   const handleSwitchButton = async () => {
     // หน่วงสั้นๆ ให้เห็นตัวหมุนก่อน ไม่งั้นกดแล้วเงียบจนไม่รู้ว่ากดติด
@@ -1216,11 +913,7 @@ const SuspensionInspection = () => {
             </div>
             {(() => {
               const selectedThis = perSideServiceSides[side];
-              const toggle = () =>
-                setPerSideServiceSides((prev) => ({
-                  ...prev,
-                  [side]: !prev[side],
-                }));
+              const toggle = () => togglePerSideService(side);
               return (
                 <div className="mt-[16px] px-[20px]">
                   <div
@@ -1272,18 +965,6 @@ const SuspensionInspection = () => {
     </div>
   );
 
-  // ยอดของในแท็บ (ซ้าย/ขวา/อื่นๆ รวมบริการรายข้าง) กับรายการซ่อมเพิ่มเติม ใช้ทั้งกล่องสรุปและปุ่มถัดไป
-  const tabTotal =
-    ["left", "right", "other"].reduce(
-      (sum, side) =>
-        sum +
-        getPartsForSide(side).reduce(
-          (total, part) =>
-            total + getPriceForPart(part) * tabQty(side, part.id),
-          0,
-        ),
-      0,
-    ) + sumPerSideService();
   const extrasTotal = repairItems.reduce(
     (total, item) => total + item.sellingPrice * item.quantity,
     0,
@@ -1291,7 +972,7 @@ const SuspensionInspection = () => {
 
   const summaryBox = (
     <BillTotal
-      count={countSelectedInTabs() + getRepairItemsCountExcludingLabor()}
+      count={countSelectedInTabs() + repairItems.length}
       total={tabTotal + extrasTotal}
       className="mt-[16px] mb-[16px]"
     />
@@ -1501,7 +1182,7 @@ const SuspensionInspection = () => {
         onOpenChange={(open) => !open && setPreviewPart(null)}
       />
 
-      {itemDialogs}
+      {renderItemDialogs()}
       <EditPriceDialog
         isOpen={priceDialogOpen}
         onClose={() => setPriceDialogOpen(false)}
