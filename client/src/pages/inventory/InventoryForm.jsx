@@ -4,8 +4,8 @@ import OilKitFields from "@/components/forms/OilKitFields";
 import TireConstructionToggle from "@/components/forms/TireConstructionToggle";
 import { useForm } from "react-hook-form";
 import FormButton from "@/components/forms/FormButton";
-import { updatePart } from "@/api/part";
-import { updateService } from "@/api/service";
+import { createPart, updatePart } from "@/api/part";
+import { createService, updateService } from "@/api/service";
 import { toast } from "sonner";
 import { firstErrorMessage } from "@/utils/formErrors";
 import { useEffect, useState } from "react";
@@ -45,7 +45,9 @@ import { withMinDuration } from "@/utils/withMinDuration";
 import { sortTireLots } from "@/utils/tireLot";
 import { SIDE_OPTIONS, toPerSide, toSideOptionId } from "@/utils/suspension";
 
-const InventoryEdit = () => {
+// เพิ่มกับแก้ไขอะไหล่/บริการใช้ฟอร์มเดียวกัน ต่างกันแค่ที่มาของข้อมูลกับปลายทางหลังบันทึก
+// /inventory/new = เพิ่ม (?category= เลือกหมวดให้ก่อน) /inventory/:id?type= = แก้ไข
+const InventoryForm = () => {
   const { partUnitOptions, serviceUnitOptions } = useUnitOptions();
   const {
     register,
@@ -65,18 +67,24 @@ const InventoryEdit = () => {
     },
   });
   const { id } = useParams();
+  const isEdit = !!id;
   const [searchParams] = useSearchParams();
   const type = searchParams.get("type");
+  const presetCategory = searchParams.get("category");
   const [category, setCategory] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(isEdit);
   const [selectedImage, setSelectedImage] = useState(null);
   const [inventory, setInventory] = useState(null);
+  // เพิ่มเสร็จแล้วอยู่หน้าเดิมต่อ ช่องรุ่นรถที่ใช้ได้ต้องล้างตามด้วย
+  const [vehicleKey, setVehicleKey] = useState(0);
   const [isImageMarkedForDeletion, setIsImageMarkedForDeletion] =
     useState(false);
   const navigate = useNavigate();
   const { errors } = formState;
   const { user } = useAuthStore();
+  // ช่องราคาทุนตอนแก้ไขเห็นเฉพาะแอดมิน ตอนเพิ่มใหม่ขึ้นทุกคนเหมือนเดิม
+  const showCostPrice = !isEdit || user?.role === "ADMIN";
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -101,6 +109,15 @@ const InventoryEdit = () => {
     try {
       const res = await listCategories();
       setCategory(res.data);
+
+      // เปิดจากหน้ารายการโดยเลือกหมวดหมู่ไว้ -> เลือกให้เลย
+      const preset =
+        !isEdit && res.data?.find((cat) => cat.name === presetCategory);
+      if (preset) {
+        setValue("categoryId", preset.id);
+        setValue("categoryKind", getCategoryKind(preset.name));
+        if (isTireCategoryName(preset.name)) setValue("unit", TIRE_UNIT);
+      }
     } catch (error) {
       toastError(error);
     }
@@ -394,7 +411,7 @@ const InventoryEdit = () => {
           publicId: inventory?.publicId,
           secureUrl: inventory?.secureUrl,
         };
-      } else if (selectedImage === null) {
+      } else if (selectedImage === null && isEdit) {
         if (inventory?.publicId && isImageMarkedForDeletion) {
           try {
             await deleteImage(inventory.publicId);
@@ -463,13 +480,27 @@ const InventoryEdit = () => {
 
       const itemType = isServiceCategory() ? "service" : "part";
 
-      if (itemType === "service") {
-        await withMinDuration(() => updateService(id, serviceData));
+      if (!isEdit) {
+        await withMinDuration(() =>
+          itemType === "service"
+            ? createService(serviceData)
+            : createPart(partData),
+        );
         invalidateUnitOptions();
-      } else {
-        await withMinDuration(() => updatePart(id, partData));
-        invalidateUnitOptions();
+        toast.success(`เพิ่ม${itemWord}เรียบร้อยแล้ว`);
+        navigate(inventoryPathFor(data.categoryId));
+        reset();
+        setSelectedImage(null);
+        setVehicleKey((prev) => prev + 1);
+        return;
       }
+
+      await withMinDuration(() =>
+        itemType === "service"
+          ? updateService(id, serviceData)
+          : updatePart(id, partData),
+      );
+      invalidateUnitOptions();
 
       // เปิดมาจากหน้าอื่นนอกหน้าคลัง (หน้าหลัก หน้าบิล) ถอยกลับไปรายการเดิมในประวัติ
       // หน้านั้นเปิดไดอะล็อกต่อเองด้วยข้อมูลล่าสุด (ดู useReopenStockItem) และไม่มีหน้าบิลซ้อนในประวัติ
@@ -527,7 +558,7 @@ const InventoryEdit = () => {
           <ChevronLeft className="text-surface" />
         </button>
         <p className="text-surface text-2xl font-semibold md:text-[26px]">
-          {`แก้ไข${itemWord}`}
+          {isEdit ? `แก้ไข${itemWord}` : "เพิ่มรายการ"}
         </p>
       </div>
       <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl">
@@ -548,7 +579,7 @@ const InventoryEdit = () => {
                 placeholder="-- เลือกหมวดหมู่ --"
                 errors={errors}
                 name="categoryId"
-                disabled={inventory}
+                disabled={isEdit}
               />
             </div>
 
@@ -811,10 +842,10 @@ const InventoryEdit = () => {
                 {/* ราคาต้นทุนเห็นเฉพาะแอดมิน — ถ้าไม่เห็น ให้ราคาขายกินเต็มความกว้าง */}
                 <div
                   className={`mt-[16px] grid gap-[8px] px-[20px] ${
-                    user?.role === "ADMIN" ? "grid-cols-2" : "grid-cols-1"
+                    showCostPrice ? "grid-cols-2" : "grid-cols-1"
                   }`}
                 >
-                  {user?.role === "ADMIN" && (
+                  {showCostPrice && (
                     <FormInput
                       register={register}
                       name="costPrice"
@@ -896,7 +927,7 @@ const InventoryEdit = () => {
                       errors={errors}
                       // หน้าแก้ไขยอมให้ไม่มีล็อตได้ ทั้งยางที่ขายหมด (backend ลบล็อตทิ้งไปแล้ว)
                       // และกรณีล้างล็อตเองจนเหลือ 0 — ต่างจากหน้าเพิ่มที่ยังบังคับอย่างน้อย 1 แถว
-                      allowEmpty
+                      allowEmpty={isEdit}
                     />
                     <FormInput
                       register={register}
@@ -970,6 +1001,7 @@ const InventoryEdit = () => {
                   <VehicleCompatibilityInput
                     setValue={setValue}
                     watch={watch}
+                    key={vehicleKey}
                     initialData={inventory?.compatibleVehicles}
                   />
                 )}
@@ -988,7 +1020,10 @@ const InventoryEdit = () => {
             />
 
             <div className="mt-[16px] flex justify-center pb-[112px] xl:pb-[16px]">
-              <FormButton label="บันทึก" isLoading={isSubmitting} />
+              <FormButton
+                label={isEdit ? "บันทึก" : `เพิ่ม${itemWord}`}
+                isLoading={isSubmitting}
+              />
             </div>
           </form>
         )}
@@ -997,4 +1032,4 @@ const InventoryEdit = () => {
   );
 };
 
-export default InventoryEdit;
+export default InventoryForm;

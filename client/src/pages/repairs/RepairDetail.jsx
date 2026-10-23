@@ -1,6 +1,6 @@
 import { isMultiUseOil } from "@/utils/oil";
 import PageSpinner from "@/components/ui/PageSpinner";
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
 import {
   getRepair,
@@ -47,7 +47,7 @@ import { organizationLabel, creditPathFor } from "@/constants/organizations";
 import { Building2, Store, SquarePen, IdCard } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import ReceiptPreviewDialog from "@/components/dialogs/ReceiptPreviewDialog";
-import { asIssued, receiptDocNo } from "@/components/receipt/ReceiptPaper";
+import { asIssued, receiptDocNo } from "@/utils/receipt";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import ComboBox from "@/components/ui/ComboBox";
 import PartPreviewDialog from "@/components/dialogs/PartPreviewDialog";

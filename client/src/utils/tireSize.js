@@ -5,11 +5,6 @@ export const RADIAL = "R";
 export const BIAS = "-";
 export const DEFAULT_TIRE_CONSTRUCTION = RADIAL;
 
-export const TIRE_CONSTRUCTIONS = [
-  { id: RADIAL, label: "R", hint: "เรเดียล" },
-  { id: BIAS, label: "-", hint: "ผ้าใบ" },
-];
-
 export const tireSeparator = (attributes) =>
   attributes?.construction === BIAS ? BIAS : RADIAL;
 

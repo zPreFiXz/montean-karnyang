@@ -4,8 +4,6 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   Wrench as WrenchOutline,
   ChevronLeft,
-  LoaderCircle,
-  Wrench,
   ShoppingBag,
   CalendarDays,
   Store,

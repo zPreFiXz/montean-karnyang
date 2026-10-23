@@ -1,4 +1,4 @@
-import { X, Image as ImageIcon } from "lucide-react";
+import { X } from "lucide-react";
 import DescriptionNote from "@/components/ui/DescriptionNote";
 import { SparePart } from "@/components/icons/Icons";
 import { formatCurrency } from "@/utils/formats";

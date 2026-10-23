@@ -2,7 +2,7 @@ import PageSpinner from "@/components/ui/PageSpinner";
 import { countDisplayedItems } from "@/utils/repairItemGroups";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router";
-import { ChevronLeft, LoaderCircle, Trash2, Wrench } from "lucide-react";
+import { ChevronLeft, Trash2, Wrench } from "lucide-react";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { getVehicle, deleteVehicle } from "@/api/vehicle";
 import { formatDate, formatPlate } from "@/utils/formats";

@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   ChevronLeft,
-  LoaderCircle,
   ShoppingBag,
   Wrench as WrenchOutline,
   TicketPercent,
@@ -12,7 +11,7 @@ import CarCard from "@/components/cards/CarCard";
 import SearchBar from "@/components/forms/SearchBar";
 import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import BrandIcons from "@/components/icons/BrandIcons";
-import { Wrench, SparePart } from "@/components/icons/Icons";
+import { SparePart } from "@/components/icons/Icons";
 import { getInventory, listInventoryRepairs } from "@/api/inventory";
 import {
   isSaleRepair,

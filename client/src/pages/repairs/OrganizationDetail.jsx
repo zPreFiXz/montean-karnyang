@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import {
   ChevronLeft,
-  LoaderCircle,
   Phone,
   MapPin,
   IdCard,

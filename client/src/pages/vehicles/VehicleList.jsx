@@ -1,7 +1,6 @@
 import PageSpinner from "@/components/ui/PageSpinner";
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigationType, useSearchParams } from "react-router";
-import { LoaderCircle } from "lucide-react";
 import SearchBar from "@/components/forms/SearchBar";
 import CarCard from "@/components/cards/CarCard";
 import { listVehicles } from "@/api/vehicle";

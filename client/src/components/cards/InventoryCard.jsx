@@ -1,4 +1,4 @@
-import { Image, Wrench, AlertTriangle, TicketPercent } from "lucide-react";
+import { Wrench, AlertTriangle, TicketPercent } from "lucide-react";
 import {
   formatCurrency,
   formatPriceRange,

@@ -7,11 +7,11 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import FormButton from "@/components/forms/FormButton";
-import { ORGANIZATION_TYPES } from "@/constants/organizations";
 import { setCustomerOrganizationType } from "@/api/customer";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
 import { toast } from "sonner";
+import { ORGANIZATION_TYPES } from "@/constants/organizations";
 
 const ICONS = { GOVERNMENT: Building2, SHOP: Store };
 

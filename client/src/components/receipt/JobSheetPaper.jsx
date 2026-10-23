@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { formatQuantity } from "@/utils/formats";
-import { jobSheetNo } from "@/components/receipt/ReceiptPaper";
+import { jobSheetNo } from "@/utils/receipt";
 import {
   DEFAULT_LABOR_SERVICE_NAME,
   isDiscountItem,
@@ -10,7 +10,7 @@ import {
   unitOf,
   receiptHeaderInfo,
   shortWorkNameBase,
-} from "@/components/receipt/ReceiptPaper";
+} from "@/utils/receipt";
 
 // ใบสั่งซ่อมสำหรับช่าง: อ่านจากระยะห่างได้ ทะเบียนตัวใหญ่สุด งานเป็นรายการมีช่องติ๊ก
 // ตั้งใจไม่ใส่ราคา ช่างไม่ได้ใช้ และใบนี้วางอยู่หน้ารถให้คนเดินผ่านเห็นได้

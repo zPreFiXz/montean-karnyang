@@ -1,7 +1,8 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { X, Printer, Download, LoaderCircle } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
-import ReceiptPaper, {
+import ReceiptPaper from "@/components/receipt/ReceiptPaper";
+import {
   asIssued,
   hasShortenableName,
   jobSheetNo,
@@ -9,7 +10,7 @@ import ReceiptPaper, {
   receiptCopyLabels,
   receiptDocTitle,
   receiptPageCount,
-} from "@/components/receipt/ReceiptPaper";
+} from "@/utils/receipt";
 import JobSheetPaper from "@/components/receipt/JobSheetPaper";
 import {
   Dialog,

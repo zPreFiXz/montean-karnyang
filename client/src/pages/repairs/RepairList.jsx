@@ -5,11 +5,7 @@ import {
   saveScrollPosition,
   useScrollRestoration,
 } from "@/utils/scrollPosition";
-import {
-  LoaderCircle,
-  ChevronLeft,
-  Wrench as WrenchOutline,
-} from "lucide-react";
+import { ChevronLeft, Wrench as WrenchOutline } from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
 import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import useRepairStore from "@/stores/useRepairStore";
@@ -19,7 +15,6 @@ import { Success, Wrench, Paid, Credit } from "@/components/icons/Icons";
 import SearchBar from "@/components/forms/SearchBar";
 import { ClipboardList } from "lucide-react";
 import { Wallet } from "lucide-react";
-import { Store } from "lucide-react";
 import { ShoppingBag } from "lucide-react";
 import {
   isSaleRepair,

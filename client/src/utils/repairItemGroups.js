@@ -15,9 +15,6 @@ const keyOf = (item) =>
     item.unitPrice ?? item.sellingPrice ?? "",
   ].join("|");
 
-const sumQuantity = (items) =>
-  items.reduce((total, item) => total + (item.quantity || 0), 0);
-
 // คืน { bothSides, leftOnly, rightOnly } โดยรับรายการที่แยกฝั่งมาแล้ว
 export const groupBySidePairs = (leftItems = [], rightItems = []) => {
   const rightByKey = new Map();
@@ -49,8 +46,6 @@ export const groupBySidePairs = (leftItems = [], rightItems = []) => {
 
   return { bothSides, leftOnly, rightOnly };
 };
-
-export const groupTotal = sumQuantity;
 
 // บิลงานซ่อมทั่วไปไม่ได้แบ่งหัวข้อตามฝั่ง แสดงเรียงตามลำดับในบิล
 // ของที่ใส่ทั้งซ้ายและขวายุบเป็นบรรทัดเดียวตรงตำแหน่งของบรรทัดแรก พร้อมป้ายว่าฝั่งไหน

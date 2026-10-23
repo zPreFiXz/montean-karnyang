@@ -1,4 +1,4 @@
-import { Image, Wrench, TicketPercent } from "lucide-react";
+import { Wrench, TicketPercent } from "lucide-react";
 import { formatCurrency, formatQuantity } from "@/utils/formats";
 import { onKeyActivate } from "@/utils/a11y";
 import { isPartLikeItem, isDiscountItem, lineUnit } from "@/constants/services";

@@ -2,7 +2,7 @@ import PageSpinner from "@/components/ui/PageSpinner";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { useDebouncedCallback } from "use-debounce";
-import { LoaderCircle, X } from "lucide-react";
+import { X } from "lucide-react";
 import InventoryCard from "@/components/cards/InventoryCard";
 import SearchBar from "@/components/forms/SearchBar";
 import CategoryList from "@/components/CategoryList";
@@ -95,6 +95,19 @@ const byTypeGroup = (category, items) => {
   };
   return [...items].sort((a, b) => rank(a) - rank(b));
 };
+
+// ขนาดยางมีสองระบบปนกัน: ตัวเลขเต็ม (195, 205) ที่ใช้กับรถทั่วไป
+// กับทศนิยม (6.50, 7.00) ที่เป็นระบบนิ้วของรถบรรทุก/รถโบราณ ซึ่งเจอไม่บ่อย
+// เรียงตัวเลขเต็มขึ้นก่อนทั้งหมด แล้วดันทศนิยมไว้ท้ายสุด จะได้ไม่แทรกกลางลิสต์ที่ใช้ประจำ
+const isDecimalSize = (value) => /^\d+\.\d+$/.test(value);
+
+const uniqSorted = (arr = []) =>
+  Array.from(new Set(arr)).sort((a, b) => {
+    const decimalDiff = isDecimalSize(a) - isDecimalSize(b);
+    if (decimalDiff !== 0) return decimalDiff;
+
+    return a.localeCompare(b, undefined, { numeric: true });
+  });
 
 // จำผลค้นล่าสุดของแต่ละเงื่อนไขไว้ กลับเข้าหน้าคลังอีกครั้งจะได้มีของโชว์ตั้งแต่เฟรมแรก
 // ไม่ต้องขึ้นตัวโหลดคั่นให้หน้ากระพริบ แล้วค่อยดึงใหม่ทับเงียบๆ
@@ -320,19 +333,6 @@ const InventoryBrowser = ({
       mounted = false;
     };
   }, []);
-
-  // ขนาดยางมีสองระบบปนกัน: ตัวเลขเต็ม (195, 205) ที่ใช้กับรถทั่วไป
-  // กับทศนิยม (6.50, 7.00) ที่เป็นระบบนิ้วของรถบรรทุก/รถโบราณ ซึ่งเจอไม่บ่อย
-  // เรียงตัวเลขเต็มขึ้นก่อนทั้งหมด แล้วดันทศนิยมไว้ท้ายสุด จะได้ไม่แทรกกลางลิสต์ที่ใช้ประจำ
-  const isDecimalSize = (value) => /^\d+\.\d+$/.test(value);
-
-  const uniqSorted = (arr = []) =>
-    Array.from(new Set(arr)).sort((a, b) => {
-      const decimalDiff = isDecimalSize(a) - isDecimalSize(b);
-      if (decimalDiff !== 0) return decimalDiff;
-
-      return a.localeCompare(b, undefined, { numeric: true });
-    });
 
   const tireParts = useMemo(
     // ตัวเลือกของตัวกรองมาจากยางในหมวดที่กำลังดูอยู่ ยางใหม่กับยางเปอร์เซ็นต์จึงไม่ปนกัน

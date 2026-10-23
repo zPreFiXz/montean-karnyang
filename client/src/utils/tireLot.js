@@ -14,10 +14,3 @@ export const soldLotEntries = (soldLots) => {
   if (!Array.isArray(soldLots)) return [];
   return sortTireLots(soldLots).filter((lot) => lot?.dotCode);
 };
-
-// ล็อตที่ขายไปในบิล → "0126×3, 0626×1" สำหรับที่ที่ต้องการบรรทัดเดียว
-// รูปแบบข้อความอยู่ที่นี่ที่เดียว เปลี่ยนได้อิสระเพราะฐานข้อมูลเก็บเป็น JSON ไม่ใช่ข้อความนี้
-export const formatSoldLots = (soldLots) =>
-  soldLotEntries(soldLots)
-    .map((lot) => `${lot.dotCode}×${lot.quantity}`)
-    .join(", ");

@@ -8,6 +8,3 @@ const BANGKOK_DATE_FORMAT = new Intl.DateTimeFormat("en-CA", {
 // คืนค่า "YYYY-MM-DD" ตามเวลาไทย ใช้เป็น key จัดกลุ่มรายวัน
 export const toLocalDateKey = (date = new Date()) =>
   BANGKOK_DATE_FORMAT.format(date instanceof Date ? date : new Date(date));
-
-// เช็คว่า timestamp อยู่ในวันเดียวกัน (เวลาไทย) กับวันนี้หรือไม่
-export const isToday = (date) => toLocalDateKey(date) === toLocalDateKey();

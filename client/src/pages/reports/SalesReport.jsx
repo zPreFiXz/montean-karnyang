@@ -20,7 +20,7 @@ import {
 } from "@/utils/formats";
 import useRepairStore from "@/stores/useRepairStore";
 import BrandIcons from "@/components/icons/BrandIcons";
-import { Paid, Wrench } from "@/components/icons/Icons";
+import { Paid } from "@/components/icons/Icons";
 import { ShoppingBag } from "lucide-react";
 import { PAYMENT_METHODS } from "@/constants/paymentMethods";
 import {

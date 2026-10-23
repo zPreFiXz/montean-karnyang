@@ -1,4 +1,4 @@
-import { SHOP, shortProvince } from "@/components/receipt/ReceiptPaper";
+import { SHOP, shortProvince } from "@/utils/receipt";
 import { bahtText } from "@/utils/bahtText";
 import { formatDateShort } from "@/utils/formats";
 import { getDisplayBrand, getRepairTitle } from "@/utils/repairDisplay";

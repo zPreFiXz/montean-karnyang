@@ -10,9 +10,10 @@ import {
   mergeSidesInOrder,
 } from "@/utils/repairItemGroups";
 import { useEffect, useState } from "react";
+import BillTotal from "@/components/cards/BillTotal";
 import FormButton from "@/components/forms/FormButton";
 import RepairItemCard from "@/components/cards/RepairItemCard";
-import { formatCurrency, formatPhone, getProvinceName } from "@/utils/formats";
+import { formatPhone, getProvinceName } from "@/utils/formats";
 import { createRepair, updateRepair } from "@/api/repair";
 import { clearAllDrafts } from "@/utils/repairDraft";
 import { toast } from "sonner";
@@ -175,6 +176,14 @@ const RepairReview = () => {
     rightOnly.length +
     otherItems.length +
     generalRows.length;
+
+  const confirmLabel = editRepairId
+    ? "บันทึก"
+    : isSale
+      ? isCreditChoice
+        ? "ขายและลงเครดิต"
+        : "ขายและรับเงิน"
+      : "สร้างงานซ่อม";
 
   const handleConfirmRepair = async () => {
     if (isSale && !paymentMethod) {
@@ -653,32 +662,10 @@ const RepairReview = () => {
               <div className="px-[20px]">{renderItemList("m")}</div>
             </div>
 
-            {/* สรุปยอดรวม */}
-            <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] my-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
-                    รวม {displayedItemCount} รายการ
-                  </p>
-                </div>
-                <div className="flex flex-col items-end">
-                  <p className="text-primary text-2xl font-semibold md:text-[26px]">
-                    {formatCurrency(totalPrice)}
-                  </p>
-                </div>
-              </div>
-            </div>
+            <BillTotal count={displayedItemCount} total={totalPrice} />
             <div className="flex justify-center pb-[112px]">
               <FormButton
-                label={
-                  editRepairId
-                    ? "บันทึก"
-                    : isSale
-                      ? isCreditChoice
-                        ? "ขายและลงเครดิต"
-                        : "ขายและรับเงิน"
-                      : "สร้างงานซ่อม"
-                }
+                label={confirmLabel}
                 isLoading={isSubmitting}
                 onClick={handleConfirmRepair}
               />
@@ -712,32 +699,10 @@ const RepairReview = () => {
           </div>
           <div className="px-[20px] pt-[16px]">{renderItemList("d")}</div>
 
-          {/* Desktop: สรุปยอดรวม */}
-          <div className="border-primary/20 from-primary/10 to-primary/5 mx-[20px] my-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
-                  รวม {displayedItemCount} รายการ
-                </p>
-              </div>
-              <div className="flex flex-col items-end">
-                <p className="text-primary text-2xl font-semibold md:text-[26px]">
-                  {formatCurrency(totalPrice)}
-                </p>
-              </div>
-            </div>
-          </div>
+          <BillTotal count={displayedItemCount} total={totalPrice} />
           <div className="flex justify-center pb-[16px]">
             <FormButton
-              label={
-                editRepairId
-                  ? "บันทึก"
-                  : isSale
-                    ? isCreditChoice
-                      ? "ขายและลงเครดิต"
-                      : "ขายและรับเงิน"
-                    : "สร้างงานซ่อม"
-              }
+              label={confirmLabel}
               isLoading={isSubmitting}
               onClick={handleConfirmRepair}
             />
