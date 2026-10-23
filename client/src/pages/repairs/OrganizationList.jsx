@@ -105,7 +105,7 @@ const OrganizationList = () => {
       const key = monthKey(item.oldestUnpaidAt);
       if (!unpaidByMonth.has(key)) {
         unpaidByMonth.set(key, {
-          name: `ค้างชำระ ${formatMonth(item.oldestUnpaidAt)}`,
+          name: formatMonth(item.oldestUnpaidAt),
           items: [],
         });
       }
