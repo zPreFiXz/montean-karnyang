@@ -1,11 +1,7 @@
 import { useEffect } from "react";
+import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
 import { X } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import FormInput from "@/components/forms/FormInput";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -127,24 +123,15 @@ const EditRepairItemDialog = ({
       >
         {/* mt แทน pt เพื่อให้กล่องนี้สูงเท่าปุ่มพอดี ปุ่ม X ที่จัดกึ่งกลางจะได้ตรงกับหัวเรื่องจริงๆ
             (ถ้าใช้ pt ปุ่มจะเยื้องลงครึ่งหนึ่งของ padding) */}
-        <div className="relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]">
-          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
-            {isNameEditable ? "แก้ไขชื่อและราคา" : "แก้ไขราคา"}
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            {isNameEditable
+        <DialogTitleBar
+          title={isNameEditable ? "แก้ไขชื่อและราคา" : "แก้ไขราคา"}
+          description={
+            isNameEditable
               ? `แก้ไขชื่อและราคา ${currentName || productName}`
-              : `แก้ไขราคา ${currentName || productName}`}
-          </DialogDescription>
-          <button
-            onClick={handleCancel}
-            autoFocus={false}
-            aria-label="ปิดหน้าต่าง"
-            className="absolute top-1/2 right-[20px] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/5"
-          >
-            <X size={20} className="text-subtle-dark" />
-          </button>
-        </div>
+              : `แก้ไขราคา ${currentName || productName}`
+          }
+          onClose={handleCancel}
+        />
 
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto">
           <div className="flex-1 px-[20px]">

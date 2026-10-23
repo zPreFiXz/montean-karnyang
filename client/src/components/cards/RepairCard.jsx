@@ -1,15 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { formatCurrency } from "@/utils/formats";
-
-// สีตามสถานะชุดเดียวกับหน้าสถานะการซ่อม เพื่อให้จำสีได้ทั้งระบบ
-const statusStyle = {
-  IN_PROGRESS: { bg: "bg-status-progress", text: "text-status-progress" },
-  COMPLETED: { bg: "bg-status-completed", text: "text-status-completed" },
-  PAID: { bg: "bg-status-paid", text: "text-status-paid" },
-  CREDIT: { bg: "bg-status-credit", text: "text-status-credit" },
-  ESTIMATE: { bg: "bg-status-estimate", text: "text-status-estimate" },
-  CANCELLED: { bg: "bg-destructive", text: "text-destructive line-through" },
-};
+import { getStatusInfo } from "@/constants/repairStatus";
 
 const RepairCard = ({
   icon: Icon,
@@ -19,7 +10,12 @@ const RepairCard = ({
   price,
   status,
 }) => {
-  const style = statusStyle[status] || statusStyle.IN_PROGRESS;
+  // สีตามสถานะชุดเดียวกับหน้ารายละเอียดบิล บิลที่ยกเลิกขีดฆ่ายอด ไม่ได้นับเป็นเงินเข้า
+  const info = getStatusInfo(status);
+  const style = {
+    bg: info.bg,
+    text: status === "CANCELLED" ? `${info.color} line-through` : info.color,
+  };
 
   // ไม่ต้องมีชื่อสถานะ เพราะสีของวงกลมกับราคาบอกอยู่แล้ว
   // คั่นด้วยจุดกลางเฉพาะส่วนที่มีจริง จะได้ไม่เหลือตัวคั่นลอยเมื่อไม่ได้กรอกลูกค้า

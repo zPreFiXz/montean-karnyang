@@ -1,4 +1,3 @@
-import { isMultiUseOil } from "@/utils/oil";
 import PageSpinner from "@/components/ui/PageSpinner";
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
@@ -17,12 +16,8 @@ import {
 } from "@/utils/formats";
 import {
   ChevronLeft,
-  CreditCard,
-  Wallet,
-  Clock,
   ClipboardList,
   Printer,
-  CheckCircle2,
   LoaderCircle,
   CircleUserRound,
   MapPin,
@@ -32,7 +27,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Ellipsis,
-  CircleEllipsis,
   Wrench,
   ShoppingBag,
   Trash2,
@@ -48,15 +42,20 @@ import { Building2, Store, SquarePen, IdCard } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import ReceiptPreviewDialog from "@/components/dialogs/ReceiptPreviewDialog";
 import { asIssued, receiptDocNo } from "@/utils/receipt";
+import { repairToForm, toUiSide } from "@/utils/repairForm";
+import {
+  DEFAULT_STATUS_INFO,
+  getNextStatus,
+  getNextStatusButtonClass,
+  getStatusInfo,
+} from "@/constants/repairStatus";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import ComboBox from "@/components/ui/ComboBox";
 import PartPreviewDialog from "@/components/dialogs/PartPreviewDialog";
 import {
   isPartLikeItem,
-  isSingleQuantityItem,
   isNoCategoryItem,
   hasTypedUnit,
-  lineUnit,
 } from "@/constants/services";
 import FieldErrorList from "@/components/forms/FieldErrorList";
 import { toast } from "sonner";
@@ -131,97 +130,6 @@ const RepairDetail = () => {
     }
   };
 
-  const DEFAULT_STATUS_INFO = {
-    text: "ไม่ทราบสถานะ",
-    color: "text-subtle-dark",
-    bg: "bg-gray-200",
-    // สีจางสำหรับพื้นกับขอบของกล่องยอดรวม
-    softBorder: "border-gray-300",
-    softBg: "from-gray-200/60 to-gray-100/40",
-    iconColor: "#6b7280",
-    icon: CircleEllipsis,
-  };
-
-  const getStatusInfo = (status) => {
-    switch (status) {
-      case "ESTIMATE":
-        return {
-          text: "ใบประเมินราคา",
-          color: "text-status-estimate",
-          bg: "bg-status-estimate",
-          softBorder: "border-status-estimate/30",
-          softBg: "from-status-estimate/10 to-status-estimate/5",
-          iconColor: "#06b6d4",
-          icon: ClipboardList,
-        };
-      case "IN_PROGRESS":
-        return {
-          text: "กำลังซ่อม",
-          color: "text-status-progress",
-          bg: "bg-status-progress",
-          softBorder: "border-status-progress/30",
-          softBg: "from-status-progress/10 to-status-progress/5",
-          iconColor: "#ffb000",
-          icon: Clock,
-        };
-      case "COMPLETED":
-        return {
-          text: "ซ่อมเสร็จสิ้น",
-          color: "text-status-completed",
-          bg: "bg-status-completed",
-          softBorder: "border-status-completed/30",
-          softBg: "from-status-completed/10 to-status-completed/5",
-          iconColor: "#22c55e",
-          icon: CheckCircle2,
-        };
-      case "CREDIT":
-        return {
-          text: "เครดิต",
-          color: "text-status-credit",
-          bg: "bg-status-credit",
-          softBorder: "border-status-credit/30",
-          softBg: "from-status-credit/10 to-status-credit/5",
-          iconColor: "#7c3aed",
-          icon: Wallet,
-        };
-      case "CANCELLED":
-        return {
-          text: "ยกเลิกแล้ว",
-          color: "text-destructive",
-          bg: "bg-destructive",
-          softBorder: "border-destructive/30",
-          softBg: "from-destructive/10 to-destructive/5",
-          iconColor: "#ef4444",
-          icon: Ban,
-        };
-      case "PAID":
-        return {
-          text: "ชำระเงินแล้ว",
-          color: "text-status-paid",
-          bg: "bg-status-paid",
-          softBorder: "border-status-paid/30",
-          softBg: "from-status-paid/10 to-status-paid/5",
-          iconColor: "#1976d2",
-          icon: CreditCard,
-        };
-    }
-    return DEFAULT_STATUS_INFO;
-  };
-
-  const getNextStatus = (currentStatus) => {
-    switch (currentStatus) {
-      case "ESTIMATE":
-        return "IN_PROGRESS";
-      case "IN_PROGRESS":
-        return "COMPLETED";
-      case "COMPLETED":
-      case "CREDIT":
-        return "PAID";
-    }
-  };
-
-  // ปุ่มบอกสิ่งที่จะเกิดขึ้นจริง เลือกเครดิตไว้แล้วกดปุ่มนี้คือยังไม่ได้เก็บเงิน
-  // ถ้าปล่อยให้เขียนว่าชำระเงินเหมือนเดิม คนกดจะเข้าใจว่าเก็บเงินไปแล้ว
   const getNextStatusText = (currentStatus) => {
     switch (currentStatus) {
       case "ESTIMATE":
@@ -232,18 +140,6 @@ const RepairDetail = () => {
         return isCreditSelected ? "ยืนยันการลงเครดิต" : "ยืนยันการชำระเงิน";
       case "CREDIT":
         return "ยืนยันการชำระเงิน";
-    }
-  };
-
-  const getNextStatusButtonClass = (currentStatus) => {
-    switch (currentStatus) {
-      case "ESTIMATE":
-        return "bg-status-progress";
-      case "IN_PROGRESS":
-        return "bg-status-completed";
-      case "COMPLETED":
-      case "CREDIT":
-        return "bg-status-paid";
     }
   };
 
@@ -422,179 +318,14 @@ const RepairDetail = () => {
   );
   const StatusIcon = statusInfo?.icon;
 
-  // DB เก็บ side เป็นตัวพิมพ์ใหญ่ (enum LEFT/RIGHT/OTHER) — แปลงเป็นตัวเล็กให้ตรง UI state
-  const toUiSide = (side) => (side ? side.toLowerCase() : null);
-
   const handleEditRepair = () => {
     if (!repair) return;
+    const { path, repairData, repairItems } = repairToForm(repair);
 
-    const plate = repair?.vehicle?.licensePlate?.plateNumber || "";
-    // รองรับขีดด้วยเผื่อมีข้อมูลที่บันทึกด้วยรูปแบบเดิมหลงเหลืออยู่
-    const [plateLetters = "", plateNumbers = ""] = plate.split(/[\s-]+/);
-    const provinceName = repair?.vehicle?.licensePlate?.province || "";
-
-    const repairData = {
-      name: repair?.customer?.name || "",
-      address: repair?.customer?.address || "",
-      phoneNumber: repair?.customer?.phoneNumber || "",
-      taxId: repair?.customer?.taxId || "",
-      brand: repair?.vehicle?.vehicleModel?.brand || "",
-      model: repair?.vehicle?.vehicleModel?.model || "",
-      plateLetters,
-      plateNumbers,
-      // ฟอร์มงานซ่อมเก็บจังหวัดเป็นชื่อ ไม่ใช่ id — ส่ง id ไปดรอปดาวน์จะหาค่าไม่เจอแล้วช่องว่าง
-      province: provinceName,
-      fleetNo: repair?.vehicle?.fleetNo || "",
-      description: repair?.description || "",
-      mileage: repair?.mileage != null ? String(repair.mileage) : "",
-      type: repair?.type || "GENERAL",
-      // บิลขายหน้าร้านเก็บเงินไปแล้ว ต้องยกวิธีชำระเงินเดิมไปด้วย
-      // ไม่งั้นหน้าสรุปจะขึ้นว่ายังไม่ได้เลือก แล้วคนแก้บิลต้องเดาว่าวันนั้นรับเงินมาทางไหน
-      //
-      // บิลที่ติดเครดิตไม่มีวิธีจ่ายเก็บไว้ (เพราะยังไม่ได้เงิน) ต้องบอกด้วยตัวสถานะแทน
-      paymentMethod:
-        repair?.status === "CREDIT"
-          ? CREDIT_OPTION_ID
-          : repair?.paymentMethod || "",
-      // บิลที่ไม่ได้ผูกกับรถ (งานบริการ) ต้องกลับเข้าโหมดเดิม ไม่งั้นจะถูกบังคับให้เลือกรถ
-      noVehicle: !repair?.vehicle,
-    };
-
-    const normalizedItems = (repair?.repairItems || []).map((ri) => {
-      if (ri.part) {
-        // ชื่อที่ระบบประกอบเองจะมีชื่อในคลังอยู่ข้างในเสมอ ถ้าไม่มีแปลว่าถูกพิมพ์ทับไว้
-        // บรรทัดที่พิมพ์ทับต้องยกชื่อจากบิลกลับเข้าฟอร์ม ไม่งั้นเปิดแก้ไขแล้วชื่อจะหาย
-        // (บรรทัดปกติใช้ชื่อในคลัง เพราะการ์ดในฟอร์มเติมยี่ห้อกับขนาดยางให้เองอยู่แล้ว)
-        // น้ำมันที่เลือกงานไว้ ชื่อในบิลมีชื่อในคลังอยู่ด้วย แต่ต้องยกชื่อเต็มกลับมา ไม่งั้นงานที่เลือกจะหาย
-        const hasCustomName =
-          (!!ri.part.name &&
-            !String(ri.itemName || "").includes(ri.part.name)) ||
-          (isMultiUseOil(ri.part) && !!ri.itemName);
-
-        return {
-          id: ri.part.id,
-          partNumber: ri.part.partNumber,
-          // ยี่ห้อต้องคงไว้เสมอ เพราะการนับสต็อกคืนใช้ตรวจว่าบรรทัดนี้เป็นอะไหล่จริง
-          // การกันเติมยี่ห้อซ้ำหน้าชื่อที่พิมพ์เองไปทำตอนแสดงผลแทน (ดู hasCustomName)
-          brand: ri.part.brand || "",
-          name: hasCustomName ? ri.itemName : ri.part.name || "",
-          hasCustomName,
-          sellingPrice: Number(ri.unitPrice),
-          // สต็อกดิบของอะไหล่ ยังไม่บวกของที่บิลนี้เบิกไป
-          // หน้ากรอกงานจะบวกคืนให้เองตอนคิดเพดานของปุ่มบวก (ดู restoredStockMap)
-          // ชื่อฟิลด์ต้องเป็น stockQuantity ให้ตรงกับที่หน้าโน้นอ่าน ไม่งั้นเพดานจะกลายเป็นศูนย์
-          stockQuantity: ri.part.stockQuantity ?? 0,
-          unit: ri.part.unit,
-          category: ri.part.category,
-          secureUrl: ri.part.secureUrl || null,
-          attributes: ri.part.attributes || null,
-          quantity: ri.quantity || 1,
-          side: toUiSide(ri.side),
-        };
-      }
-      return {
-        id: ri.service?.id,
-        brand: "",
-        // ชื่อที่บันทึกไว้มาก่อน เพราะบริการอย่างค่าแรงพิมพ์ชื่อเองได้
-        name: ri.itemName || ri.service?.name || "",
-        // ชื่อบนบรรทัดถูกพิมพ์ทับไปแล้ว ดูจากชื่อบริการต้นทางว่าเป็นบรรทัดอะไหล่ไหม
-        isPartLine: isPartLikeItem(ri),
-        isSingleLine: isSingleQuantityItem(ri),
-        isTypedUnitLine: hasTypedUnit(ri),
-        unit: lineUnit(ri),
-        sellingPrice: Number(ri.unitPrice),
-        category: ri.service?.category,
-        // บริการที่เป็นของชิ้นหนึ่ง (จุ๊บลม) มีรูปได้ งานบริการทั่วไปไม่มี
-        secureUrl: ri.service?.secureUrl || null,
-        quantity: ri.quantity || 1,
-        side: toUiSide(ri.side),
-      };
-    });
-
-    if (repair.type === "SUSPENSION") {
-      const savedItems = [];
-
-      const lrGroups = {};
-
-      normalizedItems.forEach((item) => {
-        const st = item?.category?.name === "ช่วงล่าง";
-        const itemSide = item.side;
-
-        if (!st || itemSide === null) {
-          savedItems.push({ ...item });
-          return;
-        }
-
-        if (
-          itemSide === "left" ||
-          itemSide === "right" ||
-          itemSide === "other"
-        ) {
-          savedItems.push({ ...item, side: itemSide });
-          return;
-        }
-
-        if (isPerSide(item?.attributes)) {
-          const key = `${item.id}-${item.sellingPrice}`;
-          if (!lrGroups[key]) {
-            lrGroups[key] = { base: item, count: 0 };
-          }
-          lrGroups[key].count += item.quantity || 1;
-          return;
-        }
-
-        savedItems.push({ ...item });
-      });
-
-      let assignLeftoverToLeft = true;
-      Object.values(lrGroups).forEach(({ base, count }) => {
-        const pairs = Math.floor(count / 2);
-        const remainder = count % 2;
-        for (let i = 0; i < pairs; i++) {
-          savedItems.push({ ...base, quantity: 1, side: "left" });
-          savedItems.push({ ...base, quantity: 1, side: "right" });
-        }
-        if (remainder === 1) {
-          savedItems.push({
-            ...base,
-            quantity: 1,
-            side: assignLeftoverToLeft ? "left" : "right",
-          });
-          assignLeftoverToLeft = !assignLeftoverToLeft;
-        }
-      });
-
-      navigate("/inspections/suspension", {
-        state: {
-          repairData: { ...repairData },
-          repairItems: savedItems,
-          scrollToItems: true,
-          editRepairId: repair.id,
-          // ตำแหน่งของหน้าก่อนหน้าบิลนี้ในประวัติ (หน้าที่ผู้ใช้มาตั้งแต่แรก)
-          // บันทึกเสร็จแล้วจะถอยกลับไปที่นั่นทีเดียว ประวัติจะได้ไม่เหลือหน้าแก้ไขกับหน้าสรุปค้างอยู่
-          backIdx:
-            typeof window.history.state?.idx === "number"
-              ? window.history.state.idx - 1
-              : null,
-          // ใบประเมินราคายังไม่เคยเบิกของ ห้ามบวกของในบิลคืนตอนคิดว่าเบิกได้เท่าไหร่
-          stockNotDeducted: repair.status === "ESTIMATE",
-          from: location.state?.from,
-          statusSlug: location.state?.statusSlug,
-          vehicleId: location.state?.vehicleId,
-          // ที่ที่เปิดบิลนี้ขึ้นมา (เช่นรายงานยอดขาย) ต้องติดไปตลอดทางแก้ไข
-          // ไม่งั้นบันทึกเสร็จแล้วกดย้อนกลับจะเด้งกลับไปหน้าสรุปที่เพิ่งผ่านมา
-          returnTo: location.state?.returnTo,
-          currentDate: location.state?.currentDate,
-          hideMoreFields: !repairData.name?.trim(),
-        },
-      });
-      return;
-    }
-
-    navigate("/repairs/new", {
+    navigate(path, {
       state: {
-        repairData: { ...repairData },
-        repairItems: normalizedItems,
+        repairData,
+        repairItems,
         scrollToItems: true,
         editRepairId: repair.id,
         // ตำแหน่งของหน้าก่อนหน้าบิลนี้ในประวัติ (หน้าที่ผู้ใช้มาตั้งแต่แรก)
@@ -603,9 +334,13 @@ const RepairDetail = () => {
           typeof window.history.state?.idx === "number"
             ? window.history.state.idx - 1
             : null,
+        // ใบประเมินราคายังไม่เคยเบิกของ ห้ามบวกของในบิลคืนตอนคิดว่าเบิกได้เท่าไหร่
+        stockNotDeducted: repair.status === "ESTIMATE",
         from: location.state?.from,
         statusSlug: location.state?.statusSlug,
         vehicleId: location.state?.vehicleId,
+        // ที่ที่เปิดบิลนี้ขึ้นมา (เช่นรายงานยอดขาย) ต้องติดไปตลอดทางแก้ไข
+        // ไม่งั้นบันทึกเสร็จแล้วกดย้อนกลับจะเด้งกลับไปหน้าสรุปที่เพิ่งผ่านมา
         returnTo: location.state?.returnTo,
         currentDate: location.state?.currentDate,
         hideMoreFields: !repairData.name?.trim(),

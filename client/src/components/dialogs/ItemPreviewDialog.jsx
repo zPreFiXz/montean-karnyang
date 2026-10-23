@@ -1,10 +1,6 @@
-import { X, Check, AlertTriangle } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Check, AlertTriangle } from "lucide-react";
+import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import DescriptionNote from "@/components/ui/DescriptionNote";
 import { formatCurrency, formatQuantity } from "@/utils/formats";
 import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
@@ -40,19 +36,11 @@ const ItemPreviewDialog = ({ item, quantity, canPick, onPick, onClose }) => {
         showCloseButton={false}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <div className="relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]">
-          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
-            รายละเอียด{readsAsService ? "บริการ" : "อะไหล่"}
-          </DialogTitle>
-          <DialogDescription className="sr-only">{fullName}</DialogDescription>
-          <button
-            onClick={onClose}
-            aria-label="ปิดหน้าต่าง"
-            className="absolute top-1/2 right-[20px] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/5"
-          >
-            <X size={20} className="text-subtle-dark" />
-          </button>
-        </div>
+        <DialogTitleBar
+          title={<>รายละเอียด{readsAsService ? "บริการ" : "อะไหล่"}</>}
+          description={fullName}
+          onClose={onClose}
+        />
 
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto">
           <div className="flex-1 px-[20px] pb-[16px]">

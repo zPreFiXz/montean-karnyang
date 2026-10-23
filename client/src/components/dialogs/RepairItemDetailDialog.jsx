@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
 import { saveScrollPosition } from "@/utils/scrollPosition";
 import {
   Edit,
   Plus,
-  X,
   AlertTriangle,
   Check,
   Info,
@@ -12,12 +12,7 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import FormInput from "@/components/forms/FormInput";
 import TireLotInput from "@/components/forms/TireLotInput";
 import DescriptionNote from "@/components/ui/DescriptionNote";
@@ -394,37 +389,34 @@ const RepairItemDetailDialog = ({
             e.preventDefault();
           }}
         >
-          <div className="relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]">
-            <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
-              รายละเอียด{readsAsService ? "บริการ" : "อะไหล่"}
-            </DialogTitle>
-            <DialogDescription className="sr-only">
-              แสดงข้อมูลรายละเอียด{readsAsService ? "บริการ" : "อะไหล่"}{" "}
-              {currentItem.brand} {currentItem.name}
-            </DialogDescription>
-            {/* ปุ่มดูข้อมูล ไม่ใช่ปุ่มสั่งงาน จึงแยกขึ้นมาไว้มุมบน ตรงข้ามปุ่มปิด
+          <DialogTitleBar
+            title={<>รายละเอียด{readsAsService ? "บริการ" : "อะไหล่"}</>}
+            description={
+              <>
+                แสดงข้อมูลรายละเอียด{readsAsService ? "บริการ" : "อะไหล่"}{" "}
+                {currentItem.brand} {currentItem.name}
+              </>
+            }
+            onClose={() => onOpenChange(false)}
+            leftSlot={
+              <>
+                {/* ปุ่มดูข้อมูล ไม่ใช่ปุ่มสั่งงาน จึงแยกขึ้นมาไว้มุมบน ตรงข้ามปุ่มปิด
                 กดได้เสมอโดยไม่ต้องเลื่อน รวมถึงตอนฟอร์มเพิ่มสต็อกเปิดอยู่
                 เหลือแต่ไอคอนได้เพราะคนใช้มีแต่พนักงานร้านที่เปิดหน้าต่างนี้ทุกวัน */}
-            <button
-              onClick={handleShowUsage}
-              autoFocus={false}
-              aria-label="ประวัติการใช้"
-              title="ประวัติการใช้"
-              // สีน้ำเงินอ่อนแบบวงกลมไอคอนหัวข้ออื่นในระบบ แยกจากปุ่มปิดสีเทาฝั่งขวา
-              // ให้รู้ว่าเป็นปุ่มพาไปดูต่อ ไม่ใช่ปุ่มปิดอีกตัว
-              className="bg-primary/10 absolute top-1/2 left-[20px] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full"
-            >
-              <History size={20} className="text-primary" />
-            </button>
-            <button
-              onClick={() => onOpenChange(false)}
-              autoFocus={false}
-              aria-label="ปิดหน้าต่าง"
-              className="absolute top-1/2 right-[20px] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/5"
-            >
-              <X size={20} className="text-subtle-dark" />
-            </button>
-          </div>
+                <button
+                  onClick={handleShowUsage}
+                  autoFocus={false}
+                  aria-label="ประวัติการใช้"
+                  title="ประวัติการใช้"
+                  // สีน้ำเงินอ่อนแบบวงกลมไอคอนหัวข้ออื่นในระบบ แยกจากปุ่มปิดสีเทาฝั่งขวา
+                  // ให้รู้ว่าเป็นปุ่มพาไปดูต่อ ไม่ใช่ปุ่มปิดอีกตัว
+                  className="bg-primary/10 absolute top-1/2 left-[20px] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full"
+                >
+                  <History size={20} className="text-primary" />
+                </button>
+              </>
+            }
+          />
 
           <div className="font-athiti flex flex-1 flex-col overflow-y-auto">
             <div className="flex-1 px-[20px]">

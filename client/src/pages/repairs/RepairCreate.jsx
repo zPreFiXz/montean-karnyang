@@ -3,15 +3,7 @@ import { useNavigate, useLocation } from "react-router";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Plus,
-  ChevronDown,
-  ContactRound,
-  X,
-  ClipboardList,
-  LoaderCircle,
-  ChevronLeft,
-} from "lucide-react";
+import { Plus, X, ClipboardList, LoaderCircle, ChevronLeft } from "lucide-react";
 import FormInput from "@/components/forms/FormInput";
 import AddRepairItemDialog from "@/components/dialogs/AddRepairItemDialog";
 import EditPriceDialog from "@/components/dialogs/EditRepairItemDialog";
@@ -21,28 +13,19 @@ import BillTotal from "@/components/cards/BillTotal";
 import CustomerInfoSection from "@/components/bill/CustomerInfoSection";
 import VehicleFields from "@/components/bill/VehicleFields";
 import FormButton from "@/components/forms/FormButton";
-import { listVehicleModels } from "@/api/vehicleModel";
 import { listParts } from "@/api/part";
 import { repairSchema } from "@/utils/schemas";
-import { toastError } from "@/utils/handleError";
 import { SUSPENSION_CATEGORY } from "@/constants/categories";
 import { isPartLikeItem, isDiscountItem } from "@/constants/services";
-import {
-  collapseSidePairs,
-  countDisplayedItems,
-} from "@/utils/repairItemGroups";
+import { collapseSidePairs, countDisplayedItems } from "@/utils/repairItemGroups";
+import useBillNavigation from "@/hooks/useBillNavigation";
+import useVehicleModels from "@/hooks/useVehicleModels";
+import { focusFirstInvalid } from "@/utils/focusInvalidField";
+import { EMPTY_FORM, SUBMIT_FEEDBACK_MS } from "@/constants/billForm";
 import useBillItems, { getProductName } from "@/hooks/useBillItems";
-import { withOtherBrandLast } from "@/utils/vehicleBrand";
-import {
-  DRAFT_REPAIR,
-  loadDraft,
-  saveDraft,
-  clearDraft,
-  isDraftWorthSaving,
-} from "@/utils/repairDraft";
+import { DRAFT_REPAIR, loadDraft, saveDraft, clearDraft, isDraftWorthSaving } from "@/utils/repairDraft";
 import { usePrefetchPages } from "@/routes/pageImports";
 
-const CUSTOMER_FIELDS = ["name", "address", "phoneNumber", "taxId"];
 const VEHICLE_FIELDS = [
   "brand",
   "model",
@@ -52,31 +35,18 @@ const VEHICLE_FIELDS = [
   "fleetNo",
   "mileage",
 ];
-// ฝั่งที่เลือกไว้ ห้อยท้ายชื่อบนการ์ด
-const SUBMIT_FEEDBACK_MS = 400;
-
-// ล้างฟอร์มต้องไล่ชื่อช่องให้ครบ — reset({}) เปล่าๆ ไม่ได้เขียนค่าว่างลงช่องที่ไม่ได้คุมด้วย React
-// (ทะเบียน เลขกิโลเมตร รายละเอียด) ข้อความเดิมจึงค้างอยู่บนหน้าจอ
-const EMPTY_FORM = {
-  name: "",
-  address: "",
-  phoneNumber: "",
-  taxId: "",
-  brand: "",
-  model: "",
-  plateLetters: "",
-  plateNumbers: "",
-  province: "",
-  fleetNo: "",
-  mileage: "",
-  description: "",
-};
-
 const RepairCreate = () => {
   // เตรียมโค้ดของหน้าที่มักไปต่อจากหน้านี้ กดแล้วจะได้ไม่ต้องรอโหลด
   usePrefetchPages(["RepairReview"]);
 
   const navigate = useNavigate();
+  const {
+    isEditing,
+    canReturnToVehicle,
+    handleCancelEdit,
+    handleBackToVehicle,
+  } = useBillNavigation(DRAFT_REPAIR);
+  const { brands, modelsForBrand } = useVehicleModels();
   const location = useLocation();
   const {
     register,
@@ -110,10 +80,9 @@ const RepairCreate = () => {
     freebieButton,
     renderItemRows,
     itemDialogs,
+    updateItemPrice,
   } = useBillItems();
   const [isLoading, setIsLoading] = useState(false);
-  const [vehicleModels, setVehicleModels] = useState([]);
-  const [brands, setBrands] = useState([]);
   const [restoredStockMap, setRestoredStockMap] = useState({});
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
@@ -125,45 +94,6 @@ const RepairCreate = () => {
   const vehicleFieldsRef = useRef({});
   const { errors } = formState;
 
-  // แก้บิลเดิมไม่ต้องเก็บร่าง ของจริงอยู่ในฐานข้อมูลแล้ว
-  // และร่างของบิลเก่าไม่ควรไปโผล่ตอนเปิดบิลใหม่
-  // ยึดค่าไว้ตลอดอายุของหน้า ถ้าอ่านจาก location.state สดๆ อย่างเดียว
-  // จังหวะที่ state หลุดระหว่างทางจะกลายเป็นบิลเดิมถูกเก็บเป็นร่างของบิลใหม่
-  const editingRef = useRef(!!location.state?.editRepairId);
-  if (location.state?.editRepairId) editingRef.current = true;
-  const isEditing = editingRef.current;
-
-  // แก้บิลเดิมอยู่แล้วอยากกลับโดยไม่บันทึก ถอยกลับไปที่หน้าบิลใบนั้น
-  // ใช้ตำแหน่งในประวัติเดียวกับตอนบันทึก (backIdx) เพราะถ้าเคยย้อนไปมากับหน้าสรุป
-  // จะมีหน้ากรอกบิลซ้อนอยู่ในประวัติ ถอยทีละหน้าจะวนกลับมาเจอหน้ากรอกบิลอีก
-  // เปิดบิลใหม่จากหน้าประวัติรถ = มีทางกลับไปหน้านั้น (vehicleId ติดมาตลอดทางรวมถึงหน้าสรุป)
-  const canReturnToVehicle =
-    !isEditing &&
-    !!(location.state?.vehicleId ?? window.history.state?.usr?.vehicleId);
-
-  const handleCancelEdit = () => {
-    const backIdx =
-      location.state?.backIdx ?? window.history.state?.usr?.backIdx;
-    const currentIdx = window.history.state?.idx;
-    const targetIdx = backIdx + 1;
-    if (
-      typeof backIdx === "number" &&
-      typeof currentIdx === "number" &&
-      targetIdx >= 0 &&
-      targetIdx < currentIdx
-    ) {
-      navigate(targetIdx - currentIdx);
-    } else {
-      navigate(-1);
-    }
-  };
-
-  // ถอยกลับไปหน้าประวัติรถ = ไม่เอาบิลนี้แล้ว ร่างที่เพิ่งเติมให้ไม่ควรค้างไปโผล่ตอนเปิดบิลใหม่
-  const handleBackToVehicle = () => {
-    clearDraft(DRAFT_REPAIR);
-    handleCancelEdit();
-  };
-
   // รุ่นรถที่มีอะไหล่ระบุว่าใช้ได้ ใช้ตัดสินว่ากดเช็กช่วงล่างต่อได้ไหม
   // null = ยังโหลดไม่เสร็จ ระหว่างนั้นไม่ปิดปุ่ม ดีกว่าห้ามกดทั้งที่อาจกดได้
   const [modelsWithParts, setModelsWithParts] = useState(null);
@@ -171,7 +101,6 @@ const RepairCreate = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    fetchVehicleModels();
     fetchModelsWithParts();
   }, []);
 
@@ -311,20 +240,6 @@ const RepairCreate = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftKey, isEditing]);
 
-  const fetchVehicleModels = async () => {
-    try {
-      const res = await listVehicleModels();
-      setVehicleModels(res.data);
-
-      const uniqueBrands = withOtherBrandLast([
-        ...new Set(res.data.map((item) => item.brand)),
-      ]);
-      setBrands(uniqueBrands.map((brand) => ({ id: brand, name: brand })));
-    } catch (error) {
-      toastError(error);
-    }
-  };
-
   // หน้าเช็กช่วงล่างเลือกอะไหล่จากรายการที่ผูกกับรุ่นรถไว้ ใช้เกณฑ์เดียวกันตรงนี้
   const fetchModelsWithParts = async () => {
     try {
@@ -351,30 +266,12 @@ const RepairCreate = () => {
     !watch("model") ||
     modelsWithParts.has(`${watch("brand")}|${watch("model")}`);
 
-  const getAvailableModelsForBrand = () => {
-    const selectedBrand = watch("brand");
-    const modelsForBrand = vehicleModels
-      .filter((item) => item.brand === selectedBrand)
-      .map((item) => ({ id: item.model, name: item.model }));
-
-    return modelsForBrand;
-  };
-
   // เลือกลูกค้าที่เคยบันทึกไว้ — เติมทั้งสามช่องให้ตรงกับที่เก็บไว้ แก้ทับได้ตามปกติ
   // ทะเบียนเก็บเป็น "ตัวอักษร เว้นวรรค ตัวเลข" ให้ตรงกับที่บันทึกไว้ตอนสร้างบิล
   const plateText =
     watch("plateLetters") && watch("plateNumbers")
       ? `${watch("plateLetters")} ${watch("plateNumbers")}`
       : "";
-
-  const handleSelectCustomer = (customer) => {
-    setValue("name", customer.name || "", { shouldValidate: true });
-    setValue("phoneNumber", customer.phoneNumber || "", {
-      shouldValidate: true,
-    });
-    setValue("address", customer.address || "");
-    setValue("taxId", customer.taxId || "", { shouldValidate: true });
-  };
 
   // ลูกค้าขอเช็กช่วงล่างเพิ่มระหว่างที่เปิดบิลเปลี่ยนยางค้างไว้ — ยกทั้งข้อมูลรถและรายการที่เลือกไปด้วย
   // จะได้อยู่ในบิลเดียวกัน ไม่ต้องเปิดบิลใหม่แล้วเก็บเงินสองรอบ (ขากลับมีอยู่แล้วที่หน้าเช็กช่วงล่าง)
@@ -508,32 +405,8 @@ const RepairCreate = () => {
     }
   };
 
-  const onInvalid = (errs) => {
-    const firstErrorField = Object.keys(errs || {})[0];
-    if (!firstErrorField) return;
-
-    // ช่องที่ผิดอาจอยู่ในกล่องข้อมูลลูกค้าที่พับไว้ ถ้าไม่กางออกก่อน
-    // การโฟกัสจะไม่เห็นอะไรเลย คนใช้จะงงว่ากดปุ่มแล้วไม่มีอะไรเกิดขึ้น
-    if (CUSTOMER_FIELDS.includes(firstErrorField)) {
-      setIsCustomerInfoOpen(true);
-    }
-
-    setTimeout(() => {
-      const el = document.querySelector(`[name="${firstErrorField}"]`);
-      const isVisible = el && el.type !== "hidden" && el.offsetParent !== null;
-      const target = isVisible ? el : el?.parentElement || null;
-      if (!target) return;
-
-      // preventScroll สำคัญ — โดยปริยาย focus() จะกระโดดไปหาช่องทันที
-      // แล้วการเลื่อนแบบนุ่มที่ตามมาก็ไม่เหลืออะไรให้เลื่อน ภาพที่เห็นคือเด้งพรึบ
-      if (isVisible) el.focus?.({ preventScroll: true });
-      target.scrollIntoView({
-        block: "center",
-        inline: "nearest",
-        behavior: "smooth",
-      });
-    }, 200);
-  };
+  const onInvalid = (errs) =>
+    focusFirstInvalid(errs, () => setIsCustomerInfoOpen(true));
 
   // ปุ่มตะกร้าในรายละเอียดอะไหล่/บริการส่งของมาทาง state ทำครั้งเดียว แล้วล้าง state ทิ้ง
   // ไม่งั้นรีเฟรชหรือย้อนกลับมาจะได้ของซ้ำอีกชิ้น (ร่างเก็บชิ้นแรกไว้แล้ว)
@@ -566,29 +439,7 @@ const RepairCreate = () => {
   };
 
   const handlePriceConfirm = (payload) => {
-    const newPrice = typeof payload === "number" ? payload : payload?.price;
-    const newName = typeof payload === "object" ? payload?.name : undefined;
-
-    if (editingItem && newPrice != null) {
-      setRepairItems((prev) =>
-        prev.map((item, i) =>
-          i === editingItem.index
-            ? {
-                ...item,
-                // กรอกมาเป็นเลขบวก บรรทัดส่วนลดต้องกลับเป็นลบก่อนเก็บ
-                sellingPrice: isDiscountItem(item)
-                  ? -Math.abs(newPrice)
-                  : newPrice,
-                // จำว่าชื่อนี้พิมพ์เอง เพื่อไม่ให้ถูกชื่อจากคลังเขียนทับตอนบันทึกและตอนย่อชื่อบนใบเสร็จ
-                // ไม่ได้แก้ชื่อ (ยังตรงกับชื่อเต็มที่ประกอบจากคลัง) ปล่อยให้ประกอบจากคลังเหมือนเดิม
-                ...(newName && newName !== getProductName(item)
-                  ? { name: newName, hasCustomName: true }
-                  : {}),
-              }
-            : item,
-        ),
-      );
-    }
+    if (editingItem) updateItemPrice(editingItem.index, payload);
   };
 
   // หัวข้อรายการซ่อมกับกล่องยอดรวม ใช้ทั้งฝั่งมือถือและจอใหญ่
@@ -720,7 +571,7 @@ const RepairCreate = () => {
             watch={watch}
             isOpen={isCustomerInfoOpen}
             onToggle={() => setIsCustomerInfoOpen(!isCustomerInfoOpen)}
-            onSelectCustomer={handleSelectCustomer}
+            setValue={setValue}
           />
           {/* ข้อมูลรถ — บิลขายอะไหล่หน้าร้านไม่มีรถมาเกี่ยว จึงซ่อนทั้งก้อน */}
           {!hasNoVehicle && (
@@ -730,7 +581,7 @@ const RepairCreate = () => {
               watch={watch}
               setValue={setValue}
               brands={brands}
-              modelOptions={getAvailableModelsForBrand()}
+              modelOptions={modelsForBrand(watch("brand"))}
               plateText={plateText}
               excludeRepairId={location.state?.editRepairId}
               fleetKey={clearCount}

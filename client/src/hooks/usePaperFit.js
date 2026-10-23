@@ -1,0 +1,131 @@
+import { useLayoutEffect, useRef, useState } from "react";
+
+// ย่อกระดาษ A5 ให้พอดีหน้าต่างตัวอย่าง ใช้ทั้งตัวอย่างใบเสร็จและตัวอย่างใบวางบิล
+// คลาสของหน้าต่างต้องตรงกับค่าข้างล่าง และแถวที่ไม่ใช่กระดาษติดคลาส .receipt-chrome
+// ขนาดกระดาษ A5 เต็มแผ่น ขอบพิมพ์เว้นเองข้างใน (ดูกฎ @media print)
+export const PAPER_WIDTH_MM = 148;
+export const PAPER_HEIGHT_MM = 210;
+// 1 มิลลิเมตร = 96/25.4 พิกเซลตามมาตรฐาน CSS ใช้คำนวณขนาดกรอบหลังย่อ
+export const MM = 96 / 25.4;
+
+// ระยะห่างรอบกรอบดูตัวอย่าง ต้องตรงกับคลาสที่ใช้จริง
+const VIEWPORT_MARGIN = 16;
+// เพดานขนาดไดอะล็อก ต้องตรงกับคลาสที่ใช้จริงเช่นกัน
+const DIALOG_MAX_WIDTH = 620;
+// เว้นที่ไว้จากขอบจอพอสมควร ไม่ให้กล่องไปชนเพดานความสูง
+// ไม่งั้นแถบที่อยู่ของเบราว์เซอร์มือถือยุบ/กางทีเดียว ความสูงกล่องก็เปลี่ยนแล้วเลื่อนให้เห็น
+const DIALOG_MAX_HEIGHT_RATIO = 0.88;
+
+// ขนาดที่พอดีกรอบโดยประมาณ คิดจากขนาดจอล้วน ไม่ต้องรออ่านค่าจากหน้าจอจริง
+const estimateFitScale = (chromeEstimate) => {
+  if (typeof window === "undefined") return 1;
+
+  const maxDialogWidth = Math.min(DIALOG_MAX_WIDTH, window.innerWidth - 32);
+  const availableWidth = maxDialogWidth - VIEWPORT_MARGIN * 2;
+  const availableHeight =
+    window.innerHeight * DIALOG_MAX_HEIGHT_RATIO -
+    chromeEstimate -
+    VIEWPORT_MARGIN * 2;
+
+  return (
+    Math.min(
+      availableWidth / (PAPER_WIDTH_MM * MM),
+      availableHeight / (PAPER_HEIGHT_MM * MM),
+    ) * 0.98
+  );
+};
+
+// chromeEstimate = ความสูงโดยประมาณของหัวข้อ แถบตัวเลือก และแถวปุ่มรวมกัน ใช้เดาขนาดตั้งแต่เรนเดอร์แรก
+// ก่อนจะวัดของจริงได้ ค่าคลาดนิดหน่อยไม่เป็นไรเพราะซ่อนไว้จนกว่าจะวัดเสร็จ
+// onOpen = ล้างตัวเลือกของหน้าต่างทุกครั้งที่เปิด (ทำก่อนวัด ขนาดจะได้คิดจากหน้าตาตอนเปิด)
+const usePaperFit = ({ open, chromeEstimate, onOpen }) => {
+  const contentRef = useRef(null);
+  const paperRef = useRef(null);
+  const onOpenRef = useRef(onOpen);
+  onOpenRef.current = onOpen;
+  const [fitScale, setFitScale] = useState(() =>
+    estimateFitScale(chromeEstimate),
+  );
+  // เฟรมแรกกระดาษยังเป็นขนาดจริง ต้องรอวัดพื้นที่เสร็จก่อนถึงจะโชว์
+  // ไม่งั้นจะเห็นแผ่นใหญ่วูบหนึ่งครั้งแล้วหดลงมา
+  const [isMeasured, setIsMeasured] = useState(false);
+
+  // useLayoutEffect เพราะต้องวัดและย่อให้เสร็จก่อนจอวาดเฟรมแรก
+  // ถ้าวัดหลังวาด จะเห็นกล่องไดอะล็อกกางออกแล้วหดเข้ามาหนึ่งครั้ง
+  useLayoutEffect(() => {
+    if (!open) return;
+    setIsMeasured(false);
+    onOpenRef.current?.();
+    setFitScale(estimateFitScale(chromeEstimate));
+
+    const fit = () => {
+      const paper = paperRef.current;
+      const paperWidth = paper?.offsetWidth;
+      const paperHeight = paper?.offsetHeight;
+
+      // วัดไม่ได้ก็ต้องปลดการซ่อน ไม่งั้นกล่องจะถูกซ่อนค้างจนดูเหมือนเปิดไม่ขึ้น
+      if (!paperWidth || !paperHeight) {
+        setIsMeasured(true);
+        return;
+      }
+
+      // ความสูงของแถวที่ไม่ใช่กระดาษวัดได้ตรงๆ และไม่ขึ้นกับขนาดกระดาษ
+      // จึงคิดที่ว่างจากขนาดจอลบแถวพวกนี้ ไม่ใช่วัดจากกรอบซึ่งจะกลายเป็นวนกันเอง
+      const chromeParts =
+        contentRef.current?.querySelectorAll(".receipt-chrome") || [];
+      const chromeHeight =
+        [...chromeParts].reduce((sum, part) => sum + part.offsetHeight, 0) ||
+        chromeEstimate;
+
+      const maxDialogWidth = Math.min(DIALOG_MAX_WIDTH, window.innerWidth - 32);
+      const availableWidth = maxDialogWidth - VIEWPORT_MARGIN * 2;
+      const availableHeight =
+        window.innerHeight * DIALOG_MAX_HEIGHT_RATIO -
+        chromeHeight -
+        VIEWPORT_MARGIN;
+
+      if (availableWidth > 0 && availableHeight > 0) {
+        // เผื่อไว้เล็กน้อย กันเศษปัดของเบราว์เซอร์ทำให้ล้นออกไปหนึ่งจุด
+        setFitScale(
+          Math.min(availableWidth / paperWidth, availableHeight / paperHeight) *
+            0.99,
+        );
+      }
+    };
+
+    // วัดรอบแรกตั้งแต่ยังซ่อนอยู่ แล้ววัดซ้ำในเฟรมถัดไปตอนที่หน้าจัดเสร็จจริง
+    // ค่อยแสดงเมื่อได้ค่าที่นิ่งแล้ว ไม่งั้นจะเห็นกระดาษใหญ่แล้วหดลงตอนเปิด
+    // ไม่วัดซ้ำหลังจากนั้น เพราะกล่องลอยกลางจอ ความสูงขยับนิดเดียวก็เห็นกล่องเลื่อน
+    fit();
+    const reveal = requestAnimationFrame(() => {
+      fit();
+      setIsMeasured(true);
+    });
+
+    // วัดใหม่เฉพาะตอนขนาดจอเปลี่ยนจริงจัง เช่นหมุนจอ
+    // บนมือถือแถบที่อยู่ของเบราว์เซอร์ยุบ/กางเองได้ ความสูงขยับทีละไม่กี่สิบจุด
+    // ถ้าวัดใหม่ทุกครั้งกล่องที่ลอยกลางจอจะเลื่อนให้เห็นทุกที
+    let lastSize = { width: window.innerWidth, height: window.innerHeight };
+    const onResize = () => {
+      const size = { width: window.innerWidth, height: window.innerHeight };
+      const changedALot =
+        size.width !== lastSize.width ||
+        Math.abs(size.height - lastSize.height) > 120;
+
+      if (!changedALot) return;
+      lastSize = size;
+      fit();
+    };
+
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(reveal);
+      window.removeEventListener("resize", onResize);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  return { contentRef, paperRef, scale: fitScale, isMeasured };
+};
+
+export default usePaperFit;

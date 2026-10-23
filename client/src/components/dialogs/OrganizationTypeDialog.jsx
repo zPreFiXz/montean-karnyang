@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
-import { X, Building2, Store, CircleUserRound } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
+import { Building2, Store, CircleUserRound } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import FormButton from "@/components/forms/FormButton";
 import { setCustomerOrganizationType } from "@/api/customer";
 import { toastError } from "@/utils/handleError";
@@ -67,21 +63,11 @@ const OrganizationTypeDialog = ({
         className="flex max-h-[85svh] w-full flex-col p-0"
         showCloseButton={false}
       >
-        <div className="relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]">
-          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
-            ประเภทลูกค้า
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            เลือกว่าลูกค้ารายนี้เป็นหน่วยงานหรือร้านค้า
-          </DialogDescription>
-          <button
-            onClick={onClose}
-            aria-label="ปิดหน้าต่าง"
-            className="absolute top-1/2 right-[20px] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/5"
-          >
-            <X size={20} className="text-subtle-dark" />
-          </button>
-        </div>
+        <DialogTitleBar
+          title="ประเภทลูกค้า"
+          description="เลือกว่าลูกค้ารายนี้เป็นหน่วยงานหรือร้านค้า"
+          onClose={onClose}
+        />
 
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px]">
           {customer?.name && (

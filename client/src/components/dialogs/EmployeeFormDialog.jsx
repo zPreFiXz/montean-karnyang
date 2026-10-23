@@ -1,14 +1,9 @@
 import { useEffect } from "react";
-import { X } from "lucide-react";
+import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
 import { toast } from "sonner";
 import FormInput from "@/components/forms/FormInput";
 import FormButton from "@/components/forms/FormButton";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createEmployeeSchema, editEmployeeSchema } from "@/utils/schemas";
@@ -94,22 +89,13 @@ const EmployeeFormDialog = ({
           e.preventDefault();
         }}
       >
-        <div className="relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]">
-          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
-            {editingItem ? "แก้ไขพนักงาน" : "เพิ่มพนักงาน"}
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            {editingItem ? `แก้ไข ${editingItem.name}` : "เพิ่มพนักงาน"}
-          </DialogDescription>
-          <button
-            onClick={handleClose}
-            autoFocus={false}
-            aria-label="ปิดหน้าต่าง"
-            className="absolute top-1/2 right-[20px] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/5"
-          >
-            <X size={20} className="text-subtle-dark" />
-          </button>
-        </div>
+        <DialogTitleBar
+          title={editingItem ? "แก้ไขพนักงาน" : "เพิ่มพนักงาน"}
+          description={
+            editingItem ? `แก้ไข ${editingItem.name}` : "เพิ่มพนักงาน"
+          }
+          onClose={handleClose}
+        />
 
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px]">
           <form

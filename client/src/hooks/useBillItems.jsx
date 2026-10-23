@@ -227,6 +227,32 @@ const useBillItems = ({
     if (item) addItemLine(item, side === "none" ? null : side);
   };
 
+  // ผลจากหน้าต่างแก้ราคา: ราคาอย่างเดียว หรือ { price, name } ของบรรทัดที่แก้ชื่อได้
+  const updateItemPrice = (index, payload) => {
+    const newPrice = typeof payload === "number" ? payload : payload?.price;
+    const newName = typeof payload === "object" ? payload?.name : undefined;
+    if (newPrice == null) return;
+
+    setRepairItems((prev) =>
+      prev.map((item, i) =>
+        i === index
+          ? {
+              ...item,
+              // กรอกมาเป็นเลขบวก บรรทัดส่วนลดต้องกลับเป็นลบก่อนเก็บ
+              sellingPrice: isDiscountItem(item)
+                ? -Math.abs(newPrice)
+                : newPrice,
+              // จำว่าชื่อนี้พิมพ์เอง เพื่อไม่ให้ถูกชื่อจากคลังเขียนทับตอนบันทึกและตอนย่อชื่อบนใบเสร็จ
+              // ไม่ได้แก้ชื่อ (ยังตรงกับชื่อเต็มที่ประกอบจากคลัง) ปล่อยให้ประกอบจากคลังเหมือนเดิม
+              ...(newName && newName !== getProductName(item)
+                ? { name: newName, hasCustomName: true }
+                : {}),
+            }
+          : item,
+      ),
+    );
+  };
+
   // เอารายการออกจนเหลือชิ้นเดียว ปุ่มสลับโหมดจะหายไป ถ้าไม่ปิดโหมดให้ด้วย
   // แถวจะค้างเป็นลูกศรโดยไม่มีทางกดออก
   useEffect(() => {
@@ -803,6 +829,7 @@ const useBillItems = ({
     freebieButton,
     renderItemRows,
     itemDialogs,
+    updateItemPrice,
   };
 };
 

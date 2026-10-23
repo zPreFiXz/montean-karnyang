@@ -1,11 +1,7 @@
-import { LoaderCircle, X } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
+import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
 import { useState, useRef, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import FormButton from "../forms/FormButton";
 import { toastError } from "@/utils/handleError";
 
@@ -125,22 +121,11 @@ const ConfirmDialog = ({
           }
         }}
       >
-        <div className="relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]">
-          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
-            {title}
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            {`${title} ${itemName} ${itemDetail} ${note}`.trim()}
-          </DialogDescription>
-          <button
-            onClick={onClose}
-            autoFocus={false}
-            aria-label="ปิดหน้าต่าง"
-            className="absolute top-1/2 right-[20px] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/5"
-          >
-            <X size={20} className="text-subtle-dark" />
-          </button>
-        </div>
+        <DialogTitleBar
+          title={title}
+          description={`${title} ${itemName} ${itemDetail} ${note}`.trim()}
+          onClose={onClose}
+        />
 
         {/* ระยะบน-ล่างเท่ากัน ชิปจึงลอยกลางระหว่างหัวเรื่องกับปุ่ม */}
         <div className="font-athiti flex flex-1 flex-col items-center justify-center overflow-y-auto px-[20px] py-[16px]">

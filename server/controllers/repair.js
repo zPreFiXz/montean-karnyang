@@ -26,6 +26,160 @@ const findOrCreateVehicleModel = async (tx, brand, model) => {
   return tx.vehicleModel.create({ data: { brand, model } });
 };
 
+// รถของบิลใหม่: ทะเบียนเดิมใช้รถคันเดิม (แก้รุ่นตามที่กรอก) ทะเบียนใหม่สร้างคันใหม่
+// ไม่มีทะเบียน = แถวรถร่วมของรุ่นนั้น แยกคันตามเบอร์รถ
+const resolveVehicleForNewBill = async (
+  tx,
+  { brand, model, plate, province, fleet },
+) => {
+  let vehicle = null;
+  let licensePlate;
+  const vehicleModel = await findOrCreateVehicleModel(tx, brand, model);
+
+  if (plate && province) {
+    licensePlate = await tx.licensePlate.findUnique({
+      where: { plateNumber_province: { plateNumber: plate, province } },
+    });
+
+    if (licensePlate) {
+      // ทะเบียนผูกได้กับรถคันเดียว กรอกรุ่นต่างจากเดิมจึงแก้รุ่นของคันเดิมแทนสร้างคันใหม่
+      vehicle = await tx.vehicle.findUnique({
+        where: { licensePlateId: licensePlate.id },
+      });
+
+      if (!vehicle) {
+        vehicle = await tx.vehicle.create({
+          data: {
+            vehicleModelId: vehicleModel.id,
+            licensePlateId: licensePlate.id,
+            fleetNo: fleet,
+          },
+        });
+      } else if (
+        vehicle.vehicleModelId !== vehicleModel.id ||
+        (fleet && vehicle.fleetNo !== fleet)
+      ) {
+        // เปิดบิลใหม่แล้วเว้นช่องเบอร์ไว้ = ไม่ได้กรอก ไม่ใช่ตั้งใจลบ จึงเปลี่ยนเฉพาะตอนกรอกมา
+        vehicle = await tx.vehicle.update({
+          where: { id: vehicle.id },
+          data: {
+            vehicleModelId: vehicleModel.id,
+            ...(fleet && { fleetNo: fleet }),
+          },
+        });
+      }
+    } else {
+      licensePlate = await tx.licensePlate.create({
+        data: { plateNumber: plate, province },
+      });
+
+      vehicle = await tx.vehicle.create({
+        data: {
+          vehicleModelId: vehicleModel.id,
+          licensePlateId: licensePlate.id,
+          fleetNo: fleet,
+        },
+      });
+    }
+  } else {
+    // รถไม่มีทะเบียนรุ่นเดียวกันใช้แถวรถร่วมกัน รถที่มีเบอร์จึงแยกคันตามเบอร์
+    // ไม่งั้นใส่เบอร์ให้คันหนึ่ง ทุกคันรุ่นเดียวกันที่ไม่มีทะเบียนจะได้เบอร์นั้นไปด้วย
+    vehicle = await tx.vehicle.findFirst({
+      where: {
+        vehicleModelId: vehicleModel.id,
+        licensePlateId: null,
+        fleetNo: fleet,
+      },
+    });
+
+    if (!vehicle) {
+      vehicle = await tx.vehicle.create({
+        data: {
+          vehicleModelId: vehicleModel.id,
+          licensePlateId: null,
+          fleetNo: fleet,
+        },
+      });
+    }
+  }
+  return vehicle;
+};
+
+// รถของบิลที่แก้ไข ต่างจากบิลใหม่ตรงที่ต้องดูรถคันเดิมของบิลด้วย
+const resolveVehicleForEdit = async (
+  tx,
+  { brand, model, plate, province, fleet },
+  currentVehicleId,
+) => {
+  let vehicle = null;
+  const vehicleModel = await findOrCreateVehicleModel(tx, brand, model);
+
+  if (plate && province) {
+    let licensePlate = await tx.licensePlate.findUnique({
+      where: { plateNumber_province: { plateNumber: plate, province } },
+      include: { vehicle: { select: { id: true } } },
+    });
+    if (!licensePlate) {
+      licensePlate = await tx.licensePlate.create({
+        data: { plateNumber: plate, province },
+      });
+    }
+
+    const currentVehicle = currentVehicleId
+      ? await tx.vehicle.findUnique({
+          where: { id: currentVehicleId },
+          select: { id: true, licensePlateId: true },
+        })
+      : null;
+
+    // ทะเบียนผูกได้กับรถคันเดียว ถ้าทะเบียนนี้มีรถอยู่แล้วต้องย้ายบิลไปคันนั้น
+    // รถเดิมที่ไม่มีทะเบียนเป็นแถวที่บิลรุ่นเดียวกันใช้ร่วมกัน ห้ามแก้ทับ ต้องสร้างคันใหม่
+    // หน้าแก้ไขเติมเบอร์เดิมไว้ให้แล้ว ช่องว่างตอนแก้จึงแปลว่าลบเบอร์ออก
+    const targetId =
+      licensePlate.vehicle?.id ??
+      (currentVehicle?.licensePlateId ? currentVehicle.id : null);
+    const data = {
+      vehicleModelId: vehicleModel.id,
+      licensePlateId: licensePlate.id,
+      fleetNo: fleet,
+    };
+    vehicle = targetId
+      ? await tx.vehicle.update({ where: { id: targetId }, data })
+      : await tx.vehicle.create({ data });
+  } else {
+    const existingVehicle = await tx.vehicle.findFirst({
+      where: {
+        vehicleModelId: vehicleModel.id,
+        licensePlateId: null,
+        fleetNo: fleet,
+      },
+    });
+
+    if (existingVehicle && existingVehicle.id !== currentVehicleId) {
+      vehicle = existingVehicle;
+    } else if (currentVehicleId) {
+      vehicle = await tx.vehicle.update({
+        where: { id: currentVehicleId },
+        data: {
+          vehicleModelId: vehicleModel.id,
+          licensePlateId: null,
+          fleetNo: fleet,
+        },
+      });
+    } else {
+      // บิลเดิมเป็นการขายหน้าร้าน ยังไม่เคยมีรถผูกไว้
+      vehicle = await tx.vehicle.create({
+        data: {
+          vehicleModelId: vehicleModel.id,
+          licensePlateId: null,
+          fleetNo: fleet,
+        },
+      });
+    }
+  }
+  return vehicle;
+};
+
 // หา/สร้าง/อัปเดตลูกค้า: จับคู่ด้วยเบอร์โทรก่อน (unique) ถ้าไม่มีเบอร์ค่อยจับคู่ด้วยชื่อ
 // existingCustomer = ลูกค้าที่ผูกกับบิลอยู่ก่อนแก้ไข (บิลใหม่จะเป็น null)
 //
@@ -500,81 +654,15 @@ exports.createRepair = async (req, res, next) => {
     const skipVehicle = isSale || !!noVehicle;
 
     await prisma.$transaction(async (tx) => {
-      let vehicle = null;
-      let licensePlate;
-
-      const vehicleModel = skipVehicle
+      const vehicle = skipVehicle
         ? null
-        : await findOrCreateVehicleModel(tx, brand, model);
-
-      if (skipVehicle) {
-        vehicle = null;
-      } else if (plate && province) {
-        licensePlate = await tx.licensePlate.findUnique({
-          where: { plateNumber_province: { plateNumber: plate, province } },
-        });
-
-        if (licensePlate) {
-          // ทะเบียนผูกได้กับรถคันเดียว กรอกรุ่นต่างจากเดิมจึงแก้รุ่นของคันเดิมแทนสร้างคันใหม่
-          vehicle = await tx.vehicle.findUnique({
-            where: { licensePlateId: licensePlate.id },
+        : await resolveVehicleForNewBill(tx, {
+            brand,
+            model,
+            plate,
+            province,
+            fleet,
           });
-
-          if (!vehicle) {
-            vehicle = await tx.vehicle.create({
-              data: {
-                vehicleModelId: vehicleModel.id,
-                licensePlateId: licensePlate.id,
-                fleetNo: fleet,
-              },
-            });
-          } else if (
-            vehicle.vehicleModelId !== vehicleModel.id ||
-            (fleet && vehicle.fleetNo !== fleet)
-          ) {
-            // เปิดบิลใหม่แล้วเว้นช่องเบอร์ไว้ = ไม่ได้กรอก ไม่ใช่ตั้งใจลบ จึงเปลี่ยนเฉพาะตอนกรอกมา
-            vehicle = await tx.vehicle.update({
-              where: { id: vehicle.id },
-              data: {
-                vehicleModelId: vehicleModel.id,
-                ...(fleet && { fleetNo: fleet }),
-              },
-            });
-          }
-        } else {
-          licensePlate = await tx.licensePlate.create({
-            data: { plateNumber: plate, province },
-          });
-
-          vehicle = await tx.vehicle.create({
-            data: {
-              vehicleModelId: vehicleModel.id,
-              licensePlateId: licensePlate.id,
-              fleetNo: fleet,
-            },
-          });
-        }
-      } else {
-        // รถไม่มีทะเบียนรุ่นเดียวกันใช้แถวรถร่วมกัน รถที่มีเบอร์จึงแยกคันตามเบอร์
-        // ไม่งั้นใส่เบอร์ให้คันหนึ่ง ทุกคันรุ่นเดียวกันที่ไม่มีทะเบียนจะได้เบอร์นั้นไปด้วย
-        vehicle = await tx.vehicle.findFirst({
-          where: {
-            vehicleModelId: vehicleModel.id,
-            licensePlateId: null,
-            fleetNo: fleet,
-          },
-        });
-
-        if (!vehicle) {
-          vehicle = await tx.vehicle.create({
-            data: {
-              vehicleModelId: vehicleModel.id,
-              licensePlateId: null,
-              fleetNo: fleet,
-            },
-          });
-        }
-      }
 
       const customer = await resolveCustomer(tx, {
         name,
@@ -654,10 +742,6 @@ exports.updateRepair = async (req, res, next) => {
     const skipVehicle = isSale || !!noVehicle;
 
     await prisma.$transaction(async (tx) => {
-      const vehicleModel = skipVehicle
-        ? null
-        : await findOrCreateVehicleModel(tx, brand, model);
-
       const currentRepair = await tx.repair.findUnique({
         where: { id: Number(id) },
         select: {
@@ -679,72 +763,13 @@ exports.updateRepair = async (req, res, next) => {
         createError(400, CANNOT_EDIT_CANCELLED);
       }
 
-      let vehicle = null;
-      if (skipVehicle) {
-        vehicle = null;
-      } else if (plate && province) {
-        let licensePlate = await tx.licensePlate.findUnique({
-          where: { plateNumber_province: { plateNumber: plate, province } },
-          include: { vehicle: { select: { id: true } } },
-        });
-        if (!licensePlate) {
-          licensePlate = await tx.licensePlate.create({
-            data: { plateNumber: plate, province },
-          });
-        }
-
-        const currentVehicle = currentRepair.vehicleId
-          ? await tx.vehicle.findUnique({
-              where: { id: currentRepair.vehicleId },
-              select: { id: true, licensePlateId: true },
-            })
-          : null;
-
-        // ทะเบียนผูกได้กับรถคันเดียว ถ้าทะเบียนนี้มีรถอยู่แล้วต้องย้ายบิลไปคันนั้น
-        // รถเดิมที่ไม่มีทะเบียนเป็นแถวที่บิลรุ่นเดียวกันใช้ร่วมกัน ห้ามแก้ทับ ต้องสร้างคันใหม่
-        // หน้าแก้ไขเติมเบอร์เดิมไว้ให้แล้ว ช่องว่างตอนแก้จึงแปลว่าลบเบอร์ออก
-        const targetId =
-          licensePlate.vehicle?.id ??
-          (currentVehicle?.licensePlateId ? currentVehicle.id : null);
-        const data = {
-          vehicleModelId: vehicleModel.id,
-          licensePlateId: licensePlate.id,
-          fleetNo: fleet,
-        };
-        vehicle = targetId
-          ? await tx.vehicle.update({ where: { id: targetId }, data })
-          : await tx.vehicle.create({ data });
-      } else {
-        const existingVehicle = await tx.vehicle.findFirst({
-          where: {
-            vehicleModelId: vehicleModel.id,
-            licensePlateId: null,
-            fleetNo: fleet,
-          },
-        });
-
-        if (existingVehicle && existingVehicle.id !== currentRepair.vehicleId) {
-          vehicle = existingVehicle;
-        } else if (currentRepair.vehicleId) {
-          vehicle = await tx.vehicle.update({
-            where: { id: currentRepair.vehicleId },
-            data: {
-              vehicleModelId: vehicleModel.id,
-              licensePlateId: null,
-              fleetNo: fleet,
-            },
-          });
-        } else {
-          // บิลเดิมเป็นการขายหน้าร้าน ยังไม่เคยมีรถผูกไว้
-          vehicle = await tx.vehicle.create({
-            data: {
-              vehicleModelId: vehicleModel.id,
-              licensePlateId: null,
-              fleetNo: fleet,
-            },
-          });
-        }
-      }
+      const vehicle = skipVehicle
+        ? null
+        : await resolveVehicleForEdit(
+            tx,
+            { brand, model, plate, province, fleet },
+            currentRepair.vehicleId,
+          );
 
       const customer = await resolveCustomer(
         tx,
@@ -835,7 +860,9 @@ const CANNOT_EDIT_CANCELLED = "แก้ไขไม่ได้ เพราะ
 exports.cancelRepair = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const reason = String(req.body?.reason || "").trim().slice(0, 200);
+    const reason = String(req.body?.reason || "")
+      .trim()
+      .slice(0, 200);
 
     const repair = await prisma.repair.findUnique({
       where: { id: Number(id) },

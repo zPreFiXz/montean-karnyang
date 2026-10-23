@@ -1,4 +1,9 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import usePaperFit, {
+  MM,
+  PAPER_HEIGHT_MM,
+  PAPER_WIDTH_MM,
+} from "@/hooks/usePaperFit";
 import { X, Printer, Download, LoaderCircle } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import ReceiptPaper from "@/components/receipt/ReceiptPaper";
@@ -24,42 +29,6 @@ import { isSaleRepair, isNoVehicleRepair } from "@/utils/repairDisplay";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
 
-// ขนาดกระดาษ A5 เต็มแผ่น ขอบพิมพ์เว้นเองข้างใน (ดูกฎ @media print)
-const PAPER_WIDTH_MM = 148;
-const PAPER_HEIGHT_MM = 210;
-// 1 มิลลิเมตร = 96/25.4 พิกเซลตามมาตรฐาน CSS ใช้คำนวณขนาดกรอบหลังย่อ
-const MM = 96 / 25.4;
-
-// ระยะห่างรอบกรอบดูตัวอย่าง ต้องตรงกับคลาสที่ใช้จริง
-const VIEWPORT_MARGIN = 16;
-// เพดานขนาดไดอะล็อก ต้องตรงกับคลาสที่ใช้จริงเช่นกัน
-const DIALOG_MAX_WIDTH = 620;
-// เว้นที่ไว้จากขอบจอพอสมควร ไม่ให้กล่องไปชนเพดานความสูง
-// ไม่งั้นแถบที่อยู่ของเบราว์เซอร์มือถือยุบ/กางทีเดียว ความสูงกล่องก็เปลี่ยนแล้วเลื่อนให้เห็น
-const DIALOG_MAX_HEIGHT_RATIO = 0.88;
-// ความสูงโดยประมาณของหัวข้อ แถบซูม และแถวปุ่มรวมกัน ใช้เดาขนาดตั้งแต่เรนเดอร์แรก
-// ก่อนจะวัดของจริงได้ ค่าคลาดนิดหน่อยไม่เป็นไรเพราะซ่อนไว้จนกว่าจะวัดเสร็จ
-const ESTIMATED_CHROME_HEIGHT = 180;
-
-// ขนาดที่พอดีกรอบโดยประมาณ คิดจากขนาดจอล้วน ไม่ต้องรออ่านค่าจากหน้าจอจริง
-const estimateFitScale = () => {
-  if (typeof window === "undefined") return 1;
-
-  const maxDialogWidth = Math.min(DIALOG_MAX_WIDTH, window.innerWidth - 32);
-  const availableWidth = maxDialogWidth - VIEWPORT_MARGIN * 2;
-  const availableHeight =
-    window.innerHeight * DIALOG_MAX_HEIGHT_RATIO -
-    ESTIMATED_CHROME_HEIGHT -
-    VIEWPORT_MARGIN * 2;
-
-  return (
-    Math.min(
-      availableWidth / (PAPER_WIDTH_MM * MM),
-      availableHeight / (PAPER_HEIGHT_MM * MM),
-    ) * 0.98
-  );
-};
-
 // ไฟล์รูปจากเซิร์ฟเวอร์เป็นข้อความ base64 แปลงเป็นไฟล์แล้วสั่งดาวน์โหลดทีละแผ่น
 const downloadPng = (base64, fileName) => {
   const bytes = Uint8Array.from(atob(base64), (ch) => ch.charCodeAt(0));
@@ -81,10 +50,6 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
   // ทุกส่วนที่ไม่ใช่กระดาษ (หัวข้อ แท็บ สวิตช์ แถวปุ่ม) ติดคลาส receipt-chrome ไว้
   // วัดรวมจากคลาสนั้นทีเดียว เพิ่มแถวใหม่ทีหลังก็ถูกนับเองโดยไม่ต้องแก้ตรงนี้
   const viewportRef = useRef(null);
-  const contentRef = useRef(null);
-  const paperRef = useRef(null);
-  // ขนาดที่ทำให้ทั้งแผ่นพอดีกรอบ คิดจากทั้งกว้างและสูง จะได้เห็นครบโดยไม่ต้องเลื่อน
-  const [fitScale, setFitScale] = useState(estimateFitScale);
   const [isPrintingAtShop, setIsPrintingAtShop] = useState(false);
   const [isSavingImage, setIsSavingImage] = useState(false);
   // ลูกค้าบางรายไม่อยากให้ชื่อกับที่อยู่ขึ้นบนใบ ปิดได้ก่อนสั่งพิมพ์
@@ -94,87 +59,16 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
   const [showBrand, setShowBrand] = useState(false);
   // ใบเสร็จให้ลูกค้า กับใบสั่งซ่อมให้ช่าง ใช้กระดาษกับปุ่มพิมพ์ชุดเดียวกัน
   const [docType, setDocType] = useState("receipt");
-  // เฟรมแรกกระดาษยังเป็นขนาดจริง ต้องรอวัดพื้นที่เสร็จก่อนถึงจะโชว์
-  // ไม่งั้นจะเห็นแผ่นใหญ่วูบหนึ่งครั้งแล้วหดลงมา
-  const [isMeasured, setIsMeasured] = useState(false);
 
-  // useLayoutEffect เพราะต้องวัดและย่อให้เสร็จก่อนจอวาดเฟรมแรก
-  // ถ้าวัดหลังวาด จะเห็นกล่องไดอะล็อกกางออกแล้วหดเข้ามาหนึ่งครั้ง
-  useLayoutEffect(() => {
-    if (!open) return;
-    setIsMeasured(false);
-    setShowCustomer(true);
-    setShowBrand(false);
-    setDocType("receipt");
-    setFitScale(estimateFitScale());
-
-    const fit = () => {
-      const paper = paperRef.current;
-      const paperWidth = paper?.offsetWidth;
-      const paperHeight = paper?.offsetHeight;
-
-      // วัดไม่ได้ก็ต้องปลดการซ่อน ไม่งั้นกล่องจะถูกซ่อนค้างจนดูเหมือนเปิดไม่ขึ้น
-      if (!paperWidth || !paperHeight) {
-        setIsMeasured(true);
-        return;
-      }
-
-      // ความสูงของแถวที่ไม่ใช่กระดาษวัดได้ตรงๆ และไม่ขึ้นกับขนาดกระดาษ
-      // จึงคิดที่ว่างจากขนาดจอลบแถวพวกนี้ ไม่ใช่วัดจากกรอบซึ่งจะกลายเป็นวนกันเอง
-      const chromeParts =
-        contentRef.current?.querySelectorAll(".receipt-chrome") || [];
-      const chromeHeight =
-        [...chromeParts].reduce((sum, part) => sum + part.offsetHeight, 0) ||
-        ESTIMATED_CHROME_HEIGHT;
-
-      const maxDialogWidth = Math.min(DIALOG_MAX_WIDTH, window.innerWidth - 32);
-      const availableWidth = maxDialogWidth - VIEWPORT_MARGIN * 2;
-      const availableHeight =
-        window.innerHeight * DIALOG_MAX_HEIGHT_RATIO -
-        chromeHeight -
-        VIEWPORT_MARGIN;
-
-      if (availableWidth > 0 && availableHeight > 0) {
-        // เผื่อไว้เล็กน้อย กันเศษปัดของเบราว์เซอร์ทำให้ล้นออกไปหนึ่งจุด
-        setFitScale(
-          Math.min(availableWidth / paperWidth, availableHeight / paperHeight) *
-            0.99,
-        );
-      }
-    };
-
-    // วัดรอบแรกตั้งแต่ยังซ่อนอยู่ แล้ววัดซ้ำในเฟรมถัดไปตอนที่หน้าจัดเสร็จจริง
-    // ค่อยแสดงเมื่อได้ค่าที่นิ่งแล้ว ไม่งั้นจะเห็นกระดาษใหญ่แล้วหดลงตอนเปิด
-    // ไม่วัดซ้ำหลังจากนั้น เพราะกล่องลอยกลางจอ ความสูงขยับนิดเดียวก็เห็นกล่องเลื่อน
-    fit();
-    const reveal = requestAnimationFrame(() => {
-      fit();
-      setIsMeasured(true);
-    });
-
-    // วัดใหม่เฉพาะตอนขนาดจอเปลี่ยนจริงจัง เช่นหมุนจอ
-    // บนมือถือแถบที่อยู่ของเบราว์เซอร์ยุบ/กางเองได้ ความสูงขยับทีละไม่กี่สิบจุด
-    // ถ้าวัดใหม่ทุกครั้งกล่องที่ลอยกลางจอจะเลื่อนให้เห็นทุกที
-    let lastSize = { width: window.innerWidth, height: window.innerHeight };
-    const onResize = () => {
-      const size = { width: window.innerWidth, height: window.innerHeight };
-      const changedALot =
-        size.width !== lastSize.width ||
-        Math.abs(size.height - lastSize.height) > 120;
-
-      if (!changedALot) return;
-      lastSize = size;
-      fit();
-    };
-
-    window.addEventListener("resize", onResize);
-    return () => {
-      cancelAnimationFrame(reveal);
-      window.removeEventListener("resize", onResize);
-    };
-  }, [open]);
-
-  const scale = fitScale;
+  const { contentRef, paperRef, scale, isMeasured } = usePaperFit({
+    open,
+    chromeEstimate: 180,
+    onOpen: () => {
+      setShowCustomer(true);
+      setShowBrand(false);
+      setDocType("receipt");
+    },
+  });
 
   if (!repair) return null;
 
@@ -389,7 +283,7 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
           // ไม่มีระยะขอบใน พื้นที่เลื่อนจะได้จบที่ขอบกระดาษพอดี ไม่มีที่ว่างเกินท้าย
           // เลื่อนได้เฉพาะแนวตั้ง (บิลหลายแผ่น) กว้างพอดีอยู่แล้วจึงไม่ต้องเลื่อนข้าง
           // scrollbar-gutter คงที่ ไม่งั้นแถบเลื่อนโผล่แล้วความกว้างเปลี่ยน แล้ววัดขนาดใหม่ไปมา
-          style={{ height: PAPER_HEIGHT_MM * MM * fitScale }}
+          style={{ height: PAPER_HEIGHT_MM * MM * scale }}
           className="mx-[16px] mb-[8px] min-h-0 shrink overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]"
         >
           {/* กรอบเท่าขนาดแผ่นหลังย่อ กันไม่ให้พื้นที่เลื่อนยาวเท่าขนาดกระดาษจริง

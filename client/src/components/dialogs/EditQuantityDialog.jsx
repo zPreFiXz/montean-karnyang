@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import FormButton from "@/components/forms/FormButton";
 import { formatQuantity } from "@/utils/formats";
 
@@ -58,21 +53,11 @@ const EditQuantityDialog = ({
         className="flex max-h-[85svh] w-full flex-col p-0"
         showCloseButton={false}
       >
-        <div className="relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]">
-          <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
-            แก้ไขจำนวน
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            แก้ไขจำนวนของ {productName}
-          </DialogDescription>
-          <button
-            onClick={onClose}
-            aria-label="ปิดหน้าต่าง"
-            className="absolute top-1/2 right-[20px] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/5"
-          >
-            <X size={20} className="text-subtle-dark" />
-          </button>
-        </div>
+        <DialogTitleBar
+          title="แก้ไขจำนวน"
+          description={<>แก้ไขจำนวนของ {productName}</>}
+          onClose={onClose}
+        />
 
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px]">
           <h2 className="text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">

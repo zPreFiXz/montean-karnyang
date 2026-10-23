@@ -1,10 +1,5 @@
-import { X } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 // อะไหล่หรือบริการที่ตั้งไว้ว่าแยกซ้าย-ขวา ถามข้างตอนหยิบลงบิล แทนการพิมพ์ (L) (R) ต่อท้ายชื่อเอง
 // แตะตัวเลือกแล้วจบเลย ไม่ต้องกดยืนยันอีกรอบ เพราะเลือกผิดก็ลบบรรทัดแล้วเลือกใหม่ได้
@@ -24,21 +19,11 @@ const SidePickDialog = ({ isOpen, onClose, onPick, itemName, remaining }) => (
       showCloseButton={false}
       onOpenAutoFocus={(e) => e.preventDefault()}
     >
-      <div className="relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]">
-        <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
-          เลือกข้าง
-        </DialogTitle>
-        <DialogDescription className="sr-only">
-          เลือกข้างของ {itemName}
-        </DialogDescription>
-        <button
-          onClick={onClose}
-          aria-label="ปิดหน้าต่าง"
-          className="absolute top-1/2 right-[20px] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/5"
-        >
-          <X size={20} className="text-subtle-dark" />
-        </button>
-      </div>
+      <DialogTitleBar
+        title="เลือกข้าง"
+        description={<>เลือกข้างของ {itemName}</>}
+        onClose={onClose}
+      />
 
       <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px] pb-[20px]">
         {itemName && (
