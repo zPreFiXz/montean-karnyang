@@ -1,3 +1,4 @@
+import { CarFront, ShieldUser, Users, CalendarCheck } from "lucide-react";
 import {
   BoxSearch,
   CarRepair,
@@ -5,7 +6,6 @@ import {
   Document,
 } from "@/components/icons/Icons";
 
-// เมนูหลักที่ใช้ร่วมกันระหว่าง sidebar (desktop) และ bottom nav (mobile)
 export const MENU_ITEMS = [
   {
     path: "/dashboard",
@@ -33,16 +33,14 @@ export const MENU_ITEMS = [
   },
 ];
 
-// เช็คว่าเมนูควรแสดงสถานะ active หรือไม่
-// หมายเหตุ: เมนู "ประวัติรถ" (/vehicles) ครอบคลุมหน้ารายละเอียดงานซ่อมด้วย
+// เมนู "ประวัติรถ" ครอบคลุมหน้ารายละเอียดงานซ่อมด้วย
 export const isActivePath = (path, pathname) => {
   if (path === "/dashboard") {
     return pathname === path;
   }
 
   if (path === "/vehicles") {
-    // ระบุรูปแบบของหน้ารายละเอียดโดยตรง (/repairs/<id>) แทนการไล่ยกเว้นทีละหน้า
-    // ไม่งั้นหน้าใหม่ใต้ /repairs/ ทุกหน้าจะเข้าเงื่อนไขนี้จนกว่าจะมีคนนึกได้ว่าต้องเพิ่มข้อยกเว้น
+    // ระบุรูปแบบหน้ารายละเอียดตรงๆ ไม่ใช่ไล่ยกเว้นทีละหน้า
     const isRepairDetail = /^\/repairs\/\d+$/.test(pathname);
 
     // /vehicles/models เป็นหน้าตั้งค่าของผู้ดูแล ไม่ใช่ประวัติรถ เข้าจากหน้าหลักเท่านั้น
@@ -56,3 +54,37 @@ export const isActivePath = (path, pathname) => {
 
   return pathname === path || pathname.startsWith(path + "/");
 };
+
+export const MANAGEMENT_LINKS = [
+  {
+    href: "/vehicles/models",
+    label: "จัดการยี่ห้อและรุ่นรถ",
+    icon: CarFront,
+    iconClass: "text-primary",
+    tileClass: "bg-primary",
+  },
+];
+
+export const ADMIN_LINKS = [
+  {
+    href: "/admin/employees",
+    label: "จัดการพนักงาน",
+    icon: Users,
+    iconClass: "text-status-completed",
+    tileClass: "bg-status-completed",
+  },
+  {
+    href: "/admin/users",
+    label: "จัดการบัญชีผู้ใช้งาน",
+    icon: ShieldUser,
+    iconClass: "text-primary-dark",
+    tileClass: "bg-primary-dark",
+  },
+  {
+    href: "/admin/reports/attendance",
+    label: "รายงานเวลาเข้า-ออกงาน",
+    icon: CalendarCheck,
+    iconClass: "text-status-progress",
+    tileClass: "bg-status-progress",
+  },
+];

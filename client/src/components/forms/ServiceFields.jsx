@@ -21,9 +21,7 @@ const ServiceFields = ({
   const { serviceUnitOptions } = useUnitOptions();
 
   return (
-    <div className="mb-[16px]">
-      {/* จุ๊บลมใส่รูปได้เหมือนอะไหล่ งานบริการทั่วไปกับอะไหล่อื่นๆ ไม่มีรูปให้ใส่
-      รูปอยู่ก่อนชื่อ ลำดับเดียวกับฟอร์มอะไหล่ */}
+    <div className="mb-4">
       {canHaveServiceImage(watch("name")) && (
         <FormUploadImage
           label="รูปภาพอะไหล่"
@@ -43,8 +41,7 @@ const ServiceFields = ({
         errors={errors}
       />
 
-      {/* บริการที่ทำทีละข้าง (ตั้งลูกปืนล้อ) ตอนหยิบลงบิลจะถามว่าข้างไหน เหมือนอะไหล่ */}
-      <div className="my-[16px] px-[20px]">
+      <div className="my-4 px-5">
         <ComboBox
           label="ข้าง"
           color="text-subtle-dark"
@@ -56,10 +53,8 @@ const ServiceFields = ({
         />
       </div>
 
-      {/* ราคากับหน่วยอยู่แถวเดียวกัน อ่านต่อกันได้ว่า "100 บาท ต่อ ล้อ"
-          หน่วยเว้นว่างได้ บริการส่วนใหญ่คิดเป็นครั้ง ไม่ต้องบอกหน่วย */}
-      <div className="mt-[16px] px-[20px]">
-        <div className="grid grid-cols-2 gap-[8px]">
+      <div className="mt-4 px-5">
+        <div className="grid grid-cols-2 gap-2">
           <FormInput
             register={register}
             name="price"
@@ -92,7 +87,7 @@ const ServiceFields = ({
           </div>
         </div>
         <FieldErrorList
-          className="mt-[6px]"
+          className="mt-1.5"
           messages={[errors.price?.message, errors.unit?.message]}
         />
       </div>

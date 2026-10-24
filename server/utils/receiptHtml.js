@@ -2,19 +2,17 @@ const fs = require("fs");
 const path = require("path");
 const { bahtText } = require("./bahtText");
 
-// QR รับเงินพร้อมเพย์ของร้าน (Thai QR ไม่ระบุยอด) ฝังในไฟล์เหมือนฟอนต์ ไม่ต้องพึ่งเน็ตตอนพิมพ์
 // ต้องตรงกับ client/public/payment-qr.svg
 const PAYMENT_QR_SRC = `data:image/svg+xml;base64,${fs
   .readFileSync(path.join(__dirname, "..", "assets", "payment-qr.svg"))
   .toString("base64")}`;
 const PAYMENT_QR_NAME = "มณเฑียรการยาง";
-// โลโก้พร้อมเพย์เหนือ QR บอกลูกค้าว่าสแกนด้วยแอปธนาคารไหนก็ได้ (ต้องตรงกับ client/public/promptpay-logo-bw.jpg)
+// ต้องตรงกับ client/public/promptpay-logo-bw.jpg
 const PROMPTPAY_LOGO_SRC = `data:image/jpeg;base64,${fs
   .readFileSync(path.join(__dirname, "..", "assets", "promptpay-logo.jpg"))
   .toString("base64")}`;
 
-// ฝังฟอนต์ Athiti ลงในไฟล์เลย ใบที่พิมพ์จะได้ตัวหนังสือเหมือนตัวอย่างบนจอ
-// ฝังแทนการโหลดจาก Google Fonts เพราะเครื่องที่ร้านอาจไม่มีเน็ตตอนสั่งพิมพ์
+// ฝังฟอนต์แทนโหลดจาก Google Fonts เพราะเครื่องที่ร้านอาจไม่มีเน็ตตอนสั่งพิมพ์
 const fontFace = (weight, kind) => {
   const file = path.join(
     __dirname,
@@ -33,7 +31,6 @@ const fontFace = (weight, kind) => {
   }`;
 };
 
-// อ่านครั้งเดียวตอนเซิร์ฟเวอร์เริ่มทำงาน ไม่ต้องอ่านไฟล์ใหม่ทุกใบที่พิมพ์
 const FONT_FACES = [
   fontFace(400, "thai"),
   fontFace(400, "latin"),
@@ -41,9 +38,7 @@ const FONT_FACES = [
   fontFace(600, "latin"),
 ].join("\n");
 
-// แม่แบบใบเสร็จสำหรับสั่งพิมพ์ผ่านเซิร์ฟเวอร์ (กดพิมพ์จากมือถือแล้วกระดาษออกที่ร้าน)
-// ต้องให้หน้าตาตรงกับไดอะล็อกตัวอย่างฝั่งหน้าเว็บ (client ReceiptPreviewDialog)
-// แก้หน้าตาใบเสร็จเมื่อไหร่ต้องแก้ทั้งสองที่
+// หน้าตาต้องตรงกับตัวอย่างฝั่งหน้าเว็บ (client/src/utils/receipt.js, ReceiptPaper) แก้ต้องแก้ทั้งสองที่
 const SHOP = {
   name: "ร้านมณเฑียรการยาง",
   address: "543 หมู่ที่ 5 ตำบลน้ำอ้อม อำเภอกันทรลักษ์ จังหวัดศรีสะเกษ 33110",
@@ -53,12 +48,8 @@ const SHOP = {
 
 const MIN_ROWS = 10;
 
-// ตรงกับ estimateNameLines ฝั่งหน้าเว็บ (ReceiptPaper) แก้ต้องแก้คู่กัน
-// ชื่อยาวตกเป็นสองบรรทัดในใบเสร็จ แถวสูงเกือบเท่าตัว ถ้านับทุกแถวเป็นหนึ่ง
-// แผ่นที่มีชื่อยาวหลายแถวจะล้นกระดาษ ท้ายใบ (ช่องลงชื่อ) ถูกตัดหายไปเงียบๆ
-// จึงประมาณจำนวนบรรทัดจากความกว้างตัวอักษร (วัดจากฟอนต์ของใบเสร็จ ช่องรายการกว้างราว 236 จุด)
-// เผื่อไว้ราวหนึ่งในสิบ ประมาณเกินดีกว่าขาด ขาดคือกระดาษล้น เกินแค่มีบรรทัดว่างเพิ่ม
-// สระบน-ล่างกับวรรณยุกต์ซ้อนอยู่บนตัวอักษรอื่น ไม่กินความกว้าง
+// ตรงกับฝั่งหน้าเว็บ ชื่อยาวตกเป็นสองบรรทัด ถ้านับทุกแถวเป็นหนึ่งแผ่นจะล้น
+// ประมาณบรรทัดจากความกว้างตัวอักษร (ช่องรายการกว้างราว 236 จุด) เผื่อไว้ราวหนึ่งในสิบ
 const NAME_LINE_WIDTH = 217;
 const THAI_COMBINING = /[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/;
 const charWidth = (ch) => {
@@ -78,7 +69,6 @@ const estimateNameLines = (text) => {
   return Math.max(1, Math.ceil(width / NAME_LINE_WIDTH));
 };
 
-// แบ่งแผ่นตามจำนวนบรรทัดที่ใช้จริง แผ่นละไม่เกิน MIN_ROWS บรรทัด
 const paginateRows = (rows, linesOf, maxLines = MIN_ROWS) => {
   const pages = [[]];
   let used = 0;
@@ -94,10 +84,8 @@ const paginateRows = (rows, linesOf, maxLines = MIN_ROWS) => {
   return pages;
 };
 
-// QR รับเงินใต้ช่องลงชื่อกินที่ท้ายแผ่นสุดท้าย บิลทั่วไปที่ว่างใต้ตารางพอ
-// แต่แผ่นสุดท้ายที่รายการเต็มแล้วยังมีแถวส่วนลดต่อท้าย จะล้นแผ่น จึงยกรายการท้ายไปขึ้นแผ่นใหม่
-// นับบรรทัดที่เห็นจริงในตาราง: รายการ + ยอดรวม (มีส่วนลดเพิ่มแถวรวมเป็นเงินกับแถวส่วนลดแต่ละแถว)
-// ค่าวัดจากหน้าเอกสารจริงใน Chrome ใบส่งของไม่มี QR จึงรับได้มากกว่า แม้มีแถววิธีจ่ายกับบรรทัดต้นฉบับ/สำเนาเพิ่ม
+// แผ่นที่รายการเต็มแล้วไม่มีที่ให้ QR จึงยกรายการท้ายไปแผ่นใหม่
+// ค่าวัดจากหน้าเอกสารจริงใน Chrome
 const QR_PAGE_LINES = 11;
 const DELIVERY_PAGE_LINES = 14;
 const summaryLinesOf = (discountCount) =>
@@ -116,28 +104,23 @@ const makeRoomForQr = (pages, linesOf, summaryRows, limit) => {
   return moved.length ? [...pages.slice(0, -1), last, moved] : pages;
 };
 
-// กรุงเทพมหานครยาวจนดันยี่ห้อ-รุ่นในแถวรถให้ถูกตัด บนกระดาษจึงเขียนย่อแบบที่ใช้กันทั่วไป
-// (ต้องตรงกับ shortProvince ใน client/src/components/receipt/ReceiptPaper.jsx)
+// ต้องตรงกับ shortProvince ฝั่งหน้าเว็บ (client/src/utils/receipt.js)
 const shortProvince = (province) =>
   province === "กรุงเทพมหานคร" ? "กรุงเทพฯ" : province || "";
 
-// บิลที่ยกเลิกพิมพ์เป็นใบเดิมก่อนยกเลิก (เลขเดิม ชื่อใบเดิม) แล้วติดคำว่ายกเลิกที่ชื่อใบ
-// (ต้องตรงกับ asIssued ใน client/src/components/receipt/ReceiptPaper.jsx)
+// ต้องตรงกับ asIssued ฝั่งหน้าเว็บ (client/src/utils/receipt.js)
 const asIssued = (repair) =>
   repair.status === "CANCELLED"
     ? { ...repair, status: repair.cancelledStatus || "PAID", isCancelled: true }
     : repair;
 
-// เรียกว่าใบเสร็จรับเงินได้เฉพาะตอนรับเงินแล้วจริง
-// ใบประเมินราคา = ยังไม่ได้ซ่อม เป็นใบเสนอราคา / เครดิต = ซ่อมแล้วแต่ยังไม่ได้เงิน เป็นใบส่งของ
+// ใบประเมินราคา = ใบเสนอราคา, เครดิต = ใบส่งของ, เรียกใบเสร็จได้เฉพาะตอนรับเงินแล้ว
 const receiptDocTitle = (repair) => {
   if (repair.status === "ESTIMATE") return "ใบเสนอราคา";
   if (repair.status === "CREDIT") return "ใบส่งของ";
   return "ใบเสร็จรับเงิน";
 };
 
-// เลขที่ของใบที่กำลังพิมพ์ ตามชนิดเอกสารของสถานะตอนนี้
-// ใบเสร็จมีเลขตั้งแต่เปิดบิล พิมพ์ไปเก็บเงินก่อนจ่ายได้ เลขเดียวกับหลังจ่าย
 const receiptDocNo = (repair) => {
   if (repair.status === "ESTIMATE") return repair.quotationNo || repair.id;
   if (repair.status === "CREDIT") return repair.deliveryNo || repair.id;
@@ -155,8 +138,7 @@ const PAYMENT_BOXES = [
   { label: "เช็ค", method: null },
 ];
 
-// ทะเบียนเก็บเป็น "กษ 9037" แต่แสดงคั่นด้วยขีด ให้ตรงกับที่หน้าเว็บแสดง
-// 0812345678 → 081-234-5678 (ตรงกับ formatPhone ใน client/src/utils/formats.js)
+// ตรงกับ formatPlate/formatPhone ใน client/src/utils/formats.js
 const formatPhone = (phoneNumber) => {
   const digits = String(phoneNumber ?? "").replace(/\D/g, "");
   if (digits.length === 10) {
@@ -175,8 +157,7 @@ const formatPlate = (plateNumber) => {
   return parts.length > 1 ? parts.join("-") : text;
 };
 
-// ยี่ห้อ "อื่นๆ" เป็นตัวเลือกสำรอง ไม่ใช่ยี่ห้อจริง จึงไม่ต้องเอาไปโชว์หน้าชื่อรุ่น
-// (ตรงกับ getDisplayBrand ฝั่งหน้าเว็บ)
+// ตรงกับ getDisplayBrand ฝั่งหน้าเว็บ
 const displayBrand = (model) => {
   if (!model) return "";
   const brand = model.brand || "";
@@ -203,8 +184,7 @@ const formatQuantity = (value) => {
   return Number.isInteger(number) ? String(number) : String(number);
 };
 
-// ตรงกับ lineUnit ฝั่งหน้าเว็บ: หน่วยที่พิมพ์ในบิลก่อน ไม่มีค่อยใช้หน่วยของอะไหล่หรือบริการตอนนี้
-// รายการเปล่า (อะไหล่อื่นๆ บริการอื่นๆ) ไม่ใช้หน่วยของตัวบริการ เพราะแต่ละบรรทัดเป็นของคนละอย่าง
+// ตรงกับ lineUnit ฝั่งหน้าเว็บ
 const TYPED_UNIT_SERVICE_NAMES = ["อะไหล่อื่นๆ", "บริการอื่นๆ"];
 const unitOf = (item) =>
   item.itemUnit ||
@@ -214,9 +194,7 @@ const unitOf = (item) =>
     : item.service?.unit) ||
   "";
 
-// เว้นช่องจำนวนไว้เมื่อเป็นหนึ่งเดียวและไม่มีหน่วยให้บอก (ค่าแรง บริการที่คิดเป็นครั้ง)
-// รวมถึงงานที่คิดครั้งเดียวต่อคันแม้จะตั้งหน่วยไว้ (ตรงกับ quantityLabel ฝั่งหน้าเว็บ)
-// เกินหนึ่งยังต้องเขียน ไม่งั้นราคาต่อหน่วยกับจำนวนเงินจะไม่ตรงกัน
+// ตรงกับ quantityLabel ฝั่งหน้าเว็บ
 const SINGLE_QUANTITY_SERVICE_NAMES = [
   "ค่าแรง",
   "ตั้งศูนย์",
@@ -231,7 +209,6 @@ const quantityLabel = (item, quantity) => {
     : `${formatQuantity(quantity)} ${unit}`.trim();
 };
 
-// ของชิ้นเดียวกันที่ใส่ทั้งสองข้างยุบเป็นแถวเดียวแล้วห้อยท้ายว่า L-R
 const mergeBySide = (items) => {
   const rows = [];
   const byKey = new Map();
@@ -265,13 +242,9 @@ const mergeBySide = (items) => {
   }));
 };
 
-// showCustomer = false คือใบที่ไม่เอาชื่อ ที่อยู่ และเลขผู้เสียภาษีของลูกค้าติดไปด้วย
-// แผ่นกระดาษของใบเสร็จหนึ่งใบ (ไม่รวมโครงเอกสาร) ใบยาวเกินหนึ่งแผ่นจะได้หลายแผ่น
-// แบ่งรายการเป็นแผ่นของใบเสร็จ แยกจากการวาด HTML ให้ทดสอบเทียบกับฝั่งหน้าเว็บได้
-// (ต้องตรงกับ buildReceiptPages ใน client/src/utils/receipt.js)
+// แยกจากการวาด HTML ให้เทสต์เทียบกับฝั่งหน้าเว็บได้ (ต้องตรงกับ buildReceiptPages ใน client/src/utils/receipt.js)
 const receiptPages = (repair, { showBrand = true } = {}) => {
-  // ส่วนลดไม่ใช่ของที่ขาย ยกออกจากตารางไปไว้เป็นแถวใต้ยอดรวมแทน (ตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
-  // ราคาติดลบมีแต่ส่วนลดเท่านั้น ใช้เป็นตาข่ายรองรับบรรทัดที่ถูกเปลี่ยนชื่อ
+  // ราคาติดลบมีแต่ส่วนลด ใช้รองรับบรรทัดที่ถูกเปลี่ยนชื่อ
   const isDiscount = (item) =>
     (item.service?.name || item.itemName) === "ส่วนลด" ||
     Number(item.unitPrice) < 0;
@@ -284,8 +257,6 @@ const receiptPages = (repair, { showBrand = true } = {}) => {
   const rows = mergeBySide(
     (repair.repairItems || []).filter((item) => !isDiscount(item)),
   );
-  // บิลที่มีรายการเกินหนึ่งหน้าให้แยกเป็นใบต่อไป แผ่นละ MIN_ROWS บรรทัด (นับบรรทัดที่ชื่อยาวตกลงมาด้วย)
-  // ยอดรวมกับส่วนลดต่อท้ายแผ่นสุดท้ายเสมอ (ตรงกับ buildReceiptPages ฝั่งหน้าเว็บ)
   const rowName = ({ item, sideLabel }) => {
     const base = showBrand ? item.itemName : receiptWorkName(item);
     return sideLabel ? `${base} (${sideLabel})` : base;
@@ -314,10 +285,8 @@ const receiptPagesHtml = (
   repair,
   { showCustomer = true, showBrand = true, copyLabel = null } = {},
 ) => {
-  // ชื่อเอกสารเปลี่ยนตามสถานะ (ตรงกับ receiptDocTitle ฝั่งหน้าเว็บ)
   const docTitle = receiptDocTitle(repair);
-  // วันเปิดบิล ไม่ใช่วันรับเงิน ร้านพิมพ์ใบเสร็จไปยื่นก่อนเก็บเงิน พิมพ์ซ้ำหลังจ่ายแล้วต้องได้ใบเหมือนเดิม
-  // ใบเสนอราคาที่ลูกค้าตกลงซ่อม วันเปิดบิลถูกนับใหม่เป็นวันเริ่มซ่อมอยู่แล้ว
+  // วันเปิดบิล ไม่ใช่วันรับเงิน พิมพ์ซ้ำหลังจ่ายแล้วต้องได้ใบเหมือนเดิม
   const issuedAt = new Date(repair.createdAt || Date.now());
   const day = issuedAt.getDate();
   const month = issuedAt.toLocaleDateString("th-TH", { month: "long" });
@@ -329,8 +298,7 @@ const receiptPagesHtml = (
     : "";
   const model = repair.vehicle?.vehicleModel;
   const vehicleName = displayBrand(model);
-  // รถส่วนใหญ่ไม่มีเบอร์ ขึ้นเฉพาะคันที่มี ไม่เว้นช่องว่างรกใบ (ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
-  // เบอร์รถมีแค่ไม่กี่ตัว ช่องกว้างพอดีเลข ไม่จองที่ไว้ ยี่ห้อ-รุ่นกับทะเบียนจะได้ที่มากที่สุด
+  // ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ
   const fleetHtml = repair.vehicle?.fleetNo
     ? `<span style="white-space:nowrap">เบอร์รถ</span><span class="dotted fleet">${escapeHtml(repair.vehicle.fleetNo)}</span>`
     : "";
@@ -343,17 +311,13 @@ const receiptPagesHtml = (
   // QR มีเฉพาะใบเสร็จ ใบเสนอราคายังไม่ถึงตอนจ่าย ใบส่งของลูกค้าจ่ายทีหลังตามใบวางบิล
   const showPaymentQr =
     !repair.isCancelled && !["ESTIMATE", "CREDIT"].includes(repair.status);
-  // ลูกค้าเซ็นซ้าย ร้านเซ็นขวา (ฝั่งผู้ออกเอกสาร) ทุกใบ
-  // คนเซ็นตามหน้าที่ของใบ ใบส่งของกับใบเสนอราคายังไม่มีการรับเงิน (ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
+  // ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ
   const signLabels =
     repair.status === "CREDIT"
       ? ["ผู้รับของ", "ผู้ส่งของ"]
       : repair.status === "ESTIMATE"
         ? ["ผู้อนุมัติ", "ผู้เสนอราคา"]
         : ["ผู้จ่ายเงิน", "ผู้รับเงิน"];
-  // แถวยอดรวมกับส่วนลดต่อท้ายแผ่นสุดท้ายเสมอ ไม่นับเป็นหนึ่งใน MIN_ROWS รายการ
-  // กระดาษยังเหลือที่ใต้ตารางราวห้าบรรทัด รายการเต็มสิบแถวก็ยังมีที่ให้ยอดรวมอยู่แผ่นเดียวกัน
-  // ไม่ขึ้นแผ่นใหม่ที่มีแต่ยอดรวม และไม่ยกรายการไปแผ่นใหม่ให้บิลสิบรายการกลายเป็นสองแผ่น
   // ยอดในบิลหักส่วนลดไปแล้ว ยอดก่อนหักจึงต้องบวกกลับ (ส่วนลดเก็บเป็นเลขติดลบ)
   const total = Number(repair.totalPrice || 0);
   const subtotal = total - discountTotal;
@@ -393,12 +357,8 @@ const receiptPagesHtml = (
         <td class="r" style="font-weight:600;font-size:13pt">${formatMoney(total)}</td>
       </tr>`;
 
-  // ปิดข้อมูลลูกค้า = เว้นช่องไว้ ไม่เอาบรรทัดออก ใบจะได้หน้าตาเหมือนกันทุกครั้ง
-  // เบอร์โทรอยู่ท้ายบรรทัดชื่อ ใบไม่สูงขึ้น ขึ้นเฉพาะลูกค้าที่มีเบอร์ และปิดตามสวิตช์ข้อมูลลูกค้า
-  // (ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
+  // ปิดข้อมูลลูกค้า = เว้นช่องไว้ ไม่เอาบรรทัดออก (ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
   const phone = showCustomer ? formatPhone(repair.customer?.phoneNumber) : "";
-  // ชื่อลูกค้าเต็มบรรทัด ชื่อหน่วยงานยาวๆ จะไม่ถูกตัด
-  // เลขผู้เสียภาษีกับเบอร์โทรเป็นตัวเลขสั้นทั้งคู่ จึงแบ่งบรรทัดเดียวกันคนละครึ่ง
   const customerFields = `<p>ชื่อลูกค้า<span class="dotted v cut">${
     showCustomer ? escapeHtml(repair.customer?.name || "") : ""
   }</span></p>
@@ -409,7 +369,6 @@ const receiptPagesHtml = (
       showCustomer ? escapeHtml(repair.customer?.taxId || "") : ""
     }</span></span><span class="half">เบอร์โทรศัพท์<span class="dotted v">${escapeHtml(phone)}</span></span></p>`;
 
-  // เนื้อของกระดาษหนึ่งแผ่น เรียกซ้ำตามจำนวนหน้า
   const pageHtml = (pageRows, pageIndex) => {
     const isLastPage = pageIndex === pages.length - 1;
     const usedLines = pageRows.reduce((sum, row) => sum + rowLines(row), 0);
@@ -477,8 +436,7 @@ ${customerFields}
 </div>`;
   };
 
-  // ช่องวิธีจ่ายกับแถวเช็คมีเฉพาะใบส่งของ ลูกค้าเครดิตจ่ายทีหลัง ต้องจดว่าจ่ายทางไหน
-  // ใบเสร็จกับใบเสนอราคาไม่ต้องมี (ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
+  // ช่องวิธีจ่ายมีเฉพาะใบส่งของ (ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
   const paymentBoxes = PAYMENT_BOXES.map(
     (box) =>
       `<span class="pay"><span class="box">${
@@ -497,14 +455,12 @@ ${customerFields}
   </div>`
       : "";
 
-  // ชิดขวาใต้ช่องลงชื่อ เฉพาะแผ่นสุดท้ายที่มียอดรวม ใบเสนอราคายังไม่ถึงตอนจ่ายเงินจึงไม่มี
   const paymentQrHtml = `<div class="qr-area"><div class="qr"><img class="pp" src="${PROMPTPAY_LOGO_SRC}" alt="พร้อมเพย์" /><img class="code" src="${PAYMENT_QR_SRC}" alt="QR รับเงิน" /><p class="name">${PAYMENT_QR_NAME}</p><p class="hint">สแกนเพื่อชำระเงิน</p></div></div>`;
 
   // คืนเฉพาะแผ่นกระดาษ เพื่อให้เอาไปต่อกับใบอื่นในเอกสารเดียวได้
   return pages.map(pageHtml).join("");
 };
 
-// โครงเอกสารกับสไตล์ใช้ร่วมกันทุกใบ จะได้ไม่ต้องก๊อปสไตล์ไปวางซ้ำเวลาพิมพ์หลายใบ
 const RECEIPT_STYLES = `
   ${FONT_FACES}
   @page { size: A5 portrait; margin: 0; }
@@ -609,8 +565,7 @@ ${body}
 </body>
 </html>`;
 
-// ใบส่งของพิมพ์สองชุดในงานพิมพ์เดียว ต้นฉบับให้ลูกค้า สำเนาให้ลูกค้าเซ็นรับแล้วร้านเก็บไว้
-// withCopy = false คือเอาเฉพาะต้นฉบับ (บันทึกเป็นรูปส่งให้ลูกค้า ไม่ต้องมีสำเนา)
+// withCopy = false คือเอาเฉพาะต้นฉบับ (บันทึกเป็นรูปส่งให้ลูกค้า)
 const buildReceiptHtml = (rawRepair, { withCopy = true, ...options } = {}) => {
   const repair = asIssued(rawRepair);
   return receiptDocument(
@@ -626,9 +581,7 @@ const buildReceiptHtml = (rawRepair, { withCopy = true, ...options } = {}) => {
   );
 };
 
-// ช่างดูจากชนิดอะไหล่ ไม่ได้ดูยี่ห้อหรือรุ่น จึงตัดชื่อของช่วงล่างเหลือคำแรกของชื่อในคลัง
-// (ตรงกับ workName ใน client/src/components/receipt/JobSheetPaper.jsx)
-// หมวดที่อะไหล่ผูกกับรุ่นรถ ต้องตรงกับ VEHICLE_COMPATIBLE_CATEGORIES ฝั่งหน้าเว็บ
+// ต้องตรงกับ workName ใน JobSheetPaper และ VEHICLE_COMPATIBLE_CATEGORIES ฝั่งหน้าเว็บ
 const VEHICLE_COMPATIBLE_CATEGORIES = [
   "ช่วงล่าง",
   "เบรก",
@@ -641,9 +594,7 @@ const VEHICLE_COMPATIBLE_CATEGORIES = [
 // ใบที่ปิดชื่อเต็มแล้ว หมวดเหล่านี้ยังต้องมียี่ห้อ (ตรงกับ FULL_NAME_CATEGORIES ฝั่งหน้าเว็บ)
 const FULL_NAME_CATEGORIES = ["ยาง", "ยางเปอร์เซ็นต์", "แบตเตอรี่"];
 
-// น้ำมันที่เลือกงานตอนลงบิล ชื่อบรรทัดถูกประกอบใหม่ ("VALVOLINE น้ำมันเฟืองท้าย (80W90)")
-// ไม่มีชื่อในคลังอยู่ข้างใน แต่ระบบประกอบเอง ไม่ใช่ชื่อที่พิมพ์ทับ
-// ต้องประกอบแบบเดียวกับ oilUseLineName ฝั่งหน้าเว็บ (client/src/utils/oil.js)
+// ต้องประกอบแบบเดียวกับ oilUseLineName ใน client/src/utils/oil.js
 const OIL_USES = ["น้ำมันเครื่อง", "น้ำมันเกียร์", "น้ำมันเฟืองท้าย"];
 const isOilUseLine = (item) => {
   if (!item.part) return false;
@@ -657,9 +608,7 @@ const isOilUseLine = (item) => {
   );
 };
 
-// ยางในลูกค้าดูแค่ขนาด ชนิดจุ๊บในวงเล็บเป็นเรื่องของช่าง ใบจึงตัดออก ชื่อที่พิมพ์ทับเองไม่แตะ
-// (ต้องตรงกับ shortWorkName ใน client/src/components/receipt/ReceiptPaper.jsx)
-// ใบสั่งซ่อมใช้ workName ตรงๆ ช่างยังต้องรู้ชนิดจุ๊บ
+// ต้องตรงกับ shortWorkName ฝั่งหน้าเว็บ ใบสั่งซ่อมใช้ workName ตรงๆ ช่างยังต้องรู้ชนิดจุ๊บ
 const INNER_TUBE_CATEGORY = "ยางใน";
 const receiptWorkName = (item) => {
   const name = workName(item);
@@ -674,7 +623,6 @@ const receiptWorkName = (item) => {
 };
 
 const workName = (item) => {
-  // พิมพ์ชื่อทับไว้เอง = ตั้งใจให้ขึ้นแบบนั้น ไม่ต้องย่อทับ (ตรงกับ shortWorkName ฝั่งหน้าเว็บ)
   if (
     item.part?.name &&
     !String(item.itemName || "").includes(item.part.name) &&
@@ -691,9 +639,6 @@ const workName = (item) => {
     return String(item.part.name).trim().split(/\s+/)[0];
   }
 
-  // น้ำมันส่วนใหญ่เป็นบรรทัดที่พิมพ์ชื่อเอง ดูจากชื่อแทนหมวดหมู่
-  // เอาแค่ขนาดลิตรกับชื่อของ ตัดยี่ห้อ เกรด และของแถมพ่วงท้ายออกให้หมด
-  // (ตรงกับ shortWorkName ฝั่งหน้าเว็บ)
   const name = String(item.itemName || "");
   if (name.includes("น้ำมัน")) {
     const thai = name.match(/[ก-๙][ก-๙+\s-]*[ก-๙]/);
@@ -704,8 +649,7 @@ const workName = (item) => {
     }
   }
 
-  // หมวดอื่น (สายพาน ใบปัดน้ำฝน ฯลฯ) ชื่อในบิลประกอบจาก "ยี่ห้อ ชื่อ" ตัดยี่ห้อที่นำหน้าออก
-  // ยางกับแบตเตอรี่เขียนเต็มเสมอ ลูกค้าซื้อตามยี่ห้อ และรับประกันก็ผูกกับยี่ห้อ
+  // ยางกับแบตเตอรี่เขียนเต็มเสมอ เพราะรับประกันผูกกับยี่ห้อ
   const brand = String(item.part?.brand || "").trim();
   if (
     brand &&
@@ -718,8 +662,7 @@ const workName = (item) => {
   return item.itemName;
 };
 
-// ใบสั่งซ่อมสำหรับช่าง: ทะเบียนตัวใหญ่สุด รายการงานมีช่องติ๊ก ไม่มีราคา
-// (ตรงกับ client/src/components/receipt/JobSheetPaper.jsx แก้ต้องแก้คู่กัน)
+// ตรงกับ client/src/components/receipt/JobSheetPaper.jsx แก้ต้องแก้คู่กัน
 const buildJobSheetHtml = (repair) => {
   const plate = repair.vehicle?.licensePlate;
   const plateText = plate?.plateNumber
@@ -728,8 +671,6 @@ const buildJobSheetHtml = (repair) => {
   const model = repair.vehicle?.vehicleModel;
   const vehicleName = displayBrand(model);
 
-  // ใบนี้เป็นใบของช่าง ไม่เกี่ยวกับเงิน ค่าแรงกับส่วนลดจึงไม่ต้องขึ้น
-  // ช่างสองคนทำคนละฝั่ง จึงแบ่งงานเป็นท่อนตามฝั่ง (ตรงกับ JobSheetPaper ฝั่งหน้าเว็บ)
   const allItems = (repair.repairItems || []).filter((item) => {
     const name = item.service?.name || item.itemName;
     return name !== "ค่าแรง" && name !== "ส่วนลด" && item.itemName !== "ค่าแรง";
@@ -738,7 +679,6 @@ const buildJobSheetHtml = (repair) => {
     (item) => item.side === "LEFT" || item.side === "RIGHT",
   );
   const rows = mergeBySide(allItems);
-  // แถวว่างท้ายตารางไว้เขียนงานที่เจอหน้างาน สองแถวเท่ากันทุกบิล
   const blankRows = 2;
 
   const workRow = ({ item, quantity, sideLabel }) => {
@@ -754,7 +694,6 @@ const buildJobSheetHtml = (repair) => {
   const groupRow = (label) =>
     `<tr><td colspan="3" class="group">${label}</td></tr>`;
 
-  // ไม่มีรายละเอียดก็ไม่ต้องมีบรรทัดเปล่าให้รกใบ
   const noteBlock = repair.description
     ? `<div class="note">
     <p class="note-row"><span class="note-label">รายละเอียดการซ่อม</span><span class="dotted note-line">${escapeHtml(repair.description)}</span></p>
@@ -866,8 +805,6 @@ const buildJobSheetHtml = (repair) => {
 </html>`;
 };
 
-const ORGANIZATION_LABELS = { GOVERNMENT: "หน่วยงาน", SHOP: "ร้านค้า" };
-
 const formatThaiDate = (value) => {
   const date = new Date(value || Date.now());
   return date.toLocaleDateString("th-TH", {
@@ -882,7 +819,6 @@ const repairTitle = (repair) => {
   if (repair.type === "SALE") return "ขายอะไหล่หน้าร้าน";
   if (!repair.vehicle) return "งานบริการ";
 
-  // บริษัทที่มีรถหลายคันเรียกรถด้วยเบอร์ ฝ่ายบัญชีจะเทียบกับรายการของเขาได้ง่าย
   const fleet = repair.vehicle.fleetNo
     ? ` เบอร์รถ ${repair.vehicle.fleetNo}`
     : "";
@@ -890,12 +826,9 @@ const repairTitle = (repair) => {
   if (plate?.plateNumber) {
     return `${`${formatPlate(plate.plateNumber)} ${shortProvince(plate.province)}`.trim()}${fleet}`;
   }
-  // รถที่ไม่มีทะเบียน บอกยี่ห้อกับรุ่นแทน จะได้ยังรู้ว่าเป็นคันไหน
   return `${displayBrand(repair.vehicle.vehicleModel) || "งานซ่อม"}${fleet}`;
 };
 
-// ใบวางบิลของหน่วยงานหรือร้านค้า: แผ่นเดียวจบ สรุปว่ามีบิลอะไรบ้างรวมเท่าไหร่
-// (ใบเสร็จของแต่ละบิลพิมพ์แยกจากหน้าบิลนั้นได้อยู่แล้ว ไม่ต้องแนบมาด้วยทุกครั้ง)
 const buildOrganizationBillHtml = (customer, repairs, billingNo) => {
   const total = repairs.reduce(
     (sum, repair) => sum + Number(repair.totalPrice || 0),

@@ -18,7 +18,7 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const compression = require("compression");
 const morgan = require("morgan");
-const { readdirSync, existsSync } = require("fs");
+const { existsSync } = require("fs");
 const handleError = require("./middlewares/error");
 const app = express();
 
@@ -72,10 +72,7 @@ app.use(
   }),
 );
 
-const routesPath = path.join(__dirname, "routes");
-readdirSync(routesPath)
-  .sort()
-  .forEach((file) => app.use("/api", require(path.join(routesPath, file))));
+app.use("/api", require("./routes"));
 
 const clientDistPath = path.join(__dirname, "..", "client", "dist");
 if (existsSync(clientDistPath)) {
@@ -94,11 +91,8 @@ if (existsSync(clientDistPath)) {
     }),
   );
 
-  // ส่ง index.html เฉพาะคำขอที่เป็นการ "เปิดหน้าเว็บ" เท่านั้น
-  //
-  // เดิมส่งให้ทุก path ที่ไม่ขึ้นต้นด้วย /api ทำให้ไฟล์ .js ที่หายไปตอน build ใหม่
-  // ได้ HTML กลับไปพร้อมสถานะ 200 เบราว์เซอร์เอาไปรันเป็น JavaScript แล้วพังเป็นจอดำ
-  // โดยไม่มี error ให้เห็น — ต้องปล่อยให้ตกไปเป็น 404 ตามความจริง
+  // ส่ง index.html เฉพาะคำขอเปิดหน้าเว็บ ไฟล์ .js ที่หายไปตอน build ใหม่ต้องได้ 404
+  // ไม่งั้นเบราว์เซอร์เอา HTML ไปรันเป็น JavaScript แล้วพังเป็นจอดำ
   app.use((req, res, next) => {
     if (req.method !== "GET" || req.path.startsWith("/api")) return next();
     if (path.extname(req.path)) return next(); // มีนามสกุล = ขอไฟล์ ไม่ใช่เปิดหน้า

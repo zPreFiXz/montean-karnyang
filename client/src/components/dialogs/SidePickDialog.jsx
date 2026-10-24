@@ -1,11 +1,7 @@
 import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
-// อะไหล่หรือบริการที่ตั้งไว้ว่าแยกซ้าย-ขวา ถามข้างตอนหยิบลงบิล แทนการพิมพ์ (L) (R) ต่อท้ายชื่อเอง
-// แตะตัวเลือกแล้วจบเลย ไม่ต้องกดยืนยันอีกรอบ เพราะเลือกผิดก็ลบบรรทัดแล้วเลือกใหม่ได้
-// ป้ายเป็นตัวย่อเดียวกับที่ขึ้นบนการ์ดและใบเสร็จ การ์ดตัวเลือกหน้าตาเดียวกับหน้าต่างประเภทลูกค้า
-// ไม่ใช้ลูกศร เพราะ L คือซ้ายของรถ ไม่ใช่ซ้ายของคนดู ช่างที่ยืนหันหน้าเข้าหารถ ลูกศรจะชี้ผิดข้าง
-// เรียงตามตำแหน่งจริง: L อยู่ซ้าย R อยู่ขวา ทั้งสองข้างอยู่ตรงกลางระหว่างสองข้าง
+// ไม่ใช้ลูกศร เพราะ L คือซ้ายของรถ ไม่ใช่ซ้ายของคนดู ช่างที่หันหน้าเข้าหารถจะเห็นลูกศรผิดข้าง
 const OPTIONS = [
   { value: "left", code: "L" },
   { value: "both", code: "L-R", needs: 2 },
@@ -25,14 +21,14 @@ const SidePickDialog = ({ isOpen, onClose, onPick, itemName, remaining }) => (
         onClose={onClose}
       />
 
-      <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px] pb-[20px]">
+      <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5 pb-5">
         {itemName && (
           <h2 className="text-normal text-center text-[22px] leading-tight font-semibold md:text-2xl">
             {itemName}
           </h2>
         )}
 
-        <div className="mt-[16px] flex gap-[8px]">
+        <div className="mt-4 flex gap-2">
           {OPTIONS.map(({ value, code, needs }) => {
             // L-R ใช้สองชิ้น สต็อกเหลือชิ้นเดียวเลือกไม่ได้
             const isDisabled =
@@ -44,7 +40,7 @@ const SidePickDialog = ({ isOpen, onClose, onPick, itemName, remaining }) => (
                 type="button"
                 disabled={isDisabled}
                 onClick={() => onPick(value)}
-                className="active:border-primary active:bg-primary/5 text-primary flex flex-1 cursor-pointer items-center justify-center rounded-[10px] border border-gray-200 bg-gray-50 py-[20px] text-[28px] leading-none font-semibold duration-300 disabled:cursor-not-allowed disabled:opacity-40 md:text-[32px]"
+                className="active:border-primary active:bg-primary/5 text-primary flex flex-1 cursor-pointer items-center justify-center rounded-lg border border-gray-200 bg-gray-50 py-5 text-[28px] leading-none font-semibold duration-300 disabled:cursor-not-allowed disabled:opacity-40 md:text-[32px]"
               >
                 {code}
               </button>
@@ -53,18 +49,15 @@ const SidePickDialog = ({ isOpen, onClose, onPick, itemName, remaining }) => (
         </div>
 
         {remaining != null && remaining < 2 && (
-          <p className="text-subtle-light mt-[8px] text-center text-base font-medium md:text-lg">
+          <p className="text-subtle-light mt-2 text-center text-base font-medium md:text-lg">
             สต็อกเหลือไม่พอสำหรับ L-R
           </p>
         )}
 
-        {/* ใช้นานๆ ครั้ง (ขายหน้าร้านให้ลูกค้าไปใส่เอง) จึงเตี้ยกว่าและตัวหนังสือสีเทา ดูรองจาก L / L-R / R
-            แต่หน้าตาเป็นการ์ดชุดเดียวกัน ไม่ใช่ปุ่มขาวขอบมนแบบปุ่มยกเลิก ไม่งั้นจะนึกว่ากดแล้วปิดหน้าต่างเฉยๆ
-            ลงบิลเป็นบรรทัดปกติ ไม่มีป้ายข้าง ใบเสร็จไม่ต่อท้ายอะไร */}
         <button
           type="button"
           onClick={() => onPick("none")}
-          className="font-athiti active:border-primary active:bg-primary/5 text-subtle-dark mt-[8px] flex h-[48px] w-full cursor-pointer items-center justify-center rounded-[10px] border border-gray-200 bg-gray-50 text-lg font-semibold duration-300 md:text-xl"
+          className="font-athiti active:border-primary active:bg-primary/5 text-subtle-dark mt-2 flex h-12 w-full cursor-pointer items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-lg font-semibold duration-300 md:text-xl"
         >
           ไม่ระบุข้าง
         </button>

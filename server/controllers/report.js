@@ -12,8 +12,7 @@ const isDiscount = (item) =>
   (item.service?.name || item.itemName) === "ส่วนลด" ||
   Number(item.unitPrice) < 0;
 
-// อะไหล่ขายดีในช่วงเวลาที่เลือก นับจากบิลที่เก็บเงินแล้วเท่านั้น ใช้ช่วงเวลาเดียวกับรายงานยอดขาย
-// from/to ส่งมาจากหน้าเว็บที่คิดขอบเขตวันตามเวลาเครื่องของคนดูไว้แล้ว ตรงกับที่รายงานยอดขายแสดง
+// นับจากบิลที่เก็บเงินแล้ว ขอบเขตวันส่งมาจากหน้าเว็บ ตรงกับรายงานยอดขาย
 exports.listTopItems = async (req, res) => {
   const from = new Date(req.query.from);
   const to = new Date(req.query.to);
@@ -68,7 +67,6 @@ exports.listTopItems = async (req, res) => {
           PART_LIKE_SERVICE_NAMES.includes(serviceName)
             ? "part"
             : "service",
-        // อะไหล่ส่งข้อมูลไปให้หน้าเว็บประกอบชื่อเอง (ยางต้องเอาขนาดมาต่อ) บรรทัดอื่นใช้ชื่อในบิล
         part: item.part
           ? {
               brand: item.part.brand,
@@ -84,7 +82,6 @@ exports.listTopItems = async (req, res) => {
             ? item.itemName || serviceName
             : serviceName || item.itemName,
         unit: item.part?.unit || item.itemUnit || item.service?.unit || "",
-        // จุ๊บลมเป็นบริการที่มีรูปได้ (ดู Service.secureUrl)
         secureUrl: item.part?.secureUrl || item.service?.secureUrl || null,
         quantity: 0,
         revenue: 0,
@@ -97,12 +94,9 @@ exports.listTopItems = async (req, res) => {
     group.revenue += quantity * Number(item.unitPrice || 0);
   }
 
-  // หน้าสินค้าขายดีดูเฉพาะอะไหล่ ค่าแรงกับงานบริการไม่ใช่ของที่ขาย
   res.json([...groups.values()].filter((group) => group.kind === "part"));
 };
 
-// รุ่นรถที่มาบ่อยในช่วงเวลาที่เลือก นับบิลที่เก็บเงินแล้วแบบเดียวกับสินค้าขายดี
-// บิลขายหน้าร้านกับงานที่ไม่ผูกกับรถไม่มีรุ่นให้นับ คันเดียวมาหลายครั้งนับครั้งตามบิล นับคันไม่ซ้ำ
 exports.listTopVehicleModels = async (req, res) => {
   const from = new Date(req.query.from);
   const to = new Date(req.query.to);

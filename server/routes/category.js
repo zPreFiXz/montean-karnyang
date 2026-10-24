@@ -1,12 +1,11 @@
 const express = require("express");
 const router = express.Router();
 
-const { validate, categorySchema } = require("../utils/validator");
+const validate = require("../middlewares/validate");
+const { categorySchema } = require("../utils/schemas");
 
-// Middlewares
 const { authCheck } = require("../middlewares/auth");
 
-// Controllers
 const {
   listCategories,
   createCategory,

@@ -23,8 +23,7 @@ const AddRepairItemDialog = ({
   const [previewItem, setPreviewItem] = useState(null);
   const restoredStockMapRef = useRef({});
 
-  // ผูกกับตัวอะไหล่ ไม่ใช่ชื่อ เพราะชื่อบนบรรทัดในบิลถูกพิมพ์ทับได้
-  // (ถ้าใช้ชื่อเป็นกุญแจ บรรทัดที่แก้ชื่อจะกลายเป็นของคนละชิ้นแล้วนับสต็อกผิด)
+  // ผูกกับตัวอะไหล่ ไม่ใช่ชื่อ เพราะชื่อในบิลพิมพ์ทับได้ ใช้ชื่อแล้วจะนับสต็อกผิด
   const buildPartKey = (item) =>
     item.id != null
       ? `id:${item.id}`
@@ -78,13 +77,13 @@ const AddRepairItemDialog = ({
         {children}
       </DialogTrigger>
       <DialogContent
-        className="flex h-[90vh] max-h-[650px] w-full flex-col p-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+        className="flex h-[90vh] max-h-162.5 w-full flex-col p-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
         showCloseButton={false}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
         }}
       >
-        <DialogHeader className="relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]">
+        <DialogHeader className="relative mt-4 flex min-h-11 flex-shrink-0 items-center justify-center px-16">
           <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
             เลือกอะไหล่หรือบริการ
           </DialogTitle>
@@ -95,13 +94,13 @@ const AddRepairItemDialog = ({
             onClick={() => setIsDialogOpen(false)}
             autoFocus={false}
             aria-label="ปิดหน้าต่าง"
-            className="absolute top-1/2 right-[20px] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/5"
+            className="absolute top-1/2 right-5 flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/5"
           >
             <X size={20} className="text-subtle-dark" />
           </button>
         </DialogHeader>
 
-        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px] pt-[4px] pb-[16px]">
+        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5 pt-1 pb-4">
           <InventoryBrowser
             reloadToken={reloadToken}
             vehicle={vehicle}

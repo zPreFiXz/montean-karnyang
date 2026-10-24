@@ -21,8 +21,7 @@ const isSamePart = (item, part) =>
       item.brand === part.brand &&
       item.name === part.name));
 
-// แท็บซ้าย/ขวา/อื่นๆ ของหน้าเช็กช่วงล่าง: ของที่ติ๊ก จำนวน (บูชปีกนก) ราคาเฉพาะบิล และบริการรายข้าง
-// compatibleParts = อะไหล่ช่วงล่างที่ใส่รถรุ่นนี้ได้ repairItems = รายการซ่อมเพิ่มเติม (ใช้นับสต็อกร่วม)
+// compatibleParts = อะไหล่ช่วงล่างที่ใส่รถรุ่นนี้ได้, repairItems = รายการซ่อมเพิ่มเติม (ใช้นับสต็อกร่วม)
 const useSuspensionTabs = ({
   compatibleParts,
   perSideService,
@@ -37,18 +36,15 @@ const useSuspensionTabs = ({
   // ของที่บิลเดิมใช้ไปแล้ว ตอนแก้บิลยังเลือกได้ถึงจำนวนเดิมแม้สต็อกตอนนี้จะเหลือน้อยกว่า
   const initialRef = useRef({ selected: emptySelection(), quantities: {} });
 
-  // อะไหล่นอกหมวดช่วงล่าง (เช่นน้ำมัน) ไม่มีข้างซ้าย-ขวา จึงอยู่ช่องอื่นๆ เหมือนของที่ไม่แยกข้าง
-  // ถ้าให้เลือกได้ทุกช่องจะเผลอบันทึกว่าติดตั้งข้างซ้าย/ขวา ซึ่งไม่มีความหมายและติดไปกับบิล
+  // อะไหล่นอกหมวดช่วงล่างอยู่ช่องอื่นๆ เท่านั้น ไม่งั้นจะเผลอบันทึกข้างที่ไม่มีความหมาย
   const getPartsForSide = (side) =>
     compatibleParts.filter((part) => {
       const perSide =
         part.category?.name === "ช่วงล่าง" && isPerSide(part.attributes);
       if (perSide) return side === "left" || side === "right";
-      // อะไหล่ช่วงล่างที่ไม่ได้ติดตั้งแยกข้างทุกตัวไปอยู่แท็บอื่นๆ
       return side === "other";
     });
 
-  // ชิ้นที่ติ๊กในแท็บนับเป็นหนึ่ง ยกเว้นบูชปีกนกที่ข้างหนึ่งใส่ได้หลายตัว
   const tabQty = (side, partId) =>
     selected[side].has(partId) ? tabQuantities[`${side}:${partId}`] || 1 : 0;
 
@@ -71,7 +67,6 @@ const useSuspensionTabs = ({
   const tabCountOf = (partId) =>
     SIDES.reduce((sum, side) => sum + tabQty(side, partId), 0);
 
-  // บริการรายข้างที่ติ๊กไว้ นับและคิดเงินรวมไปกับของในแท็บ
   const countPerSideService = () =>
     Number(!!perSideService && perSideServiceSides.left) +
     Number(!!perSideService && perSideServiceSides.right);
@@ -79,7 +74,6 @@ const useSuspensionTabs = ({
   const sumPerSideService = () =>
     countPerSideService() * (perSideService?.sellingPrice || 0);
 
-  // จำนวนบรรทัดที่ติ๊กไว้ในแท็บทั้งสามฝั่ง (นับเฉพาะที่ยังอยู่ในรายการอะไหล่ที่ใช้ได้)
   const countSelectedInTabs = () =>
     SIDES.reduce(
       (sum, side) =>
@@ -102,7 +96,6 @@ const useSuspensionTabs = ({
   const setPriceOverride = (partId, price) =>
     setPriceOverrides((prev) => ({ ...prev, [partId]: price }));
 
-  // ยอดของในแท็บ (ซ้าย/ขวา/อื่นๆ รวมบริการรายข้าง)
   const tabTotal =
     SIDES.reduce(
       (sum, side) =>
@@ -115,14 +108,12 @@ const useSuspensionTabs = ({
       0,
     ) + sumPerSideService();
 
-  // ของชิ้นเดียวกันที่ติ๊กในแท็บ ใช้หักสต็อกของรายการซ่อมเพิ่มเติม
   const getTabSelectedCountForItem = (item) => {
     const part = compatibleParts.find((p) => isSamePart(item, p));
     return part ? tabCountOf(part.id) : 0;
   };
 
-  // ของชิ้นเดียวกันอาจถูกหยิบจาก "รายการซ่อมเพิ่มเติม" ด้วย ต้องนับรวมกัน
-  // ไม่งั้นสองที่จะแย่งสต็อกก้อนเดียวกันโดยไม่รู้ตัว
+  // ต้องนับรวมรายการซ่อมเพิ่มเติม ไม่งั้นสองที่จะแย่งสต็อกก้อนเดียวกัน
   const getCurrentSelectedCountForPart = (part) =>
     tabCountOf(part.id) +
     repairItems.reduce(
@@ -149,7 +140,6 @@ const useSuspensionTabs = ({
     return Math.max(stockQty, initialCount);
   };
 
-  // ส่งของที่ติ๊กจากแท็บให้ไดอะล็อกเพิ่มรายการรู้ด้วย จะได้หักสต็อกจากก้อนเดียวกัน
   const getSelectedTabItems = () =>
     compatibleParts.flatMap((part) => {
       const count = tabCountOf(part.id);
@@ -181,8 +171,7 @@ const useSuspensionTabs = ({
   const togglePerSideService = (side) =>
     setPerSideServiceSides((prev) => ({ ...prev, [side]: !prev[side] }));
 
-  // อะไหล่ที่ติ๊กตามตำแหน่งเก็บไว้เป็นเซ็ตของ id ต้องคลี่กลับเป็นรายการเต็มก่อน
-  // ทั้งตอนส่งไปหน้าสรุปและตอนเก็บร่าง
+  // เก็บเป็นเซ็ตของ id ต้องคลี่กลับเป็นรายการเต็มก่อนส่งไปหน้าสรุปและเก็บร่าง
   const buildTabItems = () => [
     ...SIDES.flatMap((side) =>
       [...selected[side]]
@@ -205,7 +194,6 @@ const useSuspensionTabs = ({
       })),
   ];
 
-  // กู้ของในแท็บจากบรรทัดของบิลเดิม ร่าง หรือหน้าสรุป
   const restoreTabs = (tabItems) => {
     setPerSideServiceSides({
       left: tabItems.some((i) => i.side === "left" && isPerSideServiceItem(i)),
@@ -220,11 +208,10 @@ const useSuspensionTabs = ({
     for (const item of tabItems) {
       if (isPerSideServiceItem(item) || !SIDES.includes(item.side)) continue;
       nextSelected[item.side].add(item.id);
-      // บูชปีกนกข้างหนึ่งใส่ได้หลายตัว จำนวนติดมากับบรรทัดในบิล
       if (Number(item.quantity) > 1) {
         quantities[`${item.side}:${item.id}`] = Number(item.quantity);
       }
-      // ราคาที่แก้ไว้ติดมากับรายการที่กู้คืน ไม่งั้นราคาจะเด้งกลับเป็นราคาตั้งต้นทุกครั้งที่ย้อนกลับมาจากหน้าสรุป
+      // ไม่งั้นราคาที่แก้จะเด้งกลับทุกครั้งที่ย้อนกลับมาจากหน้าสรุป
       if (item.id != null && item.sellingPrice != null) {
         prices[item.id] = Number(item.sellingPrice);
       }
@@ -233,6 +220,79 @@ const useSuspensionTabs = ({
     setTabQuantities(quantities);
     setSelected(nextSelected);
     initialRef.current = { selected: nextSelected, quantities };
+  };
+
+  // อะไหล่จากหน้างานซ่อมที่อยู่ในแท็บของรุ่นนี้ ย้ายไปติ๊กในแท็บข้างเดียวกัน
+  // ซ้าย-ขวา = ติ๊กทั้งสองแท็บ, ไม่แยกข้าง = แท็บอื่นๆ
+  // จำนวนต่อข้างเกินหนึ่งกับอะไหล่ที่ข้างหนึ่งใส่ได้ตัวเดียว คงไว้ในรายการซ่อมเพิ่มเติม
+  const matchItemsToTabs = (items) => {
+    const tabItems = [];
+    const movedRowIds = [];
+    for (const item of items) {
+      if (!item.partNumber) continue;
+      const part = compatibleParts.find(
+        (p) => p.id === item.id || p.partNumber === item.partNumber,
+      );
+      if (!part) continue;
+
+      const sides =
+        item.side === "both" ? ["left", "right"] : [item.side || "other"];
+      const quantity = item.side === "both" ? item.quantity / 2 : item.quantity;
+      const fitsTabs = sides.every((side) =>
+        getPartsForSide(side).some((p) => p.id === part.id),
+      );
+      if (
+        !fitsTabs ||
+        !Number.isInteger(quantity) ||
+        quantity < 1 ||
+        (quantity > 1 && !allowsTabQuantity(part))
+      ) {
+        continue;
+      }
+
+      for (const side of sides) {
+        tabItems.push({
+          id: part.id,
+          side,
+          quantity,
+          sellingPrice: item.sellingPrice,
+        });
+      }
+      movedRowIds.push(item.rowId);
+    }
+    return { tabItems, movedRowIds };
+  };
+
+  // เพิ่มเข้าแท็บโดยไม่ล้างของที่ติ๊กไว้แล้ว tabItems = [{ id, side, quantity, sellingPrice }]
+  const addTabItems = (tabItems) => {
+    const merge = (base) => {
+      const next = {
+        left: new Set(base.selected.left),
+        right: new Set(base.selected.right),
+        other: new Set(base.selected.other),
+      };
+      const quantities = { ...base.quantities };
+      for (const item of tabItems) {
+        next[item.side].add(item.id);
+        if (Number(item.quantity) > 1) {
+          quantities[`${item.side}:${item.id}`] = Number(item.quantity);
+        }
+      }
+      return { selected: next, quantities };
+    };
+
+    const merged = merge({ selected, quantities: tabQuantities });
+    setSelected(merged.selected);
+    setTabQuantities(merged.quantities);
+    setPriceOverrides((prev) => ({
+      ...prev,
+      ...Object.fromEntries(
+        tabItems
+          .filter((item) => item.sellingPrice != null)
+          .map((item) => [item.id, Number(item.sellingPrice)]),
+      ),
+    }));
+    initialRef.current = merge(initialRef.current);
   };
 
   const clearTabs = () => {
@@ -264,6 +324,8 @@ const useSuspensionTabs = ({
     handlePartSelection,
     buildTabItems,
     restoreTabs,
+    matchItemsToTabs,
+    addTabItems,
     clearTabs,
   };
 };

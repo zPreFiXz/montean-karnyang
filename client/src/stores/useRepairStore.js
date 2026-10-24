@@ -3,7 +3,7 @@ import { listRepairs } from "@/api/repair";
 import { toastError } from "@/utils/handleError";
 import { toLocalDateKey } from "@/utils/date";
 
-// กรองรายการซ่อมที่มีสถานะ "PAID" และถูกจ่ายเงินในวันนี้ (ตามเวลาไทย)
+// จ่ายเงินวันนี้ตามเวลาไทย
 const filterTodayPaidRepairs = (repairs) => {
   const todayKey = toLocalDateKey();
   return repairs.filter(
@@ -17,7 +17,6 @@ const filterTodayPaidRepairs = (repairs) => {
 const repairStore = (set, get) => ({
   repairs: [],
 
-  // ดึงรายการซ่อมทั้งหมด
   fetchRepairs: async () => {
     try {
       const res = await listRepairs();
@@ -28,7 +27,6 @@ const repairStore = (set, get) => ({
     }
   },
 
-  // ดึงรายการซ่อมทั้งหมดตามสถานะ
   getRepairsByStatus: (status) => {
     const { repairs } = get();
 
@@ -39,12 +37,10 @@ const repairStore = (set, get) => ({
     return repairs.filter((repair) => repair.status === status);
   },
 
-  // ดึงจำนวนรายการซ่อมตามสถานะ
   getRepairCountByStatus: (status) => {
     return get().getRepairsByStatus(status).length;
   },
 
-  // ดึงยอดขายรวมของรายการซ่อมที่จ่ายเงินในวันนี้
   getTodaySales: () => {
     const { repairs } = get();
 

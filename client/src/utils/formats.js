@@ -11,13 +11,11 @@ export function formatDate(dateString) {
   });
 }
 
-// รายงานยอดขายดูเป็นวันๆ การรู้ว่าวันไหนของสัปดาห์ช่วยอ่านยอดได้มากกว่าเลขวันที่
-// เช่นยอดตกวันจันทร์กับยอดพุ่งวันอาทิตย์ ซึ่งเป็นจังหวะปกติของร้าน
 export function formatDateWithWeekday(dateString) {
   if (!dateString) return "ไม่ระบุ";
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return "ไม่ระบุ";
-  // ภาษาไทยได้ "วันอังคารที่ 8 กันยายน 2569" — ตัดคำว่าวันข้างหน้าออกให้เหลือ "อังคารที่ ..."
+  // ภาษาไทยได้ "วันอังคารที่ ..." ตัดคำว่าวันออก
   return date
     .toLocaleDateString("th-TH", {
       weekday: "long",
@@ -28,7 +26,6 @@ export function formatDateWithWeekday(dateString) {
     .replace(/^วัน/, "");
 }
 
-// แบบย่อสำหรับที่แคบ เช่น การ์ดที่มีราคาอยู่ข้างๆ — "25 ส.ค. 2569"
 export function formatDateShort(dateString) {
   if (!dateString) return "ไม่ระบุ";
   const date = new Date(dateString);
@@ -40,7 +37,6 @@ export function formatDateShort(dateString) {
   });
 }
 
-// หัวข้อของกลุ่มรายเดือน เช่น "กันยายน 2569"
 export function formatMonth(dateString) {
   if (!dateString) return "ไม่ระบุ";
   const date = new Date(dateString);
@@ -51,7 +47,6 @@ export function formatMonth(dateString) {
   });
 }
 
-// กุญแจของเดือนในรูป 2026-09 ใช้จัดกลุ่มและใส่ใน URL
 // คิดจากเวลาท้องถิ่น ไม่ใช่ ISO เพราะบิลดึกๆ จะถูกนับเป็นเดือนถัดไป
 export function monthKey(dateString) {
   const date = new Date(dateString);
@@ -70,7 +65,6 @@ export function formatTime(dateString) {
   });
 }
 
-// จำนวนในบิลเก็บเป็นทศนิยมได้ (น้ำมันขายเป็นลิตร) แต่ของทั่วไปเป็นจำนวนเต็ม
 // 3 ต้องขึ้นว่า 3 ไม่ใช่ 3.00 ส่วน 3.5 ต้องคงทศนิยมไว้
 export function formatQuantity(value) {
   const number = Number(value);
@@ -78,7 +72,6 @@ export function formatQuantity(value) {
   return String(Number(number.toFixed(2)));
 }
 
-// ช่วงราคาที่เคยขายของยางเปอร์เซ็นต์ ขายราคาเดียวมาตลอดก็บอกราคาเดียว
 export function formatPriceRange(range) {
   if (!range) return "";
   const money = (value) => Number(value).toLocaleString("th-TH");
@@ -93,9 +86,7 @@ export function formatCurrency(amount) {
   return `${amount.toLocaleString()} บาท`;
 }
 
-// เก็บเป็นตัวเลขล้วน แต่ตอนอ่านให้คั่นเป็นกลุ่ม จะได้กวาดตาทวนกับที่ลูกค้าบอกได้ทีละท่อน
-// มือถือ 10 หลักคั่น 3-3-4 เบอร์บ้าน 9 หลักคั่น 2-3-4 (02-123-4567)
-// เลขที่ไม่เข้าสองแบบนี้คืนกลับไปตามเดิม ดีกว่าคั่นผิดที่แล้วอ่านเป็นเบอร์อื่น
+// มือถือ 10 หลักคั่น 3-3-4 เบอร์บ้าน 9 หลักคั่น 2-3-4 แบบอื่นคืนตามเดิม
 export function formatPhone(phoneNumber) {
   const digits = String(phoneNumber ?? "").replace(/\D/g, "");
   if (digits.length === 10) {
@@ -112,8 +103,7 @@ export function getProvinceName(provinceId) {
   return province ? province.name : provinceId;
 }
 
-// ทะเบียนเก็บในฐานข้อมูลเป็น "กษ 9037" (เว้นวรรค) แต่เวลาแสดงคั่นด้วยขีดให้อ่านง่ายขึ้น
-// รับได้ทั้งแบบเว้นวรรคและแบบมีขีดอยู่แล้ว เผื่อข้อมูลเก่าที่บันทึกคนละรูปแบบ
+// ฐานข้อมูลเก็บเป็น "กษ 9037" แสดงด้วยขีด รับแบบมีขีดด้วยเผื่อข้อมูลเก่า
 export function formatPlate(plateNumber) {
   const text = String(plateNumber || "").trim();
   if (!text) return "";

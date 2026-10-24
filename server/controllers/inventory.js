@@ -2,7 +2,6 @@ const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
 const { OIL_SOURCE_SELECT, withOilKitStock } = require("../utils/oilKit");
 
-// แปลง service ให้มีโครงสร้างเดียวกับ part เพื่อให้ client แสดงคลังสินค้ารวมกันได้
 const mapServiceToInventoryItem = (service) => ({
   ...service,
   type: "service",
@@ -21,9 +20,7 @@ const mapServiceToInventoryItem = (service) => ({
   category: { name: service.category.name },
 });
 
-// ยางเปอร์เซ็นต์สภาพไม่เท่ากัน ราคาตั้งในคลังใช้กับทุกเส้นไม่ได้ จึงบอกช่วงราคาที่เคยขายจริงไว้ให้ตั้งราคา
-// นับจากบรรทัดที่ผูกกับรหัสอะไหล่ตัวนั้น ทุกบิลที่ไม่ใช่ใบเสนอราคา ไม่นับราคา 0 (ใส่ไว้ก่อนตั้งราคาจริง)
-// ได้ทั้งช่วงราคา (โชว์บนการ์ด) และทุกราคาพร้อมจำนวนเส้น (โชว์ใน dialog) เรียงถูกไปแพง
+// ยางเปอร์เซ็นต์สภาพไม่เท่ากัน จึงบอกราคาที่เคยขายจริง ไม่นับใบเสนอราคาและราคา 0
 const USED_TIRE_CATEGORY = "ยางเปอร์เซ็นต์";
 const soldPriceStats = async (partIds) => {
   if (partIds.length === 0) return new Map();
@@ -65,8 +62,6 @@ const collator = new Intl.Collator("th", {
   sensitivity: "base",
 });
 
-// ยาง: ยี่ห้อ -> หน้ายาง -> แก้มยาง -> ขอบ -> รุ่น
-// อื่นๆ: attributes ว่าง จึงเทียบเท่ากันแล้วตกไปเรียงด้วยชื่อตามปกติ
 const bySize = (a, b, key) => {
   const x = Number(a.attributes?.[key]);
   const y = Number(b.attributes?.[key]);
@@ -207,8 +202,7 @@ exports.getInventory = async (req, res) => {
   res.json(inventory);
 };
 
-// บิลทั้งหมดที่เคยใช้อะไหล่หรือบริการตัวนี้ ใช้ในหน้า "รถที่เคยใช้"
-// รวมบรรทัดของบิลเดียวกันเข้าด้วยกัน (ยางซ้าย-ขวาอยู่คนละบรรทัดแต่เป็นบิลใบเดียว)
+// รวมบรรทัดของบิลเดียวกัน (ยางซ้าย-ขวาอยู่คนละบรรทัด)
 exports.listInventoryRepairs = async (req, res) => {
   const { type, id } = req.params;
   const itemId = Number(id);
@@ -229,8 +223,6 @@ exports.listInventoryRepairs = async (req, res) => {
     select: {
       quantity: true,
       unitPrice: true,
-      // ชื่อที่บันทึกไว้ในบิลใบนั้น — รายการเปล่าอย่างอะไหล่อื่นๆ ถูกพิมพ์ชื่อทับเป็นรายใบ
-      // หน้าประวัติการใช้เอาไว้ค้นหาและบอกว่าบิลนั้นเรียกของชิ้นนี้ว่าอะไร
       itemName: true,
       repair: {
         include: {
@@ -256,7 +248,6 @@ exports.listInventoryRepairs = async (req, res) => {
     if (current) {
       current.quantity += Number(item.quantity);
       current.total += Number(item.quantity) * item.unitPrice;
-      // บิลเดียวอาจมีหลายบรรทัดและตั้งชื่อคนละอย่าง เก็บให้ครบแบบไม่ซ้ำ
       if (item.itemName && !current.itemNames.includes(item.itemName)) {
         current.itemNames.push(item.itemName);
       }
@@ -273,11 +264,7 @@ exports.listInventoryRepairs = async (req, res) => {
   res.json([...byRepair.values()]);
 };
 
-// หน่วยที่เคยใช้แล้ว แยกของอะไหล่กับบริการ ช่องเลือกหน่วยเอาไปแสดงเป็นรายการ
-// ไม่มีรายการตั้งต้นในโค้ด หน่วยที่พิมพ์เพิ่มครั้งเดียวจึงโผล่ให้เลือกครั้งต่อไปเอง
-// อะไหล่: หน่วยที่ตั้งไว้กับอะไหล่ในคลัง + ที่พิมพ์บนบรรทัดอะไหล่อื่นๆ ในบิล
-// บริการ: หน่วยที่ตั้งไว้กับบริการ + ที่พิมพ์บนบรรทัดบริการอื่นๆ ในบิล
-// เรียงตามจำนวนครั้งที่ใช้ ตัวที่ใช้บ่อยอยู่บนสุด
+// ไม่มีรายการตั้งต้นในโค้ด หน่วยที่พิมพ์เพิ่มจะโผล่ให้เลือกครั้งต่อไปเอง เรียงตามที่ใช้บ่อย
 exports.listUnits = async (req, res) => {
   const [parts, services, partLines, serviceLines] = await Promise.all([
     prisma.part.groupBy({ by: ["unit"], _count: { _all: true } }),

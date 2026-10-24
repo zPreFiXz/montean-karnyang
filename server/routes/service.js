@@ -1,11 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const { validate, serviceSchema } = require("../utils/validator");
+const validate = require("../middlewares/validate");
+const { serviceSchema } = require("../utils/schemas");
 
-// Middlewares
 const { authCheck } = require("../middlewares/auth");
 
-// Controllers
 const {
   listServices,
   createService,

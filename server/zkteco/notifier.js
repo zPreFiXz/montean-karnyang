@@ -183,7 +183,6 @@ const createNotifier = ({ prisma }) => {
     );
   };
 
-  // ส่งแจ้งเตือนที่ค้าง (notifiedAt = null) รวมรายการช่วงเน็ตหลุด
   const flushScanNotifications = async () => {
     const { start, end } = getDayRange(getDateKey(new Date()));
     const pending = await prisma.attendance.findMany({
@@ -227,7 +226,6 @@ const createNotifier = ({ prisma }) => {
           );
           continue;
         }
-        // คืนสิทธิ์ให้รอบหน้าลองใหม่
         await prisma.attendance
           .update({ where: { id: att.id }, data: { notifiedAt: null } })
           .catch(() => {});

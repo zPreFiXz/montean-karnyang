@@ -5,6 +5,5 @@ const BANGKOK_DATE_FORMAT = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Bangkok",
 });
 
-// คืนค่า "YYYY-MM-DD" ตามเวลาไทย ใช้เป็น key จัดกลุ่มรายวัน
 export const toLocalDateKey = (date = new Date()) =>
   BANGKOK_DATE_FORMAT.format(date instanceof Date ? date : new Date(date));

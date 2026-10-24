@@ -1,16 +1,11 @@
 const express = require("express");
 const router = express.Router();
 
-const {
-  partSchema,
-  validate,
-  updatePartStockSchema,
-} = require("../utils/validator");
+const validate = require("../middlewares/validate");
+const { partSchema, updatePartStockSchema } = require("../utils/schemas");
 
-// Middlewares
 const { authCheck } = require("../middlewares/auth");
 
-// Controllers
 const {
   listParts,
   createPart,

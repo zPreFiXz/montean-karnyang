@@ -10,6 +10,7 @@ import { createPart, updatePart } from "@/api/part";
 import { createService, updateService } from "@/api/service";
 import { toast } from "sonner";
 import { firstErrorMessage } from "@/utils/formErrors";
+import { focusTopmostInvalid } from "@/utils/focusInvalidField";
 import { useEffect, useState } from "react";
 import { listCategories } from "@/api/category";
 import ComboBox from "@/components/ui/ComboBox";
@@ -31,7 +32,6 @@ import {
   isTireCategoryName,
   PER_SIDE_CATEGORIES,
   tracksTireLots,
-  USED_TIRE_CATEGORY,
   getCategoryKind,
   OIL_CATEGORY,
 } from "@/constants/categories";
@@ -40,13 +40,15 @@ import { getInventory } from "@/api/inventory";
 import { useParams, useSearchParams } from "react-router";
 import useAuthStore from "@/stores/useAuthStore";
 import { toastError } from "@/utils/handleError";
-import { DEFAULT_TIRE_CONSTRUCTION } from "@/utils/tireSize";
 import { withMinDuration } from "@/utils/withMinDuration";
-import { sortTireLots } from "@/utils/tireLot";
-import { SIDE_OPTIONS, toPerSide, toSideOptionId } from "@/utils/suspension";
+import { SIDE_OPTIONS } from "@/utils/suspension";
+import {
+  itemToFormValues,
+  toPartPayload,
+  toServicePayload,
+} from "@/utils/inventoryForm";
 
-// เพิ่มกับแก้ไขอะไหล่/บริการใช้ฟอร์มเดียวกัน ต่างกันแค่ที่มาของข้อมูลกับปลายทางหลังบันทึก
-// /inventory/new = เพิ่ม (?category= เลือกหมวดให้ก่อน) /inventory/:id?type= = แก้ไข
+// /inventory/new = เพิ่ม (?category= เลือกหมวดให้ก่อน), /inventory/:id?type= = แก้ไข
 const InventoryForm = () => {
   const { partUnitOptions } = useUnitOptions();
   const {
@@ -76,7 +78,6 @@ const InventoryForm = () => {
   const [isLoading, setIsLoading] = useState(isEdit);
   const [selectedImage, setSelectedImage] = useState(null);
   const [inventory, setInventory] = useState(null);
-  // เพิ่มเสร็จแล้วอยู่หน้าเดิมต่อ ช่องรุ่นรถที่ใช้ได้ต้องล้างตามด้วย
   const [vehicleKey, setVehicleKey] = useState(0);
   const [isImageMarkedForDeletion, setIsImageMarkedForDeletion] =
     useState(false);
@@ -97,8 +98,7 @@ const InventoryForm = () => {
     }
   }, [category, id, type]);
 
-  // หมวดหมู่เป็น ComboBox ที่ไม่มี input ให้ onInvalid ค้นหาเจอ จึงพาขึ้นบนสุดแทน
-  // (หมวดหมู่เป็นช่องแรกของฟอร์มอยู่แล้ว) — เลื่อนแบบนุ่มให้เหมือนช่องอื่น
+  // หมวดหมู่เป็น ComboBox ที่ไม่มี input ให้ onInvalid หาเจอ จึงพาขึ้นบนสุดแทน
   useEffect(() => {
     if (errors.categoryId) {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -110,7 +110,6 @@ const InventoryForm = () => {
       const res = await listCategories();
       setCategory(res.data);
 
-      // เปิดจากหน้ารายการโดยเลือกหมวดหมู่ไว้ -> เลือกให้เลย
       const preset =
         !isEdit && res.data?.find((cat) => cat.name === presetCategory);
       if (preset) {
@@ -139,73 +138,18 @@ const InventoryForm = () => {
           setValue("categoryId", selectedCategory.id);
         }
 
-        setValue("description", item.description || "");
-        setValue("categoryKind", getCategoryKind(item.category?.name));
-
-        if (item.type === "service") {
-          setValue("name", item.name);
-          setValue("price", item.price);
-          // ไม่ใส่ตรงนี้ ช่องจะขึ้นว่าไม่ระบุหน่วย แล้วกดบันทึกซ้ำหน่วยที่ตั้งไว้จะหายไป
-          setValue("unit", item.unit || "");
-          setValue("suspensionType", toSideOptionId(item.attributes));
-        } else {
-          setValue("partNumber", item.partNumber);
-          // อะไหล่ที่ไม่มียี่ห้อเก็บเป็น null ในฐานข้อมูล แต่ช่องกรอกต้องการข้อความ
-          // ใส่ null ลงไปตรงๆ ตัวตรวจข้อมูลจะฟ้องว่าชนิดไม่ตรง ทั้งที่ผู้ใช้ไม่ได้ทำอะไรผิด
-          setValue("brand", item.brand || "");
-          setValue("name", item.name || "");
-          setValue("costPrice", item.costPrice ?? "");
-          setValue("sellingPrice", item.sellingPrice);
-          // ช่องหน่วยของยางถูกซ่อน ถ้าข้อมูลเก่าเป็นหน่วยอื่นก็แก้เองไม่ได้ จึงบังคับให้ตรงกันตอนโหลด
-          setValue(
-            "unit",
-            isTireCategoryName(item.category?.name)
-              ? TIRE_UNIT
-              : item.unit || "",
-          );
-          setValue("stockQuantity", item.stockQuantity);
-          setValue("minStockLevel", item.minStockLevel);
-          setValue("oilSourceId", item.oilSourceId || "");
-          setValue(
-            "oilLiters",
-            item.oilLiters != null ? String(Number(item.oilLiters)) : "",
-          );
-
-          if (item.attributes) {
-            setValue("width", item.attributes.width || "");
-            setValue("aspectRatio", item.attributes.aspectRatio || "");
-            setValue("rimDiameter", item.attributes.rimDiameter || "");
-            // ยางที่บันทึกไว้ก่อนมีปุ่มนี้ไม่มีค่า ถือว่าเป็นเรเดียลตามที่เคยแสดงมาตลอด
-            setValue(
-              "construction",
-              item.attributes.construction || DEFAULT_TIRE_CONSTRUCTION,
-            );
-            // แปลงค่าที่เก็บ (perSide) กลับเป็นตัวเลือกในฟอร์ม รองรับข้อมูลเก่าที่ยังไม่ได้ย้ายด้วย
-            setValue("suspensionType", toSideOptionId(item.attributes), {
-              shouldValidate: true,
-              shouldTouch: true,
-            });
-          }
-
-          // prefill ล็อตยางเดิม เรียงเก่า→ใหม่ (แปลง quantity เป็น string ให้ input text แสดงถูก)
-          // เรียงตอนโหลดครั้งเดียว ไม่เรียงระหว่างพิมพ์ ไม่งั้นแถวจะสลับที่ใต้เคอร์เซอร์
-          if (item.tireLots?.length) {
-            setValue(
-              "tireLots",
-              sortTireLots(item.tireLots).map((lot) => ({
-                dotCode: lot.dotCode ?? "",
-                quantity: lot.quantity == null ? "" : String(lot.quantity),
-              })),
-            );
-          }
-
-          if (item.compatibleVehicles) {
-            setValue("compatibleVehicles", item.compatibleVehicles);
-          }
-
-          if (item.secureUrl) {
-            setSelectedImage(item.secureUrl);
-          }
+        const values = itemToFormValues(item);
+        Object.entries(values).forEach(([field, value]) =>
+          setValue(field, value),
+        );
+        if (item.type !== "service" && item.attributes) {
+          setValue("suspensionType", values.suspensionType, {
+            shouldValidate: true,
+            shouldTouch: true,
+          });
+        }
+        if (item.type !== "service" && item.secureUrl) {
+          setSelectedImage(item.secureUrl);
         }
       }
     } catch (error) {
@@ -215,8 +159,7 @@ const InventoryForm = () => {
     }
   };
 
-  // บันทึกเสร็จแล้วกลับไปหน้าที่กดแก้ไขมา (?from=) ถ้าไม่ได้ระบุมาจึงค่อยกลับหมวดหมู่ของรายการ
-  // รับเฉพาะเส้นทางภายในที่ขึ้นต้นด้วย / เดี่ยว กัน //ภายนอก ที่เบราว์เซอร์ตีความเป็นเว็บอื่น
+  // รับเฉพาะเส้นทางภายใน กัน //ภายนอก ที่เบราว์เซอร์ตีความเป็นเว็บอื่น
   const inventoryPathFor = (categoryId) => {
     const from = searchParams.get("from");
     if (from && from.startsWith("/") && !from.startsWith("//")) {
@@ -253,11 +196,8 @@ const InventoryForm = () => {
     return isTireCategoryName(selectedCategory?.name);
   };
 
-  // ยางเปอร์เซ็นต์ใช้ชื่อเดียวกันหมดตามด้วยเบอร์ ไม่ต้องกรอกยี่ห้อกับรุ่น
   const isUsedTire = () => isTireCategory() && !isLotTracked();
 
-  // ยางใหม่กรอกสต็อกเป็นล็อตตามสัปดาห์/ปีผลิต ยางเปอร์เซ็นต์กรอกจำนวนตรงๆ
-  // หมวดน้ำมัน: ชุดน้ำมันเครื่องผูกกับตัวเก็บน้ำมันได้ (ดู OilKitFields)
   const isOilCategory = () =>
     category.find((item) => item.id === watch("categoryId"))?.name ===
     OIL_CATEGORY;
@@ -307,11 +247,10 @@ const InventoryForm = () => {
   const handleCategoryChange = (value) => {
     const name = category.find((cat) => cat.id === value)?.name;
     setValue("categoryId", value);
-    // ตัวตรวจข้อมูลดูจากชนิดหมวดหมู่ ไม่ใช่รหัส เพราะรหัสของแต่ละเครื่องไม่ตรงกัน
+    // ตัวตรวจข้อมูลดูจากชนิดหมวดหมู่ เพราะรหัสหมวดของแต่ละเครื่องไม่ตรงกัน
     setValue("categoryKind", getCategoryKind(name));
 
-    // ยางนับเป็นเส้นเสมอ เลยซ่อนช่องหน่วยแล้วกรอกให้แทน
-    // สลับออกจากยางต้องล้างค่าคืน ไม่งั้นอะไหล่จะติดหน่วย "เส้น" มาโดยไม่ได้เลือกเอง
+    // สลับออกจากยางต้องล้างหน่วยคืน ไม่งั้นอะไหล่จะติดหน่วย "เส้น" มา
     const isTire = isTireCategoryName(
       category.find((cat) => cat.id === value)?.name,
     );
@@ -337,59 +276,28 @@ const InventoryForm = () => {
     trigger("categoryId");
   };
 
-  // กดบันทึกแล้วช่องที่ผิดอาจอยู่นอกจอ ต้องพาไปหาไม่งั้นดูเหมือนกดแล้วไม่มีอะไรเกิดขึ้น
   const onInvalid = (errs) => {
-    if (!errs) return;
-
-    const fields = Object.keys(errs);
-    const errorElements = fields
-      .map((field) => document.querySelector(`[name="${field}"]`))
-      .filter((el) => el && el.offsetParent !== null);
-
-    if (errorElements.length === 0) {
-      // ช่องที่ผิดอาจซ่อนอยู่ (คนละหมวดหมู่ หรืออยู่ในส่วนที่พับไว้) เลื่อนไปหาไม่ได้
-      // ถ้าเงียบไปเฉยๆ จะเหมือนกดปุ่มแล้วไม่ทำงาน ต้องบอกว่าติดตรงไหน
-      toast.error(
-        firstErrorMessage(errs) ||
-          "กรอกข้อมูลไม่ครบ ตรวจสอบช่องที่ยังไม่ถูกต้องอีกครั้ง",
-      );
-      return;
-    }
-
-    const firstErrorEl = errorElements.reduce((prev, curr) =>
-      prev.getBoundingClientRect().top < curr.getBoundingClientRect().top
-        ? prev
-        : curr,
+    if (focusTopmostInvalid(errs)) return;
+    toast.error(
+      firstErrorMessage(errs) ||
+        "กรอกข้อมูลไม่ครบ ตรวจสอบช่องที่ยังไม่ถูกต้องอีกครั้ง",
     );
-
-    // preventScroll สำคัญ — โดยปริยาย focus() จะกระโดดไปหาช่องทันที
-    // แล้ว scrollIntoView ที่ตามมาก็ไม่เหลืออะไรให้เลื่อน ภาพที่เห็นคือเด้งพรึบ
-    firstErrorEl.focus?.({ preventScroll: true });
-    firstErrorEl.scrollIntoView({
-      block: "center",
-      inline: "nearest",
-      behavior: "smooth",
-    });
   };
 
-  // จุ๊บลมเก็บเป็นบริการ (ไม่นับสต็อก) แต่คนใช้มองเป็นอะไหล่ หน้านี้จึงเรียกว่าอะไหล่ทุกจุด
-  // ดูจากชื่อที่บันทึกไว้ ไม่ใช่ชื่อที่กำลังพิมพ์ หัวข้อจะได้ไม่เปลี่ยนไปมาระหว่างแก้ชื่อ
+  // ดูจากชื่อที่บันทึกไว้ ไม่ใช่ที่กำลังพิมพ์ หัวข้อจะได้ไม่เปลี่ยนไปมา
   const readsAsPart = isServiceCategory() && isPartLikeItem(inventory);
   const itemWord = !isServiceCategory() || readsAsPart ? "อะไหล่" : "บริการ";
 
-  // อะไหล่มีรูปเสมอ บริการมีรูปได้เฉพาะของชิ้นจริง (จุ๊บลม) อะไหล่อื่นๆ ไม่มีรูป
   const canHaveImage =
     !isServiceCategory() || canHaveServiceImage(watch("name"));
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
-      let partData = {};
-      let serviceData = {};
       let image = null;
 
       if (!canHaveImage) {
-        // บริการทั่วไปไม่มีรูป ไม่ต้องแตะ (ส่งไปเป็นค่าว่างของ image = ไม่เปลี่ยน)
+        // ไม่ส่ง image = ไม่เปลี่ยนรูป
       } else if (selectedImage && typeof selectedImage !== "string") {
         const resizedImage = await resizeImage(selectedImage);
         const res = await uploadImage(resizedImage);
@@ -426,65 +334,24 @@ const InventoryForm = () => {
         };
       }
 
-      if (!isServiceCategory()) {
-        partData = {
-          partNumber: data.partNumber,
-          brand: isUsedTire() ? "" : data.brand,
-          name: isUsedTire() ? USED_TIRE_CATEGORY : data.name,
-          costPrice: data.costPrice,
-          sellingPrice: data.sellingPrice,
-          unit: data.unit,
-          // ยาง: สต็อกมาจากผลรวมล็อต (backend คำนวณ) ไม่ต้องส่ง stockQuantity
-          stockQuantity: isLotTracked() ? undefined : data.stockQuantity,
-          // ชุดน้ำมันไม่เตือนสต็อกของตัวเอง เตือนที่ตัวเก็บน้ำมันแทน
-          minStockLevel: isOilKit ? 0 : data.minStockLevel,
-          oilSourceId: isOilKit ? Number(data.oilSourceId) : null,
-          oilLiters: isOilKit ? Number(data.oilLiters) : null,
-          attributes: isTireCategory()
-            ? {
-                width: data.width,
-                aspectRatio: data.aspectRatio,
-                rimDiameter: data.rimDiameter,
-                construction: data.construction || DEFAULT_TIRE_CONSTRUCTION,
-              }
-            : {
-                // เปลี่ยนหมวดไปหมวดที่ไม่มีช่องนี้ ค่าที่เคยเปิดไว้ต้องไม่ติดไปด้วย
-                perSide:
-                  (isSuspensionCategory() || allowsSideChoice()) &&
-                  toPerSide(data.suspensionType),
-              },
-          tireLots: isLotTracked()
-            ? (data.tireLots || []).map((lot) => ({
-                dotCode: lot.dotCode,
-                quantity: Number(lot.quantity) || 0,
-              }))
-            : undefined,
-          compatibleVehicles: hasVehicleCompatibility()
-            ? watch("compatibleVehicles")
-            : undefined,
-          description: data.description || undefined,
-          image,
-          categoryId: data.categoryId,
-        };
-      } else {
-        serviceData = {
-          name: data.name,
-          price: data.price,
-          description: data.description || undefined,
-          unit: data.unit?.trim() || undefined,
-          perSide: toPerSide(data.suspensionType),
-          image: canHaveImage ? image : undefined,
-          categoryId: data.categoryId,
-        };
-      }
+      const payload = isServiceCategory()
+        ? toServicePayload(data, canHaveImage ? image : undefined)
+        : toPartPayload(data, image, {
+            isUsedTire: isUsedTire(),
+            isTire: isTireCategory(),
+            lotTracked: isLotTracked(),
+            isOilKit,
+            hasSideChoice: isSuspensionCategory() || allowsSideChoice(),
+            compatibleVehicles: hasVehicleCompatibility()
+              ? watch("compatibleVehicles")
+              : undefined,
+          });
 
       const itemType = isServiceCategory() ? "service" : "part";
 
       if (!isEdit) {
         await withMinDuration(() =>
-          itemType === "service"
-            ? createService(serviceData)
-            : createPart(partData),
+          itemType === "service" ? createService(payload) : createPart(payload),
         );
         invalidateUnitOptions();
         toast.success(`เพิ่ม${itemWord}เรียบร้อยแล้ว`);
@@ -497,13 +364,12 @@ const InventoryForm = () => {
 
       await withMinDuration(() =>
         itemType === "service"
-          ? updateService(id, serviceData)
-          : updatePart(id, partData),
+          ? updateService(id, payload)
+          : updatePart(id, payload),
       );
       invalidateUnitOptions();
 
-      // เปิดมาจากหน้าอื่นนอกหน้าคลัง (หน้าหลัก หน้าบิล) ถอยกลับไปรายการเดิมในประวัติ
-      // หน้านั้นเปิดไดอะล็อกต่อเองด้วยข้อมูลล่าสุด (ดู useReopenStockItem) และไม่มีหน้าบิลซ้อนในประวัติ
+      // เปิดมาจากนอกหน้าคลัง ถอยกลับไปรายการเดิม หน้านั้นเปิดไดอะล็อกต่อเอง (ดู useReopenStockItem)
       const from = searchParams.get("from");
       if (
         from &&
@@ -518,8 +384,7 @@ const InventoryForm = () => {
         return;
       }
 
-      // ดึงข้อมูลหลังแก้มาตั้งแต่ตอนนี้ ระหว่างที่ปุ่มยังหมุนอยู่ แล้วส่งติดไปกับหน้าถัดไป
-      // เพื่อให้ไดอะล็อกเปิดได้ตั้งแต่เฟรมแรก ไม่ต้องรอยิง API อีกรอบหลังเปลี่ยนหน้า
+      // ดึงข้อมูลหลังแก้ไว้ส่งไปกับหน้าถัดไป ไดอะล็อกจะเปิดได้ตั้งแต่เฟรมแรก
       let openItem = null;
       try {
         const res = await getInventory(Number(id), itemType);
@@ -528,13 +393,10 @@ const InventoryForm = () => {
         // ดึงไม่ได้ก็แค่ไม่เปิดไดอะล็อกต่อ การบันทึกสำเร็จไปแล้ว ไม่ต้องแจ้งซ้ำ
       }
 
-      // กลับไปหน้าเดิมแล้วเปิดไดอะล็อกของรายการนี้ค้างไว้ ให้เห็นผลที่เพิ่งแก้ทันที
       navigate(inventoryPathFor(data.categoryId), {
-        // บันทึกเสร็จแล้วกลับหน้าคลัง ถือเป็นการย้อนกลับ ตำแหน่งที่เลื่อนค้างไว้ต้องกลับมาด้วย
         state: { restoreScroll: true, ...(openItem ? { openItem } : {}) },
       });
-      // แจ้งหลังเปลี่ยนหน้า ให้ขึ้นพร้อมไดอะล็อกของรายการที่เพิ่งแก้
-      // ถ้าแจ้งตั้งแต่บันทึกเสร็จ จะขึ้นก่อนไดอะล็อกเกือบครึ่งวินาที ระหว่างที่รอดึงข้อมูลล่าสุด
+      // แจ้งหลังเปลี่ยนหน้า ไม่งั้นจะขึ้นก่อนไดอะล็อกเกือบครึ่งวินาที
       toast.success(`แก้ไข${itemWord}เรียบร้อยแล้ว`);
 
       reset();
@@ -549,11 +411,11 @@ const InventoryForm = () => {
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
-      <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
+      <div className="flex items-center gap-2 px-5 pt-4">
         <button
           onClick={() => navigate(-1)}
           aria-label="ย้อนกลับ"
-          className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+          className="bg-surface/20 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full"
         >
           <ChevronLeft className="text-surface" />
         </button>
@@ -561,14 +423,14 @@ const InventoryForm = () => {
           {isEdit ? `แก้ไข${itemWord}` : "เพิ่มรายการ"}
         </p>
       </div>
-      <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl">
+      <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl">
         {isLoading ? (
           <div className="flex flex-1 items-center justify-center">
             <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : (
           <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
-            <div className="px-[20px] pt-[16px]">
+            <div className="px-5 pt-4">
               <ComboBox
                 label="หมวดหมู่"
                 color="text-subtle-dark"
@@ -598,7 +460,6 @@ const InventoryForm = () => {
               />
             )}
 
-            {/* อะไหล่ */}
             {!isServiceCategory() && (
               <div>
                 <FormUploadImage
@@ -662,10 +523,8 @@ const InventoryForm = () => {
                   />
                 )}
 
-                {/* ช่วงล่างต้องเลือกข้างทุกตัว หน้าเช็กช่วงล่างใช้แบ่งแท็บซ้าย/ขวา
-                  หมวดที่มีของแยกข้าง (เบรก ไฟ ฯลฯ) ก็มีช่องนี้ แต่ตั้งไว้ไม่แยกข้างให้ก่อน หมวดอื่นไม่ต้องเห็น */}
                 {(isSuspensionCategory() || allowsSideChoice()) && (
-                  <div className="my-[16px] px-[20px]">
+                  <div className="my-4 px-5">
                     <ComboBox
                       label="ข้าง"
                       color="text-subtle-dark"
@@ -693,9 +552,8 @@ const InventoryForm = () => {
                   </div>
                 )}
 
-                {/* ราคาต้นทุนเห็นเฉพาะแอดมิน — ถ้าไม่เห็น ให้ราคาขายกินเต็มความกว้าง */}
                 <div
-                  className={`mt-[16px] grid gap-[8px] px-[20px] ${
+                  className={`mt-4 grid gap-2 px-5 ${
                     showCostPrice ? "grid-cols-2" : "grid-cols-1"
                   }`}
                 >
@@ -735,7 +593,7 @@ const InventoryForm = () => {
                 </div>
 
                 {!isTireCategory() && (
-                  <div className="my-[16px] px-[20px]">
+                  <div className="my-4 px-5">
                     <ComboBox
                       label="หน่วย"
                       color="text-subtle-dark"
@@ -770,12 +628,10 @@ const InventoryForm = () => {
                     selfId={inventory?.id}
                   />
                 )}
-                {/* ชุดน้ำมันที่ใช้น้ำมันจากตัวเก็บแล้วไม่มีสต็อกของตัวเอง จึงไม่มีช่องสต็อก */}
                 {!isOilKit && (
                   <StockFields
                     lotTracked={isLotTracked()}
-                    // หน้าแก้ไขยอมให้ไม่มีล็อตได้ ทั้งยางที่ขายหมด (backend ลบล็อตทิ้งไปแล้ว)
-                    // และกรณีล้างล็อตเองจนเหลือ 0 — ต่างจากหน้าเพิ่มที่ยังบังคับอย่างน้อย 1 แถว
+                    // หน้าแก้ไขยอมให้ไม่มีล็อต (ยางที่ขายหมดแล้ว backend ลบล็อตทิ้ง)
                     allowEmptyLots={isEdit}
                     control={control}
                     register={register}
@@ -794,7 +650,6 @@ const InventoryForm = () => {
               </div>
             )}
 
-            {/* บันทึกภายในของร้าน ไม่ได้พิมพ์ลงบิล จึงไม่บังคับกรอก */}
             <FormInput
               register={register}
               name="description"
@@ -805,7 +660,7 @@ const InventoryForm = () => {
               errors={errors}
             />
 
-            <div className="mt-[16px] flex justify-center pb-[112px] xl:pb-[16px]">
+            <div className="mt-4 flex justify-center pb-28 xl:pb-4">
               <FormButton
                 label={isEdit ? "บันทึก" : `เพิ่ม${itemWord}`}
                 isLoading={isSubmitting}

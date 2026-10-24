@@ -11,14 +11,10 @@ import { ORGANIZATION_TYPES } from "@/constants/organizations";
 
 const ICONS = { GOVERNMENT: Building2, SHOP: Store };
 
-// ลูกค้าทั่วไปคือ "ไม่ได้เป็นทั้งสองอย่าง" เก็บเป็นค่าว่างในฐานข้อมูล
-// แต่ต้องมีปุ่มให้กดเลือกตรงๆ ไม่งั้นต้องรู้เองว่าต้องกดปุ่มที่เลือกอยู่ซ้ำเพื่อยกเลิก
+// ลูกค้าทั่วไปเก็บเป็นค่าว่าง แต่ต้องมีปุ่มให้เลือกตรงๆ
 const OPTIONS = [...ORGANIZATION_TYPES, { value: null, label: "ลูกค้าทั่วไป" }];
 
-// ตั้งว่าลูกค้ารายนี้เป็นหน่วยงานหรือร้านค้า
-// ติดกับตัวลูกค้า ไม่ใช่บิล ตั้งครั้งเดียวแล้วบิลเครดิตใบต่อๆ ไปของรายนี้ถูกรวมให้เอง
-// silent = ถูกเรียกเป็นขั้นตอนหนึ่งของงานอื่น (เช่นระหว่างลงเครดิต)
-// งานนั้นมีข้อความแจ้งผลของตัวเองอยู่แล้ว ไม่ต้องเด้งซ้อนกันสองอัน
+// silent = เรียกเป็นขั้นตอนหนึ่งของงานอื่นที่แจ้งผลเองอยู่แล้ว
 const OrganizationTypeDialog = ({
   isOpen,
   onClose,
@@ -29,8 +25,7 @@ const OrganizationTypeDialog = ({
   const [selected, setSelected] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // เปิดมาไฮไลต์ประเภทปัจจุบันไว้ การ์ดที่สว่างอยู่คือค่าที่บันทึกไว้ตอนนี้
-  // เปิดใหม่ทุกครั้งต้องอ่านจากค่าจริง ไม่ใช่ค่าที่กดเล่นไว้รอบก่อนแล้วไม่ได้บันทึก
+  // เปิดใหม่ต้องอ่านจากค่าจริง ไม่ใช่ค่าที่กดค้างไว้รอบก่อน
   useEffect(() => {
     if (isOpen) setSelected(customer?.organizationType || null);
   }, [isOpen, customer?.organizationType]);
@@ -38,12 +33,9 @@ const OrganizationTypeDialog = ({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // หน่วงขั้นต่ำให้ตัวหมุนทันโชว์ เหมือนปุ่มบันทึกอื่นในระบบ
-      // (คำขอนี้เล็กมาก ถ้าไม่หน่วงจะกระพริบแวบเดียวจนไม่แน่ใจว่ากดติด)
       await withMinDuration(() =>
         setCustomerOrganizationType(customer.id, selected),
       );
-      // บอกผลที่เกิดขึ้นจริง ไม่ใช่ชื่อช่องข้อมูล คนอ่านจะได้ไม่ต้องแปลอีกชั้น
       if (!silent) {
         const label = OPTIONS.find((item) => item.value === selected)?.label;
         toast.success(`เปลี่ยนเป็น${label}เรียบร้อยแล้ว`);
@@ -69,14 +61,14 @@ const OrganizationTypeDialog = ({
           onClose={onClose}
         />
 
-        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px]">
+        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5">
           {customer?.name && (
             <h2 className="text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">
               {customer.name}
             </h2>
           )}
 
-          <div className="mt-[16px] flex gap-[8px]">
+          <div className="mt-4 flex gap-2">
             {OPTIONS.map((option) => {
               const Icon = ICONS[option.value] || CircleUserRound;
               const isActive = selected === option.value;
@@ -87,7 +79,7 @@ const OrganizationTypeDialog = ({
                   type="button"
                   onClick={() => setSelected(option.value)}
                   aria-pressed={isActive}
-                  className={`flex flex-1 cursor-pointer flex-col items-center gap-[8px] rounded-[10px] border px-[8px] py-[16px] duration-300 ${
+                  className={`flex flex-1 cursor-pointer flex-col items-center gap-2 rounded-lg border px-2 py-4 duration-300 ${
                     isActive
                       ? "border-primary bg-primary/5"
                       : "border-gray-200 bg-gray-50"
@@ -117,8 +109,8 @@ const OrganizationTypeDialog = ({
           </div>
         </div>
 
-        <div className="flex-shrink-0 px-[16px] py-[16px]">
-          <div className="flex gap-[16px]">
+        <div className="flex-shrink-0 px-4 py-4">
+          <div className="flex gap-4">
             <button
               type="button"
               onClick={onClose}

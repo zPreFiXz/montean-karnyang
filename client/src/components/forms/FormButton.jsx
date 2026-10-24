@@ -1,13 +1,20 @@
 import { LoaderCircle } from "lucide-react";
 
-const FormButton = ({ label, isLoading, disabled, onClick, className = "bg-gradient-primary", form }) => {
+const FormButton = ({
+  label,
+  isLoading,
+  disabled,
+  onClick,
+  className = "bg-gradient-primary",
+  form,
+}) => {
   return (
     <button
       type={onClick ? "button" : "submit"}
       form={form}
       disabled={isLoading || disabled}
       onClick={onClick}
-      className={`text-surface shadow-primary mx-[20px] flex h-[41px] w-full cursor-pointer items-center justify-center rounded-[20px] text-lg font-semibold duration-300 disabled:cursor-not-allowed disabled:opacity-70 md:text-xl ${className}`}
+      className={`text-surface shadow-primary mx-5 flex h-[41px] w-full cursor-pointer items-center justify-center rounded-[20px] text-lg font-semibold duration-300 disabled:cursor-not-allowed disabled:opacity-70 md:text-xl ${className}`}
     >
       {isLoading ? (
         <>

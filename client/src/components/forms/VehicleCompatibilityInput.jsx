@@ -1,8 +1,8 @@
 import { Label } from "@radix-ui/react-label";
 import { useState, useEffect, useRef } from "react";
 import { Plus, Trash, X } from "lucide-react";
-import ComboBox from "../ui/ComboBox";
-import CollapsibleRow from "../ui/CollapsibleRow";
+import ComboBox from "@/components/ui/ComboBox";
+import CollapsibleRow from "@/components/ui/CollapsibleRow";
 import { scrollToNewRow } from "@/utils/scrollToNewRow";
 import { listVehicleModels } from "@/api/vehicleModel";
 import { toastError } from "@/utils/handleError";
@@ -14,7 +14,6 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   const [vehicleModels, setVehicleModels] = useState([]);
   const [brands, setBrands] = useState([]);
   const vehicleRefs = useRef([]);
-  // การ์ดที่กำลังยุบตัวก่อนหายจริง (ดู CollapsibleRow)
   const [leavingIndex, setLeavingIndex] = useState(null);
 
   useEffect(() => {
@@ -67,8 +66,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
     return modelsForBrand;
   };
 
-  // เรียงให้ตรงกับลำดับในลิสต์แม่ (ยี่ห้อ/รุ่นเรียงตามที่จัดไว้ในฐานข้อมูล เล็กไปใหญ่ เก่าไปใหม่)
-  // เรียงตอนบันทึกอย่างเดียว ไม่เรียงการ์ดบนหน้าจอระหว่างกรอก ไม่งั้นการ์ดจะสลับที่ใต้มือ
+  // เรียงตามลิสต์แม่ตอนบันทึกเท่านั้น ไม่งั้นการ์ดจะสลับที่ใต้มือระหว่างกรอก
   const masterRank = (vehicle) => {
     const index = vehicleModels.findIndex(
       (item) => item.brand === vehicle.brand && item.model === vehicle.model,
@@ -127,7 +125,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   };
 
   return (
-    <div className="space-y-[16px] px-[20px] pt-[16px]">
+    <div className="space-y-4 px-5 pt-4">
       <Label className="text-subtle-dark text-xl font-medium">
         รุ่นรถที่ใส่ได้
       </Label>
@@ -140,9 +138,9 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
         >
           <div
             ref={(el) => (vehicleRefs.current[index] = el)}
-            className="mt-[8px] rounded-[10px] border p-[16px]"
+            className="mt-2 rounded-lg border p-4"
           >
-            <div className="mb-[8px] flex items-center justify-between">
+            <div className="mb-2 flex items-center justify-between">
               <p className="text-subtle-dark text-xl font-medium md:text-[22px]">
                 รถคันที่ {index + 1}
               </p>
@@ -154,7 +152,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                     onClick={() => handleClearVehicle(index)}
                     className="text-destructive flex cursor-pointer items-center text-lg font-medium md:text-xl"
                   >
-                    <X className="mr-[4px] h-4 w-4" />
+                    <X className="mr-1 h-4 w-4" />
                     ล้างข้อมูล
                   </button>
                 )}
@@ -165,13 +163,13 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                     onClick={() => setLeavingIndex(index)}
                     className="text-destructive flex cursor-pointer items-center text-lg font-medium md:text-xl"
                   >
-                    <Trash className="mr-[4px] h-4 w-4" />
+                    <Trash className="mr-1 h-4 w-4" />
                     ลบ
                   </button>
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-[8px]">
+            <div className="grid grid-cols-2 gap-2">
               <div>
                 <ComboBox
                   label="ยี่ห้อรถ"
@@ -210,7 +208,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
       <button
         type="button"
         onClick={handleAddVehicle}
-        className="text-subtle-light mb-[16px] flex h-[41px] w-full cursor-pointer items-center justify-center gap-[8px] rounded-[20px] border-2 border-dashed border-gray-300 text-lg font-medium transition-colors duration-200 hover:border-gray-400 hover:bg-gray-50 md:text-xl"
+        className="text-subtle-light mb-4 flex h-[41px] w-full cursor-pointer items-center justify-center gap-2 rounded-[20px] border-2 border-dashed border-gray-300 text-lg font-medium transition-colors duration-200 hover:border-gray-400 hover:bg-gray-50 md:text-xl"
       >
         <Plus className="h-5 w-5" />
         เพิ่มรถรุ่นอื่น

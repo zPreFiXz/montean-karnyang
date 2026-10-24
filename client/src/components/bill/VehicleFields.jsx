@@ -5,8 +5,7 @@ import KnownVehicleHint from "@/components/forms/KnownVehicleHint";
 import FleetNoField from "@/components/forms/FleetNoField";
 import { provinces } from "@/constants/provinces";
 
-// ช่องข้อมูลรถ (ยี่ห้อ รุ่น ทะเบียน เบอร์รถ เลขกิโลเมตร) ใช้ทั้งหน้ากรอกบิลและหน้าเช็กช่วงล่าง
-// fleetKey เปลี่ยนเมื่อล้างฟอร์ม ช่องเบอร์รถจะยุบกลับเป็นปุ่มเล็กเหมือนฟอร์มใหม่
+// fleetKey เปลี่ยนเมื่อล้างฟอร์ม ช่องเบอร์รถจะยุบกลับ
 const VehicleFields = ({
   register,
   errors,
@@ -19,7 +18,7 @@ const VehicleFields = ({
   fleetKey,
 }) => (
   <>
-    <div className="mt-[16px] px-[20px]">
+    <div className="mt-4 px-5">
       <ComboBox
         label="ยี่ห้อรถ"
         color="text-surface"
@@ -45,7 +44,7 @@ const VehicleFields = ({
         value={watch("brand") || ""}
       />
     </div>
-    <div className="mt-[16px] px-[20px]">
+    <div className="mt-4 px-5">
       <ComboBox
         label="รุ่นรถ"
         color="text-surface"
@@ -68,10 +67,10 @@ const VehicleFields = ({
         value={watch("model") || ""}
       />
     </div>
-    <div className="px-[20px] pt-[16px]">
-      <p className="text-surface mb-[8px] text-xl font-medium">ทะเบียนรถ</p>
-      <div className="flex items-start gap-[8px]">
-        <div className="w-[70px]">
+    <div className="px-5 pt-4">
+      <p className="text-surface mb-2 text-xl font-medium">ทะเบียนรถ</p>
+      <div className="flex items-start gap-2">
+        <div className="w-17.5">
           <LicensePlateInput
             register={register}
             name="plateLetters"
@@ -85,7 +84,7 @@ const VehicleFields = ({
             }}
           />
         </div>
-        <div className="w-[80px]">
+        <div className="w-20">
           <LicensePlateInput
             register={register}
             name="plateNumbers"

@@ -2,7 +2,7 @@ import { LoaderCircle } from "lucide-react";
 import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
 import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import FormButton from "../forms/FormButton";
+import FormButton from "@/components/forms/FormButton";
 import { toastError } from "@/utils/handleError";
 
 // ต้องกดค้างนานเท่านี้ถึงจะลบจริง สั้นกว่านี้มือไวก็ยังรัวผ่านได้
@@ -14,22 +14,18 @@ const ConfirmDialog = ({
   onClose,
   onConfirm,
   title = "ยืนยันการลบ",
-  // หัวเรื่องบอกว่าลบอะไร ชิปบอกว่าลบตัวไหน — พอแล้ว ไม่ต้องอธิบายว่ากู้คืนไม่ได้
   itemName = "",
   // บรรทัดขยายใต้ชิป สำหรับกรณีที่ชื่ออย่างเดียวยังระบุตัวไม่ชัด (เช่น ทะเบียนรถ ต้องรู้ยี่ห้อรุ่นด้วย)
   itemDetail = "",
   // ข้อความเตือนสั้นๆ ใต้ชิป สำหรับผลที่คนกดคาดไม่ถึง (เช่นลบแล้วเลขเอกสารขาดช่วง)
   note = "",
-  // ปุ่มยืนยันบอกสิ่งที่จะเกิดขึ้นจริง กล่องนี้ใช้กับงานล้างข้อมูลด้วย ไม่ได้มีแต่งานลบ
   confirmLabel = "ลบ",
-  // แดงคือลบทิ้ง งานที่ไม่ได้ทำลายอะไรให้ส่งสีหลักของระบบมาแทน
   confirmClass = "bg-destructive",
   // งานที่ลบของทิ้งต้องกดค้าง งานที่ย้อนกลับได้ (เช่นบันทึกเป็นใบประเมินราคา) กดครั้งเดียวพอ
   requireHold = true,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const cancelButtonRef = useRef(null);
-  // 0 ถึง 1 ตามเวลาที่กดค้างไว้ ใช้วาดแถบวิ่งบนปุ่มให้เห็นว่าอีกนานแค่ไหน
   const [holdRatio, setHoldRatio] = useState(0);
   const holdRef = useRef({ frame: 0, startedAt: 0 });
 
@@ -39,17 +35,14 @@ const ConfirmDialog = ({
     setHoldRatio(0);
   };
 
-  // ปิดกล่องระหว่างกดค้างอยู่ ต้องหยุดจับเวลาด้วย ไม่งั้นแถบจะเดินต่อในกล่องที่ปิดไปแล้ว
+  // ปิดกล่องระหว่างกดค้างต้องหยุดจับเวลา ไม่งั้นแถบจะเดินต่อ
   useEffect(() => {
     if (!isOpen) stopHold();
     return stopHold;
   }, [isOpen]);
 
-  // ครบเวลาแล้วไดอะล็อกปิดทั้งที่นิ้วยังแตะอยู่ พอปล่อยนิ้วเบราว์เซอร์จะยิงคลิก
-  // ลงตำแหน่งนั้น ซึ่งตอนนั้นเป็นปุ่มของหน้าที่อยู่ข้างหลังไปแล้ว จึงต้องกลืนคลิกนั้นทิ้ง
-  //
-  // กลืนไปจนกว่านิ้วจะปล่อยจริง ไม่ผูกกับเวลา เพราะคนมักกดค้างต่ออีกจนเห็นว่าเกิดอะไรขึ้น
-  // (กล่องนี้ถูกถอดออกไปแล้วตอนนั้น จึงต้องดักที่เอกสาร ไม่ใช่ที่ตัวปุ่ม)
+  // ครบเวลาแล้วกล่องปิดทั้งที่นิ้วยังแตะอยู่ พอปล่อยนิ้วคลิกจะไปโดนปุ่มของหน้าข้างหลัง
+  // จึงกลืนคลิกนั้นทิ้งที่ระดับเอกสาร จนกว่านิ้วจะปล่อยจริง
   const swallowNextClick = () => {
     const swallow = (event) => {
       event.preventDefault();
@@ -95,7 +88,6 @@ const ConfirmDialog = ({
     setIsLoading(true);
     try {
       await onConfirm();
-      // ทำงานเสร็จแล้วปิดกล่องให้เลย ทุกหน้าจะได้ปิดเหมือนกันโดยไม่ต้องสั่งปิดเอง
       onClose?.();
     } catch (error) {
       toastError(error);
@@ -127,10 +119,9 @@ const ConfirmDialog = ({
           onClose={onClose}
         />
 
-        {/* ระยะบน-ล่างเท่ากัน ชิปจึงลอยกลางระหว่างหัวเรื่องกับปุ่ม */}
-        <div className="font-athiti flex flex-1 flex-col items-center justify-center overflow-y-auto px-[20px] py-[16px]">
+        <div className="font-athiti flex flex-1 flex-col items-center justify-center overflow-y-auto px-5 py-4">
           {itemName && (
-            <span className="text-primary bg-primary/10 inline-block rounded-[10px] px-4 py-2 text-center text-lg font-semibold md:text-xl">
+            <span className="text-primary bg-primary/10 inline-block rounded-lg px-4 py-2 text-center text-lg font-semibold md:text-xl">
               {itemName}
               {itemDetail && (
                 <>
@@ -141,14 +132,14 @@ const ConfirmDialog = ({
             </span>
           )}
           {note && (
-            <p className="text-subtle-dark mt-[12px] text-center text-base font-medium md:text-lg">
+            <p className="text-subtle-dark mt-3 text-center text-base font-medium md:text-lg">
               {note}
             </p>
           )}
         </div>
 
-        <div className="flex-shrink-0 px-[16px] pb-[16px]">
-          <div className="flex gap-[16px]">
+        <div className="flex-shrink-0 px-4 pb-4">
+          <div className="flex gap-4">
             <button
               type="button"
               disabled={isLoading}
@@ -160,8 +151,6 @@ const ConfirmDialog = ({
             </button>
 
             {requireHold ? (
-              // กดค้างแทนการกดครั้งเดียว กันมือไวรัวผ่านทั้งสองจังหวะ
-              // ปล่อยก่อนครบเวลา แถบจะรีเซ็ตและไม่มีอะไรเกิดขึ้น
               <button
                 type="button"
                 disabled={isLoading}

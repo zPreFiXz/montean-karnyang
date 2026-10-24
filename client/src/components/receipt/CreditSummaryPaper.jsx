@@ -3,7 +3,6 @@ import { bahtText } from "@/utils/bahtText";
 import { formatDateShort } from "@/utils/formats";
 import { getDisplayBrand, getRepairTitle } from "@/utils/repairDisplay";
 
-// แผ่นแรกของใบวางบิล: สรุปว่าหน่วยงานหรือร้านค้านั้นค้างบิลอะไรบ้างรวมเท่าไหร่
 // ต้องตรงกับ buildOrganizationBillHtml ใน server/utils/receiptHtml.js
 const money = (value) => Number(value || 0).toLocaleString("th-TH");
 
@@ -15,47 +14,44 @@ const CreditSummaryPaper = ({ customer, repairs, billingNo }) => {
 
   return (
     <>
-      {/* เลขที่วางมุมขวาบนแบบใบเสร็จ ฝั่งซ้ายมีเงาของมันแบบมองไม่เห็นไว้ ชื่อเอกสารจะได้อยู่กลางพอดี */}
-      <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-[8px]">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
         <span />
         <div className="text-center">
           <p className="text-[15pt] font-semibold">ใบวางบิล</p>
           <p className="text-[17pt] font-semibold">{SHOP.name}</p>
         </div>
-        <p className="flex items-end justify-end gap-[4px] whitespace-nowrap">
+        <p className="flex items-end justify-end gap-1 whitespace-nowrap">
           เลขที่
-          <span className="min-w-[42px] border-b border-dotted border-black text-center font-semibold">
+          <span className="min-w-10.5 border-b border-dotted border-black text-center font-semibold">
             {billingNo || ""}
           </span>
         </p>
       </div>
 
-      <p className="mt-[2px] text-center">{SHOP.address}</p>
+      <p className="mt-0.5 text-center">{SHOP.address}</p>
       <p className="text-center">{SHOP.contact}</p>
 
-      {/* ใช้คำเดียวกับใบเสร็จ และจัดกึ่งกลางบนเส้นประเหมือนกัน */}
-      <p className="mt-[12px] flex items-end gap-[6px]">
+      <p className="mt-3 flex items-end gap-1.5">
         ชื่อลูกค้า
         <span className="flex-1 border-b border-dotted border-black text-center font-semibold">
           {customer?.name || ""}
         </span>
-        {/* จำนวนบิลเป็นข้อมูลของหัวเอกสาร อ่านคู่กับชื่อว่าใบนี้ของใครและมีกี่บิล */}
         <span className="whitespace-nowrap">จำนวน {repairs.length} บิล</span>
       </p>
 
-      <table className="mt-[8px] w-full table-fixed border-collapse">
+      <table className="mt-2 w-full table-fixed border-collapse">
         <thead>
           <tr className="bg-gray-200">
-            <th className="w-[112px] border border-black p-[3px] font-semibold">
+            <th className="w-28 border border-black p-[3px] font-semibold">
               เลขที่
             </th>
-            <th className="w-[86px] border border-black p-[3px] font-semibold">
+            <th className="w-21.5 border border-black p-[3px] font-semibold">
               วันที่
             </th>
             <th className="border border-black p-[3px] font-semibold">
               รายการ
             </th>
-            <th className="w-[92px] border border-black p-[3px] font-semibold">
+            <th className="w-23 border border-black p-[3px] font-semibold">
               จำนวนเงิน
             </th>
           </tr>
@@ -63,35 +59,31 @@ const CreditSummaryPaper = ({ customer, repairs, billingNo }) => {
         <tbody>
           {repairs.map((repair) => (
             <tr key={repair.id}>
-              {/* บิลเครดิตอ้างเลขใบส่งของที่ลูกค้าเซ็นรับไว้ บิลที่จ่ายแล้วตั้งแต่แรกมีแต่เลขใบเสร็จ */}
-              <td className="border border-black px-[4px] text-center whitespace-nowrap">
+              {/* บิลเครดิตอ้างเลขใบส่งของที่ลูกค้าเซ็นรับไว้ */}
+              <td className="border border-black px-1 text-center whitespace-nowrap">
                 {repair.deliveryNo || repair.receiptNo || repair.id}
               </td>
-              <td className="border border-black px-[4px] text-center">
+              <td className="border border-black px-1 text-center">
                 {formatDateShort(repair.createdAt)}
               </td>
-              <td className="border border-black px-[4px] break-words">
-                {/* รถที่ไม่มีทะเบียน บอกยี่ห้อกับรุ่นแทน จะได้ยังรู้ว่าเป็นคันไหน */}
+              <td className="border border-black px-1 break-words">
                 {getRepairTitle(repair) === "ไม่ระบุทะเบียนรถ"
                   ? getDisplayBrand(repair.vehicle?.vehicleModel) || "งานซ่อม"
                   : getRepairTitle(repair, shortProvince)}
-                {/* บริษัทที่มีรถหลายคันเรียกรถด้วยเบอร์ ฝ่ายบัญชีจะเทียบกับรายการของเขาได้ง่าย */}
                 {repair.vehicle?.fleetNo &&
                   ` เบอร์รถ ${repair.vehicle.fleetNo}`}
               </td>
-              <td className="border border-black px-[4px] text-right">
+              <td className="border border-black px-1 text-right">
                 {money(repair.totalPrice)}
               </td>
             </tr>
           ))}
-          {/* แถวรวมวางแบบเดียวกับท้ายใบเสร็จ คือตัวหนังสือซ้าย ยอดขวา */}
           <tr className="bg-gray-200">
-            <td colSpan={3} className="border border-black px-[4px] py-[5px]">
-              <span className="mr-[6px]">จำนวนเงินรวมทั้งสิ้น</span>
+            <td colSpan={3} className="border border-black px-1 py-[5px]">
+              <span className="mr-1.5">จำนวนเงินรวมทั้งสิ้น</span>
               <span className="font-semibold">{bahtText(total)}</span>
             </td>
-            {/* ยอดรวมคือตัวเลขที่คนรับใบนี้มองหา จึงใหญ่กว่ายอดของแต่ละบิลหนึ่งขั้น */}
-            <td className="border border-black px-[4px] text-right text-[13pt] font-semibold">
+            <td className="border border-black px-1 text-right text-[13pt] font-semibold">
               {money(total)}
             </td>
           </tr>

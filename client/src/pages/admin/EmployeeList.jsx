@@ -73,11 +73,11 @@ const EmployeeList = () => {
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
-      <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
+      <div className="flex items-center gap-2 px-5 pt-4">
         <Link
           to="/dashboard"
           aria-label="ย้อนกลับ"
-          className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+          className="bg-surface/20 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full"
         >
           <ChevronLeft className="text-surface" />
         </Link>
@@ -85,13 +85,13 @@ const EmployeeList = () => {
           จัดการพนักงาน
         </p>
       </div>
-      <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
+      <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-28 xl:pb-4">
         {isLoading ? (
           <div className="flex flex-1 items-center justify-center">
             <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : (
-          <div className="flex flex-1 flex-col px-[20px] pt-[16px]">
+          <div className="flex flex-1 flex-col px-5 pt-4">
             <div className="w-full">
               <SearchBar
                 placeholder="ค้นหารหัสพนักงาน, ชื่อ"
@@ -106,7 +106,7 @@ const EmployeeList = () => {
                 setEditingEmployee(null);
                 setIsFormDialogOpen(true);
               }}
-              className="bg-gradient-primary my-[16px] ml-0"
+              className="bg-gradient-primary my-4 ml-0"
             />
 
             <EmployeeFormDialog
@@ -126,17 +126,17 @@ const EmployeeList = () => {
                 </p>
               </div>
             ) : (
-              <div className="bg-surface shadow-primary rounded-[10px] p-[16px]">
-                <div className="mb-[16px] flex items-center gap-[8px] border-b border-gray-100 pb-[16px]">
+              <div className="bg-surface shadow-primary rounded-lg p-4">
+                <div className="mb-4 flex items-center gap-2 border-b border-gray-100 pb-4">
                   <p className="text-primary text-xl font-semibold md:text-[22px]">
                     รายชื่อพนักงาน
                   </p>
                 </div>
-                <div className="space-y-[8px]">
+                <div className="space-y-2">
                   {sortedEmployees.map((employee) => (
                     <div
                       key={employee.id}
-                      className="flex items-center justify-between gap-[8px] rounded-[8px] bg-gray-50 p-[8px]"
+                      className="flex items-center justify-between gap-2 rounded-md bg-gray-50 p-2"
                     >
                       <div className="flex min-w-0 flex-1 flex-col">
                         <p className="text-normal truncate text-lg font-medium md:text-xl">
@@ -146,18 +146,18 @@ const EmployeeList = () => {
                           รหัสพนักงาน: {employee.zkUserId}
                         </p>
                       </div>
-                      <div className="flex flex-shrink-0 gap-[8px]">
+                      <div className="flex flex-shrink-0 gap-2">
                         <button
                           onClick={() => handleEditClick(employee)}
                           aria-label="แก้ไขพนักงาน"
-                          className="text-surface bg-gradient-primary flex h-[36px] w-[36px] shrink-0 cursor-pointer items-center justify-center rounded-[10px]"
+                          className="text-surface bg-gradient-primary flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteClick(employee)}
                           aria-label="ลบพนักงาน"
-                          className="text-surface bg-destructive flex h-[36px] w-[36px] shrink-0 cursor-pointer items-center justify-center rounded-[10px]"
+                          className="text-surface bg-destructive flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>

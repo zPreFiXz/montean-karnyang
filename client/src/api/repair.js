@@ -1,4 +1,4 @@
-import apiClient from "./apiClient";
+import apiClient from "@/api/apiClient";
 
 export const listRepairs = async () => {
   return await apiClient.get("/repairs");

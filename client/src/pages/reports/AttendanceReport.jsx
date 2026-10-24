@@ -53,11 +53,11 @@ const AttendanceReport = () => {
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
-      <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
+      <div className="flex items-center gap-2 px-5 pt-4">
         <Link
           to="/dashboard"
           aria-label="ย้อนกลับ"
-          className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+          className="bg-surface/20 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full"
         >
           <ChevronLeft className="text-surface" />
         </Link>
@@ -66,13 +66,13 @@ const AttendanceReport = () => {
         </p>
       </div>
 
-      <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
+      <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-28 xl:pb-4">
         {isLoading ? (
           <div className="flex flex-1 items-center justify-center">
             <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : (
-          <div className="flex flex-1 flex-col px-[20px] pt-[16px]">
+          <div className="flex flex-1 flex-col px-5 pt-4">
             <FormInput
               name="date"
               label="วันที่"
@@ -81,30 +81,30 @@ const AttendanceReport = () => {
               errors={{}}
               value={dateKey}
               onChange={handleDateChange}
-              customClass="mb-[16px]"
+              customClass="mb-4"
             />
 
-            <p className="text-subtle-dark mb-[16px] text-lg font-semibold md:text-xl">
+            <p className="text-subtle-dark mb-4 text-lg font-semibold md:text-xl">
               พนักงานทั้งหมด {summaryData?.totalEmployees || 0} คน
             </p>
 
-            <div className="flex flex-1 flex-col gap-[16px]">
+            <div className="flex flex-1 flex-col gap-4">
               {summaryItems.map((item) => (
                 <div
                   key={item.employeeId}
-                  className="bg-surface shadow-primary rounded-[10px] p-[16px]"
+                  className="bg-surface shadow-primary rounded-lg p-4"
                 >
-                  <div className="mb-[16px] flex flex-wrap items-center justify-between gap-[8px] border-b border-gray-100 pb-[16px]">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-4">
                     <div className="min-w-0 flex-1">
                       <p className="text-normal truncate text-lg font-semibold md:text-xl">
                         {item.name}
-                        <span className="text-subtle-dark ml-[6px] text-sm font-medium">
+                        <span className="text-subtle-dark ml-1.5 text-sm font-medium">
                           ({item.zkUserId})
                         </span>
                       </p>
                     </div>
                     <div
-                      className={`text-surface rounded-[999px] px-[12px] py-[4px] text-sm font-semibold ${
+                      className={`text-surface rounded-[999px] px-3 py-1 text-sm font-semibold ${
                         item.completed
                           ? "bg-status-completed"
                           : "bg-status-progress"
@@ -116,13 +116,13 @@ const AttendanceReport = () => {
                     </div>
                   </div>
 
-                  <div className="grid gap-[8px] md:grid-cols-2">
+                  <div className="grid gap-2 md:grid-cols-2">
                     {SLOT_CONFIG.map((slot) => {
                       const slotData = item.slots?.[slot.key];
                       return (
                         <div
                           key={slot.key}
-                          className="rounded-[8px] bg-gray-50 p-[8px]"
+                          className="rounded-md bg-gray-50 p-2"
                         >
                           <p className="text-subtle-dark text-sm">
                             {slot.label}

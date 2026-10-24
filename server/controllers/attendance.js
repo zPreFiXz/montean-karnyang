@@ -83,9 +83,7 @@ exports.getAttendanceSummary = async (req, res) => {
       })
     : [];
 
-  // สแกนจากรหัสที่ไม่รู้จักถูก worker ข้ามไม่บันทึกลง DB (ดู zkteco/attendance.js)
-  // และ employeeId เป็น required จึงไม่มีทางมีแถวไร้พนักงาน — ค่านี้เป็น 0 เสมอ
-  // (เดิม query ด้วย employeeId: null ซึ่ง Prisma ปฏิเสธ ทำให้ endpoint นี้ 500 ทุกครั้ง)
+  // สแกนจากรหัสที่ไม่รู้จักไม่ถูกบันทึก และ employeeId เป็น required จึงเป็น 0 เสมอ
   const unknownScanCount = 0;
 
   const groupedMap = new Map(

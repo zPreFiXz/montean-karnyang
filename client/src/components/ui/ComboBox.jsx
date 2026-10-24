@@ -18,13 +18,10 @@ import { cn } from "@/lib/utils";
 import { Label } from "@radix-ui/react-label";
 
 const SEARCH_THRESHOLD = 10;
-// 300px = ช่องค้นหา + รายการ 6 ตัวครึ่ง (ตัวที่โผล่ครึ่งใบคือสัญญาณว่าเลื่อนได้อีก)
-// --radix-popover-content-available-height = ที่ว่างจริงระหว่างช่องกับขอบจอ
-// ถ้าไม่คุมด้วยค่านี้ กล่องจะยื่นเลยขอบจอลงไป แล้วรายการล่างๆ จะกดไม่ถึงเพราะป็อปอัปเป็น fixed
-// เพดานสามชั้น กันกล่องยื่นเลยขอบจอ:
-// 300px = ช่องค้นหา + รายการ 6 ตัวครึ่ง (ตัวที่โผล่ครึ่งใบคือสัญญาณว่าเลื่อนได้อีก)
-// 40svh  = เพดานตายตัวเผื่อกรณีที่ค่าจาก Radix คลาดเคลื่อน (มือถือมีแถบเบราว์เซอร์ยุบได้)
-// var()  = ที่ว่างจริงระหว่างช่องกับขอบจอที่ Radix คำนวณให้
+// เพดานสามชั้น กันกล่องยื่นเลยขอบจอจนกดรายการล่างไม่ถึง:
+// 300px = ช่องค้นหา + รายการ 6 ตัวครึ่ง (ตัวที่โผล่ครึ่งใบบอกว่าเลื่อนได้อีก)
+// 40svh = เผื่อค่าจาก Radix คลาดเคลื่อน (แถบเบราว์เซอร์มือถือยุบได้)
+// var() = ที่ว่างจริงระหว่างช่องกับขอบจอที่ Radix คำนวณให้
 const POPOVER_MAX_HEIGHT =
   "min(300px, 40svh, var(--radix-popover-content-available-height, 40svh))";
 
@@ -41,22 +38,17 @@ const ComboBox = ({
   disabled = false,
   customClass = "",
   searchable,
-  // ช่องที่อยู่ในแถวแคบๆ ให้หน้าที่เรียกใช้ไปแสดงข้อความรวมเองใต้แถว (เหมือน FormInput)
   hideErrorMessage = false,
-  // พิมพ์ค่าที่ไม่มีในรายการแล้วกดใช้ได้เลย (เช่นหน่วยใหม่) ส่งค่าที่พิมพ์กลับไปทาง onChange
   // createLabel = ข้อความของแถวเพิ่ม เช่น (text) => `เพิ่มหน่วย "${text}"`
   creatable = false,
   createLabel = (text) => `เพิ่ม "${text}"`,
 }) => {
-  // เกิน 10 ตัวเลือกค่อยมีช่องค้นหา — น้อยกว่านั้นกวาดตาหาเร็วกว่าพิมพ์
-  // ส่งค่า searchable มาเองได้ถ้าต้องการบังคับ ส่วนช่องที่เพิ่มค่าเองได้ต้องมีช่องให้พิมพ์เสมอ
   const showSearch =
     creatable || (searchable ?? options.length > SEARCH_THRESHOLD);
 
   const getIdentifier = (item) =>
     item && (item.id !== undefined && item.id !== null ? item.id : item.name);
 
-  // ค่าที่เพิ่งพิมพ์เพิ่มยังไม่อยู่ในรายการ ก็ยังต้องขึ้นในช่องให้เห็นว่าเลือกอะไรไว้
   const selectedLabel =
     options.find((item) => getIdentifier(item) === value)?.name ??
     (creatable && value ? value : undefined);
@@ -67,7 +59,6 @@ const ComboBox = ({
     creatable && typed !== "" && !options.some((item) => item.name === typed);
 
   const [open, setOpen] = useState(false);
-  // ตัวที่ถูกไฮไลท์อยู่ใน cmdk — คุมเองเพื่อไม่ให้ไปเกาะตัวแรกทุกครั้งที่เปิด
   const [highlighted, setHighlighted] = useState("");
   const [triggerWidth, setTriggerWidth] = useState(0);
   const triggerRef = useRef(null);
@@ -87,10 +78,7 @@ const ComboBox = ({
     if (!open) setSearch("");
   }, [open]);
 
-  // โดยปริยาย cmdk จะไฮไลท์ตัวแรกไว้ให้กด Enter ได้ทันที
-  // แต่บนจอสัมผัสมันดูเหมือนตัวแรกถูกเลือกไว้แล้ว ทั้งที่ยังไม่ได้เลือกอะไร
-  // จึงให้ไฮไลท์ไปเกาะตัวที่เลือกไว้จริง ถ้ายังไม่เลือกก็ไม่ต้องไฮไลท์อะไรเลย
-  // (พอเริ่มพิมพ์ค้นหา cmdk จะเลื่อนไฮไลท์ไปที่ผลลัพธ์แรกเอง ซึ่งถูกแล้วสำหรับการกด Enter)
+  // cmdk ไฮไลท์ตัวแรกไว้เอง บนจอสัมผัสดูเหมือนถูกเลือกแล้ว จึงให้เกาะตัวที่เลือกจริงแทน
   useEffect(() => {
     if (open) setHighlighted(selectedLabel || "");
   }, [open, selectedLabel]);
@@ -101,17 +89,13 @@ const ComboBox = ({
     <div>
       {label && (
         <Label
-          // ขนาดเดียวกับป้ายชื่อของ FormInput เพื่อให้ฟอร์มเดียวกันดูเป็นชุดเดียว
-          className={`mb-[8px] block font-medium ${labelClass || "text-xl"} ${color}`}
+          className={`mb-2 block font-medium ${labelClass || "text-xl"} ${color}`}
         >
           {label}
         </Label>
       )}
       <div className="relative z-10">
-        {/* modal = ป็อปอัปจัดการล็อกการเลื่อนเอง
-            จำเป็นเมื่อ ComboBox อยู่ในไดอะล็อก เพราะไดอะล็อกล็อกการเลื่อนทั้งหน้าไว้
-            แล้วยอมให้เลื่อนเฉพาะของที่อยู่ในกล่องมัน ส่วนป็อปอัปถูกวาดที่ระดับ body ซึ่งอยู่นอกกล่อง
-            ถ้าไม่ตั้ง รายการยาวๆ จะเลื่อนไม่ได้เลย (หน้าที่ไม่มีไดอะล็อกครอบไม่เจอปัญหานี้) */}
+        {/* modal จำเป็นเมื่ออยู่ในไดอะล็อก เพราะไดอะล็อกล็อกการเลื่อนทั้งหน้า ป็อปอัปที่วาดนอกกล่องจะเลื่อนไม่ได้ */}
         <Popover
           modal
           open={open && !disabled}
@@ -159,13 +143,12 @@ const ComboBox = ({
                 e.target.style.boxShadow = "";
               }}
             >
-              {/* ตัดคำแทนที่จะดันลูกศรทะลุขอบ เวลาช่องแคบกว่าข้อความ (เช่นวางสองช่องในบรรทัดเดียว) */}
               <span className="truncate">{selectedLabel || placeholder}</span>
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
           <PopoverContent
-            className="z-50 my-[4px] p-0"
+            className="z-50 my-1 p-0"
             style={{
               width: triggerWidth > 0 ? `${triggerWidth}px` : "auto",
               maxHeight: POPOVER_MAX_HEIGHT,
@@ -196,8 +179,7 @@ const ComboBox = ({
                   }`}
                 />
               )}
-              {/* cmdk ใช้ CommandList เป็นตัวเลื่อนโดยเฉพาะ — ก่อนหน้านี้ไปสั่ง overflow ที่ CommandGroup
-                  ซึ่งมี overflow-hidden ติดมาในตัวอยู่แล้ว รายการยาวจึงถูกตัดทิ้งโดยเลื่อนไม่ได้ */}
+              {/* cmdk ใช้ CommandList เป็นตัวเลื่อน CommandGroup มี overflow-hidden ติดมา สั่งที่นั่นรายการยาวจะถูกตัด */}
               <CommandList className="max-h-none min-h-0 flex-1">
                 {/* forceMount = ไม่ให้ตัวกรองของ cmdk ซ่อนแถวนี้ เพราะข้อความแถวไม่ตรงกับคำค้นเป๊ะ */}
                 {canCreate && (
@@ -218,7 +200,6 @@ const ComboBox = ({
                     </CommandItem>
                   </CommandGroup>
                 )}
-                {/* มีแถวเพิ่มค่าใหม่อยู่แล้ว ไม่ต้องบอกว่าไม่พบ */}
                 {!canCreate && (
                   <CommandEmpty>
                     <p
@@ -230,7 +211,7 @@ const ComboBox = ({
                     </p>
                   </CommandEmpty>
                 )}
-                {/* ไม่วาดตอนไม่มีรายการ เพราะ padding ของกลุ่มจะค้างเป็นช่องว่าง 8px ใต้ข้อความ "ไม่พบรายการ" */}
+                {/* ไม่วาดตอนไม่มีรายการ ไม่งั้น padding ของกลุ่มค้างเป็นช่องว่างใต้ข้อความ */}
                 {options.length > 0 && (
                   <CommandGroup>
                     {options.map((item) => {
@@ -271,7 +252,7 @@ const ComboBox = ({
         </Popover>
       </div>
       {hasError && !hideErrorMessage && (
-        <div className="mt-[6px] flex items-center gap-[4px] px-[4px]">
+        <div className="mt-1.5 flex items-center gap-1 px-1">
           <AlertCircle className="text-destructive h-4 w-4 flex-shrink-0" />
           <p className="text-destructive text-lg font-medium md:text-xl">
             {errors[name].message}

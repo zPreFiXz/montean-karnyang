@@ -7,10 +7,8 @@ import { formatDateShort } from "@/utils/formats";
 // เท่ากับจังหวะยุบแถวของรายการซ่อน ทั้งระบบจะได้เคลื่อนไหวความเร็วเดียวกัน
 const SLIDE_MS = 150;
 
-// กรอกทะเบียนครบแล้วบอกให้รู้ว่ารถคันนี้เคยมาแล้ว และครั้งล่าสุดมาเมื่อไหร่ ไมล์เท่าไหร่ ทำอะไรไป
-// ช่างใช้ดูว่าถึงรอบเปลี่ยนน้ำมันหรือยัง และไม่เสนอของที่เพิ่งเปลี่ยนไปซ้ำ
-// ไม่มีปุ่มเติมข้อมูลให้ เพราะร้านกรอกยี่ห้อ-รุ่นก่อนทะเบียนอยู่แล้ว
-// แต่ถ้ารุ่นที่กรอกไม่ตรงกับในประวัติ บอกไว้ เผื่อพิมพ์ทะเบียนผิดคัน
+// บอกว่ารถคันนี้เคยมาเมื่อไหร่ ไมล์เท่าไหร่ ทำอะไรไป
+// รุ่นที่กรอกไม่ตรงกับประวัติก็บอกไว้ เผื่อพิมพ์ทะเบียนผิดคัน
 const KnownVehicleHint = ({
   plate,
   province,
@@ -32,12 +30,10 @@ const KnownVehicleHint = ({
     }
 
     let cancelled = false;
-    // หน่วงไว้ให้พิมพ์จบก่อน ไม่งั้นยิงถามทุกตัวอักษรที่เคาะ
     const timer = setTimeout(() => {
       lookupVehicleByPlate(plateText, provinceText, excludeRepairId)
         .then((res) => {
           if (cancelled) return;
-          // ไม่นับบิลที่กำลังแก้แล้วเหลือ 0 = รถมาครั้งแรก ไม่ต้องบอกว่าเคยมา
           if (res.data?._count?.repairs > 0) {
             setVehicle(res.data);
             // เปิดในเฟรมถัดไป ให้เบราว์เซอร์ทันวาดตอนยังยุบอยู่ แถบจะได้ไหลลงมาให้เห็น
@@ -47,7 +43,6 @@ const KnownVehicleHint = ({
           }
         })
         .catch(() => {
-          // ถามไม่ได้ก็แค่ไม่ขึ้นแถบ ไม่ต้องรบกวนคนที่กำลังกรอกอยู่
           if (!cancelled) setIsOpen(false);
         });
     }, 400);
@@ -75,7 +70,6 @@ const KnownVehicleHint = ({
     !!knownModel &&
     (knownModel.brand !== brand || knownModel.model !== model);
 
-  // งานครั้งก่อนบอกแค่บรรทัดแรกของบิล แถบจะได้ไม่ยาวจนบังฟอร์ม
   const firstItem = lastVisit?.repairItems?.[0];
   const lastJobText =
     firstItem?.itemName || firstItem?.part?.name || firstItem?.service?.name;
@@ -88,14 +82,13 @@ const KnownVehicleHint = ({
   ].filter(Boolean);
 
   return (
-    // grid-rows 0fr→1fr ไหลไปหาความสูงจริงของเนื้อหา ไม่ต้องเดาเป็นตัวเลข
     <div
       className={`grid transition-all duration-150 ${
         isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
       }`}
     >
       <div className="overflow-hidden">
-        <div className="bg-surface/15 xl:bg-primary/5 xl:border-primary/20 mt-[8px] flex items-center gap-[8px] rounded-[10px] px-[12px] py-[8px] xl:border">
+        <div className="bg-surface/15 xl:bg-primary/5 xl:border-primary/20 mt-2 flex items-center gap-2 rounded-lg px-3 py-2 xl:border">
           <div className="min-w-0 flex-1">
             <p className="text-surface xl:text-subtle-dark text-lg leading-tight font-semibold md:text-xl">
               เคยมาซ่อม {vehicle._count?.repairs || 0} ครั้ง
@@ -116,14 +109,12 @@ const KnownVehicleHint = ({
               </p>
             )}
           </div>
-          {/* บิลใหม่มีร่างเก็บไว้ ออกไปดูแล้วกดย้อนกลับมากรอกต่อได้
-              ตอนแก้บิลเดิม (excludeRepairId) ไม่มีร่าง ออกไปแล้วที่แก้ไว้จะหาย จึงไม่มีปุ่มนี้ */}
+          {/* แก้บิลเดิมไม่มีร่าง ออกไปแล้วที่แก้ไว้จะหาย จึงไม่มีปุ่มนี้ */}
           {!excludeRepairId && (
             <Link
               to={`/vehicles/${vehicle.id}`}
-              // มือถืออยู่บนพื้นน้ำเงิน ปุ่มทึบขาวจึงอ่านชัดกว่าเส้นขอบบางๆ
-              // จอใหญ่แถบอยู่บนพื้นขาว ปุ่มขาวจะกลืนหาย ตรงนั้นใช้เส้นขอบน้ำเงินแทน
-              className="bg-surface text-primary xl:border-primary flex h-[32px] shrink-0 items-center justify-center gap-[2px] rounded-[16px] pr-[8px] pl-[12px] text-base font-semibold md:text-lg xl:border"
+              // มือถืออยู่บนพื้นน้ำเงิน จอใหญ่อยู่บนพื้นขาว ปุ่มขาวจะกลืน จึงใช้เส้นขอบแทน
+              className="bg-surface text-primary xl:border-primary flex h-8 shrink-0 items-center justify-center gap-0.5 rounded-2xl pr-2 pl-3 text-base font-semibold md:text-lg xl:border"
             >
               ดูประวัติ
               <ChevronRight className="h-4 w-4" />

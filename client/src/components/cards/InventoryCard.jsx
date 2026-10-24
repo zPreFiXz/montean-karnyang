@@ -22,17 +22,14 @@ const InventoryCard = ({
   category,
   // ช่วงราคาที่เคยขายจริง มีเฉพาะยางเปอร์เซ็นต์ (สภาพไม่เท่ากัน ราคาตั้งใช้กับทุกเส้นไม่ได้)
   soldPriceRange,
-  // ชุดน้ำมันเครื่องผูกกับตัวเก็บน้ำมัน ใช้แค่ตัดสินว่าต้องเตือนตอนหมด
   oilSource,
-  // หน้าจอที่ยึดสต็อกจริงล้วน (เช่นไดอะล็อกเลือกอะไหล่ลงบิล) ให้เตือน "สต็อกหมด" เมื่อเหลือ 0
-  // แม้อะไหล่ตัวนั้นจะไม่ได้ตั้งสต็อกขั้นต่ำไว้ก็ตาม เพราะเบิกไม่ได้อยู่ดี
+  // หน้าที่ยึดสต็อกจริง (เช่นไดอะล็อกเลือกอะไหล่) เตือนหมดเมื่อเหลือ 0 แม้ไม่ได้ตั้งขั้นต่ำ
   alwaysWarnEmpty = false,
   // มีเมื่อการ์ดอยู่ในหน้าต่างเลือกรายการ กดรูปเพื่อดูรายละเอียดแทนการเลือกลงบิล
   onImageClick,
 }) => {
   const isTire = isTireCategoryName(category);
-  // ชุดน้ำมันได้จำนวนชุดที่น้ำมันในตัวเก็บพอขาย (คิดที่เซิร์ฟเวอร์) แสดงแบบอะไหล่ทั่วไป
-  // ไม่มีสต็อกขั้นต่ำของตัวเอง แต่เหลือ 0 ชุดก็ต้องเตือนว่าหมด
+  // ชุดน้ำมันไม่มีขั้นต่ำของตัวเอง แต่เหลือ 0 ชุดก็ต้องเตือน
   const warnEmpty = alwaysWarnEmpty || !!oilSource;
   const isService = category === "บริการ";
 
@@ -52,9 +49,9 @@ const InventoryCard = ({
 
   return (
     // ระยะห่างระหว่างการ์ดอยู่บนตัวที่รับคลิก ไม่ใช่ที่นี่ ไม่งั้นช่องว่างจะกดได้ด้วย
-    <div className="flex items-center gap-[16px]">
-      <div className="shadow-primary bg-surface flex h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] px-[8px]">
-        <div className="flex min-w-0 flex-1 items-center gap-[8px]">
+    <div className="flex items-center gap-4">
+      <div className="shadow-primary bg-surface flex h-20 w-full items-center justify-between gap-2 rounded-lg px-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <div
             {...(onImageClick && {
               role: "button",
@@ -71,23 +68,20 @@ const InventoryCard = ({
                 onImageClick();
               },
             })}
-            className={`shadow-primary bg-surface flex shrink-0 items-center justify-center rounded-[10px] border border-gray-200 ${
+            className={`shadow-primary bg-surface flex shrink-0 items-center justify-center rounded-lg border border-gray-200 ${
               onImageClick ? "cursor-zoom-in" : ""
             }`}
           >
             {secureUrl ? (
-              <div className="h-[60px] w-[60px]">
+              <div className="h-15 w-15">
                 <img
                   src={secureUrl}
                   alt={name}
-                  className="h-full w-full rounded-[10px] object-cover"
+                  className="h-full w-full rounded-lg object-cover"
                 />
               </div>
             ) : (
-              <div className="text-subtle-light flex h-[60px] w-[60px] items-center justify-center">
-                {/* งานบริการใช้ประแจ ที่เหลือคืออะไหล่
-                    "อะไหล่อื่นๆ" อยู่ในหมวดบริการเพราะเป็นรายการเปล่าไว้พิมพ์ชื่อทับ
-                    แต่ความหมายคืออะไหล่ จึงได้ไอคอนน็อตเหมือนอะไหล่ตัวอื่น */}
+              <div className="text-subtle-light flex h-15 w-15 items-center justify-center">
                 {isDiscountItem({ name }) ? (
                   <TicketPercent className="h-9 w-9" />
                 ) : isService && !isPartLikeItem({ name }) ? (
@@ -108,14 +102,14 @@ const InventoryCard = ({
                   {`จำนวน: ${formatQuantity(quantity)} ${unit}`}
                 </p>
               ) : Number(quantity) === 0 ? (
-                <div className="text-destructive flex items-center gap-[4px] text-base font-semibold md:text-lg">
+                <div className="text-destructive flex items-center gap-1 text-base font-semibold md:text-lg">
                   <AlertTriangle className="text-destructive h-5 w-5" />
                   <p>สต็อกหมด</p>
                 </div>
               ) : minStockLevel !== undefined &&
                 minStockLevel !== null &&
                 Number(quantity) < Number(minStockLevel) ? (
-                <div className="text-status-progress flex items-center gap-[4px] text-base font-semibold md:text-lg">
+                <div className="text-status-progress flex items-center gap-1 text-base font-semibold md:text-lg">
                   <AlertTriangle className="h-5 w-5" />
                   <p className="line-clamp-1">{`จำนวน: ${formatQuantity(quantity)} ${unit || ""}`}</p>
                 </div>

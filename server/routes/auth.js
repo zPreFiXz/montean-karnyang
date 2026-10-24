@@ -1,11 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const { validate, loginSchema } = require("../utils/validator");
+const validate = require("../middlewares/validate");
+const { loginSchema } = require("../utils/schemas");
 
-// Middlewares
 const { authCheck, adminCheck } = require("../middlewares/auth");
 
-// Controllers
 const { login, logout, currentUser } = require("../controllers/auth");
 
 router.post("/login", validate(loginSchema), login);

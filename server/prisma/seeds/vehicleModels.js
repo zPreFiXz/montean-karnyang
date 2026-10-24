@@ -1,5 +1,4 @@
 exports.vehicleModels = [
-  // Toyota
   { brand: "Toyota", model: "Mighty-X" },
   { brand: "Toyota", model: "Tiger" },
   { brand: "Toyota", model: "Vigo" },
@@ -29,7 +28,6 @@ exports.vehicleModels = [
   { brand: "Toyota", model: "Majesty" },
   { brand: "Toyota", model: "Alphard" },
 
-  // Honda
   { brand: "Honda", model: "Brio" },
   { brand: "Honda", model: "Brio Amaze" },
   { brand: "Honda", model: "Jazz" },
@@ -43,14 +41,12 @@ exports.vehicleModels = [
   { brand: "Honda", model: "Freed" },
   { brand: "Honda", model: "Accord" },
 
-  // Isuzu
   { brand: "Isuzu", model: "TFR" },
   { brand: "Isuzu", model: "Dragon Eye" },
   { brand: "Isuzu", model: "D-Max" },
   { brand: "Isuzu", model: "MU-7" },
   { brand: "Isuzu", model: "MU-X" },
 
-  // Nissan
   { brand: "Nissan", model: "Big-M" },
   { brand: "Nissan", model: "Frontier" },
   { brand: "Nissan", model: "Navara" },
@@ -67,7 +63,6 @@ exports.vehicleModels = [
   { brand: "Nissan", model: "X-Trail" },
   { brand: "Nissan", model: "Terra" },
 
-  // Mazda
   { brand: "Mazda", model: "Thunder" },
   { brand: "Mazda", model: "Fighter" },
   { brand: "Mazda", model: "BT-50" },
@@ -78,7 +73,6 @@ exports.vehicleModels = [
   { brand: "Mazda", model: "CX-5" },
   { brand: "Mazda", model: "CX-8" },
 
-  // Mitsubishi
   { brand: "Mitsubishi", model: "L200" },
   { brand: "Mitsubishi", model: "Strada" },
   { brand: "Mitsubishi", model: "Triton" },
@@ -90,14 +84,12 @@ exports.vehicleModels = [
   { brand: "Mitsubishi", model: "Pajero" },
   { brand: "Mitsubishi", model: "Outlander" },
 
-  // Ford
   { brand: "Ford", model: "Ranger" },
   { brand: "Ford", model: "Fiesta" },
   { brand: "Ford", model: "Focus" },
   { brand: "Ford", model: "EcoSport" },
   { brand: "Ford", model: "Everest" },
 
-  // Suzuki
   { brand: "Suzuki", model: "Celerio" },
   { brand: "Suzuki", model: "Swift" },
   { brand: "Suzuki", model: "Ciaz" },
@@ -105,7 +97,6 @@ exports.vehicleModels = [
   { brand: "Suzuki", model: "XL7" },
   { brand: "Suzuki", model: "Carry" },
 
-  // MG
   { brand: "MG", model: "Extender" },
   { brand: "MG", model: "3" },
   { brand: "MG", model: "4" },
@@ -114,7 +105,6 @@ exports.vehicleModels = [
   { brand: "MG", model: "ZS" },
   { brand: "MG", model: "HS" },
 
-  // Chevrolet
   { brand: "Chevrolet", model: "Colorado" },
   { brand: "Chevrolet", model: "Optra" },
   { brand: "Chevrolet", model: "Aveo" },
@@ -123,14 +113,11 @@ exports.vehicleModels = [
   { brand: "Chevrolet", model: "Captiva" },
   { brand: "Chevrolet", model: "Trailblazer" },
 
-  // Hyundai
   { brand: "Hyundai", model: "H-1" },
   { brand: "Hyundai", model: "Staria" },
 
-  // Tata
   { brand: "Tata", model: "Super Ace" },
 
-  // BYD
   { brand: "BYD", model: "Dolphin" },
   { brand: "BYD", model: "Atto 3" },
   { brand: "BYD", model: "M6" },
@@ -139,7 +126,6 @@ exports.vehicleModels = [
   { brand: "BYD", model: "Sealion 6" },
   { brand: "BYD", model: "Sealion 7" },
 
-  // อื่นๆ
   { brand: "อื่นๆ", model: "รถมอเตอร์ไซค์" },
   { brand: "อื่นๆ", model: "รถไถเดินตาม" },
   { brand: "อื่นๆ", model: "รถไถคูโบต้า" },

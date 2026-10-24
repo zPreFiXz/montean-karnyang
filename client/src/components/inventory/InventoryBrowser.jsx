@@ -5,149 +5,57 @@ import { useDebouncedCallback } from "use-debounce";
 import { X } from "lucide-react";
 import InventoryCard from "@/components/cards/InventoryCard";
 import SearchBar from "@/components/forms/SearchBar";
-import CategoryList from "@/components/CategoryList";
+import CategoryList from "@/components/inventory/CategoryList";
 import ComboBox from "@/components/ui/ComboBox";
 import { listInventory } from "@/api/inventory";
 import { listParts } from "@/api/part";
 import { listCategories } from "@/api/category";
 import { toastError } from "@/utils/handleError";
 import { onKeyActivate } from "@/utils/a11y";
-import {
-  sortServices,
-  isNoCategoryItem,
-  NO_CATEGORY_ORDER,
-} from "@/constants/services";
 import { compareSuspensionTypes, getPartType } from "@/utils/suspension";
-import { oilSizeOf } from "@/utils/oil";
+import {
+  groupInventory,
+  NO_CATEGORY_GROUP,
+  oilGroupOf,
+  oilGroupOptions,
+  sortForCategory,
+  uniqSorted,
+} from "@/utils/inventoryGroups";
 import {
   isTireCategoryName,
   OIL_CATEGORY,
   USED_TIRE_CATEGORY,
 } from "@/constants/categories";
 
-const NO_CATEGORY_GROUP = "ไม่มีหมวดหมู่";
-
-// น้ำมันเรียงตามขนาดจากเล็กไปใหญ่ (1L ก่อน) ตัวที่ไม่มีขนาดในชื่อแยกตามชนิดต่อท้าย
-const OIL_TYPE_ORDER = [
-  "แหวนรองน็อต",
-  "โอริงรองน็อต",
-  "น้ำกลั่น",
-  "น้ำมันเกียร์",
-  "น้ำมันเบรก",
-  "น้ำมันพาวเวอร์",
-  "น้ำยาหม้อน้ำ",
-];
-const oilGroupOf = (item) =>
-  oilSizeOf(item) ||
-  OIL_TYPE_ORDER.find((type) => item.name?.startsWith(type)) ||
-  "อื่นๆ";
-const oilGroupRank = (item) => {
-  const size = parseFloat(oilSizeOf(item));
-  if (size) return size;
-  const i = OIL_TYPE_ORDER.indexOf(oilGroupOf(item));
-  return 1e6 + (i === -1 ? OIL_TYPE_ORDER.length : i);
-};
-const byOilSize = (items) =>
-  [...items].sort((a, b) => oilGroupRank(a) - oilGroupRank(b));
-
-// ยางเรียงตามยี่ห้อ A-Z เหมือนตัวเลือกยี่ห้อ ตัวที่ไม่มียี่ห้อไว้ท้ายสุด ในยี่ห้อเดียวกันคงลำดับเดิม
-const NO_BRAND_GROUP = "ไม่ระบุยี่ห้อ";
-const tireBrandOf = (item) => String(item.brand || "").trim() || NO_BRAND_GROUP;
-const byTireBrand = (items) =>
-  [...items].sort((a, b) => {
-    const brandA = tireBrandOf(a);
-    const brandB = tireBrandOf(b);
-    if (brandA === brandB) return 0;
-    if (brandA === NO_BRAND_GROUP) return 1;
-    if (brandB === NO_BRAND_GROUP) return -1;
-    return brandA.localeCompare(brandB, "th");
-  });
-
-// ยางเปอร์เซ็นต์กับยางในลูกค้าถามหาตามขอบ เรียงขอบเล็กไปใหญ่ ตัวที่ไม่มีขอบไว้ท้ายสุด
-// ยางในไม่มีช่องขอบ จึงอ่านจากขนาดในชื่อ (ยางใน 750-16 = ขอบ 16)
-const RIM_GROUP_CATEGORIES = [USED_TIRE_CATEGORY, "ยางใน"];
-const NO_RIM_GROUP = "ไม่ระบุขอบ";
-const rimOf = (item) =>
-  parseFloat(item.attributes?.rimDiameter) ||
-  parseFloat(String(item.name || "").match(/\d-(\d+(?:\.\d+)?)/)?.[1]) ||
-  Infinity;
-const rimGroupOf = (item) =>
-  rimOf(item) === Infinity ? NO_RIM_GROUP : `ขอบ ${rimOf(item)}`;
-const byRim = (items) => [...items].sort((a, b) => rimOf(a) - rimOf(b));
-
-// หมวดที่แบ่งหัวข้อตามคำขึ้นต้นของชื่อ เรียงหัวข้อตามลำดับนี้ ที่ไม่เข้าพวกไปอยู่ "อื่นๆ" ท้ายสุด
-const TYPE_GROUP_ORDER = {
-  เบรก: ["ตะปูเบรก", "กระบอกเบรก", "ผ้าเบรกหน้า", "ก้ามเบรกหลัง"],
-  ไส้กรอง: ["กรองอากาศ", "กรองแอร์"],
-};
-// ชื่อบางตัวสะกด "เบรค" จึงเทียบหลังแปลงเป็น "เบรก"
-const typeGroupOf = (category, item) => {
-  const name = (item.name || "").replace(/เบรค/g, "เบรก");
-  return (
-    TYPE_GROUP_ORDER[category].find((type) => name.startsWith(type)) || "อื่นๆ"
-  );
-};
-const byTypeGroup = (category, items) => {
-  const order = TYPE_GROUP_ORDER[category];
-  const rank = (item) => {
-    const i = order.indexOf(typeGroupOf(category, item));
-    return i === -1 ? order.length : i;
-  };
-  return [...items].sort((a, b) => rank(a) - rank(b));
-};
-
-// ขนาดยางมีสองระบบปนกัน: ตัวเลขเต็ม (195, 205) ที่ใช้กับรถทั่วไป
-// กับทศนิยม (6.50, 7.00) ที่เป็นระบบนิ้วของรถบรรทุก/รถโบราณ ซึ่งเจอไม่บ่อย
-// เรียงตัวเลขเต็มขึ้นก่อนทั้งหมด แล้วดันทศนิยมไว้ท้ายสุด จะได้ไม่แทรกกลางลิสต์ที่ใช้ประจำ
-const isDecimalSize = (value) => /^\d+\.\d+$/.test(value);
-
-const uniqSorted = (arr = []) =>
-  Array.from(new Set(arr)).sort((a, b) => {
-    const decimalDiff = isDecimalSize(a) - isDecimalSize(b);
-    if (decimalDiff !== 0) return decimalDiff;
-
-    return a.localeCompare(b, undefined, { numeric: true });
-  });
-
-// จำผลค้นล่าสุดของแต่ละเงื่อนไขไว้ กลับเข้าหน้าคลังอีกครั้งจะได้มีของโชว์ตั้งแต่เฟรมแรก
-// ไม่ต้องขึ้นตัวโหลดคั่นให้หน้ากระพริบ แล้วค่อยดึงใหม่ทับเงียบๆ
-// อยู่นอกคอมโพเนนต์เพราะต้องอยู่ข้ามการเปลี่ยนหน้า และหายไปเองเมื่อรีเฟรชเบราว์เซอร์
+// จำผลค้นล่าสุดไว้นอกคอมโพเนนต์ กลับเข้าหน้าคลังจะได้มีของโชว์ตั้งแต่เฟรมแรก
 const inventoryCache = new Map();
 const cacheKey = (categoryName, searchTerm, filterParams) =>
   JSON.stringify([categoryName, searchTerm, filterParams]);
-// รายการอะไหล่ (ใช้ทำตัวเลือกตัวกรอง) กับลำดับหมวดหมู่ (ใช้เรียงกลุ่ม) ก็จำไว้เหมือนกัน
-// ไม่งั้นกลับมาหน้านี้แล้วกลุ่มจะสลับที่ทีหลังตอนลำดับหมวดโหลดเสร็จ
+// ไม่จำไว้ กลับมาแล้วกลุ่มจะสลับที่ตอนลำดับหมวดโหลดเสร็จ
 let partsListCache = null;
 let categoryOrderCache = null;
 
-// หน้าคลังกับไดอะล็อกเลือกอะไหล่ลงบิลคือหน้าจอเดียวกัน ต่างแค่ "กดการ์ดแล้วเกิดอะไร"
-// จึงรวมค้นหา/หมวดหมู่/ตัวกรองยาง/การจัดกลุ่ม/ข้อความว่างไว้ที่นี่ที่เดียว
-//
-// syncUrl   = เก็บหมวดหมู่กับคำค้นไว้ใน URL (หน้าคลังใช้ ไดอะล็อกไม่ใช้ ไม่งั้นจะไปเปลี่ยน URL ของหน้าที่เปิดค้างอยู่)
-// reloadToken = เปลี่ยนค่าเมื่อไหร่ก็โหลดรายการใหม่ (เช่น เพิ่มสต็อกเสร็จ หรือเปิดไดอะล็อก)
-// getCardProps = props เพิ่มเติมของการ์ดแต่ละใบ เช่น จำนวนที่เบิกได้ หรือปิดการกดเมื่อของหมด
+// หน้าคลังกับไดอะล็อกเลือกอะไหล่ลงบิลใช้ร่วมกัน
+// syncUrl = เก็บหมวดหมู่กับคำค้นไว้ใน URL (ไดอะล็อกไม่ใช้)
+// reloadToken = เปลี่ยนค่าเมื่อไหร่ก็โหลดรายการใหม่
+// getCardProps = props เพิ่มเติมของการ์ดแต่ละใบ
 const InventoryBrowser = ({
   syncUrl = false,
   headerAction = null,
   onItemClick,
   getCardProps = () => ({}),
   reloadToken,
-  // บอกหน้าที่ใช้ว่ารายการพร้อมแล้ว (หน้าคลังใช้จังหวะนี้คืนตำแหน่งที่เลื่อนค้างไว้)
   onLoadingChange,
-  // { brand, model } ของรถในบิล — มีค่าเมื่อไหร่จะมีสวิตช์ให้กรองเฉพาะอะไหล่ที่ใส่รถคันนั้นได้
   vehicle = null,
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [localCategory, setLocalCategory] = useState("ทั้งหมด");
   const [localSearch, setLocalSearch] = useState("");
 
-  // หน้าคลังเก็บตัวกรองยางไว้ใน URL ด้วย เพื่อให้กลับมาจากหน้าอื่น (เช่นหน้าแก้ไข) แล้วยังกรองค้างอยู่
   const initialTireFilter = (key) =>
     syncUrl ? searchParams.get(key) || "" : "";
 
-  // หยิบผลที่จำไว้ตั้งแต่เฟรมแรก กลับจากหน้าแก้ไขแล้วรายการต้องอยู่ที่เดิมทันที
-  // ถ้ารอไปหยิบใน effect จะมีหนึ่งเฟรมที่เป็นตัวโหลดกับรายการว่าง เห็นเป็นกระพริบ
-  // กุญแจต้องประกอบแบบเดียวกับตอนโหลดจริงด้านล่าง ไม่งั้นจะหาไม่เจอ
+  // กุญแจต้องประกอบแบบเดียวกับตอนโหลดจริงด้านล่าง
   const [initialCached] = useState(() => {
     const startCategory = syncUrl
       ? searchParams.get("category") || "ทั้งหมด"
@@ -175,8 +83,6 @@ const InventoryBrowser = ({
   const [categoryOrder, setCategoryOrder] = useState(categoryOrderCache || []);
   const [isLoading, setIsLoading] = useState(!initialCached);
 
-  // เปิดไว้ก่อนเมื่อรู้รุ่นรถ เพราะส่วนใหญ่ต้องการของที่ใส่ได้จริง แต่ปิดได้ตลอด
-  // (อะไหล่บางตัวใส่ข้ามรุ่นได้ แต่ยังไม่ได้บันทึกรุ่นนั้นไว้)
   const [onlyMatchingVehicle, setOnlyMatchingVehicle] = useState(true);
 
   const [tireBrand, setTireBrand] = useState(() => initialTireFilter("brand"));
@@ -187,9 +93,7 @@ const InventoryBrowser = ({
   const [rimDiameter, setRimDiameter] = useState(() =>
     initialTireFilter("rimDiameter"),
   );
-  // ช่วงล่างมีอะไหล่เป็นร้อยชิ้นแต่แบ่งเป็นชนิดไม่กี่แบบ กรองด้วยชนิดก่อนแล้วค่อยไล่หารุ่นรถ
   const [partType, setPartType] = useState(() => initialTireFilter("partType"));
-  // น้ำมันตัวเดียวกันมีหลายขนาดบรรจุ ส่วนใหญ่หาจากขนาดก่อนว่ามีกี่ลิตร
   const [oilSize, setOilSize] = useState(() => initialTireFilter("oilSize"));
 
   const activeCategory = syncUrl
@@ -198,7 +102,6 @@ const InventoryBrowser = ({
   const search = syncUrl ? searchParams.get("search") : localSearch || null;
   const category = activeCategory === "ทั้งหมด" ? null : activeCategory;
 
-  // ยางเปอร์เซ็นต์ไม่มียี่ห้อ ยี่ห้อที่เลือกค้างมาจากหมวดยางต้องไม่ติดไปกรองจนไม่เหลือสักเส้น
   const isUsedTireCategory = activeCategory === USED_TIRE_CATEGORY;
 
   // เปลี่ยนจากหมวดยางมายางเปอร์เซ็นต์ ล้างยี่ห้อที่เลือกค้างไว้ ไม่งั้นตัวเลือกขนาดจะว่างหมด
@@ -220,7 +123,6 @@ const InventoryBrowser = ({
   const handleFilter = async (categoryName, searchTerm, filterParams = {}) => {
     const key = cacheKey(categoryName, searchTerm, filterParams);
     const cached = inventoryCache.get(key);
-    // มีผลเดิมของเงื่อนไขนี้อยู่แล้วก็โชว์ไปก่อน ไม่ต้องขึ้นตัวโหลด
     if (cached) {
       setInventory(cached);
       setIsLoading(false);
@@ -289,7 +191,6 @@ const InventoryBrowser = ({
     handleFilter(category, search, buildFilterParams());
   }, 500);
 
-  // โหลดใหม่เมื่อเปลี่ยนหมวด/คำค้น หรือถูกสั่งให้รีเฟรช — ตัวกรองยางมีเส้นทางของตัวเอง (debounce)
   useEffect(() => {
     if (!isTireCategoryName(activeCategory)) {
       setTireBrand("");
@@ -299,7 +200,7 @@ const InventoryBrowser = ({
     }
     if (activeCategory !== "ช่วงล่าง") setPartType("");
     if (activeCategory !== OIL_CATEGORY) setOilSize("");
-    // ส่งตัวกรองยางไปด้วยตั้งแต่โหลดครั้งแรก เผื่อกู้คืนมาจาก URL — ไม่งั้นจะเห็นยางทั้งหมดจนกว่าจะแตะตัวกรอง
+    // ส่งตัวกรองยางไปด้วยตั้งแต่ครั้งแรก เผื่อกู้คืนมาจาก URL
     handleFilter(
       category,
       search,
@@ -308,7 +209,6 @@ const InventoryBrowser = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, search, reloadToken]);
 
-  // รายการอะไหล่ทั้งหมดใช้สร้างตัวเลือกของตัวกรองยาง ส่วนลำดับหมวดหมู่ใช้เรียงกลุ่มให้ตรงกับแถบด้านบน
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -335,12 +235,10 @@ const InventoryBrowser = ({
   }, []);
 
   const tireParts = useMemo(
-    // ตัวเลือกของตัวกรองมาจากยางในหมวดที่กำลังดูอยู่ ยางใหม่กับยางเปอร์เซ็นต์จึงไม่ปนกัน
     () => partsList.filter((p) => p?.category?.name === activeCategory),
     [partsList, activeCategory],
   );
 
-  // ชนิดอะไหล่ช่วงล่างที่มีอยู่จริงในคลัง เรียงตามลำดับที่ช่างไล่ตรวจ เหมือนหน้าเช็กช่วงล่าง
   const partTypeOptions = useMemo(() => {
     const types = partsList
       .filter((p) => p?.category?.name === "ช่วงล่าง")
@@ -349,12 +247,7 @@ const InventoryBrowser = ({
     return Array.from(new Set(types)).sort(compareSuspensionTypes);
   }, [partsList]);
 
-  // ขนาดบรรจุของน้ำมันที่มีอยู่จริงในคลัง เรียงจากขวดเล็กไปใหญ่
-  // ตัวเลือกตรงกับหัวข้อที่แบ่งไว้ในหมวดน้ำมัน (ขนาดก่อน แล้วตามด้วยชนิด)
-  const oilSizeOptions = useMemo(() => {
-    const oils = partsList.filter((p) => p?.category?.name === OIL_CATEGORY);
-    return [...new Set(byOilSize(oils).map(oilGroupOf))];
-  }, [partsList]);
+  const oilSizeOptions = useMemo(() => oilGroupOptions(partsList), [partsList]);
 
   // ตัวเลือกของแต่ละช่องกรองด้วย "ช่องอื่นทั้งหมด" ยกเว้นตัวเอง เพื่อให้เลือกช่องไหนก่อนก็ได้
   const matchesExcept = (p, except, sel) =>
@@ -398,14 +291,11 @@ const InventoryBrowser = ({
     };
   }, [tireParts, width, aspectRatio, rimDiameter, tireBrand]);
 
-  // ซ่อนสวิตช์เมื่อของที่แสดงอยู่ไม่มีตัวไหนผูกกับรุ่นรถเลย (เช่นหมวดยาง)
-  // กดแล้วรายการเท่าเดิมจะชวนให้คิดว่าระบบเสีย
   const hasVehicleFilter =
     !!(vehicle?.brand && vehicle?.model) &&
     inventory.some((item) => item.compatibleVehicles?.length > 0);
 
-  // ซ่อนเฉพาะอะไหล่ที่ "ระบุรุ่นรถไว้แล้วและไม่มีรุ่นนี้" — ของที่ยังไม่ได้ระบุจะไม่ถูกซ่อน
-  // ไม่งั้นอะไหล่ที่ยังไม่ได้กรอกข้อมูลรถ (เช่น น้ำมันเครื่อง) จะหายไปทั้งที่ใช้ได้กับทุกคัน
+  // ซ่อนเฉพาะอะไหล่ที่ระบุรุ่นรถไว้และไม่มีรุ่นนี้ ของที่ไม่ได้ระบุ (เช่นน้ำมัน) ใช้ได้ทุกคัน
   const matchesVehicle = (item) => {
     const list = item.compatibleVehicles;
     if (!Array.isArray(list) || list.length === 0) return true;
@@ -422,7 +312,6 @@ const InventoryBrowser = ({
       ? inventory.filter(matchesVehicle)
       : inventory;
 
-  // ชนิดอะไหล่ไม่ได้เก็บเป็นฟิลด์ จึงกรองฝั่งหน้าเว็บจากชื่อ ไม่ได้ส่งไปให้เซิร์ฟเวอร์กรอง
   const filteredByPartType =
     activeCategory === "ช่วงล่าง" && partType
       ? filteredByVehicle.filter((item) => getPartType(item.name) === partType)
@@ -433,96 +322,11 @@ const InventoryBrowser = ({
       ? filteredByPartType.filter((item) => oilGroupOf(item) === oilSize)
       : filteredByPartType;
 
-  // "อะไหล่อื่นๆ" กับ "ส่วนลด" ไม่ใช่บริการของร้าน เป็นบรรทัดเปล่าไว้ใส่ในบิล
-  // จึงไม่อยู่ในหมวดไหน โผล่เฉพาะตอนดูทั้งหมด แล้ววางไว้เหนือกลุ่มบริการ
-  // ช่วงล่างเรียงตามชนิดตามลำดับที่ช่างไล่ตรวจ (ลูกหมากปีกนกบนก่อน) ในชนิดเดียวกันคงลำดับเดิมจากเซิร์ฟเวอร์
-  const bySuspensionType = (items) =>
-    [...items].sort((a, b) =>
-      compareSuspensionTypes(getPartType(a.name), getPartType(b.name)),
-    );
-
-  const visibleInventory = (
-    activeCategory === "บริการ"
-      ? sortServices(filteredByOilSize)
-      : activeCategory === "ช่วงล่าง"
-        ? bySuspensionType(filteredByOilSize)
-        : activeCategory === OIL_CATEGORY
-          ? byOilSize(filteredByOilSize)
-          : TYPE_GROUP_ORDER[activeCategory]
-            ? byTypeGroup(activeCategory, filteredByOilSize)
-            : activeCategory === "ยาง"
-              ? byTireBrand(filteredByOilSize)
-              : RIM_GROUP_CATEGORIES.includes(activeCategory)
-                ? byRim(filteredByOilSize)
-                : filteredByOilSize
-  ).filter((item) => activeCategory === "ทั้งหมด" || !isNoCategoryItem(item));
-
-  // หมวด "ทั้งหมด" แยกหัวข้อตามหมวดหมู่ เรียงกลุ่มให้ตรงกับแถบหมวดหมู่ด้านบน
-  // ช่วงล่าง เบรก ไส้กรองแยกหัวข้อตามชนิด ยางแยกตามยี่ห้อ ยางเปอร์เซ็นต์กับยางในแยกตามขอบ น้ำมันแยกตามขนาด ลำดับกลุ่มมาจากที่เรียงไว้แล้วใน visibleInventory
-  const inventoryGroups = useMemo(() => {
-    const groupKeyOf =
-      activeCategory === "ช่วงล่าง"
-        ? (item) => getPartType(item.name)
-        : activeCategory === OIL_CATEGORY
-          ? oilGroupOf
-          : TYPE_GROUP_ORDER[activeCategory]
-            ? (item) => typeGroupOf(activeCategory, item)
-            : activeCategory === "ยาง"
-              ? tireBrandOf
-              : RIM_GROUP_CATEGORIES.includes(activeCategory)
-                ? rimGroupOf
-                : null;
-    if (groupKeyOf) {
-      const groups = new Map();
-      for (const item of visibleInventory) {
-        const key = groupKeyOf(item);
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key).push(item);
-      }
-      return [...groups.entries()].map(([name, items]) => ({ name, items }));
-    }
-
-    if (activeCategory !== "ทั้งหมด") return null;
-
-    const groups = new Map();
-    for (const item of visibleInventory) {
-      const name = isNoCategoryItem(item)
-        ? NO_CATEGORY_GROUP
-        : item.category?.name || "อื่นๆ";
-      if (!groups.has(name)) groups.set(name, []);
-      groups.get(name).push(item);
-    }
-
-    const rank = (name) => {
-      // กลุ่มไม่มีหมวดหมู่เกาะอยู่เหนือบริการเสมอ ไม่ได้อยู่ในลำดับของแถบหมวดหมู่
-      if (name === NO_CATEGORY_GROUP) return rank("บริการ") - 0.5;
-      const i = categoryOrder.indexOf(name);
-      return i === -1 ? categoryOrder.length : i;
-    };
-
-    return [...groups.entries()]
-      .map(([name, items]) => ({
-        name,
-        // บริการเรียงตามลำดับที่ร้านหยิบใช้บ่อย ไม่ใช่ตามที่เซิร์ฟเวอร์ส่งมา
-        items:
-          name === "บริการ"
-            ? sortServices(items)
-            : name === "ช่วงล่าง"
-              ? bySuspensionType(items)
-              : name === OIL_CATEGORY
-                ? byOilSize(items)
-                : TYPE_GROUP_ORDER[name]
-                  ? byTypeGroup(name, items)
-                  : name === NO_CATEGORY_GROUP
-                    ? [...items].sort(
-                        (a, b) =>
-                          NO_CATEGORY_ORDER.indexOf(a.name) -
-                          NO_CATEGORY_ORDER.indexOf(b.name),
-                      )
-                    : items,
-      }))
-      .sort((a, b) => rank(a.name) - rank(b.name));
-  }, [visibleInventory, activeCategory, categoryOrder]);
+  const visibleInventory = sortForCategory(activeCategory, filteredByOilSize);
+  const inventoryGroups = useMemo(
+    () => groupInventory(activeCategory, visibleInventory, categoryOrder),
+    [visibleInventory, activeCategory, categoryOrder],
+  );
 
   const hasTireFilter = !!(
     width ||
@@ -531,8 +335,7 @@ const InventoryBrowser = ({
     (!isUsedTireCategory && tireBrand)
   );
 
-  // ไม่มีตัวเลือกให้เลือก = ปิดช่องไว้ (เช่น 195R14 ไม่มีแก้มยาง) แต่ถ้าเลือกค่าไว้แล้ว
-  // ต้องเปิดไว้เสมอ ไม่งั้นผู้ใช้จะแก้หรือล้างค่านั้นไม่ได้
+  // เลือกค่าไว้แล้วต้องเปิดไว้เสมอ ไม่งั้นแก้หรือล้างค่านั้นไม่ได้
   const isFilterLocked = (options, value) => options.length === 0 && !value;
 
   const handleResetTireFilter = () => {
@@ -549,19 +352,15 @@ const InventoryBrowser = ({
     });
   };
 
-  // บอกให้ตรงกับสิ่งที่ผู้ใช้กำลังหาอยู่ ไม่งั้นจะเข้าใจผิดว่าคลังว่างทั้งที่แค่คำค้น/ตัวกรองไม่ตรง
   const getEmptyMessage = () => {
     if (hasVehicleFilter && onlyMatchingVehicle) {
       return `ไม่พบอะไหล่ที่ใส่กับ ${vehicle.brand} ${vehicle.model} ได้`;
     }
     if (search) {
-      // ตัดกันตกบรรทัด — คำค้นอาจยาวเกินได้ถ้าใส่มาทาง URL ตรงๆ
       const term = search.length > 20 ? `${search.slice(0, 20)}…` : search;
       return `ไม่พบ "${term}"`;
     }
-    // ตัวเลือกยางไล่กรองกันเอง เลือกจากดรอปดาวน์ยังไงก็เจอเสมอ — เหลือไว้เผื่อเปิดจาก URL ที่ระบุค่ามาเอง
     if (hasTireFilter) return "ไม่พบยางตามเงื่อนไขที่เลือก";
-    // ไม่เอาชื่อหมวดมาต่อ: หัวข้อด้านบนบอกอยู่แล้ว และหมวดชื่อยาวจะทำให้ข้อความตกบรรทัด
     if (activeCategory !== "ทั้งหมด") return "ไม่มีรายการในหมวดนี้";
     return "ไม่มีอะไหล่และบริการ";
   };
@@ -576,7 +375,7 @@ const InventoryBrowser = ({
         aria-disabled={disabled || undefined}
         onKeyDown={onKeyActivate(() => !disabled && onItemClick?.(item))}
         onClick={() => !disabled && onItemClick?.(item)}
-        className={`mt-[16px] rounded-[10px] ${
+        className={`mt-4 rounded-lg ${
           disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
         }`}
       >
@@ -648,16 +447,16 @@ const InventoryBrowser = ({
           type="button"
           onClick={() => setOnlyMatchingVehicle((v) => !v)}
           aria-pressed={onlyMatchingVehicle}
-          className="mt-[16px] flex cursor-pointer items-center gap-[8px] self-start"
+          className="mt-4 flex cursor-pointer items-center gap-2 self-start"
         >
           <span
-            className={`flex h-[22px] w-[38px] shrink-0 items-center rounded-full p-[3px] duration-300 ${
+            className={`flex h-5.5 w-9.5 shrink-0 items-center rounded-full p-[3px] duration-300 ${
               onlyMatchingVehicle ? "bg-primary" : "bg-gray-300"
             }`}
           >
             <span
-              className={`bg-surface h-[16px] w-[16px] rounded-full duration-300 ${
-                onlyMatchingVehicle ? "translate-x-[16px]" : "translate-x-0"
+              className={`bg-surface h-4 w-4 rounded-full duration-300 ${
+                onlyMatchingVehicle ? "translate-x-4" : "translate-x-0"
               }`}
             />
           </span>
@@ -673,13 +472,11 @@ const InventoryBrowser = ({
 
       {isTireCategoryName(activeCategory) && (
         <div
-          className={`mt-[16px] flex w-full flex-col ${isUsedTireCategory ? "" : "gap-[12px]"}`}
+          className={`mt-4 flex w-full flex-col ${isUsedTireCategory ? "" : "gap-3"}`}
         >
           <div>
-            {/* ยางเปอร์เซ็นต์เป็นยางเก่าคละยี่ห้อ ไม่ได้เก็บยี่ห้อไว้ จึงกรองได้แค่ขนาด ไม่มีหัวข้อ
-                แต่แถวนี้ยังสูงเท่าเดิมตลอด (หัวข้อล่องหนค้ำไว้) ปุ่มล้างตัวกรองโผล่แล้วช่องขนาดจะไม่เลื่อนลง
-                ไม่งั้นเลือกหน้ายางเสร็จ ช่องแก้มยางขยับหนีนิ้วที่กำลังจะกด */}
-            <div className="mb-[8px] flex items-center justify-between">
+            {/* แถวนี้สูงเท่าเดิมตลอด (หัวข้อล่องหนค้ำไว้) ไม่งั้นช่องขนาดจะขยับหนีนิ้วตอนปุ่มล้างโผล่ */}
+            <div className="mb-2 flex items-center justify-between">
               <span
                 aria-hidden={isUsedTireCategory}
                 className={`text-xl font-medium md:text-[22px] ${
@@ -692,7 +489,7 @@ const InventoryBrowser = ({
                 <button
                   type="button"
                   onClick={handleResetTireFilter}
-                  className="text-destructive flex cursor-pointer items-center gap-[4px] text-lg font-semibold md:text-xl"
+                  className="text-destructive flex cursor-pointer items-center gap-1 text-lg font-semibold md:text-xl"
                 >
                   <X className="h-4 w-4" />
                   ล้างตัวกรอง
@@ -714,7 +511,7 @@ const InventoryBrowser = ({
             )}
           </div>
 
-          <div className="flex items-end gap-[8px]">
+          <div className="flex items-end gap-2">
             {tireFilterField("หน้ายาง", widthOptions, width, setWidth, "มม.")}
             {separator("/")}
             {tireFilterField(
@@ -737,14 +534,14 @@ const InventoryBrowser = ({
       )}
 
       {activeCategory === "ช่วงล่าง" && (
-        <div className="mt-[16px] w-full">
-          <div className="mb-[8px] flex items-center justify-between">
+        <div className="mt-4 w-full">
+          <div className="mb-2 flex items-center justify-between">
             <span className="text-xl font-medium md:text-[22px]">ประเภท</span>
             {partType && (
               <button
                 type="button"
                 onClick={() => setPartType("")}
-                className="text-destructive flex cursor-pointer items-center gap-[4px] text-lg font-semibold md:text-xl"
+                className="text-destructive flex cursor-pointer items-center gap-1 text-lg font-semibold md:text-xl"
               >
                 <X className="h-4 w-4" />
                 ล้างตัวกรอง
@@ -763,14 +560,14 @@ const InventoryBrowser = ({
       )}
 
       {activeCategory === OIL_CATEGORY && oilSizeOptions.length > 0 && (
-        <div className="mt-[16px] w-full">
-          <div className="mb-[8px] flex items-center justify-between">
+        <div className="mt-4 w-full">
+          <div className="mb-2 flex items-center justify-between">
             <span className="text-xl font-medium md:text-[22px]">ประเภท</span>
             {oilSize && (
               <button
                 type="button"
                 onClick={() => setOilSize("")}
-                className="text-destructive flex cursor-pointer items-center gap-[4px] text-lg font-semibold md:text-xl"
+                className="text-destructive flex cursor-pointer items-center gap-1 text-lg font-semibold md:text-xl"
               >
                 <X className="h-4 w-4" />
                 ล้างตัวกรอง
@@ -787,15 +584,13 @@ const InventoryBrowser = ({
         </div>
       )}
 
-      <div className="mt-[16px] flex items-center justify-between gap-[8px]">
-        {/* min-w-0 + truncate: จอแคบให้หัวข้อย่อด้วย ... ไม่ใช่ไปดันปุ่มขวาให้ตกบรรทัด */}
-        <div className="flex min-w-0 items-center gap-[6px]">
+      <div className="mt-4 flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-1.5">
           <p className="truncate text-xl font-semibold md:text-[22px]">
             {activeCategory === "ทั้งหมด"
               ? "รายการอะไหล่และบริการ"
               : activeCategory}
           </p>
-          {/* ไม่มีสักรายการก็ไม่ต้องขึ้น เพราะข้อความกลางจอบอกอยู่แล้วว่าไม่มีอะไร */}
           {!isLoading && visibleInventory.length > 0 && (
             <span className="text-subtle-light shrink-0 text-lg font-medium md:text-xl">
               ({visibleInventory.length})
@@ -809,16 +604,15 @@ const InventoryBrowser = ({
         <PageSpinner />
       ) : visibleInventory.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
-          <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">
+          <p className="text-subtle-light px-5 text-center text-xl text-balance md:text-[22px]">
             {getEmptyMessage()}
           </p>
         </div>
       ) : inventoryGroups ? (
         inventoryGroups.map((group) => (
           <div key={group.name}>
-            {/* กลุ่มไม่มีหมวดหมู่ไม่ต้องมีหัวข้อ การ์ดบอกตัวเองอยู่แล้วว่าคืออะไร */}
             {group.name !== NO_CATEGORY_GROUP && (
-              <div className="mt-[16px] flex items-center gap-[8px]">
+              <div className="mt-4 flex items-center gap-2">
                 <p className="text-subtle-dark text-lg font-semibold md:text-xl">
                   {group.name}
                 </p>

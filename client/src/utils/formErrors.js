@@ -1,6 +1,4 @@
-// ข้อความผิดพลาดชิ้นแรกจากโครงสร้าง errors ของฟอร์ม
-// errors ซ้อนกันได้หลายชั้น (เช่น attributes.width หรือ tireLots[0].quantity)
-// จึงไล่ลงไปจนเจอ message แรก แทนที่จะอ่านเฉพาะชั้นบนสุด
+// errors ซ้อนได้หลายชั้น (attributes.width, tireLots[0].quantity) จึงไล่หา message แรก
 export const firstErrorMessage = (errors) => {
   if (!errors || typeof errors !== "object") return null;
   if (typeof errors.message === "string" && errors.message) {

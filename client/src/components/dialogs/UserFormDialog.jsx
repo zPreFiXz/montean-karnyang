@@ -124,10 +124,10 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
           onClose={handleClose}
         />
 
-        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px]">
+        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5">
           <form
             onSubmit={handleSubmit(editingItem ? handleEdit : handleAdd)}
-            className="space-y-[16px]"
+            className="space-y-4"
           >
             <div>
               <FormInput
@@ -136,7 +136,7 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
                 label="ชื่อ"
                 placeholder="เช่น ภูมิ"
                 errors={errors}
-                customClass="px-0 pb-[16px]"
+                customClass="px-0 pb-4"
                 color="subtle-dark"
                 autoFocus={false}
               />
@@ -148,7 +148,7 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
                 type="email"
                 placeholder="example@gmail.com"
                 errors={errors}
-                customClass="px-0 pb-[16px]"
+                customClass="px-0 pb-4"
                 color="subtle-dark"
                 readOnly={Boolean(editingItem)}
                 inputMode={editingItem ? "none" : "email"}
@@ -163,13 +163,13 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
                 type={isPasswordVisible ? "text" : "password"}
                 placeholder="••••••••"
                 errors={errors}
-                customClass="px-0 pb-[16px]"
+                customClass="px-0 pb-4"
                 color="subtle-dark"
                 rightSlot={
                   <button
                     type="button"
                     onClick={() => setIsPasswordVisible((v) => !v)}
-                    className="text-subtle-light mt-[8px] cursor-pointer hover:text-gray-600"
+                    className="text-subtle-light mt-2 cursor-pointer hover:text-gray-600"
                     aria-label={
                       isPasswordVisible ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"
                     }
@@ -191,13 +191,13 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
                 type={isConfirmPasswordVisible ? "text" : "password"}
                 placeholder="••••••••"
                 errors={errors}
-                customClass="px-0 mb-[4px]"
+                customClass="px-0 mb-1"
                 color="subtle-dark"
                 rightSlot={
                   <button
                     type="button"
                     onClick={() => setIsConfirmPasswordVisible((v) => !v)}
-                    className="text-subtle-light mt-[8px] cursor-pointer hover:text-gray-600"
+                    className="text-subtle-light mt-2 cursor-pointer hover:text-gray-600"
                     aria-label={
                       isConfirmPasswordVisible ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"
                     }
@@ -212,7 +212,7 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
                 autoFocus={false}
               />
 
-              <div className="mb-[4px] px-0">
+              <div className="mb-1 px-0">
                 <ComboBox
                   label="บทบาท"
                   color="text-subtle-dark"
@@ -238,8 +238,8 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
           </form>
         </div>
 
-        <div className="flex-shrink-0 px-[16px] pb-[16px]">
-          <div className="flex gap-[16px]">
+        <div className="flex-shrink-0 px-4 pb-4">
+          <div className="flex gap-4">
             <FormButton
               label={editingItem ? "บันทึก" : "เพิ่มบัญชีผู้ใช้งาน"}
               isLoading={isSubmitting}

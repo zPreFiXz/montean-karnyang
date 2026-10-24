@@ -1,4 +1,4 @@
-import apiClient from "./apiClient";
+import apiClient from "@/api/apiClient";
 
 export const uploadImage = async (imageBase64) => {
   return await apiClient.post("/images", { image: imageBase64 });

@@ -7,8 +7,6 @@ import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
 import { isPartLikeItem } from "@/constants/services";
 import { formatProductName } from "@/utils/tireSize";
 
-// การ์ดในหน้าต่างเลือกรายการตัดชื่อที่ 2 บรรทัด กดรูปเพื่อดูชื่อเต็มก่อนเลือก
-// หน้าตาเดียวกับรายละเอียดอะไหล่ในหน้าคลัง แต่เหลือแค่ที่ใช้ตัดสินใจเลือก
 // quantity = จำนวนที่เบิกได้ในบิลนี้ (null = ไม่ต้องบอก เช่น บริการ)
 const ItemPreviewDialog = ({ item, quantity, canPick, onPick, onClose }) => {
   const category = item?.category?.name;
@@ -43,16 +41,16 @@ const ItemPreviewDialog = ({ item, quantity, canPick, onPick, onClose }) => {
         />
 
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto">
-          <div className="flex-1 px-[20px] pb-[16px]">
-            <div className="mb-[16px]">
+          <div className="flex-1 px-5 pb-4">
+            <div className="mb-4">
               <h2 className="text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">
                 {fullName}
               </h2>
 
               {quantity != null && (
-                <div className="mt-[16px] flex justify-center">
+                <div className="mt-4 flex justify-center">
                   <div
-                    className={`text-surface ${stockStatus.color} flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-[24px] text-base font-semibold md:text-lg`}
+                    className={`text-surface ${stockStatus.color} flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-6 text-base font-semibold md:text-lg`}
                   >
                     <stockStatus.Icon className="h-4 w-4" />
                     {stockStatus.label}
@@ -62,8 +60,8 @@ const ItemPreviewDialog = ({ item, quantity, canPick, onPick, onClose }) => {
             </div>
 
             {item?.secureUrl && (
-              <div className="mb-[16px] flex justify-center">
-                <div className="border-input flex aspect-square w-full max-w-[280px] items-center justify-center overflow-hidden rounded-[20px] border-2">
+              <div className="mb-4 flex justify-center">
+                <div className="border-input flex aspect-square w-full max-w-70 items-center justify-center overflow-hidden rounded-[20px] border-2">
                   <img
                     src={item.secureUrl}
                     alt={item.name}
@@ -75,7 +73,7 @@ const ItemPreviewDialog = ({ item, quantity, canPick, onPick, onClose }) => {
 
             {item?.description && <DescriptionNote text={item.description} />}
 
-            <div className="mt-[16px] space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
+            <div className="mt-4 space-y-2 rounded-lg bg-gray-50 p-4">
               {!isService && item?.partNumber && (
                 <div className="flex justify-between">
                   <p className="text-subtle-dark text-lg font-medium md:text-xl">
@@ -98,7 +96,7 @@ const ItemPreviewDialog = ({ item, quantity, canPick, onPick, onClose }) => {
           </div>
         </div>
 
-        <div className="flex-shrink-0 px-[16px] pb-[16px]">
+        <div className="flex-shrink-0 px-4 pb-4">
           <button
             onClick={onPick}
             disabled={!canPick}

@@ -32,8 +32,7 @@ exports.createCategory = async (req, res) => {
 exports.deleteCategory = async (req, res) => {
   const { id } = req.params;
 
-  // อะไหล่กับบริการต้องมีหมวดหมู่เสมอ ลบหมวดหมู่ทิ้งของที่อยู่ในนั้นจะไม่มีที่อยู่
-  // (ฐานข้อมูลปฏิเสธให้อยู่แล้ว แต่ข้อความที่ได้กลางเกินไป จึงเช็กเองเพื่อบอกเหตุผลจริง)
+  // ฐานข้อมูลปฏิเสธอยู่แล้ว แต่ข้อความกลางเกินไป จึงเช็กเองเพื่อบอกเหตุผล
   const [partInCategory, serviceInCategory] = await Promise.all([
     prisma.part.findFirst({ where: { categoryId: Number(id) } }),
     prisma.service.findFirst({ where: { categoryId: Number(id) } }),

@@ -1,15 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const {
-  validate,
-  repairSchema,
-  updateRepairStatusSchema,
-} = require("../utils/validator");
+const validate = require("../middlewares/validate");
+const { repairSchema, updateRepairStatusSchema } = require("../utils/schemas");
 
-// Middlewares
 const { authCheck } = require("../middlewares/auth");
 
-// Controllers
 const {
   listRepairs,
   getRepair,

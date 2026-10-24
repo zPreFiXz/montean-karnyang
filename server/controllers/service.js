@@ -74,9 +74,7 @@ exports.updateService = async (req, res) => {
       },
     });
 
-    // ชื่อในบิลเก่าตามชื่อในคลัง แบบเดียวกับอะไหล่ (ดู updatePart)
-    // เปลี่ยนเฉพาะบรรทัดที่ยังเป็นชื่อเดิมตรงตัว บรรทัดที่ถูกพิมพ์ชื่อทับในบิลไว้คงไว้ตามที่คนเขียน
-    // อยู่ใน transaction เดียวกัน ถ้าเปลี่ยนชื่อในบิลไม่สำเร็จ บริการก็ไม่ถูกแก้ด้วย
+    // ชื่อในบิลตามชื่อในคลัง เปลี่ยนเฉพาะบรรทัดที่ยังเป็นชื่อเดิมตรงตัว (ดู updatePart)
     if (before && before.name !== name) {
       await tx.repairItem.updateMany({
         where: { serviceId: Number(id), itemName: before.name },
@@ -91,8 +89,7 @@ exports.updateService = async (req, res) => {
 exports.deleteService = async (req, res) => {
   const { id } = req.params;
 
-  // บิลเก่าอ้างถึงบริการตัวนี้อยู่ ถ้าลบทิ้งข้อมูลในบิลจะขาดหาย
-  // (ความสัมพันธ์ตั้งไว้ให้ตัดเป็นค่าว่าง ไม่ได้ห้ามลบเอง จึงต้องกันที่ตรงนี้)
+  // ความสัมพันธ์ตั้งไว้ให้ตัดเป็นค่าว่าง ไม่ได้ห้ามลบ จึงต้องกันตรงนี้ ไม่งั้นข้อมูลในบิลเก่าจะขาด
   const usedInRepair = await prisma.repairItem.findFirst({
     where: { serviceId: Number(id) },
   });

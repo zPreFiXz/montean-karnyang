@@ -1,13 +1,11 @@
 import { Label } from "@radix-ui/react-label";
-import { Input } from "../ui/input";
+import { Input } from "@/components/ui/input";
 import { useEffect, useState, useId, useCallback } from "react";
 import { ImageIcon, X, Upload } from "lucide-react";
 import { toast } from "sonner";
 
-// เพดานของ "ไฟล์ต้นฉบับที่ผู้ใช้เลือก" — กันแค่ไฟล์ใหญ่ผิดปกติ
-// รูปถูกย่อเหลือ 720x720 ก่อนส่ง (resizeImage) เหลือราว 100-250KB
-// ถ้าตั้งไว้ที่ 1MB รูปจากกล้องมือถือ (2-5MB) จะถูกปฏิเสธตั้งแต่ยังไม่ทันได้ย่อ
-// หมายเหตุ: server มีเพดานของตัวเองที่ ~5MB แต่วัด "หลังย่อ" จึงเป็นคนละค่ากันโดยตั้งใจ
+// เพดานของไฟล์ต้นฉบับ รูปถูกย่อเหลือ 720x720 ก่อนส่ง
+// เซิร์ฟเวอร์มีเพดาน ~5MB ที่วัดหลังย่อ จึงเป็นคนละค่ากันโดยตั้งใจ
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
@@ -156,12 +154,12 @@ const FormUploadImage = ({
   };
 
   return (
-    <div className="w-full px-[20px] pt-[16px]">
+    <div className="w-full px-5 pt-4">
       <Label htmlFor={inputId} className="text-subtle-dark text-xl font-medium">
         {label}
       </Label>
 
-      <div className="mt-[8px] flex items-center justify-center">
+      <div className="mt-2 flex items-center justify-center">
         <Input
           type="file"
           accept="image/png,image/jpeg,image/webp"
@@ -177,8 +175,7 @@ const FormUploadImage = ({
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          // เส้นประ = ที่ว่างรอไฟล์ พอมีรูปแล้วเปลี่ยนเป็นเส้นทึบเพราะไม่ใช่ที่ว่างอีก
-          className={`group bg-surface relative flex aspect-square w-full max-w-[280px] flex-col items-center justify-center overflow-hidden rounded-[20px] border-2 transition-colors ${
+          className={`group bg-surface relative flex aspect-square w-full max-w-70 flex-col items-center justify-center overflow-hidden rounded-[20px] border-2 transition-colors ${
             isDragging
               ? "border-primary bg-primary/5 border-dashed"
               : previewImage
@@ -206,18 +203,15 @@ const FormUploadImage = ({
             <div className="flex flex-col items-center justify-center">
               {isDragging ? (
                 <>
-                  <Upload className="text-primary mb-[8px] h-[48px] w-[48px]" />
-                  {/* ต้องขนาด/ความหนาเท่ากับ "เลือกรูปภาพ" เพราะสลับที่กันตรงตำแหน่งเดิม */}
-                  <p className="text-primary mb-[4px] text-lg font-semibold md:text-xl">
+                  <Upload className="text-primary mb-2 h-12 w-12" />
+                  <p className="text-primary mb-1 text-lg font-semibold md:text-xl">
                     วางรูปภาพที่นี่
                   </p>
                 </>
               ) : (
                 <>
-                  {/* ไอคอนกับข้อความใช้สีหลักคู่กันเป็นก้อนเดียว = "ตรงนี้กดได้"
-                      ส่วนข้อจำกัดคงสีจางไว้ ได้ลำดับชั้น 3 ระดับในกรอบเดียว */}
-                  <ImageIcon className="text-primary mb-[8px] h-[48px] w-[48px]" />
-                  <p className="text-primary mb-[4px] text-lg font-semibold md:text-xl">
+                  <ImageIcon className="text-primary mb-2 h-12 w-12" />
+                  <p className="text-primary mb-1 text-lg font-semibold md:text-xl">
                     {placeholder}
                   </p>
                   <p className="text-subtle-light text-sm md:text-base">

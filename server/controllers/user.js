@@ -100,8 +100,7 @@ exports.updateUser = async (req, res) => {
 exports.deleteUser = async (req, res) => {
   const { id } = req.params;
 
-  // งานซ่อมต้องรู้ว่าใครเป็นคนสร้าง ถ้าลบบัญชีทิ้งงานเก่าจะไม่มีเจ้าของ
-  // (ฐานข้อมูลปฏิเสธให้อยู่แล้ว แต่ข้อความที่ได้กลางเกินไป จึงเช็กเองเพื่อบอกเหตุผลจริง)
+  // ฐานข้อมูลปฏิเสธอยู่แล้ว แต่ข้อความกลางเกินไป จึงเช็กเองเพื่อบอกเหตุผล
   const openedRepair = await prisma.repair.findFirst({
     where: { userId: Number(id) },
   });

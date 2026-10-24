@@ -1,14 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useFieldArray } from "react-hook-form";
 import { Plus, Trash2 } from "lucide-react";
-import { Input } from "../ui/input";
-import FieldErrorList from "./FieldErrorList";
-import CollapsibleRow from "../ui/CollapsibleRow";
+import { Input } from "@/components/ui/input";
+import FieldErrorList from "@/components/forms/FieldErrorList";
+import CollapsibleRow from "@/components/ui/CollapsibleRow";
 import { scrollToNewRow } from "@/utils/scrollToNewRow";
 
-// สัปดาห์/ปีผลิต: แต่ละแถวคือ DOT (WWYY 4 หลัก) + จำนวน — สต็อกรวม = ผลรวมทุกแถว
-// allowEmpty: ยางที่ขายหมดแล้วไม่มีล็อตเหลืออยู่จริง (backend ลบล็อตทิ้งเมื่อตัดสต็อกจนหมด)
-// จึงต้องยอมให้ไม่มีแถวเลย ไม่งั้นจะแก้ราคาหรือชื่อรุ่นไม่ได้จนกว่าจะกรอก DOT ปลอม
+// allowEmpty: ยางที่ขายหมดไม่มีล็อตเหลือ (backend ลบทิ้ง) ต้องยอมให้ไม่มีแถว ไม่งั้นแก้ราคาไม่ได้
 const TireLotInput = ({
   control,
   register,
@@ -17,21 +15,17 @@ const TireLotInput = ({
   allowEmpty,
   unit: unitProp,
   heading = "สัปดาห์/ปีผลิต",
-  // ค่าเริ่มต้นเท่ากับหัวข้อช่องอื่นในฟอร์มหน้าเต็ม ไดอะล็อกใช้ขนาดเล็กกว่าจึงส่งมาทับ
   headingClass = "text-xl",
-  className = "mt-[16px] px-[20px]",
+  className = "mt-4 px-5",
 }) => {
   const { fields, append, remove } = useFieldArray({
     control,
     name: "tireLots",
   });
-  // แถวที่กำลังยุบตัวก่อนหายจริง (ดู CollapsibleRow)
   const [leavingId, setLeavingId] = useState(null);
   const rowRefs = useRef([]);
 
-  // ปกติบังคับอย่างน้อย 1 แถว จึงเตรียมแถวว่างไว้ให้เลย ผู้ใช้จะได้ไม่เจอ
-  // "กรุณาเพิ่มอย่างน้อย 1 รายการ" ทั้งที่ยังไม่มีอะไรให้กรอก
-  // (หน้าแก้ไขโหลดข้อมูลเสร็จก่อนคอมโพเนนต์นี้ถูกวาด แถวเดิมจึงอยู่ครบแล้ว ไม่งอกเกิน)
+  // เตรียมแถวว่างไว้ให้ (หน้าแก้ไขโหลดข้อมูลเสร็จก่อนคอมโพเนนต์ถูกวาด แถวเดิมจึงครบแล้ว)
   const didInit = useRef(false);
   useEffect(() => {
     if (didInit.current) return;
@@ -52,7 +46,7 @@ const TireLotInput = ({
 
   return (
     <div className={className}>
-      <div className="mb-[8px] flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between">
         <p className={`text-subtle-dark font-medium ${headingClass}`}>
           {heading}
         </p>
@@ -61,7 +55,7 @@ const TireLotInput = ({
         </p>
       </div>
 
-      <div className="flex flex-col gap-[12px]">
+      <div className="flex flex-col gap-3">
         {fields.map((field, index) => {
           const rowError = lotErrors?.[index];
           return (
@@ -75,9 +69,9 @@ const TireLotInput = ({
             >
               <div
                 ref={(el) => (rowRefs.current[index] = el)}
-                className="flex flex-col gap-[4px]"
+                className="flex flex-col gap-1"
               >
-                <div className="flex items-center gap-[8px]">
+                <div className="flex items-center gap-2">
                   <Input
                     {...register(`tireLots.${index}.dotCode`)}
                     type="text"
@@ -89,7 +83,7 @@ const TireLotInput = ({
                         .replace(/[^0-9]/g, "")
                         .slice(0, 4);
                     }}
-                    className={`bg-surface h-[41px] flex-1 rounded-[20px] px-[12px] text-xl font-medium placeholder:text-lg placeholder:font-light md:text-[22px] md:placeholder:text-xl ${
+                    className={`bg-surface h-[41px] flex-1 rounded-[20px] px-3 text-xl font-medium placeholder:text-lg placeholder:font-light md:text-[22px] md:placeholder:text-xl ${
                       rowError?.dotCode
                         ? "border-destructive focus-visible:!border-destructive focus-visible:!ring-destructive/30 focus-visible:!border-2"
                         : "focus-visible:!border-primary focus-visible:!ring-primary/35 focus-visible:!border-2"
@@ -99,8 +93,7 @@ const TireLotInput = ({
                     {...register(`tireLots.${index}.quantity`)}
                     type="text"
                     inputMode="numeric"
-                    // ข้อยกเว้นของธรรมเนียม "เช่น ..." — ช่องนี้ไม่มีหัวข้อกำกับ
-                    // placeholder จึงต้องทำหน้าที่เป็นป้ายชื่อคอลัมน์แทน
+                    // ช่องนี้ไม่มีหัวข้อ placeholder จึงทำหน้าที่เป็นป้ายชื่อคอลัมน์
                     placeholder="จำนวน"
                     aria-label={`จำนวนรายการที่ ${index + 1}`}
                     onInput={(e) => {
@@ -108,7 +101,7 @@ const TireLotInput = ({
                         .replace(/[^0-9]/g, "")
                         .slice(0, 4);
                     }}
-                    className={`bg-surface h-[41px] w-[90px] rounded-[20px] px-[12px] text-xl font-medium placeholder:text-lg placeholder:font-light md:text-[22px] md:placeholder:text-xl ${
+                    className={`bg-surface h-[41px] w-22.5 rounded-[20px] px-3 text-xl font-medium placeholder:text-lg placeholder:font-light md:text-[22px] md:placeholder:text-xl ${
                       rowError?.quantity
                         ? "border-destructive focus-visible:!border-destructive focus-visible:!ring-destructive/30 focus-visible:!border-2"
                         : "focus-visible:!border-primary focus-visible:!ring-primary/35 focus-visible:!border-2"
@@ -143,7 +136,7 @@ const TireLotInput = ({
           append({ dotCode: "", quantity: "" });
           scrollToNewRow(() => rowRefs.current[fields.length]);
         }}
-        className="text-subtle-light mt-[12px] flex h-[41px] w-full cursor-pointer items-center justify-center gap-[8px] rounded-[20px] border-2 border-dashed border-gray-300 text-lg font-medium transition-colors duration-200 hover:border-gray-400 hover:bg-gray-50 md:text-xl"
+        className="text-subtle-light mt-3 flex h-[41px] w-full cursor-pointer items-center justify-center gap-2 rounded-[20px] border-2 border-dashed border-gray-300 text-lg font-medium transition-colors duration-200 hover:border-gray-400 hover:bg-gray-50 md:text-xl"
       >
         <Plus className="h-5 w-5" />
         เพิ่มรายการ

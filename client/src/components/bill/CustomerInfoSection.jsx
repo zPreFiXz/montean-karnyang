@@ -3,8 +3,6 @@ import CustomerNameInput from "@/components/forms/CustomerNameInput";
 import FormInput from "@/components/forms/FormInput";
 import { formatPhone } from "@/utils/formats";
 
-// กล่องข้อมูลลูกค้าแบบพับได้ ใช้ทั้งหน้ากรอกบิลและหน้าเช็กช่วงล่าง
-// ฟอร์มเป็นของหน้าที่เรียกใช้ (react-hook-form) กล่องนี้แค่วาดช่องและส่งค่าที่เลือกกลับไป
 const CustomerInfoSection = ({
   register,
   errors,
@@ -13,7 +11,6 @@ const CustomerInfoSection = ({
   onToggle,
   setValue,
 }) => {
-  // เลือกลูกค้าที่เคยบันทึกไว้ เติมทุกช่องให้ตรงกับที่เก็บไว้ แก้ทับได้ตามปกติ
   const handleSelectCustomer = (customer) => {
     setValue("name", customer.name || "", { shouldValidate: true });
     setValue("phoneNumber", customer.phoneNumber || "", {
@@ -24,23 +21,21 @@ const CustomerInfoSection = ({
   };
 
   return (
-    <div className="bg-surface mx-[20px] mt-[16px] overflow-hidden rounded-[10px]">
+    <div className="bg-surface mx-5 mt-4 overflow-hidden rounded-lg">
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={isOpen}
         aria-controls="customer-info-panel"
-        className="focus-visible:ring-primary/50 flex w-full cursor-pointer items-center justify-between px-[16px] py-[12px] outline-none focus-visible:ring-2 focus-visible:ring-inset"
+        className="focus-visible:ring-primary/50 flex w-full cursor-pointer items-center justify-between px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-inset"
       >
-        <div className="flex items-center gap-[12px]">
-          <div className="bg-primary/10 flex h-[40px] w-[40px] items-center justify-center rounded-full">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-full">
             <ContactRound className="text-primary h-6 w-6" />
           </div>
           {/* ความสูงคงที่ ไม่งั้นหัวข้อจะขยับตอนพิมพ์ชื่อ — ไม่มีชื่อก็ให้หัวข้ออยู่กลางแทน */}
-          <div className="flex min-h-[56px] flex-col justify-center text-left">
+          <div className="flex min-h-14 flex-col justify-center text-left">
             <p className="text-normal text-xl font-medium">ข้อมูลลูกค้า</p>
-            {/* กรอกแต่เบอร์ไม่กรอกชื่อก็ยังบอกได้ว่าเก็บอะไรไว้แล้ว
-                เบอร์เลื่อนขึ้นมาแทนที่ชื่อ ไม่ใช่ห้อยจุดคั่นไว้ข้างหน้าลอยๆ */}
             {(watch("name") || watch("phoneNumber")) && (
               <p className="text-subtle-dark line-clamp-1 text-lg md:text-xl">
                 {watch("name")}
@@ -55,18 +50,16 @@ const CustomerInfoSection = ({
         />
       </button>
 
-      {/* ข้อมูลลูกค้า ที่ซ่อน/แสดง */}
       <div
         inert={!isOpen}
-        // grid-rows 0fr→1fr ขยายไปหาความสูงจริง ไม่ต้องเดาเป็นตัวเลข
-        // (max-h ตายตัวจะตัดเนื้อหาทิ้งเมื่อทุกช่องขึ้นข้อความ error พร้อมกัน)
+        // grid-rows 0fr→1fr ขยายตามความสูงจริง max-h ตายตัวจะตัดเนื้อหาตอนขึ้น error ทุกช่อง
         id="customer-info-panel"
         className={`grid transition-all duration-200 motion-reduce:transition-none ${
           isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
         }`}
       >
         <div className="overflow-hidden">
-          <div className="space-y-[12px] px-[16px] pb-[16px]">
+          <div className="space-y-3 px-4 pb-4">
             <CustomerNameInput
               register={register}
               errors={errors}

@@ -1,8 +1,6 @@
 import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
-// น้ำมันตัวเดียวใช้ได้หลายงาน (ดู oilUsesOf) ถามตอนหยิบลงบิลว่าใช้เติมอะไร ชื่อในบิลจะได้บอกงานที่ทำ
-// แตะแล้วจบเลยเหมือนหน้าต่างเลือกข้าง การ์ดตัวเลือกหน้าตาชุดเดียวกัน
 const OilUsePickDialog = ({ isOpen, onClose, onPick, itemName, uses }) => (
   <Dialog open={isOpen} onOpenChange={onClose}>
     <DialogContent
@@ -16,20 +14,20 @@ const OilUsePickDialog = ({ isOpen, onClose, onPick, itemName, uses }) => (
         onClose={onClose}
       />
 
-      <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px] pb-[20px]">
+      <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5 pb-5">
         {itemName && (
           <h2 className="text-normal text-center text-[22px] leading-tight font-semibold md:text-2xl">
             {itemName}
           </h2>
         )}
 
-        <div className="mt-[16px] flex gap-[8px]">
+        <div className="mt-4 flex gap-2">
           {uses.map((use) => (
             <button
               key={use}
               type="button"
               onClick={() => onPick(use)}
-              className="active:border-primary active:bg-primary/5 text-primary flex flex-1 cursor-pointer items-center justify-center rounded-[10px] border border-gray-200 bg-gray-50 px-[4px] py-[20px] text-center text-lg leading-tight font-semibold duration-300 md:text-xl"
+              className="active:border-primary active:bg-primary/5 text-primary flex flex-1 cursor-pointer items-center justify-center rounded-lg border border-gray-200 bg-gray-50 px-1 py-5 text-center text-lg leading-tight font-semibold duration-300 md:text-xl"
             >
               {use}
             </button>

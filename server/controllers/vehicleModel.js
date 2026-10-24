@@ -9,8 +9,7 @@ exports.listVehicleModels = async (req, res) => {
   res.json(vehicleModels);
 };
 
-// รับลำดับใหม่ทั้งชุดจากหน้าจัดการ แล้วเขียนทับใน transaction เดียว
-// ส่งมาทั้งชุดเสมอ ไม่ใช่ส่งเฉพาะตัวที่ขยับ เพราะการเลื่อนหนึ่งตัวทำให้ลำดับของตัวอื่นเปลี่ยนตามอยู่แล้ว
+// ส่งมาทั้งชุดเสมอ เพราะเลื่อนหนึ่งตัวลำดับของตัวอื่นก็เปลี่ยนตาม
 exports.reorderVehicleModels = async (req, res) => {
   const { ids } = req.body;
 
@@ -46,7 +45,6 @@ exports.createVehicleModel = async (req, res) => {
     createError(400, "ยี่ห้อและรุ่นรถนี้มีอยู่ในระบบแล้ว");
   }
 
-  // ต่อท้ายลิสต์เสมอ ไม่ไปแทรกกลางลำดับที่จัดไว้
   const last = await prisma.vehicleModel.findFirst({
     orderBy: { sortOrder: "desc" },
     select: { sortOrder: true },

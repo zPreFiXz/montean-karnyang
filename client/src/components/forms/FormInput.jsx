@@ -1,6 +1,6 @@
-import { Input } from "../ui/input";
-import { Textarea } from "../ui/textarea";
-import { Label } from "../ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { AlertCircle } from "lucide-react";
 
 const FormInput = ({
@@ -15,10 +15,8 @@ const FormInput = ({
   customClass,
   rightSlot,
   rules,
-  // ที่อยู่และข้อความยาวใช้ช่องหลายบรรทัด จะได้เห็นทั้งก้อนโดยไม่ต้องเลื่อนไปทางขวา
   rows,
-  // ช่องแคบๆ ที่วางเรียงเป็นคอลัมน์ ข้อความ error จะตัดบรรทัดจนแถวสูงไม่เท่ากัน
-  // เปิดตัวนี้เพื่อคงกรอบแดงกับไอคอนไว้ แล้วให้หน้าที่เรียกใช้ไปแสดงข้อความรวมเองใต้แถว
+  // คงกรอบแดงไว้ แล้วให้หน้าที่เรียกแสดงข้อความรวมใต้แถวเอง
   hideErrorMessage = false,
   ...props
 }) => {
@@ -29,10 +27,10 @@ const FormInput = ({
   };
 
   return (
-    <div className={`${customClass || "mt-[16px] px-[20px]"} `}>
+    <div className={`${customClass || "mt-4 px-5"} `}>
       <Label
         htmlFor={name}
-        className={`mb-[8px] font-medium ${
+        className={`mb-2 font-medium ${
           textSize ? textSize : "text-xl"
         } ${getTextColor()}`}
       >
@@ -47,7 +45,7 @@ const FormInput = ({
             rows={rows}
             placeholder={placeholder}
             aria-invalid={errors[name] ? "true" : "false"}
-            className={`bg-surface w-full resize-none px-[12px] py-[8px] text-xl font-medium placeholder:text-lg placeholder:font-light md:text-[22px] md:placeholder:text-xl ${
+            className={`bg-surface w-full resize-none px-3 py-2 text-xl font-medium placeholder:text-lg placeholder:font-light md:text-[22px] md:placeholder:text-xl ${
               errors[name]
                 ? "border-destructive focus-visible:!border-destructive focus-visible:!ring-destructive/30 focus-visible:!border-2"
                 : "focus-visible:!border-primary focus-visible:!ring-primary/35 focus-visible:!border-2"
@@ -67,8 +65,8 @@ const FormInput = ({
             type={type}
             placeholder={placeholder}
             aria-invalid={errors[name] ? "true" : "false"}
-            className={`h-[41px] w-full px-[12px] ${
-              type === "date" ? "pr-[44px]" : ""
+            className={`h-[41px] w-full px-3 ${
+              type === "date" ? "pr-11" : ""
             } bg-surface rounded-[20px] text-xl font-medium placeholder:text-lg placeholder:font-light md:text-[22px] md:placeholder:text-xl ${
               errors[name]
                 ? "border-destructive focus-visible:!border-destructive focus-visible:!ring-destructive/30 focus-visible:!border-2"
@@ -87,7 +85,7 @@ const FormInput = ({
         {rightSlot && (
           <div
             className={`${
-              errors[name] ? "right-[40px]" : "right-[12px]"
+              errors[name] ? "right-10" : "right-3"
             } absolute top-1/2 -translate-y-1/2`}
           >
             {rightSlot}
@@ -96,8 +94,8 @@ const FormInput = ({
 
         {errors[name] && (
           <div
-            className={`absolute right-[12px] ${
-              rows ? "top-[12px]" : "top-1/2 -translate-y-1/2 transform"
+            className={`absolute right-3 ${
+              rows ? "top-3" : "top-1/2 -translate-y-1/2 transform"
             }`}
           >
             <AlertCircle className="text-destructive h-5 w-5" />
@@ -106,7 +104,7 @@ const FormInput = ({
       </div>
 
       {errors[name] && !hideErrorMessage && (
-        <div className="mt-[6px] flex items-center gap-[4px] px-[4px]">
+        <div className="mt-1.5 flex items-center gap-1 px-1">
           <AlertCircle className="text-destructive h-4 w-4 flex-shrink-0" />
           <p className="text-destructive text-lg font-medium md:text-xl">
             {errors[name].message}

@@ -91,12 +91,12 @@ const VehicleModelFormDialog = ({
           onClose={handleClose}
         />
 
-        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px]">
+        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5">
           <form
             onSubmit={handleSubmit(
               editingItem ? handleEditVehicleModel : handleAddVehicleModel,
             )}
-            className="space-y-[16px]"
+            className="space-y-4"
           >
             <div>
               <FormInput
@@ -105,7 +105,7 @@ const VehicleModelFormDialog = ({
                 label="ยี่ห้อรถ"
                 placeholder="เช่น Toyota"
                 errors={errors}
-                customClass="px-0 pb-[16px]"
+                customClass="px-0 pb-4"
                 color="subtle-dark"
                 autoFocus={false}
               />
@@ -116,7 +116,7 @@ const VehicleModelFormDialog = ({
                 label="รุ่นรถ"
                 placeholder="เช่น Revo"
                 errors={errors}
-                customClass="px-0 mb-[4px]"
+                customClass="px-0 mb-1"
                 color="subtle-dark"
                 autoFocus={false}
               />
@@ -124,8 +124,8 @@ const VehicleModelFormDialog = ({
           </form>
         </div>
 
-        <div className="flex-shrink-0 px-[16px] pb-[16px]">
-          <div className="flex gap-[16px]">
+        <div className="flex-shrink-0 px-4 pb-4">
+          <div className="flex gap-4">
             <FormButton
               label={editingItem ? "บันทึก" : "เพิ่มยี่ห้อและรุ่นรถ"}
               isLoading={isSubmitting}

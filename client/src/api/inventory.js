@@ -1,4 +1,4 @@
-import apiClient from "./apiClient";
+import apiClient from "@/api/apiClient";
 
 export const listInventory = async (category, search, filterParams) => {
   return await apiClient.get("/inventory", {

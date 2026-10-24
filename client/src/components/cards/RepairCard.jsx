@@ -10,27 +10,21 @@ const RepairCard = ({
   price,
   status,
 }) => {
-  // สีตามสถานะชุดเดียวกับหน้ารายละเอียดบิล บิลที่ยกเลิกขีดฆ่ายอด ไม่ได้นับเป็นเงินเข้า
+  // บิลที่ยกเลิกขีดฆ่ายอด ไม่ได้นับเป็นเงินเข้า
   const info = getStatusInfo(status);
   const style = {
     bg: info.bg,
     text: status === "CANCELLED" ? `${info.color} line-through` : info.color,
   };
 
-  // ไม่ต้องมีชื่อสถานะ เพราะสีของวงกลมกับราคาบอกอยู่แล้ว
-  // คั่นด้วยจุดกลางเฉพาะส่วนที่มีจริง จะได้ไม่เหลือตัวคั่นลอยเมื่อไม่ได้กรอกลูกค้า
-  // จำนวนรายการมาก่อน เพราะสั้นและมีเสมอ ส่วนชื่อลูกค้ายาวไม่แน่นอน
-  // บรรทัดนี้ถูกตัดท้ายเมื่อยาวเกินการ์ด เรียงแบบนี้จึงเห็นข้อมูลครบกว่า
-  //
-  // ไม่ใส่เวลา — ไล่ประวัติดูแค่วันที่ ถ้าใส่จะยาวจนของอื่นโดนตัดทิ้ง (เวลาดูได้ในหน้าบิล)
   const details = [
     itemCount ? `${itemCount} รายการ` : null,
     customerName || null,
   ].filter(Boolean);
 
   return (
-    <div className="bg-surface shadow-primary flex h-[80px] w-full items-center justify-between gap-[8px] rounded-[10px] px-[16px]">
-      <div className="flex min-w-0 flex-1 items-center gap-[8px]">
+    <div className="bg-surface shadow-primary flex h-20 w-full items-center justify-between gap-2 rounded-lg px-4">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
         <div
           className={`flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-full ${style.bg}`}
         >
@@ -38,8 +32,6 @@ const RepairCard = ({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* วันที่เป็นบรรทัดหลัก เพราะคนไล่ประวัติด้วยวันที่ ไม่ใช่รหัสของระบบ
-              ส่วนเวลาลงไปอยู่บรรทัดรอง — ไล่ประวัติไม่มีใครดูถึงนาที และบรรทัดแรกยาวจนแย่งสายตากับราคา */}
           <p
             className={`truncate text-lg leading-tight font-semibold md:text-xl ${style.text}`}
           >
@@ -58,7 +50,7 @@ const RepairCard = ({
           {formatCurrency(price)}
         </p>
       ) : (
-        <div className="text-subtle-light flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-full bg-[#F6F6F6]">
+        <div className="text-subtle-light flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F6F6F6]">
           <ChevronRight />
         </div>
       )}

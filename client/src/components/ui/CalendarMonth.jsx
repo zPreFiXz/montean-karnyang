@@ -19,7 +19,8 @@ function CalendarMonth({
     return typeof year === "number" ? year : new Date().getFullYear();
   }, [selected, year]);
 
-  const initialMonth = selected instanceof Date ? selected.getMonth() : new Date().getMonth();
+  const initialMonth =
+    selected instanceof Date ? selected.getMonth() : new Date().getMonth();
 
   const [viewYear, setViewYear] = React.useState(initialYear);
   const [viewMonth, setViewMonth] = React.useState(initialMonth);
@@ -40,14 +41,17 @@ function CalendarMonth({
 
   const minYear = React.useMemo(
     () => (typeof fromYear === "number" ? fromYear : initialYear - 10),
-    [fromYear, initialYear]
+    [fromYear, initialYear],
   );
   const maxYear = React.useMemo(
     () => (typeof toYear === "number" ? toYear : initialYear + 10),
-    [toYear, initialYear]
+    [toYear, initialYear],
   );
 
-  const months = React.useMemo(() => Array.from({ length: 12 }).map((_, i) => i), []);
+  const months = React.useMemo(
+    () => Array.from({ length: 12 }).map((_, i) => i),
+    [],
+  );
 
   const commit = (y, m) => {
     if (onSelect) onSelect(new Date(y, m, 1));
@@ -60,14 +64,14 @@ function CalendarMonth({
     <div
       className={cn(
         "group/calendar bg-background w-fit rounded-md p-3 shadow-sm [--cell-size:--spacing(8)]",
-        className
+        className,
       )}
     >
       <div className="relative h-(--cell-size) w-full">
         <div className="flex h-(--cell-size) items-center justify-center">
           {captionLayout === "dropdown" ? (
             <div className="flex items-center gap-2">
-              <div className="border-input focus-within:border-primary focus-within:ring-primary/50 relative rounded-md border shadow-xs focus-within:ring-[3px]">
+              <div className="border-input focus-within:border-primary focus-within:ring-primary/50 relative rounded-md border shadow-xs focus-within:ring-3">
                 <select
                   value={String(viewMonth)}
                   onChange={(e) => {
@@ -87,7 +91,7 @@ function CalendarMonth({
                 <ChevronDownIcon className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2" />
               </div>
 
-              <div className="border-input focus-within:border-primary focus-within:ring-primary/50 relative rounded-md border shadow-xs focus-within:ring-[3px]">
+              <div className="border-input focus-within:border-primary focus-within:ring-primary/50 relative rounded-md border shadow-xs focus-within:ring-3">
                 <select
                   value={String(viewYear)}
                   onChange={(e) => {
@@ -97,15 +101,17 @@ function CalendarMonth({
                   }}
                   className="font-athiti h-(--cell-size) cursor-pointer appearance-none rounded-md bg-transparent px-3 pr-8 text-base font-medium focus:outline-none"
                 >
-                  {Array.from({ length: maxYear - minYear + 1 }).map((_, idx) => {
-                    const y = minYear + idx;
-                    const be = y + 543;
-                    return (
-                      <option key={y} value={String(y)}>
-                        {be}
-                      </option>
-                    );
-                  })}
+                  {Array.from({ length: maxYear - minYear + 1 }).map(
+                    (_, idx) => {
+                      const y = minYear + idx;
+                      const be = y + 543;
+                      return (
+                        <option key={y} value={String(y)}>
+                          {be}
+                        </option>
+                      );
+                    },
+                  )}
                 </select>
                 <ChevronDownIcon className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2" />
               </div>
@@ -114,7 +120,7 @@ function CalendarMonth({
             <div className="flex h-(--cell-size) items-center justify-center px-2">
               <p className="text-base font-medium select-none">{`${formatMonth(
                 viewMonth,
-                viewYear
+                viewYear,
               )} ${viewYear + 543}`}</p>
             </div>
           )}

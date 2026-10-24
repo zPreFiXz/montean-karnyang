@@ -3,7 +3,6 @@ import { listVehicleModels } from "@/api/vehicleModel";
 import { toastError } from "@/utils/handleError";
 import { withOtherBrandLast } from "@/utils/vehicleBrand";
 
-// ยี่ห้อกับรุ่นรถสำหรับช่องเลือกในหน้าเปิดบิล โหลดครั้งเดียวตอนเปิดหน้า
 const useVehicleModels = () => {
   const [vehicleModels, setVehicleModels] = useState([]);
   const [brands, setBrands] = useState([]);

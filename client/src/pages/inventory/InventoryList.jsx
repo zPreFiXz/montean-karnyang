@@ -12,7 +12,6 @@ import {
 import { usePrefetchPages } from "@/routes/pageImports";
 
 const InventoryList = () => {
-  // เตรียมโค้ดของหน้าที่มักไปต่อจากหน้านี้ กดแล้วจะได้ไม่ต้องรอโหลด
   usePrefetchPages(["InventoryForm", "InventoryUsage"]);
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -30,14 +29,11 @@ const InventoryList = () => {
   const activeCategory = searchParams.get("category");
   const [isListLoading, setIsListLoading] = useState(true);
 
-  // จำตำแหน่งแยกของแต่ละหมวดหมู่
-  // ออกจากหน้านี้ได้หลายทาง (ไดอะล็อก ปุ่มแก้ไข ประวัติการใช้) จึงจำไว้ตลอดระหว่างเลื่อน
-  // แทนการวัดตอนกดปุ่ม ซึ่งไดอะล็อกที่กำลังปิดจะทำให้วัดได้ 0
+  // จำตำแหน่งระหว่างเลื่อน แทนการวัดตอนกดปุ่ม ซึ่งไดอะล็อกที่กำลังปิดจะทำให้วัดได้ 0
   useScrollTracking(inventoryScrollKey(activeCategory));
   useScrollRestoration(inventoryScrollKey(activeCategory), !isListLoading);
 
-  // ออกไปหน้าแก้ไขหรือหน้าประวัติแล้วกดย้อนกลับ: ไดอะล็อกต้องเปิดค้างไว้เหมือนตอนจากไป
-  // จำไว้ใน URL (item=part-43) เพราะ URL คือสิ่งเดียวที่ติดอยู่กับหน้าในประวัติของเบราว์เซอร์
+  // ไดอะล็อกต้องเปิดค้างไว้เมื่อกดย้อนกลับมา จึงจำไว้ใน URL (item=part-43)
   const openItemParam = searchParams.get("item");
   useEffect(() => {
     if (!openItemParam) return;
@@ -69,7 +65,7 @@ const InventoryList = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openItemParam]);
 
-  // ปิดไดอะล็อกแล้วต้องลบออกจาก URL ด้วย ไม่งั้นรีเฟรชหน้าหรือกดย้อนกลับมาจะเด้งขึ้นมาเอง
+  // ไม่ลบออกจาก URL รีเฟรชหรือย้อนกลับมาจะเด้งขึ้นมาเอง
   const handleItemDetailOpenChange = (open) => {
     setIsItemDetailOpen(open);
     if (!open && openItemParam) {
@@ -79,8 +75,7 @@ const InventoryList = () => {
     }
   };
 
-  // มาจากหน้าแก้ไข: ข้อมูลหลังแก้ติดมากับ state แล้ว จึงเปิดได้ตั้งแต่เฟรมแรก
-  // ล้าง state ทิ้งทันที ไม่งั้นกดย้อนกลับมาหน้านี้อีกครั้งไดอะล็อกจะเด้งขึ้นมาเองซ้ำ
+  // ข้อมูลหลังแก้ติดมากับ state ล้าง state ทันที ไม่งั้นย้อนกลับมาอีกครั้งไดอะล็อกจะเด้งซ้ำ
   useEffect(() => {
     if (location.state?.openItem) {
       window.history.replaceState(null, document.title, window.location.href);
@@ -89,8 +84,8 @@ const InventoryList = () => {
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
-      <div className="flex items-center gap-[8px] pt-[16px] pl-[20px]">
-        <div className="bg-surface/20 flex h-[40px] w-[40px] items-center justify-center rounded-full">
+      <div className="flex items-center gap-2 pt-4 pl-5">
+        <div className="bg-surface/20 flex h-10 w-10 items-center justify-center rounded-full">
           <BoxSearch color="#ffffff" />
         </div>
         <div>
@@ -100,8 +95,8 @@ const InventoryList = () => {
         </div>
       </div>
 
-      <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
-        <div className="flex flex-1 flex-col px-[20px] pt-[16px]">
+      <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-28 xl:pb-4">
+        <div className="flex flex-1 flex-col px-5 pt-4">
           <InventoryBrowser
             syncUrl
             reloadToken={reloadToken}

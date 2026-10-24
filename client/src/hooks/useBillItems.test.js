@@ -2,6 +2,10 @@
 import { describe, expect, it } from "vitest";
 import useBillItems from "@/hooks/useBillItems";
 import { renderHook } from "@/test/renderHook";
+import { act, createElement } from "react";
+import { createRoot } from "react-dom/client";
+import BillItemDialogs from "@/components/bill/BillItemDialogs";
+import BillItemRows from "@/components/bill/BillItemRows";
 
 const part = (extra = {}) => ({
   id: 7,
@@ -91,6 +95,25 @@ describe("รายการซ่อมที่หน้ากรอกบิ�
         part({ attributes: { perSide: true }, quantity: 3 }),
       ),
     );
-    expect(() => h.result.current.renderItemDialogs()).not.toThrow();
+    const root = createRoot(document.createElement("div"));
+    expect(() =>
+      act(() =>
+        root.render(
+          createElement("div", null, [
+            createElement(BillItemDialogs, {
+              key: "d",
+              bill: h.result.current,
+            }),
+            createElement(BillItemRows, {
+              key: "r",
+              bill: h.result.current,
+              onRowClick: () => {},
+              transitionPrefix: "t",
+            }),
+          ]),
+        ),
+      ),
+    ).not.toThrow();
+    act(() => root.unmount());
   });
 });

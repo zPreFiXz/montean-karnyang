@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
 import { listUnits } from "@/api/inventory";
 
-// หมวดยางไม่ต้องเลือกหน่วย ฟอร์มกรอกค่านี้ให้เองแล้วซ่อนช่องไป
 export const TIRE_UNIT = "เส้น";
 
-// ตัวเลือกแรกของหน่วยบริการ ค่าว่าง = ไม่มีหน่วย
 export const NO_UNIT_OPTION = { id: "", name: "ไม่มีหน่วย" };
 
-// ดึงครั้งเดียวต่อการเปิดแอป เปิดฟอร์มซ้ำจะได้ไม่ต้องรอ
-// หน่วยที่เพิ่งพิมพ์เพิ่มจะเข้ารายการหลังรีเฟรช ระหว่างนั้นช่องก็ยังแสดงค่าที่เลือกไว้ได้
+// ดึงครั้งเดียวต่อการเปิดแอป
 let usedUnitsCache = null;
 
 export const useUnitOptions = () => {
@@ -33,7 +30,6 @@ export const useUnitOptions = () => {
   }, []);
 
   return {
-    // ไม่มีรายการตั้งต้น ใช้หน่วยที่ร้านเคยใช้จริง เรียงตามที่ใช้บ่อยจากเซิร์ฟเวอร์
     partUnitOptions: used.partUnits.map((name) => ({ name })),
     // บริการมีตัวเลือกไม่มีหน่วยนำหน้า เพราะบริการส่วนใหญ่คิดเป็นครั้ง
     serviceUnitOptions: [
@@ -43,7 +39,6 @@ export const useUnitOptions = () => {
   };
 };
 
-// บันทึกแล้วล้างที่จำไว้ หน่วยใหม่จะได้โผล่ในรายการตอนเปิดฟอร์มครั้งถัดไป
 export const invalidateUnitOptions = () => {
   usedUnitsCache = null;
 };

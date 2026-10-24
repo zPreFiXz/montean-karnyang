@@ -15,8 +15,6 @@ import {
 } from "@/components/ui/popover";
 import { PERIOD_TYPES, getDisplayDate, shiftDate } from "@/utils/reportPeriod";
 
-// หัวหน้ารายงาน: ชื่อหน้า ปุ่มเลือกวัน แท็บช่วงเวลา และปุ่มเลื่อนช่วงก่อน/ถัดไป
-// ใช้ร่วมกันระหว่างรายงานยอดขายกับสินค้าขายดี หน้าตาและการเลือกช่วงจะได้เหมือนกันทุกหน้า
 // children คือตัวเลขใหญ่กลางหัว (ยอดเงินของช่วงที่เลือก)
 const ReportPeriodHeader = ({
   title,
@@ -49,13 +47,13 @@ const ReportPeriodHeader = ({
   };
 
   return (
-    <div className="bg-gradient-primary h-[265px] w-full px-[20px] py-[16px] md:h-[285px]">
+    <div className="bg-gradient-primary h-[265px] w-full px-5 py-4 md:h-[285px]">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-[8px]">
+        <div className="flex items-center gap-2">
           <button
             onClick={onBack}
             aria-label="ย้อนกลับ"
-            className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+            className="bg-surface/20 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full"
           >
             <ChevronLeft className="text-surface" />
           </button>
@@ -65,7 +63,7 @@ const ReportPeriodHeader = ({
         </div>
         <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
           <PopoverTrigger asChild>
-            <button className="text-surface flex cursor-pointer items-center gap-[8px]">
+            <button className="text-surface flex cursor-pointer items-center gap-2">
               <CalendarIcon className="h-5 w-5" />
               <p className="text-xl font-semibold md:text-[22px]">
                 {PERIOD_TYPES.find((type) => type.id === periodType)?.pickLabel}
@@ -89,16 +87,15 @@ const ReportPeriodHeader = ({
         </Popover>
       </div>
 
-      <div className="mt-[16px] flex justify-center gap-[16px]">
+      <div className="mt-4 flex justify-center gap-4">
         {PERIOD_TYPES.map((type) => (
           <Link
             key={type.id}
             to={`${basePath}${basePath.includes("?") ? "&" : "?"}period=${type.id}`}
             state={{ currentDate: new Date().toISOString() }}
-            // สลับแท็บแทนที่หน้าเดิม ไม่ซ้อนประวัติ กดย้อนกลับครั้งเดียวก็ออกจากหน้ารายงาน
-            // ไม่ต้องย้อนผ่านทุกแท็บที่เคยกด
+            // แทนที่หน้าเดิม กดย้อนกลับครั้งเดียวก็ออกจากหน้ารายงาน
             replace
-            className={`flex h-[35px] w-[78px] items-center justify-center rounded-[10px] border-2 text-lg font-semibold md:h-[40px] md:w-[95px] md:text-xl ${
+            className={`flex h-[35px] w-19.5 items-center justify-center rounded-lg border-2 text-lg font-semibold md:h-10 md:w-[95px] md:text-xl ${
               periodType === type.id
                 ? "text-surface bg-primary border-white"
                 : "border-subtle-light text-subtle-light bg-surface"
@@ -109,22 +106,22 @@ const ReportPeriodHeader = ({
         ))}
       </div>
 
-      <div className="flex items-center justify-center pt-[16px]">
+      <div className="flex items-center justify-center pt-4">
         <div className="text-surface text-[22px] font-semibold md:text-2xl">
           {getDisplayDate(currentDate, periodType)}
         </div>
       </div>
 
-      <div className="mt-[16px] flex w-full items-center justify-between px-[20px]">
+      <div className="mt-4 flex w-full items-center justify-between px-5">
         <button
           onClick={() =>
             onDateChange(shiftDate(currentDate, periodType, "prev"))
           }
           aria-label="ช่วงก่อนหน้า"
-          className="bg-surface flex h-[44px] w-[44px] cursor-pointer items-center justify-center rounded-full md:h-[48px] md:w-[48px]"
+          className="bg-surface flex h-11 w-11 cursor-pointer items-center justify-center rounded-full md:h-12 md:w-12"
         >
           <ChevronLeft
-            className="text-primary mr-[2px] h-6 w-6 md:h-[26px] md:w-[26px]"
+            className="text-primary mr-0.5 h-6 w-6 md:h-6.5 md:w-6.5"
             strokeWidth={2.5}
           />
         </button>
@@ -134,10 +131,10 @@ const ReportPeriodHeader = ({
             onDateChange(shiftDate(currentDate, periodType, "next"))
           }
           aria-label="ช่วงถัดไป"
-          className="bg-surface flex h-[44px] w-[44px] cursor-pointer items-center justify-center rounded-full md:h-[48px] md:w-[48px]"
+          className="bg-surface flex h-11 w-11 cursor-pointer items-center justify-center rounded-full md:h-12 md:w-12"
         >
           <ChevronRight
-            className="text-primary ml-[2px] h-6 w-6 md:h-[26px] md:w-[26px]"
+            className="text-primary ml-0.5 h-6 w-6 md:h-6.5 md:w-6.5"
             strokeWidth={2.5}
           />
         </button>

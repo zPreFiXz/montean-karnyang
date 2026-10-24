@@ -121,7 +121,6 @@ const ensurePrinterReady = async (printerName) => {
   }
 };
 
-// วินโดวส์สั่งพิมพ์ผ่าน pdf-to-printer ส่วนแมค/ลินุกซ์ใช้คำสั่ง lp ที่มีอยู่แล้ว
 const sendToPrinter = async (filePath, printerName) => {
   if (os.platform() === "win32") {
     // require ตรงนี้ เพราะแพ็กเกจนี้ใช้ได้เฉพาะวินโดวส์
@@ -148,10 +147,7 @@ const sendToPrinter = async (filePath, printerName) => {
   ]);
 };
 
-// สร้างใบเสร็จเป็น PDF แล้วส่งเข้าเครื่องพิมพ์ที่ต่อกับเครื่องนี้
-// PRINTER_NAME ใน .env ไว้เลือกเครื่องเมื่อมีหลายเครื่อง ไม่ตั้งก็ใช้เครื่องที่ตั้งเป็นค่าเริ่มต้น
 // แปลข้อผิดพลาดของเครื่องพิมพ์เป็นภาษาที่คนหน้าร้านทำตามได้
-// ข้อความดิบจากระบบปฏิบัติการอ่านไม่รู้เรื่องและไม่ได้บอกว่าต้องทำอะไรต่อ
 const toPrinterError = (error) => {
   const text = String(error?.message || "");
 

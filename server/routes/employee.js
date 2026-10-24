@@ -1,12 +1,11 @@
 const express = require("express");
 const router = express.Router();
 
-const { validate, employeeSchema } = require("../utils/validator");
+const validate = require("../middlewares/validate");
+const { employeeSchema } = require("../utils/schemas");
 
-// Middlewares
 const { authCheck, adminCheck } = require("../middlewares/auth");
 
-// Controllers
 const {
   listEmployees,
   createEmployee,

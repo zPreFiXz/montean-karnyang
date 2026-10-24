@@ -1,4 +1,3 @@
-const { Prisma } = require("@prisma/client");
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
 const { OIL_SOURCE_SELECT, withOilKitStock } = require("../utils/oilKit");
@@ -11,509 +10,18 @@ const {
   docNosSkippedOnDelete,
 } = require("../utils/documentNumber");
 const {
-  buildPartItemName,
-  buildServiceItemName,
-} = require("../utils/repairItemName");
-
-// หา/สร้างรุ่นรถตามยี่ห้อ+รุ่น (ใช้ทั้งตอนสร้างและแก้ไขรายการซ่อม)
-const findOrCreateVehicleModel = async (tx, brand, model) => {
-  const vehicleModel = await tx.vehicleModel.findUnique({
-    where: { brand_model: { brand, model } },
-  });
-
-  if (vehicleModel) return vehicleModel;
-
-  return tx.vehicleModel.create({ data: { brand, model } });
-};
-
-// รถของบิลใหม่: ทะเบียนเดิมใช้รถคันเดิม (แก้รุ่นตามที่กรอก) ทะเบียนใหม่สร้างคันใหม่
-// ไม่มีทะเบียน = แถวรถร่วมของรุ่นนั้น แยกคันตามเบอร์รถ
-const resolveVehicleForNewBill = async (
-  tx,
-  { brand, model, plate, province, fleet },
-) => {
-  let vehicle = null;
-  let licensePlate;
-  const vehicleModel = await findOrCreateVehicleModel(tx, brand, model);
-
-  if (plate && province) {
-    licensePlate = await tx.licensePlate.findUnique({
-      where: { plateNumber_province: { plateNumber: plate, province } },
-    });
-
-    if (licensePlate) {
-      // ทะเบียนผูกได้กับรถคันเดียว กรอกรุ่นต่างจากเดิมจึงแก้รุ่นของคันเดิมแทนสร้างคันใหม่
-      vehicle = await tx.vehicle.findUnique({
-        where: { licensePlateId: licensePlate.id },
-      });
-
-      if (!vehicle) {
-        vehicle = await tx.vehicle.create({
-          data: {
-            vehicleModelId: vehicleModel.id,
-            licensePlateId: licensePlate.id,
-            fleetNo: fleet,
-          },
-        });
-      } else if (
-        vehicle.vehicleModelId !== vehicleModel.id ||
-        (fleet && vehicle.fleetNo !== fleet)
-      ) {
-        // เปิดบิลใหม่แล้วเว้นช่องเบอร์ไว้ = ไม่ได้กรอก ไม่ใช่ตั้งใจลบ จึงเปลี่ยนเฉพาะตอนกรอกมา
-        vehicle = await tx.vehicle.update({
-          where: { id: vehicle.id },
-          data: {
-            vehicleModelId: vehicleModel.id,
-            ...(fleet && { fleetNo: fleet }),
-          },
-        });
-      }
-    } else {
-      licensePlate = await tx.licensePlate.create({
-        data: { plateNumber: plate, province },
-      });
-
-      vehicle = await tx.vehicle.create({
-        data: {
-          vehicleModelId: vehicleModel.id,
-          licensePlateId: licensePlate.id,
-          fleetNo: fleet,
-        },
-      });
-    }
-  } else {
-    // รถไม่มีทะเบียนรุ่นเดียวกันใช้แถวรถร่วมกัน รถที่มีเบอร์จึงแยกคันตามเบอร์
-    // ไม่งั้นใส่เบอร์ให้คันหนึ่ง ทุกคันรุ่นเดียวกันที่ไม่มีทะเบียนจะได้เบอร์นั้นไปด้วย
-    vehicle = await tx.vehicle.findFirst({
-      where: {
-        vehicleModelId: vehicleModel.id,
-        licensePlateId: null,
-        fleetNo: fleet,
-      },
-    });
-
-    if (!vehicle) {
-      vehicle = await tx.vehicle.create({
-        data: {
-          vehicleModelId: vehicleModel.id,
-          licensePlateId: null,
-          fleetNo: fleet,
-        },
-      });
-    }
-  }
-  return vehicle;
-};
-
-// รถของบิลที่แก้ไข ต่างจากบิลใหม่ตรงที่ต้องดูรถคันเดิมของบิลด้วย
-const resolveVehicleForEdit = async (
-  tx,
-  { brand, model, plate, province, fleet },
-  currentVehicleId,
-) => {
-  let vehicle = null;
-  const vehicleModel = await findOrCreateVehicleModel(tx, brand, model);
-
-  if (plate && province) {
-    let licensePlate = await tx.licensePlate.findUnique({
-      where: { plateNumber_province: { plateNumber: plate, province } },
-      include: { vehicle: { select: { id: true } } },
-    });
-    if (!licensePlate) {
-      licensePlate = await tx.licensePlate.create({
-        data: { plateNumber: plate, province },
-      });
-    }
-
-    const currentVehicle = currentVehicleId
-      ? await tx.vehicle.findUnique({
-          where: { id: currentVehicleId },
-          select: { id: true, licensePlateId: true },
-        })
-      : null;
-
-    // ทะเบียนผูกได้กับรถคันเดียว ถ้าทะเบียนนี้มีรถอยู่แล้วต้องย้ายบิลไปคันนั้น
-    // รถเดิมที่ไม่มีทะเบียนเป็นแถวที่บิลรุ่นเดียวกันใช้ร่วมกัน ห้ามแก้ทับ ต้องสร้างคันใหม่
-    // หน้าแก้ไขเติมเบอร์เดิมไว้ให้แล้ว ช่องว่างตอนแก้จึงแปลว่าลบเบอร์ออก
-    const targetId =
-      licensePlate.vehicle?.id ??
-      (currentVehicle?.licensePlateId ? currentVehicle.id : null);
-    const data = {
-      vehicleModelId: vehicleModel.id,
-      licensePlateId: licensePlate.id,
-      fleetNo: fleet,
-    };
-    vehicle = targetId
-      ? await tx.vehicle.update({ where: { id: targetId }, data })
-      : await tx.vehicle.create({ data });
-  } else {
-    // ไม่มีทะเบียน = ใช้แถวรถร่วมของรุ่นนั้นแยกตามเบอร์รถ เหมือนบิลใหม่
-    // ห้ามแก้รถคันเดิมของบิลตรงๆ: ถ้าเดิมมีทะเบียน บิลอื่นของรถคันนั้นจะหายทะเบียนไปด้วย
-    // ถ้าเดิมเป็นแถวร่วม บิลอื่นที่ใช้แถวเดียวกันจะเปลี่ยนรุ่นตามไปหมด
-    vehicle =
-      (await tx.vehicle.findFirst({
-        where: {
-          vehicleModelId: vehicleModel.id,
-          licensePlateId: null,
-          fleetNo: fleet,
-        },
-      })) ||
-      (await tx.vehicle.create({
-        data: {
-          vehicleModelId: vehicleModel.id,
-          licensePlateId: null,
-          fleetNo: fleet,
-        },
-      }));
-  }
-  return vehicle;
-};
-
-// บิลย้ายไปรถคันอื่นแล้ว รถคันเดิมที่ไม่มีทะเบียนและไม่เหลือบิลไหนใช้ ลบทิ้ง ไม่ให้ค้างในประวัติรถ
-// รถที่มีทะเบียนเก็บไว้ ทะเบียนคือประวัติของรถคันนั้น
-const removeOrphanVehicle = async (tx, vehicleId) => {
-  if (!vehicleId) return;
-  const old = await tx.vehicle.findUnique({
-    where: { id: vehicleId },
-    select: { licensePlateId: true, _count: { select: { repairs: true } } },
-  });
-  if (old && !old.licensePlateId && old._count.repairs === 0) {
-    await tx.vehicle.delete({ where: { id: vehicleId } });
-  }
-};
-
-// หา/สร้าง/อัปเดตลูกค้า: จับคู่ด้วยเบอร์โทรก่อน (unique) ถ้าไม่มีเบอร์ค่อยจับคู่ด้วยชื่อ
-// existingCustomer = ลูกค้าที่ผูกกับบิลอยู่ก่อนแก้ไข (บิลใหม่จะเป็น null)
-//
-// แก้บิลเดิม: ถือว่าฟอร์มคือข้อมูลล่าสุดของลูกค้ารายนั้น ทั้งสามช่องแก้ได้อิสระต่อกัน
-// รวมถึงลบทิ้ง เพราะคนกรอกเห็นข้อมูลเดิมอยู่ตรงหน้าแล้วตั้งใจแก้
-//
-// บิลใหม่: ช่องที่เว้นว่างไม่เอาไปทับของเดิม เพราะบิลแต่ละใบกรอกลูกค้าไม่ครบเท่ากัน
-// (ขายหน้าร้านมักกรอกแต่เบอร์) ถ้าเอาช่องว่างไปทับ ที่อยู่ที่เคยเก็บไว้จะหายทันที
-const resolveCustomer = async (
-  tx,
-  { name, address, taxId, phoneNumber },
-  existingCustomer = null,
-) => {
-  const isEmpty = !name && !address && !taxId && !phoneNumber;
-
-  // เขียนทับเฉพาะช่องที่กรอกมา — ใช้กับลูกค้ารายอื่นที่ไม่ได้เปิดแก้อยู่
-  const mergeInto = (customer) => ({
-    name: name || customer.name,
-    address: address || customer.address,
-    taxId: taxId || customer.taxId,
-    phoneNumber: phoneNumber || customer.phoneNumber,
-  });
-
-  if (existingCustomer) {
-    // เบอร์หรือชื่อที่กรอกมาไปตรงกับลูกค้ารายอื่นที่มีอยู่แล้ว = บิลนี้เป็นของคนนั้น
-    // ย้ายบิลไปหาเขาแทนการแก้ชื่อรายเดิมทับ ไม่งั้นจะได้ลูกค้าชื่อซ้ำกันสองราย
-    const claimedByOther = phoneNumber
-      ? await tx.customer.findUnique({ where: { phoneNumber } })
-      : name
-        ? await tx.customer.findFirst({ where: { name } })
-        : null;
-
-    if (claimedByOther && claimedByOther.id !== existingCustomer.id) {
-      return tx.customer.update({
-        where: { id: claimedByOther.id },
-        data: mergeInto(claimedByOther),
-      });
-    }
-
-    if (isEmpty) {
-      // ลบข้อมูลลูกค้าออกจนหมด = ตัดออกจากบิล
-      // ถ้าไม่มีบิลใบอื่นใช้รายนี้แล้วก็เก็บกวาดทิ้ง ไม่ให้เหลือลูกค้าว่างเปล่าค้างในระบบ
-      const usedBy = await tx.repair.count({
-        where: { customerId: existingCustomer.id },
-      });
-      if (usedBy <= 1) {
-        await tx.repair.updateMany({
-          where: { customerId: existingCustomer.id },
-          data: { customerId: null },
-        });
-        await tx.customer.delete({ where: { id: existingCustomer.id } });
-      }
-      return null;
-    }
-
-    // เปลี่ยนชื่อ = อาจเป็นคนละรายกันแล้ว ประเภทหน่วยงาน/ร้านค้าจึงต้องล้างทิ้ง
-    // ไม่งั้นบิลของลูกค้าทั่วไปจะไปโผล่ในกองหน่วยงานโดยไม่มีใครรู้
-    // (แก้คำผิดแล้วโดนล้างไปด้วย แต่แค่กดเลือกประเภทใหม่ครั้งเดียว เสียหายน้อยกว่า)
-    const isRenamed = (name || null) !== (existingCustomer.name || null);
-
-    return tx.customer.update({
-      where: { id: existingCustomer.id },
-      data: {
-        name: name || null,
-        address: address || null,
-        taxId: taxId || null,
-        phoneNumber: phoneNumber || null,
-        ...(isRenamed ? { organizationType: null } : {}),
-      },
-    });
-  }
-
-  if (isEmpty) return null;
-
-  if (phoneNumber) {
-    const byPhone = await tx.customer.findUnique({ where: { phoneNumber } });
-
-    if (byPhone) {
-      return tx.customer.update({
-        where: { id: byPhone.id },
-        data: mergeInto(byPhone),
-      });
-    }
-
-    return tx.customer.create({
-      data: {
-        name: name || null,
-        address: address || null,
-        taxId: taxId || null,
-        phoneNumber,
-      },
-    });
-  }
-
-  if (name) {
-    const byName = await tx.customer.findFirst({ where: { name } });
-
-    if (byName) {
-      // ที่อยู่กับเลขผู้เสียภาษีที่กรอกมาต้องเขียนทับของเดิมด้วย ไม่ใช่คืนรายเดิมไปทั้งดุ้น
-      if (
-        (address && address !== byName.address) ||
-        (taxId && taxId !== byName.taxId)
-      ) {
-        return tx.customer.update({
-          where: { id: byName.id },
-          data: mergeInto(byName),
-        });
-      }
-      return byName;
-    }
-
-    return tx.customer.create({
-      data: {
-        name,
-        address: address || null,
-        taxId: taxId || null,
-        phoneNumber: null,
-      },
-    });
-  }
-
-  // เหลือแต่ที่อยู่หรือเลขผู้เสียภาษี (เช่นงานบริการนอกสถานที่ที่รู้แต่จุดที่ไป) ไม่มีอะไรให้จับคู่กับรายเดิม
-  // ยังต้องเก็บ ไม่งั้นที่พิมพ์ไว้หายไปเงียบๆ ตอนบันทึก
-  return tx.customer.create({
-    data: {
-      name: null,
-      address: address || null,
-      taxId: taxId || null,
-      phoneNumber: null,
-    },
-  });
-};
-
-// เรียงล็อตเก่าสุดก่อน (FIFO): DOT รูปแบบ WWYY → เทียบปี(YY) ก่อน แล้วสัปดาห์(WW)
-// ล็อต "ไม่ระบุ" (backfill) หรือรูปแบบผิด ถือว่าเก่าสุด ขายออกก่อน
-const dotOrderKey = (dotCode) => {
-  const matched = /^(\d{2})(\d{2})$/.exec(dotCode || "");
-  if (!matched) return -1;
-  const [, week, year] = matched;
-  return Number(year) * 100 + Number(week);
-};
-
-// ตัดสต็อกยางแบบ FIFO ข้ามหลายล็อตได้ คืนล็อตที่ตัด [{ dotCode, quantity }]
-// คืน null ถ้า Part ไม่มีล็อต (ไม่ใช่ยางที่ track ล็อต) → ให้ผู้เรียกตัด stockQuantity แบบเดิม
-const deductTireLotsFifo = async (tx, partId, quantity) => {
-  const lots = await tx.tireLot.findMany({ where: { partId } });
-  if (!lots.length) return null;
-
-  lots.sort((a, b) => dotOrderKey(a.dotCode) - dotOrderKey(b.dotCode));
-
-  let remaining = quantity;
-  const consumed = [];
-  for (const lot of lots) {
-    if (remaining <= 0) break;
-    const take = Math.min(lot.quantity, remaining);
-    if (take <= 0) continue;
-    remaining -= take;
-    consumed.push({ dotCode: lot.dotCode, quantity: take });
-    const left = lot.quantity - take;
-    if (left <= 0) {
-      await tx.tireLot.delete({ where: { id: lot.id } });
-    } else {
-      await tx.tireLot.update({
-        where: { id: lot.id },
-        data: { quantity: left },
-      });
-    }
-  }
-  return consumed.length ? consumed : null;
-};
-
-// คืนล็อตยางกลับตอนแก้/ยกเลิกบิล จากล็อตที่บันทึกไว้ [{ dotCode, quantity }]
-const restoreTireLotsFromSoldLots = async (tx, partId, soldLots) => {
-  if (!Array.isArray(soldLots)) return;
-  for (const lot of soldLots) {
-    const dot = String(lot?.dotCode ?? "").trim();
-    const qty = Number(lot?.quantity);
-    if (!dot || !Number.isFinite(qty) || qty <= 0) continue;
-
-    const existing = await tx.tireLot.findFirst({
-      where: { partId, dotCode: dot },
-    });
-    if (existing) {
-      await tx.tireLot.update({
-        where: { id: existing.id },
-        data: { quantity: existing.quantity + qty },
-      });
-    } else {
-      await tx.tireLot.create({
-        data: { partId, dotCode: dot, quantity: qty },
-      });
-    }
-  }
-};
-
-// ชุดน้ำมันเครื่องไม่มีสต็อกของตัวเอง ตัด/คืนที่ตัวเก็บน้ำมันแทน เป็นลิตร (จำนวนชุด × ลิตรต่อชุด)
-// ของอื่นตัด/คืนที่ตัวเอง ตามจำนวนในบิล
-const stockTargetOf = (part, partId, quantity) =>
-  part?.oilSourceId && part?.oilLiters
-    ? {
-        partId: part.oilSourceId,
-        amount: Number(quantity) * Number(part.oilLiters),
-      }
-    : { partId, amount: quantity };
-
-const moveStock = async (tx, part, partId, quantity, direction) => {
-  const target = stockTargetOf(part, partId, quantity);
-  await tx.part.update({
-    where: { id: target.partId },
-    data: { stockQuantity: { [direction]: target.amount } },
-  });
-};
-
-// ใบประเมินราคายังไม่ได้ลงมือซ่อม ของจึงต้องอยู่ในคลังตามเดิม
-// ย้ายเข้า/ออกจากสถานะนี้เมื่อไหร่ก็คืนหรือตัดสต็อกให้ตรงกับความจริงตอนนั้น
-const restoreStockForRepair = async (tx, repairId) => {
-  const items = await tx.repairItem.findMany({
-    where: { repairId },
-    include: {
-      part: { select: { name: true, oilSourceId: true, oilLiters: true } },
-    },
-  });
-
-  for (const item of items) {
-    if (!item.partId) continue;
-
-    await moveStock(tx, item.part, item.partId, item.quantity, "increment");
-    await restoreTireLotsFromSoldLots(tx, item.partId, item.soldLots);
-    // ล็อตถูกคืนเข้าคลังแล้ว บรรทัดนี้จึงไม่ได้ถืออะไรอยู่
-    await tx.repairItem.update({
-      where: { id: item.id },
-      data: { soldLots: Prisma.DbNull },
-    });
-  }
-};
-
-const deductStockForRepair = async (tx, repairId) => {
-  const items = await tx.repairItem.findMany({
-    where: { repairId },
-    include: {
-      part: { select: { name: true, oilSourceId: true, oilLiters: true } },
-    },
-  });
-
-  for (const item of items) {
-    if (!item.partId) continue;
-
-    const soldLots = await deductTireLotsFifo(tx, item.partId, item.quantity);
-    await moveStock(tx, item.part, item.partId, item.quantity, "decrement");
-    await tx.repairItem.update({
-      where: { id: item.id },
-      data: { soldLots: soldLots ?? Prisma.DbNull },
-    });
-  }
-};
-
-// บันทึกรายการซ่อมย่อยชุดใหม่ พร้อมตัดสต็อกอะไหล่ที่ใช้
-const createRepairItemsAndDecrementStock = async (
-  tx,
-  repairId,
-  repairItems,
-  // ใบประเมินราคาบันทึกรายการอย่างเดียว ของยังไม่ได้ถูกเบิกออกจากคลัง
-  deductStock = true,
-) => {
-  // snapshot ชื่อ ณ วันซ่อม เผื่ออะไหล่ถูกลบภายหลัง ประวัติจะยังมีชื่อ
-  const partIds = repairItems.map((i) => i.partId).filter(Boolean);
-  const serviceIds = repairItems.map((i) => i.serviceId).filter(Boolean);
-
-  const [parts, services] = await Promise.all([
-    partIds.length
-      ? tx.part.findMany({
-          where: { id: { in: partIds } },
-          select: {
-            id: true,
-            brand: true,
-            name: true,
-            attributes: true,
-            oilSourceId: true,
-            oilLiters: true,
-            category: { select: { name: true } },
-          },
-        })
-      : [],
-    serviceIds.length
-      ? tx.service.findMany({
-          where: { id: { in: serviceIds } },
-          select: { id: true, name: true },
-        })
-      : [],
-  ]);
-
-  const partById = new Map(parts.map((p) => [p.id, p]));
-  const serviceById = new Map(services.map((s) => [s.id, s]));
-
-  // สร้างทีละรายการ: ยางต้องตัดล็อต FIFO ก่อนเพื่อรู้ DOT ที่ขาย แล้วบันทึกลง RepairItem
-  for (const item of repairItems) {
-    let soldLots = null;
-    if (deductStock && item.partId) {
-      soldLots = await deductTireLotsFifo(tx, item.partId, item.quantity);
-      await moveStock(
-        tx,
-        partById.get(item.partId),
-        item.partId,
-        item.quantity,
-        "decrement",
-      );
-    }
-
-    await tx.repairItem.create({
-      data: {
-        side: item.side || null,
-        unitPrice: item.unitPrice,
-        quantity: item.quantity,
-        // ช่อง JSON ถ้าส่ง null ธรรมดา Prisma จะเก็บเป็นคำว่า null ในช่อง ไม่ใช่ช่องว่างของฐานข้อมูล
-        // ต้องบอกด้วย DbNull ว่าให้เว้นช่องไว้จริงๆ (รายการที่ไม่ใช่ยางไม่มีล็อตให้เก็บ)
-        soldLots: soldLots ?? Prisma.DbNull,
-        repairId,
-        partId: item.partId,
-        serviceId: item.serviceId,
-        // ทุกบรรทัดพิมพ์ชื่อทับได้ จึงใช้ชื่อที่ส่งมาก่อน ไม่ได้พิมพ์มาค่อยประกอบจากคลัง
-        // ตัวเชื่อมกับอะไหล่ยังอยู่ รูป รหัส หมวดหมู่ และสต็อกจึงยังอ้างอิงของจริงเหมือนเดิม
-        itemName:
-          item.itemName?.trim() ||
-          (item.partId
-            ? buildPartItemName(partById.get(item.partId))
-            : buildServiceItemName(serviceById.get(item.serviceId))),
-        // หน่วยของอะไหล่อื่นๆ ที่ช่างพิมพ์เอง อะไหล่จากคลังใช้หน่วยในคลังอยู่แล้ว
-        itemUnit: item.itemUnit || null,
-      },
-    });
-  }
-};
+  resolveVehicleForNewBill,
+  resolveVehicleForEdit,
+  removeOrphanVehicle,
+} = require("../utils/repairVehicle");
+const { resolveCustomer } = require("../utils/repairCustomer");
+const {
+  restoreTireLotsFromSoldLots,
+  moveStock,
+  restoreStockForRepair,
+  deductStockForRepair,
+  createRepairItemsAndDecrementStock,
+} = require("../utils/repairStock");
 
 exports.listRepairs = async (req, res) => {
   const repairs = await prisma.repair.findMany({
@@ -521,12 +29,10 @@ exports.listRepairs = async (req, res) => {
       customer: {
         select: {
           name: true,
-          // บิลเครดิตของหน่วยงานหรือร้านค้าไปรวมอยู่หน้าหน่วยงานและร้านค้าแทน
           organizationType: true,
         },
       },
-      // ชื่อรายการใช้ตั้งหัวการ์ดของบิลที่ไม่ผูกกับรถ (ดู getRepairTitle ฝั่งหน้าเว็บ)
-      // partId ไว้แยกว่าบรรทัดไหนเป็นอะไหล่ หัวการ์ดเอาเฉพาะชื่องานบริการ
+      // ชื่อรายการใช้ตั้งหัวการ์ดของบิลที่ไม่ผูกรถ (ดู getRepairTitle ฝั่งหน้าเว็บ)
       repairItems: {
         select: {
           itemName: true,
@@ -608,10 +114,9 @@ exports.getRepair = async (req, res) => {
     createError(404, "ไม่พบงานซ่อม");
   }
 
-  // กล่องยืนยันการลบใช้เตือนว่าเลขไหนจะขาดช่วง
   res.json({
     ...repair,
-    // ชุดน้ำมันบอกสต็อกเป็นจำนวนชุดที่น้ำมันในตัวเก็บพอขาย หน้าแก้ไขบิลจะได้กันเบิกเกินของจริง
+    // ชุดน้ำมันบอกสต็อกเป็นจำนวนชุด หน้าแก้ไขบิลจะได้กันเบิกเกินของจริง
     repairItems: repair.repairItems.map((item) =>
       item.part ? { ...item, part: withOilKitStock(item.part) } : item,
     ),
@@ -640,10 +145,7 @@ exports.createRepair = async (req, res) => {
   } = req.body;
   const fleet = fleetNo?.trim() || null;
 
-  // ห่อทั้งหมดใน transaction: ถ้าพังกลางทางจะ rollback ไม่เหลือข้อมูลค้างครึ่ง
   const isSale = type === "SALE";
-  // ไม่ผูกกับรถ: บิลขายหน้าร้าน หรืองานบริการที่ไม่เก็บประวัติรถ
-  // ข้ามการหา/สร้างรถกับทะเบียนทั้งหมด บิลจึงไม่ไปโผล่ในประวัติรถคันไหน
   const skipVehicle = isSale || !!noVehicle;
 
   await prisma.$transaction(async (tx) => {
@@ -664,11 +166,7 @@ exports.createRepair = async (req, res) => {
       phoneNumber,
     });
 
-    // ขายหน้าร้าน = ลูกค้าจ่ายแล้วเดินออกไปเลย จึงบันทึกจบในครั้งเดียว
-    // ต่างจากงานบริการที่อาจเก็บเงินทีหลัง จึงเดินสถานะปกติเหมือนงานซ่อม
-    //
-    // ยกเว้นเลือกเครดิต = ของออกจากร้านแล้วแต่ยังไม่ได้เงิน บิลไปพักที่สถานะเครดิต
-    // ไม่มีเวลาชำระเงินและไม่เก็บวิธีจ่าย ยอดจึงยังไม่เข้ารายงานจนกว่าจะตัดเครดิต
+    // ขายหน้าร้านบันทึกจบในครั้งเดียว ยกเว้นเลือกเครดิต บิลไปพักที่สถานะเครดิต ยอดยังไม่เข้ารายงาน
     const isCreditSale = isSale && paymentMethod === "CREDIT";
     const paidNow = isSale && !isCreditSale ? new Date() : null;
 
@@ -726,7 +224,6 @@ exports.updateRepair = async (req, res) => {
   } = req.body;
   const fleet = fleetNo?.trim() || null;
 
-  // ห่อทั้งหมดใน transaction: คืนสต็อก + ลบ/สร้างรายการใหม่ + อัปเดตบิล ต้อง atomic
   const isSale = type === "SALE";
   const skipVehicle = isSale || !!noVehicle;
 
@@ -766,11 +263,9 @@ exports.updateRepair = async (req, res) => {
       currentRepair.customer,
     );
 
-    // ใบประเมินราคายังไม่เคยตัดสต็อก จึงไม่มีอะไรให้คืนและไม่ต้องตัดของชุดใหม่
-    // (คืนไปจะกลายเป็นสต็อกงอก แล้วตัดใหม่จะกลายเป็นของหายทั้งที่ยังไม่ได้ซ่อม)
+    // ใบประเมินราคายังไม่เคยตัดสต็อก ไม่มีอะไรให้คืนและไม่ต้องตัดใหม่
     const isEstimate = currentRepair.status === "ESTIMATE";
 
-    // คืนสต็อกจากรายการเดิม ก่อนลบทิ้ง
     const existingItems = await tx.repairItem.findMany({
       where: { repairId: Number(id) },
       include: {
@@ -811,9 +306,7 @@ exports.updateRepair = async (req, res) => {
         mileage: mileage ?? null,
         totalPrice,
         type,
-        // บิลขายหน้าร้าน: ช่องวิธีชำระเงินในหน้าแก้ไขทำหน้าที่สลับระหว่าง "ได้เงินแล้ว" กับ "ติดเครดิต"
-        // เลือกวิธีจ่ายจริงให้บิลที่ติดเครดิตอยู่ = ตัดเครดิต ยอดเข้ารายงานของวันที่ตัด
-        // เลือกเครดิตให้บิลที่บันทึกว่าจ่ายแล้ว = แก้ที่บันทึกผิด ล้างเวลาชำระเงินกับวิธีจ่ายทิ้ง
+        // บิลขาย: เลือกวิธีจ่ายให้บิลเครดิต = ตัดเครดิต, เลือกเครดิตให้บิลที่จ่ายแล้ว = แก้ที่บันทึกผิด
         ...(isSale && paymentMethod
           ? paymentMethod === "CREDIT"
             ? { status: "CREDIT", paidAt: null, paymentMethod: null }
@@ -844,8 +337,8 @@ exports.updateRepair = async (req, res) => {
 
 const CANNOT_EDIT_CANCELLED = "แก้ไขไม่ได้ เพราะบิลนี้ยกเลิกแล้ว";
 
-// ยกเลิกบิลแทนการลบ สำหรับบิลที่ไม่ใช่เลขล่าสุด เลขเอกสารยังอยู่กับบิล ลำดับเลขจึงไม่ขาด
-// คืนของเข้าคลังเหมือนตอนลบ (ใบประเมินราคายังไม่เคยเบิก) และไม่นับเป็นยอดขายหรือครั้งที่มาซ่อม
+// ยกเลิกแทนการลบสำหรับบิลที่ไม่ใช่เลขล่าสุด เลขยังอยู่ ลำดับไม่ขาด
+// คืนของเข้าคลัง และไม่นับเป็นยอดขายหรือครั้งที่มาซ่อม
 exports.cancelRepair = async (req, res) => {
   const { id } = req.params;
   const reason = String(req.body?.reason || "")
@@ -880,10 +373,8 @@ exports.cancelRepair = async (req, res) => {
   res.json({ message: "ยกเลิกบิลเรียบร้อยแล้ว" });
 };
 
-// ลบบิลทิ้ง: ต้องคืนสต็อกก่อนเสมอ ไม่งั้นอะไหล่จะหายจากคลังทั้งที่ไม่ได้ขายออกไป
-// ใช้ตรรกะคืนของชุดเดียวกับตอนแก้ไขบิล (คืนจำนวน + คืนล็อตยางตาม soldLots)
-// ลบได้เฉพาะบิลที่ทุกเลขเป็นเลขล่าสุดของชุด (หรือยังไม่มีเลข) เลขจะคืนให้บิลถัดไป ไม่ขาดช่วง
-// บิลอื่นต้องยกเลิกแทน
+// ลบได้เฉพาะบิลที่ทุกเลขเป็นเลขล่าสุด เลขจะคืนให้บิลถัดไป บิลอื่นต้องยกเลิกแทน
+// ต้องคืนสต็อกก่อนเสมอ
 exports.deleteRepair = async (req, res) => {
   const { id } = req.params;
 
@@ -955,15 +446,13 @@ exports.updateRepairStatus = async (req, res) => {
   if (status === "COMPLETED") {
     data.completedAt = new Date();
   } else if (status === "CREDIT") {
-    // ติดเงินไว้ = ซ่อมเสร็จแล้วแต่ยังไม่ได้เงิน ไม่ตั้งเวลาชำระเงินและไม่เก็บวิธีจ่าย
-    // ยอดจะยังไม่ไปโผล่ในรายงานยอดขายจนกว่าจะตัดเครดิต
+    // ติดเครดิตไม่ตั้งเวลาชำระเงิน ยอดจะยังไม่เข้ารายงานจนกว่าจะตัดเครดิต
     if (!repair.completedAt) {
       data.completedAt = new Date();
     }
     data.paymentMethod = null;
   } else if (status === "PAID") {
-    // บิลที่จ่ายแล้วและแค่มาแก้วิธีชำระเงิน ต้องคงเวลาที่เก็บเงินไว้ตามเดิม
-    // ไม่งั้นยอดจะย้ายไปอยู่ในรายงานของวันที่มาแก้ ทั้งที่เงินเข้าไปตั้งแต่วันก่อน
+    // แค่แก้วิธีชำระเงินต้องคงเวลาเก็บเงินเดิม ไม่งั้นยอดย้ายไปวันที่มาแก้
     data.paidAt = repair.paidAt ?? new Date();
 
     if (repair.status === "IN_PROGRESS" && !repair.completedAt) {
@@ -975,21 +464,17 @@ exports.updateRepairStatus = async (req, res) => {
     }
   }
 
-  // เข้า/ออกใบประเมินราคาต้องขยับสต็อกด้วย จึงทำในรายการเดียวกับการเปลี่ยนสถานะ
-  // ถ้าตัดสต็อกไม่ผ่าน (ของถูกใช้ไปหมดระหว่างรอ) สถานะก็ต้องไม่เปลี่ยนตาม
+  // ขยับสต็อกในรายการเดียวกับการเปลี่ยนสถานะ ตัดสต็อกไม่ผ่านสถานะก็ไม่เปลี่ยน
   const toEstimate = status === "ESTIMATE" && repair.status !== "ESTIMATE";
   const fromEstimate = repair.status === "ESTIMATE" && status !== "ESTIMATE";
 
   if (toEstimate) {
-    // ยังไม่ซ่อม จึงไม่มีเวลาซ่อมเสร็จ ไม่มีเวลาชำระเงิน และยังไม่รู้ว่าจะจ่ายทางไหน
     data.completedAt = null;
     data.paidAt = null;
     data.paymentMethod = null;
   }
 
-  // ใบประเมินราคาถูกเปิดไว้ล่วงหน้าเป็นวันหรือเป็นสัปดาห์ก่อนลูกค้าจะตัดสินใจซ่อม
-  // วันที่ของบิลจึงต้องนับใหม่ตอนเริ่มซ่อมจริง ไม่งั้นงานจะไปเรียงอยู่ท้ายรายการ
-  // และวันที่บนใบเสร็จจะเป็นวันที่ประเมิน ไม่ใช่วันที่ซ่อม
+  // ใบประเมินราคาเปิดไว้ล่วงหน้าได้นาน วันที่บิลจึงนับใหม่ตอนเริ่มซ่อมจริง
   if (fromEstimate) {
     data.createdAt = new Date();
   }
@@ -1012,7 +497,6 @@ exports.updateRepairStatus = async (req, res) => {
   });
 };
 
-// พิมพ์กับบันทึกเป็นรูปใช้หน้าเอกสารชุดเดียวกัน รูปที่ส่งให้ลูกค้าจึงเหมือนกระดาษที่พิมพ์ออกมาทุกอย่าง
 const buildRepairDocument = async (id, body, { forImage = false } = {}) => {
   const repair = await prisma.repair.findUnique({
     where: { id: Number(id) },
@@ -1046,9 +530,8 @@ const buildRepairDocument = async (id, body, { forImage = false } = {}) => {
     createError(404, "ไม่พบงานซ่อม");
   }
 
-  // หน้าเว็บบอกมาว่าจะเอาข้อมูลลูกค้าติดไปด้วยไหม ไม่ส่งมาก็ถือว่าเอา
   const showCustomer = body?.showCustomer !== false;
-  // ชื่ออะไหล่แบบเต็มปิดไว้เป็นค่าเริ่มต้น เท่ากับสวิตช์ในหน้าตัวอย่าง
+  // ค่าเริ่มต้นเท่ากับสวิตช์ในหน้าตัวอย่าง
   const showBrand = body?.showBrand === true;
   const isJobSheet = body?.docType === "job";
 
@@ -1064,8 +547,6 @@ const buildRepairDocument = async (id, body, { forImage = false } = {}) => {
   return { repair, html, isJobSheet };
 };
 
-// สั่งพิมพ์ใบเสร็จออกเครื่องพิมพ์ที่ต่อกับเครื่องที่รันเซิร์ฟเวอร์
-// มีไว้ให้กดจากมือถือแล้วกระดาษออกที่ร้านได้ โดยไม่ต้องเดินไปกดที่คอม
 exports.printRepairReceipt = async (req, res) => {
   const { repair, html, isJobSheet } = await buildRepairDocument(
     req.params.id,
@@ -1079,7 +560,6 @@ exports.printRepairReceipt = async (req, res) => {
   });
 };
 
-// ส่งใบเป็นรูปให้ลูกค้าทางแชท แทนการพิมพ์กระดาษ ใบหลายแผ่นได้รูปละแผ่น
 exports.renderRepairImages = async (req, res) => {
   const { html } = await buildRepairDocument(req.params.id, req.body, {
     forImage: true,

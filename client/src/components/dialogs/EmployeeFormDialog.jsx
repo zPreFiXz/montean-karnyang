@@ -97,10 +97,10 @@ const EmployeeFormDialog = ({
           onClose={handleClose}
         />
 
-        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px]">
+        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5">
           <form
             onSubmit={handleSubmit(editingItem ? handleEdit : handleAdd)}
-            className="space-y-[16px]"
+            className="space-y-4"
           >
             <div>
               <FormInput
@@ -109,7 +109,7 @@ const EmployeeFormDialog = ({
                 label="รหัสพนักงาน (เครื่องสแกน)"
                 placeholder="เช่น 1"
                 errors={errors}
-                customClass="px-0 pb-[16px]"
+                customClass="px-0 pb-4"
                 color="subtle-dark"
                 autoFocus={false}
               />
@@ -120,7 +120,7 @@ const EmployeeFormDialog = ({
                 label="ชื่อ"
                 placeholder="เช่น ภูมิ"
                 errors={errors}
-                customClass="px-0 mb-[4px]"
+                customClass="px-0 mb-1"
                 color="subtle-dark"
                 autoFocus={false}
               />
@@ -128,8 +128,8 @@ const EmployeeFormDialog = ({
           </form>
         </div>
 
-        <div className="flex-shrink-0 px-[16px] pb-[16px]">
-          <div className="flex gap-[16px]">
+        <div className="flex-shrink-0 px-4 pb-4">
+          <div className="flex gap-4">
             <FormButton
               label={editingItem ? "บันทึก" : "เพิ่มพนักงาน"}
               isLoading={isSubmitting}

@@ -21,12 +21,10 @@ const RepairDetailCustomer = ({ customer, statusInfo, onSetOrganization }) => {
 
   return (
     <div>
-      <div className="mb-[16px] flex items-start gap-[8px] px-[20px]">
+      <div className="mb-4 flex items-start gap-2 px-5">
         <div
-          className={`mt-[6px] flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full ${statusInfo.bg}`}
+          className={`mt-1.5 flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full ${statusInfo.bg}`}
         >
-          {/* ไอคอนบอกประเภทลูกค้าไปเลย กวาดตาแล้วรู้ว่าบิลนี้เป็นของใครแบบไหน
-              ทั้งสามแบบใช้กรอบเดียวกับไอคอนอื่น จะได้ไม่มีวงไหนดูต่างออกไป */}
           <OutlineCardIcon
             icon={
               customer.organizationType === "GOVERNMENT"
@@ -38,12 +36,11 @@ const RepairDetailCustomer = ({ customer, statusInfo, onSetOrganization }) => {
             color={statusInfo.iconColor}
           />
         </div>
-        {/* กรอกมาอย่างเดียว (ชื่อล้วน หรือเบอร์ล้วน) ข้อความจะสูงไม่ถึงวงกลม
-            ต้องดันให้อยู่กึ่งกลางแกนตั้งเทียบวงกลม ไม่งั้นจะลอยเกาะขอบบน */}
+        {/* กรอกมาอย่างเดียว ข้อความจะสูงไม่ถึงวงกลม จึงดันให้อยู่กึ่งกลาง */}
         <div
           className={
             hasSingleCustomerLine
-              ? "mt-[6px] flex min-h-[45px] min-w-0 flex-1 flex-col justify-center"
+              ? "mt-1.5 flex min-h-[45px] min-w-0 flex-1 flex-col justify-center"
               : "flex min-w-0 flex-1 flex-col"
           }
         >
@@ -54,9 +51,7 @@ const RepairDetailCustomer = ({ customer, statusInfo, onSetOrganization }) => {
               {customer.name}
             </p>
           )}
-          {/* ขึ้นเฉพาะหน่วยงานกับร้านค้า ซึ่งเป็นข้อยกเว้นที่ต้องรู้
-              ลูกค้าทั่วไปมีเกือบทุกบิล บอกไปก็ไม่ได้อะไรใหม่ ไม่มีบรรทัดนี้ก็แปลว่าทั่วไป
-              ใช้สีเดียวกับบรรทัดยี่ห้อ-รุ่นรถ เพราะทำหน้าที่เดียวกันคือขยายบรรทัดบน */}
+          {/* ขึ้นเฉพาะหน่วยงานกับร้านค้า ไม่ขึ้นป้ายลูกค้าทั่วไป */}
           {customer.organizationType && (
             <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
               {organizationLabel(customer.organizationType)}
@@ -64,12 +59,12 @@ const RepairDetailCustomer = ({ customer, statusInfo, onSetOrganization }) => {
           )}
           {(customer.phoneNumber || customer.address || customer.taxId) && (
             <div
-              className={`flex flex-wrap items-start gap-[8px] ${
-                customer.name ? "mt-[4px]" : ""
+              className={`flex flex-wrap items-start gap-2 ${
+                customer.name ? "mt-1" : ""
               }`}
             >
               {customer.phoneNumber && (
-                <div className="flex flex-shrink-0 items-center gap-[4px]">
+                <div className="flex flex-shrink-0 items-center gap-1">
                   <Phone size={16} className="text-subtle-dark" />
                   <a
                     href={`tel:${customer.phoneNumber}`}
@@ -80,10 +75,10 @@ const RepairDetailCustomer = ({ customer, statusInfo, onSetOrganization }) => {
                 </div>
               )}
               {customer.address && (
-                <div className="flex items-start gap-[4px]">
+                <div className="flex items-start gap-1">
                   <MapPin
                     size={16}
-                    className="text-subtle-dark mt-[2px] flex-shrink-0"
+                    className="text-subtle-dark mt-0.5 flex-shrink-0"
                   />
                   <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
                     {customer.address}
@@ -91,7 +86,7 @@ const RepairDetailCustomer = ({ customer, statusInfo, onSetOrganization }) => {
                 </div>
               )}
               {customer.taxId && (
-                <div className="flex flex-shrink-0 items-center gap-[4px]">
+                <div className="flex flex-shrink-0 items-center gap-1">
                   <IdCard size={16} className="text-subtle-dark" />
                   <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
                     {customer.taxId}
@@ -101,14 +96,13 @@ const RepairDetailCustomer = ({ customer, statusInfo, onSetOrganization }) => {
             </div>
           )}
         </div>
-        {/* ตั้งประเภทลูกค้าได้จากบิลเครดิต เพราะเป็นจังหวะที่รู้ว่าใครติดเงินไว้ */}
         {onSetOrganization && (
           <button
             type="button"
             onClick={onSetOrganization}
             aria-label="ตั้งประเภทลูกค้า"
             title="ตั้งประเภทลูกค้า"
-            className="bg-subtle-light/15 mt-[6px] flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+            className="bg-subtle-light/15 mt-1.5 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full"
           >
             <SquarePen className="text-subtle-dark h-5 w-5" />
           </button>

@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { updatePartStock, deletePart } from "@/api/part";
 import { deleteService } from "@/api/service";
 import { useNavigate } from "react-router";
-import { markStockItemOpen } from "@/utils/reopenStockItem";
+import { markStockItemOpen } from "@/hooks/useReopenStockItem";
 import { updateStockSchema } from "@/utils/schemas";
 import useAuthStore from "@/stores/useAuthStore";
 import { formatProductName } from "@/utils/tireSize";
@@ -33,15 +33,35 @@ import {
   USED_TIRE_CATEGORY,
 } from "@/constants/categories";
 import { isPartLikeItem } from "@/constants/services";
-import { formatCurrency, formatQuantity } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
-import { tracksStock } from "@/utils/stock";
-import { dotOrderKey } from "@/utils/tireLot";
-import { isPerSide } from "@/utils/suspension";
+import { stockStatusOf } from "@/utils/inventoryItem";
+import ItemInfoSections from "@/components/inventory/ItemInfoSections";
 
-// สะท้อนสิ่งที่ backend ทำตอนเพิ่มสต็อก: DOT เดิมบวกทับล็อตเดิม ไม่งั้นสร้างล็อตใหม่
-// (คำนวณฝั่งนี้ด้วยเพื่อให้ไดอะล็อกอัปเดตทันทีโดยไม่ต้องดึงข้อมูลใหม่)
+const STOCK_TONES = {
+  out: {
+    color: "bg-destructive",
+    textColor: "text-destructive",
+    Icon: AlertTriangle,
+  },
+  low: {
+    color: "bg-status-progress",
+    textColor: "text-status-progress",
+    Icon: AlertTriangle,
+  },
+  ok: {
+    color: "bg-status-completed",
+    textColor: "text-status-completed",
+    Icon: Check,
+  },
+  untracked: {
+    color: "bg-subtle-light",
+    textColor: "text-subtle-dark",
+    Icon: Info,
+  },
+};
+
+// ทำแบบเดียวกับ backend ตอนเพิ่มสต็อก: DOT เดิมบวกทับล็อตเดิม ไม่งั้นสร้างล็อตใหม่
 const mergeTireLots = (lots = [], added = []) =>
   added.reduce((list, { dotCode, quantity }) => {
     const index = list.findIndex(
@@ -63,7 +83,6 @@ const RepairItemDetailDialog = ({
   onStockUpdate,
 }) => {
   const [isAddStockVisible, setIsAddStockVisible] = useState(false);
-  // ฟอร์มหายช้ากว่าปุ่มด้านล่าง: ปุ่มกลับมาทันทีที่กดยกเลิก ส่วนฟอร์มรอเลื่อนขึ้นบนเสร็จก่อน
   const [isStockFormShown, setIsStockFormShown] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -86,10 +105,8 @@ const RepairItemDetailDialog = ({
     mode: "onChange",
   });
 
-  // reset() เปล่าๆ จะล้างแถวยางจนหมดแล้วไม่งอกกลับ เพราะ TireLotInput ไม่ได้ถูก unmount
-  // (ฟอร์มแค่ยุบด้วย CSS) ตัวสร้างแถวแรกจึงทำงานไปแล้วครั้งเดียว — ต้องคืนแถวว่างให้เอง
-  // ช่องจำนวนก็ต้องใส่ค่าว่างให้ชัดเหมือนกัน reset({}) ไม่เขียนทับช่องที่ไม่ได้คุมด้วย React
-  // ตัวเลขของอะไหล่ชิ้นก่อนจึงค้างอยู่ในช่องตอนเปิดอะไหล่ชิ้นถัดไป
+  // ฟอร์มแค่ยุบด้วย CSS ไม่ได้ unmount reset() เปล่าๆ จะล้างแถวยางจนหมด
+  // และค่าในช่องจำนวนจะค้างจากชิ้นก่อน จึงต้องใส่ค่าให้เอง
   const resetStockForm = useCallback(() => {
     reset(
       tracksLots
@@ -116,18 +133,14 @@ const RepairItemDetailDialog = ({
       .querySelector('[role="dialog"]')
       ?.querySelector(".overflow-y-auto");
 
-  // delay ใช้ตอนต้องรอให้ฟอร์มถูกวาดก่อนค่อยเลื่อนไปหา
-  // ตอนเลื่อนกลับขึ้นบนสุดไม่ต้องรอ ปลายทางคือ 0 ไม่ได้ขึ้นกับความสูงของเนื้อหา
-  // ถ้าหน่วงไว้จะกลายเป็นหุบฟอร์มจบก่อนแล้วค่อยเลื่อน เห็นเป็นสองจังหวะ
+  // เลื่อนกลับขึ้นบนไม่ต้องรอ ถ้าหน่วงจะเห็นหุบฟอร์มกับเลื่อนเป็นสองจังหวะ
   const scrollDialogTo = (top, delay = 0) => {
     const run = () => dialogScroller()?.scrollTo({ top, behavior: "smooth" });
     if (delay) setTimeout(run, delay);
     else run();
   };
 
-  // ไดอะล็อกคงขนาดเดิมตลอด ฟอร์มเพิ่มสต็อกโผล่มารอไว้ใต้เนื้อหา แล้วเลื่อนลงไปหา
-  // ถ้าให้ไดอะล็อกยืดตามฟอร์ม ตัวที่เนื้อหาสั้น (ไม่มีรูป) จะยืดหดทั้งกล่อง ไม่เหมือนตัวที่มีรูปซึ่งสูงเต็มเพดานอยู่แล้ว
-  // จึงล็อกความสูงไว้ก่อนเปิดฟอร์ม แล้วปลดตอนฟอร์มหายไป ขนาดจะกลับเท่าเดิมพอดี
+  // ล็อกความสูงไดอะล็อกไว้ก่อนเปิดฟอร์ม ไม่งั้นตัวที่ไม่มีรูปจะยืดหดทั้งกล่อง
   const contentRef = useRef(null);
   const lockDialogHeight = () => {
     const el = contentRef.current;
@@ -141,7 +154,6 @@ const RepairItemDetailDialog = ({
     lockDialogHeight();
     setIsAddStockVisible(true);
     setIsStockFormShown(true);
-    // รอให้ฟอร์มถูกวาดก่อน ปลายทางถึงจะรวมความสูงของฟอร์มแล้ว
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
         const scroller = dialogScroller();
@@ -150,7 +162,7 @@ const RepairItemDetailDialog = ({
     );
   };
 
-  // เลื่อนกลับขึ้นบนก่อน แล้วค่อยเอาฟอร์มออก ไม่งั้นเนื้อหาหดใต้มือระหว่างที่ยังอยู่ล่างสุด
+  // เลื่อนขึ้นก่อนแล้วค่อยเอาฟอร์มออก ไม่งั้นเนื้อหาหดใต้มือ
   const closeAddStock = () => {
     setIsAddStockVisible(false);
     scrollDialogTo(0);
@@ -173,95 +185,10 @@ const RepairItemDetailDialog = ({
   // จุ๊บลมเก็บเป็นบริการแต่เรียกว่าอะไหล่ (ดู PART_LIKE_SERVICE_NAMES)
   const readsAsService = isService && !isPartLikeItem(currentItem);
 
-  // DOT 4 หลักคือ WWYY (สัปดาห์+ปี ค.ศ. 2 หลักท้าย) เช่น 0126 = สัปดาห์ 1 ปี 2026
-  const tireLotSummary = (() => {
-    if (!tracksLots) return [];
-
-    const rows = new Map();
-    for (const lot of currentItem.tireLots || []) {
-      const label = String(lot.dotCode ?? "").trim() || "ไม่ระบุ";
-      const quantity = Number(lot.quantity) || 0;
-      const sortKey = dotOrderKey(label);
-
-      const current = rows.get(label);
-      if (current) {
-        current.quantity += quantity;
-      } else {
-        rows.set(label, { key: label, label, quantity, sortKey });
-      }
-    }
-
-    return [...rows.values()].sort((a, b) => a.sortKey - b.sortKey);
-  })();
-
-  // รวมรุ่นของยี่ห้อเดียวกันไว้ด้วยกัน คงลำดับเดิมที่บันทึกมา (เรียงตามลิสต์แม่แล้ว)
-  const vehiclesByBrand = (() => {
-    const groups = new Map();
-    for (const vehicle of currentItem.compatibleVehicles || []) {
-      const brand = vehicle.brand || "ไม่ระบุ";
-      if (!groups.has(brand)) groups.set(brand, []);
-      groups.get(brand).push(vehicle.model);
-    }
-    return [...groups.entries()].map(([brand, models]) => ({ brand, models }));
-  })();
-
-  // ป้ายสถานะสต็อก: หมด/ต่ำ/ปกติ — กรณีหมดไม่ต้องบอกจำนวน เพราะคำว่าหมดสื่ออยู่แล้วว่า 0
-  // "สต็อกขั้นต่ำ" = จำนวนที่ต้องมีอยู่เสมอ จึงเตือนเมื่อ "ต่ำกว่า" ไม่ใช่ "เท่ากับ"
-  // (เกณฑ์นี้ต้องตรงกับ InventoryCard และ Dashboard)
-  const stockStatus = (() => {
-    const quantity = Number(currentItem.stockQuantity) || 0;
-    const amount =
-      `${formatQuantity(quantity)} ${currentItem.unit || ""}`.trim();
-
-    // ชุดน้ำมันไม่มีขั้นต่ำของตัวเอง (จำนวนชุดคิดจากน้ำมันที่ผูกไว้) บอกแค่ว่าเติมได้กี่ชุดหรือหมดแล้ว
-    if (isOilKit) {
-      return quantity === 0
-        ? {
-            color: "bg-destructive",
-            textColor: "text-destructive",
-            Icon: AlertTriangle,
-            label: "สต็อกหมด",
-          }
-        : {
-            color: "bg-status-completed",
-            textColor: "text-status-completed",
-            Icon: Check,
-            label: `จำนวน ${amount}`,
-          };
-    }
-
-    // ไม่ได้สต็อกไว้ → เหลือเท่าไหร่ก็ปกติ ไม่มีเกณฑ์ให้เทียบ
-    if (!tracksStock(currentItem.minStockLevel)) {
-      return {
-        color: "bg-subtle-light",
-        textColor: "text-subtle-dark",
-        Icon: Info,
-        label: `ไม่ได้ตั้งขั้นต่ำ · จำนวน ${amount}`,
-      };
-    }
-    if (quantity === 0) {
-      return {
-        color: "bg-destructive",
-        textColor: "text-destructive",
-        Icon: AlertTriangle,
-        label: "สต็อกหมด",
-      };
-    }
-    if (quantity < Number(currentItem.minStockLevel)) {
-      return {
-        color: "bg-status-progress",
-        textColor: "text-status-progress",
-        Icon: AlertTriangle,
-        label: `สต็อกต่ำ · จำนวน ${amount}`,
-      };
-    }
-    return {
-      color: "bg-status-completed",
-      textColor: "text-status-completed",
-      Icon: Check,
-      label: `สต็อกปกติ · จำนวน ${amount}`,
-    };
-  })();
+  const stockStatus = {
+    ...STOCK_TONES[stockStatusOf(currentItem, isOilKit).tone],
+    label: stockStatusOf(currentItem, isOilKit).label,
+  };
 
   const itemDisplayName = (() => {
     if (isService) return `${currentItem.name}`;
@@ -281,11 +208,9 @@ const RepairItemDetailDialog = ({
     </h2>
   );
 
-  // เขียน "ไดอะล็อกของชิ้นนี้เปิดอยู่" ลง URL ของหน้าที่กำลังจะจากไป
-  // แทนที่รายการเดิมในประวัติ กดย้อนกลับมาไดอะล็อกจึงเปิดค้างไว้เหมือนตอนจากไป
+  // แทนที่รายการเดิมในประวัติ กดย้อนกลับมาไดอะล็อกจึงเปิดค้างไว้
   const rememberOpenItem = () => {
-    // เฉพาะหน้าคลังที่รู้จักพารามิเตอร์นี้ ที่อื่น (เช่นหน้าหลัก) ไม่ต้องมีของแปลกปลอมใน URL
-    // จึงฝากไว้ใน state ของประวัติแทน (ดู useReopenStockItem)
+    // หน้าอื่นไม่รู้จักพารามิเตอร์นี้ จึงฝากไว้ใน state ของประวัติแทน (ดู useReopenStockItem)
     if (window.location.pathname !== "/inventory") {
       const current = `${window.location.pathname}${window.location.search}`;
       saveScrollPosition(current);
@@ -296,28 +221,22 @@ const RepairItemDetailDialog = ({
     const params = new URLSearchParams(window.location.search);
     params.set("item", `${currentItem.type}-${currentItem.id}`);
     const returnTo = `${window.location.pathname}?${params}`;
-    // แนบตัวข้อมูลไปกับรายการในประวัติด้วย กดย้อนกลับมาจะเปิดได้ตั้งแต่เฟรมแรก
-    // ไม่ต้องรอขอจากเซิร์ฟเวอร์ก่อน (ค่าใน URL เป็นทางสำรองไว้ตอนรีเฟรชหน้า)
+    // แนบข้อมูลไปด้วยให้เปิดได้ตั้งแต่เฟรมแรก ค่าใน URL เป็นทางสำรองตอนรีเฟรช
     navigate(returnTo, { replace: true, state: { openItem: currentItem } });
-    // ไม่ต้องวัดตำแหน่งตรงนี้ หน้าคลังจำไว้ตลอดระหว่างเลื่อนอยู่แล้ว
     return returnTo;
   };
 
   const handleEdit = () => {
     onOpenChange(false);
-    // แนบต้นทางไปด้วย เพื่อให้บันทึกเสร็จแล้วกลับมาหน้าที่กดมา ไม่ใช่หน้าที่ระบบเดาว่าเกี่ยวข้อง
-    // (เปิดจากหน้าหลักมักกำลังไล่เคลียร์รายการแจ้งเตือนสต็อกอยู่)
     const from = encodeURIComponent(rememberOpenItem());
     navigate(
       `/inventory/${currentItem.id}?type=${currentItem.type}&from=${from}`,
     );
   };
 
-  // ไปดูว่าของชิ้นนี้เคยถูกใช้กับรถคันไหนมาบ้าง
   const handleShowUsage = () => {
     onOpenChange(false);
     const returnTo = rememberOpenItem();
-    // ยี่ห้อแยกออกมา หน้าปลายทางเอาไปวางเป็นบรรทัดของตัวเองเหนือชื่อ
     const params = new URLSearchParams({
       name: formatProductName({
         name: currentItem.name,
@@ -382,7 +301,6 @@ const RepairItemDetailDialog = ({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
           ref={contentRef}
-          // สูงเท่าเนื้อหา แต่ไม่เกิน 85% ของจอ (เกินแล้วให้ส่วนเนื้อหาเลื่อนเอง)
           className="flex max-h-[85svh] w-full flex-col p-0"
           showCloseButton={false}
           onOpenAutoFocus={(e) => {
@@ -400,17 +318,12 @@ const RepairItemDetailDialog = ({
             onClose={() => onOpenChange(false)}
             leftSlot={
               <>
-                {/* ปุ่มดูข้อมูล ไม่ใช่ปุ่มสั่งงาน จึงแยกขึ้นมาไว้มุมบน ตรงข้ามปุ่มปิด
-                กดได้เสมอโดยไม่ต้องเลื่อน รวมถึงตอนฟอร์มเพิ่มสต็อกเปิดอยู่
-                เหลือแต่ไอคอนได้เพราะคนใช้มีแต่พนักงานร้านที่เปิดหน้าต่างนี้ทุกวัน */}
                 <button
                   onClick={handleShowUsage}
                   autoFocus={false}
                   aria-label="ประวัติการใช้"
                   title="ประวัติการใช้"
-                  // สีน้ำเงินอ่อนแบบวงกลมไอคอนหัวข้ออื่นในระบบ แยกจากปุ่มปิดสีเทาฝั่งขวา
-                  // ให้รู้ว่าเป็นปุ่มพาไปดูต่อ ไม่ใช่ปุ่มปิดอีกตัว
-                  className="bg-primary/10 absolute top-1/2 left-[20px] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full"
+                  className="bg-primary/10 absolute top-1/2 left-5 flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full"
                 >
                   <History size={20} className="text-primary" />
                 </button>
@@ -419,14 +332,14 @@ const RepairItemDetailDialog = ({
           />
 
           <div className="font-athiti flex flex-1 flex-col overflow-y-auto">
-            <div className="flex-1 px-[20px]">
-              <div className="mb-[16px]">
+            <div className="flex-1 px-5">
+              <div className="mb-4">
                 {renderProductInfo()}
 
                 {!isService && currentItem.partNumber && (
-                  <div className="mt-[16px] flex justify-center">
+                  <div className="mt-4 flex justify-center">
                     <div
-                      className={`text-surface ${stockStatus.color} flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-[24px] text-base font-semibold md:text-lg`}
+                      className={`text-surface ${stockStatus.color} flex h-[41px] w-fit items-center gap-2 rounded-[20px] px-6 text-base font-semibold md:text-lg`}
                     >
                       <stockStatus.Icon className="h-4 w-4" />
                       {stockStatus.label}
@@ -436,8 +349,8 @@ const RepairItemDetailDialog = ({
               </div>
 
               {currentItem.secureUrl && (
-                <div className="mb-[16px] flex justify-center">
-                  <div className="border-input flex aspect-square w-full max-w-[280px] items-center justify-center overflow-hidden rounded-[20px] border-2">
+                <div className="mb-4 flex justify-center">
+                  <div className="border-input flex aspect-square w-full max-w-70 items-center justify-center overflow-hidden rounded-[20px] border-2">
                     <img
                       src={currentItem.secureUrl}
                       alt={currentItem.name}
@@ -447,261 +360,24 @@ const RepairItemDetailDialog = ({
                 </div>
               )}
 
-              {/* ต่อจากรูป ก่อนข้อมูลทั่วไป บันทึกของร้านต้องเห็นก่อนตัวเลขอื่น */}
               {currentItem.description && (
                 <DescriptionNote text={currentItem.description} />
               )}
 
-              <div className="mt-[16px] space-y-[8px]">
-                {!isService && (
-                  <p className="font-athiti text-normal text-[22px] font-semibold md:text-2xl">
-                    ข้อมูลทั่วไป
-                  </p>
-                )}
-                <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
-                  {!isService && currentItem.partNumber && (
-                    <div className="flex justify-between">
-                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                        รหัสอะไหล่:
-                      </p>
-                      <p className="text-normal text-lg font-semibold md:text-xl">
-                        {currentItem.partNumber}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="flex justify-between">
-                    <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                      หมวดหมู่:
-                    </p>
-                    <p className="text-normal text-lg font-semibold md:text-xl">
-                      {currentItem.category?.name}
-                    </p>
-                  </div>
-
-                  {/* ช่วงล่างบอกทุกตัว ของหมวดอื่นกับบริการบอกเฉพาะตัวที่แยกซ้าย-ขวา (ตัวที่จะถูกถามข้างตอนลงบิล) */}
-                  {(currentItem.category?.name === "ช่วงล่าง" ||
-                    isPerSide(currentItem.attributes)) && (
-                    <div className="flex justify-between">
-                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                        ข้าง:
-                      </p>
-                      <p className="text-normal text-lg font-semibold md:text-xl">
-                        {isPerSide(currentItem.attributes)
-                          ? "แยกซ้าย-ขวา"
-                          : "ไม่แยกข้าง"}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {!isService && (
-                  <p className="font-athiti text-normal mt-[16px] text-[22px] font-semibold md:text-2xl">
-                    ข้อมูลราคา
-                  </p>
-                )}
-
-                <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
-                  {user?.role === "ADMIN" &&
-                    !isService &&
-                    currentItem.costPrice && (
-                      <div className="flex justify-between">
-                        <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                          ราคาต้นทุน:
-                        </p>
-                        <p className="text-normal text-lg font-semibold md:text-xl">
-                          {formatCurrency(Number(currentItem.costPrice))}
-                        </p>
-                      </div>
-                    )}
-
-                  <div className="flex justify-between">
-                    <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                      {isService ? "ราคา:" : "ราคาขาย:"}
-                    </p>
-                    <p className="text-primary text-lg font-semibold md:text-xl">
-                      {formatCurrency(
-                        Number(
-                          currentItem.sellingPrice || currentItem.price || 0,
-                        ),
-                      )}
-                    </p>
-                  </div>
-
-                  {/* ยางเปอร์เซ็นต์สภาพไม่เท่ากัน บอกทุกราคาที่เคยขายจริงกับจำนวนไว้ใช้ตั้งราคาตอนเปิดบิล
-                      ช่วงราคาอย่างเดียวกว้างเกิน ไม่รู้ว่าส่วนใหญ่ขายราคาไหน */}
-                  {currentItem.soldPrices?.length > 0 && (
-                    <div>
-                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                        ประวัติราคาขาย:
-                      </p>
-                      {currentItem.soldPrices.map(({ price, quantity }) => (
-                        <div
-                          key={price}
-                          className="flex justify-between pl-[16px] tabular-nums"
-                        >
-                          <p className="text-normal text-lg font-semibold md:text-xl">
-                            {formatCurrency(Number(price))}
-                          </p>
-                          <p className="text-subtle-dark text-lg font-semibold md:text-xl">
-                            {[formatQuantity(quantity), currentItem.unit]
-                              .filter(Boolean)
-                              .join(" ")}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* บริการเก็บหน่วยไว้ในกล่องราคาเพราะไม่มีกล่องสต็อก อะไหล่บอกหน่วยในกล่องสต็อกอยู่แล้ว
-                      บริการที่ไม่มีหน่วย (คิดเป็นครั้ง) ไม่ต้องมีแถวนี้ */}
-                  {isService && currentItem.unit && (
-                    <div className="flex justify-between">
-                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                        หน่วย:
-                      </p>
-                      <p className="text-normal text-lg font-semibold md:text-xl">
-                        {currentItem.unit}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {!isService && (
-                  // ต้องมี space-y เอง เพราะ space-y ของกล่องแม่ไม่ทะลุเข้ามาในตัวห่อชั้นนี้
-                  <div className="space-y-[8px]">
-                    <p className="font-athiti text-normal mt-[16px] text-[22px] font-semibold md:text-2xl">
-                      ข้อมูลสต็อก
-                    </p>
-                    <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
-                      {/* ชุดน้ำมันเครื่องตัดสต็อกที่ตัวเก็บน้ำมัน บอกว่าผูกกับตัวไหน เหลือเท่าไหร่ ชุดละกี่ลิตร */}
-                      {isOilKit && (
-                        <>
-                          <div className="flex justify-between gap-[8px]">
-                            <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
-                              ใช้น้ำมัน:
-                            </p>
-                            <p className="text-normal text-right text-lg font-semibold md:text-xl">
-                              {[
-                                currentItem.oilSource.brand,
-                                currentItem.oilSource.name,
-                              ]
-                                .filter(Boolean)
-                                .join(" ")}
-                            </p>
-                          </div>
-                          <div className="flex justify-between">
-                            <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                              น้ำมันเหลือ:
-                            </p>
-                            <p className="text-normal text-lg font-semibold md:text-xl">
-                              {`${formatQuantity(currentItem.oilSource.stockQuantity)} ลิตร`}
-                            </p>
-                          </div>
-                          <div className="flex justify-between">
-                            <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                              ใช้ชุดละ:
-                            </p>
-                            <p className="text-normal text-lg font-semibold md:text-xl">
-                              {`${formatQuantity(currentItem.oilLiters)} ลิตร`}
-                            </p>
-                          </div>
-                        </>
-                      )}
-                      {!isOilKit && (
-                        <>
-                          <div className="flex justify-between">
-                            <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                              จำนวนสต็อก:
-                            </p>
-                            <p
-                              className={`text-lg font-semibold md:text-xl ${stockStatus.textColor}`}
-                            >
-                              {currentItem.stockQuantity} {currentItem.unit}
-                            </p>
-                          </div>
-                          <div className="flex justify-between">
-                            <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                              สต็อกขั้นต่ำ:
-                            </p>
-                            <p className="text-normal text-lg font-semibold md:text-xl">
-                              {currentItem.minStockLevel} {currentItem.unit}
-                            </p>
-                          </div>
-                        </>
-                      )}
-
-                      {tracksLots && tireLotSummary.length > 0 && (
-                        <div className="space-y-[8px] border-t border-gray-200 pt-[8px]">
-                          <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                            สัปดาห์/ปีผลิต:
-                          </p>
-                          {tireLotSummary.map((row) => (
-                            <div key={row.key} className="flex justify-between">
-                              <p className="text-subtle-dark pl-[12px] text-lg font-medium md:text-xl">
-                                • {row.label}
-                              </p>
-                              <p className="text-normal text-lg font-semibold md:text-xl">
-                                {row.quantity} {currentItem.unit}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {!isService &&
-                currentItem.compatibleVehicles &&
-                currentItem.compatibleVehicles.length > 0 && (
-                  <div className="mt-[16px]">
-                    <p className="font-athiti text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
-                      รุ่นรถที่ใส่ได้
-                    </p>
-                    {/* ตารางยี่ห้อ-รุ่น เข้าชุดกับคู่ ชื่อ-ค่า ในส่วนอื่นของไดอะล็อก
-                        (ข้อมูลถูกเรียงให้ยี่ห้อรวมกลุ่มกันแล้วตั้งแต่ตอนบันทึก)
-                        รุ่นครอบเป็นป้ายทีละอัน เพราะชื่อรุ่นมีเว้นวรรคในตัว (Pajero Sport)
-                        ถ้าคั่นด้วยจุลภาคเฉยๆ จะแยกไม่ออกว่าอันไหนจบตรงไหน */}
-                    <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
-                      {vehiclesByBrand.map((group, groupIndex) => (
-                        <div
-                          key={group.brand}
-                          // เส้นคั่นเฉพาะระหว่างยี่ห้อ ไม่ใส่เหนือแถวแรก
-                          className={`flex gap-[12px] ${
-                            groupIndex > 0
-                              ? "border-t border-gray-200 pt-[8px]"
-                              : ""
-                          }`}
-                        >
-                          <p className="text-subtle-dark w-[110px] shrink-0 pt-[2px] text-lg font-medium md:text-xl">
-                            {group.brand}
-                          </p>
-                          <div className="flex min-w-0 flex-1 flex-wrap gap-[6px]">
-                            {group.models.map((model, index) => (
-                              <p
-                                key={`${model}-${index}`}
-                                className="text-normal bg-surface rounded-[8px] border border-gray-200 px-[8px] py-[2px] text-lg font-medium"
-                              >
-                                {model}
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <ItemInfoSections
+                item={currentItem}
+                isService={isService}
+                isOilKit={isOilKit}
+                tracksLots={tracksLots}
+                showCost={user?.role === "ADMIN"}
+                stockTextColor={stockStatus.textColor}
+              />
 
               {!isService && (
-                // ย่อ/ขยายด้วย CSS แทนการถอดออกจาก DOM ทันที ไม่งั้นไดอะล็อกหดวูบ
-                // inert กันไม่ให้ Tab เข้าไปในช่องที่ถูกซ่อนอยู่
+                // ยุบด้วย CSS ไม่ถอดออกจาก DOM ไม่งั้นไดอะล็อกหดวูบ inert กัน Tab เข้าช่องที่ซ่อน
                 <div
                   inert={!isAddStockVisible}
-                  // grid-rows 0fr→1fr ขยายไปหา "ความสูงจริงของเนื้อหา" ไม่ต้องเดาเป็นตัวเลข
-                  // (max-h ตายตัวจะตัดแถวที่เกินทิ้ง พอกรอกได้หลายล็อตแล้วเกินง่ายมาก)
-                  // ไม่ใส่จังหวะขยาย ฟอร์มต้องสูงเต็มตั้งแต่เฟรมแรก ปลายทางของการเลื่อนลงจะได้ถูก
+                  // grid-rows 0fr→1fr ขยายตามความสูงจริง max-h ตายตัวจะตัดแถวล็อตที่เกิน
                   className={`grid ${
                     isStockFormShown
                       ? "grid-rows-[1fr] opacity-100"
@@ -709,16 +385,15 @@ const RepairItemDetailDialog = ({
                   }`}
                 >
                   <div className="overflow-hidden">
-                    <p className="font-athiti text-normal mt-[16px] mb-[8px] text-[22px] font-semibold md:text-2xl">
+                    <p className="font-athiti text-normal mt-4 mb-2 text-[22px] font-semibold md:text-2xl">
                       เพิ่มสต็อก
                     </p>
 
-                    <div className="rounded-[10px] bg-gray-50 px-[16px] pb-[16px]">
+                    <div className="rounded-lg bg-gray-50 px-4 pb-4">
                       <form
                         onSubmit={handleSubmit(onSubmit)}
-                        className="space-y-[16px]"
+                        className="space-y-4"
                       >
-                        {/* ยางรับเข้าทีละหลาย DOT ได้ ใช้ตัวกรอกชุดเดียวกับฟอร์มเพิ่ม/แก้ไขรายการ */}
                         {tracksLots ? (
                           <TireLotInput
                             control={control}
@@ -728,7 +403,7 @@ const RepairItemDetailDialog = ({
                             unit={currentItem.unit}
                             heading="สัปดาห์/ปีผลิต"
                             headingClass="text-lg md:text-xl"
-                            className="pt-[16px]"
+                            className="pt-4"
                           />
                         ) : (
                           <FormInput
@@ -748,18 +423,15 @@ const RepairItemDetailDialog = ({
                                 "",
                               );
                             }}
-                            customClass="px-0 pt-[16px]"
+                            customClass="px-0 pt-4"
                           />
                         )}
 
-                        {/* เผยฟอร์มแล้วต้องมีทางถอย — ปุ่มยกเลิกใช้สไตล์เดียวกับไดอะล็อกอื่น
-                          (ขาว+ขอบ ไม่ใช่พื้นเทา เพราะกล่องฟอร์มเป็น bg-gray-50 จะกลืนกัน) */}
-                        <div className="flex items-center gap-[16px]">
+                        <div className="flex items-center gap-4">
                           <button
                             type="button"
                             disabled={isSubmitting}
                             onClick={handleCancelAddStock}
-                            // พื้นขาว+ขอบ ไม่ใช่พื้นเทา เพราะกล่องฟอร์มเป็น bg-gray-50 อยู่แล้วจะกลืนกัน
                             className="font-athiti bg-surface text-subtle-dark border-subtle-light flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
                           >
                             ยกเลิก
@@ -770,7 +442,7 @@ const RepairItemDetailDialog = ({
                               isSubmitting ? (
                                 "เพิ่มสต็อก"
                               ) : (
-                                <div className="flex items-center justify-center gap-[8px]">
+                                <div className="flex items-center justify-center gap-2">
                                   <Plus className="h-4 w-4" />
                                   เพิ่มสต็อก
                                 </div>
@@ -788,12 +460,8 @@ const RepairItemDetailDialog = ({
             </div>
           </div>
 
-          <div className="flex-shrink-0 px-[16px] pb-[16px]">
-            {/* ประวัติการใช้เป็นการดูข้อมูล ไม่ใช่การแก้ของ จึงแยกออกจากแถวปุ่มลงมือทำ
-                วางเป็นแถวเต็มความกว้างแบบรายการที่กดเข้าไปดูต่อได้ */}
-            <div className="flex items-center gap-[8px]">
-              {/* ลูกค้ามาถามของจากหน้าคลังบ่อย กดตะกร้าแล้วไปลงบิลใหม่ทันที ไม่ต้องไปค้นซ้ำในหน้าบิล
-                  เกณฑ์ปิดปุ่มเดียวกับการ์ดในไดอะล็อกเพิ่มรายการ */}
+          <div className="flex-shrink-0 px-4 pb-4">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() =>
                   navigate("/repairs/new", {
@@ -809,11 +477,10 @@ const RepairItemDetailDialog = ({
               >
                 <ShoppingCart className="h-4 w-4" />
               </button>
-              {/* ชุดน้ำมันไม่มีสต็อกของตัวเอง เพิ่มสต็อกที่ตัวเก็บน้ำมันแทน */}
               {!isService && !isOilKit && !isAddStockVisible && (
                 <button
                   onClick={handleShowAddStock}
-                  className="font-athiti text-surface bg-gradient-primary flex h-11 flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] text-lg font-semibold md:text-xl"
+                  className="font-athiti text-surface bg-gradient-primary flex h-11 flex-1 cursor-pointer items-center justify-center gap-1 rounded-[20px] text-lg font-semibold md:text-xl"
                 >
                   <Plus className="h-4 w-4" />
                   เพิ่มสต็อก
@@ -822,7 +489,7 @@ const RepairItemDetailDialog = ({
               <button
                 onClick={handleEdit}
                 autoFocus={false}
-                className="font-athiti text-primary border-primary bg-surface flex h-11 flex-1 cursor-pointer items-center justify-center gap-[4px] rounded-[20px] border text-lg font-semibold md:text-xl"
+                className="font-athiti text-primary border-primary bg-surface flex h-11 flex-1 cursor-pointer items-center justify-center gap-1 rounded-[20px] border text-lg font-semibold md:text-xl"
               >
                 <Edit className="h-4 w-4" />
                 แก้ไข
@@ -855,11 +522,9 @@ const RepairItemDetailDialog = ({
               isService ? "ลบบริการเรียบร้อยแล้ว" : "ลบอะไหล่เรียบร้อยแล้ว",
             );
             if (onStockUpdate) onStockUpdate();
-            // ของถูกลบแล้ว ไดอะล็อกรายละเอียดไม่มีอะไรให้ดูต่อ ปิดทั้งสองชั้น
             setIsDeleteConfirmOpen(false);
             onOpenChange(false);
           } catch (error) {
-            // ลบไม่สำเร็จ: ปิดแค่ตัวยืนยัน ให้ผู้ใช้ยังเห็นรายละเอียดและลองใหม่ได้
             toastError(error);
             setIsDeleteConfirmOpen(false);
           }

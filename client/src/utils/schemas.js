@@ -104,14 +104,11 @@ export const repairSchema = z
       .optional()
       .or(z.literal("")),
     type: z.enum(["GENERAL", "SUSPENSION", "SALE"]).optional(),
-    // งานบริการที่ไม่เก็บประวัติรถ — ไม่ต้องมียี่ห้อ/รุ่น เหมือนบิลขายหน้าร้าน
     noVehicle: z.boolean().optional(),
-    // บิลขายหน้าร้านพกวิธีชำระเงินมาด้วยตอนแก้ไข ต้องประกาศไว้ที่นี่
-    // ไม่งั้นตัวตรวจข้อมูลจะตัดช่องที่ไม่รู้จักทิ้ง แล้วหน้าสรุปจะไม่รู้ว่าเดิมรับเงินมาทางไหน
+    // ต้องประกาศไว้ ไม่งั้นตัวตรวจจะตัดช่องนี้ทิ้ง หน้าสรุปจะไม่รู้ว่าเดิมรับเงินทางไหน
     paymentMethod: z.string().optional(),
   })
-  // บิลขายอะไหล่หน้าร้าน (SALE) ไม่มีรถมาเกี่ยว จึงไม่บังคับยี่ห้อกับรุ่นรถ
-  // ต้องตรงกับ repairSchema ฝั่งเซิร์ฟเวอร์ ไม่งั้นจะผ่านหน้าเว็บแต่ไปตกที่ toast
+  // ต้องตรงกับ repairSchema ฝั่งเซิร์ฟเวอร์
   .superRefine((data, ctx) => {
     if (data.type === "SALE" || data.noVehicle) return;
 
@@ -133,10 +130,8 @@ export const repairSchema = z
 
 export const partServiceSchema = z
   .object({
-    // อะไหล่
     partNumber: z.string().optional(),
-    // ฐานข้อมูลเก็บ "ไม่มียี่ห้อ" เป็น null ไม่ใช่ข้อความว่าง แปลงให้เป็นข้อความว่างตั้งแต่ต้นทาง
-    // ไม่งั้นข้อความ error ดิบของไลบรารีจะหลุดไปโผล่หน้าผู้ใช้
+    // ฐานข้อมูลเก็บไม่มียี่ห้อเป็น null แปลงเป็นข้อความว่างก่อน ไม่งั้น error ดิบของไลบรารีจะโผล่
     brand: z.preprocess((v) => v ?? "", z.string().optional()),
     name: z.string().optional(),
     costPrice: z.preprocess(
@@ -154,7 +149,6 @@ export const partServiceSchema = z
     categoryId: z.number().optional(),
     categoryKind: z.string().optional(),
 
-    // ยาง
     width: z.string().optional(),
     aspectRatio: z.string().optional(),
     rimDiameter: z.string().optional(),
@@ -176,17 +170,14 @@ export const partServiceSchema = z
       )
       .optional(),
 
-    // ช่วงล่าง
     suspensionType: z.string().optional(),
 
-    // ชุดน้ำมันเครื่อง: ตัวเก็บน้ำมันที่ตัดสต็อกแทน กับกี่ลิตรต่อชุด
     oilSourceId: z.any().optional(),
     oilLiters: z.preprocess(
       (v) => (v == null ? "" : String(v)),
       z.string().optional(),
     ),
 
-    // บริการ
     price: z.coerce.number().optional().default(0),
   })
   .superRefine((data, ctx) => {
@@ -207,9 +198,8 @@ export const partServiceSchema = z
       return;
     }
 
-    // ชนิดหมวดหมู่ส่งมาจากฟอร์ม (ดู getCategoryKind) เพราะรหัสหมวดของแต่ละเครื่องไม่ตรงกัน
-    // และยางมีสองหมวดแล้ว (ยางใหม่กับยางเปอร์เซ็นต์) เทียบรหัสตัวเดียวจึงไม่พอ
-    // เทียบรหัสไว้เป็นตาข่ายรองรับ เผื่อมีที่เรียกใช้เก่าที่ยังไม่ได้ส่ง categoryKind มา
+    // ใช้ชนิดหมวดหมู่ (ดู getCategoryKind) เพราะรหัสหมวดของแต่ละเครื่องไม่ตรงกัน
+    // เทียบรหัสไว้เป็นตาข่ายรองรับที่เรียกใช้เก่าที่ไม่ได้ส่ง categoryKind
     const kind = data.categoryKind;
     const isServiceCategory = kind ? kind === "service" : data.categoryId === 1;
     const isSuspensionCategory = kind
@@ -261,9 +251,7 @@ export const partServiceSchema = z
         });
       }
 
-      // ไม่ต้องเช็คว่ามีอย่างน้อย 1 แถว — TireLotInput เตรียมแถวแรกให้เสมอ
-      // และปิดปุ่มลบเมื่อเหลือแถวเดียว จำนวนแถวจึงเป็น 0 ไม่ได้
-      // ยางเปอร์เซ็นต์ไม่มีล็อต กรอกจำนวนสต็อกช่องเดียวแทน
+      // TireLotInput เตรียมแถวแรกและปิดปุ่มลบเมื่อเหลือแถวเดียว จำนวนแถวจึงเป็น 0 ไม่ได้
       const lots = kind === "usedTire" ? [] : data.tireLots || [];
       lots.forEach((lot, index) => {
         const dot = String(lot.dotCode ?? "").trim();
@@ -365,8 +353,7 @@ export const partServiceSchema = z
 
 export const editNamePriceSchema = z.object({
   name: z.string().min(1, "กรุณากรอกชื่อบริการ"),
-  // ราคา 0 ใช้ได้จริง (ของแถม, บริการที่ไม่คิดเงิน) แต่เว้นว่างไม่ได้
-  // ต้องดักช่องว่างก่อน เพราะ coerce.number แปลง "" เป็น 0 ซึ่งจะผ่านไปเงียบๆ
+  // ต้องดักช่องว่างก่อน เพราะ coerce.number แปลง "" เป็น 0 แล้วผ่านไปเงียบๆ
   price: z.preprocess(
     (value) =>
       typeof value === "string" && value.trim() === "" ? undefined : value,
@@ -376,9 +363,8 @@ export const editNamePriceSchema = z.object({
   ),
 });
 
-// ฟอร์มเพิ่มสต็อกใช้ schema เดียวสำหรับทั้งอะไหล่และยาง แล้วดูจากรูปร่างข้อมูลว่าเป็นแบบไหน
-// (เคยแยกสอง schema แล้วเลือกด้วย isTire ตอนสร้างฟอร์ม แต่ตอนเรนเดอร์แรกยังไม่มีข้อมูลสินค้า
-//  resolver เลยถูกผูกกับ schema ผิดตัวค้างไว้ ยางจึงโดนบังคับกรอก quantity ที่ไม่มีในฟอร์ม)
+// schema เดียวทั้งอะไหล่และยาง ดูจากรูปร่างข้อมูล
+// แยกสอง schema ไม่ได้ เพราะเรนเดอร์แรกยังไม่รู้ชนิดสินค้า resolver จะผูกผิดตัวค้างไว้
 const toOptionalNumber = (v) => {
   if (typeof v === "string" && v.trim() === "") return undefined;
   if (v === null) return undefined;
@@ -399,7 +385,6 @@ export const updateStockSchema = z
       .optional(),
   })
   .superRefine((data, ctx) => {
-    // ยาง: กรอกเป็นแถว ล็อตละ DOT + จำนวน
     if (Array.isArray(data.tireLots)) {
       if (data.tireLots.length === 0) {
         ctx.addIssue({
@@ -443,7 +428,6 @@ export const updateStockSchema = z
       return;
     }
 
-    // อะไหล่ทั่วไป: ช่องจำนวนเดี่ยว
     if (data.quantity === undefined) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

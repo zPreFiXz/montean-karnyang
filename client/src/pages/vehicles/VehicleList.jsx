@@ -16,9 +16,7 @@ import {
 
 const SCROLL_KEY = "vehicles";
 
-// จำผลค้นล่าสุดของแต่ละคำค้นไว้ กดย้อนกลับมาจะได้มีรายการโชว์ตั้งแต่เฟรมแรก
-// ไม่ต้องขึ้นตัวโหลดคั่นให้หน้ากระพริบ แล้วค่อยดึงใหม่ทับเงียบๆ
-// อยู่นอกคอมโพเนนต์เพราะต้องอยู่ข้ามการเปลี่ยนหน้า และหายไปเองเมื่อรีเฟรชเบราว์เซอร์
+// จำผลไว้นอกคอมโพเนนต์ กดย้อนกลับมาจะมีรายการตั้งแต่เฟรมแรก
 const vehicleCache = new Map();
 const cacheKey = (search) => search || "";
 
@@ -28,24 +26,19 @@ const plateCollator = new Intl.Collator("th", { numeric: true });
 const VehicleList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const isInitializing = useRef(false);
-  // ประเภทการเข้าหน้าตอนแรกเท่านั้นที่บอกได้ว่าเป็นการย้อนกลับ
-  // ค่าจะเปลี่ยนเมื่อพิมพ์ค้นหา (เพราะ setSearchParams นับเป็นการไปหน้าใหม่) จึงเก็บไว้ครั้งเดียว
+  // ค่าจะเปลี่ยนเมื่อพิมพ์ค้นหา (setSearchParams นับเป็นการไปหน้าใหม่) จึงเก็บไว้ครั้งเดียวตอนเข้าหน้า
   const isReturning = useRef(useNavigationType() === "POP");
 
   const search = searchParams.get("search");
 
-  // เริ่มจากผลเดิมที่จำไว้ได้เลย ไม่ต้องรอเอฟเฟกต์ หน้าจึงไม่กระพริบเป็นตัวโหลดหนึ่งเฟรม
   const cachedVehicles = vehicleCache.get(cacheKey(search));
   const [vehicles, setVehicles] = useState(cachedVehicles || []);
   const [isLoading, setIsLoading] = useState(!cachedVehicles);
 
-  // ตัดกันตกบรรทัด — คำค้นอาจยาวเกินได้ถ้าใส่มาทาง URL ตรงๆ
   const searchTerm =
     search && search.length > 20 ? `${search.slice(0, 20)}…` : search;
 
-  // กลับมาจากหน้ารายละเอียด = ดูรายการเดิมต่อ คำค้นที่ติดอยู่ใน URL จึงคงไว้
-  // (ไม่ต้องสั่งโหลดเอง เอฟเฟกต์ของ search ข้างล่างทำให้แล้วตั้งแต่เฟรมแรก)
-  // เข้าจากเมนู = เริ่มดูใหม่ ต้องล้างคำค้นเก่าทิ้ง
+  // กลับมาจากหน้ารายละเอียด = ดูรายการเดิมต่อ คงคำค้นไว้ เข้าจากเมนู = ล้างคำค้นเก่า
   useEffect(() => {
     if (isReturning.current) return;
 
@@ -73,8 +66,7 @@ const VehicleList = () => {
     }
   }, [search]);
 
-  // เรียงฝั่งเบราว์เซอร์ เพราะ MySQL เรียงภาษาไทยกับตัวเลขในทะเบียนได้ไม่ตรงอย่างที่ต้องการ
-  // (ต้องอ่าน 999 ว่าน้อยกว่า 1234 ไม่ใช่เทียบทีละตัวอักษร)
+  // เรียงฝั่งเบราว์เซอร์ เพราะ MySQL เรียงเลขในทะเบียนแบบตัวอักษร (999 ต้องมาก่อน 1234)
   const sortVehicles = (list = []) =>
     [...list].sort((a, b) => {
       const fields = [
@@ -97,7 +89,6 @@ const VehicleList = () => {
     });
 
   const handleFilter = async (search) => {
-    // มีผลเดิมของคำค้นนี้อยู่แล้วก็โชว์ไปก่อน ไม่ต้องขึ้นตัวโหลด
     const cached = vehicleCache.get(cacheKey(search));
     if (cached) {
       setVehicles(cached);
@@ -119,15 +110,14 @@ const VehicleList = () => {
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
-      <div className="flex items-center gap-[8px] pt-[16px] pl-[20px]">
-        <div className="bg-surface/20 flex h-[40px] w-[40px] items-center justify-center rounded-full">
+      <div className="flex items-center gap-2 pt-4 pl-5">
+        <div className="bg-surface/20 flex h-10 w-10 items-center justify-center rounded-full">
           <Document color="#ffffff" />
         </div>
-        <div className="flex items-center gap-[8px]">
+        <div className="flex items-center gap-2">
           <p className="text-surface text-2xl font-semibold md:text-[26px]">
             ประวัติรถ
           </p>
-          {/* จำนวนรถในลิสต์ตอนนี้ ตอนค้นหาจึงเป็นจำนวนที่ตรงคำค้น ไม่ขึ้นระหว่างโหลดหรือตอนไม่มีสักคัน */}
           {!isLoading && vehicles.length > 0 && (
             <span className="text-surface/70 shrink-0 text-xl font-medium md:text-[22px]">
               ({vehicles.length})
@@ -135,23 +125,21 @@ const VehicleList = () => {
           )}
         </div>
       </div>
-      <div className="bg-surface shadow-primary mt-[16px] flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-[112px] xl:pb-[16px]">
-        <div className="flex flex-1 flex-col px-[20px] pt-[16px]">
-          {/* แถบค้นหา */}
+      <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-28 xl:pb-4">
+        <div className="flex flex-1 flex-col px-5 pt-4">
           <SearchBar placeholder="ค้นหาทะเบียน, จังหวัด, ยี่ห้อ, รุ่นรถ, ชื่อลูกค้า" />
 
-          {/* รายการรถ */}
           {isLoading ? (
             <PageSpinner />
           ) : vehicles.length === 0 ? (
             <div className="flex flex-1 items-center justify-center">
-              <p className="text-subtle-light px-[20px] text-center text-xl text-balance md:text-[22px]">
+              <p className="text-subtle-light px-5 text-center text-xl text-balance md:text-[22px]">
                 {search ? `ไม่พบ "${searchTerm}"` : "ไม่มีประวัติรถ"}
               </p>
             </div>
           ) : (
             vehicles.map((item, index) => (
-              <div key={index} className="mt-[16px]">
+              <div key={index} className="mt-4">
                 <Link
                   to={`/vehicles/${item.id}`}
                   onClick={() => saveScrollPosition(SCROLL_KEY)}

@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 
-// ตัวโหลดของแต่ละหน้า อยู่ที่เดียวเพื่อให้เส้นทางกับการเตรียมโค้ดล่วงหน้าใช้ตัวเดียวกัน
-// ถ้าต่างคนต่างเขียน import() เอง เบราว์เซอร์จะมองเป็นคนละก้อนแล้วโหลดซ้ำ
+// ที่เดียวทั้งเส้นทางและการเตรียมโค้ด ต่างคนต่าง import() เบราว์เซอร์จะโหลดซ้ำ
 export const pageImports = {
   Login: () => import("@/pages/auth/Login"),
   Dashboard: () => import("@/pages/Dashboard"),
@@ -15,9 +14,10 @@ export const pageImports = {
   InventoryList: () => import("@/pages/inventory/InventoryList"),
   InventoryForm: () => import("@/pages/inventory/InventoryForm"),
   InventoryUsage: () => import("@/pages/inventory/InventoryUsage"),
-  OrganizationList: () => import("@/pages/repairs/OrganizationList"),
-  OrganizationDetail: () => import("@/pages/repairs/OrganizationDetail"),
-  OrganizationHistory: () => import("@/pages/repairs/OrganizationHistory"),
+  OrganizationList: () => import("@/pages/organizations/OrganizationList"),
+  OrganizationDetail: () => import("@/pages/organizations/OrganizationDetail"),
+  OrganizationHistory: () =>
+    import("@/pages/organizations/OrganizationHistory"),
   VehicleList: () => import("@/pages/vehicles/VehicleList"),
   VehicleDetail: () => import("@/pages/vehicles/VehicleDetail"),
   UserList: () => import("@/pages/admin/UserList"),
@@ -28,8 +28,6 @@ export const pageImports = {
   NotFound: () => import("@/pages/NotFound"),
 };
 
-// เตรียมโค้ดของหน้าที่มีโอกาสไปต่อไว้เงียบๆ ตั้งแต่ยังไม่กด
-// กดจริงแล้วจะสลับหน้าทันที ไม่ต้องรอโหลดก้อนของหน้านั้นก่อน
 export const prefetchPages = (names) => {
   for (const name of names) {
     // โหลดพลาด (เน็ตหลุด) ไม่ต้องทำอะไร ตอนกดจริงจะลองใหม่เองอยู่แล้ว

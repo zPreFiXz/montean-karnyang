@@ -4,9 +4,7 @@ const { buildOrganizationBillHtml } = require("../utils/receiptHtml");
 const { printReceipt } = require("../utils/printReceipt");
 const { peekBillingNo, issueBillingNo } = require("../utils/documentNumber");
 
-// ค้นลูกค้าที่เคยบันทึกไว้ เพื่อให้เลือกซ้ำได้ตอนกรอกบิล
-// สำคัญกว่าความสะดวก: กันชื่อเดียวกันถูกพิมพ์ต่างกันจนกลายเป็นลูกค้าคนละราย
-// (ระบบจับคู่ด้วยชื่อเมื่อไม่มีเบอร์โทร ดู resolveCustomer ใน controllers/repair.js)
+// กันชื่อเดียวกันถูกพิมพ์ต่างกันจนกลายเป็นคนละราย (ระบบจับคู่ด้วยชื่อเมื่อไม่มีเบอร์ ดู utils/repairCustomer.js)
 exports.listCustomers = async (req, res) => {
   const { search } = req.query;
 
@@ -35,7 +33,6 @@ exports.listCustomers = async (req, res) => {
 
 const ORGANIZATION_TYPES = ["GOVERNMENT", "SHOP"];
 
-// ตั้งว่าลูกค้ารายนี้เป็นหน่วยงานราชการหรือร้านค้า ส่งค่าว่างมาคือกลับเป็นลูกค้าทั่วไป
 exports.updateCustomerOrganizationType = async (req, res) => {
   const { id } = req.params;
   const { organizationType } = req.body;
@@ -53,8 +50,7 @@ exports.updateCustomerOrganizationType = async (req, res) => {
   res.json(customer);
 };
 
-// รายชื่อหน่วยงานและร้านค้า พร้อมยอดที่ยังค้างชำระอยู่
-// ยอดค้าง = บิลที่สถานะเป็นเครดิต ยังไม่ได้เก็บเงิน
+// ยอดค้าง = บิลที่สถานะเป็นเครดิต
 exports.listOrganizations = async (req, res) => {
   const { search } = req.query;
 
@@ -72,13 +68,11 @@ exports.listOrganizations = async (req, res) => {
       organizationType: true,
       repairs: {
         where: { status: "CREDIT" },
-        // วันที่ไว้บอกว่าค้างมาตั้งแต่เดือนไหน
         select: { totalPrice: true, createdAt: true },
       },
     },
   });
 
-  // รวมยอดฝั่งนี้เลย หน้าเว็บจะได้ไม่ต้องดึงบิลทั้งหมดไปบวกเอง
   const organizations = customers
     .map(({ repairs, ...customer }) => ({
       ...customer,
@@ -87,14 +81,12 @@ exports.listOrganizations = async (req, res) => {
         (sum, repair) => sum + Number(repair.totalPrice || 0),
         0,
       ),
-      // บิลที่ยังไม่ได้เก็บเงินและเก่าที่สุด = ค้างมาตั้งแต่เดือนไหน
       oldestUnpaidAt: repairs.reduce(
         (oldest, repair) =>
           !oldest || repair.createdAt < oldest ? repair.createdAt : oldest,
         null,
       ),
     }))
-    // ค้างเยอะขึ้นก่อน เพราะเป็นเหตุผลหลักที่เปิดหน้านี้
     .sort(
       (a, b) =>
         b.creditTotal - a.creditTotal ||
@@ -104,9 +96,7 @@ exports.listOrganizations = async (req, res) => {
   res.json(organizations);
 };
 
-// บิลของหน่วยงานหรือร้านค้ารายนี้
-// ปกติเอาเฉพาะที่ยังค้างชำระ ส่ง scope=all มาเมื่อต้องการดูประวัติย้อนหลังทั้งหมด
-// ใบประเมินราคาไม่นับเป็นประวัติ เพราะยังไม่ได้ลงมือซ่อมและไม่ได้เกิดรายได้
+// ใบประเมินราคาไม่นับเป็นประวัติ เพราะยังไม่ได้ซ่อมและไม่มีรายได้
 exports.listOrganizationRepairs = async (req, res) => {
   const { id } = req.params;
   const { scope } = req.query;
@@ -143,7 +133,6 @@ exports.listOrganizationRepairs = async (req, res) => {
           vehicleModel: { select: { brand: true, model: true } },
         },
       },
-      // รายละเอียดครบ เพราะหน้านี้เอาไปวาดตัวอย่างใบเสร็จด้วย ไม่ใช่แค่นับจำนวน
       repairItems: {
         include: {
           part: {
@@ -163,10 +152,9 @@ exports.listOrganizationRepairs = async (req, res) => {
   res.json({ customer, repairs });
 };
 
-// บิลที่จะอยู่ในใบวางบิล ใช้ร่วมกันระหว่างหน้าตัวอย่าง (ถามเลขที่) กับตอนพิมพ์ ชุดบิลจะได้ตรงกัน
+// ใช้ร่วมกันระหว่างหน้าตัวอย่างกับตอนพิมพ์ ชุดบิลจะได้ตรงกัน
 const findBillRepairs = async (id, month) => {
-  // ส่งเดือนมาในรูป 2026-09 = เอาบิลของเดือนนั้นทุกสถานะ (ใช้กับหน้าประวัติรายเดือน)
-  // ไม่ส่งมา = เอาเฉพาะบิลที่ยังค้างชำระ
+  // month (2026-09) = บิลของเดือนนั้นทุกสถานะ ไม่ส่ง = เฉพาะที่ยังค้างชำระ
   const monthKey = String(month || "");
   const isMonthly = /^\d{4}-\d{2}$/.test(monthKey);
 
@@ -200,7 +188,6 @@ const findBillRepairs = async (id, month) => {
           }
         : { status: "CREDIT" }),
     },
-    // ใบวางบิลใช้แค่หัวบิล ไม่ต้องดึงรายการในบิลมาทั้งหมด
     select: {
       id: true,
       type: true,
@@ -216,7 +203,6 @@ const findBillRepairs = async (id, month) => {
         },
       },
     },
-    // เรียงตามลำดับที่เปิดบิล
     orderBy: { id: "asc" },
   });
 
@@ -244,7 +230,6 @@ exports.peekOrganizationBillNo = async (req, res) => {
   res.json({ number });
 };
 
-// พิมพ์ใบวางบิลของหน่วยงานหรือร้านค้า: แผ่นแรกเป็นใบสรุปยอดค้าง แผ่นถัดไปเป็นใบเสร็จของแต่ละบิล
 exports.printOrganizationBill = async (req, res) => {
   const { customer, repairs } = await findBillRepairs(
     req.params.id,

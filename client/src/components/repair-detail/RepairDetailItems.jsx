@@ -14,12 +14,12 @@ import {
 
 const ItemGroup = ({ icon: Icon, title, items, keyPrefix, onItemClick }) =>
   items.length > 0 && (
-    <div className="mb-[8px]">
-      <p className="text-primary mb-[8px] flex items-center gap-[4px] text-xl font-semibold md:text-[22px]">
-        <Icon className="mt-[2px]" />
+    <div className="mb-2">
+      <p className="text-primary mb-2 flex items-center gap-1 text-xl font-semibold md:text-[22px]">
+        <Icon className="mt-0.5" />
         {title}
       </p>
-      <div className="space-y-[12px]">
+      <div className="space-y-3">
         {items.map((item, idx) => (
           <RepairItemCard
             key={`${keyPrefix}-${idx}`}
@@ -38,15 +38,15 @@ const RepairDetailItems = ({ repair, canEdit, onEdit, onItemClick }) => {
     repair.type === "SUSPENSION" ? groupSuspensionDetailItems(items) : null;
 
   return (
-    <div className="mb-[16px] px-[20px]">
-      <div className="mb-[8px] flex items-center justify-between">
+    <div className="mb-4 px-5">
+      <div className="mb-2 flex items-center justify-between">
         <p className="text-normal text-[22px] font-semibold md:text-2xl">
           รายการซ่อม
         </p>
         {canEdit && (
           <button
             onClick={onEdit}
-            className="text-primary flex cursor-pointer items-center gap-[4px] text-xl font-semibold md:text-[22px]"
+            className="text-primary flex cursor-pointer items-center gap-1 text-xl font-semibold md:text-[22px]"
           >
             <Edit className="h-5 w-5" />
             แก้ไขรายการซ่อม
@@ -54,7 +54,7 @@ const RepairDetailItems = ({ repair, canEdit, onEdit, onItemClick }) => {
         )}
       </div>
       {groups ? (
-        <div className="space-y-[16px]">
+        <div className="space-y-4">
           <div>
             <ItemGroup
               icon={ArrowLeftRight}
@@ -94,7 +94,7 @@ const RepairDetailItems = ({ repair, canEdit, onEdit, onItemClick }) => {
           </div>
         </div>
       ) : (
-        <div className="space-y-[16px]">
+        <div className="space-y-4">
           {mergeSidesInOrder(items).map(({ item, sideLabel }, index) => (
             <RepairItemCard
               key={index}

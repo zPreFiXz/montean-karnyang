@@ -8,9 +8,9 @@ const StatusCard = ({ bg, icon: Icon, label, amount }) => {
 
   return (
     <div
-      className={`shadow-primary flex h-[80px] w-full cursor-pointer items-center justify-between rounded-[10px] px-[16px] ${bgColorMap[bg]}`}
+      className={`shadow-primary flex h-20 w-full cursor-pointer items-center justify-between rounded-lg px-4 ${bgColorMap[bg]}`}
     >
-      <div className="flex items-center gap-[8px]">
+      <div className="flex items-center gap-2">
         <Icon />
         <p className="text-surface text-[22px] font-medium md:text-2xl">
           {label}

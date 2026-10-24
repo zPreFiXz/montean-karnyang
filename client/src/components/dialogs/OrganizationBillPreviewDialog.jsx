@@ -18,8 +18,6 @@ import { peekOrganizationBillNo, printOrganizationBill } from "@/api/customer";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
 
-// ตัวอย่างใบวางบิล แผ่นเดียวจบ
-// วิธีวัดและย่อกระดาษเหมือนตัวอย่างใบเสร็จทุกอย่าง
 const OrganizationBillPreviewDialog = ({
   customer,
   repairs,
@@ -31,7 +29,7 @@ const OrganizationBillPreviewDialog = ({
   const [isPrinting, setIsPrinting] = useState(false);
   const [billingNo, setBillingNo] = useState("");
 
-  // ถามเลขทุกครั้งที่เปิด ชุดบิลอาจเปลี่ยนไปจากรอบก่อนแล้ว ถามไม่ได้ก็เว้นช่องว่างไว้ ตอนพิมพ์ยังได้เลขครบ
+  // ถามเลขทุกครั้งที่เปิด เพราะชุดบิลอาจเปลี่ยนไปแล้ว
   useEffect(() => {
     if (!open || !customer?.id) return;
     let isCurrent = true;
@@ -51,8 +49,7 @@ const OrganizationBillPreviewDialog = ({
 
   if (!customer || !repairs?.length) return null;
 
-  // เรียงตามลำดับที่เปิดบิล ให้ตรงกับใบที่พิมพ์ออกมาจริง
-  // (หน้าที่เรียกใช้เรียงใหม่สุดขึ้นก่อน ซึ่งเหมาะกับการอ่านบนจอ แต่คนละเรื่องกับบนกระดาษ)
+  // เรียงตามลำดับที่เปิดบิล ให้ตรงกับใบที่พิมพ์
   const ordered = [...repairs].sort((a, b) => a.id - b.id);
 
   const handlePrint = async () => {
@@ -78,13 +75,13 @@ const OrganizationBillPreviewDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         ref={contentRef}
-        className={`flex max-h-[92svh] w-full max-w-[calc(100%-2rem)] flex-col overflow-hidden p-0 sm:max-w-[620px] ${
+        className={`flex max-h-[92svh] w-full max-w-[calc(100%-2rem)] flex-col overflow-hidden p-0 sm:max-w-155 ${
           isMeasured ? "" : "opacity-0"
         }`}
         showCloseButton={false}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <div className="receipt-chrome relative mt-[16px] flex min-h-[44px] flex-shrink-0 items-center justify-center px-[64px]">
+        <div className="receipt-chrome relative mt-4 flex min-h-11 flex-shrink-0 items-center justify-center px-16">
           <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
             ตัวอย่างใบวางบิล
           </DialogTitle>
@@ -94,7 +91,7 @@ const OrganizationBillPreviewDialog = ({
           <button
             onClick={() => onOpenChange(false)}
             aria-label="ปิดหน้าต่าง"
-            className="absolute top-1/2 right-[20px] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/5"
+            className="absolute top-1/2 right-5 flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/5"
           >
             <X size={20} className="text-subtle-dark" />
           </button>
@@ -102,9 +99,9 @@ const OrganizationBillPreviewDialog = ({
 
         <div
           style={{ height: PAPER_HEIGHT_MM * MM * scale }}
-          className="mx-[16px] mb-[8px] min-h-0 shrink overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]"
+          className="mx-4 mb-2 min-h-0 shrink overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]"
         >
-          <div className="flex flex-col items-center gap-[12px]">
+          <div className="flex flex-col items-center gap-3">
             <div
               style={{
                 width: PAPER_WIDTH_MM * MM * scale,
@@ -127,8 +124,8 @@ const OrganizationBillPreviewDialog = ({
           </div>
         </div>
 
-        <div className="receipt-chrome flex-shrink-0 px-[16px] pt-[8px] pb-[16px]">
-          <div className="flex gap-[16px]">
+        <div className="receipt-chrome flex-shrink-0 px-4 pt-2 pb-4">
+          <div className="flex gap-4">
             <button
               type="button"
               onClick={() => onOpenChange(false)}
@@ -138,7 +135,7 @@ const OrganizationBillPreviewDialog = ({
             </button>
             <FormButton
               label={
-                <div className="flex items-center justify-center gap-[8px]">
+                <div className="flex items-center justify-center gap-2">
                   <Printer className="h-4 w-4" />
                   พิมพ์
                 </div>

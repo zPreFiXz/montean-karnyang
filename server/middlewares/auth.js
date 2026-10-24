@@ -29,7 +29,6 @@ exports.authCheck = async (req, res, next) => {
 
     next();
   } catch (error) {
-    // token หมดอายุ/ปลอม → ตอบ 401 พร้อมข้อความเข้าใจง่าย แทน error ดิบ
     if (error.name === "TokenExpiredError") {
       error.code = 401;
       error.message = "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่";

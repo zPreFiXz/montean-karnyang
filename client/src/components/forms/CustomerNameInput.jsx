@@ -4,8 +4,6 @@ import FormInput from "@/components/forms/FormInput";
 import { listCustomers } from "@/api/customer";
 import { formatPhone } from "@/utils/formats";
 
-// ช่องชื่อลูกค้าที่มีรายการที่เคยบันทึกไว้ขึ้นมาให้เลือก แต่ยังพิมพ์ชื่อใหม่ได้อิสระ
-// ไม่ใช่ดรอปดาวน์ที่บังคับเลือก เพราะลูกค้าใหม่ต้องกรอกได้เสมอ
 const CustomerNameInput = ({ register, errors, value, onSelect }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -42,7 +40,7 @@ const CustomerNameInput = ({ register, errors, value, onSelect }) => {
     search(term);
   }, [value, search]);
 
-  // ปิดรายการเมื่อคลิกที่อื่น — ใช้ pointerdown เพื่อให้ปิดก่อนโฟกัสย้ายไปช่องถัดไป
+  // ใช้ pointerdown ให้ปิดก่อนโฟกัสย้ายไปช่องถัดไป
   useEffect(() => {
     const handlePointerDown = (event) => {
       if (!containerRef.current?.contains(event.target)) setIsOpen(false);
@@ -74,13 +72,13 @@ const CustomerNameInput = ({ register, errors, value, onSelect }) => {
       />
 
       {isOpen && (
-        <ul className="bg-surface shadow-primary absolute top-full right-0 left-0 z-30 mt-[4px] max-h-[240px] overflow-y-auto rounded-[10px] py-[4px]">
+        <ul className="bg-surface shadow-primary absolute top-full right-0 left-0 z-30 mt-1 max-h-60 overflow-y-auto rounded-lg py-1">
           {suggestions.map((customer) => (
             <li key={customer.id}>
               <button
                 type="button"
                 onClick={() => handleSelect(customer)}
-                className="w-full cursor-pointer px-[12px] py-[8px] text-left hover:bg-gray-100"
+                className="w-full cursor-pointer px-3 py-2 text-left hover:bg-gray-100"
               >
                 <p className="text-normal truncate text-lg font-medium md:text-xl">
                   {customer.name || "ไม่ระบุชื่อ"}

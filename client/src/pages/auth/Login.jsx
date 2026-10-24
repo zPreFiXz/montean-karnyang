@@ -49,7 +49,7 @@ const Login = () => {
   };
 
   return (
-    <div className="font-athiti bg-surface relative min-h-svh p-[24px]">
+    <div className="font-athiti bg-surface relative min-h-svh p-6">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 overflow-hidden"
@@ -60,7 +60,7 @@ const Login = () => {
         <Gauge className="text-primary/15 absolute top-29 right-10 h-16 w-16 rotate-6" />
         <Package className="text-primary/15 absolute bottom-55 left-40 h-20 w-20 -rotate-6" />
       </div>
-      <div className="relative z-20 mt-[24px] flex w-full flex-col items-center">
+      <div className="relative z-20 mt-6 flex w-full flex-col items-center">
         <div className="mb-12 flex flex-col items-center text-center">
           <img
             src="/logo.png"
@@ -68,13 +68,13 @@ const Login = () => {
             className="h-19 w-auto md:h-26"
           />
         </div>
-        <div className="bg-surface shadow-primary relative z-30 w-full rounded-[24px] p-[24px] md:max-w-[500px]">
+        <div className="bg-surface shadow-primary relative z-30 w-full rounded-3xl p-6 md:max-w-125">
           <form
             noValidate
             onSubmit={handleSubmit(onSubmit)}
-            className="space-y-[16px]"
+            className="space-y-4"
           >
-            <p className="text-primary flex items-center justify-center gap-[8px] text-3xl font-semibold md:text-[32px]">
+            <p className="text-primary flex items-center justify-center gap-2 text-3xl font-semibold md:text-[32px]">
               <Warehouse />
               เข้าสู่ระบบ
             </p>

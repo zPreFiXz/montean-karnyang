@@ -49,7 +49,6 @@ exports.listVehicles = async (req, res) => {
     include: {
       licensePlate: true,
       vehicleModel: true,
-      // ตอนค้นหา ส่งชื่อลูกค้าที่ตรงกับคำค้นไปด้วย เพื่อให้การ์ดบอกได้ว่าทำไมรถคันนี้ถึงขึ้นมา
       ...(search
         ? {
             repairs: {
@@ -73,9 +72,7 @@ exports.listVehicles = async (req, res) => {
   res.json(vehicles);
 };
 
-// ค้นรถจากทะเบียนตอนกำลังกรอกบิล เพื่อบอกว่ารถคันนี้เคยมาแล้ว
-// ส่งลูกค้าของบิลล่าสุดไปด้วย หน้ากรอกจะได้เติมชื่อ เบอร์ และที่อยู่ให้ในทีเดียว
-// (ข้อมูลลูกค้าผูกกับบิลเป็นรายใบ ไม่ได้ผูกกับตัวรถ จึงต้องหยิบจากบิลล่าสุด)
+// ข้อมูลลูกค้าผูกกับบิลรายใบ ไม่ได้ผูกกับรถ จึงหยิบจากบิลล่าสุด
 exports.lookupVehicleByPlate = async (req, res) => {
   const { plate, province, excludeRepairId } = req.query;
 
@@ -98,9 +95,7 @@ exports.lookupVehicleByPlate = async (req, res) => {
     include: {
       licensePlate: true,
       vehicleModel: true,
-      // จำนวนบิลทั้งหมดของรถคันนี้ ใช้บอกว่าเคยมากี่ครั้ง
       _count: { select: { repairs: { where: otherRepairs } } },
-      // ครั้งล่าสุดที่มา: วันที่ เลขกิโลเมตร งานที่ทำ และลูกค้า ไว้ให้ช่างรู้ว่าครั้งก่อนทำอะไรไป
       repairs: {
         where: otherRepairs,
         select: {
@@ -145,9 +140,7 @@ exports.getVehicle = async (req, res) => {
           id: true,
           createdAt: true,
           repairItems: true,
-          // ค้นหาด้วยชื่อลูกค้าได้จากหน้ารายการ ต้องบอกได้ด้วยว่าเป็นบิลใบไหน
           customer: { select: { name: true } },
-          // ราคากับสถานะ เพื่อให้ตอบได้จากหน้ารายการเลยว่าครั้งก่อนจ่ายเท่าไหร่ และจ่ายครบหรือยัง
           totalPrice: true,
           status: true,
         },
@@ -163,8 +156,7 @@ exports.getVehicle = async (req, res) => {
   res.json(vehicle);
 };
 
-// ลบรถได้เฉพาะคันที่ไม่มีบิลเหลืออยู่แล้ว (เช่น สร้างบิลผิดทะเบียนแล้วลบบิลทิ้ง)
-// ถ้ายังมีบิล ฐานข้อมูลตั้ง onDelete: Restrict ไว้อยู่แล้ว แต่กันตั้งแต่ตรงนี้เพื่อให้ได้ข้อความที่คนอ่านรู้เรื่อง
+// ฐานข้อมูลตั้ง onDelete: Restrict ไว้แล้ว แต่กันตรงนี้เพื่อให้ได้ข้อความที่อ่านรู้เรื่อง
 exports.deleteVehicle = async (req, res) => {
   const { id } = req.params;
 

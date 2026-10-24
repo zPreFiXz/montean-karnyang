@@ -1,7 +1,5 @@
 import { Wallet } from "lucide-react";
 
-// ยางเปอร์เซ็นต์ (ยางมือสอง) — ยางเปล่าที่ยังไม่ได้ใส่ล้อ
-// วาดเป็นวงยางกับดอกยาง ไม่มีกระทะล้อกับซี่ล้อแบบไอคอนยางใหม่ จะได้แยกออกตอนกวาดตาดู
 export const UsedTire = () => {
   return (
     <svg
@@ -32,9 +30,7 @@ export const UsedTire = () => {
   );
 };
 
-// อะไหล่ — วาดเป็นเฟือง ฟันเป็นเหลี่ยมและเส้นบาง คนละทรงกับ Gear ของหมวดระบบส่งกำลัง
-// ซึ่งเป็นเฟืองมนเส้นหนาและอยู่แค่ในแถบหมวดหมู่ ไม่ได้อยู่บนการ์ดด้วยกัน
-// (ประแจไม่ใช้ เพราะนั่นคืองานบริการ)
+// ไม่ใช้ประแจ เพราะนั่นคืองานบริการ
 export const SparePart = ({ className = "" }) => {
   return (
     <svg
@@ -53,10 +49,8 @@ export const SparePart = ({ className = "" }) => {
   );
 };
 
-// หมวดอื่นๆ ในแถบหมวดหมู่ ใช้น็อตตัวเดียวกับการ์ดอะไหล่ที่ไม่มีรูป ขนาดเท่าไอคอนหมวดอื่น
 export const OtherParts = () => <SparePart className="h-10 w-10" />;
 
-// ไอคอนสถานะเครดิต — ใช้ชุดเดียวกับไอคอนสถานะอื่นที่เป็นสีขาวบนวงกลมสี
 export const Credit = () => <Wallet className="h-7 w-7 text-white" />;
 
 export const Garage = () => {
@@ -84,8 +78,8 @@ export const Garage = () => {
 
 export const Plus = ({ size = "sm" }) => {
   const sizeClasses = {
-    sm: "w-[24px] h-[27px]",
-    md: "w-[28px] h-[32px]",
+    sm: "w-6 h-[27px]",
+    md: "w-7 h-8",
   };
 
   return (
@@ -203,8 +197,8 @@ export const DashboardBar = ({
   color = null,
 }) => {
   const sizeClasses = {
-    sm: "w-[26px] h-[26px]",
-    md: "w-[32px] h-[32px]",
+    sm: "w-6.5 h-6.5",
+    md: "w-8 h-8",
   };
 
   const getStrokeColor = () => {
@@ -253,8 +247,8 @@ export const CarRepair = ({
   className = "",
 }) => {
   const sizeClasses = {
-    sm: "w-[26px] h-[26px]",
-    md: "w-[32px] h-[32px]",
+    sm: "w-6.5 h-6.5",
+    md: "w-8 h-8",
   };
 
   const getFillColor = () => {
@@ -283,8 +277,8 @@ export const CarRepair = ({
 
 export const Document = ({ isActive = false, size = "sm", color = null }) => {
   const sizeClasses = {
-    sm: "w-[26px] h-[26px]",
-    md: "w-[32px] h-[32px]",
+    sm: "w-6.5 h-6.5",
+    md: "w-8 h-8",
   };
 
   const getFillColor = () => {
@@ -313,8 +307,8 @@ export const Document = ({ isActive = false, size = "sm", color = null }) => {
 
 export const BoxSearch = ({ isActive = false, size = "sm", color = null }) => {
   const sizeClasses = {
-    sm: "w-[26px] h-[26px]",
-    md: "w-[32px] h-[32px]",
+    sm: "w-6.5 h-6.5",
+    md: "w-8 h-8",
   };
 
   const getFillColor = () => {
@@ -594,7 +588,6 @@ export const Suspension = () => {
   );
 };
 
-// กรอง — ทรงกระบอกมีฝาบนแบบกรองน้ำมันเครื่อง คนละตัวกับ Filter ของไส้กรองที่เป็นกรวย
 export const OilFilter = ({ className = "" }) => {
   return (
     <svg

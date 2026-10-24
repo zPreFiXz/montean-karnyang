@@ -7,7 +7,7 @@ const NotFound = () => {
       <p className="text-subtle-dark text-xl">ไม่พบหน้าที่คุณต้องการ</p>
       <Link
         to="/dashboard"
-        className="bg-gradient-primary text-surface rounded-[10px] px-6 py-3 text-lg font-medium duration-300 hover:opacity-90"
+        className="bg-gradient-primary text-surface rounded-lg px-6 py-3 text-lg font-medium duration-300 hover:opacity-90"
       >
         กลับหน้าหลัก
       </Link>

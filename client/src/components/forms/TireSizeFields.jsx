@@ -3,8 +3,8 @@ import FieldErrorList from "@/components/forms/FieldErrorList";
 import TireConstructionToggle from "@/components/forms/TireConstructionToggle";
 
 const TireSizeFields = ({ register, watch, setValue, errors }) => (
-  <div className="mt-[16px] px-[20px]">
-    <div className="flex items-end gap-[8px]">
+  <div className="mt-4 px-5">
+    <div className="flex items-end gap-2">
       <FormInput
         register={register}
         name="width"
@@ -77,7 +77,7 @@ const TireSizeFields = ({ register, watch, setValue, errors }) => (
     </div>
 
     <FieldErrorList
-      className="mt-[6px]"
+      className="mt-1.5"
       messages={[
         errors.width?.message,
         errors.aspectRatio?.message,

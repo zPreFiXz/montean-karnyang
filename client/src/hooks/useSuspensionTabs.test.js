@@ -122,4 +122,56 @@ describe("แท็บซ้าย/ขวา/อื่นๆ ของหน้�
     expect(h.result.current.buildTabItems()).toEqual([]);
     expect(h.result.current.hasTabSelection).toBe(false);
   });
+
+  it("รายการจากหน้างานซ่อมที่รหัสตรงกับแท็บ ย้ายไปติ๊กข้างเดียวกัน", () => {
+    const line = (p, extra) => ({
+      ...p,
+      rowId: `row-${p.id}-${extra.side}`,
+      quantity: 1,
+      ...extra,
+    });
+    const items = [
+      line(upper, { side: "both", quantity: 2, sellingPrice: 450 }),
+      line(bush, { side: "left", quantity: 2 }),
+      line(rack, { side: null }),
+      line(lastOne, { side: null }),
+      {
+        id: 7,
+        name: "น้ำมันเครื่อง",
+        partNumber: "OIL-1",
+        rowId: "row-oil",
+        quantity: 1,
+      },
+      { id: 1, name: "ค่าแรง", rowId: "row-labor", quantity: 1 },
+    ];
+    const h = renderHook(useSuspensionTabs, props());
+    const { tabItems, movedRowIds } = h.result.current.matchItemsToTabs(items);
+    expect(movedRowIds).toEqual(["row-1-both", "row-2-left", "row-3-null"]);
+
+    h.act(() => h.result.current.addTabItems(tabItems));
+    expect(h.result.current.isPartSelected(1, "left")).toBe(true);
+    expect(h.result.current.isPartSelected(1, "right")).toBe(true);
+    expect(h.result.current.tabQty("left", 2)).toBe(2);
+    expect(h.result.current.isPartSelected(3, "other")).toBe(true);
+    expect(h.result.current.getPriceForPart(upper)).toBe(450);
+  });
+
+  it("อะไหล่ที่ข้างหนึ่งใส่ตัวเดียวแต่มาเกินหนึ่ง คงไว้ในรายการซ่อมเพิ่มเติม", () => {
+    const h = renderHook(useSuspensionTabs, props());
+    const { movedRowIds } = h.result.current.matchItemsToTabs([
+      { ...upper, rowId: "r1", side: "left", quantity: 2 },
+      { ...upper, rowId: "r2", side: "both", quantity: 3 },
+    ]);
+    expect(movedRowIds).toEqual([]);
+  });
+
+  it("เพิ่มเข้าแท็บโดยไม่ล้างของที่ติ๊กไว้แล้ว", () => {
+    const h = renderHook(useSuspensionTabs, props());
+    h.act(() => h.result.current.handlePartSelection(rack, true, "other"));
+    h.act(() =>
+      h.result.current.addTabItems([{ id: 1, side: "left", quantity: 1 }]),
+    );
+    expect(h.result.current.isPartSelected(3, "other")).toBe(true);
+    expect(h.result.current.isPartSelected(1, "left")).toBe(true);
+  });
 });

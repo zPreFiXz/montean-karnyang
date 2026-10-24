@@ -40,8 +40,6 @@ const SalesReport = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { repairs, fetchRepairs } = useRepairStore();
-  // มีข้อมูลค้างในสโตร์อยู่แล้ว (กลับมาจากหน้าบิล) ให้โชว์ของเดิมได้เลย
-  // แล้วค่อยดึงใหม่เงียบๆ ไม่ต้องขึ้นตัวโหลดคั่นให้หน้ากระพริบ
   const [isLoading, setIsLoading] = useState(repairs.length === 0);
   const [currentDate, setCurrentDate] = useState(() => {
     if (location.state?.currentDate) {
@@ -120,8 +118,7 @@ const SalesReport = () => {
   const periodType = getPeriodType();
   const { totalRevenue, repairs: periodRepairs } = getReportsData();
 
-  // แยกยอดตามวิธีชำระเงิน เพื่อให้นับเงินสดในลิ้นชักตอนปิดร้านได้ตรง
-  // บิลเก่าที่ไม่มีค่านี้ถือเป็นเงินสด ซึ่งตรงกับค่าเริ่มต้นของฐานข้อมูล
+  // บิลเก่าที่ไม่มีวิธีชำระเงินถือเป็นเงินสด ตรงกับค่าเริ่มต้นของฐานข้อมูล
   const revenueByPaymentMethod = PAYMENT_METHODS.map((method) => ({
     ...method,
     total: periodRepairs.reduce(
@@ -156,9 +153,9 @@ const SalesReport = () => {
           {formatCurrency(totalRevenue)}
         </p>
       </ReportPeriodHeader>
-      <div className="bg-surface -mt-[16px] flex min-h-[calc(100svh-249px)] w-full flex-col rounded-tl-2xl rounded-tr-2xl px-[20px] pb-[112px] md:min-h-[calc(100svh-269px)] xl:pb-[16px]">
+      <div className="bg-surface -mt-4 flex min-h-[calc(100svh-249px)] w-full flex-col rounded-tl-2xl rounded-tr-2xl px-5 pb-28 md:min-h-[calc(100svh-269px)] xl:pb-4">
         {revenueByPaymentMethod.length > 0 && (
-          <div className="mt-[16px] space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
+          <div className="mt-4 space-y-2 rounded-lg bg-gray-50 p-4">
             {revenueByPaymentMethod.map((method) => (
               <div key={method.id} className="flex justify-between">
                 <p className="text-subtle-dark text-lg font-medium md:text-xl">
@@ -172,23 +169,19 @@ const SalesReport = () => {
           </div>
         )}
 
-        <div className="flex items-center gap-[8px] pt-[16px]">
-          <div className="bg-status-paid flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-full">
+        <div className="flex items-center gap-2 pt-4">
+          <div className="bg-status-paid flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
             <Paid />
           </div>
-          {/* ลิสต์นี้คือทุกบิลที่เก็บเงินแล้วในช่วงที่เลือก มีทั้งงานซ่อม งานบริการ และขายอะไหล่
-              เรียกรวมว่างานซ่อมไม่ตรงกับของที่อยู่ข้างล่าง
-              จำนวนในวงเล็บแบบเดียวกับหัวข้อแจ้งเตือนสต็อก สั้นพอให้ปุ่มสินค้าขายดีอยู่บรรทัดเดียวกันบนมือถือ */}
           <p className="text-normal text-[22px] font-semibold whitespace-nowrap md:text-2xl">
             {periodRepairs.length > 0
               ? `ยอดขาย (${periodRepairs.length})`
               : "ยอดขาย"}
           </p>
-          {/* ไปดูว่าช่วงนี้ขายอะไหล่อะไรได้มาก ใช้ช่วงเวลาเดียวกับที่เปิดอยู่ */}
           <Link
             to={`/admin/reports/top-items?period=${periodType}`}
             state={{ currentDate: currentDate.toISOString() }}
-            className="bg-primary/10 text-primary ml-auto flex h-[36px] shrink-0 items-center gap-[6px] rounded-full px-[12px] text-lg font-semibold md:text-xl"
+            className="bg-primary/10 text-primary ml-auto flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-lg font-semibold md:text-xl"
           >
             <TrendingUp className="h-5 w-5" />
             สินค้าขายดี
@@ -199,7 +192,7 @@ const SalesReport = () => {
             <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
           </div>
         ) : periodRepairs.length > 0 ? (
-          <div className={periodType === "daily" ? "pt-[16px]" : "pt-[8px]"}>
+          <div className={periodType === "daily" ? "pt-4" : "pt-2"}>
             {periodType === "daily"
               ? periodRepairs.map((repair, index) => {
                   const carData = getCarCardData(repair);
@@ -207,7 +200,7 @@ const SalesReport = () => {
                     <Link
                       to={`/repairs/${repair.id}`}
                       key={index}
-                      className={index > 0 ? "mt-[16px] block" : "block"}
+                      className={index > 0 ? "mt-4 block" : "block"}
                       state={{
                         returnTo: location.pathname + location.search,
                         currentDate: currentDate.toISOString(),
@@ -244,7 +237,7 @@ const SalesReport = () => {
               : Object.entries(groupRepairsByDay(periodRepairs)).map(
                   ([day, repairsForDay]) => (
                     <div key={day} className="mb-4">
-                      <p className="text-subtle-dark mb-[8px] text-lg font-medium md:text-xl">
+                      <p className="text-subtle-dark mb-2 text-lg font-medium md:text-xl">
                         {day}
                       </p>
                       {repairsForDay.map((repair, i) => {
@@ -253,7 +246,7 @@ const SalesReport = () => {
                           <Link
                             to={`/repairs/${repair.id}`}
                             key={i}
-                            className={i > 0 ? "mt-[12px] block" : "block"}
+                            className={i > 0 ? "mt-3 block" : "block"}
                             state={{
                               returnTo: location.pathname + location.search,
                               currentDate: currentDate.toISOString(),

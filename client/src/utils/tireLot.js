@@ -9,7 +9,6 @@ export const dotOrderKey = (dotCode) => {
 export const sortTireLots = (lots = []) =>
   [...lots].sort((a, b) => dotOrderKey(a.dotCode) - dotOrderKey(b.dotCode));
 
-// ล็อตที่ขายไปในบิล (RepairItem.soldLots) เรียงเก่า→ใหม่ พร้อมใช้แสดงทีละใบ
 export const soldLotEntries = (soldLots) => {
   if (!Array.isArray(soldLots)) return [];
   return sortTireLots(soldLots).filter((lot) => lot?.dotCode);

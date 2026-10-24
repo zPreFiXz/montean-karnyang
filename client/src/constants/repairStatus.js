@@ -8,13 +8,10 @@ import {
   Wallet,
 } from "lucide-react";
 
-// สี ไอคอน และชื่อของแต่ละสถานะบิล ใช้ร่วมกันทั้งหน้ารายละเอียดบิลและการ์ดบิล
-// รวมถึงสถานะถัดไปที่ปุ่มหลักของหน้ารายละเอียดพาไป
 export const DEFAULT_STATUS_INFO = {
   text: "ไม่ทราบสถานะ",
   color: "text-subtle-dark",
   bg: "bg-gray-200",
-  // สีจางสำหรับพื้นกับขอบของกล่องยอดรวม
   softBorder: "border-gray-300",
   softBg: "from-gray-200/60 to-gray-100/40",
   iconColor: "#6b7280",
@@ -99,8 +96,7 @@ export const getNextStatus = (currentStatus) => {
   }
 };
 
-// ปุ่มบอกสิ่งที่จะเกิดขึ้นจริง เลือกเครดิตไว้แล้วกดปุ่มนี้คือยังไม่ได้เก็บเงิน
-// ถ้าปล่อยให้เขียนว่าชำระเงินเหมือนเดิม คนกดจะเข้าใจว่าเก็บเงินไปแล้ว
+// เลือกเครดิตแล้วปุ่มต้องไม่เขียนว่าชำระเงิน คนกดจะเข้าใจว่าเก็บเงินไปแล้ว
 
 export const getNextStatusButtonClass = (currentStatus) => {
   switch (currentStatus) {

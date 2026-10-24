@@ -32,8 +32,8 @@ const CarCard = ({
   };
 
   return (
-    <div className="bg-surface shadow-primary flex h-[80px] w-full cursor-pointer items-center gap-[8px] rounded-[10px] px-[8px]">
-      <div className="flex min-w-0 flex-1 items-center gap-[8px]">
+    <div className="bg-surface shadow-primary flex h-20 w-full cursor-pointer items-center gap-2 rounded-lg px-2">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
         <div
           className={`flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-full ${bgColorMap[bg]}`}
         >
@@ -84,7 +84,7 @@ const CarCard = ({
         ) : amount ? (
           `${amount} คัน`
         ) : (
-          <div className="text-subtle-light flex h-[32px] w-[32px] items-center justify-center rounded-full bg-gray-100">
+          <div className="text-subtle-light flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">
             <ChevronRight />
           </div>
         )}

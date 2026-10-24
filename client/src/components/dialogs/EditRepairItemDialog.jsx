@@ -30,32 +30,24 @@ const EditRepairItemDialog = ({
   isPartLine = false,
   isDiscountLine = false,
 }) => {
-  // ส่วนลดเก็บในบิลเป็นเลขติดลบ แต่ในช่องกรอกให้พิมพ์เป็นเลขบวกธรรมดา
-  // คนกรอกคิดว่า "ลดให้ 100" ไม่ใช่ "ใส่ลบหนึ่งร้อย"
-  // ดูจากธงที่ติดมากับบรรทัด ไม่ใช่ชื่อ เพราะส่วนลดเปลี่ยนชื่อได้แล้ว
+  // ส่วนลดเก็บเป็นเลขติดลบ แต่ให้กรอกเป็นเลขบวก ดูจากธงไม่ใช่ชื่อ เพราะส่วนลดเปลี่ยนชื่อได้
   const isDiscount = isDiscountItem({ name: currentName, isDiscountLine });
-  // บรรทัด "อะไหล่อื่นๆ" อยู่ในหมวดบริการเพราะไม่มีของในคลัง แต่ความหมายคืออะไหล่
-  // ส่วนอะไหล่จริงจากคลังก็เป็นอะไหล่อยู่แล้ว (isService = อยู่ในหมวดบริการจริงๆ)
-  // ป้ายช่องชื่อจึงต้องเรียกตามสิ่งที่ช่างกำลังกรอกจริง
   const nameLabel = isDiscount
     ? "ชื่อส่วนลด"
     : !isService || isPartLikeItem({ name: currentName, isPartLine })
       ? "ชื่ออะไหล่"
       : "ชื่อบริการ";
 
-  // ชื่อของรายการเปล่าที่ยังไม่เคยตั้ง = ชื่อในคลัง ถือว่ายังไม่ได้ตั้งชื่อ
-  // เปิดมาให้ช่องว่างไว้เลย จะได้พิมพ์ทับได้ทันทีโดยไม่ต้องลบข้อความเดิมก่อน
+  // ชื่อยังเป็นชื่อในคลัง = ยังไม่เคยตั้ง เปิดมาให้ช่องว่างพร้อมพิมพ์ทับ
   const isUntouchedName = PLACEHOLDER_SERVICE_NAMES.includes(
     (currentName || "").trim(),
   );
-  // ค่าแรงเป็นคำที่ใช้ได้ตามนั้นอยู่แล้ว ไม่ต้องล้างช่องให้พิมพ์ใหม่
-  // ต่างจากบรรทัดเปล่าอื่นที่ชื่อในคลังเป็นแค่ป้ายชั่วคราวรอพิมพ์ทับ
+  // ค่าแรงใช้ชื่อเดิมได้เลย ไม่ต้องล้างช่อง
   const keepsOwnName =
     (currentName || "").trim() === DEFAULT_LABOR_SERVICE_NAME;
   const initialName = isUntouchedName && !keepsOwnName ? "" : currentName || "";
 
-  // รายการเปล่าอย่างค่าแรงยังไม่ได้ตั้งราคา เปิดมาให้ช่องว่างพร้อมพิมพ์
-  // ของอื่นขึ้นราคาเดิมเสมอ รวมถึงราคา 0 ที่ตั้งใจตั้งไว้ (ของแถม) จะได้รู้ว่าเคยตั้งเป็น 0 ไว้จริง
+  // ราคา 0 ที่ตั้งใจไว้ (ของแถม) ยังต้องขึ้น 0
   const initialPrice =
     (isUntouchedName || isDiscount) && !Number(currentPrice)
       ? ""
@@ -121,8 +113,7 @@ const EditRepairItemDialog = ({
           e.preventDefault();
         }}
       >
-        {/* mt แทน pt เพื่อให้กล่องนี้สูงเท่าปุ่มพอดี ปุ่ม X ที่จัดกึ่งกลางจะได้ตรงกับหัวเรื่องจริงๆ
-            (ถ้าใช้ pt ปุ่มจะเยื้องลงครึ่งหนึ่งของ padding) */}
+        {/* mt แทน pt ให้กล่องสูงเท่าปุ่ม ปุ่ม X จะได้ตรงกับหัวเรื่อง */}
         <DialogTitleBar
           title={isNameEditable ? "แก้ไขชื่อและราคา" : "แก้ไขราคา"}
           description={
@@ -134,16 +125,16 @@ const EditRepairItemDialog = ({
         />
 
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto">
-          <div className="flex-1 px-[20px]">
-            <div className="mb-[16px]">
+          <div className="flex-1 px-5">
+            <div className="mb-4">
               <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold md:text-2xl">
                 {isService ? currentName || productName : productName}
               </h2>
             </div>
 
             {!isService && productImage && (
-              <div className="mb-[16px] flex justify-center">
-                <div className="border-input flex aspect-square w-full max-w-[280px] items-center justify-center overflow-hidden rounded-[20px] border-2">
+              <div className="mb-4 flex justify-center">
+                <div className="border-input flex aspect-square w-full max-w-70 items-center justify-center overflow-hidden rounded-[20px] border-2">
                   <img
                     src={productImage}
                     alt={productName}
@@ -154,10 +145,8 @@ const EditRepairItemDialog = ({
             )}
 
             <form onSubmit={handleSubmit(onSubmit)}>
-              <div className="space-y-[8px]">
-                <div className="space-y-[16px] rounded-[10px] bg-gray-50 p-[16px]">
-                  {/* รหัสอะไหล่ไว้เทียบกับของจริงในมือก่อนแก้ราคา
-                      วางเป็นแถวข้อมูลในกล่องเทาแบบเดียวกับหน้าต่างรายละเอียดอะไหล่ */}
+              <div className="space-y-2">
+                <div className="space-y-4 rounded-lg bg-gray-50 p-4">
                   {!isService && partNumber && (
                     <div className="flex items-center justify-between">
                       <p className="text-subtle-dark text-lg font-medium md:text-xl">
@@ -179,31 +168,24 @@ const EditRepairItemDialog = ({
                       autoComplete="off"
                       textSize="text-lg md:text-xl"
                       color="subtle-dark"
-                      customClass="px-0 pt-[0px]"
+                      customClass="px-0 pt-0"
                       autoFocus={false}
                       errors={errors}
                     />
                   )}
 
-                  {/* บันทึกของร้าน เช่น "ต้องขันสลักใหม่"
-                      อยู่บรรทัดเดียวกับป้ายก่อน ยาวเกินค่อยตกบรรทัดลงมา
-                      ค่าชิดขวาเหมือนแถวอื่นในกล่อง ตกบรรทัดแล้วทุกบรรทัดจบที่ขอบขวาเดียวกัน */}
                   {description && (
-                    <div className="flex gap-[12px]">
+                    <div className="flex gap-3">
                       <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
                         รายละเอียด:
                       </p>
-                      {/* ไม่ใส่กฎตัดคำใดๆ เพราะภาษาไทยเขียนติดกันทั้งประโยค
-                          ถ้าใส่ เบราว์เซอร์จะมองเป็นคำเดียวแล้วตัดตรงไหนก็ได้ (ตั้ง|ศูนย์)
-                          ปล่อยให้ตัดตามพจนานุกรมไทยตามภาษาที่ประกาศไว้ในหน้าเว็บ */}
+                      {/* ไม่ใส่กฎตัดคำ เพราะภาษาไทยเขียนติดกัน เบราว์เซอร์จะตัดตรงไหนก็ได้ */}
                       <p className="text-normal min-w-0 flex-1 text-right text-lg font-semibold whitespace-pre-line md:text-xl">
                         {description}
                       </p>
                     </div>
                   )}
 
-                  {/* ราคาตั้งต้นจากคลัง แสดงเมื่อราคาถูกปรับไปแล้ว เพื่อให้รู้ว่าลดไปเท่าไหร่
-                      ถ้ายังไม่ปรับก็ไม่ต้องบอก เพราะเท่ากับเลขในช่องข้างล่างอยู่แล้ว */}
                   {hasAdjustedPrice && (
                     <div className="flex items-center justify-between">
                       <p className="text-subtle-dark text-lg font-medium md:text-xl">
@@ -219,13 +201,12 @@ const EditRepairItemDialog = ({
                     register={register}
                     name="price"
                     label={isDiscount ? "ส่วนลด (บาท)" : "ราคาต่อหน่วย (บาท)"}
-                    // ช่องข้อความ ไม่ใช่ช่องตัวเลข เพราะช่องตัวเลขคืนค่าว่างระหว่างที่ยังพิมพ์ไม่จบ
-                    // (พิมพ์ "15." แล้วค่าที่อ่านได้เป็นค่าว่าง เลขที่พิมพ์ไปหายทั้งบรรทัด)
+                    // ช่องตัวเลขคืนค่าว่างระหว่างพิมพ์ไม่จบ ("15.") เลขที่พิมพ์จะหาย
                     type="text"
                     placeholder="0"
                     textSize="text-lg md:text-xl"
                     color="subtle-dark"
-                    customClass="px-0 pt-[0px]"
+                    customClass="px-0 pt-0"
                     inputMode="numeric"
                     autoFocus={false}
                     errors={errors}
@@ -240,8 +221,8 @@ const EditRepairItemDialog = ({
           </div>
         </div>
 
-        <div className="flex-shrink-0 px-[16px] pb-[16px]">
-          <div className="flex gap-[16px]">
+        <div className="flex-shrink-0 px-4 pb-4">
+          <div className="flex gap-4">
             <button
               type="button"
               onClick={handleCancel}

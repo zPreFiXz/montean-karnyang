@@ -1,14 +1,9 @@
-// บริการเปล่าที่ใส่ให้อัตโนมัติในบิลเช็กช่วงล่าง — ช่างพิมพ์ชื่องานกับใส่ราคาเองทีหลัง
 // อ้างด้วยชื่อ ไม่ใช่ id เพราะ id ของแต่ละเครื่องไม่ตรงกัน
 export const DEFAULT_LABOR_SERVICE_NAME = "ค่าแรง";
 
-// อะไหล่ที่ซื้อจากร้านอะไหล่มาใช้เลย ไม่ได้เก็บสต็อก จึงไม่มีในคลังให้เลือก
-// ใช้รายการเปล่าตัวนี้แล้วพิมพ์ชื่ออะไหล่ทับ เร็วเท่าพิมพ์ในบรรทัดบริการ
-// แต่ยังแยกออกได้ว่าเป็นค่าอะไหล่ ไม่ใช่ค่าแรง
+// อะไหล่ที่ซื้อมาใช้เลย ไม่มีในคลัง ใช้รายการนี้แล้วพิมพ์ชื่อทับ
 export const PART_PLACEHOLDER_SERVICE_NAME = "อะไหล่อื่นๆ";
 
-// รายการที่ตั้งใจให้พิมพ์ชื่อทับตอนเปิดบิล ชื่อในคลังเป็นแค่ป้ายชั่วคราว
-// เปิดไดอะล็อกแก้ชื่อแล้วช่องจะว่างไว้ให้พิมพ์ได้เลย ไม่ต้องลบของเดิมก่อน
 export const SERVICE_PLACEHOLDER_SERVICE_NAME = "บริการอื่นๆ";
 
 export const PLACEHOLDER_SERVICE_NAMES = [
@@ -17,39 +12,32 @@ export const PLACEHOLDER_SERVICE_NAMES = [
   PART_PLACEHOLDER_SERVICE_NAME,
 ];
 
-// บรรทัดนี้เป็นอะไหล่ ไม่ใช่บริการ — ใช้เลือกไอคอนในบิล
-// ดูจากธงที่ติดตอนหยิบลงบิล หรือชื่อบริการต้นทาง เพราะชื่อบนบรรทัดถูกพิมพ์ทับไปแล้ว
+// ชื่อบนบรรทัดถูกพิมพ์ทับได้ จึงดูจากธงที่ติดตอนลงบิลหรือชื่อบริการต้นทาง
 export const isPartPlaceholderItem = (item) =>
   !!item?.isPartLine ||
   item?.service?.name === PART_PLACEHOLDER_SERVICE_NAME ||
   (!item?.partNumber && item?.name === PART_PLACEHOLDER_SERVICE_NAME);
 
-// บริการที่จริงๆ คือของชิ้นหนึ่ง เก็บในหมวดบริการเพราะไม่นับสต็อก และระบบของแถมหาจากรายการบริการ
-// แต่หน้าจอต้องเรียกว่าอะไหล่ (หัวข้อ ไอคอน ป้ายชื่อ) ลูกค้ากับช่างมองว่าเป็นของ ไม่ใช่ค่าแรง
-// "เปลี่ยนจุ๊บลม" ไม่อยู่ในนี้ เพราะเป็นค่าแรงถอดของเก่าใส่ของใหม่
+// เก็บเป็นบริการเพราะไม่นับสต็อกและระบบของแถมหาจากบริการ แต่หน้าจอเรียกว่าอะไหล่
+// "เปลี่ยนจุ๊บลม" ไม่อยู่ในนี้ เพราะเป็นค่าแรง
 export const PART_LIKE_SERVICE_NAMES = ["จุ๊บลม"];
 
-// บริการที่ใส่รูปได้ คือของชิ้นจริงที่มีหน้าตาให้ดู (จุ๊บลม)
-// อะไหล่อื่นๆ ไม่มีรูป เพราะเป็นรายการเปล่าที่พิมพ์ชื่อของคนละอย่างทับทุกครั้ง
 export const canHaveServiceImage = (name) =>
   PART_LIKE_SERVICE_NAMES.includes(String(name || "").trim());
 
-// ใช้ตัดสินหน้าตาอย่างเดียว (อ่านเป็นอะไหล่หรือบริการ) ไม่ได้ย้ายกลุ่มในหน้าสต็อก
-// ต่างจาก isPartPlaceholderItem ที่ใช้จัดอะไหล่อื่นๆ ไปไว้กลุ่มบนสุดด้วย
+// ใช้ตัดสินหน้าตาอย่างเดียว ต่างจาก isPartPlaceholderItem ที่ใช้จัดกลุ่มด้วย
 export const isPartLikeItem = (item) =>
   isPartPlaceholderItem(item) ||
   PART_LIKE_SERVICE_NAMES.includes(item?.service?.name) ||
   (!item?.partNumber && PART_LIKE_SERVICE_NAMES.includes(item?.name));
 
-// รายการที่ใส่ให้เองเมื่อเปิดบิลเช็กช่วงล่าง เพราะทุกบิลมีสองอย่างนี้เสมอ
-// เรียงตามลำดับที่อยากให้อยู่ในบิล และอ้างด้วยชื่อเหมือนกัน เครื่องไหนไม่มีก็แค่ข้ามไป
+// เรียงตามลำดับในบิล เครื่องไหนไม่มีก็ข้ามไป
 export const SUSPENSION_DEFAULT_SERVICE_NAMES = [
   DEFAULT_LABOR_SERVICE_NAME,
   "ตั้งศูนย์",
 ];
 
-// ส่วนลดท้ายบิล เก็บเป็นบรรทัดหนึ่งในบิลที่ราคาติดลบ
-// ยอดรวมจึงบวกกันตรงๆ ได้เหมือนบรรทัดอื่น ไม่ต้องมีช่องส่วนลดแยกและไม่ต้องแก้ตารางบิล
+// ราคาติดลบ ยอดรวมจึงบวกกันตรงๆ ได้ ไม่ต้องมีช่องส่วนลดแยก
 export const DISCOUNT_SERVICE_NAME = "ส่วนลด";
 
 export const isDiscountItem = (item) =>
@@ -60,7 +48,6 @@ export const isDiscountItem = (item) =>
   // หรือร่างเก่าที่บันทึกไว้ก่อนระบบจะติดธงบอกชนิดบรรทัด
   Number(item?.sellingPrice ?? item?.unitPrice ?? 0) < 0;
 
-// งานที่คิดเป็นครั้งต่อคัน ไม่มีทางทำสองรอบในบิลเดียว จึงไม่มีปุ่มเพิ่มลดจำนวน
 export const SINGLE_QUANTITY_SERVICE_NAMES = [
   DEFAULT_LABOR_SERVICE_NAME,
   "ตั้งศูนย์",
@@ -73,9 +60,7 @@ export const isSingleQuantityItem = (item) =>
   SINGLE_QUANTITY_SERVICE_NAMES.includes(item?.service?.name) ||
   (!item?.partNumber && SINGLE_QUANTITY_SERVICE_NAMES.includes(item?.name));
 
-// รายการเปล่าที่ช่างพิมพ์ชื่อเอง (อะไหล่อื่นๆ บริการอื่นๆ) ไม่มีหน่วยในคลังให้ดึงมา
-// จึงมีช่องพิมพ์หน่วยข้างปุ่มจำนวนบนการ์ด
-// ชื่อบนบรรทัดถูกพิมพ์ทับไปแล้ว ดูจากธงที่ติดตอนหยิบลงบิลหรือชื่อบริการต้นทางแทน
+// รายการเปล่าที่พิมพ์ชื่อเองไม่มีหน่วยในคลัง จึงมีช่องพิมพ์หน่วยบนการ์ด
 const TYPED_UNIT_SERVICE_NAMES = [
   PART_PLACEHOLDER_SERVICE_NAME,
   SERVICE_PLACEHOLDER_SERVICE_NAME,
@@ -86,9 +71,8 @@ export const hasTypedUnit = (item) =>
   TYPED_UNIT_SERVICE_NAMES.includes(item?.service?.name) ||
   (!item?.partNumber && TYPED_UNIT_SERVICE_NAMES.includes(item?.name));
 
-// หน่วยของบรรทัดในบิล: ที่พิมพ์ไว้ในบิลก่อน ไม่มีค่อยใช้หน่วยของอะไหล่หรือบริการตอนนี้
-// บิลเก่าที่บันทึกก่อนบริการจะมีหน่วยจึงขึ้นหน่วยตามไปด้วย แบบเดียวกับอะไหล่ที่อ่านจากสต็อกสดๆ
-// รายการเปล่า (อะไหล่อื่นๆ บริการอื่นๆ) ไม่ใช้หน่วยของตัวบริการ เพราะแต่ละบรรทัดเป็นของคนละอย่าง
+// ใช้หน่วยที่พิมพ์ไว้ในบิลก่อน ไม่มีค่อยใช้หน่วยในคลังตอนนี้
+// รายการเปล่าไม่ใช้หน่วยของตัวบริการ เพราะแต่ละบรรทัดเป็นของคนละอย่าง
 export const lineUnit = (item) =>
   item?.itemUnit ||
   item?.part?.unit ||
@@ -97,8 +81,6 @@ export const lineUnit = (item) =>
     : item?.service?.unit) ||
   "";
 
-// รายการที่ไม่ได้อยู่หมวดไหน โผล่รวมกันเหนือกลุ่มบริการตอนดูทั้งหมด
-// เรียงตามลำดับนี้ ไม่ใช่ลำดับที่เซิร์ฟเวอร์ส่งมา
 export const isNoCategoryItem = (item) =>
   isPartPlaceholderItem(item) || isDiscountItem(item);
 
@@ -107,12 +89,9 @@ export const NO_CATEGORY_ORDER = [
   DISCOUNT_SERVICE_NAME,
 ];
 
-// บริการที่เลือกแยกซ้าย-ขวาได้จากแท็บตำแหน่งในบิลเช็กช่วงล่าง
-// คิดเป็นรายข้างเหมือนอะไหล่ จึงอยู่ท้ายแท็บนั้นแทนที่จะให้ไปหาเองในรายการซ่อมเพิ่มเติม
 export const PER_SIDE_SERVICE_NAME = "ตั้งลูกปืนล้อ";
 
-// ลำดับที่ร้านหยิบใช้บ่อย เรียงตามกลุ่มงาน: รายการเปล่า → ปะยาง → งานล้อ → งานตรวจเช็ก
-// บริการที่ไม่อยู่ในลิสต์ (เช่นค่าแรงเปลี่ยนอะไหล่ต่างๆ) ตกไปท้ายสุด เรียงตามตัวอักษรไทย
+// บริการที่ไม่อยู่ในลิสต์ตกไปท้ายสุด เรียงตามตัวอักษรไทย
 const SERVICE_ORDER = [
   "อะไหล่อื่นๆ",
   "บริการอื่นๆ",
@@ -153,15 +132,13 @@ export const sortServices = (items = []) =>
     return diff !== 0 ? diff : serviceCollator.compare(a.name, b.name);
   });
 
-// ซื้อยางแถมจุ๊บลมกับถ่วงล้อทุกเส้น และแถมตั้งศูนย์เมื่อครบสี่เส้น
-// อ้างด้วยชื่อเหมือนบริการตั้งต้นอื่น เพราะรหัสของแต่ละเครื่องไม่ตรงกัน
+// อ้างด้วยชื่อ เพราะรหัสของแต่ละเครื่องไม่ตรงกัน
 export const TIRE_FREEBIE_NAMES = ["จุ๊บลม", "ถ่วงล้อ"];
 export const TIRE_ALIGNMENT_FREEBIE_NAME = "ตั้งศูนย์";
 export const ALIGNMENT_FREE_TIRE_COUNT = 4;
 // ถ่วงล้อแถมได้มากสุดสองล้อ ต่อให้ซื้อยางสี่เส้น
 export const MAX_FREE_BALANCING = 2;
 
-// จำนวนของแถมที่ควรมี เมื่อบิลมียางกี่เส้น
 export const freebieQuantityFor = (name, tireCount) => {
   if (name === TIRE_ALIGNMENT_FREEBIE_NAME) {
     return tireCount >= ALIGNMENT_FREE_TIRE_COUNT ? 1 : 0;

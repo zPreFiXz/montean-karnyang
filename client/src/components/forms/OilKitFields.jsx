@@ -6,9 +6,8 @@ import { OIL_CATEGORY } from "@/constants/categories";
 
 const NOT_LINKED = { id: "", name: "ไม่ใช้ (นับสต็อกของตัวเอง)" };
 
-// ชุดน้ำมันเครื่อง (4-8 ลิตร) ไม่มีสต็อกของตัวเอง ผูกกับตัวเก็บน้ำมันเกรดเดียวกันที่นับเป็นลิตร
-// ขายหนึ่งชุดแล้วตัดน้ำมันลงตามลิตรของชุด ร้านซื้อแกลลอน 4 หรือ 6 ลิตรกับขวด 1 ลิตรมาเติมตัวเก็บ
-// ตัวเลือกคือน้ำมันหน่วยลิตรที่ไม่ได้เป็นชุดเอง (ห้ามผูกต่อกันเป็นทอด ห้ามผูกกับตัวเอง)
+// ชุดน้ำมันไม่มีสต็อกของตัวเอง ขายแล้วตัดน้ำมันที่ตัวเก็บตามลิตรของชุด
+// ห้ามผูกต่อกันเป็นทอดหรือผูกกับตัวเอง
 const OilKitFields = ({ register, setValue, watch, errors, selfId }) => {
   const [oils, setOils] = useState([]);
 
@@ -41,7 +40,7 @@ const OilKitFields = ({ register, setValue, watch, errors, selfId }) => {
   const sourceId = watch("oilSourceId") || "";
 
   return (
-    <div className="mt-[16px] px-[20px]">
+    <div className="mt-4 px-5">
       <ComboBox
         label="น้ำมันที่ใช้"
         color="text-subtle-dark"
@@ -66,7 +65,7 @@ const OilKitFields = ({ register, setValue, watch, errors, selfId }) => {
           type="text"
           placeholder="เช่น 7"
           color="subtle-dark"
-          customClass="mt-[16px]"
+          customClass="mt-4"
           errors={errors}
           inputMode="decimal"
           onInput={(e) => {

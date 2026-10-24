@@ -1,15 +1,13 @@
 const express = require("express");
 const router = express.Router();
+const validate = require("../middlewares/validate");
 const {
-  validate,
   createUserAccountSchema,
   editUserAccountSchema,
-} = require("../utils/validator");
+} = require("../utils/schemas");
 
-// Middlewares
 const { authCheck, adminCheck } = require("../middlewares/auth");
 
-// Controllers
 const {
   listUsers,
   createUser,

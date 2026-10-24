@@ -10,8 +10,7 @@ import { isMultiUseOil } from "@/utils/oil";
 // DB เก็บ side เป็นตัวพิมพ์ใหญ่ (enum LEFT/RIGHT/OTHER) — แปลงเป็นตัวเล็กให้ตรง UI state
 export const toUiSide = (side) => (side ? side.toLowerCase() : null);
 
-// แปลงบิลที่บันทึกแล้วกลับเป็นข้อมูลฟอร์ม สำหรับเปิดแก้ไขในหน้ากรอกบิลหรือหน้าเช็กช่วงล่าง
-// คืน { path, repairData, repairItems }
+// คืน { path, repairData, repairItems } สำหรับเปิดแก้ไขบิลที่บันทึกแล้ว
 export const repairToForm = (repair) => {
   const plate = repair?.vehicle?.licensePlate?.plateNumber || "";
   // รองรับขีดด้วยเผื่อมีข้อมูลที่บันทึกด้วยรูปแบบเดิมหลงเหลืออยู่
@@ -34,9 +33,7 @@ export const repairToForm = (repair) => {
     mileage: repair?.mileage != null ? String(repair.mileage) : "",
     type: repair?.type || "GENERAL",
     // บิลขายหน้าร้านเก็บเงินไปแล้ว ต้องยกวิธีชำระเงินเดิมไปด้วย
-    // ไม่งั้นหน้าสรุปจะขึ้นว่ายังไม่ได้เลือก แล้วคนแก้บิลต้องเดาว่าวันนั้นรับเงินมาทางไหน
-    //
-    // บิลที่ติดเครดิตไม่มีวิธีจ่ายเก็บไว้ (เพราะยังไม่ได้เงิน) ต้องบอกด้วยตัวสถานะแทน
+    // บิลเครดิตไม่มีวิธีจ่ายเก็บไว้ ต้องบอกด้วยตัวสถานะแทน
     paymentMethod:
       repair?.status === "CREDIT"
         ? CREDIT_OPTION_ID
@@ -47,10 +44,8 @@ export const repairToForm = (repair) => {
 
   const normalizedItems = (repair?.repairItems || []).map((ri) => {
     if (ri.part) {
-      // ชื่อที่ระบบประกอบเองจะมีชื่อในคลังอยู่ข้างในเสมอ ถ้าไม่มีแปลว่าถูกพิมพ์ทับไว้
-      // บรรทัดที่พิมพ์ทับต้องยกชื่อจากบิลกลับเข้าฟอร์ม ไม่งั้นเปิดแก้ไขแล้วชื่อจะหาย
-      // (บรรทัดปกติใช้ชื่อในคลัง เพราะการ์ดในฟอร์มเติมยี่ห้อกับขนาดยางให้เองอยู่แล้ว)
-      // น้ำมันที่เลือกงานไว้ ชื่อในบิลมีชื่อในคลังอยู่ด้วย แต่ต้องยกชื่อเต็มกลับมา ไม่งั้นงานที่เลือกจะหาย
+      // ชื่อที่ระบบประกอบมีชื่อในคลังอยู่ข้างในเสมอ ถ้าไม่มีแปลว่าถูกพิมพ์ทับ ต้องยกชื่อจากบิลกลับมา
+      // น้ำมันที่เลือกงานไว้ต้องยกชื่อเต็มกลับมาด้วย ไม่งั้นงานที่เลือกจะหาย
       const hasCustomName =
         (!!ri.part.name && !String(ri.itemName || "").includes(ri.part.name)) ||
         (isMultiUseOil(ri.part) && !!ri.itemName);
@@ -58,15 +53,13 @@ export const repairToForm = (repair) => {
       return {
         id: ri.part.id,
         partNumber: ri.part.partNumber,
-        // ยี่ห้อต้องคงไว้เสมอ เพราะการนับสต็อกคืนใช้ตรวจว่าบรรทัดนี้เป็นอะไหล่จริง
-        // การกันเติมยี่ห้อซ้ำหน้าชื่อที่พิมพ์เองไปทำตอนแสดงผลแทน (ดู hasCustomName)
+        // ยี่ห้อต้องคงไว้ เพราะการนับสต็อกคืนใช้ตรวจว่าเป็นอะไหล่จริง
         brand: ri.part.brand || "",
         name: hasCustomName ? ri.itemName : ri.part.name || "",
         hasCustomName,
         sellingPrice: Number(ri.unitPrice),
-        // สต็อกดิบของอะไหล่ ยังไม่บวกของที่บิลนี้เบิกไป
-        // หน้ากรอกงานจะบวกคืนให้เองตอนคิดเพดานของปุ่มบวก (ดู restoredStockMap)
-        // ชื่อฟิลด์ต้องเป็น stockQuantity ให้ตรงกับที่หน้าโน้นอ่าน ไม่งั้นเพดานจะกลายเป็นศูนย์
+        // สต็อกดิบ หน้ากรอกจะบวกของที่บิลนี้เบิกไปคืนเอง (ดู restoredStockMap)
+        // ชื่อฟิลด์ต้องเป็น stockQuantity ไม่งั้นเพดานจะเป็นศูนย์
         stockQuantity: ri.part.stockQuantity ?? 0,
         unit: ri.part.unit,
         category: ri.part.category,
@@ -88,14 +81,12 @@ export const repairToForm = (repair) => {
       unit: lineUnit(ri),
       sellingPrice: Number(ri.unitPrice),
       category: ri.service?.category,
-      // บริการที่เป็นของชิ้นหนึ่ง (จุ๊บลม) มีรูปได้ งานบริการทั่วไปไม่มี
       secureUrl: ri.service?.secureUrl || null,
       quantity: ri.quantity || 1,
       side: toUiSide(ri.side),
     };
   });
 
-  // บิลช่วงล่างเก็บข้างไว้ทุกบรรทัดอยู่แล้ว หน้าเช็กช่วงล่างแยกของในแท็บเองจากข้างกับหมวด
   return {
     path:
       repair.type === "SUSPENSION" ? "/inspections/suspension" : "/repairs/new",

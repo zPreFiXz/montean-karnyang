@@ -1,4 +1,4 @@
-import { Input } from "../ui/input";
+import { Input } from "@/components/ui/input";
 import { AlertCircle } from "lucide-react";
 
 const LicensePlateInput = ({
@@ -32,9 +32,9 @@ const LicensePlateInput = ({
           "--tw-border-opacity": "1",
         }}
       />
-      
+
       {error && (
-        <div className="absolute top-1/2 right-[8px] -translate-y-1/2 transform">
+        <div className="absolute top-1/2 right-2 -translate-y-1/2 transform">
           <AlertCircle className="text-destructive h-4 w-4" />
         </div>
       )}

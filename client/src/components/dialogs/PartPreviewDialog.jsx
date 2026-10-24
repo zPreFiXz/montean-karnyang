@@ -7,10 +7,8 @@ import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
 import { formatProductName } from "@/utils/tireSize";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
-// ดูรูปกับข้อมูลสั้นๆ ของอะไหล่ก่อนตัดสินใจเลือก
-// ตั้งใจไม่ใช้ RepairItemDetailDialog เพราะตัวนั้นมีปุ่มเพิ่มสต็อก/แก้ไข/ลบ
-// ซึ่งไม่ควรอยู่ตรงหน้าระหว่างกำลังเปิดบิลให้ลูกค้า
-// onOpenStock = เปิดรายละเอียดของชิ้นนี้ในคลัง (หน้ารายละเอียดบิลส่งมา) ไม่มีก็ไม่มีปุ่ม
+// ไม่ใช้ RepairItemDetailDialog เพราะตัวนั้นมีปุ่มเพิ่มสต็อก/แก้ไข/ลบ
+// onOpenStock = เปิดรายละเอียดของชิ้นนี้ในคลัง ไม่ส่งมาก็ไม่มีปุ่ม
 const PartPreviewDialog = ({
   part,
   price,
@@ -20,11 +18,9 @@ const PartPreviewDialog = ({
 }) => {
   if (!part) return null;
 
-  // บรรทัด "อะไหล่อื่นๆ" อยู่ในหมวดบริการแต่ความหมายคืออะไหล่ จึงยังเรียกว่าอะไหล่
   const isService = part.category?.name === "บริการ" && !isPartLikeItem(part);
 
-  // ชื่อเต็มแบบเดียวกับที่การ์ดใช้ คือยี่ห้อ + ขนาดยาง + รุ่น
-  // ชื่อในคลังเก็บแค่รุ่น ("MA579") ถ้าโชว์อย่างเดียวจะไม่รู้ว่ายี่ห้ออะไรและขนาดไหน
+  // ชื่อในคลังเก็บแค่รุ่น ("MA579") ต้องประกอบยี่ห้อกับขนาดยางเข้าไป
   const displayName = formatProductName({
     brand: part.brand,
     name: part.name,
@@ -49,15 +45,14 @@ const PartPreviewDialog = ({
           onClose={() => onOpenChange(false)}
         />
 
-        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px] pb-[16px]">
+        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5 pb-4">
           <h2 className="text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">
             {displayName}
           </h2>
 
-          {/* บริการไม่มีรูปให้ดูอยู่แล้ว กรอบเปล่าขนาด 280 จุดกินที่ฟรีและดันข้อมูลลงไปไกล */}
           {!isService && (
-            <div className="mt-[16px] flex justify-center">
-              <div className="border-input flex aspect-square w-full max-w-[280px] items-center justify-center overflow-hidden rounded-[20px] border-2">
+            <div className="mt-4 flex justify-center">
+              <div className="border-input flex aspect-square w-full max-w-70 items-center justify-center overflow-hidden rounded-[20px] border-2">
                 {part.secureUrl ? (
                   <img
                     src={part.secureUrl}
@@ -71,14 +66,13 @@ const PartPreviewDialog = ({
             </div>
           )}
 
-          {/* ต่อจากรูป ก่อนข้อมูลอื่น บันทึกของร้านต้องเห็นก่อนตัดสินใจเลือก */}
           {part.description && (
-            <DescriptionNote text={part.description} className="mt-[16px]" />
+            <DescriptionNote text={part.description} className="mt-4" />
           )}
 
-          <div className="mt-[16px] space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
+          <div className="mt-4 space-y-2 rounded-lg bg-gray-50 p-4">
             {part.partNumber && (
-              <div className="flex justify-between gap-[12px]">
+              <div className="flex justify-between gap-3">
                 <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
                   รหัสอะไหล่:
                 </p>
@@ -88,10 +82,8 @@ const PartPreviewDialog = ({
               </div>
             )}
 
-            {/* ราคาตั้งต้นจากคลัง ขึ้นเฉพาะตอนที่ราคาถูกปรับไปแล้ว — เกณฑ์เดียวกับไดอะล็อกแก้ราคา
-                ถ้าไม่บอกไว้ คนที่เปิดดูชิ้นที่ยังไม่ได้เลือกจะไม่รู้ว่าราคานี้ถูกลดมาแล้ว */}
             {hasAdjustedPrice && (
-              <div className="flex justify-between gap-[12px]">
+              <div className="flex justify-between gap-3">
                 <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
                   ราคาปกติ:
                 </p>
@@ -101,16 +93,13 @@ const PartPreviewDialog = ({
               </div>
             )}
 
-            {/* ราคาที่จะถูกใช้จริงถ้าเลือกชิ้นนี้ (รวมราคาที่ปรับไว้แล้ว) จึงรับมาจากหน้าที่เรียก
-                ไม่ได้อ่านจาก part.sellingPrice ตรงๆ
-                เปลี่ยนป้ายเมื่อมีการปรับราคา ไม่งั้นสองบรรทัดจะดูเป็นราคาคนละแบบโดยไม่บอกว่าอันไหนคืออันที่แก้ */}
-            <div className="flex justify-between gap-[12px]">
+            {/* ราคาที่จะใช้จริง (รวมที่ปรับไว้) จึงรับจากหน้าที่เรียก ไม่อ่าน part.sellingPrice */}
+            <div className="flex justify-between gap-3">
               <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
                 {hasAdjustedPrice ? "ราคาที่ปรับ:" : "ราคาต่อหน่วย:"}
               </p>
               <p className="text-primary min-w-0 text-right text-lg font-semibold md:text-xl">
                 {formatCurrency(Number(price ?? part.sellingPrice) || 0)}
-                {/* ส่วนต่างจากราคาคลัง — ลูกค้าต่อราคาแล้วรู้ทันทีว่าลดไปเท่าไหร่ ไม่ต้องคิดเลขเอง */}
                 {hasAdjustedPrice && (
                   <span className="text-subtle-dark font-medium">
                     {" "}
@@ -124,7 +113,7 @@ const PartPreviewDialog = ({
         </div>
 
         {onOpenStock && (
-          <div className="flex-shrink-0 px-[16px] pb-[16px]">
+          <div className="flex-shrink-0 px-4 pb-4">
             <button
               type="button"
               onClick={onOpenStock}

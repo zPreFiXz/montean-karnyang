@@ -34,11 +34,11 @@ function CalendarYear({
 
   const minYear = React.useMemo(
     () => (typeof fromYear === "number" ? fromYear : initialYear - 10),
-    [fromYear, initialYear]
+    [fromYear, initialYear],
   );
   const maxYear = React.useMemo(
     () => (typeof toYear === "number" ? toYear : initialYear + 10),
-    [toYear, initialYear]
+    [toYear, initialYear],
   );
 
   const commit = (y) => {
@@ -49,14 +49,14 @@ function CalendarYear({
     <div
       className={cn(
         "group/calendar bg-background w-fit rounded-md p-3 shadow-sm [--cell-size:--spacing(8)]",
-        className
+        className,
       )}
     >
       <div className="relative h-(--cell-size) w-full">
         <div className="flex h-(--cell-size) items-center justify-center">
           {captionLayout === "dropdown" ? (
             <div className="flex items-center gap-2">
-              <div className="border-input focus-within:border-primary focus-within:ring-primary/50 relative rounded-md border shadow-xs focus-within:ring-[3px]">
+              <div className="border-input focus-within:border-primary focus-within:ring-primary/50 relative rounded-md border shadow-xs focus-within:ring-3">
                 <select
                   value={String(viewYear)}
                   onChange={(e) => {
@@ -67,22 +67,26 @@ function CalendarYear({
                   ref={yearSelectRef}
                   className="font-athiti h-(--cell-size) cursor-pointer appearance-none rounded-md bg-transparent pr-6 pl-3 text-base font-medium focus:outline-none"
                 >
-                  {Array.from({ length: maxYear - minYear + 1 }).map((_, idx) => {
-                    const y = minYear + idx;
-                    const be = y + 543;
-                    return (
-                      <option key={y} value={String(y)}>
-                        {be}
-                      </option>
-                    );
-                  })}
+                  {Array.from({ length: maxYear - minYear + 1 }).map(
+                    (_, idx) => {
+                      const y = minYear + idx;
+                      const be = y + 543;
+                      return (
+                        <option key={y} value={String(y)}>
+                          {be}
+                        </option>
+                      );
+                    },
+                  )}
                 </select>
                 <ChevronDownIcon className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2" />
               </div>
             </div>
           ) : (
             <div className="flex h-(--cell-size) items-center justify-center px-2">
-              <p className="text-base font-medium select-none">{String(viewYear + 543)}</p>
+              <p className="text-base font-medium select-none">
+                {String(viewYear + 543)}
+              </p>
             </div>
           )}
         </div>

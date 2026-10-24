@@ -2,7 +2,7 @@ import { useSearchParams } from "react-router";
 import { Search, X } from "lucide-react";
 import { useDebouncedCallback } from "use-debounce";
 import { useState, useEffect } from "react";
-import { Input } from "../ui/input";
+import { Input } from "@/components/ui/input";
 
 // คำค้นถูกเอาไปแสดงในข้อความ "ไม่พบรายการที่ตรงกับ ..." ด้วย จึงจำกัดความยาวไว้ที่ต้นทาง
 const MAX_SEARCH_LENGTH = 40;
@@ -38,8 +38,7 @@ const SearchBar = ({
       } else {
         params.delete("search");
       }
-      // เขียนทับรายการเดิมในประวัติ ไม่ใช่ซ้อนใหม่ทุกครั้งที่หยุดพิมพ์
-      // ไม่งั้นกดย้อนกลับจะเป็นการถอยคำค้นทีละตัว แทนที่จะออกจากหน้า
+      // replace ไม่งั้นกดย้อนกลับจะถอยคำค้นทีละตัว
       setSearchParams(params, { replace: true });
     }
   }, 500);
@@ -63,7 +62,7 @@ const SearchBar = ({
 
   return (
     <div className="relative flex items-center">
-      <div className="text-subtle-dark pointer-events-none absolute left-[16px] flex h-full items-center">
+      <div className="text-subtle-dark pointer-events-none absolute left-4 flex h-full items-center">
         <Search size={20} />
       </div>
 
@@ -85,7 +84,7 @@ const SearchBar = ({
             e.target.inputMode = "text";
           }
         }}
-        className="font-athiti bg-surface h-[41px] w-full rounded-[20px] px-[40px] text-xl font-medium placeholder:text-lg placeholder:font-light focus:outline-none md:text-[22px] md:placeholder:text-xl"
+        className="font-athiti bg-surface h-[41px] w-full rounded-[20px] px-10 text-xl font-medium placeholder:text-lg placeholder:font-light focus:outline-none md:text-[22px] md:placeholder:text-xl"
         style={{
           "--tw-ring-color": "var(--color-primary)",
           "--tw-border-opacity": "1",
@@ -105,7 +104,7 @@ const SearchBar = ({
       {inputValue && (
         <button
           onClick={handleClear}
-          className="text-subtle-dark absolute right-[16px] flex h-full items-center"
+          className="text-subtle-dark absolute right-4 flex h-full items-center"
         >
           <X size={18} />
         </button>

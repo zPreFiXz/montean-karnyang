@@ -46,6 +46,5 @@ exports.logout = (req, res) => {
 };
 
 exports.currentUser = async (req, res) => {
-  // authCheck ดึงข้อมูล user ล่าสุด (ไม่มี password) ใส่ req.user ให้แล้ว
   res.json(req.user);
 };

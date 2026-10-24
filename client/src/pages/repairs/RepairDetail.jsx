@@ -8,13 +8,12 @@ import {
   cancelRepair,
 } from "@/api/repair";
 import { withMinDuration } from "@/utils/withMinDuration";
-import { formatDate, formatTime, formatCurrency } from "@/utils/formats";
+import { formatCurrency } from "@/utils/formats";
 import {
   ChevronLeft,
   ClipboardList,
   Printer,
   LoaderCircle,
-  Edit,
   Wrench,
   ShoppingBag,
   Trash2,
@@ -37,28 +36,23 @@ import {
   getStatusInfo,
 } from "@/constants/repairStatus";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
-import ComboBox from "@/components/ui/ComboBox";
 import PartPreviewDialog from "@/components/dialogs/PartPreviewDialog";
 import {
   isPartLikeItem,
   isNoCategoryItem,
   hasTypedUnit,
 } from "@/constants/services";
-import FieldErrorList from "@/components/forms/FieldErrorList";
 import { toast } from "sonner";
 import { getInventory } from "@/api/inventory";
-import { useReopenStockItem } from "@/utils/reopenStockItem";
+import { useReopenStockItem } from "@/hooks/useReopenStockItem";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
 import RepairDetailCustomer from "@/components/repair-detail/RepairDetailCustomer";
+import RepairDetailPayment from "@/components/repair-detail/RepairDetailPayment";
+import RepairDetailTimeline from "@/components/repair-detail/RepairDetailTimeline";
 import RepairDetailItems from "@/components/repair-detail/RepairDetailItems";
 import { toastError } from "@/utils/handleError";
 import { countDisplayedItems } from "@/utils/repairItemGroups";
-import {
-  getPaymentMethodText,
-  PAYMENT_METHODS,
-  PAYMENT_OPTIONS_WITH_CREDIT,
-  CREDIT_OPTION_ID,
-} from "@/constants/paymentMethods";
+import { CREDIT_OPTION_ID } from "@/constants/paymentMethods";
 import {
   isSaleRepair,
   isNoVehicleRepair,
@@ -70,7 +64,6 @@ import { usePrefetchPages } from "@/routes/pageImports";
 import { useCreditOrganizationPrompt } from "@/hooks/useCreditOrganizationPrompt";
 
 const RepairDetail = () => {
-  // เตรียมโค้ดของหน้าที่มักไปต่อจากหน้านี้ กดแล้วจะได้ไม่ต้องรอโหลด
   usePrefetchPages(["RepairList", "RepairCreate"]);
 
   const { id } = useParams();
@@ -82,14 +75,11 @@ const RepairDetail = () => {
   const [isUpdatingSkip, setIsUpdatingSkip] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
-  // ช่องที่ยังไม่ได้เลือกขึ้นกรอบแดงใต้ช่องเหมือนฟอร์มอื่นในระบบ ไม่ใช่เด้งข้อความแล้วหายไป
   const [paymentMethodError, setPaymentMethodError] = useState("");
-  // บิลที่จ่ายแล้วโชว์เป็นข้อความ กดดินสอถึงจะกลายเป็นช่องเลือก
   const [isEditingPaidMethod, setIsEditingPaidMethod] = useState(false);
   const [isSavingEstimate, setIsSavingEstimate] = useState(false);
   const [isEstimateConfirmOpen, setIsEstimateConfirmOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
-  // กดการ์ดในบิลเพื่อดูรูปกับรายละเอียดของสิ่งที่ขายไป
   const [previewItem, setPreviewItem] = useState(null);
   const isCreditSelected = selectedPaymentMethod === CREDIT_OPTION_ID;
   const orgPrompt = useCreditOrganizationPrompt(repair);
@@ -128,8 +118,7 @@ const RepairDetail = () => {
     }
   };
 
-  // บิลที่จ่ายแล้ว: เปลี่ยนวิธีชำระเงินแล้วบันทึกเลย ไม่ต้องมีปุ่มยืนยันซ้ำ
-  // ส่งสถานะเดิมไปด้วยเพราะเซิร์ฟเวอร์รับคำสั่งเป็น "อัปเดตสถานะ" ตัวเดียว
+  // ส่งสถานะเดิมไปด้วย เพราะเซิร์ฟเวอร์รับเป็นคำสั่งอัปเดตสถานะตัวเดียว
   const handleChangePaidMethod = async (value) => {
     if (!repair || !value || value === repair.paymentMethod) return;
 
@@ -142,14 +131,12 @@ const RepairDetail = () => {
       setIsEditingPaidMethod(false);
       toast.success("แก้ไขวิธีชำระเงินเรียบร้อยแล้ว");
     } catch (error) {
-      // กลับไปใช้ค่าเดิมในช่อง ไม่งั้นหน้าจอจะบอกคนละอย่างกับที่บันทึกไว้จริง
       setSelectedPaymentMethod(repair.paymentMethod || "");
       setIsEditingPaidMethod(false);
       toastError(error);
     }
   };
 
-  // เก็บบิลที่ยังไม่ได้ซ่อมไว้เป็นใบประเมินราคา ของในบิลถูกคืนเข้าคลังโดยเซิร์ฟเวอร์
   const handleSaveAsEstimate = async () => {
     if (!repair || isSavingEstimate) return;
 
@@ -160,8 +147,7 @@ const RepairDetail = () => {
       );
       setIsEstimateConfirmOpen(false);
       toast.success("บันทึกเป็นใบประเมินราคาเรียบร้อยแล้ว");
-      // แทนที่หน้าบิลในประวัติ ไม่ซ้อนเพิ่ม เพราะบิลใบนั้นไม่ได้อยู่ในกองกำลังซ่อมแล้ว
-      // กดย้อนกลับจากหน้าใบประเมินราคาจึงไปถึงรายการที่มาตั้งแต่แรกในครั้งเดียว
+      // replace: บิลย้ายกองแล้ว กดย้อนกลับครั้งเดียวต้องถึงรายการที่มาแต่แรก
       navigate("/repairs?status=estimate", { replace: true });
     } catch (error) {
       toastError(error);
@@ -176,8 +162,6 @@ const RepairDetail = () => {
     if (skipToCompleted && isUpdatingSkip) return;
     if (!skipToCompleted && isUpdating) return;
 
-    // เลือกเครดิตมีผลเฉพาะจังหวะที่กำลังจะเก็บเงิน
-    // ปุ่มยืนยันการซ่อมเสร็จสิ้นของบิลที่ยังซ่อมอยู่ ยังเดินไปสถานะซ่อมเสร็จสิ้นตามปกติ
     const nextStatus = skipToCompleted
       ? isCreditSelected
         ? "CREDIT"
@@ -198,15 +182,10 @@ const RepairDetail = () => {
         setIsUpdating(true);
       }
 
-      // ไม่เลือกวิธีชำระเงินแล้วปิดบิลไปเลยได้ ยอดจะไปโผล่ในรายงานโดยไม่รู้ว่ารับเงินมาทางไหน
-      // เซิร์ฟเวอร์ปล่อยผ่านเพราะเก็บเฉพาะตอนที่ส่งค่ามา จึงต้องกันตั้งแต่ตรงนี้
-      //
-      // หน่วงเท่าจังหวะบันทึกจริงก่อนค่อยเตือน ปุ่มจะได้หมุนเหมือนกดครั้งอื่น
-      // ไม่ใช่เด้งเตือนทันทีจนไม่แน่ใจว่ากดติดหรือระบบไม่ทำงาน
+      // เซิร์ฟเวอร์ไม่บังคับวิธีชำระเงิน จึงต้องกันตรงนี้
       if (needsPaymentMethod && !selectedPaymentMethod) {
         await withMinDuration(() => Promise.resolve());
         setPaymentMethodError("กรุณาเลือกวิธีชำระเงิน");
-        // ปุ่มอยู่ล่างสุดของหน้า ถ้าไม่พาไปหาช่องก็จะไม่เห็นว่าติดตรงไหน
         paymentSectionRef.current?.scrollIntoView({
           block: "center",
           behavior: "smooth",
@@ -216,7 +195,6 @@ const RepairDetail = () => {
 
       const updateData = { status: nextStatus };
 
-      // สถานะเครดิตไม่ส่งวิธีชำระเงินไป เพราะยังไม่รู้ว่าลูกค้าจะจ่ายทางไหนตอนมาตัดเครดิต
       if (needsPaymentMethod) {
         updateData.paymentMethod = selectedPaymentMethod;
       }
@@ -235,7 +213,6 @@ const RepairDetail = () => {
         toast.success("ชำระเงินเรียบร้อยแล้ว");
       }
 
-      // เปิดบิลมาจากหน้าประวัติรถ ให้กลับไปที่รถคันนั้น ไม่ใช่โยนไปแท็บสถานะที่ไม่ได้มาจากตรงนั้น
       if (
         location.state?.from === "vehicle-detail" &&
         location.state?.vehicleId
@@ -244,11 +221,6 @@ const RepairDetail = () => {
         return;
       }
 
-      // บิลย้ายกองไปแล้ว หน้าบิลเดิมในประวัติจึงหมดหน้าที่ ใช้แทนที่แทนการซ้อนเพิ่ม
-      // กดย้อนกลับครั้งเดียวจะถึงรายการที่มาตั้งแต่แรก ไม่ต้องผ่านบิลที่ย้ายออกไปแล้ว
-
-      // ลงเครดิตแล้วพาไปที่กองที่บิลไปอยู่จริง ไม่งั้นจะหาบิลที่เพิ่งลงไม่เจอ
-      // เครดิตทุกแบบอยู่หน้าเดียวกันแล้ว ต่างแค่กองย่อย
       if (nextStatus === "CREDIT") {
         navigate(creditPathFor(orgPrompt.creditType()), { replace: true });
         return;
@@ -264,11 +236,7 @@ const RepairDetail = () => {
     }
   };
 
-  // บิลขายหน้าร้านเก็บเงินตอนสร้างบิล เวลาทั้งสามช่วงจึงเป็นวินาทีเดียวกัน
-  // งานบริการเดินสถานะปกติ จึงมีเวลาแยกแต่ละช่วงเหมือนงานซ่อม
-  // บิลขายหน้าร้านที่จ่ายทันที เกิดและจบพร้อมกัน มีแค่เวลาเดียว
-  // บิลขายที่ติดเครดิต (ร้านค้ามักเป็นแบบนี้) ขายวันหนึ่ง จ่ายอีกวัน ต้องเห็นทั้งสองเวลา
-  // ไม่งั้นกล่องเวลาว่างเปล่าระหว่างรอเก็บเงิน เพราะยังไม่มีเวลาชำระเงินให้แสดง
+  // บิลขายที่จ่ายตอนสร้าง เกิดและจบพร้อมกัน มีแค่เวลาเดียว
   const isSale = isSaleRepair(repair);
   const paidOnCreate =
     isSale &&
@@ -278,7 +246,6 @@ const RepairDetail = () => {
   const statusInfo = getStatusInfo(repair?.status) ?? DEFAULT_STATUS_INFO;
   // บิลที่ยกเลิกยังถือเลขของใบเดิมก่อนยกเลิก
   const docNo = receiptDocNo(asIssued(repair));
-  // คำนำหน้า DO กับ QT บอกชนิดใบอยู่แล้ว เหมือนหัวข้อที่ขึ้นเลข RE ลอยๆ
   const earlierDocNos = [repair?.deliveryNo, repair?.quotationNo].filter(
     (no) => no && no !== docNo,
   );
@@ -294,8 +261,7 @@ const RepairDetail = () => {
         repairItems,
         scrollToItems: true,
         editRepairId: repair.id,
-        // ตำแหน่งของหน้าก่อนหน้าบิลนี้ในประวัติ (หน้าที่ผู้ใช้มาตั้งแต่แรก)
-        // บันทึกเสร็จแล้วจะถอยกลับไปที่นั่นทีเดียว ประวัติจะได้ไม่เหลือหน้าแก้ไขกับหน้าสรุปค้างอยู่
+        // หลังบันทึกถอยกลับไปหน้าที่มาแต่แรกทีเดียว
         backIdx:
           typeof window.history.state?.idx === "number"
             ? window.history.state.idx - 1
@@ -305,8 +271,7 @@ const RepairDetail = () => {
         from: location.state?.from,
         statusSlug: location.state?.statusSlug,
         vehicleId: location.state?.vehicleId,
-        // ที่ที่เปิดบิลนี้ขึ้นมา (เช่นรายงานยอดขาย) ต้องติดไปตลอดทางแก้ไข
-        // ไม่งั้นบันทึกเสร็จแล้วกดย้อนกลับจะเด้งกลับไปหน้าสรุปที่เพิ่งผ่านมา
+        // ต้องติดไปตลอดทางแก้ไข ไม่งั้นย้อนกลับแล้วจะเด้งไปหน้าสรุป
         returnTo: location.state?.returnTo,
         currentDate: location.state?.currentDate,
         hideMoreFields: !repairData.name?.trim(),
@@ -314,8 +279,6 @@ const RepairDetail = () => {
     });
   };
 
-  // ใบประเมินราคายังไม่ใช่งานซ่อม และบิลขายหน้าร้านก็ไม่มีงานซ่อม
-  // เรียกให้ตรงกับของที่กำลังจะถูกลบ ไม่งั้นคนกดจะนึกว่าลบผิดใบ
   const deleteTargetName =
     repair?.status === "ESTIMATE"
       ? "ใบประเมินราคา"
@@ -323,14 +286,12 @@ const RepairDetail = () => {
         ? "รายการขาย"
         : "งานซ่อม";
 
-  // บิลที่ไม่มีชื่อลูกค้าจะได้คำว่า "ลูกค้าทั่วไป" มาเป็นบรรทัดขยาย
-  // ซึ่งไม่ได้ช่วยระบุว่าเป็นใบไหน ในกล่องยืนยันจึงไม่ต้องมีบรรทัดนั้น
   const confirmItemDetail =
     getRepairSubtitle(repair) === "ลูกค้าทั่วไป"
       ? ""
       : getRepairSubtitle(repair);
 
-  // ลบได้เฉพาะบิลที่ทุกเลขเป็นเลขล่าสุด (เลขคืนให้บิลถัดไป) บิลอื่นยกเลิกแทน เลขจะได้ไม่ขาดช่วง
+  // ลบได้เฉพาะบิลเลขล่าสุด บิลอื่นยกเลิกแทน เลขจะได้ไม่ขาดช่วง
   const isCancelled = repair?.status === "CANCELLED";
   const canDelete = !repair?.docNosSkippedOnDelete?.length;
   const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
@@ -353,10 +314,7 @@ const RepairDetail = () => {
     handleGoBack();
   };
 
-  // แปลงรายการในบิลให้อยู่ในรูปที่หน้าต่างรายละเอียดใช้ได้
-  // บรรทัดที่ผูกกับของในคลังเปิดรายละเอียดของชิ้นนั้นได้ (หน้าต่างเดียวกับหน้าอะไหล่และบริการ)
-  // อะไหล่อื่นๆ บริการที่พิมพ์ชื่อเอง และส่วนลดเป็นบรรทัดเปล่า ไม่มีของในคลังให้ดู
-  // อะไหล่ที่ถูกลบออกจากคลังไปแล้วไม่มี part ติดมา จึงไม่มีปุ่มเอง
+  // อะไหล่อื่นๆ บริการที่พิมพ์ชื่อเอง และส่วนลด ไม่มีของในคลังให้เปิดดู
   const stockTargetOf = (item) => {
     if (item.part?.id) return { type: "part", id: item.part.id };
     if (item.service?.id && !isNoCategoryItem(item) && !hasTypedUnit(item)) {
@@ -379,12 +337,10 @@ const RepairDetail = () => {
     }
   };
 
-  // ชื่อใช้ของที่บันทึกไว้ในบิล เพราะรวมยี่ห้อกับขนาดยางไว้แล้ว และบริการอาจถูกพิมพ์ชื่อเอง
-  // ราคาใช้ราคาที่ขายจริงในบิล ไม่ใช่ราคาปัจจุบันในคลัง
+  // ใช้ชื่อและราคาตามที่บันทึกในบิล ไม่ใช่ของปัจจุบันในคลัง
   const toPreviewItem = (item) => ({
     name: item.itemName,
-    // ชื่อบนบรรทัดถูกพิมพ์ทับไปแล้ว ดูจากบริการต้นทางว่าเป็นบรรทัดอะไหล่ไหม
-    // ไม่งั้นหน้าต่างจะขึ้นว่า "รายละเอียดบริการ" ทั้งที่เป็นอะไหล่ที่ซื้อมาต่างหาก
+    // ชื่อในบิลถูกพิมพ์ทับได้ จึงดูจากบริการต้นทาง
     isPartLine: isPartLikeItem(item),
     category: item.part?.category || item.service?.category || null,
     partNumber: item.part?.partNumber || null,
@@ -393,11 +349,7 @@ const RepairDetail = () => {
     sellingPrice: Number(item.unitPrice),
   });
 
-  // กดแถวทะเบียนแล้วไปดูประวัติของรถคันนั้น บอกด้วยว่ามาจากบิลไหน
-  // ปุ่มย้อนกลับของหน้าประวัติรถจะได้พากลับมาที่บิลนี้ ไม่ใช่โยนไปหน้ารายการ
-  //
-  // เปิดบิลนี้มาจากหน้าประวัติรถคันเดียวกัน = ไม่มีที่ให้ไปต่อ ปิดการกดและซ่อนลูกศร
-  // ไม่งั้นกดไปกลับหลายรอบ ประวัติจะซ้อนยาวจนต้องกดย้อนกลับเป็นสิบครั้งกว่าจะพ้น
+  // มาจากหน้าประวัติรถคันเดียวกันไม่ให้กดไปอีก ไม่งั้นประวัติจะซ้อนวนไปมา
   const cameFromThisVehicle =
     location.state?.from === "vehicle-detail" &&
     String(location.state?.vehicleId) === String(repair?.vehicle?.id);
@@ -408,18 +360,12 @@ const RepairDetail = () => {
     navigate(`/vehicles/${repair.vehicle.id}`);
   };
 
-  // ปุ่มขึ้นเฉพาะบิลเครดิต แต่ตัวกล่องต้องเรียกได้ตลอด เพราะหลังกดลงเครดิต
-  // ข้อมูลบิลในมือยังเป็นสถานะเดิมอยู่ (ไม่ได้โหลดใหม่ เพราะกำลังจะออกจากหน้า)
+  // หลังกดลงเครดิตข้อมูลในมือยังเป็นสถานะเดิม กล่องจึงต้องเรียกได้ตลอด
   const hasCustomer = !!repair?.customer;
   const canSetOrganization = repair?.status === "CREDIT" && hasCustomer;
 
   const handleGoBack = () => {
-    // เปลี่ยนประเภทระหว่างเปิดบิลนี้ = กองที่มาตอนแรกไม่มีบิลใบนี้แล้ว
-    // พาไปกองใหม่แทน ไม่งั้นกลับไปเจอรายการที่หายไปหนึ่งใบโดยไม่รู้ว่าไปไหน
-    //
-    // ดูจากสถานะของบิล ไม่ใช่ป้ายที่ติดมากับหน้า เพราะบิลที่กดมาจากในหน้าของหน่วยงาน
-    // ไม่มีป้ายนั้นติดมาด้วย แต่ก็อยู่ในหน้าเครดิตเหมือนกัน
-    // (เข้ามาจากหน้าประวัติรถหรือรายงานยอดขาย จัดการด้วยเงื่อนไขข้างล่างตามเดิม)
+    // เปลี่ยนประเภทระหว่างเปิดบิล = กองเดิมไม่มีบิลนี้แล้ว พาไปกองใหม่แทน
     const cameFromCreditPage =
       location.state?.from !== "vehicle-detail" && !location.state?.returnTo;
 
@@ -437,7 +383,7 @@ const RepairDetail = () => {
       location.state.returnTo.includes("/admin/reports/sales")
     ) {
       navigate(location.state.returnTo, {
-        // กลับด้วยการสั่งไปหน้าเดิม ไม่ใช่ถอยประวัติ ต้องบอกเองว่านี่คือการย้อนกลับ
+        // สั่งไปหน้าเดิม ไม่ใช่ถอยประวัติ จึงต้องบอกเองว่าเป็นการย้อนกลับ
         state: { currentDate: location.state.currentDate, restoreScroll: true },
       });
     } else {
@@ -447,16 +393,14 @@ const RepairDetail = () => {
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
-      <div className="flex items-center gap-[8px] px-[20px] pt-[16px]">
+      <div className="flex items-center gap-2 px-5 pt-4">
         <button
           onClick={handleGoBack}
           aria-label="ย้อนกลับ"
-          className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+          className="bg-surface/20 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full"
         >
           <ChevronLeft className="text-surface" />
         </button>
-        {/* บิลที่กำลังซ่อมมีปุ่มไอคอนสามอัน (พิมพ์ ใบประเมินราคา ลบ) ที่เหลือให้ชื่อหน้าจึงแคบ
-            เฉพาะกรณีนั้นบนจอเล็กจึงลดขนาดลงหนึ่งขั้นให้อ่านได้ครบคำ สถานะอื่นมีสองปุ่ม ขนาดเท่าเดิม */}
         <p
           className={`text-surface min-w-0 flex-1 truncate font-semibold sm:text-2xl md:text-[26px] ${
             repair?.status === "IN_PROGRESS" ? "text-xl" : "text-2xl"
@@ -464,28 +408,24 @@ const RepairDetail = () => {
         >
           รายละเอียดการซ่อม
         </p>
-        {/* ปุ่มทั้งแถวรอข้อมูลมาก่อนแล้วค่อยขึ้นพร้อมกัน
-            ไม่งั้นปุ่มใบประเมินราคาจะแทรกเข้ามาทีหลังแล้วดันปุ่มอื่นเลื่อนที่
-            ซึ่งอันตรายเพราะปุ่มลบอยู่ในแถวเดียวกัน */}
+        {/* รอข้อมูลก่อนค่อยขึ้นทั้งแถว ไม่งั้นปุ่มที่แทรกทีหลังจะดันปุ่มลบมาอยู่ใต้นิ้ว */}
         {!isLoading && (
           <>
-            {/* พิมพ์ได้ทุกสถานะ บางครั้งลูกค้าขอใบไปก่อนตั้งแต่ยังไม่จ่าย */}
             <button
               onClick={() => setIsReceiptOpen(true)}
               aria-label="พิมพ์ใบเสร็จ"
-              className="bg-surface/20 flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+              className="bg-surface/20 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full"
             >
               <Printer className="text-surface h-5 w-5" />
             </button>
 
-            {/* ประเมินราคาไว้ก่อน ลูกค้ายังไม่ตกลงซ่อม — ของที่จองไว้ในบิลจะถูกคืนเข้าคลัง
-            มีเฉพาะบิลที่ยังซ่อมอยู่ บิลที่เก็บเงินไปแล้วย้อนกลับไปเป็นใบประเมินไม่ได้ */}
+            {/* ของที่จองไว้ในบิลจะถูกคืนเข้าคลัง */}
             {repair?.status === "IN_PROGRESS" && (
               <button
                 onClick={() => setIsEstimateConfirmOpen(true)}
                 disabled={isSavingEstimate}
                 aria-label="บันทึกเป็นใบประเมินราคา"
-                className="bg-status-estimate flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full disabled:opacity-60"
+                className="bg-status-estimate flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full disabled:opacity-60"
               >
                 {isSavingEstimate ? (
                   <LoaderCircle className="text-surface h-5 w-5 animate-spin" />
@@ -494,13 +434,11 @@ const RepairDetail = () => {
                 )}
               </button>
             )}
-            {/* วางแยกจากปุ่มหลักด้านล่าง เพื่อไม่ให้นิ้วพลาดไปโดนตอนกดเปลี่ยนสถานะ
-                บิลล่าสุดลบได้ บิลอื่นยกเลิกแทน บิลที่ยกเลิกแล้วและไม่ใช่บิลล่าสุดไม่มีปุ่ม */}
             {canDelete ? (
               <button
                 onClick={() => setIsDeleteConfirmOpen(true)}
                 aria-label={`ลบ${deleteTargetName}`}
-                className="bg-destructive flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+                className="bg-destructive flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full"
               >
                 <Trash2 className="text-surface h-5 w-5" />
               </button>
@@ -509,7 +447,7 @@ const RepairDetail = () => {
                 <button
                   onClick={() => setIsCancelConfirmOpen(true)}
                   aria-label={`ยกเลิก${deleteTargetName}`}
-                  className="bg-destructive flex h-[40px] w-[40px] shrink-0 cursor-pointer items-center justify-center rounded-full"
+                  className="bg-destructive flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full"
                 >
                   <Ban className="text-surface h-5 w-5" />
                 </button>
@@ -518,14 +456,12 @@ const RepairDetail = () => {
           </>
         )}
       </div>
-      <div className="bg-surface shadow-primary mt-[16px] flex flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pt-[16px] pb-[112px] xl:pb-[16px]">
+      <div className="bg-surface shadow-primary mt-4 flex flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pt-4 pb-28 xl:pb-4">
         {isLoading ? (
           <PageSpinner />
         ) : (
           <div>
-            <div className="mb-[16px] flex items-center justify-between gap-[8px] px-[20px]">
-              {/* บิลที่ออกเอกสารแล้วแสดงเลขเอกสารแทนรหัส คำนำหน้า RE DO QT บอกชนิดใบอยู่แล้ว
-                  เลขของใบก่อนหน้า (ใบส่งของของบิลเครดิตที่จ่ายแล้ว) อยู่บรรทัดรอง ลูกค้าถือใบไหนมาก็หาเจอ */}
+            <div className="mb-4 flex items-center justify-between gap-2 px-5">
               {docNo !== repair.id ? (
                 <div className="min-w-0">
                   <p
@@ -560,8 +496,6 @@ const RepairDetail = () => {
                 </p>
               </div>
             </div>
-            {/* บิลที่ผูกกับรถ กดแถวนี้เพื่อไปดูประวัติของรถคันนั้นได้
-                (บิลขายหน้าร้านกับงานที่ไม่มีรถ ไม่มีปลายทางให้ไป จึงกดไม่ได้) */}
             <div
               {...(canOpenVehicle
                 ? {
@@ -571,11 +505,10 @@ const RepairDetail = () => {
                     onKeyDown: onKeyActivate(handleOpenVehicle),
                     "aria-label": "ดูประวัติรถคันนี้",
                     className:
-                      "my-[16px] flex cursor-pointer items-center gap-[8px] px-[20px]",
+                      "my-4 flex cursor-pointer items-center gap-2 px-5",
                   }
                 : {
-                    className:
-                      "my-[16px] flex items-center gap-[8px] px-[20px]",
+                    className: "my-4 flex items-center gap-2 px-5",
                   })}
             >
               <div
@@ -601,8 +534,6 @@ const RepairDetail = () => {
                 >
                   {getRepairTitle(repair)}
                 </p>
-                {/* บิลที่ไม่ผูกกับรถมีกล่องข้อมูลลูกค้าแยกอยู่ข้างล่างแล้ว ไม่ต้องบอกชื่อซ้ำตรงนี้
-                    ต่างจากการ์ดในลิสต์ที่มีบรรทัดเดียว จึงต้องยัดชื่อลูกค้าไว้ในนั้น */}
                 {!isSaleRepair(repair) && !isNoVehicleRepair(repair) && (
                   <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
                     {getVehicleSubtitle(repair?.vehicle)}
@@ -610,9 +541,7 @@ const RepairDetail = () => {
                 )}
               </div>
               {canOpenVehicle && (
-                // วงกลมพื้นอ่อนทำให้ลูกศรเด่นพอจะอ่านว่าแถวนี้กดได้
-                // ใช้สีเทากลางๆ ไม่ผูกกับสถานะ ไม่งั้นจะไปแย่งความเด่นของไอคอนรถทางซ้าย
-                <span className="bg-subtle-light/15 flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-full">
+                <span className="bg-subtle-light/15 flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
                   <ChevronRight className="text-subtle-dark h-5 w-5" />
                 </span>
               )}
@@ -621,15 +550,12 @@ const RepairDetail = () => {
               <RepairDetailCustomer
                 customer={repair.customer}
                 statusInfo={statusInfo}
-                // ตั้งประเภทลูกค้าได้จากบิลเครดิต เพราะเป็นจังหวะที่รู้ว่าใครติดเงินไว้
                 onSetOrganization={canSetOrganization ? orgPrompt.open : null}
               />
             )}
-            {/* เลขไมล์เป็นข้อมูลของรถ ณ วันซ่อม อ่านคู่กับทะเบียนและลูกค้าด้านบน
-                แถวเดียวจบ ไม่ต้องมีหัวข้อใหญ่ ไม่งั้นรายการซ่อมถูกดันลงไปไกลโดยไม่จำเป็น */}
             {repair.mileage != null && (
-              <div className="mb-[16px] px-[20px]">
-                <div className="flex items-center justify-between rounded-[10px] bg-gray-50 p-[16px]">
+              <div className="mb-4 px-5">
+                <div className="flex items-center justify-between rounded-lg bg-gray-50 p-4">
                   <p className="text-subtle-dark text-lg font-medium md:text-xl">
                     เลขกิโลเมตร:
                   </p>
@@ -647,9 +573,8 @@ const RepairDetail = () => {
                 onItemClick={setPreviewItem}
               />
             )}
-            {/* ยอดรวมเปลี่ยนสีตามสถานะ — จำนวนเงินที่ยังไม่ได้เก็บกับที่เก็บแล้วคนละความหมายกัน */}
             <div
-              className={`${statusInfo.softBorder} ${statusInfo.softBg} mx-[20px] mb-[16px] rounded-[10px] border bg-gradient-to-r p-[16px]`}
+              className={`${statusInfo.softBorder} ${statusInfo.softBg} mx-5 mb-4 rounded-lg border bg-gradient-to-r p-4`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
@@ -667,181 +592,43 @@ const RepairDetail = () => {
               </div>
             </div>
             {repair.description && (
-              <div className="mb-[16px] px-[20px]">
-                {/* บิลขายหน้าร้านไม่มีงานซ่อม ช่องนี้คือหมายเหตุของการขาย
-                    ใช้คำเดียวกับป้ายในหน้ากรอกบิลและหน้าสรุป */}
-                <p className="text-normal mb-[16px] text-[22px] font-semibold md:text-2xl">
+              <div className="mb-4 px-5">
+                <p className="text-normal mb-4 text-[22px] font-semibold md:text-2xl">
                   {isSaleRepair(repair) ? "หมายเหตุ" : "รายละเอียดการซ่อม"}
                 </p>
-                <div className="rounded-[10px] bg-gray-50 p-[16px]">
+                <div className="rounded-lg bg-gray-50 p-4">
                   <p className="text-normal text-lg leading-relaxed font-medium md:text-xl">
                     {repair.description}
                   </p>
                 </div>
               </div>
             )}
-            <div ref={paymentSectionRef} className="mb-[16px] px-[20px]">
-              <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
-                {repair.status === "ESTIMATE" ? "สถานะ" : "การชำระเงิน"}
-              </p>
-              <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
-                {/* ใบประเมินราคายังไม่มีการเก็บเงิน เลือกวิธีชำระเงินตอนนี้ก็ไม่มีผลอะไร
-                    เหลือไว้แค่บรรทัดสถานะ ไม่ต้องมีช่องให้กดเล่น */}
-                {repair.status !== "ESTIMATE" &&
-                  !(isCancelled && !repair.paymentMethod) && (
-                    <>
-                      <div className="flex items-center justify-between gap-[8px]">
-                        <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                          วิธีชำระเงิน:
-                        </p>
-                        {/* บิลที่จ่ายแล้วเป็นเอกสารที่จบแล้ว ทั้งกล่องจึงเป็นข้อความอ่านอย่างเดียว
-                        แต่กดผิดวิธีตอนเก็บเงินเป็นเรื่องที่เกิดได้ จึงมีดินสอให้กดแก้ทีหลัง
-                        กดแล้วบรรทัดนั้นค่อยกลายเป็นช่องเลือก เลือกเสร็จบันทึกทันทีแล้วกลับเป็นข้อความ
-                        (รูปแบบเดียวกับการกดแก้ราคาที่แถวรายการซ่อม) */}
-                        {/* บิลที่ยกเลิกแก้อะไรไม่ได้แล้ว เหลือแค่ข้อความวิธีที่เคยจ่าย (ถ้ามี) */}
-                        {isCancelled ? (
-                          <p className="text-normal text-lg font-semibold md:text-xl">
-                            {getPaymentMethodText(repair.paymentMethod) ||
-                              "ไม่ระบุ"}
-                          </p>
-                        ) : repair.status === "PAID" && !isEditingPaidMethod ? (
-                          <button
-                            type="button"
-                            onClick={() => setIsEditingPaidMethod(true)}
-                            aria-label="แก้ไขวิธีชำระเงิน"
-                            className="text-normal flex shrink-0 cursor-pointer items-center gap-[6px] text-lg font-semibold md:text-xl"
-                          >
-                            {getPaymentMethodText(repair.paymentMethod) ||
-                              "ไม่ระบุ"}
-                            <Edit className="text-primary h-4 w-4" />
-                          </button>
-                        ) : (
-                          <div className="w-[210px] shrink-0">
-                            <ComboBox
-                              options={
-                                repair.status === "PAID" ||
-                                repair.status === "CREDIT"
-                                  ? PAYMENT_METHODS
-                                  : PAYMENT_OPTIONS_WITH_CREDIT
-                              }
-                              value={selectedPaymentMethod}
-                              onChange={(value) => {
-                                setSelectedPaymentMethod(value);
-                                setPaymentMethodError("");
-                                if (repair.status === "PAID") {
-                                  handleChangePaidMethod(value);
-                                }
-                              }}
-                              placeholder="-- เลือกวิธีชำระเงิน --"
-                              customClass="text-lg md:text-xl"
-                              name="paymentMethod"
-                              errors={
-                                paymentMethodError
-                                  ? {
-                                      paymentMethod: {
-                                        message: paymentMethodError,
-                                      },
-                                    }
-                                  : undefined
-                              }
-                              hideErrorMessage
-                            />
-                          </div>
-                        )}
-                      </div>
-                      {/* กินความกว้างเต็มกล่องเพื่อให้อยู่บรรทัดเดียว แล้วดันไปชิดขวา
-                      จะได้อยู่ใต้ช่องที่ต้องแก้ ไม่ใช่ใต้ป้ายที่ไม่มีอะไรให้ทำ */}
-                      <FieldErrorList
-                        messages={[paymentMethodError]}
-                        className="items-end"
-                      />
-                    </>
-                  )}
-                <div className="flex justify-between">
-                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                    สถานะการซ่อม:
-                  </p>
-                  {/* อ่านจากสถานะจริงของบิล ไม่ใช่เดาจากเวลาที่ชำระเงิน
-                      ไม่งั้นบิลที่ยังกำลังซ่อมจะขึ้นว่าซ่อมเสร็จสิ้น */}
-                  <p
-                    className={`text-lg font-semibold md:text-xl ${statusInfo.color}`}
-                  >
-                    {statusInfo.text}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="mb-[16px] px-[20px]">
-              <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
-                {paidOnCreate ? "เวลาชำระเงิน" : "เวลาดำเนินการ"}
-              </p>
-              <div className="space-y-[8px] rounded-[10px] bg-gray-50 p-[16px]">
-                {/* บิลขายหน้าร้านเกิดและจบพร้อมกัน ไม่มีช่วงซ่อม แสดงเวลาชำระเงินอย่างเดียว */}
-                {!paidOnCreate && (
-                  <>
-                    <div className="flex justify-between">
-                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                        {isSale ? "ขาย:" : "เริ่มซ่อม:"}
-                      </p>
-                      <p className="text-normal text-lg font-medium md:text-xl">
-                        {formatDate(repair.createdAt)} |{" "}
-                        {formatTime(repair.createdAt)} น.
-                      </p>
-                    </div>
-                    {/* บิลขายไม่มีช่วงซ่อม ไม่ต้องมีเวลาซ่อมเสร็จ */}
-                    {!isSale && repair.completedAt && (
-                      <div className="flex justify-between">
-                        <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                          ซ่อมเสร็จสิ้น:
-                        </p>
-                        <p className="text-normal text-lg font-medium md:text-xl">
-                          {formatDate(repair.completedAt)} |{" "}
-                          {formatTime(repair.completedAt)} น.
-                        </p>
-                      </div>
-                    )}
-                  </>
-                )}
-                {repair.paidAt && (
-                  <div className="flex justify-between">
-                    <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                      {paidOnCreate ? "วันเวลา:" : "ชำระเงิน:"}
-                    </p>
-                    <p className="text-normal text-lg font-medium md:text-xl">
-                      {formatDate(repair.paidAt)} | {formatTime(repair.paidAt)}{" "}
-                      น.
-                    </p>
-                  </div>
-                )}
-                {repair.cancelledAt && (
-                  <div className="flex justify-between">
-                    <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                      ยกเลิก:
-                    </p>
-                    <p className="text-normal text-lg font-medium md:text-xl">
-                      {formatDate(repair.cancelledAt)} |{" "}
-                      {formatTime(repair.cancelledAt)} น.
-                    </p>
-                  </div>
-                )}
-                {repair.cancelReason && (
-                  <div className="flex justify-between gap-[12px]">
-                    <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
-                      เหตุผล:
-                    </p>
-                    <p className="text-normal min-w-0 text-right text-lg font-medium break-words md:text-xl">
-                      {repair.cancelReason}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
+            <RepairDetailPayment
+              ref={paymentSectionRef}
+              repair={repair}
+              statusInfo={statusInfo}
+              isCancelled={isCancelled}
+              isEditingPaidMethod={isEditingPaidMethod}
+              onEditPaidMethod={() => setIsEditingPaidMethod(true)}
+              selectedMethod={selectedPaymentMethod}
+              onSelectMethod={(value) => {
+                setSelectedPaymentMethod(value);
+                setPaymentMethodError("");
+                if (repair.status === "PAID") handleChangePaidMethod(value);
+              }}
+              error={paymentMethodError}
+            />
+            <RepairDetailTimeline
+              repair={repair}
+              isSale={isSale}
+              paidOnCreate={paidOnCreate}
+            />
             {repair.user && (
-              <div className="px-[20px]">
-                <p className="text-normal mb-[8px] text-[22px] font-semibold md:text-2xl">
+              <div className="px-5">
+                <p className="text-normal mb-2 text-[22px] font-semibold md:text-2xl">
                   ผู้รับงานซ่อม
                 </p>
-                <div className="rounded-[10px] bg-gray-50 p-[16px]">
+                <div className="rounded-lg bg-gray-50 p-4">
                   <p className="text-normal text-lg font-medium md:text-xl">
                     {repair.user.name}
                   </p>
@@ -849,7 +636,7 @@ const RepairDetail = () => {
               </div>
             )}
             {getNextStatus(repair.status) && (
-              <div className="mt-[16px] flex flex-col gap-[16px] pr-[40px]">
+              <div className="mt-4 flex flex-col gap-4 pr-10">
                 <FormButton
                   label={getNextStatusText(repair.status)}
                   isLoading={isUpdating}
@@ -904,7 +691,6 @@ const RepairDetail = () => {
         <OrganizationTypeDialog
           {...orgPrompt.dialogProps({
             onResume: handleUpdateStatus,
-            // บิลอยู่หน้าเดิม โหลดใหม่ให้บรรทัดประเภทใต้ชื่อตรงกับที่เพิ่งเลือก
             onChanged: fetchRepairDetail,
           })}
         />
@@ -919,7 +705,6 @@ const RepairDetail = () => {
         itemDetail={confirmItemDetail}
         confirmLabel="บันทึก"
         confirmClass="bg-gradient-primary"
-        // ไม่ได้ลบอะไร กดผิดก็แก้กลับได้ ไม่ต้องให้กดค้าง
         requireHold={false}
       />
 

@@ -40,8 +40,8 @@ const StockFields = ({
   }
 
   return (
-    <div className="mt-[16px] px-[20px]">
-      <div className="grid grid-cols-2 gap-[8px]">
+    <div className="mt-4 px-5">
+      <div className="grid grid-cols-2 gap-2">
         <FormInput
           register={register}
           name="stockQuantity"
@@ -78,7 +78,7 @@ const StockFields = ({
       </div>
 
       <FieldErrorList
-        className="mt-[6px]"
+        className="mt-1.5"
         messages={[
           errors.stockQuantity?.message,
           errors.minStockLevel?.message,

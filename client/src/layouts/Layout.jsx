@@ -1,12 +1,11 @@
 import { Suspense } from "react";
 import { Outlet } from "react-router";
 import { LoaderCircle } from "lucide-react";
-import Navbar from "@/components/navbar/Navbar";
-import LeftSidebar from "@/components/LeftSidebar";
-import BottomNav from "@/components/BottomNav";
-import { usePageResetKey } from "@/utils/pageReset";
+import Navbar from "@/components/navigation/Navbar";
+import Sidebar from "@/components/navigation/Sidebar";
+import BottomNav from "@/components/navigation/BottomNav";
+import { usePageResetKey } from "@/hooks/usePageReset";
 
-// breakpoint เดียวทั้งระบบ: จอ lg ขึ้นไปใช้ Navbar + Sidebar, ต่ำกว่านั้นใช้ BottomNav
 const Layout = () => {
   const resetKey = usePageResetKey();
 
@@ -18,11 +17,10 @@ const Layout = () => {
 
       <div className="flex-1 lg:flex lg:overflow-hidden">
         <div className="sticky top-[73px] hidden self-start lg:block">
-          <LeftSidebar />
+          <Sidebar />
         </div>
 
-        {/* Suspense อยู่ตรงนี้ ไม่ใช่ครอบทั้ง <Routes> ไม่งั้นตอนโหลดโค้ดของหน้า
-            โครงหน้า (navbar, แท็บล่าง) จะถูกล้างทิ้งแล้วโผล่กลับมา เห็นเป็นกระพริบ */}
+        {/* Suspense อยู่ตรงนี้ ไม่ครอบทั้ง <Routes> ไม่งั้นโครงหน้าจะถูกล้างแล้วโผล่กลับตอนโหลดโค้ด */}
         <main className="bg-surface-muted flex min-h-svh flex-1 flex-col lg:max-h-[calc(100vh-73px)] lg:min-h-0 lg:overflow-y-auto">
           <Suspense
             fallback={
@@ -35,8 +33,7 @@ const Layout = () => {
           </Suspense>
         </main>
 
-        {/* ตั้งชื่อ view transition ไว้ ไม่งั้นแท็บล่างจะถูกรวมอยู่ในภาพนิ่งของทั้งหน้า
-            ซึ่งวางตามตำแหน่งในหน้าที่เลื่อนได้ ไม่ใช่ตำแหน่ง fixed จริง แล้วจะกระตุกทุกครั้งที่มี transition */}
+        {/* ตั้งชื่อ view transition ไว้ ไม่งั้นแท็บล่างจะกระตุกทุกครั้งที่มี transition */}
         <div
           style={{ viewTransitionName: "bottom-nav" }}
           className="fixed right-0 bottom-0 left-0 z-50 lg:hidden"

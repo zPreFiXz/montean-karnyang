@@ -8,12 +8,11 @@ import {
   useLocation,
 } from "react-router";
 import Layout from "@/layouts/Layout";
-import { pageImports } from "./pageImports";
-import ProtectRouteUser from "./ProtectRouteUser";
-import ProtectRouteAdmin from "./ProtectRouteAdmin";
-import ProtectRouteGuest from "./ProtectRouteGuest";
+import { pageImports } from "@/routes/pageImports";
+import ProtectedRoute from "@/routes/ProtectedRoute";
+import AdminRoute from "@/routes/AdminRoute";
+import GuestRoute from "@/routes/GuestRoute";
 
-// แยกแต่ละหน้าเป็น chunk ของตัวเอง โหลดเมื่อเข้าเส้นทางนั้นจริง (ลดขนาด bundle แรก)
 const Login = lazy(pageImports.Login);
 const Dashboard = lazy(pageImports.Dashboard);
 const VehicleModelList = lazy(pageImports.VehicleModelList);
@@ -37,9 +36,7 @@ const TopItemsReport = lazy(pageImports.TopItemsReport);
 const AttendanceReport = lazy(pageImports.AttendanceReport);
 const NotFound = lazy(pageImports.NotFound);
 
-// หน้าเปิดบิลใช้เส้นทางเดียวกันทั้งบิลใหม่และตอนแก้บิลเดิม กดปุ่มบวกระหว่างแก้บิลจึงไม่ได้เปลี่ยนหน้า
-// หน้าเดิมค้างข้อมูลบิลที่แก้อยู่ แต่เลขบิลหลุดไปกับ state กดบันทึกเลยกลายเป็นบิลใหม่ซ้ำอีกใบ
-// ผูก key กับบิลที่แก้ ออกจากโหมดแก้เมื่อไหร่หน้าจะเริ่มใหม่ ส่วนบิลใหม่ key เดิม กดบวกซ้ำไม่ล้างที่กรอกอยู่
+// ผูก key กับบิลที่แก้ ไม่งั้นกดปุ่มบวกระหว่างแก้บิล หน้าไม่เริ่มใหม่แล้วบันทึกเป็นบิลซ้ำ
 const BillPage = ({ page }) => {
   const location = useLocation();
   const editRepairId = location.state?.editRepairId;
@@ -49,9 +46,8 @@ const BillPage = ({ page }) => {
   });
 };
 
-// ไดอะล็อกล็อกการคลิกทั้งหน้าไว้ระหว่างปิด แล้วค่อยปลดตอนจบจังหวะปิด
-// ถ้าเปลี่ยนหน้าระหว่างนั้น (เช่นกดแก้ไขจากในไดอะล็อก) ตัวมันถูกถอดไปก่อนได้ปลด
-// หน้าใหม่จึงกดอะไรไม่ติดทั้งหน้า ต้องปลดให้เองทุกครั้งที่เปลี่ยนหน้า
+// ไดอะล็อกล็อกการคลิกทั้งหน้าระหว่างปิด ถ้าเปลี่ยนหน้าระหว่างนั้นตัวมันถูกถอดก่อนได้ปลด
+// หน้าใหม่จะกดอะไรไม่ติด จึงต้องปลดเองทุกครั้งที่เปลี่ยนหน้า
 const UnlockPointerEvents = () => {
   const location = useLocation();
 
@@ -75,28 +71,24 @@ const AppRoutes = () => {
     <BrowserRouter>
       <UnlockPointerEvents />
       <Routes>
-        {/* Public */}
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route
           path="login"
           element={
             <Suspense fallback={<RouteFallback />}>
-              <ProtectRouteGuest element={<Login />} />
+              <GuestRoute element={<Login />} />
             </Suspense>
           }
         />
 
-        {/* Private User */}
-        <Route element={<ProtectRouteUser element={<Layout />} />}>
+        <Route element={<ProtectedRoute element={<Layout />} />}>
           <Route path="dashboard" element={<Dashboard />} />
 
-          {/* Inspection */}
           <Route
             path="inspections/suspension"
             element={<BillPage page={SuspensionInspection} />}
           />
 
-          {/* Repair */}
           <Route path="repairs" element={<RepairList />} />
           <Route
             path="repairs/new"
@@ -105,7 +97,6 @@ const AppRoutes = () => {
           <Route path="repairs/review" element={<RepairReview />} />
           <Route path="repairs/:id" element={<RepairDetail />} />
 
-          {/* หน่วยงานราชการและร้านค้าที่เปิดบิลเครดิตไว้ เข้าจากหัวหน้าเครดิต */}
           <Route path="organizations" element={<OrganizationList />} />
           <Route
             path="organizations/:id/history"
@@ -113,7 +104,6 @@ const AppRoutes = () => {
           />
           <Route path="organizations/:id" element={<OrganizationDetail />} />
 
-          {/* Inventory */}
           <Route path="inventory" element={<InventoryList />} />
           <Route path="inventory/new" element={<InventoryForm />} />
           <Route
@@ -122,17 +112,12 @@ const AppRoutes = () => {
           />
           <Route path="inventory/:id" element={<InventoryForm />} />
 
-          {/* Vehicle */}
           <Route path="vehicles" element={<VehicleList />} />
           <Route path="vehicles/models" element={<VehicleModelList />} />
           <Route path="vehicles/:id" element={<VehicleDetail />} />
         </Route>
 
-        {/* Private Admin */}
-        <Route
-          path="admin"
-          element={<ProtectRouteAdmin element={<Layout />} />}
-        >
+        <Route path="admin" element={<AdminRoute element={<Layout />} />}>
           <Route index element={<Dashboard />} />
           <Route path="users" element={<UserList />} />
           <Route path="employees" element={<EmployeeList />} />
@@ -141,7 +126,6 @@ const AppRoutes = () => {
           <Route path="reports/attendance" element={<AttendanceReport />} />
         </Route>
 
-        {/* Not Found */}
         <Route
           path="*"
           element={

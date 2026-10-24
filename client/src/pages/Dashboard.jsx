@@ -28,7 +28,7 @@ import BrandIcons from "@/components/icons/BrandIcons";
 import { toastError } from "@/utils/handleError";
 import { onKeyActivate } from "@/utils/a11y";
 import { tracksStock } from "@/utils/stock";
-import { publicLinks, privateLinks } from "@/utils/links";
+import { MANAGEMENT_LINKS, ADMIN_LINKS } from "@/constants/menu";
 import { roleLabel } from "@/utils/role";
 import {
   isSaleRepair,
@@ -37,19 +37,17 @@ import {
   getRepairSubtitle,
 } from "@/utils/repairDisplay";
 import { usePrefetchPages } from "@/routes/pageImports";
-import { useReopenStockItem } from "@/utils/reopenStockItem";
+import { useReopenStockItem } from "@/hooks/useReopenStockItem";
 import {
   useScrollRestoration,
   useScrollTracking,
 } from "@/utils/scrollPosition";
 
-// จำของที่โหลดไว้ กดย้อนกลับมาหน้าเต็มตั้งแต่เฟรมแรก จะได้เลื่อนกลับไปที่เดิมได้ทันที
-// แล้วค่อยดึงใหม่ทับเงียบๆ เหมือนหน้าอื่น
+// จำของที่โหลดไว้ กดย้อนกลับมาจะเลื่อนกลับไปที่เดิมได้ทันที
 let cachedInventory = null;
 let cachedCategoryOrder = [];
 
 const Dashboard = () => {
-  // เตรียมโค้ดของหน้าที่มักไปต่อจากหน้านี้ กดแล้วจะได้ไม่ต้องรอโหลด
   usePrefetchPages(["RepairList", "RepairDetail", "RepairCreate"]);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -72,7 +70,6 @@ const Dashboard = () => {
     getTodaySales,
     getRepairsByStatus,
   } = useRepairStore();
-  // รายการซ่อมอยู่ในสโตร์ข้ามหน้าอยู่แล้ว มีของเดิมก็ถือว่าพร้อม
   const [isRepairsLoading, setIsRepairsLoading] = useState(
     repairs.length === 0,
   );
@@ -99,20 +96,16 @@ const Dashboard = () => {
     }
   };
 
-  // ยอดขายวันนี้
   const todaySales = getTodaySales();
 
-  // นับการซ่อมตามสถานะ
   const inProgressCount = getRepairCountByStatus("IN_PROGRESS");
   const completedCount = getRepairCountByStatus("COMPLETED");
   const paidCount = getRepairCountByStatus("PAID");
 
-  // ดึงรายการซ่อมทั้งหมดตามสถานะ
   const inProgressRepairs = getRepairsByStatus("IN_PROGRESS");
   const completedRepairs = getRepairsByStatus("COMPLETED");
   const paidRepairs = getRepairsByStatus("PAID");
 
-  // กรองสินค้าที่ไม่ใช่บริการ
   const stockItems = inventory.filter((i) => i?.category?.name !== "บริการ");
   // อะไหล่ที่ไม่ได้สต็อกไว้ (ขั้นต่ำ = 0) เหลือ 0 เป็นเรื่องปกติ ไม่นับว่าของหมด
   const outOfStockItems = stockItems.filter(
@@ -123,11 +116,9 @@ const Dashboard = () => {
     const min = Number(i?.minStockLevel || 0);
     return qty > 0 && min > 0 && qty < min;
   });
-  // แสดงครบทุกรายการ ไม่ตัดจำนวน — การเตือนที่ซ่อนของบางส่วนไว้ทำให้เชื่อผิดว่าเห็นครบแล้ว
+  // แสดงครบทุกรายการ ไม่ตัดจำนวน
   const stockAlertCount = outOfStockItems.length + lowStockItems.length;
 
-  // แยกตามหมวด ร้านสั่งของเป็นเจ้าๆ (ยางจากร้านยาง แบตจากร้านแบต) จะได้เห็นว่าต้องสั่งอะไรจากใครบ้าง
-  // เรียงหมวดตามแถบหมวดหมู่ในหน้าสต็อก ในหมวดเดียวกันของหมดขึ้นก่อนของใกล้หมดเหมือนเดิม
   const [categoryOrder, setCategoryOrder] = useState(cachedCategoryOrder);
   useEffect(() => {
     listCategories()
@@ -137,9 +128,7 @@ const Dashboard = () => {
           .map((c) => c.name);
         setCategoryOrder(cachedCategoryOrder);
       })
-      .catch(() => {
-        // ไม่รู้ลำดับหมวดก็ยังแยกกลุ่มได้ แค่เรียงตามลำดับที่เจอ
-      });
+      .catch(() => {});
   }, []);
 
   const stockAlertGroups = useMemo(() => {
@@ -158,14 +147,11 @@ const Dashboard = () => {
       .sort((a, b) => rank(a.name) - rank(b.name));
   }, [outOfStockItems, lowStockItems, categoryOrder]);
 
-  // มีหมวดเดียวไม่ต้องมีหัวข้อ ไม่มีอะไรให้แยก หัวข้อหน้าตาเดียวกับหน้าสต็อกตอนดูทั้งหมด
   const renderStockAlerts = (keyPrefix) =>
     stockAlertGroups.map((group, index) => (
       <div key={`${keyPrefix}-${group.name}`}>
         {stockAlertGroups.length > 1 && (
-          <div
-            className={`flex items-center gap-[8px] ${index > 0 ? "mt-[16px]" : ""}`}
-          >
+          <div className={`flex items-center gap-2 ${index > 0 ? "mt-4" : ""}`}>
             <p className="text-subtle-dark text-lg font-semibold md:text-xl">
               {group.name}
             </p>
@@ -179,7 +165,6 @@ const Dashboard = () => {
       </div>
     ));
 
-  // แสดงยี่ห้อ+รุ่น หรือแค่รุ่นถ้ายี่ห้อเป็น "อื่นๆ"
   const handleLogout = async () => {
     setIsLoggingOut(true);
 
@@ -206,7 +191,7 @@ const Dashboard = () => {
       tabIndex={0}
       onKeyDown={onKeyActivate(() => openItem(item))}
       onClick={() => openItem(item)}
-      className="mt-[16px] cursor-pointer rounded-[10px]"
+      className="mt-4 cursor-pointer rounded-lg"
     >
       <InventoryCard
         item={item}
@@ -227,7 +212,7 @@ const Dashboard = () => {
   );
 
   const renderRepairColumn = (repairs, bg, iconColor, timeKey) => (
-    <div className="flex flex-col gap-[12px]">
+    <div className="flex flex-col gap-3">
       {repairs.length > 0 ? (
         repairs.map((repair) => (
           <Link key={repair.id} to={`/repairs/${repair.id}`}>
@@ -253,7 +238,7 @@ const Dashboard = () => {
           </Link>
         ))
       ) : (
-        <p className="text-subtle-light py-[24px] text-center text-xl">
+        <p className="text-subtle-light py-6 text-center text-xl">
           ไม่มีงานซ่อม
         </p>
       )}
@@ -262,16 +247,13 @@ const Dashboard = () => {
 
   return (
     <div className="w-full">
-      {/* Desktop View */}
-      <div className="hidden w-full px-[20px] xl:block">
-        {/* สถานะการซ่อม */}
-        <div className="bg-surface shadow-primary mt-[24px] mb-[24px] w-full rounded-[10px] p-[16px]">
+      <div className="hidden w-full px-5 xl:block">
+        <div className="bg-surface shadow-primary mt-6 mb-6 w-full rounded-lg p-4">
           <p className="text-subtle-dark text-[22px] font-medium">
             สถานะการซ่อม
           </p>
 
-          {/* การ์ดสถานะ */}
-          <div className="mt-[16px] grid grid-cols-3 gap-[16px]">
+          <div className="mt-4 grid grid-cols-3 gap-4">
             <Link to="/repairs?status=in-progress">
               <StatusCard
                 bg="progress"
@@ -298,8 +280,7 @@ const Dashboard = () => {
             </Link>
           </div>
 
-          {/* รายการซ่อมล่าสุด */}
-          <div className="mt-[16px] grid grid-cols-3 gap-[16px]">
+          <div className="mt-4 grid grid-cols-3 gap-4">
             {renderRepairColumn(
               inProgressRepairs,
               "progress",
@@ -316,20 +297,17 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* แจ้งเตือนสต็อก — ระหว่างโหลดยังไม่รู้ว่ามีของต้องเตือนไหม จึงกันที่ไว้พร้อมตัวหมุน
-            ไม่งั้นกล่องจะโผล่มาแทรกทีหลังแล้วดันเนื้อหาข้างล่างเลื่อน */}
+        {/* กันที่ไว้ระหว่างโหลด ไม่งั้นกล่องโผล่ทีหลังแล้วดันเนื้อหาเลื่อน */}
         {(isInventoryLoading ||
           outOfStockItems.length > 0 ||
           lowStockItems.length > 0) && (
-          <div className="bg-surface shadow-primary mb-[16px] w-full rounded-[10px] p-[16px]">
+          <div className="bg-surface shadow-primary mb-4 w-full rounded-lg p-4">
             <p className="text-subtle-dark flex items-center gap-2 text-[22px] font-medium">
               แจ้งเตือนสต็อก{!isInventoryLoading && ` (${stockAlertCount})`}
             </p>
-            <div className="mt-[16px]">
+            <div className="mt-4">
               {isInventoryLoading ? (
-                // สูงเท่าการ์ดหนึ่งใบและเว้นระยะบนเท่ากัน ตัวหมุนจึงอยู่กลางที่ของการ์ดใบแรกพอดี
-                // พอโหลดเสร็จการ์ดมาแทนที่ตรงนั้นเลย กล่องไม่ขยับขึ้นลง
-                <div className="flex h-[80px] items-center justify-center">
+                <div className="flex h-20 items-center justify-center">
                   <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
                 </div>
               ) : (
@@ -340,25 +318,22 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Mobile View */}
       <div className="xl:hidden">
         <div
           className={`w-full ${
-            user?.role === "ADMIN" ? "h-[222px] md:h-[228px]" : "h-[134px]"
-          } bg-gradient-primary px-[20px] pt-[16px]`}
+            user?.role === "ADMIN" ? "h-55.5 md:h-57" : "h-33.5"
+          } bg-gradient-primary px-5 pt-4`}
         >
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className="text-surface text-[32px] font-semibold md:text-[34px]">
                 มณเฑียรการยาง
               </p>
-              {/* มีชื่อวันด้วยเพราะหน้านี้เปิดค้างไว้ทั้งวัน เห็นแล้วรู้ทันทีว่าวันนี้วันอะไร */}
               <p className="text-surface text-xl font-medium md:text-[22px]">
                 วัน{formatDateWithWeekday(new Date())}
               </p>
             </div>
 
-            {/* เมนูแฮมเบอร์เกอร์ */}
             <div>
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -368,15 +343,14 @@ const Dashboard = () => {
                 <Menu className="text-primary h-6 w-6" />
               </button>
 
-              {/* เมนูสไลด์อิน */}
               <div
                 className={`bg-surface fixed inset-0 z-50 transform duration-500 ease-in-out ${
                   isMenuOpen ? "translate-x-0" : "translate-x-full"
                 } ${!isMenuOpen ? "pointer-events-none" : ""}`}
               >
-                <div className="bg-gradient-primary h-[104px] px-[20px] py-[16px]">
+                <div className="bg-gradient-primary h-26 px-5 py-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex min-w-0 items-center gap-[16px]">
+                    <div className="flex min-w-0 items-center gap-4">
                       <div className="bg-surface/20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
                         <CircleUserRound className="text-surface h-7 w-7" />
                       </div>
@@ -390,7 +364,6 @@ const Dashboard = () => {
                       </div>
                     </div>
 
-                    {/* ปิดเมนู */}
                     <button
                       onClick={() => setIsMenuOpen(false)}
                       aria-label="ปิดเมนู"
@@ -400,12 +373,12 @@ const Dashboard = () => {
                     </button>
                   </div>
                 </div>
-                <div className="bg-surface -mt-[16px] rounded-tl-2xl rounded-tr-2xl px-[20px] py-[16px]">
+                <div className="bg-surface -mt-4 rounded-tl-2xl rounded-tr-2xl px-5 py-4">
                   <div>
-                    {/* วนจาก links.js ชุดเดียวกับเมนูบนจอใหญ่ เพิ่มเมนูใหม่ที่เดียวแล้วขึ้นทั้งสองที่ */}
+                    {/* ใช้ links.js ชุดเดียวกับเมนูจอใหญ่ */}
                     {[
-                      ...publicLinks,
-                      ...(user?.role === "ADMIN" ? privateLinks : []),
+                      ...MANAGEMENT_LINKS,
+                      ...(user?.role === "ADMIN" ? ADMIN_LINKS : []),
                     ].map((item) => {
                       const Icon = item.icon;
                       return (
@@ -413,10 +386,10 @@ const Dashboard = () => {
                           key={item.href}
                           to={item.href}
                           onClick={() => setIsMenuOpen(false)}
-                          className="bg-surface shadow-primary mb-[16px] flex w-full items-center gap-[16px] rounded-[10px] p-[16px] duration-300"
+                          className="bg-surface shadow-primary mb-4 flex w-full items-center gap-4 rounded-lg p-4 duration-300"
                         >
                           <div
-                            className={`${item.tileClass} flex h-[48px] w-[48px] items-center justify-center rounded-[10px]`}
+                            className={`${item.tileClass} flex h-12 w-12 items-center justify-center rounded-lg`}
                           >
                             <Icon className="text-surface h-6 w-6" />
                           </div>
@@ -428,15 +401,14 @@ const Dashboard = () => {
                     })}
                   </div>
 
-                  {/* ออกจากระบบ */}
                   <button
                     onClick={handleLogout}
                     disabled={isLoggingOut}
-                    className={`bg-surface shadow-primary flex w-full items-center gap-[16px] rounded-[10px] p-[16px] duration-300 ${
+                    className={`bg-surface shadow-primary flex w-full items-center gap-4 rounded-lg p-4 duration-300 ${
                       isLoggingOut ? "cursor-not-allowed opacity-50" : ""
                     }`}
                   >
-                    <div className="bg-destructive flex h-[48px] w-[48px] items-center justify-center rounded-[10px]">
+                    <div className="bg-destructive flex h-12 w-12 items-center justify-center rounded-lg">
                       {isLoggingOut ? (
                         <LoaderCircle className="text-surface h-6 w-6 animate-spin" />
                       ) : (
@@ -452,11 +424,10 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* ยอดขายวันนี้ */}
           {user?.role === "ADMIN" && (
             <Link
               to="/admin/reports/sales?period=daily"
-              className="bg-surface shadow-primary mx-auto mt-[16px] flex h-[80px] w-full items-center justify-between rounded-[10px] px-[16px]"
+              className="bg-surface shadow-primary mx-auto mt-4 flex h-20 w-full items-center justify-between rounded-lg px-4"
             >
               <p className="text-normal text-[22px] font-semibold md:text-2xl">
                 ยอดขายวันนี้
@@ -467,13 +438,11 @@ const Dashboard = () => {
             </Link>
           )}
         </div>
-        {/* สถานะการซ่อม */}
-        <div className="bg-surface -mt-[16px] flex min-h-[calc(100svh-206px)] w-full flex-col gap-[16px] rounded-tl-2xl rounded-tr-2xl px-[20px] pb-[96px] md:min-h-[calc(100svh-212px)]">
-          <p className="text-normal pt-[16px] text-[22px] font-semibold md:text-2xl">
+        <div className="bg-surface -mt-4 flex min-h-[calc(100svh-206px)] w-full flex-col gap-4 rounded-tl-2xl rounded-tr-2xl px-5 pb-24 md:min-h-[calc(100svh-212px)]">
+          <p className="text-normal pt-4 text-[22px] font-semibold md:text-2xl">
             สถานะการซ่อม
           </p>
 
-          {/* กำลังซ่อม */}
           <Link to="/repairs?status=in-progress">
             <CarCard
               bg="progress"
@@ -483,7 +452,6 @@ const Dashboard = () => {
             />
           </Link>
 
-          {/* ซ่อมเสร็จสิ้น */}
           <Link to="/repairs?status=completed">
             <CarCard
               bg="completed"
@@ -493,7 +461,6 @@ const Dashboard = () => {
             />
           </Link>
 
-          {/* ชำระเงินแล้ว */}
           <Link to="/repairs?status=paid">
             <CarCard
               bg="paid"
@@ -503,20 +470,18 @@ const Dashboard = () => {
             />
           </Link>
 
-          {/* แจ้งเตือนสต็อก */}
           {(isInventoryLoading ||
             outOfStockItems.length > 0 ||
             lowStockItems.length > 0) && (
             <div
-              className={`pb-[16px] ${
+              className={`pb-4 ${
                 isInventoryLoading ? "flex flex-1 flex-col" : ""
               }`}
             >
-              <p className="text-normal pt-[8px] text-[22px] font-semibold md:text-2xl">
+              <p className="text-normal pt-2 text-[22px] font-semibold md:text-2xl">
                 แจ้งเตือนสต็อก{!isInventoryLoading && ` (${stockAlertCount})`}
               </p>
               {isInventoryLoading ? (
-                // ยืดเต็มที่ว่างที่เหลือของหน้า แล้ววางตัวหมุนไว้กึ่งกลางแนวตั้งของที่ว่างนั้น
                 <div className="flex flex-1 items-center justify-center">
                   <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
                 </div>

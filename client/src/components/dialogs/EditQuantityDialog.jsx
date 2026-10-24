@@ -4,8 +4,6 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import FormButton from "@/components/forms/FormButton";
 import { formatQuantity } from "@/utils/formats";
 
-// พิมพ์จำนวนเองแทนการกดปุ่มบวกทีละครั้ง — จำเป็นกับน้ำมันที่ขายเป็นลิตรครึ่งลิตร
-// และเร็วกว่ามากเวลาขายของทีละหลายชิ้น
 const EditQuantityDialog = ({
   isOpen,
   onClose,
@@ -59,23 +57,21 @@ const EditQuantityDialog = ({
           onClose={onClose}
         />
 
-        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-[20px]">
+        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5">
           <h2 className="text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">
             {productName}
           </h2>
 
-          <div className="mt-[16px] rounded-[10px] bg-gray-50 p-[16px]">
+          <div className="mt-4 rounded-lg bg-gray-50 p-4">
             <label
               htmlFor="repair-item-quantity"
-              className="text-subtle-dark mb-[8px] block text-lg font-medium md:text-xl"
+              className="text-subtle-dark mb-2 block text-lg font-medium md:text-xl"
             >
               จำนวน{unit ? ` (${unit})` : ""}
             </label>
             <input
               id="repair-item-quantity"
-              // ใช้ช่องข้อความ ไม่ใช่ช่องตัวเลข เพราะช่องตัวเลขคืนค่าว่างระหว่างที่ยังพิมพ์ไม่จบ
-              // พิมพ์ "3." แล้วเบราว์เซอร์มองว่ายังไม่เป็นตัวเลข ค่าที่อ่านได้เลยเป็นค่าว่าง
-              // ตัวเลขที่พิมพ์ไปเลยหายทั้งบรรทัด — inputMode ยังเรียกแป้นตัวเลขให้เหมือนเดิม
+              // ช่องตัวเลขคืนค่าว่างระหว่างพิมพ์ไม่จบ ("3.") เลขที่พิมพ์จะหาย inputMode ยังเรียกแป้นตัวเลข
               type="text"
               inputMode={allowDecimal ? "decimal" : "numeric"}
               value={value}
@@ -93,22 +89,22 @@ const EditQuantityDialog = ({
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleConfirm();
               }}
-              className={`bg-surface w-full rounded-[20px] border px-[12px] py-[8px] text-xl font-medium outline-none md:text-[22px] ${
+              className={`bg-surface w-full rounded-[20px] border px-3 py-2 text-xl font-medium outline-none md:text-[22px] ${
                 error
                   ? "border-destructive focus:border-destructive border-2"
                   : "border-input focus:border-primary focus:border-2"
               }`}
             />
             {error && (
-              <p className="text-destructive mt-[6px] px-[4px] text-lg font-medium md:text-xl">
+              <p className="text-destructive mt-1.5 px-1 text-lg font-medium md:text-xl">
                 {error}
               </p>
             )}
           </div>
         </div>
 
-        <div className="flex-shrink-0 px-[16px] py-[16px]">
-          <div className="flex gap-[16px]">
+        <div className="flex-shrink-0 px-4 py-4">
+          <div className="flex gap-4">
             <button
               type="button"
               onClick={onClose}
