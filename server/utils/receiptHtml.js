@@ -585,7 +585,7 @@ const buildReceiptHtml = (rawRepair, { withCopy = true, ...options } = {}) => {
 const VEHICLE_COMPATIBLE_CATEGORIES = [
   "ช่วงล่าง",
   "เบรก",
-  "โช๊คอัพ",
+  "โช้คอัพ",
   "ระบบส่งกำลัง",
   "กรอง",
   "ไส้กรอง",

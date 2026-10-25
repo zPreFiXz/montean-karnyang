@@ -26,7 +26,7 @@ export const ICON_MAP = {
   น้ำมัน: Oil,
   กรอง: OilFilter,
   เบรก: Brake,
-  โช๊คอัพ: Shock,
+  โช้คอัพ: Shock,
   ระบบส่งกำลัง: Gear,
   แบตเตอรี่: Battery,
   ระบบไฟฟ้า: Light,

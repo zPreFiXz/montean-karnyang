@@ -5,7 +5,7 @@ import { dotOrderKey } from "@/utils/tireLot";
 // รวมล็อต DOT เดียวกัน เรียงเก่าไปใหม่ (DOT 4 หลักคือ WWYY เช่น 0126 = สัปดาห์ 1 ปี 2026)
 export const summarizeTireLots = (lots = []) => {
   const rows = new Map();
-  for (const lot of lots) {
+  for (const lot of lots || []) {
     const label = String(lot.dotCode ?? "").trim() || "ไม่ระบุ";
     const quantity = Number(lot.quantity) || 0;
     const current = rows.get(label);
@@ -18,7 +18,7 @@ export const summarizeTireLots = (lots = []) => {
 // คงลำดับเดิมที่บันทึกมา (เรียงตามลิสต์รุ่นรถแล้ว)
 export const groupVehiclesByBrand = (vehicles = []) => {
   const groups = new Map();
-  for (const vehicle of vehicles) {
+  for (const vehicle of vehicles || []) {
     const brand = vehicle.brand || "ไม่ระบุ";
     if (!groups.has(brand)) groups.set(brand, []);
     groups.get(brand).push(vehicle.model);

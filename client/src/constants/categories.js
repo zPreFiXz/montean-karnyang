@@ -33,7 +33,7 @@ export const getCategoryKind = (name) => {
 // หมวดที่มีของแยกซ้าย-ขวา ฟอร์มอะไหล่จึงมีช่องเลือกข้าง เพิ่มหมวดที่นี่ถ้ามีของแยกข้างในหมวดใหม่
 export const PER_SIDE_CATEGORIES = [
   "เบรก",
-  "โช๊คอัพ",
+  "โช้คอัพ",
   "ระบบไฟฟ้า",
   "ใบปัดน้ำฝน",
 ];
@@ -42,7 +42,7 @@ export const PER_SIDE_CATEGORIES = [
 export const VEHICLE_COMPATIBLE_CATEGORIES = [
   "ช่วงล่าง",
   "เบรก",
-  "โช๊คอัพ",
+  "โช้คอัพ",
   "ระบบส่งกำลัง",
   "กรอง",
   "ไส้กรอง",

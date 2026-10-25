@@ -66,4 +66,9 @@ describe("ล็อตยางและรุ่นรถ", () => {
       { brand: "ISUZU", models: ["D-MAX"] },
     ]);
   });
+
+  it("ค่าว่างจากฐานข้อมูล (null) ไม่ทำให้พัง", () => {
+    expect(groupVehiclesByBrand(null)).toEqual([]);
+    expect(summarizeTireLots(null)).toEqual([]);
+  });
 });
