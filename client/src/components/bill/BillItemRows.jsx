@@ -20,6 +20,7 @@ import {
   isPartLikeItem,
   isSingleQuantityItem,
 } from "@/constants/services";
+import ItemImage from "@/components/ui/ItemImage";
 
 const stop = (handler) => (e) => {
   e.stopPropagation();
@@ -148,17 +149,16 @@ const BillItemRows = ({ bill, onRowClick, transitionPrefix }) => {
             <div className="flex min-w-0 flex-1 items-center gap-2">
               <div className="shadow-primary bg-surface relative flex h-15 w-15 shrink-0 items-center justify-center rounded-lg border border-gray-200">
                 <SideBadge side={item.side} />
-                {item.secureUrl ? (
-                  <img
-                    src={item.secureUrl}
-                    alt={item.name}
-                    className="h-full w-full rounded-lg object-cover"
-                  />
-                ) : (
-                  <div className="text-subtle-light flex h-15 w-15 items-center justify-center">
-                    <ItemIcon item={item} />
-                  </div>
-                )}
+                <ItemImage
+                  src={item.secureUrl}
+                  alt={item.name}
+                  className="h-full w-full rounded-lg object-cover"
+                  fallback={
+                    <div className="text-subtle-light flex h-15 w-15 items-center justify-center">
+                      <ItemIcon item={item} />
+                    </div>
+                  }
+                />
               </div>
               <div className="flex min-w-0 flex-1 flex-col">
                 <ProductName item={item} />

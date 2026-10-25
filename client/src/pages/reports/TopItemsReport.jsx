@@ -11,6 +11,7 @@ import { formatCurrency, formatQuantity } from "@/utils/formats";
 import { formatProductName } from "@/utils/tireSize";
 import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
 import { getDateRange, getPeriodType } from "@/utils/reportPeriod";
+import ItemImage from "@/components/ui/ItemImage";
 
 const VIEWS = [
   { id: "parts", label: "อะไหล่" },
@@ -216,15 +217,14 @@ const TopItemsReport = () => {
                       {rank}
                     </div>
                     <div className="bg-surface flex h-15 w-15 shrink-0 items-center justify-center rounded-lg border border-gray-200">
-                      {imageUrl ? (
-                        <img
-                          src={imageUrl}
-                          alt={name}
-                          className="h-full w-full rounded-lg object-cover"
-                        />
-                      ) : (
-                        <SparePart className="text-subtle-light h-10 w-10" />
-                      )}
+                      <ItemImage
+                        src={imageUrl}
+                        alt={name}
+                        className="h-full w-full rounded-lg object-cover"
+                        fallback={
+                          <SparePart className="text-subtle-light h-10 w-10" />
+                        }
+                      />
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col">
                       <p className="text-normal line-clamp-2 text-base font-semibold break-words md:text-lg">

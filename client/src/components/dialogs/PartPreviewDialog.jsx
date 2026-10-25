@@ -6,6 +6,7 @@ import { isPartLikeItem } from "@/constants/services";
 import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
 import { formatProductName } from "@/utils/tireSize";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import ItemImage from "@/components/ui/ItemImage";
 
 // ไม่ใช้ RepairItemDetailDialog เพราะตัวนั้นมีปุ่มเพิ่มสต็อก/แก้ไข/ลบ
 // onOpenStock = เปิดรายละเอียดของชิ้นนี้ในคลัง ไม่ส่งมาก็ไม่มีปุ่ม
@@ -53,15 +54,14 @@ const PartPreviewDialog = ({
           {!isService && (
             <div className="mt-4 flex justify-center">
               <div className="border-input flex aspect-square w-full max-w-70 items-center justify-center overflow-hidden rounded-[20px] border-2">
-                {part.secureUrl ? (
-                  <img
-                    src={part.secureUrl}
-                    alt={displayName}
-                    className="h-full w-full object-contain"
-                  />
-                ) : (
-                  <SparePart className="text-subtle-light h-20 w-20" />
-                )}
+                <ItemImage
+                  src={part.secureUrl}
+                  alt={displayName}
+                  className="h-full w-full object-contain"
+                  fallback={
+                    <SparePart className="text-subtle-light h-20 w-20" />
+                  }
+                />
               </div>
             </div>
           )}

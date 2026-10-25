@@ -37,6 +37,8 @@ import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
 import { stockStatusOf } from "@/utils/inventoryItem";
 import ItemInfoSections from "@/components/inventory/ItemInfoSections";
+import ItemImage from "@/components/ui/ItemImage";
+import { SparePart } from "@/components/icons/Icons";
 
 const STOCK_TONES = {
   out: {
@@ -351,10 +353,13 @@ const RepairItemDetailDialog = ({
               {currentItem.secureUrl && (
                 <div className="mb-4 flex justify-center">
                   <div className="border-input flex aspect-square w-full max-w-70 items-center justify-center overflow-hidden rounded-[20px] border-2">
-                    <img
+                    <ItemImage
                       src={currentItem.secureUrl}
                       alt={currentItem.name}
                       className="h-full w-full object-contain"
+                      fallback={
+                        <SparePart className="text-subtle-light h-20 w-20" />
+                      }
                     />
                   </div>
                 </div>

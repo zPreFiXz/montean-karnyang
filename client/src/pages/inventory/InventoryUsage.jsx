@@ -31,6 +31,7 @@ import {
   useScrollRestoration,
   useScrollTracking,
 } from "@/utils/scrollPosition";
+import ItemImage from "@/components/ui/ItemImage";
 
 // จำผลไว้นอกคอมโพเนนต์ กดย้อนกลับมาจะมีรายการตั้งแต่เฟรมแรก
 const usageCache = new Map();
@@ -143,24 +144,23 @@ const InventoryUsage = () => {
       <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl px-5 pb-28">
         <div className="flex items-center gap-2 pt-4">
           <div className="shadow-primary bg-surface flex h-15 w-15 shrink-0 items-center justify-center rounded-lg border border-gray-200">
-            {itemImage ? (
-              <img
-                src={itemImage}
-                alt={itemName}
-                className="h-full w-full rounded-lg object-cover"
-              />
-            ) : (
-              <div className="text-subtle-light flex h-15 w-15 items-center justify-center">
-                {/* ประแจของ Icons ฝังเส้นสีขาวไว้ กรอบพื้นขาวจึงต้องใช้ตัวที่รับสีตามข้อความ */}
-                {isDiscountItem({ name: itemName }) ? (
-                  <TicketPercent className="h-9 w-9" />
-                ) : isService && !isPartLikeItem({ name: itemName }) ? (
-                  <WrenchOutline className="h-9 w-9" />
-                ) : (
-                  <SparePart className="h-10 w-10" />
-                )}
-              </div>
-            )}
+            <ItemImage
+              src={itemImage}
+              alt={itemName}
+              className="h-full w-full rounded-lg object-cover"
+              fallback={
+                <div className="text-subtle-light flex h-15 w-15 items-center justify-center">
+                  {/* ประแจของ Icons ฝังเส้นสีขาวไว้ กรอบพื้นขาวจึงต้องใช้ตัวที่รับสีตามข้อความ */}
+                  {isDiscountItem({ name: itemName }) ? (
+                    <TicketPercent className="h-9 w-9" />
+                  ) : isService && !isPartLikeItem({ name: itemName }) ? (
+                    <WrenchOutline className="h-9 w-9" />
+                  ) : (
+                    <SparePart className="h-10 w-10" />
+                  )}
+                </div>
+              }
+            />
           </div>
           <p className="text-normal line-clamp-2 min-w-0 flex-1 text-xl leading-tight font-semibold break-words md:text-[22px]">
             {[itemBrand, itemName].filter(Boolean).join(" ")}

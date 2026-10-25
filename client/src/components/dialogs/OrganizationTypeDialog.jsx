@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
-import { Building2, Store, CircleUserRound } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import FormButton from "@/components/forms/FormButton";
 import { setCustomerOrganizationType } from "@/api/customer";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
 import { toast } from "sonner";
-import { ORGANIZATION_TYPES } from "@/constants/organizations";
-
-const ICONS = { GOVERNMENT: Building2, SHOP: Store };
+import {
+  ORGANIZATION_TYPES,
+  organizationIcon,
+} from "@/constants/organizations";
 
 // ลูกค้าทั่วไปเก็บเป็นค่าว่าง แต่ต้องมีปุ่มให้เลือกตรงๆ
 const OPTIONS = [...ORGANIZATION_TYPES, { value: null, label: "ลูกค้าทั่วไป" }];
@@ -70,7 +70,7 @@ const OrganizationTypeDialog = ({
 
           <div className="mt-4 flex gap-2">
             {OPTIONS.map((option) => {
-              const Icon = ICONS[option.value] || CircleUserRound;
+              const Icon = organizationIcon(option.value);
               const isActive = selected === option.value;
 
               return (

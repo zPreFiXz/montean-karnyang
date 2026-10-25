@@ -6,6 +6,7 @@ import { SparePart } from "@/components/icons/Icons";
 import { soldLotEntries } from "@/utils/tireLot";
 import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
 import { formatProductName } from "@/utils/tireSize";
+import ItemImage from "@/components/ui/ItemImage";
 
 // sideLabel = ฝั่งที่ติดตั้ง (L / R / L-R) สำหรับหน้าที่ไม่ได้แบ่งหัวข้อตามฝั่ง
 // rightSlot แทนที่ยอดรวมทางขวา (โหมดจัดเรียงใส่ลูกศรตรงนี้ เหมือนหน้ากรอกบิล)
@@ -68,25 +69,22 @@ const RepairItemCard = ({ item, variant, onClick, sideLabel, rightSlot }) => {
               {sideLabel}
             </span>
           )}
-          {imageUrl ? (
-            <div className="h-15 w-15">
-              <img
-                src={imageUrl}
-                alt={itemName}
-                className="h-full w-full rounded-lg object-cover"
-              />
-            </div>
-          ) : (
-            <div className="text-subtle-light flex h-15 w-15 items-center justify-center">
-              {isDiscountItem(item) ? (
-                <TicketPercent className="h-9 w-9" />
-              ) : isService && !isPartLine ? (
-                <Wrench className="h-9 w-9" />
-              ) : (
-                <SparePart className="h-10 w-10" />
-              )}
-            </div>
-          )}
+          <ItemImage
+            src={imageUrl}
+            alt={itemName}
+            className="h-15 w-15 rounded-lg object-cover"
+            fallback={
+              <div className="text-subtle-light flex h-15 w-15 items-center justify-center">
+                {isDiscountItem(item) ? (
+                  <TicketPercent className="h-9 w-9" />
+                ) : isService && !isPartLine ? (
+                  <Wrench className="h-9 w-9" />
+                ) : (
+                  <SparePart className="h-10 w-10" />
+                )}
+              </div>
+            }
+          />
         </div>
 
         <div className="flex min-w-0 flex-col">

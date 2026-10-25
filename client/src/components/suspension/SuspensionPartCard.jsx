@@ -4,6 +4,7 @@ import SelectCheck from "@/components/suspension/SelectCheck";
 import { SparePart } from "@/components/icons/Icons";
 import { onKeyActivate } from "@/utils/a11y";
 import { formatCurrency } from "@/utils/formats";
+import ItemImage from "@/components/ui/ItemImage";
 
 const SuspensionPartCard = ({ part, side, tabs, onPreview, onEditPrice }) => {
   const selected = tabs.isPartSelected(part.id, side);
@@ -46,17 +47,16 @@ const SuspensionPartCard = ({ part, side, tabs, onPreview, onEditPrice }) => {
             }
             className="shadow-primary bg-surface flex h-15 w-15 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-gray-200"
           >
-            {part.secureUrl ? (
-              <img
-                src={part.secureUrl}
-                alt={part.name}
-                className="h-full w-full rounded-lg object-cover"
-              />
-            ) : (
-              <div className="text-subtle-light flex h-15 w-15 items-center justify-center">
-                <SparePart className="h-10 w-10" />
-              </div>
-            )}
+            <ItemImage
+              src={part.secureUrl}
+              alt={part.name}
+              className="h-full w-full rounded-lg object-cover"
+              fallback={
+                <div className="text-subtle-light flex h-15 w-15 items-center justify-center">
+                  <SparePart className="h-10 w-10" />
+                </div>
+              }
+            />
           </button>
 
           <div className="flex min-w-0 flex-1 flex-col">

@@ -13,6 +13,8 @@ import {
 } from "@/constants/services";
 import { editNamePriceSchema } from "@/utils/schemas";
 import { formatCurrency } from "@/utils/formats";
+import ItemImage from "@/components/ui/ItemImage";
+import { SparePart } from "@/components/icons/Icons";
 
 const EditRepairItemDialog = ({
   isOpen,
@@ -135,10 +137,13 @@ const EditRepairItemDialog = ({
             {!isService && productImage && (
               <div className="mb-4 flex justify-center">
                 <div className="border-input flex aspect-square w-full max-w-70 items-center justify-center overflow-hidden rounded-[20px] border-2">
-                  <img
+                  <ItemImage
                     src={productImage}
                     alt={productName}
                     className="h-full w-full object-contain"
+                    fallback={
+                      <SparePart className="text-subtle-light h-20 w-20" />
+                    }
                   />
                 </div>
               </div>

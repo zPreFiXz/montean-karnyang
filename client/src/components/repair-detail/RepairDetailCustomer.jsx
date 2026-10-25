@@ -1,14 +1,6 @@
-import {
-  Building2,
-  Store,
-  CircleUserRound,
-  MapPin,
-  Phone,
-  IdCard,
-  SquarePen,
-} from "lucide-react";
+import { MapPin, Phone, IdCard, SquarePen } from "lucide-react";
 import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
-import { organizationLabel } from "@/constants/organizations";
+import { organizationIcon, organizationLabel } from "@/constants/organizations";
 import { formatPhone } from "@/utils/formats";
 
 const RepairDetailCustomer = ({ customer, statusInfo, onSetOrganization }) => {
@@ -26,13 +18,7 @@ const RepairDetailCustomer = ({ customer, statusInfo, onSetOrganization }) => {
           className={`mt-1.5 flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full ${statusInfo.bg}`}
         >
           <OutlineCardIcon
-            icon={
-              customer.organizationType === "GOVERNMENT"
-                ? Building2
-                : customer.organizationType === "SHOP"
-                  ? Store
-                  : CircleUserRound
-            }
+            icon={organizationIcon(customer.organizationType)}
             color={statusInfo.iconColor}
           />
         </div>

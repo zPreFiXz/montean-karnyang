@@ -9,6 +9,7 @@ import { isPartLikeItem, isDiscountItem } from "@/constants/services";
 import { SparePart } from "@/components/icons/Icons";
 import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
 import { formatProductName } from "@/utils/tireSize";
+import ItemImage from "@/components/ui/ItemImage";
 
 const InventoryCard = ({
   brand,
@@ -72,25 +73,22 @@ const InventoryCard = ({
               onImageClick ? "cursor-zoom-in" : ""
             }`}
           >
-            {secureUrl ? (
-              <div className="h-15 w-15">
-                <img
-                  src={secureUrl}
-                  alt={name}
-                  className="h-full w-full rounded-lg object-cover"
-                />
-              </div>
-            ) : (
-              <div className="text-subtle-light flex h-15 w-15 items-center justify-center">
-                {isDiscountItem({ name }) ? (
-                  <TicketPercent className="h-9 w-9" />
-                ) : isService && !isPartLikeItem({ name }) ? (
-                  <Wrench className="h-9 w-9" />
-                ) : (
-                  <SparePart className="h-10 w-10" />
-                )}
-              </div>
-            )}
+            <ItemImage
+              src={secureUrl}
+              alt={name}
+              className="h-15 w-15 rounded-lg object-cover"
+              fallback={
+                <div className="text-subtle-light flex h-15 w-15 items-center justify-center">
+                  {isDiscountItem({ name }) ? (
+                    <TicketPercent className="h-9 w-9" />
+                  ) : isService && !isPartLikeItem({ name }) ? (
+                    <Wrench className="h-9 w-9" />
+                  ) : (
+                    <SparePart className="h-10 w-10" />
+                  )}
+                </div>
+              }
+            />
           </div>
 
           <div className="flex min-w-0 flex-col">

@@ -1,4 +1,5 @@
 const { Prisma } = require("@prisma/client");
+const createError = require("./createError");
 const { buildPartItemName, buildServiceItemName } = require("./repairItemName");
 
 // เรียงล็อตเก่าสุดก่อน (FIFO): DOT รูปแบบ WWYY → เทียบปี(YY) ก่อน แล้วสัปดาห์(WW)
@@ -72,12 +73,74 @@ const stockTargetOf = (part, partId, quantity) =>
       }
     : { partId, amount: quantity };
 
+const formatAmount = (value) => Number(Number(value).toFixed(2));
+
+const STOCK_PART_SELECT = {
+  id: true,
+  brand: true,
+  name: true,
+  unit: true,
+  attributes: true,
+  stockQuantity: true,
+  category: { select: { name: true } },
+};
+
+const shortageError = (part, have, need) => {
+  const name = part ? buildPartItemName(part) : "";
+  const unit = part?.unit ? ` ${part.unit}` : "";
+  createError(
+    400,
+    `สต็อก ${name} ไม่พอ (เหลือ ${formatAmount(have)}${unit} ต้องใช้ ${formatAmount(need)}${unit})`,
+  );
+};
+
+// รวมยอดของอะไหล่ตัวเดียวกันทุกบรรทัดก่อนเทียบ ข้อความจะได้บอกจำนวนจริงของทั้งบิล
+// lines = [{ part, partId, quantity }] โดย part ต้องมี oilSourceId กับ oilLiters
+const ensureStockAvailable = async (tx, lines) => {
+  const need = new Map();
+  for (const line of lines) {
+    if (!line.partId) continue;
+    const target = stockTargetOf(line.part, line.partId, line.quantity);
+    need.set(
+      target.partId,
+      (need.get(target.partId) || 0) + Number(target.amount),
+    );
+  }
+  if (need.size === 0) return;
+
+  const parts = await tx.part.findMany({
+    where: { id: { in: [...need.keys()] } },
+    select: STOCK_PART_SELECT,
+  });
+  for (const part of parts) {
+    if (Number(part.stockQuantity) < need.get(part.id)) {
+      shortageError(part, part.stockQuantity, need.get(part.id));
+    }
+  }
+};
+
+// ตัดแบบมีเงื่อนไขในคำสั่งเดียว กันสองเครื่องขายชิ้นสุดท้ายพร้อมกัน
 const moveStock = async (tx, part, partId, quantity, direction) => {
   const target = stockTargetOf(part, partId, quantity);
-  await tx.part.update({
-    where: { id: target.partId },
-    data: { stockQuantity: { [direction]: target.amount } },
+  if (direction === "increment") {
+    await tx.part.update({
+      where: { id: target.partId },
+      data: { stockQuantity: { increment: target.amount } },
+    });
+    return;
+  }
+
+  const { count } = await tx.part.updateMany({
+    where: { id: target.partId, stockQuantity: { gte: target.amount } },
+    data: { stockQuantity: { decrement: target.amount } },
   });
+  if (count === 0) {
+    const current = await tx.part.findUnique({
+      where: { id: target.partId },
+      select: STOCK_PART_SELECT,
+    });
+    shortageError(current, current?.stockQuantity ?? 0, target.amount);
+  }
 };
 
 // ใบประเมินราคายังไม่ได้ซ่อม ของต้องอยู่ในคลัง ย้ายเข้า/ออกสถานะนี้จึงคืนหรือตัดสต็อก
@@ -108,6 +171,8 @@ const deductStockForRepair = async (tx, repairId) => {
       part: { select: { name: true, oilSourceId: true, oilLiters: true } },
     },
   });
+
+  await ensureStockAvailable(tx, items);
 
   for (const item of items) {
     if (!item.partId) continue;
@@ -158,6 +223,13 @@ const createRepairItemsAndDecrementStock = async (
   const partById = new Map(parts.map((p) => [p.id, p]));
   const serviceById = new Map(services.map((s) => [s.id, s]));
 
+  if (deductStock) {
+    await ensureStockAvailable(
+      tx,
+      repairItems.map((item) => ({ ...item, part: partById.get(item.partId) })),
+    );
+  }
+
   for (const item of repairItems) {
     let soldLots = null;
     if (deductStock && item.partId) {
@@ -200,4 +272,5 @@ module.exports = {
   restoreStockForRepair,
   deductStockForRepair,
   createRepairItemsAndDecrementStock,
+  ensureStockAvailable,
 };

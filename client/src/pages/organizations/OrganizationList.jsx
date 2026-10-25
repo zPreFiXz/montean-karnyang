@@ -14,6 +14,7 @@ import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import BrandIcons from "@/components/icons/BrandIcons";
 import useRepairStore from "@/stores/useRepairStore";
 import { listOrganizations } from "@/api/customer";
+import { organizationIcon } from "@/constants/organizations";
 import {
   isSaleRepair,
   isNoVehicleRepair,
@@ -255,11 +256,10 @@ const OrganizationList = () => {
                   <CarCard
                     bg="credit"
                     icon={
-                      item.organizationType === "SHOP" ? (
-                        <OutlineCardIcon icon={Store} color="#7c3aed" />
-                      ) : (
-                        <OutlineCardIcon icon={Building2} color="#7c3aed" />
-                      )
+                      <OutlineCardIcon
+                        icon={organizationIcon(item.organizationType)}
+                        color="#7c3aed"
+                      />
                     }
                     licensePlate={item.name}
                     brand={`${item.creditCount} บิล`}

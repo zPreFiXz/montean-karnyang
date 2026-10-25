@@ -6,6 +6,8 @@ import { formatCurrency, formatQuantity } from "@/utils/formats";
 import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
 import { isPartLikeItem } from "@/constants/services";
 import { formatProductName } from "@/utils/tireSize";
+import ItemImage from "@/components/ui/ItemImage";
+import { SparePart } from "@/components/icons/Icons";
 
 // quantity = จำนวนที่เบิกได้ในบิลนี้ (null = ไม่ต้องบอก เช่น บริการ)
 const ItemPreviewDialog = ({ item, quantity, canPick, onPick, onClose }) => {
@@ -62,10 +64,13 @@ const ItemPreviewDialog = ({ item, quantity, canPick, onPick, onClose }) => {
             {item?.secureUrl && (
               <div className="mb-4 flex justify-center">
                 <div className="border-input flex aspect-square w-full max-w-70 items-center justify-center overflow-hidden rounded-[20px] border-2">
-                  <img
+                  <ItemImage
                     src={item.secureUrl}
                     alt={item.name}
                     className="h-full w-full object-contain"
+                    fallback={
+                      <SparePart className="text-subtle-light h-20 w-20" />
+                    }
                   />
                 </div>
               </div>

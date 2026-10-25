@@ -7,7 +7,6 @@ import {
   MapPin,
   IdCard,
   ShoppingBag,
-  Store,
   Wrench as WrenchOutline,
   Printer,
   History,
@@ -17,7 +16,11 @@ import CarCard from "@/components/cards/CarCard";
 import BrandIcons from "@/components/icons/BrandIcons";
 import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import { listOrganizationRepairs } from "@/api/customer";
-import { organizationLabel, creditPathFor } from "@/constants/organizations";
+import {
+  organizationIcon,
+  organizationLabel,
+  creditPathFor,
+} from "@/constants/organizations";
 import {
   isSaleRepair,
   isNoVehicleRepair,
@@ -88,6 +91,8 @@ const OrganizationDetail = () => {
     0,
   );
 
+  const OrganizationIcon = organizationIcon(customer?.organizationType);
+
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-2 px-5 pt-4">
@@ -151,7 +156,7 @@ const OrganizationDetail = () => {
           <>
             <div className="mt-4 flex items-start gap-2">
               <div className="bg-status-credit mt-0.5 flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full">
-                <Store className="text-surface h-6 w-6" />
+                <OrganizationIcon className="text-surface h-6 w-6" />
               </div>
               <div className="flex min-w-0 flex-1 flex-col">
                 <p className="text-status-credit text-[22px] leading-tight font-semibold md:text-2xl">
