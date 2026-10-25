@@ -2,6 +2,7 @@ const prisma = require("../config/prisma");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const createError = require("../utils/createError");
+const { nextSessionExpiry } = require("../utils/sessionExpiry");
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -29,8 +30,9 @@ exports.login = async (req, res) => {
     name: user.name,
   };
 
+  const expiresAt = nextSessionExpiry();
   const token = jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: "1d",
+    expiresIn: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
   });
 
   res.json({

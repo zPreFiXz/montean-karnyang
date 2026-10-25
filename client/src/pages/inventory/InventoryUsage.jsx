@@ -19,7 +19,8 @@ import {
   getRepairTitle,
   getRepairSubtitle,
 } from "@/utils/repairDisplay";
-import { formatDateShort } from "@/utils/formats";
+import { formatMonth, monthKey } from "@/utils/formats";
+import { getStatusInfo } from "@/constants/repairStatus";
 import {
   isDiscountItem,
   isPartLikeItem,
@@ -35,8 +36,16 @@ import ItemImage from "@/components/ui/ItemImage";
 
 // จำผลไว้นอกคอมโพเนนต์ กดย้อนกลับมาจะมีรายการตั้งแต่เฟรมแรก
 const usageCache = new Map();
-const imageCache = new Map();
+const itemCache = new Map();
 const cacheKey = (type, id) => `${type}-${id}`;
+
+const CARD_BG = {
+  ESTIMATE: "estimate",
+  IN_PROGRESS: "progress",
+  COMPLETED: "completed",
+  PAID: "paid",
+  CREDIT: "credit",
+};
 
 const InventoryUsage = () => {
   const { type, id } = useParams();
@@ -50,9 +59,7 @@ const InventoryUsage = () => {
   const cached = usageCache.get(cacheKey(type, id));
   const [usages, setUsages] = useState(cached || []);
   const [isLoading, setIsLoading] = useState(!cached);
-  const [itemImage, setItemImage] = useState(
-    imageCache.get(cacheKey(type, id)) ?? null,
-  );
+  const [item, setItem] = useState(itemCache.get(cacheKey(type, id)) ?? null);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,9 +80,9 @@ const InventoryUsage = () => {
     (async () => {
       try {
         const res = await getInventory(id, type);
-        const url = res.data?.secureUrl || null;
-        imageCache.set(cacheKey(type, id), url);
-        if (!cancelled) setItemImage(url);
+        const data = res.data || null;
+        itemCache.set(cacheKey(type, id), data);
+        if (!cancelled) setItem(data);
       } catch {
         // ไม่มีรูปก็แค่ขึ้นไอคอนแทน ไม่ต้องรบกวนด้วยข้อความ
       }
@@ -88,30 +95,48 @@ const InventoryUsage = () => {
 
   const isService = type === "service";
 
-  const keyword = (searchParams.get("search") || "").trim();
-
-  // สองตัวนี้เป็นรายการเปล่าไว้พิมพ์ชื่อทับ ชื่อในบิลจึงต่างกันทุกใบ
+  // สองตัวนี้เป็นรายการเปล่าไว้พิมพ์ชื่อทับ ชื่อในบิลจึงต่างกันทุกใบ มีแค่สองตัวนี้ที่ค้นหาได้
   const isRenamable =
     itemName === PART_PLACEHOLDER_SERVICE_NAME ||
     itemName === SERVICE_PLACEHOLDER_SERVICE_NAME;
 
-  const visibleUsages =
-    keyword && isRenamable
-      ? usages.filter(({ itemNames }) =>
-          (itemNames || []).some((name) => String(name).includes(keyword)),
-        )
-      : usages;
+  const keyword = isRenamable
+    ? (searchParams.get("search") || "").trim().toLowerCase()
+    : "";
 
-  // โชว์ชื่อเดียวแล้วบอกจำนวนที่เหลือ ถ้ากำลังค้นให้ชื่อที่ตรงขึ้นก่อน
-  const billNameLabel = (names) => {
-    const matched = keyword
-      ? names.find((name) => String(name).includes(keyword))
-      : null;
-    const first = matched || names[0];
-    const rest = names.length - 1;
+  const matchesKeyword = ({ repair, itemNames }) =>
+    [
+      [
+        repair.vehicle?.vehicleModel?.brand,
+        repair.vehicle?.vehicleModel?.model,
+      ].join(" "),
+      ...(itemNames || []),
+    ].some((text) =>
+      String(text || "")
+        .toLowerCase()
+        .includes(keyword),
+    );
 
-    return rest > 0 ? `${first} และอีก ${rest}` : first;
-  };
+  const visibleUsages = keyword ? usages.filter(matchesKeyword) : usages;
+
+  const monthGroups = [];
+  for (const usage of visibleUsages) {
+    const key = monthKey(usage.repair.createdAt);
+    const last = monthGroups[monthGroups.length - 1];
+    if (last?.key === key) last.usages.push(usage);
+    else
+      monthGroups.push({
+        key,
+        title: formatMonth(usage.repair.createdAt),
+        usages: [usage],
+      });
+  }
+
+  // ถ้ากำลังค้นให้ชื่อที่ตรงขึ้นก่อน
+  const billNameLabel = (names) =>
+    (keyword &&
+      names.find((name) => String(name).toLowerCase().includes(keyword))) ||
+    names[0];
 
   const usageNoun = isDiscountItem({ name: itemName })
     ? "ส่วนลด"
@@ -145,7 +170,7 @@ const InventoryUsage = () => {
         <div className="flex items-center gap-2 pt-4">
           <div className="shadow-primary bg-surface flex h-15 w-15 shrink-0 items-center justify-center rounded-lg border border-gray-200">
             <ItemImage
-              src={itemImage}
+              src={item?.secureUrl}
               alt={itemName}
               className="h-full w-full rounded-lg object-cover"
               fallback={
@@ -169,61 +194,72 @@ const InventoryUsage = () => {
 
         {!isLoading && isRenamable && usages.length > 0 && (
           <div className="pt-4">
-            <SearchBar placeholder="ค้นหาชื่อในบิล" />
+            <SearchBar placeholder="ค้นหาชื่อในบิล, ยี่ห้อ, รุ่นรถ" />
           </div>
         )}
-
-        <div className="mt-4 flex items-center gap-2">
-          <p className="text-normal text-[22px] font-semibold md:text-2xl">
-            รายการที่เคยใช้
-          </p>
-          {!isLoading && visibleUsages.length > 0 && (
-            <span className="text-subtle-light shrink-0 text-lg font-medium md:text-xl">
-              ({visibleUsages.length})
-            </span>
-          )}
-        </div>
 
         {isLoading ? (
           <PageSpinner />
         ) : visibleUsages.length === 0 ? (
           <div className="flex flex-1 items-center justify-center">
             <p className="text-subtle-light px-5 text-center text-xl text-balance md:text-[22px]">
-              {keyword && isRenamable
-                ? `ไม่พบ "${keyword}"`
+              {keyword
+                ? `ไม่พบรายการที่ตรงกับ "${searchParams.get("search").trim()}"`
                 : `ไม่มีรายการที่เคยใช้${usageNoun}นี้`}
             </p>
           </div>
         ) : (
-          visibleUsages.map(({ repair, itemNames }) => (
-            <Link
-              key={repair.id}
-              to={`/repairs/${repair.id}`}
-              className="bg-surface shadow-primary mt-4 block h-20 w-full rounded-lg"
-            >
-              <CarCard
-                bg="primary"
-                icon={
-                  isSaleRepair(repair) ? (
-                    <OutlineCardIcon icon={ShoppingBag} color="#1976d2" />
-                  ) : isNoVehicleRepair(repair) ? (
-                    <OutlineCardIcon icon={WrenchOutline} color="#1976d2" />
-                  ) : (
-                    <BrandIcons
-                      brand={repair.vehicle?.vehicleModel?.brand}
-                      color="#1976d2"
-                    />
-                  )
-                }
-                licensePlate={getRepairTitle(repair)}
-                brand={getRepairSubtitle(repair)}
-                note={
+          monthGroups.map((group) => (
+            <div key={group.key}>
+              <div className="mt-4 flex items-center gap-2">
+                <p className="text-subtle-dark text-lg font-semibold md:text-xl">
+                  {group.title}
+                </p>
+                <span className="text-subtle-light text-lg md:text-xl">
+                  ({group.usages.length})
+                </span>
+                <div className="bg-subtle-light/40 h-px flex-1" />
+              </div>
+              {group.usages.map(({ repair, itemNames }) => {
+                const status = getStatusInfo(repair.status);
+                const detail =
                   isRenamable && itemNames?.length
                     ? billNameLabel(itemNames)
-                    : formatDateShort(repair.createdAt)
-                }
-              />
-            </Link>
+                    : null;
+                return (
+                  <Link
+                    key={repair.id}
+                    to={`/repairs/${repair.id}`}
+                    className="mt-4 block w-full"
+                  >
+                    <CarCard
+                      bg={CARD_BG[repair.status] || "primary"}
+                      icon={
+                        isSaleRepair(repair) ? (
+                          <OutlineCardIcon
+                            icon={ShoppingBag}
+                            color={status.iconColor}
+                          />
+                        ) : isNoVehicleRepair(repair) ? (
+                          <OutlineCardIcon
+                            icon={WrenchOutline}
+                            color={status.iconColor}
+                          />
+                        ) : (
+                          <BrandIcons
+                            brand={repair.vehicle?.vehicleModel?.brand}
+                            color={status.iconColor}
+                          />
+                        )
+                      }
+                      licensePlate={getRepairTitle(repair)}
+                      brand={getRepairSubtitle(repair)}
+                      note={detail}
+                    />
+                  </Link>
+                );
+              })}
+            </div>
           ))
         )}
       </div>

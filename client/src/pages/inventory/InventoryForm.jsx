@@ -28,7 +28,7 @@ import {
   invalidateUnitOptions,
 } from "@/constants/units";
 import {
-  VEHICLE_COMPATIBLE_CATEGORIES,
+  VEHICLE_INPUT_CATEGORIES,
   isTireCategoryName,
   PER_SIDE_CATEGORIES,
   tracksTireLots,
@@ -241,7 +241,7 @@ const InventoryForm = () => {
       (cat) => cat.id === selectedCategoryId,
     );
     const name = selectedCategory?.name ?? inventory?.category?.name;
-    return VEHICLE_COMPATIBLE_CATEGORIES.includes(name);
+    return VEHICLE_INPUT_CATEGORIES.includes(name);
   };
 
   const handleCategoryChange = (value) => {

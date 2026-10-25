@@ -166,6 +166,10 @@ exports.getInventory = async (req, res) => {
   const { id } = req.params;
   const { type } = req.query;
 
+  if (!Number.isInteger(Number(id)) || Number(id) <= 0) {
+    createError(400, "รหัสไม่ถูกต้อง");
+  }
+
   let inventory = null;
 
   if (type === "part") {

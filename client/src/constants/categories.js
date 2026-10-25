@@ -38,7 +38,7 @@ export const PER_SIDE_CATEGORIES = [
   "ใบปัดน้ำฝน",
 ];
 
-// หมวดหมู่ที่อะไหล่ผูกกับรุ่นรถ — หมวดอื่น (น้ำมัน, ยาง ฯลฯ) ใช้ได้ทั่วไปจึงไม่ต้องระบุรุ่นรถที่ใส่ได้
+// หมวดที่ชื่อในคลังเป็น "ชนิด รุ่นรถ" ใบเสร็จย่อเหลือคำแรก (ต้องตรงกับ receiptHtml.js)
 export const VEHICLE_COMPATIBLE_CATEGORIES = [
   "ช่วงล่าง",
   "เบรก",
@@ -46,4 +46,10 @@ export const VEHICLE_COMPATIBLE_CATEGORIES = [
   "ระบบส่งกำลัง",
   "กรอง",
   "ไส้กรอง",
+];
+
+// หมวดที่ฟอร์มอะไหล่มีช่องรุ่นรถที่ใส่ได้ หมวดอื่นๆ ใส่ได้ แต่ชื่อบนใบเสร็จไม่ถูกย่อ
+export const VEHICLE_INPUT_CATEGORIES = [
+  ...VEHICLE_COMPATIBLE_CATEGORIES,
+  "อื่นๆ",
 ];
