@@ -1,8 +1,8 @@
 const { z } = require("zod");
 
 exports.loginSchema = z.object({
-  email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
-  password: z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร"),
+  email: z.string().min(1, "กรุณากรอกอีเมล").email("กรุณากรอกอีเมลที่ถูกต้อง"),
+  password: z.string().min(1, "กรุณากรอกรหัสผ่าน"),
 });
 
 exports.employeeSchema = z.object({
@@ -236,6 +236,6 @@ exports.updatePartStockSchema = z
   });
 
 exports.vehicleModelSchema = z.object({
-  brand: z.string().min(1, "กรุณากรอกยี่ห้อรถ"),
-  model: z.string().min(1, "กรุณากรอกรุ่นรถ"),
+  brand: z.string().trim().min(1, "กรุณากรอกยี่ห้อรถ"),
+  model: z.string().trim().min(1, "กรุณากรอกรุ่นรถ"),
 });

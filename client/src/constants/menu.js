@@ -74,17 +74,17 @@ export const ADMIN_LINKS = [
     tileClass: "bg-status-completed",
   },
   {
-    href: "/admin/users",
-    label: "จัดการบัญชีผู้ใช้งาน",
-    icon: ShieldUser,
-    iconClass: "text-primary-dark",
-    tileClass: "bg-primary-dark",
-  },
-  {
     href: "/admin/reports/attendance",
     label: "รายงานเวลาเข้า-ออกงาน",
     icon: CalendarCheck,
     iconClass: "text-status-progress",
     tileClass: "bg-status-progress",
+  },
+  {
+    href: "/admin/users",
+    label: "จัดการบัญชีผู้ใช้งาน",
+    icon: ShieldUser,
+    iconClass: "text-primary-dark",
+    tileClass: "bg-primary-dark",
   },
 ];

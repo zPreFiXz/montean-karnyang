@@ -194,7 +194,13 @@ const InventoryUsage = () => {
 
         {!isLoading && isRenamable && usages.length > 0 && (
           <div className="pt-4">
-            <SearchBar placeholder="ค้นหาชื่อในบิล, ยี่ห้อ, รุ่นรถ" />
+            <SearchBar
+              placeholder={
+                itemName === SERVICE_PLACEHOLDER_SERVICE_NAME
+                  ? "ค้นหาชื่อบริการ, ยี่ห้อรถ, รุ่นรถ"
+                  : "ค้นหาชื่ออะไหล่, ยี่ห้อรถ, รุ่นรถ"
+              }
+            />
           </div>
         )}
 

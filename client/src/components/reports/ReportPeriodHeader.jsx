@@ -23,6 +23,7 @@ const ReportPeriodHeader = ({
   currentDate,
   onDateChange,
   onBack,
+  showPeriodTabs = true,
   children,
 }) => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -46,8 +47,35 @@ const ReportPeriodHeader = ({
     autoFocus: false,
   };
 
+  const renderCalendarPopover = (trigger, align) => (
+    <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+      <PopoverContent
+        className="w-auto p-0"
+        align={align}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
+        {periodType === "monthly" ? (
+          <CalendarMonth {...calendarProps} monthFormat="long" />
+        ) : periodType === "yearly" ? (
+          <CalendarYear {...calendarProps} />
+        ) : (
+          <Calendar {...calendarProps} monthFormat="long" />
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+
+  // ไม่มีแถบเลือกช่วง หัวจะสูงตามเนื้อหา และย้ายปุ่มปฏิทินมาไว้ที่วันที่ ชื่อหน้าจะได้มีที่พอ
   return (
-    <div className="bg-gradient-primary h-[265px] w-full px-5 py-4 md:h-[285px]">
+    <div
+      className={`bg-gradient-primary w-full px-5 ${
+        showPeriodTabs
+          ? "h-[265px] py-4 md:h-[285px]"
+          : "pt-4 pb-11.25 md:pb-14.5"
+      }`}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
@@ -61,55 +89,53 @@ const ReportPeriodHeader = ({
             {title}
           </p>
         </div>
-        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-          <PopoverTrigger asChild>
+        {showPeriodTabs &&
+          renderCalendarPopover(
             <button className="text-surface flex cursor-pointer items-center gap-2">
               <CalendarIcon className="h-5 w-5" />
               <p className="text-xl font-semibold md:text-[22px]">
                 {PERIOD_TYPES.find((type) => type.id === periodType)?.pickLabel}
               </p>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-auto p-0"
-            align="end"
-            onOpenAutoFocus={(e) => e.preventDefault()}
-            onCloseAutoFocus={(e) => e.preventDefault()}
-          >
-            {periodType === "monthly" ? (
-              <CalendarMonth {...calendarProps} monthFormat="long" />
-            ) : periodType === "yearly" ? (
-              <CalendarYear {...calendarProps} />
-            ) : (
-              <Calendar {...calendarProps} monthFormat="long" />
-            )}
-          </PopoverContent>
-        </Popover>
+            </button>,
+            "end",
+          )}
       </div>
 
-      <div className="mt-4 flex justify-center gap-4">
-        {PERIOD_TYPES.map((type) => (
-          <Link
-            key={type.id}
-            to={`${basePath}${basePath.includes("?") ? "&" : "?"}period=${type.id}`}
-            state={{ currentDate: new Date().toISOString() }}
-            // แทนที่หน้าเดิม กดย้อนกลับครั้งเดียวก็ออกจากหน้ารายงาน
-            replace
-            className={`flex h-[35px] w-19.5 items-center justify-center rounded-lg border-2 text-lg font-semibold md:h-10 md:w-[95px] md:text-xl ${
-              periodType === type.id
-                ? "text-surface bg-primary border-white"
-                : "border-subtle-light text-subtle-light bg-surface"
-            }`}
-          >
-            {type.label}
-          </Link>
-        ))}
-      </div>
+      {showPeriodTabs && (
+        <div className="mt-4 flex justify-center gap-4">
+          {PERIOD_TYPES.map((type) => (
+            <Link
+              key={type.id}
+              to={`${basePath}${basePath.includes("?") ? "&" : "?"}period=${type.id}`}
+              state={{ currentDate: new Date().toISOString() }}
+              // แทนที่หน้าเดิม กดย้อนกลับครั้งเดียวก็ออกจากหน้ารายงาน
+              replace
+              className={`flex h-[35px] w-19.5 items-center justify-center rounded-lg border-2 text-lg font-semibold md:h-10 md:w-[95px] md:text-xl ${
+                periodType === type.id
+                  ? "text-surface bg-primary border-white"
+                  : "border-subtle-light text-subtle-light bg-surface"
+              }`}
+            >
+              {type.label}
+            </Link>
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center justify-center pt-4">
-        <div className="text-surface text-[22px] font-semibold md:text-2xl">
-          {getDisplayDate(currentDate, periodType)}
-        </div>
+        {showPeriodTabs ? (
+          <div className="text-surface text-[22px] font-semibold md:text-2xl">
+            {getDisplayDate(currentDate, periodType)}
+          </div>
+        ) : (
+          renderCalendarPopover(
+            <button className="text-surface flex cursor-pointer items-center gap-2 text-[22px] font-semibold md:text-2xl">
+              <CalendarIcon className="h-5 w-5 shrink-0" />
+              {getDisplayDate(currentDate, periodType)}
+            </button>,
+            "center",
+          )
+        )}
       </div>
 
       <div className="mt-4 flex w-full items-center justify-between px-5">

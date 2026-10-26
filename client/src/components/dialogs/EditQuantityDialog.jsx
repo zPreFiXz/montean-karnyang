@@ -3,6 +3,7 @@ import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import FormButton from "@/components/forms/FormButton";
 import { formatQuantity } from "@/utils/formats";
+import { cleanDecimal } from "@/utils/numberInput";
 
 const EditQuantityDialog = ({
   isOpen,
@@ -79,9 +80,7 @@ const EditQuantityDialog = ({
               onChange={(e) => {
                 // กรองที่เดียวตอนพิมพ์ ไม่แก้ค่าในช่องตรงๆ ไม่งั้นจะชนกับค่าที่ React ถืออยู่
                 const cleaned = allowDecimal
-                  ? e.target.value
-                      .replace(/[^0-9.]/g, "")
-                      .replace(/(\..*)\./g, "$1")
+                  ? cleanDecimal(e.target.value)
                   : e.target.value.replace(/[^0-9]/g, "");
                 setValue(cleaned);
                 setError("");

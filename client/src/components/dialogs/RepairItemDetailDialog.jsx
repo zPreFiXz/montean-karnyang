@@ -29,9 +29,11 @@ import useAuthStore from "@/stores/useAuthStore";
 import { formatProductName } from "@/utils/tireSize";
 import {
   isTireCategoryName,
+  OIL_CATEGORY,
   tracksTireLots,
   USED_TIRE_CATEGORY,
 } from "@/constants/categories";
+import { quantityInputProps } from "@/utils/numberInput";
 import { isPartLikeItem } from "@/constants/services";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
@@ -184,6 +186,7 @@ const RepairItemDetailDialog = ({
   const isOilKit = !!(currentItem.oilSourceId && currentItem.oilSource);
 
   const isService = currentItem.type === "service";
+  const isOilItem = currentItem.category?.name === OIL_CATEGORY;
   // จุ๊บลมเก็บเป็นบริการแต่เรียกว่าอะไหล่ (ดู PART_LIKE_SERVICE_NAMES)
   const readsAsService = isService && !isPartLikeItem(currentItem);
 
@@ -415,19 +418,12 @@ const RepairItemDetailDialog = ({
                             register={register}
                             name="quantity"
                             label={`จำนวน (${currentItem.unit})`}
-                            type="number"
-                            placeholder="เช่น 2"
+                            placeholder={isOilItem ? "เช่น 3.5" : "เช่น 2"}
                             textSize="text-lg md:text-xl"
                             color="subtle-dark"
                             errors={errors}
-                            inputMode="numeric"
                             onWheel={(e) => e.target.blur()}
-                            onInput={(e) => {
-                              e.target.value = e.target.value.replace(
-                                /[^0-9]/g,
-                                "",
-                              );
-                            }}
+                            {...quantityInputProps(isOilItem)}
                             customClass="px-0 pt-4"
                           />
                         )}

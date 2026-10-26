@@ -3,9 +3,9 @@ import {
   ChevronLeft,
   ChevronUp,
   ChevronDown,
+  ArrowUpDown,
   Edit,
   Trash2,
-  LoaderCircle,
 } from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -18,6 +18,8 @@ import {
   reorderVehicleModels,
 } from "@/api/vehicleModel";
 import FormButton from "@/components/forms/FormButton";
+import BrandIcons from "@/components/icons/BrandIcons";
+import PageSpinner from "@/components/ui/PageSpinner";
 import { toastError } from "@/utils/handleError";
 import { withOtherBrandLast } from "@/utils/vehicleBrand";
 import { withViewTransition } from "@/utils/viewTransition";
@@ -30,6 +32,7 @@ const VehicleModelList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingItem, setDeletingItem] = useState(null);
+  const [isReordering, setIsReordering] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -178,9 +181,7 @@ const VehicleModelList = () => {
       </div>
       <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-28 xl:pb-4">
         {isLoading ? (
-          <div className="flex flex-1 items-center justify-center">
-            <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
-          </div>
+          <PageSpinner />
         ) : (
           <div className="flex flex-1 flex-col px-5 pt-4">
             <ComboBox
@@ -191,16 +192,36 @@ const VehicleModelList = () => {
               onChange={setSelectedBrand}
             />
 
-            <FormButton
-              label="+ เพิ่มยี่ห้อและรุ่นรถ"
-              onClick={() => setIsFormDialogOpen(true)}
-              className="bg-gradient-primary my-4 ml-0"
-            />
+            <div className="my-4 flex items-center gap-2">
+              <FormButton
+                label="+ เพิ่มยี่ห้อและรุ่นรถ"
+                onClick={() => setIsFormDialogOpen(true)}
+                className="bg-gradient-primary mr-0 ml-0 min-w-0 flex-1"
+              />
+              <button
+                type="button"
+                onClick={() => setIsReordering((prev) => !prev)}
+                aria-pressed={isReordering}
+                aria-label={
+                  isReordering
+                    ? "ออกจากโหมดจัดเรียง"
+                    : "จัดเรียงยี่ห้อและรุ่นรถ"
+                }
+                className={`flex h-10.25 w-10.25 shrink-0 cursor-pointer items-center justify-center rounded-lg border duration-300 ${
+                  isReordering
+                    ? "bg-primary border-primary text-surface"
+                    : "text-subtle-dark border-gray-200 bg-gray-100"
+                }`}
+              >
+                <ArrowUpDown className="h-5 w-5" />
+              </button>
+            </div>
 
             <VehicleModelFormDialog
               isOpen={isFormDialogOpen}
               onClose={handleCloseDialog}
               editingItem={editingItem}
+              brands={uniqueBrands}
               onSuccess={fetchVehicleModels}
             />
 
@@ -225,31 +246,39 @@ const VehicleModelList = () => {
                     className="bg-surface shadow-primary rounded-lg p-4"
                   >
                     <div className="mb-4 flex items-center justify-between gap-2 border-b border-gray-100 pb-4">
-                      <p className="text-primary text-xl font-semibold md:text-[22px]">
-                        {brand}
-                      </p>
-                      {!selectedBrand && brandList.length > 1 && (
-                        <div className="flex shrink-0 gap-1">
-                          <button
-                            type="button"
-                            onClick={() => moveBrand(brand, -1)}
-                            disabled={brandIndex === 0}
-                            aria-label={`เลื่อน ${brand} ขึ้น`}
-                            className="text-subtle-dark flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-gray-200 bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            <ChevronUp className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => moveBrand(brand, 1)}
-                            disabled={brandIndex === brandList.length - 1}
-                            aria-label={`เลื่อน ${brand} ลง`}
-                            className="text-subtle-dark flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-gray-200 bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex min-w-0 items-center gap-3">
+                        <BrandIcons brand={brand} />
+                        <p className="text-primary truncate text-xl font-semibold md:text-[22px]">
+                          {brand}
+                          <span className="text-subtle-light ml-1.5 font-normal">
+                            ({models.length})
+                          </span>
+                        </p>
+                      </div>
+                      {isReordering &&
+                        !selectedBrand &&
+                        brandList.length > 1 && (
+                          <div className="flex shrink-0 gap-1">
+                            <button
+                              type="button"
+                              onClick={() => moveBrand(brand, -1)}
+                              disabled={brandIndex === 0}
+                              aria-label={`เลื่อน ${brand} ขึ้น`}
+                              className="text-subtle-dark flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-gray-200 bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              <ChevronUp className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveBrand(brand, 1)}
+                              disabled={brandIndex === brandList.length - 1}
+                              aria-label={`เลื่อน ${brand} ลง`}
+                              className="text-subtle-dark flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-gray-200 bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </button>
+                          </div>
+                        )}
                     </div>
                     <div className="space-y-2">
                       {models.map((item, modelIndex) => (
@@ -258,8 +287,11 @@ const VehicleModelList = () => {
                           style={{ viewTransitionName: `model-${item.id}` }}
                           className="flex items-center justify-between gap-3 rounded-md bg-gray-50 p-2"
                         >
-                          <div className="flex min-w-0 items-center gap-3">
-                            {models.length > 1 && (
+                          <p className="text-normal min-w-0 truncate pl-1 text-lg font-medium md:text-xl">
+                            {item.model}
+                          </p>
+                          {isReordering ? (
+                            models.length > 1 && (
                               <div className="flex shrink-0 gap-1">
                                 <button
                                   type="button"
@@ -268,7 +300,7 @@ const VehicleModelList = () => {
                                   }
                                   disabled={modelIndex === 0}
                                   aria-label={`เลื่อน ${item.model} ขึ้น`}
-                                  className="text-subtle-dark bg-surface flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-gray-200 disabled:cursor-not-allowed disabled:opacity-40"
+                                  className="text-subtle-dark bg-surface flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-gray-200 disabled:cursor-not-allowed disabled:opacity-40"
                                 >
                                   <ChevronUp className="h-4 w-4" />
                                 </button>
@@ -279,32 +311,30 @@ const VehicleModelList = () => {
                                   }
                                   disabled={modelIndex === models.length - 1}
                                   aria-label={`เลื่อน ${item.model} ลง`}
-                                  className="text-subtle-dark bg-surface flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-gray-200 disabled:cursor-not-allowed disabled:opacity-40"
+                                  className="text-subtle-dark bg-surface flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-gray-200 disabled:cursor-not-allowed disabled:opacity-40"
                                 >
                                   <ChevronDown className="h-4 w-4" />
                                 </button>
                               </div>
-                            )}
-                            <p className="text-normal truncate text-lg font-medium md:text-xl">
-                              {item.model}
-                            </p>
-                          </div>
-                          <div className="flex shrink-0 gap-2">
-                            <button
-                              onClick={() => handleEditClick(item)}
-                              aria-label="แก้ไขรุ่นรถ"
-                              className="text-surface bg-gradient-primary flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteClick(item)}
-                              aria-label="ลบรุ่นรถ"
-                              className="text-surface bg-destructive flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
+                            )
+                          ) : (
+                            <div className="flex shrink-0 gap-2">
+                              <button
+                                onClick={() => handleEditClick(item)}
+                                aria-label="แก้ไขรุ่นรถ"
+                                className="text-surface bg-gradient-primary flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteClick(item)}
+                                aria-label="ลบรุ่นรถ"
+                                className="text-surface bg-destructive flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

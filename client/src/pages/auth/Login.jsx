@@ -16,7 +16,6 @@ import {
   Package,
   Settings,
   Gauge,
-  Warehouse,
   Eye,
   EyeOff,
 } from "lucide-react";
@@ -74,10 +73,9 @@ const Login = () => {
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-4"
           >
-            <p className="text-primary flex items-center justify-center gap-2 text-3xl font-semibold md:text-[32px]">
-              <Warehouse />
+            <h1 className="text-primary text-center text-3xl font-semibold md:text-[32px]">
               เข้าสู่ระบบ
-            </p>
+            </h1>
             <FormInput
               register={register}
               name="email"
@@ -88,7 +86,8 @@ const Login = () => {
                   <p className="font-semibold">อีเมล</p>
                 </div>
               }
-              placeholder="example@gmail.com"
+              placeholder="you@example.com"
+              autoComplete="email"
               color="primary"
               errors={errors}
               customClass="px-0"
@@ -105,6 +104,7 @@ const Login = () => {
                 </div>
               }
               placeholder="••••••••"
+              autoComplete="current-password"
               color="primary"
               errors={errors}
               customClass="px-0"

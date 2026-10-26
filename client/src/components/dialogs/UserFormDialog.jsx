@@ -146,7 +146,7 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
                 name="email"
                 label="อีเมล"
                 type="email"
-                placeholder="example@gmail.com"
+                placeholder="name@example.com"
                 errors={errors}
                 customClass="px-0 pb-4"
                 color="subtle-dark"

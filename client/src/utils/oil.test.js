@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { allowsDecimalQuantity } from "@/constants/categories";
 import {
   isGearOilItem,
   isMultiUseOil,
@@ -65,5 +66,31 @@ describe("งานที่เลือกได้ตอนหยิบน้�
   it("ขนาดอ่านจากวงเล็บ น้ำมันขวดลิตรนับเป็น 1L", () => {
     expect(oilSizeOf(oil("(4L) น้ำมันเครื่อง+กรอง"))).toBe("4L");
     expect(oilSizeOf(oil("SUPER COMMONRAIL (15W40)"))).toBe("1L");
+  });
+});
+
+describe("จำนวนทศนิยมในบิล", () => {
+  const oil = (extra) => ({
+    name: "น้ำมันเบรก (DOT3)",
+    category: { name: "น้ำมัน" },
+    ...extra,
+  });
+
+  it("ทุกอะไหล่ในหมวดน้ำมันใส่ทศนิยมได้", () => {
+    expect(allowsDecimalQuantity(oil())).toBe(true);
+    expect(allowsDecimalQuantity(oil({ name: "น้ำกลั่น" }))).toBe(true);
+  });
+
+  it("ชุดน้ำมันเครื่องที่ผูกตัวเก็บนับเป็นชุด", () => {
+    expect(allowsDecimalQuantity(oil({ oilSourceId: 4 }))).toBe(false);
+  });
+
+  it("หมวดอื่นยังเป็นจำนวนเต็ม", () => {
+    expect(
+      allowsDecimalQuantity({
+        name: "ผ้าเบรกหน้า",
+        category: { name: "เบรก" },
+      }),
+    ).toBe(false);
   });
 });

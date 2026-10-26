@@ -51,14 +51,18 @@ exports.getAttendanceSummary = async (req, res) => {
   const dateKey = normalizeDateKey(req.query.date);
   const { start, end } = getBangkokDayRange(dateKey);
 
-  const employees = await prisma.employee.findMany({
-    orderBy: [{ name: "asc" }, { id: "asc" }],
-    select: {
-      id: true,
-      zkUserId: true,
-      name: true,
-    },
-  });
+  // รหัสเก็บเป็นข้อความ ฐานข้อมูลจะเรียง "10" ก่อน "2" จึงเรียงแบบตัวเลขเอง
+  const employees = (
+    await prisma.employee.findMany({
+      select: {
+        id: true,
+        zkUserId: true,
+        name: true,
+      },
+    })
+  ).sort((a, b) =>
+    a.zkUserId.localeCompare(b.zkUserId, undefined, { numeric: true }),
+  );
 
   const employeeIds = employees.map((employee) => employee.id);
 
@@ -109,6 +113,7 @@ exports.getAttendanceSummary = async (req, res) => {
     if (!item.slots[slotKey]) {
       item.slots[slotKey] = {
         status: attendance.statusLabel,
+        isLate: attendance.type.endsWith("_LATE"),
         scannedAt: attendance.scannedAt,
       };
     }

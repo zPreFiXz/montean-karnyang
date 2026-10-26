@@ -29,8 +29,21 @@ exports.reorderVehicleModels = async (req, res) => {
   res.json({ message: "บันทึกลำดับเรียบร้อยแล้ว" });
 };
 
+// collation _ci มองว่า "toyota" กับ "Toyota" เป็นยี่ห้อเดียวกันอยู่แล้ว ใช้ตัวสะกดเดิมไม่ให้หน้าจอแยกเป็นสองกลุ่ม
+const existingBrandSpelling = async (brand, excludeId) => {
+  const found = await prisma.vehicleModel.findFirst({
+    where: {
+      brand,
+      ...(excludeId !== undefined && { id: { not: excludeId } }),
+    },
+    select: { brand: true },
+  });
+  return found?.brand ?? brand;
+};
+
 exports.createVehicleModel = async (req, res) => {
-  const { brand, model } = req.body;
+  const { model } = req.body;
+  const brand = await existingBrandSpelling(req.body.brand);
 
   let vehicleModel;
 
@@ -63,7 +76,8 @@ exports.createVehicleModel = async (req, res) => {
 
 exports.updateVehicleModel = async (req, res) => {
   const { id } = req.params;
-  const { brand, model } = req.body;
+  const { model } = req.body;
+  const brand = await existingBrandSpelling(req.body.brand, Number(id));
 
   let vehicleModel;
 

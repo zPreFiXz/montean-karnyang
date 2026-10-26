@@ -3,6 +3,7 @@ import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
 import { toast } from "sonner";
 import FormInput from "@/components/forms/FormInput";
 import FormButton from "@/components/forms/FormButton";
+import ComboBox from "@/components/ui/ComboBox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,12 +15,15 @@ const VehicleModelFormDialog = ({
   isOpen,
   onClose,
   editingItem = null,
+  brands = [],
   onSuccess,
 }) => {
   const {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(vehicleModelSchema),
@@ -99,22 +103,31 @@ const VehicleModelFormDialog = ({
             className="space-y-4"
           >
             <div>
-              <FormInput
-                register={register}
-                name="brand"
-                label="ยี่ห้อรถ"
-                placeholder="เช่น Toyota"
-                errors={errors}
-                customClass="px-0 pb-4"
-                color="subtle-dark"
-                autoFocus={false}
-              />
+              <div className="pb-4">
+                <ComboBox
+                  label="ยี่ห้อรถ"
+                  color="text-subtle-dark"
+                  options={brands.map((brand) => ({ id: brand, name: brand }))}
+                  creatable
+                  createLabel={(text) => `เพิ่มยี่ห้อ "${text}"`}
+                  value={watch("brand")}
+                  onChange={(value) =>
+                    setValue("brand", value, {
+                      shouldValidate: true,
+                      shouldTouch: true,
+                    })
+                  }
+                  placeholder="-- เลือกยี่ห้อ --"
+                  errors={errors}
+                  name="brand"
+                />
+              </div>
 
               <FormInput
                 register={register}
                 name="model"
                 label="รุ่นรถ"
-                placeholder="เช่น Revo"
+                placeholder="เช่น Vigo"
                 errors={errors}
                 customClass="px-0 mb-1"
                 color="subtle-dark"

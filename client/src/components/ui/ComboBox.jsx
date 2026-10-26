@@ -56,7 +56,9 @@ const ComboBox = ({
   const [search, setSearch] = useState("");
   const typed = search.trim();
   const canCreate =
-    creatable && typed !== "" && !options.some((item) => item.name === typed);
+    creatable &&
+    typed !== "" &&
+    !options.some((item) => item.name.toLowerCase() === typed.toLowerCase());
 
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState("");
@@ -181,25 +183,6 @@ const ComboBox = ({
               )}
               {/* cmdk ใช้ CommandList เป็นตัวเลื่อน CommandGroup มี overflow-hidden ติดมา สั่งที่นั่นรายการยาวจะถูกตัด */}
               <CommandList className="max-h-none min-h-0 flex-1">
-                {/* forceMount = ไม่ให้ตัวกรองของ cmdk ซ่อนแถวนี้ เพราะข้อความแถวไม่ตรงกับคำค้นเป๊ะ */}
-                {canCreate && (
-                  <CommandGroup forceMount>
-                    <CommandItem
-                      forceMount
-                      value={`__create__${typed}`}
-                      onSelect={() => {
-                        onChange(typed);
-                        setOpen(false);
-                      }}
-                      className={`font-athiti text-primary cursor-pointer font-semibold ${
-                        customClass || "text-lg md:text-xl"
-                      }`}
-                    >
-                      <Plus className="text-primary mr-2 h-4 w-4" />
-                      {createLabel(typed)}
-                    </CommandItem>
-                  </CommandGroup>
-                )}
                 {!canCreate && (
                   <CommandEmpty>
                     <p
@@ -244,6 +227,26 @@ const ComboBox = ({
                         </CommandItem>
                       );
                     })}
+                  </CommandGroup>
+                )}
+                {/* forceMount = ไม่ให้ตัวกรองของ cmdk ซ่อนแถวนี้ เพราะข้อความแถวไม่ตรงกับคำค้นเป๊ะ
+                    อยู่ท้ายรายการ กด Enter จะได้ตัวที่มีอยู่แล้วก่อน ไม่สร้างซ้ำโดยไม่ตั้งใจ */}
+                {canCreate && (
+                  <CommandGroup forceMount>
+                    <CommandItem
+                      forceMount
+                      value={`__create__${typed}`}
+                      onSelect={() => {
+                        onChange(typed);
+                        setOpen(false);
+                      }}
+                      className={`font-athiti text-primary cursor-pointer font-semibold ${
+                        customClass || "text-lg md:text-xl"
+                      }`}
+                    >
+                      <Plus className="text-primary mr-2 h-4 w-4" />
+                      {createLabel(typed)}
+                    </CommandItem>
                   </CommandGroup>
                 )}
               </CommandList>

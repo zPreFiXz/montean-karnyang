@@ -17,9 +17,13 @@ export const tracksTireLots = (name) =>
 
 export const OIL_CATEGORY = "น้ำมัน";
 
-// น้ำมันเกียร์ เฟืองท้าย และน้ำมันเครื่องขวดลิตรเปิดตวงขายเป็นลิตรได้
+// หมวดน้ำมันตวงขายเป็นลิตรได้ ยกเว้นชุดน้ำมันเครื่องที่ผูกกับตัวเก็บ ซึ่งนับเป็นชุด
+// น้ำมันในบิลเก่าที่ไม่มีหมวดติดมา ดูจากชื่อแทน
 export const allowsDecimalQuantity = (item) =>
-  isGearOilItem(item) || isMultiUseOil(item) || isLooseEngineOilItem(item);
+  (item?.category?.name === OIL_CATEGORY && !item?.oilSourceId) ||
+  isGearOilItem(item) ||
+  isMultiUseOil(item) ||
+  isLooseEngineOilItem(item);
 
 // ใช้แทนการเช็กรหัสหมวดหมู่ตรงๆ ในตัวตรวจข้อมูล เพราะรหัสของแต่ละเครื่องไม่ตรงกัน
 export const getCategoryKind = (name) => {

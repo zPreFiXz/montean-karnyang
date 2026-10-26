@@ -1,11 +1,13 @@
 import FormInput from "@/components/forms/FormInput";
 import FieldErrorList from "@/components/forms/FieldErrorList";
 import TireLotInput from "@/components/forms/TireLotInput";
+import { quantityInputProps } from "@/utils/numberInput";
 
 // ยางไม่มีช่องจำนวนสต็อก (คิดจากผลรวมล็อต) สต็อกขั้นต่ำจึงอยู่เต็มแถวไปเลย
 const StockFields = ({
   lotTracked,
   allowEmptyLots,
+  allowDecimal = false,
   control,
   register,
   watch,
@@ -46,17 +48,13 @@ const StockFields = ({
           register={register}
           name="stockQuantity"
           label="จำนวนสต็อก"
-          type="number"
-          placeholder="เช่น 10"
+          placeholder={allowDecimal ? "เช่น 3.5" : "เช่น 10"}
           color="subtle-dark"
           customClass="w-full"
           errors={errors}
           hideErrorMessage
-          inputMode="numeric"
           onWheel={(e) => e.target.blur()}
-          onInput={(e) => {
-            e.target.value = e.target.value.replace(/[^0-9]/g, "");
-          }}
+          {...quantityInputProps(allowDecimal)}
         />
 
         <FormInput
