@@ -306,7 +306,7 @@ const RepairItemDetailDialog = ({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
           ref={contentRef}
-          className="flex max-h-[85svh] w-full flex-col p-0"
+          className="flex max-h-[90svh] w-full flex-col p-0"
           showCloseButton={false}
           onOpenAutoFocus={(e) => {
             e.preventDefault();
@@ -461,7 +461,7 @@ const RepairItemDetailDialog = ({
             </div>
           </div>
 
-          <div className="flex-shrink-0 px-4 pb-4">
+          <div className="flex-shrink-0 px-5 pb-4">
             <div className="flex items-center gap-2">
               <button
                 onClick={() =>

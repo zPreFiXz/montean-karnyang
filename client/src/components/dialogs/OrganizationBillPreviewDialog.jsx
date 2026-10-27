@@ -75,7 +75,7 @@ const OrganizationBillPreviewDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         ref={contentRef}
-        className={`flex max-h-[92svh] w-full max-w-[calc(100%-2rem)] flex-col overflow-hidden p-0 sm:max-w-155 ${
+        className={`flex max-h-[90svh] w-full max-w-[calc(100%-2rem)] flex-col overflow-hidden p-0 sm:max-w-155 ${
           isMeasured ? "" : "opacity-0"
         }`}
         showCloseButton={false}
@@ -99,7 +99,7 @@ const OrganizationBillPreviewDialog = ({
 
         <div
           style={{ height: PAPER_HEIGHT_MM * MM * scale }}
-          className="mx-4 mb-2 min-h-0 shrink overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]"
+          className="mx-5 mb-2 min-h-0 shrink overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]"
         >
           <div className="flex flex-col items-center gap-3">
             <div
@@ -124,7 +124,7 @@ const OrganizationBillPreviewDialog = ({
           </div>
         </div>
 
-        <div className="receipt-chrome flex-shrink-0 px-4 pt-2 pb-4">
+        <div className="receipt-chrome flex-shrink-0 px-5 pt-2 pb-4">
           <div className="flex gap-4">
             <button
               type="button"

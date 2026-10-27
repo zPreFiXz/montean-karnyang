@@ -118,7 +118,7 @@ const EmployeeFormDialog = ({
                 register={register}
                 name="name"
                 label="ชื่อ"
-                placeholder="เช่น ภูมิ"
+                placeholder="เช่น สมชาย ใจดี"
                 errors={errors}
                 customClass="px-0 mb-1"
                 color="subtle-dark"
@@ -128,7 +128,7 @@ const EmployeeFormDialog = ({
           </form>
         </div>
 
-        <div className="flex-shrink-0 px-4 pb-4">
+        <div className="flex-shrink-0 px-5 pb-4">
           <div className="flex gap-4">
             <FormButton
               label={editingItem ? "บันทึก" : "เพิ่มพนักงาน"}

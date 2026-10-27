@@ -106,6 +106,9 @@ const ComboBox = ({
           <PopoverTrigger asChild>
             <Button
               ref={triggerRef}
+              // ให้ตัวช่วยพาไปช่องที่ผิด (หาจาก name) เจอกล่องนี้ด้วย
+              name={name}
+              aria-invalid={hasError ? "true" : undefined}
               variant="outline"
               role="combobox"
               aria-expanded={open}
@@ -117,32 +120,19 @@ const ComboBox = ({
                   (customClass
                     ? "text-muted-foreground font-light"
                     : "text-muted-foreground text-lg font-light md:text-xl"),
-                hasError && "focus:border-destructive border-destructive",
+                // ใช้คลาสไม่ใช่ตั้ง style ตอน onFocus เพราะตัวช่วยพาไปช่องที่ผิดโฟกัสก่อนกรอบแดงจะวาด
+                // ถ้าตั้งตอนโฟกัสจะได้สีฟ้าค้างไว้ทั้งที่ช่องผิด
+                "focus:!border-2 focus:ring-[3px]",
+                hasError
+                  ? "border-destructive focus:!border-destructive"
+                  : "focus:!border-primary",
                 disabled && "cursor-not-allowed opacity-50",
               )}
               style={{
                 "--tw-ring-color": hasError
-                  ? "var(--color-destructive)"
-                  : "var(--color-primary)",
+                  ? "rgba(255, 69, 69, 0.3)"
+                  : "rgba(25, 118, 210, 0.35)",
                 "--tw-border-opacity": "1",
-              }}
-              onFocus={(e) => {
-                if (disabled) return;
-                if (hasError) {
-                  e.target.style.borderColor = "var(--color-destructive)";
-                  e.target.style.borderWidth = "2px";
-                  e.target.style.boxShadow = "0 0 0 3px rgba(255, 69, 69, 0.3)";
-                } else {
-                  e.target.style.borderColor = "var(--color-primary)";
-                  e.target.style.borderWidth = "2px";
-                  e.target.style.boxShadow = "0 0 0 3px rgba(25,118,210,0.35)";
-                }
-              }}
-              onBlur={(e) => {
-                if (disabled) return;
-                e.target.style.borderColor = "";
-                e.target.style.borderWidth = "";
-                e.target.style.boxShadow = "";
               }}
             >
               <span className="truncate">{selectedLabel || placeholder}</span>

@@ -11,7 +11,7 @@ const OPTIONS = [
 const SidePickDialog = ({ isOpen, onClose, onPick, itemName, remaining }) => (
   <Dialog open={isOpen} onOpenChange={onClose}>
     <DialogContent
-      className="flex max-h-[85svh] w-full flex-col p-0"
+      className="flex max-h-[90svh] w-full flex-col p-0"
       showCloseButton={false}
       onOpenAutoFocus={(e) => e.preventDefault()}
     >

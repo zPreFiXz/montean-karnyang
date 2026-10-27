@@ -52,7 +52,7 @@ const OrganizationTypeDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="flex max-h-[85svh] w-full flex-col p-0"
+        className="flex max-h-[90svh] w-full flex-col p-0"
         showCloseButton={false}
       >
         <DialogTitleBar
@@ -109,7 +109,7 @@ const OrganizationTypeDialog = ({
           </div>
         </div>
 
-        <div className="flex-shrink-0 px-4 py-4">
+        <div className="flex-shrink-0 px-5 py-4">
           <div className="flex gap-4">
             <button
               type="button"

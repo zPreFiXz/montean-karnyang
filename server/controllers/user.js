@@ -80,6 +80,11 @@ exports.updateUser = async (req, res) => {
     }
   }
 
+  // ถอดสิทธิ์แอดมินตัวเองแล้วจะเข้าหน้าจัดการบัญชีไม่ได้อีก
+  if (user.id === req.user.id && role && role !== "ADMIN") {
+    createError(400, "เปลี่ยนบทบาทของบัญชีที่กำลังใช้งานอยู่ไม่ได้");
+  }
+
   const updateData = {};
   if (email) updateData.email = email;
   if (name) updateData.name = name;
@@ -99,6 +104,10 @@ exports.updateUser = async (req, res) => {
 
 exports.deleteUser = async (req, res) => {
   const { id } = req.params;
+
+  if (Number(id) === req.user.id) {
+    createError(400, "ลบบัญชีที่กำลังใช้งานอยู่ไม่ได้");
+  }
 
   // ฐานข้อมูลปฏิเสธอยู่แล้ว แต่ข้อความกลางเกินไป จึงเช็กเองเพื่อบอกเหตุผล
   const openedRepair = await prisma.repair.findFirst({

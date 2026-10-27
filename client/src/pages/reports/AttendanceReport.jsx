@@ -60,6 +60,64 @@ const AttendanceReport = () => {
   const summaryItems = summaryData?.summary || [];
   const totalEmployees = summaryData?.totalEmployees || 0;
   const completedCount = summaryItems.filter((item) => item.completed).length;
+  const peopleOf = (predicate, detailOf = () => "") =>
+    summaryItems
+      .filter(predicate)
+      .map((item) => ({ name: item.name, detail: detailOf(item) }));
+  const noteOf = (slot) => {
+    const detail = statusDetail(slot?.status);
+    return detail && `(${detail})`;
+  };
+
+  // แบ่งหมวดตามสรุปรายวันที่ส่งเข้า Telegram (server/zkteco/formatter.js) ตัวเลขสองที่จะได้ตรงกัน
+  const isAbsent = (item) => item.missingSlots.length === item.requiredScans;
+  const isShopClosed = summaryItems.length > 0 && summaryItems.every(isAbsent);
+  const isHalfDay = ({ slots }) =>
+    slots.inWork && slots.lunchOut && !slots.lunchIn && !slots.offWork;
+  const summaryRows = [
+    {
+      label: "ขาด/ลา",
+      people: peopleOf(isAbsent),
+      icon: "❌",
+    },
+    {
+      label: "ลาครึ่งวัน",
+      people: peopleOf(isHalfDay),
+      icon: "🌗",
+    },
+    {
+      label: "มาสาย",
+      people: peopleOf(
+        (item) => item.slots.inWork?.isLate,
+        (item) => noteOf(item.slots.inWork),
+      ),
+      icon: "⏱️",
+      detailClass: "text-destructive",
+    },
+    {
+      label: "พักเกินเวลา",
+      people: peopleOf(
+        (item) => item.slots.lunchIn?.isLate,
+        (item) => noteOf(item.slots.lunchIn),
+      ),
+      icon: "🍱",
+      detailClass: "text-destructive",
+    },
+    {
+      label: "สแกนไม่ครบ",
+      people: peopleOf(
+        (item) => !item.completed && !isAbsent(item) && !isHalfDay(item),
+        (item) =>
+          `(ไม่ได้สแกน: ${SLOT_CONFIG.filter((slot) =>
+            item.missingSlots.includes(slot.key),
+          )
+            .map((slot) => slot.label)
+            .join(", ")})`,
+      ),
+      icon: "⚠️",
+      detailClass: "text-status-progress",
+    },
+  ].filter((row) => row.people.length > 0);
 
   return (
     <div className="flex min-h-svh flex-col">
@@ -86,8 +144,52 @@ const AttendanceReport = () => {
               ไม่มีพนักงาน
             </p>
           </div>
+        ) : isShopClosed ? (
+          <div className="flex flex-1 items-center justify-center">
+            <p className="text-subtle-light text-center text-xl text-balance md:text-[22px]">
+              วันหยุดร้าน
+            </p>
+          </div>
         ) : (
           <div className="flex flex-col gap-4 pt-4">
+            {summaryRows.length > 0 && (
+              <div className="divide-y divide-gray-200 rounded-lg bg-gray-50 px-4 py-1">
+                {summaryRows.map((row) => (
+                  <div key={row.label} className="py-3">
+                    <div className="flex items-center gap-2">
+                      <span
+                        aria-hidden
+                        className="w-6 shrink-0 text-center text-lg md:text-xl"
+                      >
+                        {row.icon}
+                      </span>
+                      <p className="text-normal flex-1 text-lg font-semibold md:text-xl">
+                        {row.label}
+                      </p>
+                      <p className="text-normal text-lg font-semibold md:text-xl">
+                        {row.people.length} คน
+                      </p>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {row.people.map((person) => (
+                        <span
+                          key={person.name}
+                          className="bg-surface text-normal rounded-full border border-gray-200 px-3 py-0.5 text-base md:text-lg"
+                        >
+                          {person.name}
+                          {person.detail && (
+                            <span className={`ml-1.5 ${row.detailClass}`}>
+                              {person.detail}
+                            </span>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {summaryItems.map((item) => (
               <div
                 key={item.employeeId}

@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, Edit, Trash2, LoaderCircle } from "lucide-react";
+import { ChevronLeft, Edit, Trash2 } from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import FormButton from "@/components/forms/FormButton";
 import SearchBar from "@/components/forms/SearchBar";
+import PageSpinner from "@/components/ui/PageSpinner";
 import EmployeeFormDialog from "@/components/dialogs/EmployeeFormDialog";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import { listEmployees, deleteEmployee } from "@/api/employee";
@@ -69,7 +70,10 @@ const EmployeeList = () => {
       employee.name?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const sortedEmployees = [...filteredEmployees].sort((a, b) => a.id - b.id);
+  // รหัสเป็นข้อความ เรียงแบบตัวเลขให้ตรงกับรายงานเวลาเข้า-ออกงาน
+  const sortedEmployees = [...filteredEmployees].sort((a, b) =>
+    a.zkUserId.localeCompare(b.zkUserId, undefined, { numeric: true }),
+  );
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
@@ -87,14 +91,12 @@ const EmployeeList = () => {
       </div>
       <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-28 xl:pb-4">
         {isLoading ? (
-          <div className="flex flex-1 items-center justify-center">
-            <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
-          </div>
+          <PageSpinner />
         ) : (
           <div className="flex flex-1 flex-col px-5 pt-4">
             <div className="w-full">
               <SearchBar
-                placeholder="ค้นหารหัสพนักงาน, ชื่อ"
+                placeholder="ค้นหาชื่อ, รหัสพนักงาน"
                 value={searchTerm}
                 onSearch={setSearchTerm}
               />
@@ -130,6 +132,9 @@ const EmployeeList = () => {
                 <div className="mb-4 flex items-center gap-2 border-b border-gray-100 pb-4">
                   <p className="text-primary text-xl font-semibold md:text-[22px]">
                     รายชื่อพนักงาน
+                    <span className="text-subtle-light ml-1.5 font-normal">
+                      ({sortedEmployees.length})
+                    </span>
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -138,14 +143,12 @@ const EmployeeList = () => {
                       key={employee.id}
                       className="flex items-center justify-between gap-2 rounded-md bg-gray-50 p-2"
                     >
-                      <div className="flex min-w-0 flex-1 flex-col">
-                        <p className="text-normal truncate text-lg font-medium md:text-xl">
-                          {employee.name}
-                        </p>
-                        <p className="text-subtle-dark truncate text-sm md:text-base">
-                          รหัสพนักงาน: {employee.zkUserId}
-                        </p>
-                      </div>
+                      <p className="text-normal min-w-0 flex-1 truncate pl-1 text-lg font-medium md:text-xl">
+                        {employee.name}
+                        <span className="text-subtle-dark ml-1.5 text-base md:text-lg">
+                          รหัส {employee.zkUserId}
+                        </span>
+                      </p>
                       <div className="flex flex-shrink-0 gap-2">
                         <button
                           onClick={() => handleEditClick(employee)}

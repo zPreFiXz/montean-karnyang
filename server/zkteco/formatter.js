@@ -125,9 +125,8 @@ const dailySummary = async (prisma, dateKey) => {
         scans[0].type === STATUS.CLOCK_IN_LATE) &&
       scans[1].type === STATUS.LUNCH_OUT
     ) {
-      stats.halfDay.push(
-        lateScan ? withNote(name, lateScan.statusLabel) : name,
-      );
+      stats.halfDay.push(name);
+      if (lateScan) stats.late.push(withNote(name, lateScan.statusLabel));
     } else {
       if (lateScan) stats.late.push(withNote(name, lateScan.statusLabel));
       if (lunchOTScan)

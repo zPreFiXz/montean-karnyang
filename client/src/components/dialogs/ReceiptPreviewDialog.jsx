@@ -151,7 +151,7 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
       <DialogContent
         ref={contentRef}
         // ถ้ากว้างตามกระดาษ ขนาดกระดาษก็คิดจากไดอะล็อกอีกที จะวนกันจนเห็นขยับตอนเปิด
-        className={`flex max-h-[92svh] w-full max-w-[calc(100%-2rem)] flex-col overflow-hidden p-0 sm:max-w-155 ${
+        className={`flex max-h-[90svh] w-full max-w-[calc(100%-2rem)] flex-col overflow-hidden p-0 sm:max-w-155 ${
           isMeasured ? "" : "opacity-0"
         }`}
         showCloseButton={false}
@@ -257,7 +257,7 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
           id="receipt-viewport"
           // scrollbar-gutter คงที่ ไม่งั้นแถบเลื่อนโผล่แล้วความกว้างเปลี่ยน วัดขนาดใหม่วนไปมา
           style={{ height: PAPER_HEIGHT_MM * MM * scale }}
-          className="mx-4 mb-2 min-h-0 shrink overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]"
+          className="mx-5 mb-2 min-h-0 shrink overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]"
         >
           {/* การสเกลไม่เปลี่ยนขนาดในการจัดหน้า กรอบจึงต้องเท่าขนาดหลังย่อ */}
           <div className="flex flex-col items-center gap-3">
@@ -295,7 +295,7 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
           </div>
         </div>
 
-        <div className="receipt-chrome flex-shrink-0 px-4 pt-2 pb-4">
+        <div className="receipt-chrome flex-shrink-0 px-5 pt-2 pb-4">
           <div className="flex gap-2">
             <button
               type="button"

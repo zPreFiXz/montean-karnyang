@@ -18,13 +18,19 @@ export const editEmployeeSchema = z.object({
 export const createUserAccountSchema = z
   .object({
     name: z.string().min(1, "กรุณากรอกชื่อ"),
-    email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
-    password: z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร"),
-    confirmPassword: z.string().min(8, "กรุณายืนยันรหัสผ่าน"),
+    email: z
+      .string()
+      .min(1, "กรุณากรอกอีเมล")
+      .email("กรุณากรอกอีเมลที่ถูกต้อง"),
+    password: z
+      .string()
+      .min(1, "กรุณากรอกรหัสผ่าน")
+      .min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร"),
+    confirmPassword: z.string().min(1, "กรุณายืนยันรหัสผ่าน"),
     role: z.string().optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.password !== data.confirmPassword) {
+    if (data.confirmPassword && data.password !== data.confirmPassword) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "รหัสผ่านไม่ตรงกัน",
@@ -44,7 +50,10 @@ export const createUserAccountSchema = z
 export const editUserAccountSchema = z
   .object({
     name: z.string().min(1, "กรุณากรอกชื่อ"),
-    email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
+    email: z
+      .string()
+      .min(1, "กรุณากรอกอีเมล")
+      .email("กรุณากรอกอีเมลที่ถูกต้อง"),
     password: z.string().optional(),
     confirmPassword: z.string().optional(),
     role: z.string().optional(),
@@ -444,6 +453,6 @@ export const updateStockSchema = z
   });
 
 export const vehicleModelSchema = z.object({
-  brand: z.string().trim().min(1, "กรุณากรอกยี่ห้อรถ"),
+  brand: z.string().trim().min(1, "กรุณาเลือกยี่ห้อรถ"),
   model: z.string().trim().min(1, "กรุณากรอกรุ่นรถ"),
 });

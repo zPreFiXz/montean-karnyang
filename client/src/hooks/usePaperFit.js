@@ -8,11 +8,11 @@ export const PAPER_HEIGHT_MM = 210;
 export const MM = 96 / 25.4;
 
 // ระยะห่างรอบกรอบดูตัวอย่าง ต้องตรงกับคลาสที่ใช้จริง
-const VIEWPORT_MARGIN = 16;
+const VIEWPORT_MARGIN = 20;
 // เพดานขนาดไดอะล็อก ต้องตรงกับคลาสที่ใช้จริงเช่นกัน
 const DIALOG_MAX_WIDTH = 620;
 // ไม่ให้กล่องชนเพดานความสูง ไม่งั้นแถบที่อยู่มือถือยุบ/กางแล้วกล่องเปลี่ยนขนาด
-const DIALOG_MAX_HEIGHT_RATIO = 0.88;
+const DIALOG_MAX_HEIGHT_RATIO = 0.86;
 
 const estimateFitScale = (chromeEstimate) => {
   if (typeof window === "undefined") return 1;

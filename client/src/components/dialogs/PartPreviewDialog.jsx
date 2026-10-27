@@ -113,7 +113,7 @@ const PartPreviewDialog = ({
         </div>
 
         {onOpenStock && (
-          <div className="flex-shrink-0 px-4 pb-4">
+          <div className="flex-shrink-0 px-5 pb-4">
             <button
               type="button"
               onClick={onOpenStock}

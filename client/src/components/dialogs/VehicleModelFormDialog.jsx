@@ -10,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { vehicleModelSchema } from "@/utils/schemas";
 import { createVehicleModel, updateVehicleModel } from "@/api/vehicleModel";
 import { toastError } from "@/utils/handleError";
+import { focusTopmostInvalid } from "@/utils/focusInvalidField";
 
 const VehicleModelFormDialog = ({
   isOpen,
@@ -26,6 +27,7 @@ const VehicleModelFormDialog = ({
     setValue,
     formState: { errors, isSubmitting },
   } = useForm({
+    shouldFocusError: false,
     resolver: zodResolver(vehicleModelSchema),
     defaultValues: { brand: "", model: "" },
   });
@@ -79,7 +81,7 @@ const VehicleModelFormDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent
-        className="flex w-full flex-col p-0"
+        className="flex max-h-[90svh] w-full flex-col p-0"
         showCloseButton={false}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
@@ -99,6 +101,7 @@ const VehicleModelFormDialog = ({
           <form
             onSubmit={handleSubmit(
               editingItem ? handleEditVehicleModel : handleAddVehicleModel,
+              focusTopmostInvalid,
             )}
             className="space-y-4"
           >
@@ -117,7 +120,7 @@ const VehicleModelFormDialog = ({
                       shouldTouch: true,
                     })
                   }
-                  placeholder="-- เลือกยี่ห้อ --"
+                  placeholder="-- เลือกยี่ห้อรถ --"
                   errors={errors}
                   name="brand"
                 />
@@ -137,13 +140,14 @@ const VehicleModelFormDialog = ({
           </form>
         </div>
 
-        <div className="flex-shrink-0 px-4 pb-4">
+        <div className="flex-shrink-0 px-5 pb-4">
           <div className="flex gap-4">
             <FormButton
               label={editingItem ? "บันทึก" : "เพิ่มยี่ห้อและรุ่นรถ"}
               isLoading={isSubmitting}
               onClick={handleSubmit(
                 editingItem ? handleEditVehicleModel : handleAddVehicleModel,
+                focusTopmostInvalid,
               )}
               className="font-athiti bg-gradient-primary mr-0 ml-0"
             />

@@ -1,15 +1,19 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, Edit, Trash2, LoaderCircle } from "lucide-react";
+import { ChevronLeft, Edit, Trash2 } from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import FormButton from "@/components/forms/FormButton";
 import SearchBar from "@/components/forms/SearchBar";
+import PageSpinner from "@/components/ui/PageSpinner";
 import UserFormDialog from "@/components/dialogs/UserFormDialog";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import { listUsers, deleteUser } from "@/api/user";
 import { toastError } from "@/utils/handleError";
+import { roleLabel } from "@/utils/role";
+import useAuthStore from "@/stores/useAuthStore";
 
 const UserList = () => {
+  const currentUserId = useAuthStore((state) => state.user?.id);
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -87,17 +91,6 @@ const UserList = () => {
     return 0;
   });
 
-  const getRoleLabel = (role) => {
-    switch (role) {
-      case "ADMIN":
-        return "แอดมิน";
-      case "EMPLOYEE":
-        return "พนักงาน";
-      default:
-        return role;
-    }
-  };
-
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-2 px-5 pt-4">
@@ -114,9 +107,7 @@ const UserList = () => {
       </div>
       <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-28 xl:pb-4">
         {isLoading ? (
-          <div className="flex flex-1 items-center justify-center">
-            <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
-          </div>
+          <PageSpinner />
         ) : (
           <div className="flex flex-1 flex-col px-5 pt-4">
             <div className="w-full">
@@ -143,6 +134,7 @@ const UserList = () => {
                 setEditingUser(null);
               }}
               editingItem={editingUser}
+              isCurrentUser={editingUser?.id === currentUserId}
               onSuccess={fetchUsers}
             />
 
@@ -154,7 +146,10 @@ const UserList = () => {
                 >
                   <div className="mb-4 flex items-center gap-2 border-b border-gray-100 pb-4">
                     <p className="text-primary text-xl font-semibold md:text-[22px]">
-                      {getRoleLabel(role)}
+                      {roleLabel(role)}
+                      <span className="text-subtle-light ml-1.5 font-normal">
+                        ({groupedByRole[role].length})
+                      </span>
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -163,7 +158,7 @@ const UserList = () => {
                         key={user.id}
                         className="flex items-center justify-between gap-2 rounded-md bg-gray-50 p-2"
                       >
-                        <div className="flex min-w-0 flex-1 flex-col">
+                        <div className="flex min-w-0 flex-1 flex-col pl-1">
                           <p className="text-normal truncate text-lg font-medium md:text-xl">
                             {user.name}
                           </p>
@@ -179,13 +174,15 @@ const UserList = () => {
                           >
                             <Edit className="h-4 w-4" />
                           </button>
-                          <button
-                            onClick={() => handleDeleteClick(user)}
-                            aria-label="ลบบัญชีผู้ใช้งาน"
-                            className="text-surface bg-destructive flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {user.id !== currentUserId && (
+                            <button
+                              onClick={() => handleDeleteClick(user)}
+                              aria-label="ลบบัญชีผู้ใช้งาน"
+                              className="text-surface bg-destructive flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}

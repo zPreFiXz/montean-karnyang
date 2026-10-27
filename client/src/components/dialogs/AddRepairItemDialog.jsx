@@ -77,7 +77,7 @@ const AddRepairItemDialog = ({
         {children}
       </DialogTrigger>
       <DialogContent
-        className="flex h-[90vh] max-h-162.5 w-full flex-col p-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+        className="flex h-[90svh] max-h-162.5 w-full flex-col p-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
         showCloseButton={false}
         onOpenAutoFocus={(e) => {
           e.preventDefault();

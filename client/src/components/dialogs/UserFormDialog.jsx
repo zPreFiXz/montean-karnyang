@@ -14,8 +14,15 @@ import {
 } from "@/utils/schemas";
 import { createUser, updateUser } from "@/api/user";
 import { toastError } from "@/utils/handleError";
+import { focusTopmostInvalid } from "@/utils/focusInvalidField";
 
-const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
+const UserFormDialog = ({
+  isOpen,
+  onClose,
+  editingItem = null,
+  isCurrentUser = false,
+  onSuccess,
+}) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
     useState(false);
@@ -27,6 +34,7 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
     watch,
     formState: { errors, isSubmitting },
   } = useForm({
+    shouldFocusError: false,
     resolver: zodResolver(
       editingItem ? editUserAccountSchema : createUserAccountSchema,
     ),
@@ -126,17 +134,20 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
 
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5">
           <form
-            onSubmit={handleSubmit(editingItem ? handleEdit : handleAdd)}
+            onSubmit={handleSubmit(
+              editingItem ? handleEdit : handleAdd,
+              focusTopmostInvalid,
+            )}
             className="space-y-4"
           >
-            <div>
+            <div className="flex flex-col gap-4 pb-1">
               <FormInput
                 register={register}
                 name="name"
                 label="ชื่อ"
-                placeholder="เช่น ภูมิ"
+                placeholder="เช่น สมชาย ใจดี"
                 errors={errors}
-                customClass="px-0 pb-4"
+                customClass="px-0"
                 color="subtle-dark"
                 autoFocus={false}
               />
@@ -148,7 +159,7 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
                 type="email"
                 placeholder="name@example.com"
                 errors={errors}
-                customClass="px-0 pb-4"
+                customClass="px-0"
                 color="subtle-dark"
                 readOnly={Boolean(editingItem)}
                 inputMode={editingItem ? "none" : "email"}
@@ -161,15 +172,19 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
                 name="password"
                 label={editingItem ? "รหัสผ่านใหม่" : "รหัสผ่าน"}
                 type={isPasswordVisible ? "text" : "password"}
-                placeholder="••••••••"
+                placeholder={
+                  editingItem
+                    ? "เว้นว่างไว้ถ้าไม่เปลี่ยน"
+                    : "อย่างน้อย 8 ตัวอักษร"
+                }
                 errors={errors}
-                customClass="px-0 pb-4"
+                customClass="px-0"
                 color="subtle-dark"
                 rightSlot={
                   <button
                     type="button"
                     onClick={() => setIsPasswordVisible((v) => !v)}
-                    className="text-subtle-light mt-2 cursor-pointer hover:text-gray-600"
+                    className="text-subtle-dark hover:text-primary flex h-6 w-6 cursor-pointer items-center justify-center transition-colors duration-200"
                     aria-label={
                       isPasswordVisible ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"
                     }
@@ -189,15 +204,19 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
                 name="confirmPassword"
                 label="ยืนยันรหัสผ่าน"
                 type={isConfirmPasswordVisible ? "text" : "password"}
-                placeholder="••••••••"
+                placeholder={
+                  editingItem
+                    ? "พิมพ์รหัสผ่านใหม่อีกครั้ง"
+                    : "พิมพ์รหัสผ่านอีกครั้ง"
+                }
                 errors={errors}
-                customClass="px-0 mb-1"
+                customClass="px-0"
                 color="subtle-dark"
                 rightSlot={
                   <button
                     type="button"
                     onClick={() => setIsConfirmPasswordVisible((v) => !v)}
-                    className="text-subtle-light mt-2 cursor-pointer hover:text-gray-600"
+                    className="text-subtle-dark hover:text-primary flex h-6 w-6 cursor-pointer items-center justify-center transition-colors duration-200"
                     aria-label={
                       isConfirmPasswordVisible ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"
                     }
@@ -212,7 +231,7 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
                 autoFocus={false}
               />
 
-              <div className="mb-1 px-0">
+              <div>
                 <ComboBox
                   label="บทบาท"
                   color="text-subtle-dark"
@@ -227,23 +246,27 @@ const UserFormDialog = ({ isOpen, onClose, editingItem = null, onSuccess }) => {
                   placeholder="-- เลือกบทบาท --"
                   errors={errors}
                   name="role"
+                  disabled={isCurrentUser}
                 />
                 <input
                   type="hidden"
                   value={roleValue || ""}
-                  {...register("role", { required: "กรุณาเลือบทบาท" })}
+                  {...register("role")}
                 />
               </div>
             </div>
           </form>
         </div>
 
-        <div className="flex-shrink-0 px-4 pb-4">
+        <div className="flex-shrink-0 px-5 pb-4">
           <div className="flex gap-4">
             <FormButton
               label={editingItem ? "บันทึก" : "เพิ่มบัญชีผู้ใช้งาน"}
               isLoading={isSubmitting}
-              onClick={handleSubmit(editingItem ? handleEdit : handleAdd)}
+              onClick={handleSubmit(
+                editingItem ? handleEdit : handleAdd,
+                focusTopmostInvalid,
+              )}
               className="font-athiti bg-gradient-primary mr-0 ml-0"
             />
           </div>

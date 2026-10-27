@@ -12,14 +12,17 @@ exports.employeeSchema = z.object({
 
 exports.createUserAccountSchema = z.object({
   name: z.string().min(1, "กรุณากรอกชื่อ"),
-  email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
-  password: z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร"),
+  email: z.string().min(1, "กรุณากรอกอีเมล").email("กรุณากรอกอีเมลที่ถูกต้อง"),
+  password: z
+    .string()
+    .min(1, "กรุณากรอกรหัสผ่าน")
+    .min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร"),
   role: z.enum(["EMPLOYEE", "ADMIN"], { message: "กรุณาเลือกบทบาท" }),
 });
 
 exports.editUserAccountSchema = z.object({
   name: z.string().min(1, "กรุณากรอกชื่อ"),
-  email: z.string().email("กรุณากรอกอีเมลที่ถูกต้อง"),
+  email: z.string().min(1, "กรุณากรอกอีเมล").email("กรุณากรอกอีเมลที่ถูกต้อง"),
   password: z.string().min(8, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร").optional(),
   role: z.enum(["EMPLOYEE", "ADMIN"], { message: "กรุณาเลือกบทบาท" }),
 });
@@ -236,6 +239,6 @@ exports.updatePartStockSchema = z
   });
 
 exports.vehicleModelSchema = z.object({
-  brand: z.string().trim().min(1, "กรุณากรอกยี่ห้อรถ"),
+  brand: z.string().trim().min(1, "กรุณาเลือกยี่ห้อรถ"),
   model: z.string().trim().min(1, "กรุณากรอกรุ่นรถ"),
 });
