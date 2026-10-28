@@ -1,6 +1,6 @@
 import { formatDateWithWeekday } from "@/utils/formats";
 
-// ใช้ร่วมกันระหว่างรายงานยอดขายกับสินค้าขายดี ยอดของสองหน้าจะนับช่วงเดียวกันเป๊ะ
+// ใช้ร่วมกันระหว่างรายงานยอดขายกับอะไหล่ขายดี ยอดของสองหน้าจะนับช่วงเดียวกันเป๊ะ
 export const PERIOD_TYPES = [
   { id: "daily", label: "วัน", pickLabel: "เลือกวัน" },
   { id: "weekly", label: "สัปดาห์", pickLabel: "เลือกสัปดาห์" },

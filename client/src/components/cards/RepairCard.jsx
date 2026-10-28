@@ -38,7 +38,7 @@ const RepairCard = ({
             {dateText}
           </p>
           <p className="text-subtle-dark truncate text-base leading-tight font-medium md:text-lg">
-            {details.join(" · ")}
+            {details.join(" | ")}
           </p>
         </div>
       </div>

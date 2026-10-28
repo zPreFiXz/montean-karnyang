@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
-import { LoaderCircle } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
+import PageSpinner from "@/components/ui/PageSpinner";
 import ReportPeriodHeader from "@/components/reports/ReportPeriodHeader";
 import { SparePart } from "@/components/icons/Icons";
 import { listTopItems, listTopVehicleModels } from "@/api/report";
@@ -12,16 +13,19 @@ import { formatProductName } from "@/utils/tireSize";
 import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
 import { getDateRange, getPeriodType } from "@/utils/reportPeriod";
 import ItemImage from "@/components/ui/ItemImage";
+import VehicleModelReportDialog from "@/components/dialogs/VehicleModelReportDialog";
+import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
+import useInventoryPreview, {
+  inventoryRefOf,
+} from "@/hooks/useInventoryPreview";
 
 const VIEWS = [
   { id: "parts", label: "อะไหล่" },
   { id: "models", label: "รุ่นรถ" },
 ];
 
-const SORTS = [
-  { id: "quantity", label: "ขายได้มากสุด" },
-  { id: "revenue", label: "ยอดขายสูงสุด" },
-];
+// ร้านใช้หน้านี้ดูว่าควรสั่งอะไรเพิ่ม จึงเปิดมาเรียงตามจำนวนก่อน
+const SORT_LABELS = { quantity: "เรียงตามจำนวน", revenue: "เรียงตามยอดเงิน" };
 
 // ยางต้องเอาขนาดมาต่อชื่อ ไม่งั้นยางยี่ห้อเดียวกันหลายขนาดจะชื่อเหมือนกันหมด
 const itemName = (item) =>
@@ -60,6 +64,10 @@ const TopItemsReport = () => {
   const [sortBy, setSortBy] = useState("quantity");
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [openModel, setOpenModel] = useState(null);
+  const [modelRestore, setModelRestore] = useState(null);
+  const { previewItem, isPreviewOpen, setIsPreviewOpen, openPreview } =
+    useInventoryPreview();
 
   useEffect(() => {
     if (location.state?.currentDate) {
@@ -87,6 +95,34 @@ const TopItemsReport = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rangeKey]);
 
+  // กลับมาจากหน้าประวัติรถ เปิดหน้าต่างรุ่นรถเดิมให้อีกครั้ง แล้วล้างทิ้งไม่ให้เปิดซ้ำตอนรีเฟรช
+  const reopenModel = location.state?.reopenModel;
+  useEffect(() => {
+    if (!reopenModel || view !== "models" || isLoading) return;
+    const model = items.find((item) => item.id === reopenModel.id);
+    if (model) {
+      setModelRestore(reopenModel);
+      setOpenModel(model);
+    }
+    const rest = { ...location.state };
+    delete rest.reopenModel;
+    navigate(`${location.pathname}${location.search}`, {
+      replace: true,
+      state: rest,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reopenModel, view, isLoading]);
+
+  const rememberOpenModel = ({ tab, scroll }) =>
+    navigate(`${location.pathname}${location.search}`, {
+      replace: true,
+      state: {
+        ...location.state,
+        currentDate: currentDate.toISOString(),
+        reopenModel: { id: openModel.id, tab, scroll },
+      },
+    });
+
   const countOf = (item) => (view === "models" ? item.visits : item.quantity);
   const ranked = [...items].sort((a, b) =>
     sortBy === "revenue" && view === "parts"
@@ -104,7 +140,7 @@ const TopItemsReport = () => {
   return (
     <div>
       <ReportPeriodHeader
-        title={view === "models" ? "รุ่นรถที่มาบ่อย" : "สินค้าขายดี"}
+        title={view === "models" ? "รุ่นรถที่มาบ่อย" : "อะไหล่ขายดี"}
         basePath={`/admin/reports/top-items${view === "models" ? "?view=models" : ""}`}
         periodType={periodType}
         currentDate={currentDate}
@@ -144,39 +180,40 @@ const TopItemsReport = () => {
           ))}
         </div>
 
-        {view === "parts" && (
-          <div className="flex gap-2 pt-4">
-            {SORTS.map((sort) => (
-              <button
-                key={sort.id}
-                type="button"
-                onClick={() => setSortBy(sort.id)}
-                aria-pressed={sortBy === sort.id}
-                className={`h-9.5 flex-1 cursor-pointer rounded-[20px] border text-lg font-semibold duration-300 md:text-xl ${
-                  sortBy === sort.id
-                    ? "bg-primary text-surface border-transparent"
-                    : "border-subtle-light text-subtle-dark bg-surface"
-                }`}
-              >
-                {sort.label}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2 pt-4">
+          <p className="text-normal text-[22px] font-semibold whitespace-nowrap md:text-2xl">
+            {view === "models" ? "อันดับรุ่นรถ" : "อันดับอะไหล่"}
+            {!isLoading && ranked.length > 0 && ` (${ranked.length})`}
+          </p>
+          {view === "parts" && (
+            <button
+              type="button"
+              onClick={() =>
+                setSortBy((prev) =>
+                  prev === "quantity" ? "revenue" : "quantity",
+                )
+              }
+              className="bg-primary/10 text-primary ml-auto flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3 text-lg font-semibold md:text-xl"
+            >
+              <ArrowUpDown className="h-5 w-5" />
+              {SORT_LABELS[sortBy]}
+            </button>
+          )}
+        </div>
 
         {isLoading ? (
-          <div className="flex flex-1 items-center justify-center">
-            <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
-          </div>
+          <PageSpinner />
         ) : ranked.length > 0 ? (
           <div className="space-y-3 pt-4">
             {view === "models" &&
               ranked.map((item, index) => {
                 const rank = index + 1;
                 return (
-                  <div
+                  <button
                     key={item.key}
-                    className="bg-surface shadow-primary flex h-20 items-center gap-2 rounded-lg px-2"
+                    type="button"
+                    onClick={() => setOpenModel(item)}
+                    className="bg-surface shadow-primary flex h-20 w-full cursor-pointer items-center gap-2 rounded-lg px-2 text-left"
                   >
                     <div
                       className={`flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full px-1.5 text-base font-semibold ${rankClass(rank)}`}
@@ -192,13 +229,13 @@ const TopItemsReport = () => {
                       </p>
                       {/* คันเดียวมาหลายครั้งนับครั้งตามบิล คันบอกว่ามีรถรุ่นนี้กี่คันจริง */}
                       <p className="text-subtle-dark truncate text-base font-medium md:text-lg">
-                        {`${item.visits} ครั้ง · ${item.vehicles} คัน`}
+                        {`${item.visits} ครั้ง | ${item.vehicles} คัน`}
                       </p>
                     </div>
                     <p className="text-primary shrink-0 text-[22px] font-semibold text-nowrap md:text-2xl">
                       {formatCurrency(item.revenue)}
                     </p>
-                  </div>
+                  </button>
                 );
               })}
             {view === "parts" &&
@@ -207,9 +244,12 @@ const TopItemsReport = () => {
                 const name = itemName(item);
                 const imageUrl = item.secureUrl;
                 return (
-                  <div
+                  <button
                     key={item.key}
-                    className="bg-surface shadow-primary flex h-20 items-center gap-2 rounded-lg px-2"
+                    type="button"
+                    onClick={() => openPreview(item)}
+                    disabled={!inventoryRefOf(item)}
+                    className="bg-surface shadow-primary flex h-20 w-full cursor-pointer items-center gap-2 rounded-lg px-2 text-left disabled:cursor-default"
                   >
                     <div
                       className={`flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full px-1.5 text-base font-semibold ${rankClass(rank)}`}
@@ -237,18 +277,36 @@ const TopItemsReport = () => {
                     <p className="text-primary shrink-0 text-[22px] font-semibold text-nowrap md:text-2xl">
                       {formatCurrency(item.revenue)}
                     </p>
-                  </div>
+                  </button>
                 );
               })}
           </div>
         ) : (
           <div className="flex flex-1 items-center justify-center">
             <p className="text-subtle-light text-center text-xl text-balance md:text-[22px]">
-              {view === "models" ? "ไม่มีรถเข้าซ่อม" : "ไม่มียอดขายอะไหล่"}
+              {view === "models" ? "ไม่มีรถเข้าร้าน" : "ไม่มีการขายอะไหล่"}
             </p>
           </div>
         )}
       </div>
+
+      <RepairItemDetailDialog
+        item={previewItem}
+        open={isPreviewOpen}
+        onOpenChange={setIsPreviewOpen}
+      />
+
+      <VehicleModelReportDialog
+        model={openModel}
+        range={getDateRange(currentDate, periodType)}
+        itemName={itemName}
+        restore={modelRestore}
+        onLeave={rememberOpenModel}
+        onClose={() => {
+          setOpenModel(null);
+          setModelRestore(null);
+        }}
+      />
     </div>
   );
 };

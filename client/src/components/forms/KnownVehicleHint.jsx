@@ -95,7 +95,7 @@ const KnownVehicleHint = ({
             </p>
             {visitLine.length > 0 && (
               <p className="text-surface/80 xl:text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
-                {visitLine.join(" · ")}
+                {visitLine.join(" | ")}
               </p>
             )}
             {lastJobText && (

@@ -175,8 +175,8 @@ const SalesReport = () => {
           </div>
           <p className="text-normal text-[22px] font-semibold whitespace-nowrap md:text-2xl">
             {periodRepairs.length > 0
-              ? `ยอดขาย (${periodRepairs.length})`
-              : "ยอดขาย"}
+              ? `รายการขาย (${periodRepairs.length})`
+              : "รายการขาย"}
           </p>
           <Link
             to={`/admin/reports/top-items?period=${periodType}`}
@@ -184,7 +184,7 @@ const SalesReport = () => {
             className="bg-primary/10 text-primary ml-auto flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-lg font-semibold md:text-xl"
           >
             <TrendingUp className="h-5 w-5" />
-            สินค้าขายดี
+            อันดับขายดี
           </Link>
         </div>
         {isLoading ? (
@@ -287,7 +287,7 @@ const SalesReport = () => {
         ) : (
           <div className="flex flex-1 items-center justify-center">
             <p className="text-subtle-light text-center text-xl text-balance md:text-[22px]">
-              ไม่มียอดขาย
+              ไม่มีรายการขาย
             </p>
           </div>
         )}

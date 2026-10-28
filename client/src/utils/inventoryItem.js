@@ -39,11 +39,11 @@ export const stockStatusOf = (item, isOilKit) => {
       : { tone: "ok", label: `จำนวน ${amount}` };
   }
   if (!tracksStock(item.minStockLevel)) {
-    return { tone: "untracked", label: `ไม่ได้ตั้งขั้นต่ำ · จำนวน ${amount}` };
+    return { tone: "untracked", label: `ไม่ได้ตั้งขั้นต่ำ | จำนวน ${amount}` };
   }
   if (quantity === 0) return { tone: "out", label: "สต็อกหมด" };
   if (quantity < Number(item.minStockLevel)) {
-    return { tone: "low", label: `สต็อกต่ำ · จำนวน ${amount}` };
+    return { tone: "low", label: `สต็อกต่ำ | จำนวน ${amount}` };
   }
-  return { tone: "ok", label: `สต็อกปกติ · จำนวน ${amount}` };
+  return { tone: "ok", label: `สต็อกปกติ | จำนวน ${amount}` };
 };

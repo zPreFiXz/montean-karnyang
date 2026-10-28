@@ -16,7 +16,7 @@ describe("สถานะสต็อก", () => {
     expect(stockStatusOf(item(0, 2)).tone).toBe("out");
     expect(stockStatusOf(item(1, 2))).toEqual({
       tone: "low",
-      label: "สต็อกต่ำ · จำนวน 1 ชิ้น",
+      label: "สต็อกต่ำ | จำนวน 1 ชิ้น",
     });
     expect(stockStatusOf(item(5, 2)).tone).toBe("ok");
     expect(stockStatusOf(item(2, 2)).tone).toBe("ok");

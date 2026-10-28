@@ -24,7 +24,7 @@ export const getVehicleSubtitle = (vehicle) =>
     vehicle?.fleetNo && `เบอร์รถ ${vehicle.fleetNo}`,
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(" | ");
 
 // ขึ้นชื่องานเป็นหัวการ์ดเฉพาะงานในลิสต์นี้ เพราะชื่อที่พิมพ์เองยาวไม่แน่นอน
 // เพิ่มงานใหม่ = เติมชื่อให้ตรงกับชื่อในคลังเป๊ะๆ

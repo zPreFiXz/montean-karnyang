@@ -1,5 +1,6 @@
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
+const { OIL_SOURCE_SELECT, withOilKitStock } = require("../utils/oilKit");
 
 // บรรทัดที่พิมพ์ชื่อทับตอนเปิดบิล ชื่อในคลังเป็นแค่ป้ายชั่วคราว ต้องแยกนับตามชื่อที่พิมพ์
 // ไม่งั้น "อะไหล่อื่นๆ" ทุกบรรทัดจะรวมเป็นก้อนเดียวขึ้นอันดับหนึ่ง
@@ -12,38 +13,39 @@ const isDiscount = (item) =>
   (item.service?.name || item.itemName) === "ส่วนลด" ||
   Number(item.unitPrice) < 0;
 
-// นับจากบิลที่เก็บเงินแล้ว ขอบเขตวันส่งมาจากหน้าเว็บ ตรงกับรายงานยอดขาย
-exports.listTopItems = async (req, res) => {
-  const from = new Date(req.query.from);
-  const to = new Date(req.query.to);
+// ขอบเขตวันส่งมาจากหน้าเว็บ ตรงกับรายงานยอดขาย
+const parseRange = (query) => {
+  const from = new Date(query.from);
+  const to = new Date(query.to);
   if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
     createError(400, "ช่วงเวลาไม่ถูกต้อง");
   }
+  return { from, to };
+};
 
-  const items = await prisma.repairItem.findMany({
-    where: { repair: { status: "PAID", paidAt: { gte: from, lte: to } } },
+const PART_ITEM_SELECT = {
+  itemName: true,
+  itemUnit: true,
+  unitPrice: true,
+  quantity: true,
+  part: {
     select: {
-      itemName: true,
-      itemUnit: true,
-      unitPrice: true,
-      quantity: true,
-      part: {
-        select: {
-          id: true,
-          brand: true,
-          name: true,
-          unit: true,
-          attributes: true,
-          secureUrl: true,
-          category: { select: { name: true } },
-        },
-      },
-      service: {
-        select: { id: true, name: true, unit: true, secureUrl: true },
-      },
+      id: true,
+      brand: true,
+      name: true,
+      unit: true,
+      attributes: true,
+      secureUrl: true,
+      category: { select: { name: true } },
     },
-  });
+  },
+  service: {
+    select: { id: true, name: true, unit: true, secureUrl: true },
+  },
+};
 
+// รวมบรรทัดในบิลเป็นรายการอะไหล่ ใช้ทั้งอันดับอะไหล่และอะไหล่ของรุ่นรถ ทั้งสองหน้าจะนับแบบเดียวกัน
+const groupPartItems = (items) => {
   const groups = new Map();
   for (const item of items) {
     if (isDiscount(item)) continue;
@@ -69,6 +71,7 @@ exports.listTopItems = async (req, res) => {
             : "service",
         part: item.part
           ? {
+              id: item.part.id,
               brand: item.part.brand,
               name: item.part.name,
               attributes: item.part.attributes,
@@ -94,15 +97,23 @@ exports.listTopItems = async (req, res) => {
     group.revenue += quantity * Number(item.unitPrice || 0);
   }
 
-  res.json([...groups.values()].filter((group) => group.kind === "part"));
+  return [...groups.values()].filter((group) => group.kind === "part");
+};
+
+// นับจากบิลที่เก็บเงินแล้ว
+exports.listTopItems = async (req, res) => {
+  const { from, to } = parseRange(req.query);
+
+  const items = await prisma.repairItem.findMany({
+    where: { repair: { status: "PAID", paidAt: { gte: from, lte: to } } },
+    select: PART_ITEM_SELECT,
+  });
+
+  res.json(groupPartItems(items));
 };
 
 exports.listTopVehicleModels = async (req, res) => {
-  const from = new Date(req.query.from);
-  const to = new Date(req.query.to);
-  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
-    createError(400, "ช่วงเวลาไม่ถูกต้อง");
-  }
+  const { from, to } = parseRange(req.query);
 
   const repairs = await prisma.repair.findMany({
     where: {
@@ -128,6 +139,7 @@ exports.listTopVehicleModels = async (req, res) => {
     if (!groups.has(model.id)) {
       groups.set(model.id, {
         key: `model:${model.id}`,
+        id: model.id,
         brand: model.brand,
         model: model.model,
         visits: 0,
@@ -147,4 +159,90 @@ exports.listTopVehicleModels = async (req, res) => {
       vehicles: vehicleIds.size,
     })),
   );
+};
+
+// อะไหล่ที่ขายให้รถรุ่นนี้ในช่วงเวลาที่เลือก คู่กับสต็อกตอนนี้ และรถรุ่นนี้ที่เข้าร้าน ใช้ตัดสินใจสั่งของ
+exports.getVehicleModelReport = async (req, res) => {
+  const { from, to } = parseRange(req.query);
+  const vehicleModelId = Number(req.params.id);
+  if (!Number.isInteger(vehicleModelId)) {
+    createError(400, "รหัสไม่ถูกต้อง");
+  }
+
+  const paidInRange = {
+    status: "PAID",
+    paidAt: { gte: from, lte: to },
+    vehicle: { vehicleModelId },
+  };
+
+  const [items, repairs] = await Promise.all([
+    prisma.repairItem.findMany({
+      where: { repair: paidInRange },
+      select: PART_ITEM_SELECT,
+    }),
+    prisma.repair.findMany({
+      where: paidInRange,
+      select: {
+        paidAt: true,
+        vehicle: {
+          select: {
+            id: true,
+            licensePlate: { select: { plateNumber: true, province: true } },
+          },
+        },
+      },
+    }),
+  ]);
+
+  const parts = groupPartItems(items);
+  const partIds = parts.map((group) => group.part?.id).filter(Boolean);
+  const stocks = await prisma.part.findMany({
+    where: { id: { in: partIds } },
+    select: {
+      id: true,
+      stockQuantity: true,
+      minStockLevel: true,
+      unit: true,
+      oilSourceId: true,
+      oilLiters: true,
+      oilSource: OIL_SOURCE_SELECT,
+    },
+  });
+  const stockById = new Map(
+    stocks.map((part) => {
+      const withStock = withOilKitStock(part);
+      return [
+        part.id,
+        {
+          stockQuantity: Number(withStock.stockQuantity) || 0,
+          minStockLevel: withStock.minStockLevel,
+          isOilKit: Boolean(part.oilSourceId && part.oilSource),
+        },
+      ];
+    }),
+  );
+
+  const vehicles = new Map();
+  for (const repair of repairs) {
+    const vehicle = repair.vehicle;
+    if (!vehicles.has(vehicle.id)) {
+      vehicles.set(vehicle.id, {
+        id: vehicle.id,
+        licensePlate: vehicle.licensePlate,
+        visits: 0,
+        lastPaidAt: repair.paidAt,
+      });
+    }
+    const entry = vehicles.get(vehicle.id);
+    entry.visits += 1;
+    if (repair.paidAt > entry.lastPaidAt) entry.lastPaidAt = repair.paidAt;
+  }
+
+  res.json({
+    parts: parts.map((group) => ({
+      ...group,
+      stock: group.part ? stockById.get(group.part.id) || null : null,
+    })),
+    vehicles: [...vehicles.values()],
+  });
 };
