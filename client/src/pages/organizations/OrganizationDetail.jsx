@@ -1,5 +1,5 @@
 import PageSpinner from "@/components/ui/PageSpinner";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import {
   ChevronLeft,
@@ -25,9 +25,14 @@ import {
   isSaleRepair,
   isNoVehicleRepair,
   getRepairTitle,
-  getRepairSubtitle,
+  getCustomerBillSubtitle,
 } from "@/utils/repairDisplay";
-import { formatCurrency, formatDateShort, formatPhone } from "@/utils/formats";
+import {
+  formatCurrency,
+  formatMonth,
+  formatPhone,
+  monthKey,
+} from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 import OrganizationTypeDialog from "@/components/dialogs/OrganizationTypeDialog";
 import OrganizationBillPreviewDialog from "@/components/dialogs/OrganizationBillPreviewDialog";
@@ -52,8 +57,6 @@ const OrganizationDetail = () => {
   const [isLoading, setIsLoading] = useState(!cached);
   // แก้ประเภทได้จากหน้านี้ด้วย ไม่งั้นพอไม่เหลือบิลเครดิตให้กดเข้าไปก็แก้ไม่ได้อีกเลย
   const [isTypeDialogOpen, setIsTypeDialogOpen] = useState(false);
-  // ประเภทที่เพิ่งเปลี่ยนระหว่างเปิดหน้านี้ ใช้เลือกปลายทางของปุ่มย้อนกลับ
-  const changedTypeRef = useRef(undefined);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   useEffect(() => {
@@ -86,6 +89,27 @@ const OrganizationDetail = () => {
   useScrollTracking(scrollKey);
   useScrollRestoration(scrollKey, !isLoading);
 
+  // วางบิลกันเป็นรายเดือน แยกเดือนพร้อมยอดของเดือนนั้น เดือนเก่าสุดขึ้นก่อนเพราะควรเก็บก่อน
+  // แต่ในเดือนเดียวกันบิลล่าสุดอยู่บน
+  const monthGroups = [];
+  [...repairs]
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+    .forEach((repair) => {
+      const key = monthKey(repair.createdAt);
+      let group = monthGroups[monthGroups.length - 1];
+      if (group?.key !== key) {
+        group = {
+          key,
+          title: formatMonth(repair.createdAt),
+          repairs: [],
+          total: 0,
+        };
+        monthGroups.push(group);
+      }
+      group.repairs.unshift(repair);
+      group.total += Number(repair.totalPrice) || 0;
+    });
+
   const creditTotal = repairs.reduce(
     (sum, repair) => sum + (Number(repair.totalPrice) || 0),
     0,
@@ -97,15 +121,7 @@ const OrganizationDetail = () => {
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-2 px-5 pt-4">
         <button
-          // เปลี่ยนประเภทระหว่างเปิดหน้านี้ = กองเดิมไม่มีรายนี้แล้ว พาไปกองใหม่แทน
           onClick={() => {
-            if (changedTypeRef.current !== undefined) {
-              navigate(creditPathFor(changedTypeRef.current), {
-                replace: true,
-              });
-              return;
-            }
-
             if (window.history.length > 1) {
               navigate(-1);
               return;
@@ -125,22 +141,10 @@ const OrganizationDetail = () => {
         {/* รอข้อมูลก่อนค่อยขึ้นพร้อมกัน ไม่งั้นปุ่มพิมพ์แทรกเข้ามาทีหลังแล้วดันปุ่มอื่น */}
         {!isLoading && (
           <>
-            {repairs.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setIsPreviewOpen(true)}
-                aria-label="พิมพ์ใบวางบิล"
-                title="พิมพ์ใบวางบิล"
-                className="bg-surface/20 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full"
-              >
-                <Printer className="text-surface h-5 w-5" />
-              </button>
-            )}
-
             <Link
               to={`/organizations/${id}/history`}
-              aria-label="ประวัติย้อนหลัง"
-              title="ประวัติย้อนหลัง"
+              aria-label="ประวัติบิล"
+              title="ประวัติบิล"
               className="bg-surface/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
             >
               <History className="text-surface h-5 w-5" />
@@ -218,7 +222,7 @@ const OrganizationDetail = () => {
             <div className="border-status-credit/30 from-status-credit/10 to-status-credit/5 mt-4 rounded-lg border bg-gradient-to-r p-4">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
-                  ค้างชำระ {repairs.length} บิล
+                  เครดิต {repairs.length} บิล
                 </p>
                 <p className="text-status-credit text-2xl font-semibold md:text-[26px]">
                   {formatCurrency(creditTotal)}
@@ -226,39 +230,72 @@ const OrganizationDetail = () => {
               </div>
             </div>
 
+            {/* ปุ่มขอบ ไม่ใช่ปุ่มทึบ จะได้ไม่แย่งสายตาจากยอดเงินด้านบน */}
+            {repairs.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsPreviewOpen(true)}
+                className="bg-surface text-primary border-primary mt-4 flex h-[41px] w-full cursor-pointer items-center justify-center gap-2 rounded-[20px] border text-lg font-semibold md:text-xl"
+              >
+                <Printer className="h-5 w-5" />
+                พิมพ์ใบวางบิล
+              </button>
+            )}
+
             {repairs.length === 0 ? (
               <div className="flex flex-1 items-center justify-center">
                 <p className="text-subtle-light px-5 text-center text-xl text-balance md:text-[22px]">
-                  ไม่มีบิลค้างชำระ
+                  ไม่มีบิลเครดิต
                 </p>
               </div>
             ) : (
-              repairs.map((item) => (
-                <Link
-                  key={item.id}
-                  to={`/repairs/${item.id}`}
-                  className="mt-4 block w-full"
-                >
-                  <CarCard
-                    bg="credit"
-                    icon={
-                      isSaleRepair(item) ? (
-                        <OutlineCardIcon icon={ShoppingBag} color="#7c3aed" />
-                      ) : isNoVehicleRepair(item) ? (
-                        <OutlineCardIcon icon={WrenchOutline} color="#7c3aed" />
-                      ) : (
-                        <BrandIcons
-                          brand={item.vehicle?.vehicleModel?.brand}
-                          color="#7c3aed"
-                        />
-                      )
-                    }
-                    licensePlate={getRepairTitle(item)}
-                    brand={getRepairSubtitle(item)}
-                    note={formatDateShort(item.createdAt)}
-                    price={Number(item.totalPrice) || 0}
-                  />
-                </Link>
+              monthGroups.map((group) => (
+                <div key={group.key}>
+                  <div className="mt-4 flex items-center gap-2">
+                    <p className="text-subtle-dark text-lg font-semibold md:text-xl">
+                      {group.title}
+                    </p>
+                    <span className="text-subtle-light text-lg md:text-xl">
+                      ({group.repairs.length})
+                    </span>
+                    <div className="bg-subtle-light/40 h-px flex-1" />
+                    <p className="text-status-credit text-lg font-semibold md:text-xl">
+                      {formatCurrency(group.total)}
+                    </p>
+                  </div>
+                  {group.repairs.map((item) => (
+                    <Link
+                      key={item.id}
+                      to={`/repairs/${item.id}`}
+                      className="mt-4 block w-full"
+                    >
+                      <CarCard
+                        bg="credit"
+                        icon={
+                          isSaleRepair(item) ? (
+                            <OutlineCardIcon
+                              icon={ShoppingBag}
+                              color="#7c3aed"
+                            />
+                          ) : isNoVehicleRepair(item) ? (
+                            <OutlineCardIcon
+                              icon={WrenchOutline}
+                              color="#7c3aed"
+                            />
+                          ) : (
+                            <BrandIcons
+                              brand={item.vehicle?.vehicleModel?.brand}
+                              color="#7c3aed"
+                            />
+                          )
+                        }
+                        licensePlate={getRepairTitle(item)}
+                        brand={getCustomerBillSubtitle(item)}
+                        price={Number(item.totalPrice) || 0}
+                      />
+                    </Link>
+                  ))}
+                </div>
               ))
             )}
           </>
@@ -276,11 +313,8 @@ const OrganizationDetail = () => {
           isOpen={isTypeDialogOpen}
           onClose={() => setIsTypeDialogOpen(false)}
           customer={customer}
-          // การย้ายกองเกิดตอนกดย้อนกลับ
-          onSaved={(type) => {
-            changedTypeRef.current = type;
-            setCustomer((prev) => ({ ...prev, organizationType: type }));
-          }}
+          // ย้ายกองแล้วกองเดิมไม่มีรายนี้ พาไปแท็บของประเภทใหม่ทันที
+          onSaved={(type) => navigate(creditPathFor(type), { replace: true })}
         />
       )}
     </div>

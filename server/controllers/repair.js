@@ -493,7 +493,7 @@ exports.updateRepairStatus = async (req, res) => {
   });
 
   res.json({
-    message: "อัปเดตสถานะการซ่อมเรียบร้อยแล้ว",
+    message: "อัปเดตสถานะบิลเรียบร้อยแล้ว",
   });
 };
 

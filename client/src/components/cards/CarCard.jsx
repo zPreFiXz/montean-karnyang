@@ -6,6 +6,7 @@ const CarCard = ({
   icon,
   licensePlate,
   brand,
+  date,
   time,
   // ข้อความต่อท้ายแบบไม่มีหน่วยเวลา เช่น ชื่อลูกค้าที่ตรงกับคำค้น
   note,
@@ -49,6 +50,12 @@ const CarCard = ({
             </p>
             <p className="text-subtle-dark truncate text-base font-medium md:text-lg">
               {brand}
+              {date && (
+                <span className="text-subtle-dark">
+                  <span className="text-subtle-light"> | </span>
+                  <span>{date}</span>
+                </span>
+              )}
               {time && (
                 <span className="text-subtle-dark">
                   <span className="text-subtle-light"> | </span>

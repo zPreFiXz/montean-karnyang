@@ -1,4 +1,4 @@
-import { formatPlate } from "@/utils/formats";
+import { formatDateShort, formatPlate } from "@/utils/formats";
 // บิลมีสามแบบ: งานซ่อมผูกรถ / ขายอะไหล่หน้าร้าน (SALE) / งานบริการที่ไม่ผูกรถ
 export const isSaleRepair = (repair) => repair?.type === "SALE";
 
@@ -80,3 +80,12 @@ export const getRepairSubtitle = (repair) => {
   }
   return getDisplayBrand(repair?.vehicle?.vehicleModel);
 };
+
+// การ์ดในหน้าที่ทุกบิลเป็นของลูกค้ารายเดียว (หน้าลูกค้าเครดิต, ประวัติบิล) ไม่ต้องขึ้นชื่อลูกค้าซ้ำ
+export const getCustomerBillSubtitle = (repair) =>
+  [
+    repair?.vehicle && getDisplayBrand(repair.vehicle.vehicleModel),
+    formatDateShort(repair?.createdAt),
+  ]
+    .filter(Boolean)
+    .join(" | ");

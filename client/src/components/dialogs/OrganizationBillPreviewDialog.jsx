@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { peekOrganizationBillNo, printOrganizationBill } from "@/api/customer";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
+import { billPages } from "@/utils/receipt";
 
 const OrganizationBillPreviewDialog = ({
   customer,
@@ -51,6 +52,11 @@ const OrganizationBillPreviewDialog = ({
 
   // เรียงตามลำดับที่เปิดบิล ให้ตรงกับใบที่พิมพ์
   const ordered = [...repairs].sort((a, b) => a.id - b.id);
+  const pages = billPages(ordered);
+  const total = ordered.reduce(
+    (sum, repair) => sum + Number(repair.totalPrice || 0),
+    0,
+  );
 
   const handlePrint = async () => {
     if (isPrinting) return;
@@ -102,25 +108,38 @@ const OrganizationBillPreviewDialog = ({
           className="mx-5 mb-2 min-h-0 shrink overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]"
         >
           <div className="flex flex-col items-center gap-3">
-            <div
-              style={{
-                width: PAPER_WIDTH_MM * MM * scale,
-                height: PAPER_HEIGHT_MM * MM * scale,
-              }}
-              className="shrink-0"
-            >
+            {pages.map((pageRepairs, pageIndex) => (
               <div
-                ref={paperRef}
-                className="receipt-paper font-athiti h-[210mm] w-[148mm] origin-top-left overflow-hidden bg-white p-[10mm] text-[11pt] leading-tight text-black"
-                style={{ transform: `scale(${scale})` }}
+                key={pageIndex}
+                style={{
+                  width: PAPER_WIDTH_MM * MM * scale,
+                  height: PAPER_HEIGHT_MM * MM * scale,
+                }}
+                className="shrink-0"
               >
-                <CreditSummaryPaper
-                  customer={customer}
-                  repairs={ordered}
-                  billingNo={billingNo}
-                />
+                <div
+                  ref={pageIndex === 0 ? paperRef : undefined}
+                  className="receipt-paper font-athiti flex h-[210mm] w-[148mm] origin-top-left flex-col overflow-hidden bg-white p-[10mm] pb-[4mm] text-[11pt] leading-tight text-black"
+                  style={{ transform: `scale(${scale})` }}
+                >
+                  <CreditSummaryPaper
+                    customer={customer}
+                    repairs={pageRepairs}
+                    startIndex={pages
+                      .slice(0, pageIndex)
+                      .reduce((sum, page) => sum + page.length, 0)}
+                    total={total}
+                    // หลายแผ่นเขียนเลขต่อเนื่องแบบใบเสร็จ (ตรงกับฝั่งเซิร์ฟเวอร์)
+                    docNo={
+                      pages.length > 1 && billingNo
+                        ? `${billingNo}/${pageIndex + 1}`
+                        : billingNo
+                    }
+                    isLastPage={pageIndex === pages.length - 1}
+                  />
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
 

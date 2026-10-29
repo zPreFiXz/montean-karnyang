@@ -9,7 +9,12 @@ import { ChevronLeft, Wrench as WrenchOutline } from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
 import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import useRepairStore from "@/stores/useRepairStore";
-import { formatTime, formatDateShort } from "@/utils/formats";
+import {
+  formatTime,
+  formatDateShort,
+  formatMonth,
+  monthKey,
+} from "@/utils/formats";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { Success, Wrench, Paid, Credit } from "@/components/icons/Icons";
 import SearchBar from "@/components/forms/SearchBar";
@@ -207,6 +212,63 @@ const RepairList = () => {
 
   const statusIcon = getStatusIcon();
 
+  // ใบประเมินค้างได้นานหลายเดือน แบ่งตามเดือนเหมือนหน้าเครดิตและประวัติการใช้
+  const monthGroups = [];
+  if (status === "estimate") {
+    for (const repair of currentRepairs) {
+      const at = cardTimeOf(repair);
+      const key = monthKey(at);
+      const last = monthGroups[monthGroups.length - 1];
+      if (last?.key === key) last.repairs.push(repair);
+      else monthGroups.push({ key, title: formatMonth(at), repairs: [repair] });
+    }
+  }
+
+  const renderCard = (item) => (
+    <Link
+      key={item.id}
+      to={`/repairs/${item.id}`}
+      state={{ from: "repair-status", statusSlug: status }}
+      onClick={() => saveScrollPosition(scrollKey)}
+      className="bg-surface shadow-primary mt-4 block h-20 w-full rounded-lg"
+    >
+      <CarCard
+        bg={getStatusBg(item.status)}
+        icon={
+          isSaleRepair(item) ? (
+            <OutlineCardIcon
+              icon={ShoppingBag}
+              color={getStatusColor(item.status)}
+            />
+          ) : isNoVehicleRepair(item) ? (
+            <OutlineCardIcon
+              icon={WrenchOutline}
+              color={getStatusColor(item.status)}
+            />
+          ) : (
+            <BrandIcons
+              brand={item.vehicle?.vehicleModel?.brand}
+              color={getStatusColor(item.status)}
+            />
+          )
+        }
+        licensePlate={getRepairTitle(item)}
+        brand={getRepairSubtitle(item)}
+        time={
+          showsDate
+            ? undefined
+            : cardTimeOf(item) && formatTime(cardTimeOf(item))
+        }
+        note={
+          showsDate && cardTimeOf(item)
+            ? formatDateShort(cardTimeOf(item))
+            : undefined
+        }
+        price={Number(item.totalPrice) || 0}
+      />
+    </Link>
+  );
+
   // ต้องอยู่หลังฮุคทั้งหมด ไม่งั้นลำดับฮุคจะไม่เท่ากันทุกรอบ
   if (status === "credit") {
     return <Navigate to="/organizations?type=general" replace />;
@@ -230,13 +292,21 @@ const RepairList = () => {
         >
           <ChevronLeft className="text-surface" />
         </button>
-        <p className="text-surface min-w-0 flex-1 truncate text-2xl font-semibold md:text-[26px]">
-          {status === "estimate"
-            ? "ประเมินราคา"
-            : status === "credit"
-              ? "เครดิต"
-              : "สถานะการซ่อม"}
-        </p>
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <p className="text-surface truncate text-2xl font-semibold md:text-[26px]">
+            {status === "estimate"
+              ? "ใบประเมินราคา"
+              : status === "credit"
+                ? "เครดิต"
+                : "สถานะบิล"}
+          </p>
+          {/* แบบเดียวกับหัวหน้าประวัติรถ ไม่ขึ้นระหว่างโหลดกันเลข 0 แวบ */}
+          {status === "estimate" && !isLoading && currentRepairs.length > 0 && (
+            <span className="text-surface/70 shrink-0 text-xl font-medium md:text-[22px]">
+              ({currentRepairs.length})
+            </span>
+          )}
+        </div>
 
         {status !== "estimate" && status !== "credit" && (
           <Link
@@ -341,51 +411,23 @@ const RepairList = () => {
               {getEmptyMessage()}
             </p>
           </div>
-        ) : (
-          currentRepairs.map((item, index) => (
-            <Link
-              key={index}
-              to={`/repairs/${item.id}`}
-              state={{ from: "repair-status", statusSlug: status }}
-              onClick={() => saveScrollPosition(scrollKey)}
-              className="bg-surface shadow-primary mt-4 block h-20 w-full rounded-lg"
-            >
-              <CarCard
-                bg={getStatusBg(item.status)}
-                icon={
-                  isSaleRepair(item) ? (
-                    <OutlineCardIcon
-                      icon={ShoppingBag}
-                      color={getStatusColor(item.status)}
-                    />
-                  ) : isNoVehicleRepair(item) ? (
-                    <OutlineCardIcon
-                      icon={WrenchOutline}
-                      color={getStatusColor(item.status)}
-                    />
-                  ) : (
-                    <BrandIcons
-                      brand={item.vehicle?.vehicleModel?.brand}
-                      color={getStatusColor(item.status)}
-                    />
-                  )
-                }
-                licensePlate={getRepairTitle(item)}
-                brand={getRepairSubtitle(item)}
-                time={
-                  showsDate
-                    ? undefined
-                    : cardTimeOf(item) && formatTime(cardTimeOf(item))
-                }
-                note={
-                  showsDate && cardTimeOf(item)
-                    ? formatDateShort(cardTimeOf(item))
-                    : undefined
-                }
-                price={Number(item.totalPrice) || 0}
-              />
-            </Link>
+        ) : monthGroups.length > 0 ? (
+          monthGroups.map((group) => (
+            <div key={group.key}>
+              <div className="mt-4 flex items-center gap-2">
+                <p className="text-subtle-dark text-lg font-semibold md:text-xl">
+                  {group.title}
+                </p>
+                <span className="text-subtle-light text-lg md:text-xl">
+                  ({group.repairs.length})
+                </span>
+                <div className="bg-subtle-light/40 h-px flex-1" />
+              </div>
+              {group.repairs.map(renderCard)}
+            </div>
           ))
+        ) : (
+          currentRepairs.map(renderCard)
         )}
       </div>
     </div>

@@ -250,7 +250,7 @@ const Dashboard = () => {
       <div className="hidden w-full px-5 xl:block">
         <div className="bg-surface shadow-primary mt-6 mb-6 w-full rounded-lg p-4">
           <p className="text-subtle-dark text-[22px] font-medium">
-            สถานะการซ่อม
+            สถานะบิล
           </p>
 
           <div className="mt-4 grid grid-cols-3 gap-4">
@@ -440,7 +440,7 @@ const Dashboard = () => {
         </div>
         <div className="bg-surface -mt-4 flex min-h-[calc(100svh-206px)] w-full flex-col gap-4 rounded-tl-2xl rounded-tr-2xl px-5 pb-24 md:min-h-[calc(100svh-212px)]">
           <p className="text-normal pt-4 text-[22px] font-semibold md:text-2xl">
-            สถานะการซ่อม
+            สถานะบิล
           </p>
 
           <Link to="/repairs?status=in-progress">

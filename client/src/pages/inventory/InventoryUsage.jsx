@@ -19,7 +19,7 @@ import {
   getRepairTitle,
   getRepairSubtitle,
 } from "@/utils/repairDisplay";
-import { formatMonth, monthKey } from "@/utils/formats";
+import { formatDateShort, formatMonth, monthKey } from "@/utils/formats";
 import { getStatusInfo } from "@/constants/repairStatus";
 import {
   isDiscountItem,
@@ -260,6 +260,10 @@ const InventoryUsage = () => {
                       }
                       licensePlate={getRepairTitle(repair)}
                       brand={getRepairSubtitle(repair)}
+                      // ชื่อที่พิมพ์ในบิลสำคัญกว่า ใส่วันที่แล้วชื่อจะโดนตัด ช่วงเวลาดูจากหัวกลุ่มเดือนแทน
+                      date={
+                        isRenamable ? null : formatDateShort(repair.createdAt)
+                      }
                       note={detail}
                     />
                   </Link>

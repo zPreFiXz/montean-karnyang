@@ -319,7 +319,8 @@
   align-items: flex-start;
 }
 .receipt-qr {
-  --q: calc((100cqh - 44px) / 1.2345);
+  /* ขนาดเดียว 28 มม. ทั้งใบเสร็จและใบวางบิล หดได้เฉพาะตอนที่ว่างไม่พอจริงๆ (ต้องตรงกับ QR_SIZE ใน receiptHtml.js) */
+  --q: min(calc((100cqh - 44px) / 1.2345), 28mm);
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -626,7 +626,7 @@ const RepairDetail = () => {
             {repair.user && (
               <div className="px-5">
                 <p className="text-normal mb-2 text-[22px] font-semibold md:text-2xl">
-                  ผู้รับงานซ่อม
+                  ผู้เปิดบิล
                 </p>
                 <div className="rounded-lg bg-gray-50 p-4">
                   <p className="text-normal text-lg font-medium md:text-xl">
@@ -691,7 +691,17 @@ const RepairDetail = () => {
         <OrganizationTypeDialog
           {...orgPrompt.dialogProps({
             onResume: handleUpdateStatus,
-            onChanged: fetchRepairDetail,
+            onChanged: (type) => {
+              // เปิดมาจากแท็บลูกค้าทั่วไป ย้ายกองแล้วบิลนี้ไม่อยู่ในแท็บเดิม พาไปแท็บใหม่ทันที
+              if (
+                repair?.status === "CREDIT" &&
+                location.state?.statusSlug === "credit"
+              ) {
+                navigate(creditPathFor(type), { replace: true });
+                return;
+              }
+              fetchRepairDetail();
+            },
           })}
         />
       )}

@@ -154,13 +154,21 @@ exports.listOrganizationRepairs = async (req, res) => {
 
 // ใช้ร่วมกันระหว่างหน้าตัวอย่างกับตอนพิมพ์ ชุดบิลจะได้ตรงกัน
 const findBillRepairs = async (id, month) => {
-  // month (2026-09) = บิลของเดือนนั้นทุกสถานะ ไม่ส่ง = เฉพาะที่ยังค้างชำระ
+  // ใบวางบิลคือเอกสารเรียกเก็บเงิน มีเฉพาะบิลเครดิตที่ยังไม่จ่ายเสมอ
+  // month (2026-09) = เฉพาะของเดือนนั้น ไม่ส่ง = ทุกเดือน
   const monthKey = String(month || "");
   const isMonthly = /^\d{4}-\d{2}$/.test(monthKey);
 
   const customer = await prisma.customer.findUnique({
     where: { id: Number(id) },
-    select: { id: true, name: true, organizationType: true },
+    select: {
+      id: true,
+      name: true,
+      organizationType: true,
+      phoneNumber: true,
+      address: true,
+      taxId: true,
+    },
   });
 
   if (!customer) {
@@ -181,12 +189,8 @@ const findBillRepairs = async (id, month) => {
   const repairs = await prisma.repair.findMany({
     where: {
       customerId: Number(id),
-      ...(isMonthly
-        ? {
-            status: { notIn: ["ESTIMATE", "CANCELLED"] },
-            createdAt: monthRange,
-          }
-        : { status: "CREDIT" }),
+      status: "CREDIT",
+      ...(isMonthly ? { createdAt: monthRange } : {}),
     },
     select: {
       id: true,
@@ -207,10 +211,7 @@ const findBillRepairs = async (id, month) => {
   });
 
   if (repairs.length === 0) {
-    createError(
-      400,
-      isMonthly ? "ไม่มีบิลให้พิมพ์" : "ไม่มีบิลค้างชำระให้พิมพ์",
-    );
+    createError(400, "ไม่มีบิลเครดิตให้พิมพ์");
   }
 
   return { customer, repairs };

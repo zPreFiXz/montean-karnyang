@@ -4,6 +4,7 @@ import { createRequire } from "module";
 import { describe, expect, it } from "vitest";
 import {
   asIssued,
+  billPages,
   buildReceiptPages,
   receiptDocNo,
   receiptDocTitle,
@@ -71,4 +72,19 @@ describe("ตัวอย่างบนจอกับใบที่พิม�
       expect(c.discountItems).toEqual(s.discountItems);
     }
   });
+});
+
+// ใบวางบิลแบ่งแผ่นตามจำนวนบิล แผ่นสุดท้ายรับได้น้อยกว่าเพราะต้องมีที่ให้ QR
+describe("ใบวางบิลแบ่งแผ่นตรงกันทั้งสองฝั่ง", () => {
+  const ids = (pages) => pages.map((page) => page.map((bill) => bill.id));
+  for (const count of [0, 1, 9, 10, 18, 19, 27, 28, 37]) {
+    it(`${count} บิล`, () => {
+      const repairs = Array.from({ length: count }, (_, i) => ({ id: i + 1 }));
+      const client = billPages(repairs);
+      expect(ids(server.billPages(repairs))).toEqual(ids(client));
+      expect(client.flat()).toHaveLength(count);
+      expect(client.at(-1).length).toBeLessThanOrEqual(9);
+      for (const page of client) expect(page.length).toBeLessThanOrEqual(18);
+    });
+  }
 });

@@ -49,9 +49,10 @@ const ReceiptPaper = ({
     0,
   );
   const hasDiscount = isLastPage && discountTotal !== 0;
+  // แถวสรุปที่วาดจริง: มีส่วนลด = รวมเป็นเงิน + แถวส่วนลด + ยอดรวม (ตรงกับ summaryLinesOf)
   const summaryRows = isLastPage
     ? hasDiscount
-      ? discountItems.length + 1
+      ? discountItems.length + 2
       : 1
     : 0;
   const usedLines = items.reduce(

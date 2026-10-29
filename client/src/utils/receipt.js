@@ -240,6 +240,24 @@ const paginateRows = (rows, linesOf, maxLines = MIN_ROWS) => {
 // QR ท้ายแผ่นสุดท้ายกินที่ แผ่นที่รายการเต็มจึงยกรายการท้ายไปแผ่นใหม่
 // ค่าวัดจากหน้าเอกสารจริงใน Chrome
 const QR_PAGE_LINES = 11;
+// ใบวางบิลหนึ่งบิลหนึ่งบรรทัด แผ่นสุดท้ายต้องเหลือที่ให้ยอดรวม ช่องเซ็น และ QR 28 มม.
+// ค่าวัดจากหน้าเอกสารจริงใน Chrome ต้องตรงกับ billPages ใน server/utils/receiptHtml.js
+const BILL_PAGE_ROWS = 18;
+const BILL_LAST_PAGE_ROWS = 9;
+export const billPages = (repairs) => {
+  const pages = [];
+  for (let i = 0; i < repairs.length; i += BILL_PAGE_ROWS) {
+    pages.push(repairs.slice(i, i + BILL_PAGE_ROWS));
+  }
+  if (pages.length === 0) return [[]];
+  // แผ่นสุดท้ายเกินที่ QR รับได้ แผ่นนี้รับได้ถึง BILL_PAGE_ROWS อยู่แล้ว จึงยกไปแค่บิลสุดท้ายใบเดียว
+  const last = pages[pages.length - 1];
+  if (last.length > BILL_LAST_PAGE_ROWS) {
+    pages[pages.length - 1] = last.slice(0, -1);
+    pages.push(last.slice(-1));
+  }
+  return pages;
+};
 const DELIVERY_PAGE_LINES = 14;
 const summaryLinesOf = (discountCount) =>
   discountCount ? discountCount + 2 : 1;

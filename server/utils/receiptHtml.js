@@ -12,6 +12,9 @@ const PROMPTPAY_LOGO_SRC = `data:image/jpeg;base64,${fs
   .readFileSync(path.join(__dirname, "..", "assets", "promptpay-logo.jpg"))
   .toString("base64")}`;
 
+// QR รับเงินท้ายแผ่น ใช้ทั้งใบเสร็จและใบวางบิล (ขนาดดู .qr-area ใน CSS ด้านล่าง)
+const PAYMENT_QR_HTML = `<div class="qr-area"><div class="qr"><img class="pp" src="${PROMPTPAY_LOGO_SRC}" alt="พร้อมเพย์" /><img class="code" src="${PAYMENT_QR_SRC}" alt="QR รับเงิน" /><p class="name">${PAYMENT_QR_NAME}</p><p class="hint">สแกนเพื่อชำระเงิน</p></div></div>`;
+
 // ฝังฟอนต์แทนโหลดจาก Google Fonts เพราะเครื่องที่ร้านอาจไม่มีเน็ตตอนสั่งพิมพ์
 const fontFace = (weight, kind) => {
   const file = path.join(
@@ -87,6 +90,26 @@ const paginateRows = (rows, linesOf, maxLines = MIN_ROWS) => {
 // แผ่นที่รายการเต็มแล้วไม่มีที่ให้ QR จึงยกรายการท้ายไปแผ่นใหม่
 // ค่าวัดจากหน้าเอกสารจริงใน Chrome
 const QR_PAGE_LINES = 11;
+// QR ขนาดเดียวทั้งใบเสร็จและใบวางบิล พอดีแผ่นสุดท้ายของใบเสร็จที่แน่นที่สุด (QR_PAGE_LINES บรรทัดรวมแถวสรุป)
+// ต้องตรงกับ .receipt-qr ใน client/src/index.css
+const QR_SIZE = "28mm";
+// ใบวางบิลหนึ่งบิลหนึ่งบรรทัด แผ่นสุดท้ายต้องเหลือที่ให้ยอดรวม ช่องเซ็น และ QR ต้องตรงกับ billPages ฝั่งหน้าเว็บ
+const BILL_PAGE_ROWS = 18;
+const BILL_LAST_PAGE_ROWS = 9;
+const billPages = (repairs) => {
+  const pages = [];
+  for (let i = 0; i < repairs.length; i += BILL_PAGE_ROWS) {
+    pages.push(repairs.slice(i, i + BILL_PAGE_ROWS));
+  }
+  if (pages.length === 0) return [[]];
+  // แผ่นสุดท้ายเกินที่ QR รับได้ แผ่นนี้รับได้ถึง BILL_PAGE_ROWS อยู่แล้ว จึงยกไปแค่บิลสุดท้ายใบเดียว
+  const last = pages[pages.length - 1];
+  if (last.length > BILL_LAST_PAGE_ROWS) {
+    pages[pages.length - 1] = last.slice(0, -1);
+    pages.push(last.slice(-1));
+  }
+  return pages;
+};
 const DELIVERY_PAGE_LINES = 14;
 const summaryLinesOf = (discountCount) =>
   discountCount ? discountCount + 2 : 1;
@@ -307,7 +330,8 @@ const receiptPagesHtml = (
     receiptPages(repair, { showBrand });
   const hasDiscount = discountTotal !== 0;
 
-  const summaryRows = discountItems.length ? discountItems.length + 1 : 1;
+  // แถวสรุปที่วาดจริง: มีส่วนลด = รวมเป็นเงิน + แถวส่วนลด + ยอดรวม (ตรงกับ summaryLinesOf)
+  const summaryRows = discountItems.length ? discountItems.length + 2 : 1;
   // QR มีเฉพาะใบเสร็จ ใบเสนอราคายังไม่ถึงตอนจ่าย ใบส่งของลูกค้าจ่ายทีหลังตามใบวางบิล
   const showPaymentQr =
     !repair.isCancelled && !["ESTIMATE", "CREDIT"].includes(repair.status);
@@ -455,7 +479,7 @@ ${customerFields}
   </div>`
       : "";
 
-  const paymentQrHtml = `<div class="qr-area"><div class="qr"><img class="pp" src="${PROMPTPAY_LOGO_SRC}" alt="พร้อมเพย์" /><img class="code" src="${PAYMENT_QR_SRC}" alt="QR รับเงิน" /><p class="name">${PAYMENT_QR_NAME}</p><p class="hint">สแกนเพื่อชำระเงิน</p></div></div>`;
+  const paymentQrHtml = PAYMENT_QR_HTML;
 
   // คืนเฉพาะแผ่นกระดาษ เพื่อให้เอาไปต่อกับใบอื่นในเอกสารเดียวได้
   return pages.map(pageHtml).join("");
@@ -535,19 +559,21 @@ const RECEIPT_STYLES = `
   .bank-field { display: flex; align-items: flex-end; gap: 4px; flex: 1; white-space: nowrap; }
   .bank-field .dotted { flex: 1; }
   /* กลุ่ม QR เริ่มใต้ช่องลงชื่อ 8 จุด แล้วขยายเต็มที่ว่างที่เหลือจนถึงขอบล่าง บิลสั้นได้ QR ใหญ่ บิลแน่นได้เล็กลง
-     แสดงครบชุดเสมอ (โลโก้ QR ชื่อร้าน บรรทัดสแกน) แผ่นสุดท้ายรับรายการได้ตาม QR_PAGE_LINES ให้ QR ไม่เล็กกว่า 22 มม.
+     แสดงครบชุดเสมอ (โลโก้ QR ชื่อร้าน บรรทัดสแกน) แผ่นสุดท้ายรับรายการได้ตาม QR_PAGE_LINES ให้ QR ได้ขนาด QR_SIZE เต็มเสมอ
      (บิล 10 รายการไม่มีส่วนลดยังจบในแผ่นเดียว)
      ขนาดคิดจากความสูงที่เหลือจริง (cqh): โลโก้สูง 0.2345 เท่าของ QR บวกระยะใต้โลโก้ ชื่อร้าน บรรทัดสแกน รวม 43px
      ต้องตรงกับ .receipt-qr ใน client/src/index.css */
-  .receipt-fill { display: flex; flex-direction: column; }
+  /* ขอบล่างแคบกว่าด้านอื่น เอาที่ให้ QR เครื่องพิมพ์ส่วนใหญ่พิมพ์ได้ถึง 4 มม. จากขอบ (ต้องตรงกับ pb-[4mm] ฝั่งหน้าเว็บ) */
+  .receipt-fill { display: flex; flex-direction: column; padding-bottom: 4mm; }
   .receipt-fill .page-body { flex: none; }
   .qr-area { flex: 1 1 0; min-height: 0; padding-top: 8px; container-type: size; display: flex; justify-content: center; align-items: flex-start; }
-  .qr { --q: calc((100cqh - 44px) / 1.2345); display: flex; flex-direction: column; align-items: center; white-space: nowrap; line-height: 1.25; }
+  .qr { --q: min(calc((100cqh - 44px) / 1.2345), ${QR_SIZE}); display: flex; flex-direction: column; align-items: center; white-space: nowrap; line-height: 1.25; }
   .qr .pp { display: block; width: calc(var(--q) * 0.7); height: auto; margin-bottom: 4px; }
   .qr .code { display: block; width: var(--q); height: var(--q); }
   .qr .name { margin: 2px 0 0; font-size: 11pt; font-weight: 600; }
   .qr .hint { margin: 0; font-size: 11pt; }
   .sign { display: flex; gap: 16px; margin-top: 22px; }
+  td.one-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sign p { display: flex; align-items: flex-end; gap: 4px; flex: 1; margin: 0; }
 `;
 
@@ -830,58 +856,100 @@ const repairTitle = (repair) => {
 };
 
 const buildOrganizationBillHtml = (customer, repairs, billingNo) => {
+  // วันที่วางบิลคือวันที่พิมพ์ ต่างจากใบเสร็จที่ใช้วันเปิดบิล
+  const billedAt = new Date();
   const total = repairs.reduce(
     (sum, repair) => sum + Number(repair.totalPrice || 0),
     0,
   );
+  const pages = billPages(repairs);
 
-  const rows = repairs
-    .map(
-      (repair) => `<tr>
+  const rowHtml = (repair, index) => `<tr>
+        <td class="c">${index + 1}</td>
         <td class="c" style="white-space:nowrap">${escapeHtml(repair.deliveryNo || repair.receiptNo || String(repair.id))}</td>
-        <td class="c">${escapeHtml(formatThaiDate(repair.createdAt))}</td>
-        <td>${escapeHtml(repairTitle(repair))}</td>
+        <td class="c" style="white-space:nowrap">${escapeHtml(formatThaiDate(repair.createdAt))}</td>
+        <td class="one-line">${escapeHtml(repairTitle(repair))}</td>
         <td class="r">${formatMoney(Number(repair.totalPrice || 0))}</td>
-      </tr>`,
-    )
-    .join("");
+      </tr>`;
 
-  const summary = `<div class="receipt-paper">
+  let rowNo = 0;
+  const pageHtml = (pageRepairs, pageIndex) => {
+    const isLastPage = pageIndex === pages.length - 1;
+    // หลายแผ่นเขียนเลขต่อเนื่องแบบใบเสร็จ BL-6910-0001/1 BL-6910-0001/2
+    const docNo =
+      pages.length > 1
+        ? `${billingNo || ""}/${pageIndex + 1}`
+        : billingNo || "";
+    const rows = pageRepairs.map((repair) => rowHtml(repair, rowNo++)).join("");
+
+    // ลูกค้าจ่ายตามใบวางบิล QR จึงอยู่ที่นี่ ไม่ใช่ใบส่งของ
+    return `<div class="receipt-paper receipt-fill"><div class="page-body">
   <div class="head">
     <span></span>
     <div class="title">
       <div class="doc">ใบวางบิล</div>
       <div class="shop">${SHOP.name}</div>
     </div>
-    <p class="side">เลขที่<span class="dotted" style="min-width:42px;text-align:center;font-weight:600">${escapeHtml(billingNo || "")}</span></p>
+    <p class="side">เลขที่<span class="dotted" style="min-width:42px;text-align:center;font-weight:600">${escapeHtml(docNo)}</span></p>
   </div>
 
   <p class="center" style="margin:2px 0 0">${SHOP.address}</p>
   <p class="center" style="margin:0">${SHOP.contact}</p>
 
-  <p style="margin:12px 0 0;display:flex;align-items:flex-end;gap:6px">ชื่อลูกค้า<span class="dotted" style="flex:1;text-align:center;font-weight:600">${escapeHtml(customer?.name || "")}</span><span style="white-space:nowrap">จำนวน ${repairs.length} บิล</span></p>
+  <div class="date-row">
+    <p style="margin:0;display:flex;align-items:flex-end;gap:4px">วันที่<span class="dotted v">${billedAt.getDate()}</span></p>
+    <p style="margin:0;display:flex;align-items:flex-end;gap:4px">เดือน<span class="dotted v" style="min-width:92px">${escapeHtml(billedAt.toLocaleDateString("th-TH", { month: "long" }))}</span></p>
+    <p style="margin:0;display:flex;align-items:flex-end;gap:4px">พ.ศ.<span class="dotted v">${billedAt.getFullYear() + 543}</span></p>
+  </div>
+
+  <div class="fields">
+    <p>ชื่อลูกค้า<span class="dotted v cut">${escapeHtml(customer?.name || "")}</span></p>
+    <p>ที่อยู่<span class="dotted v cut">${escapeHtml(customer?.address || "")}</span></p>
+    <p class="halves"><span class="half">เลขประจำตัวผู้เสียภาษีอากร<span class="dotted v">${escapeHtml(customer?.taxId || "")}</span></span><span class="half">เบอร์โทรศัพท์<span class="dotted v">${escapeHtml(formatPhone(customer?.phoneNumber))}</span></span></p>
+    <p>วันนัดชำระ<span class="dotted v"></span></p>
+  </div>
 
   <table style="margin-top:8px">
     <thead>
       <tr>
-        <th style="width:112px">เลขที่</th>
-        <th style="width:86px">วันที่</th>
-        <th>รายการ</th>
+        <th style="width:40px">ลำดับ</th>
+        <th style="width:112px">เลขที่ใบส่งของ</th>
+        <th style="width:100px">วันที่</th>
+        <th>รายละเอียด</th>
         <th style="width:92px">จำนวนเงิน</th>
       </tr>
     </thead>
     <tbody>
       ${rows}
-      <tr class="sum">
-        <td colspan="3">จำนวนเงินรวมทั้งสิ้น <span style="font-weight:600">${escapeHtml(bahtText(total))}</span></td>
+      ${
+        isLastPage
+          ? `<tr class="sum">
+        <td colspan="4">จำนวนเงินรวมทั้งสิ้น <span style="font-weight:600">${escapeHtml(bahtText(total))}</span></td>
         <td class="r" style="font-weight:600;font-size:13pt">${formatMoney(total)}</td>
-      </tr>
+      </tr>`
+          : ""
+      }
     </tbody>
   </table>
 
-</div>`;
+  ${
+    isLastPage
+      ? `<div class="sign">
+    <p>ลงชื่อ<span class="dotted" style="flex:1"></span>ผู้รับวางบิล</p>
+    <p>ลงชื่อ<span class="dotted" style="flex:1"></span>ผู้วางบิล</p>
+  </div>`
+      : ""
+  }
 
-  return receiptDocument(`ใบวางบิล ${customer?.name || ""}`.trim(), summary);
+  </div>
+  ${isLastPage ? PAYMENT_QR_HTML : ""}
+</div>`;
+  };
+
+  return receiptDocument(
+    `ใบวางบิล ${customer?.name || ""}`.trim(),
+    pages.map(pageHtml).join(""),
+  );
 };
 
 module.exports = {
@@ -889,5 +957,5 @@ module.exports = {
   buildJobSheetHtml,
   buildOrganizationBillHtml,
   // ใช้ในเทสต์เทียบกับฝั่งหน้าเว็บเท่านั้น
-  _test: { asIssued, receiptPages, receiptDocNo, receiptDocTitle },
+  _test: { asIssued, receiptPages, receiptDocNo, receiptDocTitle, billPages },
 };

@@ -43,7 +43,7 @@ const TABS = [
   {
     id: "general",
     label: "ลูกค้าทั่วไป",
-    title: "รายการบิลค้างชำระ",
+    title: "รายการบิลเครดิต",
     icon: CircleUserRound,
   },
 ];
@@ -93,7 +93,7 @@ const OrganizationList = () => {
     (item) => item.organizationType === TYPE_OF_TAB[tab],
   );
 
-  // แยกตามเดือนของบิลค้างที่เก่าสุด เดือนเก่าสุดขึ้นก่อน
+  // แยกตามเดือนของบิลเครดิตที่เก่าสุด เดือนเก่าสุดขึ้นก่อน
   const unpaidByMonth = new Map();
   visibleOrganizations
     .filter((item) => item.creditCount > 0)
@@ -111,7 +111,7 @@ const OrganizationList = () => {
   const organizationGroups = [
     ...unpaidByMonth.values(),
     {
-      name: "ไม่มีบิลค้าง",
+      name: "ไม่มีบิลเครดิต",
       items: visibleOrganizations.filter((item) => !(item.creditCount > 0)),
     },
   ].filter((group) => group.items.length > 0);
@@ -121,7 +121,21 @@ const OrganizationList = () => {
       (repair) =>
         repair.status === "CREDIT" && !repair.customer?.organizationType,
     )
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+  // แยกเดือนแบบเดียวกับแท็บหน่วยงานและร้านค้า บิลเก่าสุดขึ้นก่อนเพราะควรตามเก็บก่อน
+  const generalGroups = [];
+  for (const repair of generalRepairs) {
+    const key = monthKey(repair.createdAt);
+    const last = generalGroups[generalGroups.length - 1];
+    if (last?.key === key) last.items.push(repair);
+    else
+      generalGroups.push({
+        key,
+        name: formatMonth(repair.createdAt),
+        items: [repair],
+      });
+  }
 
   const isGeneral = tab === "general";
   const activeTab = TABS.find((item) => item.id === tab);
@@ -133,7 +147,7 @@ const OrganizationList = () => {
     : visibleOrganizations.length === 0;
 
   const emptyMessage = isGeneral
-    ? "ไม่มีบิลค้างชำระ"
+    ? "ไม่มีบิลเครดิต"
     : tab === "shop"
       ? "ไม่มีร้านค้า"
       : "ไม่มีหน่วยงาน";
@@ -142,11 +156,8 @@ const OrganizationList = () => {
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-2 px-5 pt-4">
         <button
-          onClick={() =>
-            window.history.length > 1
-              ? navigate(-1)
-              : navigate("/repairs?status=in-progress")
-          }
+          // ไม่ถอยประวัติ เพราะอาจถอยไปหน้าลูกค้าหรือบิลที่เพิ่งย้ายกองออกไป
+          onClick={() => navigate("/repairs?status=in-progress")}
           aria-label="ย้อนกลับ"
           className="bg-surface/20 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full"
         >
@@ -202,37 +213,50 @@ const OrganizationList = () => {
             </p>
           </div>
         ) : isGeneral ? (
-          generalRepairs.map((item) => (
-            <Link
-              key={item.id}
-              to={`/repairs/${item.id}`}
-              state={{ from: "repair-status", statusSlug: "credit" }}
-              className="mt-4 block w-full"
-            >
-              <CarCard
-                bg="credit"
-                icon={
-                  isSaleRepair(item) ? (
-                    <OutlineCardIcon icon={ShoppingBag} color="#7c3aed" />
-                  ) : isNoVehicleRepair(item) ? (
-                    <OutlineCardIcon icon={WrenchOutline} color="#7c3aed" />
-                  ) : (
-                    <BrandIcons
-                      brand={item.vehicle?.vehicleModel?.brand}
-                      color="#7c3aed"
-                    />
-                  )
-                }
-                licensePlate={item.customer?.name || getRepairTitle(item)}
-                brand={
-                  item.customer?.name
-                    ? getRepairTitle(item)
-                    : getRepairSubtitle(item)
-                }
-                note={formatDateShort(item.createdAt)}
-                price={Number(item.totalPrice) || 0}
-              />
-            </Link>
+          generalGroups.map((group) => (
+            <div key={group.key}>
+              <div className="mt-4 flex items-center gap-2">
+                <p className="text-subtle-dark text-lg font-semibold md:text-xl">
+                  {group.name}
+                </p>
+                <span className="text-subtle-light text-lg md:text-xl">
+                  ({group.items.length})
+                </span>
+                <div className="bg-subtle-light/40 h-px flex-1" />
+              </div>
+              {group.items.map((item) => (
+                <Link
+                  key={item.id}
+                  to={`/repairs/${item.id}`}
+                  state={{ from: "repair-status", statusSlug: "credit" }}
+                  className="mt-4 block w-full"
+                >
+                  <CarCard
+                    bg="credit"
+                    icon={
+                      isSaleRepair(item) ? (
+                        <OutlineCardIcon icon={ShoppingBag} color="#7c3aed" />
+                      ) : isNoVehicleRepair(item) ? (
+                        <OutlineCardIcon icon={WrenchOutline} color="#7c3aed" />
+                      ) : (
+                        <BrandIcons
+                          brand={item.vehicle?.vehicleModel?.brand}
+                          color="#7c3aed"
+                        />
+                      )
+                    }
+                    licensePlate={item.customer?.name || getRepairTitle(item)}
+                    brand={
+                      item.customer?.name
+                        ? getRepairTitle(item)
+                        : getRepairSubtitle(item)
+                    }
+                    note={formatDateShort(item.createdAt)}
+                    price={Number(item.totalPrice) || 0}
+                  />
+                </Link>
+              ))}
+            </div>
           ))
         ) : (
           organizationGroups.map((group) => (

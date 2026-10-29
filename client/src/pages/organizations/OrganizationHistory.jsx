@@ -17,15 +17,11 @@ import {
   isSaleRepair,
   isNoVehicleRepair,
   getRepairTitle,
-  getRepairSubtitle,
+  getCustomerBillSubtitle,
 } from "@/utils/repairDisplay";
+import { getStatusInfo } from "@/constants/repairStatus";
 import { organizationIcon, organizationLabel } from "@/constants/organizations";
-import {
-  formatCurrency,
-  formatDateShort,
-  formatMonth,
-  monthKey,
-} from "@/utils/formats";
+import { formatCurrency, formatMonth, monthKey } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 import {
   useScrollRestoration,
@@ -57,6 +53,13 @@ const statusColorOf = (status) => {
       return "#7c3aed";
   }
 };
+
+// ลำดับบรรทัดในกล่องสรุปของเดือน เครดิตขึ้นก่อนเพราะเป็นยอดที่ยังต้องเก็บ
+const SUMMARY_STATUSES = ["CREDIT", "IN_PROGRESS", "COMPLETED", "PAID"];
+
+// สีการ์ดเดือนตามสถานะที่ยังต้องตามมากที่สุด เดือนที่จ่ายครบทั้งหมดจึงเป็นสีชำระแล้ว
+const monthStatusInfo = (statuses) =>
+  getStatusInfo(SUMMARY_STATUSES.find((status) => statuses.has(status)));
 
 // ไม่มี month ใน URL = รายชื่อเดือน, มี month = บิลของเดือนนั้น
 // อยู่ใน URL เพราะกดย้อนกลับต้องถอยจากเดือนกลับไปรายชื่อเดือนได้
@@ -101,12 +104,19 @@ const OrganizationHistory = () => {
   repairs.forEach((repair) => {
     const key = monthKey(repair.createdAt);
     if (!byKey.has(key)) {
-      const group = { key, date: repair.createdAt, count: 0, total: 0 };
+      const group = {
+        key,
+        date: repair.createdAt,
+        count: 0,
+        statuses: new Set(),
+        total: 0,
+      };
       byKey.set(key, group);
       months.push(group);
     }
     const group = byKey.get(key);
     group.count += 1;
+    group.statuses.add(repair.status);
     group.total += Number(repair.totalPrice) || 0;
   });
   months.sort((a, b) => b.key.localeCompare(a.key));
@@ -114,10 +124,31 @@ const OrganizationHistory = () => {
   const monthRepairs = month
     ? repairs.filter((repair) => monthKey(repair.createdAt) === month)
     : [];
+  // ใบวางบิลพิมพ์เฉพาะบิลที่ยังไม่จ่าย (ตรงกับที่เซิร์ฟเวอร์ดึงไปพิมพ์)
+  const creditRepairs = monthRepairs.filter(
+    (repair) => repair.status === "CREDIT",
+  );
+  const monthBox = monthStatusInfo(
+    new Set(monthRepairs.map((repair) => repair.status)),
+  );
   const monthTotal = monthRepairs.reduce(
     (sum, repair) => sum + (Number(repair.totalPrice) || 0),
     0,
   );
+  // แยกยอดตามสถานะ เดือนเดียวกันมีทั้งบิลที่จ่ายแล้วและยังเป็นเครดิต
+  const summaryRows = SUMMARY_STATUSES.map((status) => {
+    const items = monthRepairs.filter((repair) => repair.status === status);
+    return {
+      status,
+      label: getStatusInfo(status).text,
+      color: getStatusInfo(status).color,
+      count: items.length,
+      total: items.reduce(
+        (sum, repair) => sum + (Number(repair.totalPrice) || 0),
+        0,
+      ),
+    };
+  }).filter((row) => row.count > 0);
 
   const monthLabel = month
     ? formatMonth(monthRepairs[0]?.date || `${month}-01`)
@@ -140,20 +171,8 @@ const OrganizationHistory = () => {
           <ChevronLeft className="text-surface" />
         </button>
         <p className="text-surface min-w-0 flex-1 truncate text-2xl font-semibold md:text-[26px]">
-          {month ? monthLabel : "ประวัติย้อนหลัง"}
+          {month ? monthLabel : "ประวัติบิล"}
         </p>
-
-        {!isLoading && month && monthRepairs.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setIsPreviewOpen(true)}
-            aria-label="พิมพ์ใบวางบิล"
-            title="พิมพ์ใบวางบิล"
-            className="bg-surface/20 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full"
-          >
-            <Printer className="text-surface h-5 w-5" />
-          </button>
-        )}
       </div>
 
       <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl px-5 pb-28 xl:pb-4">
@@ -180,16 +199,60 @@ const OrganizationHistory = () => {
             )}
 
             {month && monthRepairs.length > 0 && (
-              <div className="border-status-credit/30 from-status-credit/10 to-status-credit/5 mt-4 rounded-lg border bg-gradient-to-r p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
-                    ทั้งหมด {monthRepairs.length} บิล
-                  </p>
-                  <p className="text-status-credit text-2xl leading-tight font-semibold md:text-[26px]">
-                    {formatCurrency(monthTotal)}
-                  </p>
+              <>
+                {/* กล่องแบบเดียวกับหน้าลูกค้าเครดิต สีตามสถานะที่ยังต้องตามมากที่สุดของเดือน */}
+                <div
+                  className={`${monthBox.softBorder} ${monthBox.softBg} mt-4 rounded-lg border bg-gradient-to-r p-4`}
+                >
+                  {/* มีสถานะเดียว บรรทัดแยกจะซ้ำกับบรรทัดรวม จึงเหลือบรรทัดรวมบรรทัดเดียว */}
+                  {summaryRows.length > 1 && (
+                    <div className="mb-3 space-y-2 border-b border-black/10 pb-3">
+                      {summaryRows.map((row) => (
+                        <div
+                          key={row.status}
+                          className="flex items-center justify-between gap-2"
+                        >
+                          <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                            {row.label} {row.count} บิล
+                          </p>
+                          <p
+                            className={`text-lg font-semibold md:text-xl ${row.color}`}
+                          >
+                            {formatCurrency(row.total)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
+                      {summaryRows.length === 1
+                        ? `${summaryRows[0].label} ${monthRepairs.length} บิล`
+                        : `รวม ${monthRepairs.length} บิล`}
+                    </p>
+                    <p
+                      className={`text-2xl font-semibold md:text-[26px] ${
+                        summaryRows.length === 1
+                          ? summaryRows[0].color
+                          : "text-normal"
+                      }`}
+                    >
+                      {formatCurrency(monthTotal)}
+                    </p>
+                  </div>
                 </div>
-              </div>
+
+                {creditRepairs.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsPreviewOpen(true)}
+                    className="bg-surface text-primary border-primary mt-4 flex h-[41px] w-full cursor-pointer items-center justify-center gap-2 rounded-[20px] border text-lg font-semibold md:text-xl"
+                  >
+                    <Printer className="h-5 w-5" />
+                    พิมพ์ใบวางบิล
+                  </button>
+                )}
+              </>
             )}
 
             {month ? (
@@ -227,8 +290,7 @@ const OrganizationHistory = () => {
                         )
                       }
                       licensePlate={getRepairTitle(item)}
-                      brand={getRepairSubtitle(item)}
-                      note={formatDateShort(item.createdAt)}
+                      brand={getCustomerBillSubtitle(item)}
                       price={Number(item.totalPrice) || 0}
                     />
                   </Link>
@@ -237,7 +299,7 @@ const OrganizationHistory = () => {
             ) : months.length === 0 ? (
               <div className="flex flex-1 items-center justify-center">
                 <p className="text-subtle-light px-5 text-center text-xl text-balance md:text-[22px]">
-                  ไม่มีประวัติย้อนหลัง
+                  ไม่มีประวัติบิล
                 </p>
               </div>
             ) : (
@@ -247,18 +309,24 @@ const OrganizationHistory = () => {
                   to={`/organizations/${id}/history?month=${group.key}`}
                   className="bg-surface shadow-primary mt-4 flex h-20 w-full items-center gap-2 rounded-lg px-4"
                 >
-                  <div className="bg-status-credit flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-full">
+                  <div
+                    className={`${monthStatusInfo(group.statuses).bg} flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-full`}
+                  >
                     <CalendarDays className="text-surface h-6 w-6" />
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col">
-                    <p className="text-status-credit truncate text-lg leading-tight font-semibold md:text-xl">
+                    <p
+                      className={`${monthStatusInfo(group.statuses).color} truncate text-lg leading-tight font-semibold md:text-xl`}
+                    >
                       {formatMonth(group.date)}
                     </p>
                     <p className="text-subtle-dark truncate text-base leading-tight font-medium md:text-lg">
                       {group.count} บิล
                     </p>
                   </div>
-                  <p className="text-status-credit shrink-0 text-[22px] font-semibold md:text-2xl">
+                  <p
+                    className={`${monthStatusInfo(group.statuses).color} shrink-0 text-[22px] font-semibold md:text-2xl`}
+                  >
                     {formatCurrency(group.total)}
                   </p>
                 </Link>
@@ -269,7 +337,7 @@ const OrganizationHistory = () => {
       </div>
       <OrganizationBillPreviewDialog
         customer={customer}
-        repairs={monthRepairs}
+        repairs={creditRepairs}
         month={month}
         open={isPreviewOpen}
         onOpenChange={setIsPreviewOpen}

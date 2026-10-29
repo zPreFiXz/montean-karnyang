@@ -76,7 +76,7 @@ const RepairDetailPayment = ({
         )}
         <div className="flex justify-between">
           <p className="text-subtle-dark text-lg font-medium md:text-xl">
-            สถานะการซ่อม:
+            สถานะบิล:
           </p>
           <p className={`text-lg font-semibold md:text-xl ${statusInfo.color}`}>
             {statusInfo.text}

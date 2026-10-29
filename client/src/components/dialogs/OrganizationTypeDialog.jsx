@@ -30,6 +30,11 @@ const OrganizationTypeDialog = ({
     if (isOpen) setSelected(customer?.organizationType || null);
   }, [isOpen, customer?.organizationType]);
 
+  // ยังเป็นประเภทเดิม = ไม่มีอะไรให้บันทึก ไม่งั้นจะขึ้นว่าเปลี่ยนเรียบร้อยทั้งที่ไม่ได้เปลี่ยน
+  // ยกเว้นตอนถามก่อนลงเครดิต (silent) ตอบว่าลูกค้าทั่วไปซึ่งเท่าค่าเดิมก็ต้องกดต่อได้
+  const isUnchanged =
+    !silent && selected === (customer?.organizationType || null);
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -122,7 +127,7 @@ const OrganizationTypeDialog = ({
             <FormButton
               label="บันทึก"
               isLoading={isSaving}
-              disabled={isSaving}
+              disabled={isSaving || isUnchanged}
               onClick={handleSave}
               className="font-athiti bg-gradient-primary mr-0 ml-0 flex-1"
             />
