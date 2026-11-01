@@ -15,7 +15,7 @@ export const summarizeTireLots = (lots = []) => {
   return [...rows.values()].sort((a, b) => a.sortKey - b.sortKey);
 };
 
-// คงลำดับเดิมที่บันทึกมา (เรียงตามลิสต์รุ่นรถแล้ว)
+// คงลำดับที่ได้มา เซิร์ฟเวอร์เรียงตามลิสต์รุ่นรถให้แล้ว (ดู server/utils/vehicleOrder.js)
 export const groupVehiclesByBrand = (vehicles = []) => {
   const groups = new Map();
   for (const vehicle of vehicles || []) {

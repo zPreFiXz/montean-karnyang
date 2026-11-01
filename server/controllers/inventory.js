@@ -1,6 +1,7 @@
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
 const { OIL_SOURCE_SELECT, withOilKitStock } = require("../utils/oilKit");
+const { loadVehicleSorter } = require("../utils/vehicleOrder");
 
 const mapServiceToInventoryItem = (service) => ({
   ...service,
@@ -146,11 +147,15 @@ exports.listInventory = async (req, res) => {
     );
   });
 
-  const priceStats = await soldPriceStats(usedTireIds(filteredParts));
+  const [priceStats, sortVehicles] = await Promise.all([
+    soldPriceStats(usedTireIds(filteredParts)),
+    loadVehicleSorter(),
+  ]);
 
   const inventory = [
     ...filteredParts.map(withOilKitStock).map((item) => ({
       ...item,
+      compatibleVehicles: sortVehicles(item.compatibleVehicles),
       type: "part",
       category: { name: item.category.name },
       soldPriceRange: priceStats.get(item.id)?.range || null,
@@ -183,9 +188,13 @@ exports.getInventory = async (req, res) => {
     });
 
     if (inventory) {
-      const priceStats = await soldPriceStats(usedTireIds([inventory]));
+      const [priceStats, sortVehicles] = await Promise.all([
+        soldPriceStats(usedTireIds([inventory])),
+        loadVehicleSorter(),
+      ]);
       inventory = {
         ...inventory,
+        compatibleVehicles: sortVehicles(inventory.compatibleVehicles),
         type: "part",
         category: { name: inventory.category.name },
         soldPriceRange: priceStats.get(inventory.id)?.range || null,

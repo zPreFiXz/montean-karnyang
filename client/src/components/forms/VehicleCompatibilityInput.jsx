@@ -7,6 +7,7 @@ import { scrollToNewRow } from "@/utils/scrollToNewRow";
 import { listVehicleModels } from "@/api/vehicleModel";
 import { toastError } from "@/utils/handleError";
 import { withOtherBrandLast } from "@/utils/vehicleBrand";
+import { sortVehiclesByModelList } from "@/utils/vehicleOrder";
 
 const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
   const [vehicles, setVehicles] = useState([{ brand: "", model: "" }]);
@@ -66,19 +67,14 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
     return modelsForBrand;
   };
 
-  // เรียงตามลิสต์แม่ตอนบันทึกเท่านั้น ไม่งั้นการ์ดจะสลับที่ใต้มือระหว่างกรอก
-  const masterRank = (vehicle) => {
-    const index = vehicleModels.findIndex(
-      (item) => item.brand === vehicle.brand && item.model === vehicle.model,
-    );
-    return index === -1 ? Number.MAX_SAFE_INTEGER : index;
-  };
-
+  // ค่าที่ส่งไปบันทึกเรียงตามลิสต์รุ่นรถ แต่การ์ดบนจอคงที่เดิม ไม่งั้นจะสลับที่ใต้มือระหว่างกรอก
   const updateFormValue = (vehicleList) => {
-    const validVehicles = vehicleList
-      .filter((v) => v.brand.trim() && v.model.trim())
-      .map((v) => ({ brand: v.brand.trim(), model: v.model.trim() }))
-      .sort((a, b) => masterRank(a) - masterRank(b));
+    const validVehicles = sortVehiclesByModelList(
+      vehicleList
+        .filter((v) => v.brand.trim() && v.model.trim())
+        .map((v) => ({ brand: v.brand.trim(), model: v.model.trim() })),
+      vehicleModels,
+    );
 
     setValue(
       "compatibleVehicles",
