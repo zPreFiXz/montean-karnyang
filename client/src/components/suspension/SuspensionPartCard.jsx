@@ -22,6 +22,7 @@ const SuspensionPartCard = ({ part, side, tabs, onPreview, onEditPrice }) => {
     <div className="mt-4 px-5">
       <div
         role="button"
+        data-tab-part={`${side}:${part.id}`}
         tabIndex={isDisabled ? -1 : 0}
         aria-pressed={selected}
         aria-disabled={isDisabled || undefined}

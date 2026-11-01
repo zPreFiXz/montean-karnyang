@@ -78,3 +78,4 @@ export const groupOtherParts = (parts) => {
 };
 
 export const SUSPENSION_TABS = ["left", "right", "other"];
+export const TAB_LABELS = { left: "ซ้าย", right: "ขวา", other: "อื่นๆ" };

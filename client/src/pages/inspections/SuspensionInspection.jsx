@@ -36,7 +36,7 @@ import { focusFirstInvalid } from "@/utils/focusInvalidField";
 import { EMPTY_FORM, SUBMIT_FEEDBACK_MS } from "@/constants/billForm";
 import useSuspensionTabs from "@/hooks/useSuspensionTabs";
 import SuspensionTabs from "@/components/suspension/SuspensionTabs";
-import { SUSPENSION_TABS } from "@/utils/suspension";
+import { SUSPENSION_TABS, TAB_LABELS } from "@/utils/suspension";
 import SuspensionPartPanel from "@/components/suspension/SuspensionPartPanel";
 import useBillItems from "@/hooks/useBillItems";
 import { getProductName } from "@/utils/billItems";
@@ -53,6 +53,7 @@ import {
   isSuspensionTabItem,
 } from "@/utils/repairItemGroups";
 import { scrollToNewRow } from "@/utils/scrollToNewRow";
+import { withViewTransition } from "@/utils/viewTransition";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import { usePrefetchPages } from "@/routes/pageImports";
 
@@ -85,6 +86,8 @@ const SuspensionInspection = () => {
   const [clearCount, setClearCount] = useState(0);
   const bill = useBillItems({
     getReservedCount: (item) => getTabSelectedCountForItem(item),
+    onBeforeAddLine: (item, side) => moveAddedItemToTab(item, side),
+    getExtraReorderSlots: () => (tabs.hasTabSelection ? 1 : 0),
   });
   const {
     repairItems,
@@ -117,12 +120,12 @@ const SuspensionInspection = () => {
     clearTabs,
   } = tabs;
   const [activeTab, setActiveTab] = useState("left");
+  // รายการซ่อมเพิ่มเติมที่อยู่ก่อนก้อนช่วงล่างในบิล (เช่น ยางที่เปลี่ยนก่อนมาเช็กช่วงล่าง)
+  // เก็บเป็น rowId ไม่ใช่จำนวน ลบรายการแล้วก้อนจะได้ไม่เลื่อนไปผิดที่
+  const [beforeTabIds, setBeforeTabIds] = useState(() => new Set());
   const [slideFrom, setSlideFrom] = useState("right");
   const [isLoading, setIsLoading] = useState(false);
   const [restoredStockMap, setRestoredStockMap] = useState({});
-  // จำนวนรายการซ่อมเพิ่มเติมที่อยู่ก่อนก้อนช่วงล่างในบิล
-  // ไม่มีช่องในฐานข้อมูล อ่านกลับจากลำดับบรรทัด
-  const [tabBlockIndex, setTabBlockIndex] = useState(0);
 
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -235,11 +238,30 @@ const SuspensionInspection = () => {
     pendingHandoffRef.current = false;
 
     const { tabItems, movedRowIds } = matchItemsToTabs(repairItems);
-    if (movedRowIds.length === 0) return;
-    addTabItems(tabItems);
-    setRepairItems((prev) =>
-      prev.filter((item) => !movedRowIds.includes(item.rowId)),
+    if (movedRowIds.length > 0) addTabItems(tabItems);
+
+    // ของที่ทำมาก่อนจากหน้างานซ่อมใหม่อยู่ก่อนก้อนช่วงล่าง ตามลำดับที่ทำจริง
+    // ค่าแรงกับตั้งศูนย์เป็นของบิลช่วงล่าง ไปอยู่หลังก้อนเหมือนตอนเปิดบิลช่วงล่างใหม่
+    const isDefaultService = (item) =>
+      item?.category?.name === "บริการ" &&
+      SUSPENSION_DEFAULT_SERVICE_NAMES.includes(item?.name);
+    const carried = repairItems.filter(
+      (item) => !movedRowIds.includes(item.rowId),
     );
+    setBeforeTabIds(
+      new Set(
+        carried
+          .filter((item) => !isDefaultService(item))
+          .map((item) => item.rowId),
+      ),
+    );
+    setRepairItems((prev) => {
+      const kept = prev.filter((item) => !movedRowIds.includes(item.rowId));
+      return [
+        ...kept.filter((item) => !isDefaultService(item)),
+        ...kept.filter(isDefaultService),
+      ];
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPartsLoaded, compatibleParts]);
 
@@ -282,11 +304,10 @@ const SuspensionInspection = () => {
       const isTabItem = isSuspensionTabItem;
       const tabItems = savedItems.filter(isTabItem);
       const firstTabIndex = savedItems.findIndex(isTabItem);
-      setTabBlockIndex(
+      const beforeTabCount =
         firstTabIndex === -1
           ? 0
-          : collapseSidePairs(savedItems.slice(0, firstTabIndex)).length,
-      );
+          : collapseSidePairs(savedItems.slice(0, firstTabIndex)).length;
       const manualItems = collapseSidePairs(
         savedItems.filter((i) => !isTabItem(i)),
       );
@@ -309,18 +330,20 @@ const SuspensionInspection = () => {
       setRestoredStockMap(map);
 
       // รายการที่กู้คืนมาไม่ได้ผ่านไดอะล็อก จึงยังไม่มีเพดานของปุ่มบวกติดมาด้วย
-      setRepairItems(
-        manualItems.map(withRowId).map((it) => {
-          if (it.availableStock !== undefined) return it;
-          const key =
-            it.id != null
-              ? `id:${it.id}`
-              : `${it.partNumber}|${it.brand}|${it.name || ""}`;
-          return {
-            ...it,
-            availableStock: (it.stockQuantity || 0) + (map[key] || 0),
-          };
-        }),
+      const rows = manualItems.map(withRowId).map((it) => {
+        if (it.availableStock !== undefined) return it;
+        const key =
+          it.id != null
+            ? `id:${it.id}`
+            : `${it.partNumber}|${it.brand}|${it.name || ""}`;
+        return {
+          ...it,
+          availableStock: (it.stockQuantity || 0) + (map[key] || 0),
+        };
+      });
+      setRepairItems(rows);
+      setBeforeTabIds(
+        new Set(rows.slice(0, beforeTabCount).map((row) => row.rowId)),
       );
       // ย้อนกลับมาหรือแก้บิลเดิม รายการตั้งต้นถูกตัดสินไปแล้ว ไม่ต้องเติมซ้ำ
       restoredRef.current = !restored.addSuspensionDefaults;
@@ -447,10 +470,44 @@ const SuspensionInspection = () => {
   const onInvalid = (errs) =>
     focusFirstInvalid(errs, () => setIsCustomerInfoOpen(true));
 
+  const tabMarkerIndex = (() => {
+    const index = repairItems.findIndex(
+      (item) => !beforeTabIds.has(item.rowId),
+    );
+    return index === -1 ? repairItems.length : index;
+  })();
+
+  // เลื่อนข้ามแถวก้อนช่วงล่าง = ลำดับรายการเหมือนเดิม แค่ย้ายไปอีกฝั่งของก้อน
+  const moveAcrossTabBlock = (item, toBefore) =>
+    withViewTransition(() =>
+      setBeforeTabIds((prev) => {
+        const next = new Set(prev);
+        if (toBefore) next.add(item.rowId);
+        else next.delete(item.rowId);
+        return next;
+      }),
+    );
+
+  const handleMoveExtra = (index, direction) => {
+    const position = index >= tabMarkerIndex ? index + 1 : index;
+    if (position + direction === tabMarkerIndex) {
+      moveAcrossTabBlock(repairItems[index], direction < 0);
+      return;
+    }
+    bill.handleMoveItem(index, direction);
+  };
+
+  const handleMoveTabBlock = (direction) => {
+    const item =
+      repairItems[direction < 0 ? tabMarkerIndex - 1 : tabMarkerIndex];
+    if (item) moveAcrossTabBlock(item, direction > 0);
+  };
+
+  // ลำดับในบิลตรงกับรายการซ่อมเพิ่มเติมบนจอ ก้อนช่วงล่างแทรกตรงแถวของมัน หน้าสรุปแค่ยืนยัน
   const buildAllRepairItems = () => [
-    ...repairItems.slice(0, tabBlockIndex),
+    ...repairItems.slice(0, tabMarkerIndex),
     ...buildTabItems(),
-    ...repairItems.slice(tabBlockIndex),
+    ...repairItems.slice(tabMarkerIndex),
   ];
 
   const watchedValues = watch();
@@ -479,7 +536,7 @@ const SuspensionInspection = () => {
     setClearCount((count) => count + 1);
     setRepairItems([]);
     clearTabs();
-    setTabBlockIndex(0);
+    setBeforeTabIds(new Set());
     setRestoredStockMap({});
     setActiveTab("left");
     setIsCustomerInfoOpen(false);
@@ -573,6 +630,56 @@ const SuspensionInspection = () => {
     });
   };
 
+  // อะไหล่ที่มีในแท็บของรุ่นนี้ ติ๊กในแท็บแทนการเพิ่มเป็นรายการซ่อมเพิ่มเติม ของจะได้ไม่ซ้ำสองที่
+  // แล้วพาไปที่การ์ดนั้น ไม่งั้นกดเพิ่มแล้วเหมือนของหายไป ใช้กฎเดียวกับตอนย้ายของมาจากหน้างานซ่อม
+  const moveAddedItemToTab = (item, side) => {
+    const { tabItems } = matchItemsToTabs([
+      { ...item, side, quantity: side === "both" ? 2 : 1 },
+    ]);
+    if (tabItems.length === 0) return false;
+
+    // ติ๊กไว้แล้วไม่เพิ่มจำนวน แค่พาไปให้เห็นว่ามีอยู่แล้ว ซ้าย-ขวาที่ติ๊กไว้ข้างเดียวจะติ๊กข้างที่ขาด
+    const newItems = tabItems.filter(
+      (tabItem) => !tabs.isPartSelected(tabItem.id, tabItem.side),
+    );
+    // ไม่ส่งราคาไปด้วย ราคาที่แก้ไว้ในแท็บจะได้ไม่ถูกทับด้วยราคาในคลัง
+    addTabItems(
+      newItems.map(({ id, side, quantity }) => ({ id, side, quantity })),
+    );
+    const { side: targetSide, id } = (newItems.length ? newItems : tabItems)[0];
+    goToTab(targetSide);
+    scrollToNewRow(() => {
+      const cards = document.querySelectorAll(
+        `[data-tab-part="${targetSide}:${id}"]`,
+      );
+      const card = [...cards].find((el) => el.offsetParent !== null);
+      card?.animate(
+        [
+          { boxShadow: "0 0 0 3px rgba(25, 118, 210, 0.6)" },
+          { boxShadow: "0 0 0 3px rgba(25, 118, 210, 0)" },
+        ],
+        { duration: 1600, delay: 300, easing: "ease-out" },
+      );
+      return card;
+    });
+    // ชื่อเดียวกับหัวข้อกลุ่มในหน้าสรุปและหน้ารายละเอียด หลัง ๆ ต้องเว้นวรรคก่อน "แล้ว"
+    const groupNameOf = (list) => {
+      const sides = list.map((tabItem) => tabItem.side);
+      if (sides.includes("left") && sides.includes("right")) {
+        return "รายการซ่อมข้างซ้าย-ขวา";
+      }
+      return sides[0] === "other"
+        ? "รายการซ่อมอื่นๆ "
+        : `รายการซ่อมข้าง${TAB_LABELS[sides[0]]}`;
+    };
+    if (newItems.length) {
+      toast.success(`เพิ่มใน${groupNameOf(newItems)}แล้ว`);
+    } else {
+      toast.info(`มีใน${groupNameOf(tabItems)}แล้ว`);
+    }
+    return true;
+  };
+
   const goToTab = (next) => {
     if (next === activeTab) return;
     setSlideFrom(
@@ -640,7 +747,11 @@ const SuspensionInspection = () => {
                 รายการซ่อมเพิ่มเติม
               </p>
               <FreebieButton bill={bill} />
-              <ReorderButton bill={bill} label="จัดเรียงรายการซ่อมเพิ่มเติม" />
+              <ReorderButton
+                bill={bill}
+                label="จัดเรียงรายการซ่อมเพิ่มเติม"
+                extraSlots={hasTabSelection ? 1 : 0}
+              />
             </div>
             <AddRepairItemDialog
               onAddItem={handleAddItemToRepair}
@@ -666,6 +777,16 @@ const SuspensionInspection = () => {
             bill={bill}
             onRowClick={handlePriceClick}
             transitionPrefix="suspension-item"
+            marker={
+              hasTabSelection &&
+              (bill.isReordering || tabMarkerIndex > 0) && {
+                index: tabMarkerIndex,
+                label: `รายการซ่อมช่วงล่าง (${countSelectedInTabs()})`,
+                icon: <ClipboardList className="h-5 w-5 shrink-0" />,
+                onMoveItem: handleMoveExtra,
+                onMoveMarker: handleMoveTabBlock,
+              }
+            }
           />
           {compatibleParts.length > 0 && (
             <>

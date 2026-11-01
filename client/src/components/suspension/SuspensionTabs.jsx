@@ -1,6 +1,4 @@
-import { SUSPENSION_TABS } from "@/utils/suspension";
-
-const TAB_LABELS = { left: "ซ้าย", right: "ขวา", other: "อื่นๆ" };
+import { SUSPENSION_TABS, TAB_LABELS } from "@/utils/suspension";
 
 // แถบเลื่อนวางด้วย translateX ตามลำดับที่ ไม่ใช่ 33.33%
 // เพราะกล่องมีขอบใน 4px ปุ่มจึงกว้าง (100% - 8px)/3 คิดเป็นเปอร์เซ็นต์แถบจะเยื้อง

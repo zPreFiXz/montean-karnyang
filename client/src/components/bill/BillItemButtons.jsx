@@ -14,9 +14,13 @@ export const FreebieButton = ({ bill }) =>
     </button>
   );
 
-// มีรายการเดียวไม่มีอะไรให้สลับ
-export const ReorderButton = ({ bill, label = "จัดเรียงรายการซ่อม" }) =>
-  bill.repairItems.length > 1 && (
+// มีรายการเดียวไม่มีอะไรให้สลับ extraSlots = แถวที่เลื่อนได้นอกรายการ (แถวก้อนช่วงล่าง)
+export const ReorderButton = ({
+  bill,
+  label = "จัดเรียงรายการซ่อม",
+  extraSlots = 0,
+}) =>
+  bill.repairItems.length + extraSlots > 1 && (
     <button
       type="button"
       onClick={() => bill.setIsReordering((prev) => !prev)}

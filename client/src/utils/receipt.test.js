@@ -61,6 +61,38 @@ describe("แบ่งหน้าใบเสร็จ", () => {
   });
 });
 
+describe("ลำดับรายการบิลช่วงล่าง", () => {
+  it("ก้อนแท็บเรียงเป็นกลุ่ม ซ้าย-ขวา ซ้าย ขวา อื่นๆ รายการเพิ่มเติมคงลำดับที่บันทึก", () => {
+    const items = [
+      serviceLine({ name: "ตั้งศูนย์" }),
+      partLine({ id: 1, name: "คันส่งกลาง", side: "OTHER" }),
+      partLine({ id: 2, name: "ลูกหมากปีกนกบน", side: "RIGHT" }),
+      partLine({ id: 3, name: "คันชักนอก", side: "LEFT" }),
+      partLine({ id: 4, name: "ลูกหมากปีกนกล่าง", side: "LEFT" }),
+      partLine({ id: 4, name: "ลูกหมากปีกนกล่าง", side: "RIGHT" }),
+      partLine({
+        id: 5,
+        name: "ผ้าเบรกหน้า",
+        categoryName: "เบรก",
+        side: "LEFT",
+      }),
+      serviceLine({ name: "ถ่วงล้อ" }),
+    ];
+    const rows = buildReceiptPages(repairWith(items, { type: "SUSPENSION" }))
+      .pages.flat()
+      .map(({ item, sideLabel }) => `${item.itemName} ${sideLabel}`.trim());
+    expect(rows).toEqual([
+      "ตั้งศูนย์",
+      "ลูกหมากปีกนกล่าง L-R",
+      "คันชักนอก L",
+      "ลูกหมากปีกนกบน R",
+      "คันส่งกลาง",
+      "ผ้าเบรกหน้า L",
+      "ถ่วงล้อ",
+    ]);
+  });
+});
+
 describe("ชื่อบนใบเสร็จแบบย่อ", () => {
   it("อะไหล่ช่วงล่างเหลือแค่ชนิด", () => {
     const item = partLine({ brand: "555", name: "ลูกหมากปีกนกบน VIGO 4WD" });

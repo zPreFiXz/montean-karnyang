@@ -149,6 +149,25 @@ export const isSuspensionTabItem = (item) =>
     (!item.partNumber && item.name === PER_SIDE_SERVICE_NAME) ||
     item.category?.name === "ช่วงล่าง");
 
+// บรรทัดที่บันทึกแล้วที่มาจากแท็บของหน้าเช็กช่วงล่าง (ตรงกับ isSuspensionTabItem ตอนเปิดแก้ไขบิล)
+// อะไหล่ช่วงล่างที่ไม่มีฝั่งเป็นบิลเก่า นับอยู่ในก้อนแท็บเหมือนเดิม
+export const isSavedTabItem = (item) =>
+  item.part?.category?.name === "ช่วงล่าง" ||
+  item.side === "OTHER" ||
+  (!!item.side && item.service?.name === PER_SIDE_SERVICE_NAME);
+
+// บิลใหม่บันทึกก้อนแท็บไว้บนสุดเสมอ แต่บิลเก่าบางใบเคยย้ายก้อนไว้ตอนหน้าสรุปยังเลื่อนได้ จึงอ่านตามลำดับที่บันทึก
+// ก้อนแท็บอยู่ตรงบรรทัดแรกของมัน (ต้องตรงกับ receiptOrder ใน receipt.js และ receiptHtml.js)
+export const splitSuspensionBlocks = (items = []) => {
+  const tabIndex = items.findIndex(isSavedTabItem);
+  if (tabIndex === -1) return { before: items, tabItems: [], after: [] };
+  return {
+    before: items.slice(0, tabIndex),
+    tabItems: items.filter(isSavedTabItem),
+    after: items.slice(tabIndex).filter((item) => !isSavedTabItem(item)),
+  };
+};
+
 // บิลช่วงล่างที่บันทึกแล้ว: แยกเป็นกลุ่มซ้าย-ขวา/ซ้าย/ขวา/อื่นๆ/เพิ่มเติม ให้ตรงกับหน้าสรุปก่อนบันทึก
 // บรรทัดแยกข้างที่ไม่ได้ระบุฝั่ง (บิลเก่า) แบ่งเป็นคู่ซ้ายขวา เศษสลับฝั่งกันไป
 export const groupSuspensionDetailItems = (items = []) => {

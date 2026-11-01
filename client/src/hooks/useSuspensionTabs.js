@@ -223,7 +223,7 @@ const useSuspensionTabs = ({
   };
 
   // อะไหล่จากหน้างานซ่อมที่อยู่ในแท็บของรุ่นนี้ ย้ายไปติ๊กในแท็บข้างเดียวกัน
-  // ซ้าย-ขวา = ติ๊กทั้งสองแท็บ, ไม่แยกข้าง = แท็บอื่นๆ
+  // ซ้าย-ขวา = ติ๊กทั้งสองแท็บ, ไม่แยกข้าง = แท็บอื่นๆ (อะไหล่แยกข้างที่ไม่ระบุฝั่งจำนวนคู่ = ซ้าย-ขวา)
   // จำนวนต่อข้างเกินหนึ่งกับอะไหล่ที่ข้างหนึ่งใส่ได้ตัวเดียว คงไว้ในรายการซ่อมเพิ่มเติม
   const matchItemsToTabs = (items) => {
     const tabItems = [];
@@ -235,9 +235,14 @@ const useSuspensionTabs = ({
       );
       if (!part) continue;
 
-      const sides =
-        item.side === "both" ? ["left", "right"] : [item.side || "other"];
-      const quantity = item.side === "both" ? item.quantity / 2 : item.quantity;
+      // อะไหล่แยกข้างที่ไม่ได้ระบุฝั่ง จำนวนคู่ = ใส่สองข้างเท่ากัน จำนวนคี่เดาฝั่งไม่ได้ ข้อตรวจด้านล่างจะคงไว้ในรายการเพิ่มเติม
+      const isBothSides =
+        item.side === "both" ||
+        (!item.side &&
+          isPerSide(part.attributes) &&
+          Number(item.quantity) % 2 === 0);
+      const sides = isBothSides ? ["left", "right"] : [item.side || "other"];
+      const quantity = isBothSides ? item.quantity / 2 : item.quantity;
       const fitsTabs = sides.every((side) =>
         getPartsForSide(side).some((p) => p.id === part.id),
       );

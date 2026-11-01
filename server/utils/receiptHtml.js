@@ -266,6 +266,62 @@ const mergeBySide = (items) => {
 };
 
 // แยกจากการวาด HTML ให้เทสต์เทียบกับฝั่งหน้าเว็บได้ (ต้องตรงกับ buildReceiptPages ใน client/src/utils/receipt.js)
+// บิลช่วงล่างเรียงแบบหน้ารายละเอียดการซ่อม: รายการเพิ่มเติมคงลำดับที่บันทึก (บิลเก่าบางใบก้อนแท็บไม่ได้อยู่บนสุด)
+// ก้อนแท็บเรียงเป็นกลุ่ม ซ้าย-ขวา ซ้าย ขวา อื่นๆ (ดู groupSuspensionDetailItems) ของสองข้างอยู่ตำแหน่งของข้างซ้าย
+// ต้องตรงกับ receiptOrder และ splitSuspensionBlocks ฝั่งหน้าเว็บ
+const orderTabItems = (items) => {
+  const keyOf = (item) => `${item.itemName}|${item.unitPrice}`;
+  const sidesOf = new Map();
+  const firstLeft = new Map();
+  items.forEach((item, index) => {
+    if (item.side !== "LEFT" && item.side !== "RIGHT") return;
+    const key = keyOf(item);
+    if (!sidesOf.has(key)) sidesOf.set(key, new Set());
+    sidesOf.get(key).add(item.side);
+    if (item.side === "LEFT" && !firstLeft.has(key)) firstLeft.set(key, index);
+  });
+  const groupOf = (item) => {
+    if (item.side === "LEFT" || item.side === "RIGHT") {
+      if (sidesOf.get(keyOf(item)).size === 2) return 0;
+      return item.side === "LEFT" ? 1 : 2;
+    }
+    // บิลเก่าที่ของแยกข้างไม่ได้ระบุฝั่ง หน้าเว็บจับเป็นคู่ซ้าย-ขวา
+    const attributes = item.part?.attributes;
+    const perSide =
+      typeof attributes?.perSide === "boolean"
+        ? attributes.perSide
+        : attributes?.suspensionType === "left-right";
+    if (!item.side && perSide) return 0;
+    return 3;
+  };
+  return items
+    .map((item, index) => {
+      const group = groupOf(item);
+      const pos = group === 0 ? (firstLeft.get(keyOf(item)) ?? index) : index;
+      return { item, group, pos };
+    })
+    .sort((a, b) => a.group - b.group || a.pos - b.pos)
+    .map(({ item }) => item);
+};
+const isSavedTabItem = (item) =>
+  item.part?.category?.name === "ช่วงล่าง" ||
+  item.side === "OTHER" ||
+  (!!item.side && item.service?.name === "ตั้งลูกปืนล้อ");
+const splitSuspensionBlocks = (items) => {
+  const tabIndex = items.findIndex(isSavedTabItem);
+  if (tabIndex === -1) return { before: items, tabItems: [], after: [] };
+  return {
+    before: items.slice(0, tabIndex),
+    tabItems: items.filter(isSavedTabItem),
+    after: items.slice(tabIndex).filter((item) => !isSavedTabItem(item)),
+  };
+};
+const receiptOrder = (repair, items) => {
+  if (repair?.type !== "SUSPENSION") return items;
+  const { before, tabItems, after } = splitSuspensionBlocks(items);
+  return [...before, ...orderTabItems(tabItems), ...after];
+};
+
 const receiptPages = (repair, { showBrand = true } = {}) => {
   // ราคาติดลบมีแต่ส่วนลด ใช้รองรับบรรทัดที่ถูกเปลี่ยนชื่อ
   const isDiscount = (item) =>
@@ -278,7 +334,10 @@ const receiptPages = (repair, { showBrand = true } = {}) => {
   );
 
   const rows = mergeBySide(
-    (repair.repairItems || []).filter((item) => !isDiscount(item)),
+    receiptOrder(
+      repair,
+      (repair.repairItems || []).filter((item) => !isDiscount(item)),
+    ),
   );
   const rowName = ({ item, sideLabel }) => {
     const base = showBrand ? item.itemName : receiptWorkName(item);

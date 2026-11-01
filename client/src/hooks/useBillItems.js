@@ -30,9 +30,20 @@ const scrollToLastRow = () =>
     return visible[visible.length - 1];
   });
 
+// แถวที่ยกจากหน้างานซ่อมใหม่หรือกู้จากร่างมีรหัสเดิมติดมา ตัวนับที่เริ่มใหม่ทุกหน้าจะออกรหัสชนกัน
+// แล้ว React แสดงแถวซ้ำตอนสลับลำดับ จึงผสมเวลาด้วย (crypto.randomUUID ใช้ไม่ได้บน http ในวงแลน)
+let lastRowId = 0;
+const newRowId = () => `row-${Date.now().toString(36)}-${++lastRowId}`;
+
 // รายการซ่อมที่หน้างานซ่อมใหม่กับหน้าเช็กช่วงล่างใช้ร่วมกัน
 // getReservedCount = ของชิ้นเดียวกันที่ถูกจองไว้นอกรายการนี้ (แท็บซ้าย/ขวา/อื่นๆ ของหน้าเช็กช่วงล่าง)
-const useBillItems = ({ getReservedCount = () => 0 } = {}) => {
+// onBeforeAddLine(item, side) คืน true = หน้านั้นจัดการเอง ไม่ต้องเพิ่มบรรทัด (เช่น ย้ายไปติ๊กในแท็บช่วงล่าง)
+// getExtraReorderSlots = แถวที่เลื่อนได้นอกรายการนี้ (แถวก้อนช่วงล่างของหน้าเช็กช่วงล่าง)
+const useBillItems = ({
+  getReservedCount = () => 0,
+  onBeforeAddLine,
+  getExtraReorderSlots,
+} = {}) => {
   const [repairItems, setRepairItems] = useState([]);
   const [quantityItem, setQuantityItem] = useState(null);
   const [isReordering, setIsReordering] = useState(false);
@@ -45,11 +56,10 @@ const useBillItems = ({ getReservedCount = () => 0 } = {}) => {
 
   // ใช้รหัสอะไหล่เป็น key ไม่ได้ เพราะอะไหล่ตัวเดียวกันมีได้หลายแถว (ซ้าย-ขวา)
   // และชื่ออนิเมชันที่ซ้ำกันทำให้เบราว์เซอร์ยกเลิกอนิเมชันทั้งหน้า
-  const nextRowId = useRef(0);
   // ติดธงตอนเข้าบิล ก่อนชื่อจะถูกพิมพ์ทับจนดูจากชื่อไม่ออก
   const withRowId = (item) => ({
     ...item,
-    rowId: item.rowId || `row-${++nextRowId.current}`,
+    rowId: item.rowId || newRowId(),
     isSingleLine: isSingleQuantityItem(item),
     isTypedUnitLine: hasTypedUnit(item),
   });
@@ -85,6 +95,7 @@ const useBillItems = ({ getReservedCount = () => 0 } = {}) => {
       : undefined;
 
   const addItemLine = (item, side = null) => {
+    if (onBeforeAddLine?.(item, side)) return;
     setRepairItems((prev) => {
       const index = prev.findIndex(
         (i) =>
@@ -182,8 +193,9 @@ const useBillItems = ({ getReservedCount = () => 0 } = {}) => {
 
   // เหลือรายการเดียวปุ่มสลับโหมดจะหายไป ถ้าไม่ปิดโหมดให้ แถวจะค้างเป็นลูกศร
   useEffect(() => {
-    if (repairItems.length < 2 && isReordering) setIsReordering(false);
-  }, [repairItems.length, isReordering]);
+    const slots = repairItems.length + (getExtraReorderSlots?.() ?? 0);
+    if (slots < 2 && isReordering) setIsReordering(false);
+  }, [repairItems.length, getExtraReorderSlots, isReordering]);
 
   const handleMoveItem = (index, direction) => {
     const target = index + direction;

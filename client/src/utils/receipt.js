@@ -1,7 +1,8 @@
 // ตรรกะชุดนี้ต้องตรงกับ server/utils/receiptHtml.js ที่ใช้พิมพ์จริง
 import { formatQuantity, formatPlate } from "@/utils/formats";
 import { getDisplayBrand } from "@/utils/repairDisplay";
-import { getPartType } from "@/utils/suspension";
+import { getPartType, isPerSide } from "@/utils/suspension";
+import { splitSuspensionBlocks } from "@/utils/repairItemGroups";
 import { getOilSize, OIL_USES, oilUseLineName } from "@/utils/oil";
 import { VEHICLE_COMPATIBLE_CATEGORIES } from "@/constants/categories";
 import {
@@ -302,10 +303,53 @@ export const rowLines = (row, showBrand) =>
   estimateNameLines(rowName(row, showBrand));
 
 // ยอดรวมกับส่วนลดต่อท้ายแผ่นสุดท้ายเสมอ ไม่นับเป็นหนึ่งใน MIN_ROWS
+// บิลช่วงล่างเรียงแบบหน้ารายละเอียดการซ่อม: รายการเพิ่มเติมคงลำดับที่บันทึก (บิลเก่าบางใบก้อนแท็บไม่ได้อยู่บนสุด)
+// ก้อนแท็บเรียงเป็นกลุ่ม ซ้าย-ขวา ซ้าย ขวา อื่นๆ (ดู groupSuspensionDetailItems) ของสองข้างอยู่ตำแหน่งของข้างซ้าย
+// ต้องตรงกับ receiptOrder ฝั่งเซิร์ฟเวอร์
+const orderTabItems = (items) => {
+  const keyOf = (item) => `${item.itemName}|${item.unitPrice}`;
+  const sidesOf = new Map();
+  const firstLeft = new Map();
+  items.forEach((item, index) => {
+    if (item.side !== "LEFT" && item.side !== "RIGHT") return;
+    const key = keyOf(item);
+    if (!sidesOf.has(key)) sidesOf.set(key, new Set());
+    sidesOf.get(key).add(item.side);
+    if (item.side === "LEFT" && !firstLeft.has(key)) firstLeft.set(key, index);
+  });
+  const groupOf = (item) => {
+    if (item.side === "LEFT" || item.side === "RIGHT") {
+      if (sidesOf.get(keyOf(item)).size === 2) return 0;
+      return item.side === "LEFT" ? 1 : 2;
+    }
+    // บิลเก่าที่ของแยกข้างไม่ได้ระบุฝั่ง หน้าเว็บจับเป็นคู่ซ้าย-ขวา
+    if (!item.side && isPerSide(item.part?.attributes)) return 0;
+    return 3;
+  };
+  return items
+    .map((item, index) => {
+      const group = groupOf(item);
+      const pos = group === 0 ? (firstLeft.get(keyOf(item)) ?? index) : index;
+      return { item, group, pos };
+    })
+    .sort((a, b) => a.group - b.group || a.pos - b.pos)
+    .map(({ item }) => item);
+};
+const receiptOrder = (repair, items) => {
+  if (repair?.type !== "SUSPENSION") return items;
+  const { before, tabItems, after } = splitSuspensionBlocks(items);
+  return [...before, ...orderTabItems(tabItems), ...after];
+};
+
 export const buildReceiptPages = (repair, { showBrand = true } = {}) => {
   const allItems = repair?.repairItems || [];
   const discountItems = allItems.filter(isDiscountItem);
-  const rows = mergeBySide(allItems.filter((item) => !isDiscountItem(item)));
+  const rows = mergeBySide(
+    receiptOrder(
+      repair,
+      allItems.filter((item) => !isDiscountItem(item)),
+    ),
+  );
   const linesOf = (row) => rowLines(row, showBrand);
   const discountTotal = discountItems.reduce(
     (sum, item) => sum + Number(item.unitPrice) * Number(item.quantity),

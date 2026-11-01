@@ -35,13 +35,14 @@ for (const count of [1, 8, 10, 11, 14, 22]) {
         name,
         categoryName,
         brand,
-        side: i % 7 === 3 ? "LEFT" : null,
+        side: i % 7 === 3 ? "LEFT" : i % 5 === 2 ? "RIGHT" : null,
       });
     });
     if (count % 2 === 0)
       items.push(serviceLine({ name: "ส่วนลด", unitPrice: -50 }));
     bills.push(
       repairWith(items, {
+        type: count % 2 ? "SUSPENSION" : "GENERAL",
         status,
         cancelledStatus: status === "CANCELLED" ? "PAID" : null,
         deliveryNo: "DO-6910-0001",

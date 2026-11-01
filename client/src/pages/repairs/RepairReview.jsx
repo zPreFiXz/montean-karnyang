@@ -26,9 +26,6 @@ import {
   Ellipsis,
   Wrench,
   ClipboardList,
-  ArrowUpDown,
-  ChevronUp,
-  ChevronDown,
 } from "lucide-react";
 import ComboBox from "@/components/ui/ComboBox";
 import PartPreviewDialog from "@/components/dialogs/PartPreviewDialog";
@@ -37,36 +34,13 @@ import {
   CREDIT_OPTION_ID,
 } from "@/constants/paymentMethods";
 import { usePrefetchPages } from "@/routes/pageImports";
-import { withViewTransition } from "@/utils/viewTransition";
 import { getDisplayBrand } from "@/utils/repairDisplay";
 
-// อะไหล่จากแท็บทั้งหมดเป็นก้อนเดียว รายการซ่อมเพิ่มเติมเป็นก้อนละรายการ
-// ไม่มีช่องลำดับในฐานข้อมูล ลำดับบรรทัดที่ส่งไปคือตัวบันทึก
-const buildUnits = (items = []) => {
-  const units = [];
-  let extras = [];
-  const flushExtras = () => {
-    for (const item of collapseSidePairs(extras)) {
-      units.push({
-        type: "extra",
-        item,
-        key: item.rowId || `extra-${units.length}`,
-      });
-    }
-    extras = [];
-  };
-
-  for (const item of items) {
-    if (!isSuspensionTabItem(item)) {
-      extras.push(item);
-    } else if (!units.some((unit) => unit.type === "tab")) {
-      flushExtras();
-      units.push({ type: "tab", key: "tab" });
-    }
-  }
-  flushExtras();
-  return units;
-};
+// อะไหล่ช่วงล่างที่เลือกข้างเองจากรายการซ่อมเพิ่มเติมก็จัดเข้ากลุ่มตามข้าง
+// หลังบันทึกไม่รู้แล้วว่าเลือกมาจากไหน หน้ารายละเอียดจึงจัดแบบนี้เหมือนกัน (ดู isSavedTabItem)
+// แค่ตอนแสดงผล หน้าเช็กช่วงล่างยังเก็บไว้ในรายการซ่อมเพิ่มเติมตามเดิม
+const isTabGroupItem = (item) =>
+  isSuspensionTabItem({ ...item, pickedSide: false });
 
 const SIDE_BADGE = { both: "L-R", left: "L", right: "R" };
 
@@ -94,17 +68,29 @@ const RepairReview = () => {
 
   const isSuspensionBill = location.state?.from === "suspension";
   const tabItems =
+    isSuspensionBill && repairItems ? repairItems.filter(isTabGroupItem) : [];
+  // ลำดับจัดในหน้าเช็กช่วงล่างที่เดียว หน้านี้แค่ยืนยัน ก้อนช่วงล่างอยู่ตรงบรรทัดแรกของมัน
+  const firstTabIndex = isSuspensionBill
+    ? (repairItems || []).findIndex(isTabGroupItem)
+    : -1;
+  const extrasOf = (items) =>
+    collapseSidePairs(items.filter((item) => !isTabGroupItem(item)));
+  const extrasBefore =
     isSuspensionBill && repairItems
-      ? repairItems.filter(isSuspensionTabItem)
+      ? extrasOf(
+          firstTabIndex === -1
+            ? repairItems
+            : repairItems.slice(0, firstTabIndex),
+        )
       : [];
-  const [units, setUnits] = useState(() => buildUnits(repairItems));
-  const [isReordering, setIsReordering] = useState(false);
+  const extrasAfter =
+    isSuspensionBill && repairItems && firstTabIndex !== -1
+      ? extrasOf(repairItems.slice(firstTabIndex))
+      : [];
+  const extraItems = [...extrasBefore, ...extrasAfter];
   const orderedItems = isSuspensionBill
-    ? expandBothSides(
-        units.flatMap((unit) => (unit.type === "tab" ? tabItems : [unit.item])),
-      )
+    ? expandBothSides([...extrasBefore, ...tabItems, ...extrasAfter])
     : repairItems;
-  const extraUnits = units.filter((unit) => unit.type === "extra");
 
   const reviewTitle = isSale
     ? "สรุปขายอะไหล่"
@@ -140,16 +126,16 @@ const RepairReview = () => {
     0,
   );
 
-  const getItemsBySide = (side) => {
-    return tabItems.filter((item) => item.side === side);
-  };
+  // ของที่เลือกซ้าย-ขวาจากรายการเพิ่มเติมเป็นบรรทัดเดียว แตกเป็นสองข้างก่อนจับคู่
+  const getItemsBySide = (side) =>
+    expandBothSides(tabItems).filter((item) => item.side === side);
 
   const { bothSides, leftOnly, rightOnly } = isSuspensionBill
     ? groupBySidePairs(getItemsBySide("left"), getItemsBySide("right"))
     : { bothSides: [], leftOnly: [], rightOnly: [] };
   const otherItems = isSuspensionBill ? getItemsBySide("other") : [];
   const generalRows = isSuspensionBill
-    ? extraUnits.map(({ item }) => ({
+    ? extraItems.map((item) => ({
         item,
         sideLabel: SIDE_BADGE[item.side] || "",
       }))
@@ -293,33 +279,22 @@ const RepairReview = () => {
     }
   };
 
-  const renderCard = (item, sideLabel, key, rightSlot) => (
+  const renderCard = (item, sideLabel, key) => (
     <RepairItemCard
       key={key}
       item={item}
       variant="summary"
       sideLabel={sideLabel}
-      rightSlot={rightSlot}
-      onClick={() => !isReordering && setPreviewItem(item)}
+      onClick={() => setPreviewItem(item)}
     />
   );
 
-  const renderGroup = (
-    Icon,
-    title,
-    items,
-    sideLabel,
-    keyPrefix,
-    headerRight,
-  ) => (
+  const renderGroup = (Icon, title, items, sideLabel, keyPrefix) => (
     <div key={keyPrefix} className="mb-4">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-primary flex items-center gap-1 text-xl font-semibold md:text-[22px]">
-          <Icon className="mt-0.5" />
-          {title}
-        </p>
-        {headerRight}
-      </div>
+      <p className="text-primary mb-2 flex items-center gap-1 text-xl font-semibold md:text-[22px]">
+        <Icon className="mt-0.5" />
+        {title}
+      </p>
       <div className="space-y-3">
         {items.map((item, index) =>
           renderCard(item, sideLabel, `${keyPrefix}-${index}`),
@@ -328,8 +303,7 @@ const RepairReview = () => {
     </div>
   );
 
-  // ลูกศรของทั้งก้อนอยู่ที่หัวข้อแรก เพราะการ์ดในก้อนย้ายแยกกันไม่ได้
-  const renderTabGroups = (headerRight) =>
+  const renderTabGroups = () =>
     [
       [ArrowLeftRight, "รายการซ่อมข้างซ้าย-ขวา", bothSides, "L-R", "both"],
       [ArrowLeft, "รายการซ่อมข้างซ้าย", leftOnly, "L", "left"],
@@ -337,86 +311,30 @@ const RepairReview = () => {
       [Ellipsis, "รายการซ่อมอื่นๆ", otherItems, undefined, "other"],
     ]
       .filter(([, , items]) => items.length > 0)
-      .map((group, index) =>
-        renderGroup(...group, index === 0 ? headerRight : null),
-      );
+      .map((group) => renderGroup(...group));
 
-  const handleMoveUnit = (index, direction) => {
-    const target = index + direction;
-    if (target < 0 || target >= units.length) return;
-    withViewTransition(() =>
-      setUnits((prev) => {
-        const next = [...prev];
-        [next[index], next[target]] = [next[target], next[index]];
-        return next;
-      }),
-    );
-  };
-
-  const renderMoveButtons = (index) => (
-    <div className="flex shrink-0 items-center gap-2">
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleMoveUnit(index, -1);
-        }}
-        disabled={index === 0}
-        aria-label="เลื่อนขึ้น"
-        className="text-subtle-dark flex h-10 w-10 cursor-pointer items-center justify-center rounded-md border border-gray-200 bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        <ChevronUp className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleMoveUnit(index, 1);
-        }}
-        disabled={index === units.length - 1}
-        aria-label="เลื่อนลง"
-        className="text-subtle-dark flex h-10 w-10 cursor-pointer items-center justify-center rounded-md border border-gray-200 bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        <ChevronDown className="h-4 w-4" />
-      </button>
-    </div>
-  );
-
-  const renderSuspensionUnits = (variant) =>
-    units.map((unit, index) => {
-      const startsExtras =
-        unit.type === "extra" &&
-        (index === 0 || units[index - 1].type !== "extra");
-      return (
-        <div key={unit.key}>
-          {startsExtras && (
-            <p className="text-primary mb-2 flex items-center gap-1 text-xl font-semibold md:text-[22px]">
-              <Wrench className="mb-0.5 inline" />
-              รายการซ่อมเพิ่มเติม
-            </p>
+  const renderExtras = (items, keyPrefix) =>
+    items.length > 0 && (
+      <div className="mb-4">
+        <p className="text-primary mb-2 flex items-center gap-1 text-xl font-semibold md:text-[22px]">
+          <Wrench className="mb-0.5 inline" />
+          รายการซ่อมเพิ่มเติม
+        </p>
+        <div className="space-y-3">
+          {items.map((item, index) =>
+            renderCard(item, SIDE_BADGE[item.side], `${keyPrefix}-${index}`),
           )}
-          <div
-            style={{ viewTransitionName: `review-${variant}-${unit.key}` }}
-            className={
-              unit.type === "tab"
-                ? isReordering
-                  ? "mb-4 rounded-lg border border-gray-200 px-2 pt-2"
-                  : ""
-                : "mb-3"
-            }
-          >
-            {unit.type === "tab"
-              ? renderTabGroups(isReordering && renderMoveButtons(index))
-              : renderCard(
-                  unit.item,
-                  SIDE_BADGE[unit.item.side],
-                  unit.key,
-                  isReordering ? renderMoveButtons(index) : undefined,
-                )}
-          </div>
         </div>
-      );
-    });
+      </div>
+    );
+
+  const renderSuspensionItems = () => (
+    <>
+      {renderExtras(extrasBefore, "extra-before")}
+      {renderTabGroups()}
+      {renderExtras(extrasAfter, "extra-after")}
+    </>
+  );
 
   const renderGeneralRows = () =>
     generalRows.length > 0 && (
@@ -427,24 +345,8 @@ const RepairReview = () => {
       </div>
     );
 
-  const renderItemList = (variant) =>
-    isSuspensionBill ? renderSuspensionUnits(variant) : renderGeneralRows();
-
-  const reorderButton = isSuspensionBill && units.length > 1 && (
-    <button
-      type="button"
-      onClick={() => setIsReordering((prev) => !prev)}
-      aria-pressed={isReordering}
-      aria-label={isReordering ? "ออกจากโหมดจัดเรียง" : "จัดเรียงรายการซ่อม"}
-      className={`flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border duration-300 ${
-        isReordering
-          ? "bg-primary border-primary text-surface"
-          : "text-subtle-dark border-gray-200 bg-gray-100"
-      }`}
-    >
-      <ArrowUpDown className="h-4 w-4" />
-    </button>
-  );
+  const renderItemList = () =>
+    isSuspensionBill ? renderSuspensionItems() : renderGeneralRows();
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-[100svh] flex-col xl:min-h-[calc(100vh-73px)] xl:flex-row xl:items-start xl:gap-4 xl:bg-transparent xl:px-4 xl:pt-6 xl:pb-6 xl:shadow-none">
@@ -602,7 +504,6 @@ const RepairReview = () => {
                   <p className="text-[22px] font-semibold md:text-2xl">
                     รายการซ่อม
                   </p>
-                  {reorderButton}
                 </div>
                 <button
                   onClick={() => handleGoBack(true)}
@@ -612,7 +513,7 @@ const RepairReview = () => {
                   แก้ไขรายการซ่อม
                 </button>
               </div>
-              <div className="px-5">{renderItemList("m")}</div>
+              <div className="px-5">{renderItemList()}</div>
             </div>
 
             <BillTotal count={displayedItemCount} total={totalPrice} />
@@ -639,7 +540,6 @@ const RepairReview = () => {
               <p className="text-[22px] font-semibold md:text-2xl">
                 รายการซ่อม
               </p>
-              {reorderButton}
             </div>
             <button
               onClick={() => handleGoBack(true)}
@@ -649,7 +549,7 @@ const RepairReview = () => {
               แก้ไขรายการซ่อม
             </button>
           </div>
-          <div className="px-5 pt-4">{renderItemList("d")}</div>
+          <div className="px-5 pt-4">{renderItemList()}</div>
 
           <BillTotal count={displayedItemCount} total={totalPrice} />
           <div className="flex justify-center pb-4">

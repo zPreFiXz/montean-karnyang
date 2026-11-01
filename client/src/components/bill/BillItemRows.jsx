@@ -115,11 +115,54 @@ const QuantityControls = ({ item, index, bill }) => {
   );
 };
 
-// transitionPrefix ต้องไม่ซ้ำกับชื่ออนิเมชันในส่วนอื่นของหน้า
-const BillItemRows = ({ bill, onRowClick, transitionPrefix }) => {
-  const { repairItems, itemKey, isReordering } = bill;
+// แถวแทนก้อนรายการจากแท็บช่วงล่าง เลื่อนแทรกระหว่างรายการได้เหมือนรายการหนึ่ง
+const MarkerRow = ({
+  marker,
+  position,
+  total,
+  isReordering,
+  transitionPrefix,
+}) => (
+  <div
+    style={{ viewTransitionName: `${transitionPrefix}-tab-block` }}
+    className="mt-4 px-5"
+  >
+    <div className="border-primary/40 bg-primary/5 flex min-h-14 w-full items-center justify-between gap-2 rounded-lg border border-dashed px-3 py-2">
+      <div className="text-primary flex min-w-0 items-center gap-2">
+        {marker.icon}
+        <p className="truncate text-lg font-semibold md:text-xl">
+          {marker.label}
+        </p>
+      </div>
+      {isReordering && (
+        <MoveButtons
+          index={position}
+          total={total}
+          onMove={(_, direction) => marker.onMoveMarker(direction)}
+        />
+      )}
+    </div>
+  </div>
+);
 
-  return repairItems.map((item, index) => {
+// transitionPrefix ต้องไม่ซ้ำกับชื่ออนิเมชันในส่วนอื่นของหน้า
+// marker = { index, label, icon, onMoveItem, onMoveMarker } แทรกแถวก้อนช่วงล่างก่อนรายการลำดับที่ index
+const BillItemRows = ({ bill, onRowClick, transitionPrefix, marker }) => {
+  const { repairItems, itemKey, isReordering } = bill;
+  const total = repairItems.length + (marker ? 1 : 0);
+  const markerRow = marker && (
+    <MarkerRow
+      key="tab-block"
+      marker={marker}
+      position={marker.index}
+      total={total}
+      isReordering={isReordering}
+      transitionPrefix={transitionPrefix}
+    />
+  );
+
+  const rows = repairItems.map((item, index) => {
+    const position = marker && index >= marker.index ? index + 1 : index;
     // โหมดจัดเรียงให้กดได้แค่ลูกศร
     const openRow = () => {
       if (!isReordering) onRowClick(index, item);
@@ -174,9 +217,13 @@ const BillItemRows = ({ bill, onRowClick, transitionPrefix }) => {
                   </p>
                   {isReordering ? (
                     <MoveButtons
-                      index={index}
-                      total={repairItems.length}
-                      onMove={bill.handleMoveItem}
+                      index={position}
+                      total={total}
+                      onMove={(_, direction) =>
+                        marker
+                          ? marker.onMoveItem(index, direction)
+                          : bill.handleMoveItem(index, direction)
+                      }
                     />
                   ) : hasNoQuantity ? (
                     <button
@@ -198,6 +245,13 @@ const BillItemRows = ({ bill, onRowClick, transitionPrefix }) => {
       </CollapsibleRow>
     );
   });
+
+  if (!markerRow) return rows;
+  return [
+    ...rows.slice(0, marker.index),
+    markerRow,
+    ...rows.slice(marker.index),
+  ];
 };
 
 export default BillItemRows;

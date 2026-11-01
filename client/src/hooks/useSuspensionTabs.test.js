@@ -165,6 +165,19 @@ describe("แท็บซ้าย/ขวา/อื่นๆ ของหน้�
     expect(movedRowIds).toEqual([]);
   });
 
+  it("อะไหล่แยกข้างที่ไม่ระบุฝั่ง จำนวนคู่ติ๊กสองข้าง จำนวนคี่คงไว้", () => {
+    const h = renderHook(useSuspensionTabs, props());
+    const { tabItems, movedRowIds } = h.result.current.matchItemsToTabs([
+      { ...upper, rowId: "pair", side: null, quantity: 2 },
+      { ...bush, rowId: "odd", side: null, quantity: 1 },
+    ]);
+    expect(movedRowIds).toEqual(["pair"]);
+    expect(tabItems.map(({ side, quantity }) => [side, quantity])).toEqual([
+      ["left", 1],
+      ["right", 1],
+    ]);
+  });
+
   it("เพิ่มเข้าแท็บโดยไม่ล้างของที่ติ๊กไว้แล้ว", () => {
     const h = renderHook(useSuspensionTabs, props());
     h.act(() => h.result.current.handlePartSelection(rack, true, "other"));
