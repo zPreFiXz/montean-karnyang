@@ -301,7 +301,11 @@ const SuspensionInspection = () => {
     }
 
     if (savedItems && Array.isArray(savedItems)) {
-      const isTabItem = isSuspensionTabItem;
+      const isTabItem = (item) =>
+        isSuspensionTabItem(item, {
+          brand: repairData?.brand,
+          model: repairData?.model,
+        });
       // หน้างานซ่อมใหม่ยุบซ้ายขวาเป็นบรรทัดเดียว (side "both") แต่แท็บรับแค่ซ้าย ขวา อื่นๆ
       // ต้องแตกก่อน ไม่งั้นของ L-R จากบิลที่บันทึกแล้วหายทั้งจากแท็บและรายการเพิ่มเติม
       const items = expandBothSides(savedItems);
@@ -311,9 +315,7 @@ const SuspensionInspection = () => {
         firstTabIndex === -1
           ? 0
           : collapseSidePairs(items.slice(0, firstTabIndex)).length;
-      const manualItems = collapseSidePairs(
-        items.filter((i) => !isTabItem(i)),
-      );
+      const manualItems = collapseSidePairs(items.filter((i) => !isTabItem(i)));
       restoreTabs(tabItems);
 
       // แก้บิลที่บันทึกแล้ว ของถูกหักไปแล้ว ต้องบวกคืนตอนคิดว่าเบิกได้เท่าไหร่

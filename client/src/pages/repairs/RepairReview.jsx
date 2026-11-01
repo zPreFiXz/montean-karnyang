@@ -39,8 +39,8 @@ import { getDisplayBrand } from "@/utils/repairDisplay";
 // อะไหล่ช่วงล่างที่เลือกข้างเองจากรายการซ่อมเพิ่มเติมก็จัดเข้ากลุ่มตามข้าง
 // หลังบันทึกไม่รู้แล้วว่าเลือกมาจากไหน หน้ารายละเอียดจึงจัดแบบนี้เหมือนกัน (ดู isSavedTabItem)
 // แค่ตอนแสดงผล หน้าเช็กช่วงล่างยังเก็บไว้ในรายการซ่อมเพิ่มเติมตามเดิม
-const isTabGroupItem = (item) =>
-  isSuspensionTabItem({ ...item, pickedSide: false });
+const isTabGroupItemFor = (vehicle) => (item) =>
+  isSuspensionTabItem({ ...item, pickedSide: false }, vehicle);
 
 const SIDE_BADGE = { both: "L-R", left: "L", right: "R" };
 
@@ -67,6 +67,10 @@ const RepairReview = () => {
   );
 
   const isSuspensionBill = location.state?.from === "suspension";
+  const isTabGroupItem = isTabGroupItemFor({
+    brand: repairData?.brand,
+    model: repairData?.model,
+  });
   const tabItems =
     isSuspensionBill && repairItems ? repairItems.filter(isTabGroupItem) : [];
   // ลำดับจัดในหน้าเช็กช่วงล่างที่เดียว หน้านี้แค่ยืนยัน ก้อนช่วงล่างอยู่ตรงบรรทัดแรกของมัน

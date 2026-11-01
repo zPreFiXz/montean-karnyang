@@ -65,6 +65,8 @@ export const repairToForm = (repair) => {
         category: ri.part.category,
         secureUrl: ri.part.secureUrl || null,
         attributes: ri.part.attributes || null,
+        // อะไหล่ช่วงล่างที่ไม่ได้ระบุรุ่นรถคันนี้อยู่ในรายการซ่อมเพิ่มเติม ไม่ใช่ในแท็บ (ดู fitsVehicle)
+        compatibleVehicles: ri.part.compatibleVehicles ?? null,
         quantity: ri.quantity || 1,
         side: toUiSide(ri.side),
       };

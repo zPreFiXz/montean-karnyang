@@ -141,30 +141,51 @@ export const collapseSidePairs = (items = []) => {
 export const countDisplayedItems = (items = []) =>
   mergeSidesInOrder(items).length;
 
-// ของที่เลือกข้างเอง (pickedSide) หรืออะไหล่หมวดอื่นที่มีข้าง อยู่ในรายการซ่อมเพิ่มเติม
-export const isSuspensionTabItem = (item) =>
+// แท็บแสดงเฉพาะอะไหล่ที่ระบุรุ่นรถคันนี้ไว้ ตัวที่ไม่ได้ระบุจึงเป็นรายการซ่อมเพิ่มเติม
+// vehicle = { brand, model } ไม่มีรถให้เทียบ หรือรายการไม่มีช่องรุ่นรถติดมา (ร่างเก่า) ถือว่าใส่ได้
+// ต้องตรงกับ fitsVehicle ใน server/utils/receiptHtml.js
+export const fitsVehicle = (item, vehicle) => {
+  if (!vehicle?.brand || !vehicle?.model) return true;
+  const list =
+    item.compatibleVehicles !== undefined
+      ? item.compatibleVehicles
+      : item.part?.compatibleVehicles;
+  if (list === undefined) return true;
+  const same = (a, b) => String(a || "").trim() === String(b || "").trim();
+  return (
+    Array.isArray(list) &&
+    list.some(
+      (v) => same(v?.brand, vehicle.brand) && same(v?.model, vehicle.model),
+    )
+  );
+};
+
+// ของที่เลือกข้างเอง (pickedSide) อะไหล่หมวดอื่นที่มีข้าง และอะไหล่ช่วงล่างที่ไม่ได้ระบุรุ่นรถคันนี้
+// อยู่ในรายการซ่อมเพิ่มเติม
+export const isSuspensionTabItem = (item, vehicle) =>
   !!item.side &&
   !item.pickedSide &&
-  (item.side === "other" ||
-    (!item.partNumber && item.name === PER_SIDE_SERVICE_NAME) ||
-    item.category?.name === "ช่วงล่าง");
+  ((!item.partNumber && item.name === PER_SIDE_SERVICE_NAME) ||
+    ((item.side === "other" || item.category?.name === "ช่วงล่าง") &&
+      fitsVehicle(item, vehicle)));
 
 // บรรทัดที่บันทึกแล้วที่มาจากแท็บของหน้าเช็กช่วงล่าง (ตรงกับ isSuspensionTabItem ตอนเปิดแก้ไขบิล)
 // อะไหล่ช่วงล่างที่ไม่มีฝั่งเป็นบิลเก่า นับอยู่ในก้อนแท็บเหมือนเดิม
-export const isSavedTabItem = (item) =>
-  item.part?.category?.name === "ช่วงล่าง" ||
-  item.side === "OTHER" ||
-  (!!item.side && item.service?.name === PER_SIDE_SERVICE_NAME);
+export const isSavedTabItem = (item, vehicle) =>
+  item.part?.category?.name === "ช่วงล่าง" || item.side === "OTHER"
+    ? fitsVehicle(item, vehicle)
+    : !!item.side && item.service?.name === PER_SIDE_SERVICE_NAME;
 
 // บิลใหม่บันทึกก้อนแท็บไว้บนสุดเสมอ แต่บิลเก่าบางใบเคยย้ายก้อนไว้ตอนหน้าสรุปยังเลื่อนได้ จึงอ่านตามลำดับที่บันทึก
 // ก้อนแท็บอยู่ตรงบรรทัดแรกของมัน (ต้องตรงกับ receiptOrder ใน receipt.js และ receiptHtml.js)
-export const splitSuspensionBlocks = (items = []) => {
-  const tabIndex = items.findIndex(isSavedTabItem);
+export const splitSuspensionBlocks = (items = [], vehicle) => {
+  const isTab = (item) => isSavedTabItem(item, vehicle);
+  const tabIndex = items.findIndex(isTab);
   if (tabIndex === -1) return { before: items, tabItems: [], after: [] };
   return {
     before: items.slice(0, tabIndex),
-    tabItems: items.filter(isSavedTabItem),
-    after: items.slice(tabIndex).filter((item) => !isSavedTabItem(item)),
+    tabItems: items.filter(isTab),
+    after: items.slice(tabIndex).filter((item) => !isTab(item)),
   };
 };
 

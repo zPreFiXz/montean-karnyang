@@ -45,7 +45,9 @@ const ItemGroup = ({
 const RepairDetailItems = ({ repair, canEdit, onEdit, onItemClick }) => {
   const items = repair.repairItems || [];
   const blocks =
-    repair.type === "SUSPENSION" ? splitSuspensionBlocks(items) : null;
+    repair.type === "SUSPENSION"
+      ? splitSuspensionBlocks(items, repair.vehicle?.vehicleModel)
+      : null;
   const groups = blocks ? groupSuspensionDetailItems(blocks.tabItems) : null;
   const extrasGroup = (extras, keyPrefix) => (
     <ItemGroup

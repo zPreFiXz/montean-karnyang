@@ -7,6 +7,7 @@ import {
   groupSuspensionDetailItems,
   isSuspensionTabItem,
   mergeSidesInOrder,
+  splitSuspensionBlocks,
 } from "@/utils/repairItemGroups";
 
 const line = (side, quantity = 1, extra = {}) => ({
@@ -79,6 +80,53 @@ describe("แยกของในแท็บช่วงล่างจาก�
     expect(isSuspensionTabItem({ name: "ตั้งลูกปืนล้อ", side: "left" })).toBe(
       true,
     );
+  });
+});
+
+describe("อะไหล่ช่วงล่างที่ไม่ได้ระบุรุ่นรถคันนี้อยู่ในรายการซ่อมเพิ่มเติม", () => {
+  const suspension = { category: { name: "ช่วงล่าง" } };
+  const vigo = { brand: "Toyota", model: "Vigo" };
+
+  it("ตอนกรอก: ระบุรุ่นนี้อยู่ในแท็บ ไม่ได้ระบุหรือคนละรุ่นอยู่ในรายการเพิ่มเติม", () => {
+    const fits = { compatibleVehicles: [{ brand: "Toyota", model: "Vigo" }] };
+    const other = { compatibleVehicles: [{ brand: "Isuzu", model: "D-Max" }] };
+    expect(
+      isSuspensionTabItem({ ...line("left"), ...suspension, ...fits }, vigo),
+    ).toBe(true);
+    expect(
+      isSuspensionTabItem({ ...line("left"), ...suspension, ...other }, vigo),
+    ).toBe(false);
+    expect(
+      isSuspensionTabItem(
+        { ...line("other"), ...suspension, compatibleVehicles: null },
+        vigo,
+      ),
+    ).toBe(false);
+    // ร่างเก่าไม่มีช่องรุ่นรถติดมา ถือว่าอยู่ในแท็บเหมือนเดิม
+    expect(isSuspensionTabItem({ ...line("left"), ...suspension }, vigo)).toBe(
+      true,
+    );
+  });
+
+  it("บิลที่บันทึกแล้ว: ของไม่ตรงรุ่นไม่นับเป็นก้อนแท็บ", () => {
+    const withVehicles = (item, compatibleVehicles) => ({
+      ...item,
+      part: { ...item.part, compatibleVehicles },
+    });
+    const fit = withVehicles(
+      partLine({ id: 1, name: "ลูกหมากปีกนกบน", side: "LEFT" }),
+      [{ brand: "Toyota", model: "Vigo" }],
+    );
+    const misfit = withVehicles(
+      partLine({ id: 2, name: "ลูกหมากปีกนกล่าง", side: "RIGHT" }),
+      null,
+    );
+    const blocks = splitSuspensionBlocks([fit, misfit], {
+      brand: "Toyota",
+      model: "Vigo",
+    });
+    expect(blocks.tabItems).toEqual([fit]);
+    expect(blocks.after).toEqual([misfit]);
   });
 });
 

@@ -303,22 +303,39 @@ const orderTabItems = (items) => {
     .sort((a, b) => a.group - b.group || a.pos - b.pos)
     .map(({ item }) => item);
 };
-const isSavedTabItem = (item) =>
-  item.part?.category?.name === "ช่วงล่าง" ||
-  item.side === "OTHER" ||
-  (!!item.side && item.service?.name === "ตั้งลูกปืนล้อ");
-const splitSuspensionBlocks = (items) => {
-  const tabIndex = items.findIndex(isSavedTabItem);
+// อะไหล่ช่วงล่างที่ไม่ได้ระบุรุ่นรถคันนี้ไม่อยู่ในแท็บ จึงเป็นรายการซ่อมเพิ่มเติม (ตรงกับ fitsVehicle ฝั่งหน้าเว็บ)
+const fitsVehicle = (item, vehicle) => {
+  if (!vehicle?.brand || !vehicle?.model) return true;
+  const list = item.part?.compatibleVehicles;
+  if (list === undefined) return true;
+  const same = (a, b) => String(a || "").trim() === String(b || "").trim();
+  return (
+    Array.isArray(list) &&
+    list.some(
+      (v) => same(v?.brand, vehicle.brand) && same(v?.model, vehicle.model),
+    )
+  );
+};
+const isSavedTabItem = (item, vehicle) =>
+  item.part?.category?.name === "ช่วงล่าง" || item.side === "OTHER"
+    ? fitsVehicle(item, vehicle)
+    : !!item.side && item.service?.name === "ตั้งลูกปืนล้อ";
+const splitSuspensionBlocks = (items, vehicle) => {
+  const isTab = (item) => isSavedTabItem(item, vehicle);
+  const tabIndex = items.findIndex(isTab);
   if (tabIndex === -1) return { before: items, tabItems: [], after: [] };
   return {
     before: items.slice(0, tabIndex),
-    tabItems: items.filter(isSavedTabItem),
-    after: items.slice(tabIndex).filter((item) => !isSavedTabItem(item)),
+    tabItems: items.filter(isTab),
+    after: items.slice(tabIndex).filter((item) => !isTab(item)),
   };
 };
 const receiptOrder = (repair, items) => {
   if (repair?.type !== "SUSPENSION") return items;
-  const { before, tabItems, after } = splitSuspensionBlocks(items);
+  const { before, tabItems, after } = splitSuspensionBlocks(
+    items,
+    repair.vehicle?.vehicleModel,
+  );
   return [...before, ...orderTabItems(tabItems), ...after];
 };
 

@@ -337,7 +337,10 @@ const orderTabItems = (items) => {
 };
 const receiptOrder = (repair, items) => {
   if (repair?.type !== "SUSPENSION") return items;
-  const { before, tabItems, after } = splitSuspensionBlocks(items);
+  const { before, tabItems, after } = splitSuspensionBlocks(
+    items,
+    repair.vehicle?.vehicleModel,
+  );
   return [...before, ...orderTabItems(tabItems), ...after];
 };
 

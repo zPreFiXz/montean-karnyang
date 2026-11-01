@@ -519,6 +519,8 @@ const buildRepairDocument = async (id, body, { forImage = false } = {}) => {
               brand: true,
               // บิลช่วงล่างเรียงตามกลุ่มข้าง บิลเก่าที่ไม่ระบุฝั่งดูจากว่าเป็นของแยกข้างไหม
               attributes: true,
+              // อะไหล่ช่วงล่างที่ไม่ได้ระบุรุ่นรถคันนี้อยู่ในรายการซ่อมเพิ่มเติม
+              compatibleVehicles: true,
               category: { select: { name: true } },
             },
           },
