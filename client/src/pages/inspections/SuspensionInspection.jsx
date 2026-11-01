@@ -302,14 +302,17 @@ const SuspensionInspection = () => {
 
     if (savedItems && Array.isArray(savedItems)) {
       const isTabItem = isSuspensionTabItem;
-      const tabItems = savedItems.filter(isTabItem);
-      const firstTabIndex = savedItems.findIndex(isTabItem);
+      // หน้างานซ่อมใหม่ยุบซ้ายขวาเป็นบรรทัดเดียว (side "both") แต่แท็บรับแค่ซ้าย ขวา อื่นๆ
+      // ต้องแตกก่อน ไม่งั้นของ L-R จากบิลที่บันทึกแล้วหายทั้งจากแท็บและรายการเพิ่มเติม
+      const items = expandBothSides(savedItems);
+      const tabItems = items.filter(isTabItem);
+      const firstTabIndex = items.findIndex(isTabItem);
       const beforeTabCount =
         firstTabIndex === -1
           ? 0
-          : collapseSidePairs(savedItems.slice(0, firstTabIndex)).length;
+          : collapseSidePairs(items.slice(0, firstTabIndex)).length;
       const manualItems = collapseSidePairs(
-        savedItems.filter((i) => !isTabItem(i)),
+        items.filter((i) => !isTabItem(i)),
       );
       restoreTabs(tabItems);
 
