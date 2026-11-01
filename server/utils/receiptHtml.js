@@ -636,11 +636,26 @@ const isOilUseLine = (item) => {
 
 // ต้องตรงกับ shortWorkName ฝั่งหน้าเว็บ ใบสั่งซ่อมใช้ workName ตรงๆ ช่างยังต้องรู้ชนิดจุ๊บ
 const INNER_TUBE_CATEGORY = "ยางใน";
+// ใบเสร็จเขียนแค่คำแรกของชื่อในคลัง ยกเว้นหมวดที่คำแรกไม่ได้บอกว่าเป็นของอะไร (ตรงกับ shortWorkName)
+const KEEP_NAME_CATEGORIES = [
+  ...FULL_NAME_CATEGORIES,
+  "น้ำมัน",
+  INNER_TUBE_CATEGORY,
+  "ใบปัดน้ำฝน",
+];
 const receiptWorkName = (item) => {
-  const name = workName(item);
   const isTypedName = !String(item.itemName || "").includes(
     item.part?.name || "",
   );
+  if (
+    item.part?.name &&
+    !isTypedName &&
+    !KEEP_NAME_CATEGORIES.includes(item.part.category?.name)
+  ) {
+    return String(item.part.name).trim().split(/\s+/)[0];
+  }
+
+  const name = workName(item);
   return item.part?.category?.name === INNER_TUBE_CATEGORY && !isTypedName
     ? String(name || "")
         .replace(/\s*\([^)]*\)/g, "")

@@ -3,7 +3,7 @@ import {
   isNoCategoryItem,
   NO_CATEGORY_ORDER,
 } from "@/constants/services";
-import { compareSuspensionTypes, getPartType } from "@/utils/suspension";
+import { getPartType } from "@/utils/suspension";
 import { oilSizeOf } from "@/utils/oil";
 import { OIL_CATEGORY, USED_TIRE_CATEGORY } from "@/constants/categories";
 
@@ -63,49 +63,51 @@ const rimGroupOf = (item) =>
   rimOf(item) === Infinity ? NO_RIM_GROUP : `ขอบ ${rimOf(item)}`;
 const byRim = (items) => [...items].sort((a, b) => rimOf(a) - rimOf(b));
 
-// แบ่งหัวข้อตามคำขึ้นต้นของชื่อ ชื่อบางตัวสะกด "เบรค" จึงเทียบหลังแปลงเป็น "เบรก"
-const byPrefix = (order) => {
-  const groupOf = (item) => {
-    const name = (item.name || "").replace(/เบรค/g, "เบรก");
-    return order.find((type) => name.startsWith(type)) || "อื่นๆ";
-  };
-  const rank = (item) => {
-    const i = order.indexOf(groupOf(item));
-    return i === -1 ? order.length : i;
-  };
-  return {
-    sort: (items) => [...items].sort((a, b) => rank(a) - rank(b)),
-    groupOf,
-  };
+// หมวดที่แบ่งหัวข้อตามประเภท เรียงตามตัวอักษรทั้งหัวข้อและรายการ (ชื่อที่เห็นบนการ์ด = ยี่ห้อ + ชื่อ)
+// หน้าเช็กช่วงล่างยังเรียงหัวข้อตามลำดับที่ช่างไล่ตรวจ (compareSuspensionTypes ใน suspension.js)
+const nameCollator = new Intl.Collator("th", { numeric: true });
+export const compareTypeNames = (a, b) =>
+  nameCollator.compare(a || "", b || "");
+const shownName = (item) => `${item.brand || ""} ${item.name || ""}`.trim();
+const byTypeThenName = (typeOf) => (items) =>
+  [...items].sort(
+    (a, b) =>
+      compareTypeNames(typeOf(a), typeOf(b)) ||
+      nameCollator.compare(shownName(a), shownName(b)),
+  );
+const suspensionTypeOf = (item) => getPartType(item.name);
+
+// หมวดที่ไม่มีกฎเฉพาะ ประเภทคือคำไทยที่ขึ้นต้นชื่อ ตัดรุ่นที่พิมพ์ติดกันออก (หลอดไฟP20D = หลอดไฟ)
+// เพิ่มอะไหล่ประเภทใหม่ก็ได้หัวข้อใหม่เอง ชื่อบางตัวสะกด "เบรค" จึงแปลงเป็น "เบรก" ก่อน
+const autoTypeOf = (item) => {
+  const firstWord = getPartType(item.name).replace(/เบรค/g, "เบรก");
+  return firstWord.match(/^[\u0E00-\u0E7F]+/)?.[0] || firstWord;
+};
+const AUTO_RULE = {
+  sort: byTypeThenName(autoTypeOf),
+  groupOf: autoTypeOf,
+  typeFilter: true,
+  sortInAll: true,
+  hideSingleGroup: true,
 };
 
-const bySuspensionType = (items) =>
-  [...items].sort((a, b) =>
-    compareSuspensionTypes(getPartType(a.name), getPartType(b.name)),
-  );
-
 // sort = ลำดับในหมวด, groupOf = หัวข้อย่อย, sortInAll = ใช้ลำดับนี้ตอนดูทั้งหมดด้วย
-const brakeRule = byPrefix([
-  "ตะปูเบรก",
-  "กระบอกเบรก",
-  "ผ้าเบรกหน้า",
-  "ก้ามเบรกหลัง",
-]);
-const filterRule = byPrefix(["กรองอากาศ", "กรองแอร์"]);
 const CATEGORY_RULES = {
   บริการ: { sort: sortServices, sortInAll: true },
   ช่วงล่าง: {
-    sort: bySuspensionType,
-    groupOf: (item) => getPartType(item.name),
+    sort: byTypeThenName(suspensionTypeOf),
+    groupOf: suspensionTypeOf,
+    typeFilter: true,
     sortInAll: true,
   },
   [OIL_CATEGORY]: { sort: byOilSize, groupOf: oilGroupOf, sortInAll: true },
-  เบรก: { ...brakeRule, sortInAll: true },
-  ไส้กรอง: { ...filterRule, sortInAll: true },
   ยาง: { sort: byTireBrand, groupOf: tireBrandOf },
   [USED_TIRE_CATEGORY]: { sort: byRim, groupOf: rimGroupOf },
   ยางใน: { sort: byRim, groupOf: rimGroupOf },
 };
+
+const ruleOf = (category) =>
+  category === ALL_CATEGORIES ? null : (CATEGORY_RULES[category] ?? AUTO_RULE);
 
 const groupBy = (items, keyOf) => {
   const groups = new Map();
@@ -118,16 +120,25 @@ const groupBy = (items, keyOf) => {
 };
 
 // "อะไหล่อื่นๆ" กับ "ส่วนลด" เป็นบรรทัดเปล่าไว้ใส่ในบิล ไม่อยู่ในหมวดไหน โผล่เฉพาะตอนดูทั้งหมด
+// หมวดที่มีตัวกรองประเภทในหน้าสต็อก ประเภทคือหัวข้อย่อยของหมวดนั้น
+export const hasTypeFilter = (category) => !!ruleOf(category)?.typeFilter;
+export const typeOf = (category, item) =>
+  ruleOf(category)?.groupOf?.(item) ?? "";
+
 export const sortForCategory = (category, items) =>
-  (CATEGORY_RULES[category]?.sort ?? ((list) => list))(items).filter(
+  (ruleOf(category)?.sort ?? ((list) => list))(items).filter(
     (item) => category === ALL_CATEGORIES || !isNoCategoryItem(item),
   );
 
 // ทั้งหมด = แยกตามหมวด เรียงตามแถบหมวดหมู่ กลุ่มไม่มีหมวดหมู่อยู่เหนือบริการ
 // คืน null เมื่อหมวดนั้นไม่มีหัวข้อย่อย
 export const groupInventory = (category, items, categoryOrder = []) => {
-  const groupOf = CATEGORY_RULES[category]?.groupOf;
-  if (groupOf) return groupBy(items, groupOf);
+  const rule = ruleOf(category);
+  if (rule?.groupOf) {
+    const groups = groupBy(items, rule.groupOf);
+    // หัวข้อเดียวซ้ำกับชื่อหมวด (ใบปัดน้ำฝน) จึงไม่ต้องแสดง
+    return rule.hideSingleGroup && groups.length < 2 ? null : groups;
+  }
   if (category !== ALL_CATEGORIES) return null;
 
   const rank = (name) => {
@@ -142,7 +153,7 @@ export const groupInventory = (category, items, categoryOrder = []) => {
           NO_CATEGORY_ORDER.indexOf(a.name) - NO_CATEGORY_ORDER.indexOf(b.name),
       );
     }
-    const rule = CATEGORY_RULES[name];
+    const rule = ruleOf(name);
     return rule?.sortInAll ? rule.sort(list) : list;
   };
 

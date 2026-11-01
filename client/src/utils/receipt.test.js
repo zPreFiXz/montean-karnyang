@@ -67,6 +67,25 @@ describe("ชื่อบนใบเสร็จแบบย่อ", () => {
     expect(shortWorkName(item)).toBe("ลูกหมากปีกนกบน");
   });
 
+  it("อะไหล่หมวดอื่นก็เหลือคำแรก แต่ใบสั่งซ่อมยังเต็ม", () => {
+    const item = partLine({
+      brand: "BANDO",
+      name: "สายพาน 12.5x1000",
+      categoryName: "สายพาน",
+    });
+    expect(shortWorkName(item)).toBe("สายพาน");
+    expect(shortWorkNameBase(item)).toBe("สายพาน 12.5x1000");
+  });
+
+  it("ใบปัดน้ำฝนยังมีขนาดนิ้ว", () => {
+    const item = partLine({
+      brand: "BOSCH",
+      name: "ใบปัดน้ำฝน 18 นิ้ว",
+      categoryName: "ใบปัดน้ำฝน",
+    });
+    expect(shortWorkName(item)).toBe("ใบปัดน้ำฝน 18 นิ้ว");
+  });
+
   it("ชื่อที่พิมพ์ทับเองไม่ย่อ", () => {
     const item = partLine({
       name: "ลูกหมากปีกนกบน VIGO",

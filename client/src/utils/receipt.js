@@ -47,11 +47,29 @@ const withoutParentheses = (name) =>
     .replace(/\s*\([^)]*\)/g, "")
     .trim();
 
+// ใบเสร็จเขียนแค่คำแรกของชื่อในคลัง (สายพาน 12.5x1000 -> สายพาน) ใบสั่งซ่อมยังเต็มเพราะช่างต้องรู้รุ่น
+// หมวดเหล่านี้คำแรกไม่ได้บอกว่าเป็นของอะไร (ยางเป็นชื่อรุ่น น้ำมันเป็นขนาดลิตร ใบปัดต้องรู้ขนาดนิ้ว) จึงใช้วิธีเดิม
+// (ต้องตรงกับ KEEP_NAME_CATEGORIES ฝั่งเซิร์ฟเวอร์)
+const KEEP_NAME_CATEGORIES = [
+  ...FULL_NAME_CATEGORIES,
+  "น้ำมัน",
+  INNER_TUBE_CATEGORY,
+  "ใบปัดน้ำฝน",
+];
+
 export const shortWorkName = (item) => {
-  const name = shortWorkNameBase(item);
   const isTypedName = !String(item.itemName || "").includes(
     item.part?.name || "",
   );
+  if (
+    item.part?.name &&
+    !isTypedName &&
+    !KEEP_NAME_CATEGORIES.includes(item.part.category?.name)
+  ) {
+    return getPartType(item.part.name);
+  }
+
+  const name = shortWorkNameBase(item);
   return item.part?.category?.name === INNER_TUBE_CATEGORY && !isTypedName
     ? withoutParentheses(name)
     : name;

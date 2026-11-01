@@ -1,5 +1,5 @@
 import PageSpinner from "@/components/ui/PageSpinner";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { useDebouncedCallback } from "use-debounce";
 import { X } from "lucide-react";
@@ -12,9 +12,11 @@ import { listParts } from "@/api/part";
 import { listCategories } from "@/api/category";
 import { toastError } from "@/utils/handleError";
 import { onKeyActivate } from "@/utils/a11y";
-import { compareSuspensionTypes, getPartType } from "@/utils/suspension";
 import {
+  compareTypeNames,
   groupInventory,
+  hasTypeFilter,
+  typeOf,
   NO_CATEGORY_GROUP,
   oilGroupOf,
   oilGroupOptions,
@@ -94,6 +96,9 @@ const InventoryBrowser = ({
     initialTireFilter("rimDiameter"),
   );
   const [partType, setPartType] = useState(() => initialTireFilter("partType"));
+  // ประเภทเป็นของหมวดใครหมวดมัน (ช่วงล่าง/เบรก) เปลี่ยนหมวดแล้วต้องล้าง ไม่งั้นหมวดใหม่ว่างเปล่า
+  // ข้ามรอบแรก เพราะรอบแรกอาจกู้ค่ามาจาก URL
+  const lastCategoryRef = useRef(null);
   const [oilSize, setOilSize] = useState(() => initialTireFilter("oilSize"));
 
   const activeCategory = syncUrl
@@ -155,7 +160,7 @@ const InventoryBrowser = ({
       }
     }
 
-    if (partType && activeCategory === "ช่วงล่าง") {
+    if (partType && hasTypeFilter(activeCategory)) {
       next.set("partType", partType);
     } else {
       next.delete("partType");
@@ -183,6 +188,16 @@ const InventoryBrowser = ({
   ]);
 
   useEffect(() => {
+    if (
+      lastCategoryRef.current !== null &&
+      lastCategoryRef.current !== activeCategory
+    ) {
+      setPartType("");
+    }
+    lastCategoryRef.current = activeCategory;
+  }, [activeCategory]);
+
+  useEffect(() => {
     onLoadingChange?.(isLoading);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading]);
@@ -198,7 +213,7 @@ const InventoryBrowser = ({
       setAspectRatio("");
       setRimDiameter("");
     }
-    if (activeCategory !== "ช่วงล่าง") setPartType("");
+    if (!hasTypeFilter(activeCategory)) setPartType("");
     if (activeCategory !== OIL_CATEGORY) setOilSize("");
     // ส่งตัวกรองยางไปด้วยตั้งแต่ครั้งแรก เผื่อกู้คืนมาจาก URL
     handleFilter(
@@ -240,12 +255,14 @@ const InventoryBrowser = ({
   );
 
   const partTypeOptions = useMemo(() => {
+    if (!hasTypeFilter(activeCategory)) return [];
     const types = partsList
-      .filter((p) => p?.category?.name === "ช่วงล่าง")
-      .map((p) => getPartType(p.name));
+      .filter((p) => p?.category?.name === activeCategory)
+      .map((p) => typeOf(activeCategory, p));
 
-    return Array.from(new Set(types)).sort(compareSuspensionTypes);
-  }, [partsList]);
+    // เรียงตามตัวอักษรให้ตรงกับหัวข้อในรายการ
+    return Array.from(new Set(types)).sort(compareTypeNames);
+  }, [partsList, activeCategory]);
 
   const oilSizeOptions = useMemo(() => oilGroupOptions(partsList), [partsList]);
 
@@ -313,8 +330,10 @@ const InventoryBrowser = ({
       : inventory;
 
   const filteredByPartType =
-    activeCategory === "ช่วงล่าง" && partType
-      ? filteredByVehicle.filter((item) => getPartType(item.name) === partType)
+    hasTypeFilter(activeCategory) && partType
+      ? filteredByVehicle.filter(
+          (item) => typeOf(activeCategory, item) === partType,
+        )
       : filteredByVehicle;
 
   const filteredByOilSize =
@@ -475,15 +494,11 @@ const InventoryBrowser = ({
           className={`mt-4 flex w-full flex-col ${isUsedTireCategory ? "" : "gap-3"}`}
         >
           <div>
-            {/* แถวนี้สูงเท่าเดิมตลอด (หัวข้อล่องหนค้ำไว้) ไม่งั้นช่องขนาดจะขยับหนีนิ้วตอนปุ่มล้างโผล่ */}
+            {/* แถวนี้มีหัวข้อเสมอ ปุ่มล้างโผล่แล้วช่องด้านล่างจะไม่ขยับหนีนิ้ว
+                ยางเปอร์เซ็นต์ไม่มีตัวกรองยี่ห้อ จึงใช้หัวข้อขนาดยางแทน */}
             <div className="mb-2 flex items-center justify-between">
-              <span
-                aria-hidden={isUsedTireCategory}
-                className={`text-xl font-medium md:text-[22px] ${
-                  isUsedTireCategory ? "invisible" : ""
-                }`}
-              >
-                ยี่ห้อ
+              <span className="text-xl font-medium md:text-[22px]">
+                {isUsedTireCategory ? "ขนาดยาง" : "ยี่ห้อ"}
               </span>
               {hasTireFilter && (
                 <button
@@ -533,31 +548,32 @@ const InventoryBrowser = ({
         </div>
       )}
 
-      {activeCategory === "ช่วงล่าง" && (
-        <div className="mt-4 w-full">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xl font-medium md:text-[22px]">ประเภท</span>
-            {partType && (
-              <button
-                type="button"
-                onClick={() => setPartType("")}
-                className="text-destructive flex cursor-pointer items-center gap-1 text-lg font-semibold md:text-xl"
-              >
-                <X className="h-4 w-4" />
-                ล้างตัวกรอง
-              </button>
-            )}
+      {hasTypeFilter(activeCategory) &&
+        (partTypeOptions.length > 1 || partType) && (
+          <div className="mt-4 w-full">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xl font-medium md:text-[22px]">ประเภท</span>
+              {partType && (
+                <button
+                  type="button"
+                  onClick={() => setPartType("")}
+                  className="text-destructive flex cursor-pointer items-center gap-1 text-lg font-semibold md:text-xl"
+                >
+                  <X className="h-4 w-4" />
+                  ล้างตัวกรอง
+                </button>
+              )}
+            </div>
+            <ComboBox
+              options={partTypeOptions.map((t) => ({ name: t }))}
+              value={partType}
+              onChange={setPartType}
+              placeholder="-- เลือกประเภท --"
+              disabled={isFilterLocked(partTypeOptions, partType)}
+              customClass="text-lg md:text-xl"
+            />
           </div>
-          <ComboBox
-            options={partTypeOptions.map((t) => ({ name: t }))}
-            value={partType}
-            onChange={setPartType}
-            placeholder="-- เลือกประเภท --"
-            disabled={isFilterLocked(partTypeOptions, partType)}
-            customClass="text-lg md:text-xl"
-          />
-        </div>
-      )}
+        )}
 
       {activeCategory === OIL_CATEGORY && oilSizeOptions.length > 0 && (
         <div className="mt-4 w-full">

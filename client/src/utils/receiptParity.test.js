@@ -23,6 +23,8 @@ const names = [
   ["ยางใน 750-16 (จุ๊บเหล็ก)", "ยางใน", "PRI"],
   ["แบตเตอรี่ MF 55B24L", "แบตเตอรี่", "GS"],
   [longName, "เบรก", "BENDIX"],
+  ["สายพาน 12.5x1000", "สายพาน", "BANDO"],
+  ["ใบปัดน้ำฝน 18 นิ้ว", "ใบปัดน้ำฝน", "BOSCH"],
 ];
 for (const count of [1, 8, 10, 11, 14, 22]) {
   for (const status of ["PAID", "CREDIT", "ESTIMATE", "CANCELLED"]) {

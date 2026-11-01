@@ -34,6 +34,7 @@ import {
   tracksTireLots,
   getCategoryKind,
   OIL_CATEGORY,
+  SERVICE_CATEGORY,
 } from "@/constants/categories";
 import { ChevronLeft, LoaderCircle } from "lucide-react";
 import { getInventory } from "@/api/inventory";
@@ -184,17 +185,11 @@ const InventoryForm = () => {
     return selectedCategory?.name === "บริการ";
   };
 
-  const isTireCategory = () => {
-    if (inventory && inventory.category) {
-      return isTireCategoryName(inventory.category.name);
-    }
+  const selectedCategoryName =
+    category.find((cat) => cat.id === watch("categoryId"))?.name ??
+    inventory?.category?.name;
 
-    const selectedCategoryId = watch("categoryId");
-    const selectedCategory = category.find(
-      (cat) => cat.id === selectedCategoryId,
-    );
-    return isTireCategoryName(selectedCategory?.name);
-  };
+  const isTireCategory = () => isTireCategoryName(selectedCategoryName);
 
   const isUsedTire = () => isTireCategory() && !isLotTracked();
 
@@ -203,46 +198,26 @@ const InventoryForm = () => {
     OIL_CATEGORY;
   const isOilKit = isOilCategory() && !!watch("oilSourceId");
 
-  const isLotTracked = () => {
-    if (inventory && inventory.category) {
-      return tracksTireLots(inventory.category.name);
-    }
+  const isLotTracked = () => tracksTireLots(selectedCategoryName);
 
-    const selectedCategoryId = watch("categoryId");
-    const selectedCategory = category.find(
-      (cat) => cat.id === selectedCategoryId,
-    );
-    return tracksTireLots(selectedCategory?.name);
-  };
+  const isSuspensionCategory = () => selectedCategoryName === "ช่วงล่าง";
 
-  const isSuspensionCategory = () => {
-    if (inventory && inventory.category) {
-      return inventory.category.name === "ช่วงล่าง";
-    }
+  const allowsSideChoice = () =>
+    PER_SIDE_CATEGORIES.includes(selectedCategoryName);
 
-    const selectedCategoryId = watch("categoryId");
-    const selectedCategory = category.find(
-      (cat) => cat.id === selectedCategoryId,
-    );
-    return selectedCategory?.name === "ช่วงล่าง";
-  };
+  const hasVehicleCompatibility = () =>
+    VEHICLE_INPUT_CATEGORIES.includes(selectedCategoryName);
 
-  const allowsSideChoice = () => {
-    const selectedCategory = category.find(
-      (cat) => cat.id === watch("categoryId"),
-    );
-    const name = selectedCategory?.name ?? inventory?.category?.name;
-    return PER_SIDE_CATEGORIES.includes(name);
-  };
-
-  const hasVehicleCompatibility = () => {
-    const selectedCategoryId = watch("categoryId");
-    const selectedCategory = category.find(
-      (cat) => cat.id === selectedCategoryId,
-    );
-    const name = selectedCategory?.name ?? inventory?.category?.name;
-    return VEHICLE_INPUT_CATEGORIES.includes(name);
-  };
+  // ตอนแก้ไข ย้ายได้เฉพาะอะไหล่ทั่วไปไปหมวดอะไหล่ทั่วไปด้วยกัน
+  // บริการอยู่คนละตาราง ส่วนยางนับสต็อกเป็นล็อต ย้ายเข้าออกแล้วจำนวนสต็อกจะเพี้ยน
+  const isMovablePart = (name) =>
+    !!name && name !== SERVICE_CATEGORY && !isTireCategoryName(name);
+  const canChangeCategory =
+    !isEdit ||
+    (inventory?.type !== "service" && isMovablePart(inventory?.category?.name));
+  const categoryOptions = isEdit
+    ? category.filter((cat) => isMovablePart(cat.name))
+    : category;
 
   const handleCategoryChange = (value) => {
     const name = category.find((cat) => cat.id === value)?.name;
@@ -251,10 +226,9 @@ const InventoryForm = () => {
     setValue("categoryKind", getCategoryKind(name));
 
     // สลับออกจากยางต้องล้างหน่วยคืน ไม่งั้นอะไหล่จะติดหน่วย "เส้น" มา
-    const isTire = isTireCategoryName(
-      category.find((cat) => cat.id === value)?.name,
-    );
-    setValue("unit", isTire ? TIRE_UNIT : "");
+    // ย้ายระหว่างหมวดอะไหล่ด้วยกัน หน่วยเดิมยังใช้ได้
+    if (isTireCategoryName(name)) setValue("unit", TIRE_UNIT);
+    else if (watch("unit") === TIRE_UNIT) setValue("unit", "");
 
     clearErrors([
       "name",
@@ -435,13 +409,13 @@ const InventoryForm = () => {
                 label="หมวดหมู่"
                 color="text-subtle-dark"
                 labelClass="text-xl"
-                options={category}
+                options={canChangeCategory ? categoryOptions : category}
                 value={watch("categoryId")}
                 onChange={handleCategoryChange}
                 placeholder="-- เลือกหมวดหมู่ --"
                 errors={errors}
                 name="categoryId"
-                disabled={isEdit}
+                disabled={!canChangeCategory}
               />
             </div>
 
