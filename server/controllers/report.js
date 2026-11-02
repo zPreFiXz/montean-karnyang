@@ -7,7 +7,7 @@ const { OIL_SOURCE_SELECT, withOilKitStock } = require("../utils/oilKit");
 // (ต้องตรงกับ PLACEHOLDER_SERVICE_NAMES ใน client/src/constants/services.js)
 const PLACEHOLDER_SERVICE_NAMES = ["ค่าแรง", "บริการอื่นๆ", "อะไหล่อื่นๆ"];
 // บริการที่จริงๆ เป็นของชิ้นหนึ่ง นับอยู่ฝั่งอะไหล่ (ต้องตรงกับ isPartLikeItem ฝั่งหน้าเว็บ)
-const PART_LIKE_SERVICE_NAMES = ["อะไหล่อื่นๆ", "จุ๊บลม"];
+const PART_LIKE_SERVICE_NAMES = ["อะไหล่อื่นๆ", "จุ๊บลม", "จารบี"];
 
 const isDiscount = (item) =>
   (item.service?.name || item.itemName) === "ส่วนลด" ||

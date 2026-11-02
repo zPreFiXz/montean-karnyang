@@ -33,10 +33,12 @@ exports.listRepairs = async (req, res) => {
         },
       },
       // ชื่อรายการใช้ตั้งหัวการ์ดของบิลที่ไม่ผูกรถ (ดู getRepairTitle ฝั่งหน้าเว็บ)
+      // หมวดใช้ติดป้ายบิลงานซ่อมที่มีอะไหล่ช่วงล่าง (ควรเปิดเป็นเช็กช่วงล่าง)
       repairItems: {
         select: {
           itemName: true,
           partId: true,
+          part: { select: { category: { select: { name: true } } } },
         },
       },
       vehicle: {
@@ -493,7 +495,7 @@ exports.updateRepairStatus = async (req, res) => {
   });
 
   res.json({
-    message: "อัปเดตสถานะบิลเรียบร้อยแล้ว",
+    message: "อัปเดตสถานะการซ่อมเรียบร้อยแล้ว",
   });
 };
 

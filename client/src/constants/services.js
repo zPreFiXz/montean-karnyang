@@ -19,8 +19,8 @@ export const isPartPlaceholderItem = (item) =>
   (!item?.partNumber && item?.name === PART_PLACEHOLDER_SERVICE_NAME);
 
 // เก็บเป็นบริการเพราะไม่นับสต็อกและระบบของแถมหาจากบริการ แต่หน้าจอเรียกว่าอะไหล่
-// "เปลี่ยนจุ๊บลม" ไม่อยู่ในนี้ เพราะเป็นค่าแรง
-export const PART_LIKE_SERVICE_NAMES = ["จุ๊บลม"];
+// "เปลี่ยนจุ๊บลม" กับ "อัดจารบี" ไม่อยู่ในนี้ เพราะเป็นค่าแรง (ต้องตรงกับ report.js ฝั่งเซิร์ฟเวอร์)
+export const PART_LIKE_SERVICE_NAMES = ["จุ๊บลม", "จารบี"];
 
 export const canHaveServiceImage = (name) =>
   PART_LIKE_SERVICE_NAMES.includes(String(name || "").trim());
@@ -99,8 +99,11 @@ const SERVICE_ORDER = [
   PART_PLACEHOLDER_SERVICE_NAME,
   "ปะยาง",
   "ปะยาง (แผ่นใหญ่)",
+  "ปะยาง (รถไถ)",
   "อัดกาวขอบแมกซ์",
+  "อัดกาวขอบแม็กซ์ (มอเตอร์ไซค์)",
   "จุ๊บลม",
+  "จารบี",
   "เปลี่ยนจุ๊บลม",
   "ถ่วงล้อ",
   "สลับยาง+ถ่วงล้อ",

@@ -28,6 +28,7 @@ import {
   isNoVehicleRepair,
   getRepairTitle,
   getRepairSubtitle,
+  hasMisfiledSuspension,
 } from "@/utils/repairDisplay";
 import ReportPeriodHeader from "@/components/reports/ReportPeriodHeader";
 import {
@@ -227,6 +228,11 @@ const SalesReport = () => {
                           )
                         }
                         licensePlate={carData.licensePlate}
+                        badge={
+                          hasMisfiledSuspension(repair)
+                            ? "มีอะไหล่ช่วงล่าง"
+                            : undefined
+                        }
                         brand={carData.brand}
                         time={carData.time}
                         price={carData.price}
@@ -273,6 +279,11 @@ const SalesReport = () => {
                                 )
                               }
                               licensePlate={carData.licensePlate}
+                              badge={
+                                hasMisfiledSuspension(repair)
+                                  ? "มีอะไหล่ช่วงล่าง"
+                                  : undefined
+                              }
                               brand={carData.brand}
                               time={carData.time}
                               price={carData.price}

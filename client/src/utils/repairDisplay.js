@@ -46,6 +46,9 @@ const isTravelFeeName = (name) => name.includes("นอกสถานที่"
 const getServiceTitle = (repair) => {
   const items = repair?.repairItems || [];
 
+  // มีอะไหล่จากสต็อกปนอยู่ (เช่น ยางใหม่ + จุ๊บลม) ชื่องานบริการไม่ใช่ทั้งบิล จึงขึ้นว่างานบริการ
+  if (items.some((item) => item?.partId)) return "";
+
   const names = items
     .filter((item) => !item?.partId)
     .map((item) => (item?.itemName || "").trim())
@@ -89,3 +92,11 @@ export const getCustomerBillSubtitle = (repair) =>
   ]
     .filter(Boolean)
     .join(" | ");
+
+// บิลงานซ่อมที่มีอะไหล่ช่วงล่าง ควรเปิดเป็นเช็กช่วงล่าง ติดป้ายในรายงานยอดขายไว้ให้ตามแก้ทีละบิล
+export const hasMisfiledSuspension = (repair) =>
+  repair?.type === "GENERAL" &&
+  repair.status !== "CANCELLED" &&
+  (repair.repairItems || []).some(
+    (ri) => ri.part?.category?.name === "ช่วงล่าง",
+  );

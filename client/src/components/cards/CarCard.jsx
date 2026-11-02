@@ -13,6 +13,8 @@ const CarCard = ({
   price,
   amount,
   status,
+  // ป้ายหน้าบรรทัดรอง เช่น บิลที่เปิดผิดประเภท
+  badge,
 }) => {
   const bgColorMap = {
     primary: "bg-primary",
@@ -49,6 +51,12 @@ const CarCard = ({
               {licensePlate}
             </p>
             <p className="text-subtle-dark truncate text-base font-medium md:text-lg">
+              {/* อยู่บรรทัดล่าง ทะเบียนบนหัวการ์ดจะได้ไม่ถูกตัด */}
+              {badge && (
+                <span className="bg-destructive/10 text-destructive mr-1.5 rounded-full px-2 py-px text-sm font-semibold md:text-base">
+                  {badge}
+                </span>
+              )}
               {brand}
               {date && (
                 <span className="text-subtle-dark">

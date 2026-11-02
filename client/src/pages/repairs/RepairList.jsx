@@ -298,7 +298,7 @@ const RepairList = () => {
               ? "ใบประเมินราคา"
               : status === "credit"
                 ? "เครดิต"
-                : "สถานะบิล"}
+                : "สถานะการซ่อม"}
           </p>
           {/* แบบเดียวกับหัวหน้าประวัติรถ ไม่ขึ้นระหว่างโหลดกันเลข 0 แวบ */}
           {status === "estimate" && !isLoading && currentRepairs.length > 0 && (
