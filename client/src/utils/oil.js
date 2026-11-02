@@ -50,12 +50,20 @@ export const isMultiUseOil = (item) => {
 const DIFF_CAPABLE_GEAR_OIL = /^น้ำมันเกียร์.*(80W90|85W140)/i;
 const GEAR_OIL_USES = ["น้ำมันเกียร์", "น้ำมันเฟืองท้าย"];
 
-export const oilUsesOf = (item) =>
-  isMultiUseOil(item)
-    ? OIL_USES
-    : DIFF_CAPABLE_GEAR_OIL.test(String(item?.name || "").trim())
-      ? GEAR_OIL_USES
-      : [];
+// น้ำมันพาวเวอร์ใช้เติมเกียร์ได้ด้วย บิลจะได้บอกว่าเติมอะไรจริง
+const POWER_STEERING_OIL = /^น้ำมันพาวเวอร์/;
+const POWER_STEERING_OIL_USES = ["น้ำมันพาวเวอร์", "น้ำมันเกียร์"];
+
+// ทุกชื่องานที่ประกอบเป็นชื่อบรรทัดได้ ใบเสร็จใช้แยกจากชื่อที่พิมพ์ทับ (ต้องตรงกับ OIL_USES ใน receiptHtml.js)
+export const ALL_OIL_USES = [...OIL_USES, "น้ำมันพาวเวอร์"];
+
+export const oilUsesOf = (item) => {
+  if (isMultiUseOil(item)) return OIL_USES;
+  const name = String(item?.name || "").trim();
+  if (DIFF_CAPABLE_GEAR_OIL.test(name)) return GEAR_OIL_USES;
+  if (POWER_STEERING_OIL.test(name)) return POWER_STEERING_OIL_USES;
+  return [];
+};
 
 // ตัดชื่องานเดิมออกก่อน ไม่งั้นได้ "น้ำมันเฟืองท้าย น้ำมันเกียร์ (80W90)"
 export const oilUseLineName = (item, use) =>
@@ -63,7 +71,7 @@ export const oilUseLineName = (item, use) =>
     item?.brand,
     use,
     String(item?.name || "").replace(
-      /^น้ำมัน(เครื่อง|เกียร์|เฟืองท้าย)\s*/,
+      /^น้ำมัน(เครื่อง|เกียร์|เฟืองท้าย|พาวเวอร์)\s*/,
       "",
     ),
   ]

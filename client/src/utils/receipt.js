@@ -3,7 +3,7 @@ import { formatQuantity, formatPlate } from "@/utils/formats";
 import { getDisplayBrand } from "@/utils/repairDisplay";
 import { getPartType, isPerSide } from "@/utils/suspension";
 import { splitSuspensionBlocks } from "@/utils/repairItemGroups";
-import { getOilSize, OIL_USES, oilUseLineName } from "@/utils/oil";
+import { getOilSize, ALL_OIL_USES, oilUseLineName } from "@/utils/oil";
 import { VEHICLE_COMPATIBLE_CATEGORIES } from "@/constants/categories";
 import {
   isDiscountItem,
@@ -38,7 +38,7 @@ const FULL_NAME_CATEGORIES = ["ยาง", "ยางเปอร์เซ็น
 // ชื่อบรรทัดน้ำมันที่เลือกงานถูกระบบประกอบใหม่ ไม่ใช่ชื่อที่พิมพ์ทับ
 const isOilUseLine = (item) =>
   !!item.part &&
-  OIL_USES.some((use) => item.itemName === oilUseLineName(item.part, use));
+  ALL_OIL_USES.some((use) => item.itemName === oilUseLineName(item.part, use));
 
 // ยางในลูกค้าดูแค่ขนาด ชนิดจุ๊บในวงเล็บ ("ยางใน 750-16 (จุ๊บเหล็ก)") เป็นเรื่องของช่าง ใบจึงตัดออก
 // (ต้องตรงกับ workName ใน server/utils/receiptHtml.js)

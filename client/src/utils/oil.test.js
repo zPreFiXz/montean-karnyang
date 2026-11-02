@@ -41,6 +41,17 @@ describe("งานที่เลือกได้ตอนหยิบน้�
     expect(oilUsesOf(oil("น้ำมันเกียร์ SYNCHROMESH (75W85)"))).toEqual([]);
   });
 
+  it("น้ำมันพาวเวอร์เลือกพาวเวอร์หรือเกียร์ ชื่อบรรทัดไม่ซ้อนชื่องานเดิม", () => {
+    const power = oil("น้ำมันพาวเวอร์", { unit: "ขวด" });
+    expect(oilUsesOf(power)).toEqual(["น้ำมันพาวเวอร์", "น้ำมันเกียร์"]);
+    expect(oilUseLineName(power, "น้ำมันเกียร์")).toBe(
+      "VALVOLINE น้ำมันเกียร์",
+    );
+    expect(oilUseLineName(power, "น้ำมันพาวเวอร์")).toBe(
+      "VALVOLINE น้ำมันพาวเวอร์",
+    );
+  });
+
   it("ชุดน้ำมันที่ผูกกับตัวเก็บไม่ใช่น้ำมันหลายงาน", () => {
     expect(
       isMultiUseOil(oil("SUPER COMMONRAIL (15W40)", { oilSourceId: 3 })),

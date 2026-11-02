@@ -697,11 +697,16 @@ const VEHICLE_COMPATIBLE_CATEGORIES = [
 const FULL_NAME_CATEGORIES = ["ยาง", "ยางเปอร์เซ็นต์", "แบตเตอรี่"];
 
 // ต้องประกอบแบบเดียวกับ oilUseLineName ใน client/src/utils/oil.js
-const OIL_USES = ["น้ำมันเครื่อง", "น้ำมันเกียร์", "น้ำมันเฟืองท้าย"];
+const OIL_USES = [
+  "น้ำมันเครื่อง",
+  "น้ำมันเกียร์",
+  "น้ำมันเฟืองท้าย",
+  "น้ำมันพาวเวอร์",
+];
 const isOilUseLine = (item) => {
   if (!item.part) return false;
   const grade = String(item.part.name || "").replace(
-    /^น้ำมัน(เครื่อง|เกียร์|เฟืองท้าย)\s*/,
+    /^น้ำมัน(เครื่อง|เกียร์|เฟืองท้าย|พาวเวอร์)\s*/,
     "",
   );
   return OIL_USES.some(
