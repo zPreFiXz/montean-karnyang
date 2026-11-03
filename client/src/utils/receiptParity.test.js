@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 import {
   asIssued,
   billPages,
+  billPageHeight,
+  BILL_PAGE_LIMITS,
   buildReceiptPages,
   receiptDocNo,
   receiptDocTitle,
@@ -45,7 +47,12 @@ for (const count of [1, 8, 10, 11, 14, 22]) {
         type: count % 2 ? "SUSPENSION" : "GENERAL",
         status,
         cancelledStatus: status === "CANCELLED" ? "PAID" : null,
-        deliveryNo: "DO-6910-0001",
+        // บิลเครดิตที่จ่ายแล้วยังมีเลขใบส่งของ ใบเสร็จจึงมีช่องวิธีจ่ายแทน QR
+        deliveryNo: status === "CREDIT" || count % 2 ? "DO-6910-0001" : null,
+        // เช็คมีบรรทัดธนาคารสองบรรทัด แผ่นสุดท้ายรับรายการได้น้อยลง
+        paymentMethod: status === "PAID" && count % 3 === 2 ? "CHEQUE" : null,
+        chequeBank: "ธนาคารเพื่อการเกษตรและสหกรณ์การเกษตร",
+        chequeNo: "10234567",
         quotationNo: "QT-6910-0001",
       }),
     );
@@ -77,17 +84,34 @@ describe("ตัวอย่างบนจอกับใบที่พิม�
   });
 });
 
-// ใบวางบิลแบ่งแผ่นตามจำนวนบิล แผ่นสุดท้ายรับได้น้อยกว่าเพราะต้องมีที่ให้ QR
+// ใบวางบิลแบ่งแผ่นตามความสูงแถว (รถสองบรรทัด ค่าอะไหล่/ค่าบริการบรรทัดเดียว)
+// แผ่นสุดท้ายรับได้น้อยกว่าเพราะต้องมีที่ให้ QR
 describe("ใบวางบิลแบ่งแผ่นตรงกันทั้งสองฝั่ง", () => {
   const ids = (pages) => pages.map((page) => page.map((bill) => bill.id));
-  for (const count of [0, 1, 9, 10, 18, 19, 27, 28, 37]) {
+  const bill = (id) =>
+    id % 3 === 0
+      ? { id, type: "SALE" }
+      : {
+          id,
+          type: "GENERAL",
+          vehicle: {
+            fleetNo: id % 2 ? "12" : null,
+            licensePlate: { plateNumber: "กข 1234", province: "ศรีสะเกษ" },
+            vehicleModel: { brand: "Toyota", model: "Revo" },
+          },
+        };
+  for (const count of [0, 1, 5, 6, 7, 11, 12, 16, 17, 23, 37]) {
     it(`${count} บิล`, () => {
-      const repairs = Array.from({ length: count }, (_, i) => ({ id: i + 1 }));
+      const repairs = Array.from({ length: count }, (_, i) => bill(i + 1));
       const client = billPages(repairs);
       expect(ids(server.billPages(repairs))).toEqual(ids(client));
       expect(client.flat()).toHaveLength(count);
-      expect(client.at(-1).length).toBeLessThanOrEqual(9);
-      for (const page of client) expect(page.length).toBeLessThanOrEqual(18);
+      expect(billPageHeight(client.at(-1))).toBeLessThanOrEqual(
+        BILL_PAGE_LIMITS.lastPage,
+      );
+      for (const page of client) {
+        expect(billPageHeight(page)).toBeLessThanOrEqual(BILL_PAGE_LIMITS.page);
+      }
     });
   }
 });

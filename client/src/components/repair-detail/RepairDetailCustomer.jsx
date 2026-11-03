@@ -10,6 +10,9 @@ const RepairDetailCustomer = ({ customer, statusInfo, onSetOrganization }) => {
     customer.taxId
   );
   const hasSingleCustomerLine = !!customer.name !== hasContact;
+  const typeLabel =
+    organizationLabel(customer.organizationType) ||
+    (onSetOrganization ? "ลูกค้าทั่วไป" : "");
 
   return (
     <div>
@@ -37,11 +40,25 @@ const RepairDetailCustomer = ({ customer, statusInfo, onSetOrganization }) => {
               {customer.name}
             </p>
           )}
-          {/* ขึ้นเฉพาะหน่วยงานกับร้านค้า ไม่ขึ้นป้ายลูกค้าทั่วไป */}
-          {customer.organizationType && (
-            <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-              {organizationLabel(customer.organizationType)}
-            </p>
+          {/* บรรทัดประเภทลูกค้าคู่กับปุ่มเปลี่ยน ลูกค้าทั่วไปจึงขึ้นชื่อประเภทด้วยเฉพาะตอนมีปุ่ม
+              จะได้รู้ว่าตอนนี้เป็นประเภทไหนก่อนกดเปลี่ยน ไม่มีปุ่มก็ไม่ขึ้นป้ายลูกค้าทั่วไปเหมือนเดิม */}
+          {typeLabel && (
+            <div className="text-subtle-dark flex flex-wrap items-center gap-x-1.5 text-lg leading-tight font-medium md:text-xl">
+              <span>{typeLabel}</span>
+              {onSetOrganization && (
+                <>
+                  <span className="text-subtle-light">|</span>
+                  <button
+                    type="button"
+                    onClick={onSetOrganization}
+                    className="text-primary flex cursor-pointer items-center gap-1 font-semibold"
+                  >
+                    <SquarePen className="h-4 w-4" />
+                    เปลี่ยนประเภท
+                  </button>
+                </>
+              )}
+            </div>
           )}
           {(customer.phoneNumber || customer.address || customer.taxId) && (
             <div
@@ -82,17 +99,6 @@ const RepairDetailCustomer = ({ customer, statusInfo, onSetOrganization }) => {
             </div>
           )}
         </div>
-        {onSetOrganization && (
-          <button
-            type="button"
-            onClick={onSetOrganization}
-            aria-label="ตั้งประเภทลูกค้า"
-            title="ตั้งประเภทลูกค้า"
-            className="bg-subtle-light/15 mt-1.5 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full"
-          >
-            <SquarePen className="text-subtle-dark h-5 w-5" />
-          </button>
-        )}
       </div>
     </div>
   );

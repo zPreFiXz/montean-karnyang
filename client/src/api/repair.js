@@ -16,6 +16,10 @@ export const updateRepair = async (id, data) => {
   return await apiClient.put(`/repairs/${id}`, data);
 };
 
+export const listChequeBanks = async () => {
+  return await apiClient.get("/repairs/cheque-banks");
+};
+
 export const updateRepairStatus = async (id, data) => {
   return await apiClient.patch(`/repairs/${id}/status`, data);
 };
@@ -32,27 +36,31 @@ export const deleteRepair = async (id) => {
 export const printRepairReceipt = async (id, options = {}) => {
   // ค่าเริ่มต้นต้องตรงกับหน้าตัวอย่าง ใบที่พิมพ์ออกมาจะได้เหมือนที่เห็นทุกครั้ง
   const {
-    showCustomer = true,
+    showCustomer = false,
     showBrand = false,
     docType = "receipt",
+    copyChoice = "both",
   } = options;
   return await apiClient.post(`/repairs/${id}/print`, {
     showCustomer,
     showBrand,
     docType,
+    copyChoice,
   });
 };
 
 // ใบเดียวกับที่พิมพ์ แต่ได้เป็นรูป (ข้อความ base64 แผ่นละรูป) ไว้ส่งให้ลูกค้าทางแชท
 export const renderRepairImages = async (id, options = {}) => {
   const {
-    showCustomer = true,
+    showCustomer = false,
     showBrand = false,
     docType = "receipt",
+    copyChoice = "original",
   } = options;
   return await apiClient.post(`/repairs/${id}/image`, {
     showCustomer,
     showBrand,
     docType,
+    copyChoice,
   });
 };

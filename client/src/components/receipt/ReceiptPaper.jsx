@@ -9,6 +9,8 @@ import {
   formatAmount,
   formatMoney,
   hasPaymentQr,
+  paymentLineRows,
+  showsPaymentBoxes,
   quantityLabel,
   receiptDocNo,
   receiptDocTitle,
@@ -165,7 +167,8 @@ const ReceiptPaper = ({
         <table className="mt-2 w-full table-fixed border-collapse">
           <thead>
             <tr className="bg-gray-200">
-              <th className="w-15.5 border border-black p-[3px] font-semibold">
+              {/* กว้างพอให้ "10 แกลลอน" อยู่บรรทัดเดียว (ตรงกับ th.qty ใน receiptHtml.js) */}
+              <th className="w-19 border border-black p-[3px] font-semibold">
                 จำนวน
               </th>
               <th className="border border-black p-[3px] font-semibold">
@@ -251,15 +254,14 @@ const ReceiptPaper = ({
           </tbody>
         </table>
 
-        {/* ช่องวิธีจ่ายมีเฉพาะใบส่งของ (ต้องตรงกับ receiptHtml.js) */}
-        {repair.status === "CREDIT" && (
+        {/* ใบส่งของ และใบเสร็จของบิลเครดิตที่จ่ายแล้ว (ต้องตรงกับ receiptHtml.js) */}
+        {showsPaymentBoxes(repair) && (
           <>
             <div className="mt-2 flex items-center gap-5">
               {PAYMENT_BOXES.map((box) => (
                 <span key={box.label} className="flex items-center gap-1.5">
                   <span className="flex h-[13px] w-[13px] items-center justify-center border border-black text-[10px] leading-none">
-                    {/* เช็คไม่มีในระบบ (method เป็นว่าง) บิลที่ยังไม่ได้เก็บเงินก็ว่างเหมือนกัน
-                  ต้องเช็คว่ามีวิธีจ่ายจริงก่อน ไม่งั้นจะไปติ๊กช่องเช็คให้เอง */}
+                    {/* ใบส่งของยังไม่ได้เก็บเงิน วิธีจ่ายว่าง จึงไม่มีช่องไหนถูกติ๊ก */}
                     {box.method && repair.paymentMethod === box.method
                       ? "✓"
                       : ""}
@@ -269,14 +271,32 @@ const ReceiptPaper = ({
               ))}
             </div>
 
-            <div className="mt-1.5 flex items-end gap-2">
-              {["ธนาคาร", "เลขที่", "ลงวันที่", "จำนวนเงิน"].map((label) => (
-                <span key={label} className="flex flex-1 items-end gap-1">
-                  <span className="whitespace-nowrap">{label}</span>
-                  <span className="flex-1 border-b border-dotted border-black" />
-                </span>
-              ))}
-            </div>
+            {paymentLineRows(repair).map((row) => (
+              <div
+                key={row[0].label}
+                className={`mt-1.5 items-end gap-2 ${
+                  row.length === 2
+                    ? "grid grid-cols-2"
+                    : "flex"
+                }`}
+              >
+                {row.map(({ label, value, suffix }) => (
+                  // บรรทัดเดียวแบ่งที่ว่างหลังหักหัวข้อให้เท่ากัน ช่องที่หัวข้อยาวจะได้ไม่เหลือเส้นสั้น
+                  <span
+                    key={label}
+                    className="flex min-w-0 flex-[1_1_auto] items-end gap-1"
+                  >
+                    <span className="whitespace-nowrap">{label}</span>
+                    <span className="min-w-0 flex-1 truncate border-b border-dotted border-black text-center font-semibold">
+                      {value}
+                    </span>
+                    {suffix && (
+                      <span className="whitespace-nowrap">{suffix}</span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            ))}
           </>
         )}
 

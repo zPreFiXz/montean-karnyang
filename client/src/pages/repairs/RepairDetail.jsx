@@ -48,11 +48,16 @@ import { useReopenStockItem } from "@/hooks/useReopenStockItem";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
 import RepairDetailCustomer from "@/components/repair-detail/RepairDetailCustomer";
 import RepairDetailPayment from "@/components/repair-detail/RepairDetailPayment";
+import { invalidateChequeBanks } from "@/hooks/useChequeBankOptions";
 import RepairDetailTimeline from "@/components/repair-detail/RepairDetailTimeline";
 import RepairDetailItems from "@/components/repair-detail/RepairDetailItems";
 import { toastError } from "@/utils/handleError";
 import { countDisplayedItems } from "@/utils/repairItemGroups";
-import { CREDIT_OPTION_ID } from "@/constants/paymentMethods";
+import {
+  CHEQUE_METHOD_ID,
+  chequeErrorsOf,
+  CREDIT_OPTION_ID,
+} from "@/constants/paymentMethods";
 import {
   isSaleRepair,
   isNoVehicleRepair,
@@ -76,7 +81,11 @@ const RepairDetail = () => {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
   const [paymentMethodError, setPaymentMethodError] = useState("");
+  // date เก็บเป็น ปปปป-ดด-วว เหมือนที่ส่งไปเซิร์ฟเวอร์
+  const [cheque, setCheque] = useState({ bank: "", no: "", date: "" });
+  const [chequeErrors, setChequeErrors] = useState({});
   const [isEditingPaidMethod, setIsEditingPaidMethod] = useState(false);
+  const [isSavingPaidMethod, setIsSavingPaidMethod] = useState(false);
   const [isSavingEstimate, setIsSavingEstimate] = useState(false);
   const [isEstimateConfirmOpen, setIsEstimateConfirmOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
@@ -98,6 +107,11 @@ const RepairDetail = () => {
       const res = await getRepair(id);
       setRepair(res.data);
       setSelectedPaymentMethod(res.data.paymentMethod || "");
+      setCheque({
+        bank: res.data.chequeBank || "",
+        no: res.data.chequeNo || "",
+        date: res.data.chequeDate ? res.data.chequeDate.slice(0, 10) : "",
+      });
     } catch (error) {
       toastError(error);
     } finally {
@@ -118,22 +132,78 @@ const RepairDetail = () => {
     }
   };
 
+  // ตัดช่องว่างหน้าหลังก่อนเทียบ พิมพ์เว้นวรรคเกินมาไม่นับว่าแก้
+  const hasPaidMethodChanged =
+    !!repair &&
+    (selectedPaymentMethod !== (repair.paymentMethod || "") ||
+      (selectedPaymentMethod === CHEQUE_METHOD_ID &&
+        (cheque.bank.trim() !== (repair.chequeBank || "") ||
+          cheque.no.trim() !== (repair.chequeNo || "") ||
+          cheque.date !==
+            (repair.chequeDate ? repair.chequeDate.slice(0, 10) : ""))));
+
+  // เช็คต้องมีธนาคารกับเลขที่ คืน null ถ้ากรอกไม่ครบ (ขึ้นกรอบแดงให้แล้ว)
+  const chequeFieldsFor = (method) => {
+    if (method !== CHEQUE_METHOD_ID) return {};
+    const errors = chequeErrorsOf(cheque);
+    if (Object.keys(errors).length > 0) {
+      setChequeErrors(errors);
+      paymentSectionRef.current?.scrollIntoView({
+        block: "center",
+        behavior: "smooth",
+      });
+      return null;
+    }
+    // ธนาคารใหม่ต้องโผล่ในตัวเลือกครั้งหน้า
+    invalidateChequeBanks();
+    return {
+      chequeBank: cheque.bank.trim(),
+      chequeNo: cheque.no.trim(),
+      chequeDate: cheque.date,
+    };
+  };
+
   // ส่งสถานะเดิมไปด้วย เพราะเซิร์ฟเวอร์รับเป็นคำสั่งอัปเดตสถานะตัวเดียว
+  // เช็คแก้ธนาคารหรือเลขที่ได้ แม้วิธีจ่ายจะเป็นเช็คอยู่แล้ว วิธีอื่นที่ไม่ได้เปลี่ยนแค่ออกจากโหมดแก้ไข
   const handleChangePaidMethod = async (value) => {
-    if (!repair || !value || value === repair.paymentMethod) return;
+    if (!repair || !value || isSavingPaidMethod) return;
+    const isCheque = value === CHEQUE_METHOD_ID;
+    const isUnchanged = !isCheque && value === repair.paymentMethod;
+    const chequeFields = chequeFieldsFor(value);
+    if (!chequeFields) return;
 
     try {
-      await updateRepairStatus(repair.id, {
-        status: "PAID",
+      setIsSavingPaidMethod(true);
+      // ไม่ได้เปลี่ยนก็หมุนให้เห็นสักครู่ ไม่งั้นกดแล้วเหมือนปุ่มไม่ติด
+      await withMinDuration(() =>
+        isUnchanged
+          ? Promise.resolve()
+          : updateRepairStatus(repair.id, {
+              status: "PAID",
+              paymentMethod: value,
+              ...chequeFields,
+            }),
+      );
+      if (isUnchanged) {
+        setIsEditingPaidMethod(false);
+        return;
+      }
+      setRepair((prev) => ({
+        ...prev,
         paymentMethod: value,
-      });
-      setRepair((prev) => ({ ...prev, paymentMethod: value }));
+        chequeBank: chequeFields.chequeBank ?? null,
+        chequeNo: chequeFields.chequeNo ?? null,
+        chequeDate: chequeFields.chequeDate
+          ? `${chequeFields.chequeDate}T00:00:00.000Z`
+          : null,
+      }));
       setIsEditingPaidMethod(false);
-      toast.success("แก้ไขวิธีชำระเงินเรียบร้อยแล้ว");
+      toast.success("แก้ไขการชำระเงินเรียบร้อยแล้ว");
     } catch (error) {
-      setSelectedPaymentMethod(repair.paymentMethod || "");
-      setIsEditingPaidMethod(false);
+      // คงโหมดแก้ไขไว้ ที่กรอกไว้จะได้ไม่หาย แก้แล้วกดบันทึกใหม่ได้เลย
       toastError(error);
+    } finally {
+      setIsSavingPaidMethod(false);
     }
   };
 
@@ -196,7 +266,13 @@ const RepairDetail = () => {
       const updateData = { status: nextStatus };
 
       if (needsPaymentMethod) {
+        const chequeFields = chequeFieldsFor(selectedPaymentMethod);
+        if (!chequeFields) {
+          await withMinDuration(() => Promise.resolve());
+          return;
+        }
         updateData.paymentMethod = selectedPaymentMethod;
+        Object.assign(updateData, chequeFields);
       }
 
       await withMinDuration(() => updateRepairStatus(repair.id, updateData));
@@ -610,13 +686,44 @@ const RepairDetail = () => {
               isCancelled={isCancelled}
               isEditingPaidMethod={isEditingPaidMethod}
               onEditPaidMethod={() => setIsEditingPaidMethod(true)}
+              onCancelEditPaidMethod={() => {
+                // กลับไปค่าที่บันทึกไว้ ที่เลือกหรือกรอกค้างไว้ทิ้งหมด
+                setIsEditingPaidMethod(false);
+                setSelectedPaymentMethod(repair.paymentMethod || "");
+                setCheque({
+                  bank: repair.chequeBank || "",
+                  no: repair.chequeNo || "",
+                  date: repair.chequeDate ? repair.chequeDate.slice(0, 10) : "",
+                });
+                setChequeErrors({});
+                setPaymentMethodError("");
+              }}
               selectedMethod={selectedPaymentMethod}
               onSelectMethod={(value) => {
                 setSelectedPaymentMethod(value);
                 setPaymentMethodError("");
-                if (repair.status === "PAID") handleChangePaidMethod(value);
               }}
               error={paymentMethodError}
+              cheque={cheque}
+              onChequeChange={(field, value) => {
+                setCheque((prev) => ({ ...prev, [field]: value }));
+                const key = {
+                  bank: "chequeBank",
+                  no: "chequeNo",
+                  date: "chequeDate",
+                }[field];
+                setChequeErrors((prev) => {
+                  const next = { ...prev };
+                  delete next[key];
+                  return next;
+                });
+              }}
+              chequeErrors={chequeErrors}
+              isSavingPaidMethod={isSavingPaidMethod}
+              canSavePaidMethod={hasPaidMethodChanged}
+              onSavePaidMethod={() =>
+                handleChangePaidMethod(selectedPaymentMethod)
+              }
             />
             <RepairDetailTimeline
               repair={repair}

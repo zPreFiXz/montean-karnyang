@@ -13,6 +13,7 @@ import {
   jobSheetNo,
   receiptDocNo,
   receiptCopyLabels,
+  COPY_CHOICES,
   receiptDocTitle,
   receiptPageCount,
 } from "@/utils/receipt";
@@ -47,17 +48,20 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
   const viewportRef = useRef(null);
   const [isPrintingAtShop, setIsPrintingAtShop] = useState(false);
   const [isSavingImage, setIsSavingImage] = useState(false);
-  const [showCustomer, setShowCustomer] = useState(true);
+  const [showCustomer, setShowCustomer] = useState(false);
   const [showBrand, setShowBrand] = useState(false);
   const [docType, setDocType] = useState("receipt");
+  const [copyChoice, setCopyChoice] = useState("both");
 
   const { contentRef, paperRef, scale, isMeasured } = usePaperFit({
     open,
     chromeEstimate: 180,
+    // เปิดใหม่ทุกครั้งกลับไปค่าเริ่มต้น ข้อมูลลูกค้าปิดไว้ก่อน ต้องการค่อยเปิดเอง
     onOpen: () => {
-      setShowCustomer(true);
+      setShowCustomer(false);
       setShowBrand(false);
       setDocType("receipt");
+      setCopyChoice("both");
     },
   });
 
@@ -66,7 +70,9 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
   const pageCount =
     docType === "job" ? 1 : receiptPageCount(repair, { showBrand });
 
-  const copyLabels = docType === "job" ? [null] : receiptCopyLabels(repair);
+  const isCreditBill = repair.status === "CREDIT";
+  const copyLabels =
+    docType === "job" ? [null] : receiptCopyLabels(repair, copyChoice);
   const sheets = copyLabels.flatMap((copyLabel) =>
     Array.from({ length: pageCount }, (_, page) => ({ page, copyLabel })),
   );
@@ -79,11 +85,12 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
     repair.customer?.taxId ||
     repair.customer?.phoneNumber
   );
-  // ใบสั่งซ่อมมีเฉพาะงานที่มีรถและยังมีงานให้ช่างทำ
+  // ใบสั่งซ่อมมีเฉพาะงานที่มีรถและกำลังซ่อม ซ่อมเสร็จหรือยกเลิกแล้วช่างไม่ต้องใช้ใบนี้
   const showJobSheetTab =
     !isSaleRepair(repair) &&
     !isNoVehicleRepair(repair) &&
-    repair.status !== "CREDIT";
+    repair.status === "IN_PROGRESS" &&
+    !repair.isCancelled;
   const canShortenNames = hasShortenableName(repair.repairItems || []);
 
   const handlePrintAtShop = async () => {
@@ -92,7 +99,12 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
     try {
       setIsPrintingAtShop(true);
       await withMinDuration(() =>
-        printRepairReceipt(repair.id, { showCustomer, showBrand, docType }),
+        printRepairReceipt(repair.id, {
+          showCustomer,
+          showBrand,
+          docType,
+          copyChoice,
+        }),
       );
       onOpenChange(false);
       toast.success(
@@ -116,7 +128,12 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
     try {
       setIsSavingImage(true);
       const res = await withMinDuration(() =>
-        renderRepairImages(repair.id, { showCustomer, showBrand, docType }),
+        renderRepairImages(repair.id, {
+          showCustomer,
+          showBrand,
+          docType,
+          copyChoice,
+        }),
       );
       const images = res.data?.images || [];
       // ไม่ใช้ภาษาไทยในชื่อไฟล์ เพราะบางระบบอ่านเพี้ยน
@@ -194,6 +211,29 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
                 }`}
               >
                 {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* บิลเครดิตไม่มีแท็บใบสั่งซ่อม แถวนี้จึงใช้เลือกว่าจะเอาใบส่งของใบไหน */}
+        {isCreditBill && (
+          <div className="receipt-chrome mx-4 mb-2 flex justify-center gap-2">
+            {COPY_CHOICES.map((choice) => (
+              <button
+                key={choice.id}
+                type="button"
+                onClick={() => setCopyChoice(choice.id)}
+                aria-pressed={copyChoice === choice.id}
+                className={`font-athiti h-9.5 cursor-pointer rounded-[20px] border px-3 text-lg font-semibold whitespace-nowrap duration-300 md:text-xl ${
+                  choice.id === "both" ? "flex-[1.6]" : "flex-1"
+                } ${
+                  copyChoice === choice.id
+                    ? "bg-primary text-surface border-transparent"
+                    : "border-subtle-light text-subtle-dark bg-surface"
+                }`}
+              >
+                {choice.label}
               </button>
             ))}
           </div>

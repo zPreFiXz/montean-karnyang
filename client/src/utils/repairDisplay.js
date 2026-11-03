@@ -1,11 +1,11 @@
 import { formatDateShort, formatPlate } from "@/utils/formats";
-// บิลมีสามแบบ: งานซ่อมผูกรถ / ขายอะไหล่หน้าร้าน (SALE) / งานบริการที่ไม่ผูกรถ
+// บิลมีสามแบบ: งานซ่อมผูกรถ / ขายอะไหล่ (SALE) / งานบริการที่ไม่ผูกรถ
 export const isSaleRepair = (repair) => repair?.type === "SALE";
 
 export const isNoVehicleRepair = (repair) =>
   !isSaleRepair(repair) && !repair?.vehicle;
 
-export const SALE_TITLE = "ขายอะไหล่หน้าร้าน";
+export const SALE_TITLE = "ขายอะไหล่";
 export const NO_VEHICLE_TITLE = "งานบริการ";
 
 // ยี่ห้อ "อื่นๆ" เป็นตัวแทนของรถที่ไม่มีในรายการ ชื่อยี่ห้อจึงไม่มีความหมาย แสดงแต่รุ่น

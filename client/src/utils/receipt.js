@@ -1,6 +1,6 @@
 // ตรรกะชุดนี้ต้องตรงกับ server/utils/receiptHtml.js ที่ใช้พิมพ์จริง
-import { formatQuantity, formatPlate } from "@/utils/formats";
-import { getDisplayBrand } from "@/utils/repairDisplay";
+import { formatDate, formatQuantity, formatPlate } from "@/utils/formats";
+import { getDisplayBrand, isSaleRepair } from "@/utils/repairDisplay";
 import { getPartType, isPerSide } from "@/utils/suspension";
 import { splitSuspensionBlocks } from "@/utils/repairItemGroups";
 import { getOilSize, ALL_OIL_USES, oilUseLineName } from "@/utils/oil";
@@ -28,7 +28,7 @@ export const PAYMENT_BOXES = [
   { label: "เงินสด", method: "CASH" },
   { label: "สแกนจ่าย", method: "QR_CODE" },
   { label: "บัตรเครดิต", method: "CREDIT_CARD" },
-  { label: "เช็ค", method: null },
+  { label: "เช็ค", method: "CHEQUE" },
 ];
 
 // ของช่วงล่างตัดเหลือคำแรกของชื่อในคลัง ซึ่งเป็นชนิดอะไหล่
@@ -220,9 +220,9 @@ export const receiptHeaderInfo = (repair) => {
 };
 
 // ชื่อยาวตกเป็นสองบรรทัด ถ้านับทุกแถวเป็นหนึ่ง แผ่นจะล้นจนช่องลงชื่อหาย
-// จึงประมาณบรรทัดจากความกว้างตัวอักษร (ช่องรายการกว้างราว 236 จุด) เผื่อไว้ราวหนึ่งในสิบ
+// จึงประมาณบรรทัดจากความกว้างตัวอักษร (ช่องรายการกว้างราว 222 จุด) เผื่อไว้ราวหนึ่งในสิบ
 // สระบน-ล่างกับวรรณยุกต์ไม่กินความกว้าง
-const NAME_LINE_WIDTH = 217;
+const NAME_LINE_WIDTH = 204;
 const THAI_COMBINING = /[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/;
 const charWidth = (ch) => {
   if (THAI_COMBINING.test(ch)) return 0;
@@ -259,19 +259,63 @@ const paginateRows = (rows, linesOf, maxLines = MIN_ROWS) => {
 // QR ท้ายแผ่นสุดท้ายกินที่ แผ่นที่รายการเต็มจึงยกรายการท้ายไปแผ่นใหม่
 // ค่าวัดจากหน้าเอกสารจริงใน Chrome
 const QR_PAGE_LINES = 11;
-// ใบวางบิลหนึ่งบิลหนึ่งบรรทัด แผ่นสุดท้ายต้องเหลือที่ให้ยอดรวม ช่องเซ็น และ QR 28 มม.
-// ค่าวัดจากหน้าเอกสารจริงใน Chrome ต้องตรงกับ billPages ใน server/utils/receiptHtml.js
-const BILL_PAGE_ROWS = 18;
-const BILL_LAST_PAGE_ROWS = 9;
+// รายละเอียดในใบวางบิล ยี่ห้อรุ่น / ทะเบียน (เบอร์รถ) ค่าอะไหล่กับค่าบริการมีบรรทัดเดียว
+// (ต้องตรงกับ billLines ใน receiptHtml.js)
+export const billLines = (repair) => {
+  // ใบวางบิลเขียนจากฝั่งคนจ่าย จึงเป็น "ค่า…" ไม่ใช่ชื่อบิลแบบในแอป
+  if (isSaleRepair(repair)) return ["ค่าอะไหล่", ""];
+  if (!repair.vehicle) return ["ค่าบริการ", ""];
+
+  const fleet = repair.vehicle.fleetNo
+    ? `เบอร์รถ ${repair.vehicle.fleetNo}`
+    : "";
+  const model = getDisplayBrand(repair.vehicle.vehicleModel) || "งานซ่อม";
+  const plate = repair.vehicle.licensePlate;
+  if (plate?.plateNumber && plate?.province) {
+    const plateText =
+      `${formatPlate(plate.plateNumber)} ${shortProvince(plate.province)}`.trim();
+    // ในวงเล็บใส่แค่ตัวเลข มีคำว่าเบอร์รถด้วยจะยาวจนเลขถูกตัด
+    return [
+      model,
+      repair.vehicle.fleetNo
+        ? `${plateText} (${repair.vehicle.fleetNo})`
+        : plateText,
+    ];
+  }
+  return [model, fleet];
+};
+
+// แถวสูงตามจำนวนบรรทัดรายละเอียด จึงแบ่งแผ่นด้วยความสูงแทนจำนวนบิล
+// ค่าวัดจากหน้าเอกสารจริงใน Chrome: แผ่นกลางมีที่ให้แถวราว 493px แผ่นสุดท้ายต้องเหลือที่ให้ยอดรวม
+// ช่องเซ็น และ QR 28 มม. เต็มขนาด ต้องตรงกับ billPages ใน server/utils/receiptHtml.js
+const BILL_ROW_HEIGHT = { 1: 23.4, 2: 41.7 };
+const BILL_PAGE_HEIGHT = 490;
+const BILL_LAST_PAGE_HEIGHT = 230;
+const billRowHeight = (repair) =>
+  BILL_ROW_HEIGHT[billLines(repair).filter(Boolean).length] ??
+  BILL_ROW_HEIGHT[2];
+export const billPageHeight = (repairs) =>
+  repairs.reduce((sum, repair) => sum + billRowHeight(repair), 0);
+export const BILL_PAGE_LIMITS = {
+  page: BILL_PAGE_HEIGHT,
+  lastPage: BILL_LAST_PAGE_HEIGHT,
+};
 export const billPages = (repairs) => {
   const pages = [];
-  for (let i = 0; i < repairs.length; i += BILL_PAGE_ROWS) {
-    pages.push(repairs.slice(i, i + BILL_PAGE_ROWS));
+  let used = Infinity;
+  for (const repair of repairs) {
+    const height = billRowHeight(repair);
+    if (used + height > BILL_PAGE_HEIGHT) {
+      pages.push([]);
+      used = 0;
+    }
+    pages[pages.length - 1].push(repair);
+    used += height;
   }
   if (pages.length === 0) return [[]];
-  // แผ่นสุดท้ายเกินที่ QR รับได้ แผ่นนี้รับได้ถึง BILL_PAGE_ROWS อยู่แล้ว จึงยกไปแค่บิลสุดท้ายใบเดียว
+  // แผ่นสุดท้ายเกินที่ QR รับได้ แผ่นนี้ยังอยู่ในความสูงแผ่นกลาง จึงยกไปแค่บิลสุดท้ายใบเดียว
   const last = pages[pages.length - 1];
-  if (last.length > BILL_LAST_PAGE_ROWS) {
+  if (billPageHeight(last) > BILL_LAST_PAGE_HEIGHT) {
     pages[pages.length - 1] = last.slice(0, -1);
     pages.push(last.slice(-1));
   }
@@ -361,8 +405,9 @@ export const buildReceiptPages = (repair, { showBrand = true } = {}) => {
   // ต้องตรงกับ receiptPagesHtml ฝั่งเซิร์ฟเวอร์
   const lastPageLimit = hasPaymentQr(repair)
     ? QR_PAGE_LINES
-    : repair?.status === "CREDIT"
-      ? DELIVERY_PAGE_LINES
+    : showsPaymentBoxes(repair)
+      ? // เช็คใช้บรรทัดธนาคารสองบรรทัด แผ่นสุดท้ายจึงรับรายการได้น้อยลงหนึ่ง
+        DELIVERY_PAGE_LINES - paymentLineRows(repair).length + 1
       : null;
   const pages = lastPageLimit
     ? makeRoomForQr(
@@ -376,13 +421,65 @@ export const buildReceiptPages = (repair, { showBrand = true } = {}) => {
   return { pages, discountItems };
 };
 
-// QR มีเฉพาะใบเสร็จ ใบเสนอราคายังไม่ถึงตอนจ่าย ใบส่งของลูกค้าจ่ายทีหลังตามใบวางบิล
-export const hasPaymentQr = (repair) =>
-  !repair?.isCancelled && !["ESTIMATE", "CREDIT"].includes(repair?.status);
+// ช่องวิธีจ่ายกับบรรทัดธนาคารมีในใบส่งของ และใบเสร็จของบิลเครดิตที่มาจ่ายแล้ว ติ๊กว่าจ่ายด้วยอะไร
+// (ต้องตรงกับ showsPaymentBoxes ใน receiptHtml.js)
+export const showsPaymentBoxes = (repair) =>
+  repair?.status === "CREDIT" ||
+  (repair?.status === "PAID" && !!repair?.deliveryNo);
 
-// ต้นฉบับให้ลูกค้า สำเนาให้ลูกค้าเซ็นรับแล้วร้านเก็บไว้ (ตรงกับฝั่งเซิร์ฟเวอร์)
-export const receiptCopyLabels = (repair) =>
-  repair?.status === "CREDIT" ? ["ต้นฉบับ", "สำเนา"] : [null];
+// QR มีเฉพาะใบเสร็จ ใบเสนอราคายังไม่ถึงตอนจ่าย ใบส่งของลูกค้าจ่ายทีหลังตามใบวางบิล
+// บิลเครดิตที่จ่ายแล้วไม่ต้องสแกนอีก ที่ตรงนั้นใช้ช่องวิธีจ่ายแทน
+export const hasPaymentQr = (repair) =>
+  !repair?.isCancelled &&
+  !["ESTIMATE", "CREDIT"].includes(repair?.status) &&
+  !showsPaymentBoxes(repair);
+
+// ค่าในบรรทัดใต้ช่องวิธีจ่าย มีเฉพาะจ่ายด้วยเช็ค จำนวนเงินเท่ายอดบิล (ต้องตรงกับ receiptHtml.js)
+export const paymentLineFields = (repair) => {
+  const isCheque = repair?.paymentMethod === "CHEQUE";
+  const value = (text) => (isCheque ? text || "" : "");
+  return [
+    { label: "ธนาคาร", value: value(repair?.chequeBank) },
+    { label: "เลขที่", value: value(repair?.chequeNo) },
+    {
+      label: "ลงวันที่",
+      value: value(repair?.chequeDate && formatDate(repair.chequeDate)),
+    },
+    // หน่วยอยู่หลังเส้นประชิดขวาเสมอ ใบส่งของที่ยังว่างก็เขียนแค่ตัวเลข
+    {
+      label: "จำนวนเงิน",
+      value: value(formatMoney(repair?.totalPrice)),
+      suffix: "บาท",
+    },
+  ];
+};
+
+// จ่ายด้วยเช็คแบ่งเป็นสองบรรทัด ธนาคารกับเลขที่ / วันที่กับจำนวนเงิน ชื่อยาวจะได้ไม่ถูกตัด ใบที่ยังว่างคงบรรทัดเดียว
+// (ต้องตรงกับ bankRows ใน receiptHtml.js)
+// สองบรรทัดของเช็คแบ่งครึ่งเป็นสองคอลัมน์ เลขที่กับจำนวนเงินเริ่มตรงกลางบรรทัด
+// บรรทัดเดียวของใบที่ยังว่างแบ่งเส้นเท่ากันทุกช่องไว้เขียนมือ
+export const paymentLineRows = (repair) => {
+  const fields = paymentLineFields(repair);
+  return repair?.paymentMethod === "CHEQUE"
+    ? [fields.slice(0, 2), fields.slice(2)]
+    : [fields];
+};
+
+// ใบส่งของมีต้นฉบับให้ลูกค้า สำเนาให้ลูกค้าเซ็นรับแล้วร้านเก็บไว้ เลือกพิมพ์ทีละใบหรือทั้งคู่ก็ได้
+// id ต้องตรงกับ COPY_CHOICES ใน server/utils/receiptHtml.js
+export const COPY_CHOICES = [
+  { id: "both", label: "ต้นฉบับและสำเนา", copies: ["ต้นฉบับ", "สำเนา"] },
+  { id: "original", label: "ต้นฉบับ", copies: ["ต้นฉบับ"] },
+  { id: "copy", label: "สำเนา", copies: ["สำเนา"] },
+];
+
+export const receiptCopyLabels = (repair, copyChoice = "both") =>
+  repair?.status === "CREDIT"
+    ? (
+        COPY_CHOICES.find((choice) => choice.id === copyChoice) ??
+        COPY_CHOICES[0]
+      ).copies
+    : [null];
 
 export const receiptPageCount = (repair, options) =>
   buildReceiptPages(repair, options).pages.length;

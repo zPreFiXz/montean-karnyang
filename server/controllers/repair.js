@@ -66,6 +66,26 @@ exports.listRepairs = async (req, res) => {
   res.json(repairs);
 };
 
+// ธนาคารที่เคยรับเช็ค ไว้เป็นตัวเลือกตอนกรอก ใช้บ่อยขึ้นก่อน ชื่อจะได้สะกดตรงกันทุกบิล
+exports.listChequeBanks = async (req, res) => {
+  const rows = await prisma.repair.groupBy({
+    by: ["chequeBank"],
+    where: { chequeBank: { not: null } },
+    _count: { _all: true },
+  });
+  const collator = new Intl.Collator("th");
+  res.json(
+    rows
+      .filter((row) => String(row.chequeBank || "").trim())
+      .sort(
+        (a, b) =>
+          b._count._all - a._count._all ||
+          collator.compare(a.chequeBank, b.chequeBank),
+      )
+      .map((row) => row.chequeBank),
+  );
+};
+
 exports.getRepair = async (req, res) => {
   const { id } = req.params;
 
@@ -429,8 +449,8 @@ exports.deleteRepair = async (req, res) => {
 
 exports.updateRepairStatus = async (req, res) => {
   const { id } = req.params;
-  // status/paymentMethod ผ่าน zod (updateRepairStatusSchema) มาแล้ว
-  const { status, paymentMethod } = req.body;
+  // status/paymentMethod/เช็ค ผ่าน zod (updateRepairStatusSchema) มาแล้ว
+  const { status, paymentMethod, chequeBank, chequeNo, chequeDate } = req.body;
 
   const repair = await prisma.repair.findUnique({
     where: { id: Number(id) },
@@ -453,6 +473,9 @@ exports.updateRepairStatus = async (req, res) => {
       data.completedAt = new Date();
     }
     data.paymentMethod = null;
+    data.chequeBank = null;
+    data.chequeNo = null;
+    data.chequeDate = null;
   } else if (status === "PAID") {
     // แค่แก้วิธีชำระเงินต้องคงเวลาเก็บเงินเดิม ไม่งั้นยอดย้ายไปวันที่มาแก้
     data.paidAt = repair.paidAt ?? new Date();
@@ -462,7 +485,19 @@ exports.updateRepairStatus = async (req, res) => {
     }
 
     if (paymentMethod) {
+      // เช็ครับเฉพาะบิลเครดิต (กำลังตัดเครดิต หรือเคยเป็นใบส่งของแล้วมาแก้วิธีจ่ายทีหลัง)
+      const wasCredit = repair.status === "CREDIT" || !!repair.deliveryNo;
+      if (paymentMethod === "CHEQUE" && !wasCredit) {
+        createError(400, "รับเช็คได้เฉพาะบิลเครดิต");
+      }
       data.paymentMethod = paymentMethod;
+      data.chequeBank = paymentMethod === "CHEQUE" ? chequeBank : null;
+      data.chequeNo = paymentMethod === "CHEQUE" ? chequeNo : null;
+      // คอลัมน์เก็บแค่วันที่ แปลงเป็นเที่ยงคืน UTC วันจะได้ไม่เลื่อนตามเขตเวลา
+      data.chequeDate =
+        paymentMethod === "CHEQUE" && chequeDate
+          ? new Date(`${chequeDate}T00:00:00.000Z`)
+          : null;
     }
   }
 
@@ -474,6 +509,9 @@ exports.updateRepairStatus = async (req, res) => {
     data.completedAt = null;
     data.paidAt = null;
     data.paymentMethod = null;
+    data.chequeBank = null;
+    data.chequeNo = null;
+    data.chequeDate = null;
   }
 
   // ใบประเมินราคาเปิดไว้ล่วงหน้าได้นาน วันที่บิลจึงนับใหม่ตอนเริ่มซ่อมจริง
@@ -536,18 +574,18 @@ const buildRepairDocument = async (id, body, { forImage = false } = {}) => {
     createError(404, "ไม่พบงานซ่อม");
   }
 
-  const showCustomer = body?.showCustomer !== false;
   // ค่าเริ่มต้นเท่ากับสวิตช์ในหน้าตัวอย่าง
+  const showCustomer = body?.showCustomer === true;
   const showBrand = body?.showBrand === true;
   const isJobSheet = body?.docType === "job";
 
   const html = isJobSheet
     ? buildJobSheetHtml(repair)
-    : // รูปส่งให้ลูกค้าทางแชท ไม่ต้องมีสำเนาของใบส่งของ
-      buildReceiptHtml(repair, {
+    : buildReceiptHtml(repair, {
         showCustomer,
         showBrand,
-        withCopy: !forImage,
+        // รูปส่งให้ลูกค้าทางแชท ไม่ได้บอกมาก็เอาแค่ต้นฉบับ
+        copyChoice: body?.copyChoice || (forImage ? "original" : "both"),
       });
 
   return { repair, html, isJobSheet };

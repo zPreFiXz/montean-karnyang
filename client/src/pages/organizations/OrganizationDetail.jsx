@@ -166,10 +166,23 @@ const OrganizationDetail = () => {
                 <p className="text-status-credit text-[22px] leading-tight font-semibold md:text-2xl">
                   {customer?.name || ""}
                 </p>
-                {customer?.organizationType && (
-                  <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                    {organizationLabel(customer.organizationType)}
-                  </p>
+                {/* ประเภทคู่กับปุ่มเปลี่ยน แบบเดียวกับหน้ารายละเอียดบิล (RepairDetailCustomer) */}
+                {customer && (
+                  <div className="text-subtle-dark flex flex-wrap items-center gap-x-1.5 text-lg leading-tight font-medium md:text-xl">
+                    <span>
+                      {organizationLabel(customer.organizationType) ||
+                        "ลูกค้าทั่วไป"}
+                    </span>
+                    <span className="text-subtle-light">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsTypeDialogOpen(true)}
+                      className="text-primary flex cursor-pointer items-center gap-1 font-semibold"
+                    >
+                      <SquarePen className="h-4 w-4" />
+                      เปลี่ยนประเภท
+                    </button>
+                  </div>
                 )}
                 {(customer?.phoneNumber ||
                   customer?.address ||
@@ -208,15 +221,6 @@ const OrganizationDetail = () => {
                   </div>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={() => setIsTypeDialogOpen(true)}
-                aria-label="แก้ประเภทลูกค้า"
-                title="แก้ประเภทลูกค้า"
-                className="bg-subtle-light/15 mt-0.5 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full"
-              >
-                <SquarePen className="text-subtle-dark h-5 w-5" />
-              </button>
             </div>
 
             <div className="border-status-credit/30 from-status-credit/10 to-status-credit/5 mt-4 rounded-lg border bg-gradient-to-r p-4">

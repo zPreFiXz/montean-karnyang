@@ -191,16 +191,42 @@ exports.categorySchema = z.object({
   name: z.string().min(1, "กรุณากรอกชื่อหมวดหมู่"),
 });
 
-exports.updateRepairStatusSchema = z.object({
-  status: z.enum(["ESTIMATE", "IN_PROGRESS", "COMPLETED", "CREDIT", "PAID"], {
-    message: "สถานะไม่ถูกต้อง",
-  }),
-  paymentMethod: z
-    .enum(["CASH", "CREDIT_CARD", "QR_CODE"], {
-      message: "วิธีชำระเงินไม่ถูกต้อง",
-    })
-    .optional(),
-});
+// จ่ายด้วยเช็คต้องมีธนาคารกับเลขที่ วันที่ไม่บังคับ (ต้องตรงกับ chequeErrorsOf ใน client/src/constants/paymentMethods.js)
+exports.updateRepairStatusSchema = z
+  .object({
+    status: z.enum(["ESTIMATE", "IN_PROGRESS", "COMPLETED", "CREDIT", "PAID"], {
+      message: "สถานะไม่ถูกต้อง",
+    }),
+    paymentMethod: z
+      .enum(["CASH", "CREDIT_CARD", "QR_CODE", "CHEQUE"], {
+        message: "วิธีชำระเงินไม่ถูกต้อง",
+      })
+      .optional(),
+    chequeBank: z.string().trim().max(100, "ชื่อธนาคารยาวเกินไป").optional(),
+    chequeNo: z.string().trim().max(50, "เลขที่ยาวเกินไป").optional(),
+    // วันที่บนเช็ค ไม่มีเวลา ส่งมาเป็น ปปปป-ดด-วว ไม่ได้เลือกส่งเป็นค่าว่าง
+    chequeDate: z
+      .string()
+      .regex(/^(\d{4}-\d{2}-\d{2})?$/, "วันที่ไม่ถูกต้อง")
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.paymentMethod !== "CHEQUE") return;
+    if (!data.chequeBank) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["chequeBank"],
+        message: "กรุณากรอกธนาคาร",
+      });
+    }
+    if (!data.chequeNo) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["chequeNo"],
+        message: "กรุณากรอกเลขที่",
+      });
+    }
+  });
 
 // ต้องรับ lots ด้วย ไม่งั้นยางจะติดด่าน quantity แล้วกลายเป็น NaN
 exports.updatePartStockSchema = z

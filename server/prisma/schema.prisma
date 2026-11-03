@@ -106,16 +106,16 @@ model Part {
   compatibleVehicles Json?
   publicId           String?
   secureUrl          String?
-  oilSource          Part?        @relation("OilKit", fields: [oilSourceId], references: [id], onDelete: SetNull)
-  oilSourceId        Int?
   oilLiters          Decimal?     @db.Decimal(6, 2)
-  oilKits            Part[]       @relation("OilKit")
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   category           Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   categoryId         Int
+  oilSource          Part?        @relation("OilKit", fields: [oilSourceId], references: [id], onDelete: SetNull)
+  oilSourceId        Int?
   repairItems        RepairItem[]
   tireLots           TireLot[]
+  oilKits            Part[]       @relation("OilKit")
 }
 
 model TireLot {
@@ -156,6 +156,10 @@ model Repair {
   completedAt     DateTime?
   paymentMethod   PaymentMethod?
   paidAt          DateTime?
+  // มีเฉพาะบิลเครดิตที่ลูกค้ามาจ่ายด้วยเช็ค
+  chequeBank      String?        @db.VarChar(100)
+  chequeNo        String?        @db.VarChar(50)
+  chequeDate      DateTime?      @db.Date
   // ยกเลิกแทนการลบ เลขเอกสารจึงไม่ขาดช่วง cancelledStatus คือสถานะก่อนยกเลิก (ใช้เลือกชื่อใบตอนพิมพ์)
   cancelledAt     DateTime?
   cancelledStatus RepairStatus?
@@ -193,6 +197,7 @@ enum PaymentMethod {
   CASH
   QR_CODE
   CREDIT_CARD
+  CHEQUE
 }
 
 model RepairItem {
@@ -262,10 +267,10 @@ model DocumentCounter {
 model BillingNote {
   id         Int      @id @default(autoincrement())
   number     String   @unique @db.VarChar(20)
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  customerId Int
   repairKey  String   @db.Char(40)
   createdAt  DateTime @default(now())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId Int
 
   @@unique([customerId, repairKey])
 }

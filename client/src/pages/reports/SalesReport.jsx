@@ -22,7 +22,7 @@ import useRepairStore from "@/stores/useRepairStore";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { Paid } from "@/components/icons/Icons";
 import { ShoppingBag } from "lucide-react";
-import { PAYMENT_METHODS } from "@/constants/paymentMethods";
+import { ALL_PAYMENT_METHODS } from "@/constants/paymentMethods";
 import {
   isSaleRepair,
   isNoVehicleRepair,
@@ -120,7 +120,7 @@ const SalesReport = () => {
   const { totalRevenue, repairs: periodRepairs } = getReportsData();
 
   // บิลเก่าที่ไม่มีวิธีชำระเงินถือเป็นเงินสด ตรงกับค่าเริ่มต้นของฐานข้อมูล
-  const revenueByPaymentMethod = PAYMENT_METHODS.map((method) => ({
+  const revenueByPaymentMethod = ALL_PAYMENT_METHODS.map((method) => ({
     ...method,
     total: periodRepairs.reduce(
       (sum, repair) =>

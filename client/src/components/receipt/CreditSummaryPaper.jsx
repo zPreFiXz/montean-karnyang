@@ -1,10 +1,16 @@
-import { PAYMENT_QR_NAME, SHOP, shortProvince } from "@/utils/receipt";
+import { billLines, PAYMENT_QR_NAME, SHOP } from "@/utils/receipt";
 import { bahtText } from "@/utils/bahtText";
-import { formatDateShort, formatPhone } from "@/utils/formats";
-import { getDisplayBrand, getRepairTitle } from "@/utils/repairDisplay";
+import { formatPhone } from "@/utils/formats";
 
 // ต้องตรงกับ buildOrganizationBillHtml ใน server/utils/receiptHtml.js
 const money = (value) => Number(value || 0).toLocaleString("th-TH");
+// ปีสองหลัก (3 พ.ย. 69) ช่องวันที่จะได้แคบ (ตรงกับ billDate ใน receiptHtml.js)
+const billDate = (value) =>
+  new Date(value).toLocaleDateString("th-TH", {
+    day: "numeric",
+    month: "short",
+    year: "2-digit",
+  });
 
 // repairs = บิลของแผ่นนี้ startIndex = ลำดับแรกของแผ่น total = ยอดรวมทุกแผ่น
 // ยอดรวม ช่องเซ็น และ QR อยู่เฉพาะแผ่นสุดท้าย (ต้องตรงกับ buildOrganizationBillHtml)
@@ -99,16 +105,17 @@ const CreditSummaryPaper = ({
               <th className="w-10 border border-black p-[3px] font-semibold">
                 ลำดับ
               </th>
-              <th className="w-28 border border-black p-[3px] font-semibold">
+              {/* เลขที่ วันที่ และจำนวนเงินหดเท่าที่จำเป็น ช่องรายละเอียดจะได้กว้างพอใส่ยี่ห้อรุ่นกับทะเบียน (ตรงกับ receiptHtml.js) */}
+              <th className="w-26 border border-black p-[3px] font-semibold">
                 เลขที่ใบส่งของ
               </th>
-              <th className="w-25 border border-black p-[3px] font-semibold">
+              <th className="w-18.5 border border-black p-[3px] font-semibold">
                 วันที่
               </th>
               <th className="border border-black p-[3px] font-semibold">
                 รายละเอียด
               </th>
-              <th className="w-23 border border-black p-[3px] font-semibold">
+              <th className="w-20 border border-black p-[3px] font-semibold">
                 จำนวนเงิน
               </th>
             </tr>
@@ -124,14 +131,18 @@ const CreditSummaryPaper = ({
                   {repair.deliveryNo || repair.receiptNo || repair.id}
                 </td>
                 <td className="border border-black px-1 text-center whitespace-nowrap">
-                  {formatDateShort(repair.createdAt)}
+                  {billDate(repair.createdAt)}
                 </td>
-                <td className="truncate border border-black px-1">
-                  {getRepairTitle(repair) === "ไม่ระบุทะเบียนรถ"
-                    ? getDisplayBrand(repair.vehicle?.vehicleModel) || "งานซ่อม"
-                    : getRepairTitle(repair, shortProvince)}
-                  {repair.vehicle?.fleetNo &&
-                    ` เบอร์รถ ${repair.vehicle.fleetNo}`}
+                {/* สองบรรทัดทุกแถว แถวสูงเท่ากันจะได้นับบิลต่อแผ่นได้แน่นอน
+                    ขอบบนล่าง 2px เท่าเซลล์ของใบพิมพ์ แถวจะสูงเท่ากัน */}
+                <td className="border border-black px-1 py-0.5">
+                  {billLines(repair)
+                    .filter(Boolean)
+                    .map((line) => (
+                      <div key={line} className="truncate">
+                        {line}
+                      </div>
+                    ))}
                 </td>
                 <td className="border border-black px-1 text-right">
                   {money(repair.totalPrice)}

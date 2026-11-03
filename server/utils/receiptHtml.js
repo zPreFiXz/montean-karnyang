@@ -52,8 +52,8 @@ const SHOP = {
 const MIN_ROWS = 10;
 
 // ตรงกับฝั่งหน้าเว็บ ชื่อยาวตกเป็นสองบรรทัด ถ้านับทุกแถวเป็นหนึ่งแผ่นจะล้น
-// ประมาณบรรทัดจากความกว้างตัวอักษร (ช่องรายการกว้างราว 236 จุด) เผื่อไว้ราวหนึ่งในสิบ
-const NAME_LINE_WIDTH = 217;
+// ประมาณบรรทัดจากความกว้างตัวอักษร (ช่องรายการกว้างราว 222 จุด) เผื่อไว้ราวหนึ่งในสิบ
+const NAME_LINE_WIDTH = 204;
 const THAI_COMBINING = /[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/;
 const charWidth = (ch) => {
   if (THAI_COMBINING.test(ch)) return 0;
@@ -93,18 +93,33 @@ const QR_PAGE_LINES = 11;
 // QR ขนาดเดียวทั้งใบเสร็จและใบวางบิล พอดีแผ่นสุดท้ายของใบเสร็จที่แน่นที่สุด (QR_PAGE_LINES บรรทัดรวมแถวสรุป)
 // ต้องตรงกับ .receipt-qr ใน client/src/index.css
 const QR_SIZE = "28mm";
-// ใบวางบิลหนึ่งบิลหนึ่งบรรทัด แผ่นสุดท้ายต้องเหลือที่ให้ยอดรวม ช่องเซ็น และ QR ต้องตรงกับ billPages ฝั่งหน้าเว็บ
-const BILL_PAGE_ROWS = 18;
-const BILL_LAST_PAGE_ROWS = 9;
+// แถวใบวางบิลสูงตามจำนวนบรรทัดรายละเอียด (ดู billLines) จึงแบ่งแผ่นด้วยความสูงแทนจำนวนบิล
+// ค่าวัดจากหน้าเอกสารจริงใน Chrome: แผ่นกลางมีที่ให้แถวราว 493px แผ่นสุดท้ายต้องเหลือที่ให้ยอดรวม
+// ช่องเซ็น และ QR 28 มม. เต็มขนาด ต้องตรงกับ billPages ฝั่งหน้าเว็บ
+const BILL_ROW_HEIGHT = { 1: 23.4, 2: 41.7 };
+const BILL_PAGE_HEIGHT = 490;
+const BILL_LAST_PAGE_HEIGHT = 230;
+const billRowHeight = (repair) =>
+  BILL_ROW_HEIGHT[billLines(repair).filter(Boolean).length] ??
+  BILL_ROW_HEIGHT[2];
+const billPageHeight = (repairs) =>
+  repairs.reduce((sum, repair) => sum + billRowHeight(repair), 0);
 const billPages = (repairs) => {
   const pages = [];
-  for (let i = 0; i < repairs.length; i += BILL_PAGE_ROWS) {
-    pages.push(repairs.slice(i, i + BILL_PAGE_ROWS));
+  let used = Infinity;
+  for (const repair of repairs) {
+    const height = billRowHeight(repair);
+    if (used + height > BILL_PAGE_HEIGHT) {
+      pages.push([]);
+      used = 0;
+    }
+    pages[pages.length - 1].push(repair);
+    used += height;
   }
   if (pages.length === 0) return [[]];
-  // แผ่นสุดท้ายเกินที่ QR รับได้ แผ่นนี้รับได้ถึง BILL_PAGE_ROWS อยู่แล้ว จึงยกไปแค่บิลสุดท้ายใบเดียว
+  // แผ่นสุดท้ายเกินที่ QR รับได้ แผ่นนี้ยังอยู่ในความสูงแผ่นกลาง จึงยกไปแค่บิลสุดท้ายใบเดียว
   const last = pages[pages.length - 1];
-  if (last.length > BILL_LAST_PAGE_ROWS) {
+  if (billPageHeight(last) > BILL_LAST_PAGE_HEIGHT) {
     pages[pages.length - 1] = last.slice(0, -1);
     pages.push(last.slice(-1));
   }
@@ -154,11 +169,28 @@ const receiptDocNo = (repair) => {
 const jobSheetNo = (repair) =>
   repair.receiptNo ? repair.receiptNo.replace(/^RE-/, "JO-") : repair.id;
 
+// ช่องวิธีจ่ายมีในใบส่งของ และใบเสร็จของบิลเครดิตที่มาจ่ายแล้ว (ต้องตรงกับ showsPaymentBoxes ฝั่งหน้าเว็บ)
+const showsPaymentBoxes = (repair) =>
+  repair.status === "CREDIT" ||
+  (repair.status === "PAID" && !!repair.deliveryNo);
+// บิลเครดิตที่จ่ายแล้วไม่ต้องสแกนอีก (ตรงกับ hasPaymentQr ฝั่งหน้าเว็บ)
+const hasPaymentQr = (repair) =>
+  !repair.isCancelled &&
+  !["ESTIMATE", "CREDIT"].includes(repair.status) &&
+  !showsPaymentBoxes(repair);
+
+// จ่ายด้วยเช็คแบ่งบรรทัดธนาคารเป็นสอง ธนาคารเต็มบรรทัด (ต้องตรงกับ paymentLineRows ฝั่งหน้าเว็บ)
+// เช็คเรียงสองคอลัมน์ เลขที่กับจำนวนเงินกว้างเท่ากัน ใบที่ยังว่างเป็นบรรทัดเดียว แบ่งเส้นเท่ากันไว้เขียนมือ
+const bankRows = (repair, fields) =>
+  repair.paymentMethod === "CHEQUE"
+    ? [fields.slice(0, 2), fields.slice(2)]
+    : [fields];
+
 const PAYMENT_BOXES = [
   { label: "เงินสด", method: "CASH" },
   { label: "สแกนจ่าย", method: "QR_CODE" },
   { label: "บัตรเครดิต", method: "CREDIT_CARD" },
-  { label: "เช็ค", method: null },
+  { label: "เช็ค", method: "CHEQUE" },
 ];
 
 // ตรงกับ formatPlate/formatPhone ใน client/src/utils/formats.js
@@ -362,12 +394,12 @@ const receiptPages = (repair, { showBrand = true } = {}) => {
   };
   const rowLines = (row) => estimateNameLines(rowName(row));
   // ใบส่งของไม่มี QR แต่มีแถววิธีจ่ายเงินกับบรรทัดต้นฉบับ/สำเนาใต้ชื่อใบ แผ่นสุดท้ายจึงรับได้จำกัดเหมือนกัน
-  const showPaymentQr =
-    !repair.isCancelled && !["ESTIMATE", "CREDIT"].includes(repair.status);
+  const showPaymentQr = hasPaymentQr(repair);
   const lastPageLimit = showPaymentQr
     ? QR_PAGE_LINES
-    : repair.status === "CREDIT"
-      ? DELIVERY_PAGE_LINES
+    : showsPaymentBoxes(repair)
+      ? // เช็คใช้บรรทัดธนาคารสองบรรทัด แผ่นสุดท้ายจึงรับรายการได้น้อยลงหนึ่ง
+        DELIVERY_PAGE_LINES - bankRows(repair, [0, 1, 2, 3]).length + 1
       : null;
   const pages = lastPageLimit
     ? makeRoomForQr(
@@ -409,8 +441,7 @@ const receiptPagesHtml = (
   // แถวสรุปที่วาดจริง: มีส่วนลด = รวมเป็นเงิน + แถวส่วนลด + ยอดรวม (ตรงกับ summaryLinesOf)
   const summaryRows = discountItems.length ? discountItems.length + 2 : 1;
   // QR มีเฉพาะใบเสร็จ ใบเสนอราคายังไม่ถึงตอนจ่าย ใบส่งของลูกค้าจ่ายทีหลังตามใบวางบิล
-  const showPaymentQr =
-    !repair.isCancelled && !["ESTIMATE", "CREDIT"].includes(repair.status);
+  const showPaymentQr = hasPaymentQr(repair);
   // ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ
   const signLabels =
     repair.status === "CREDIT"
@@ -543,17 +574,39 @@ ${customerFields}
         box.method && repair.paymentMethod === box.method ? "✓" : ""
       }</span>${box.label}</span>`,
   ).join("");
-  const paymentHtml =
-    repair.status === "CREDIT"
-      ? `<div class="pays">${paymentBoxes}</div>
+  // มีเฉพาะจ่ายด้วยเช็ค จำนวนเงินเท่ายอดบิล (ตรงกับ paymentLineFields ฝั่งหน้าเว็บ)
+  const isCheque = repair.paymentMethod === "CHEQUE";
+  const bankFields = [
+    ["ธนาคาร", repair.chequeBank],
+    ["เลขที่", repair.chequeNo],
+    [
+      "ลงวันที่",
+      repair.chequeDate &&
+        new Date(repair.chequeDate).toLocaleDateString("th-TH", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }),
+    ],
+    // หน่วยอยู่หลังเส้นประชิดขวาเสมอ (ตรงกับ suffix ใน paymentLineFields)
+    ["จำนวนเงิน", formatMoney(repair.totalPrice), "บาท"],
+  ]
+    .map(([label, value, suffix]) => [label, isCheque ? value : "", suffix])
+    .map(
+      ([label, value, suffix]) =>
+        `<span class="bank-field">${label}<span class="dotted">${escapeHtml(value || "")}</span>${suffix || ""}</span>`,
+    );
+  const bankHtml = bankRows(repair, bankFields)
+    .map(
+      (row) =>
+        `<div class="bank${row.length === 2 ? " bank-grid" : ""}">\n    ${row.join("\n    ")}\n  </div>`,
+    )
+    .join("\n  ");
+  const paymentHtml = showsPaymentBoxes(repair)
+    ? `<div class="pays">${paymentBoxes}</div>
 
-  <div class="bank">
-    <span class="bank-field">ธนาคาร<span class="dotted"></span></span>
-    <span class="bank-field">เลขที่<span class="dotted"></span></span>
-    <span class="bank-field">ลงวันที่<span class="dotted"></span></span>
-    <span class="bank-field">จำนวนเงิน<span class="dotted"></span></span>
-  </div>`
-      : "";
+  ${bankHtml}`
+    : "";
 
   const paymentQrHtml = PAYMENT_QR_HTML;
 
@@ -618,7 +671,8 @@ const RECEIPT_STYLES = `
   thead tr, tr.sum { background: #e5e7eb; }
   th, td { border: 1px solid #000; padding: 2px 4px; height: 22px; }
   th { font-weight: 600; text-align: center; }
-  th.qty, td.qty { width: 62px; }
+  /* กว้างพอให้ "10 แกลลอน" อยู่บรรทัดเดียว (ตรงกับหัวตารางใน ReceiptPaper) */
+  th.qty, td.qty { width: 76px; }
   th.unit, td.unit { width: 92px; white-space: nowrap; }
   th.amount, td.amount { width: 92px; }
   td.c { text-align: center; }
@@ -632,8 +686,10 @@ const RECEIPT_STYLES = `
   .box { width: 13px; height: 13px; border: 1px solid #000; display: inline-flex; align-items: center; justify-content: center; font-size: 8pt; line-height: 1; }
   /* สี่ช่องกว้างเท่ากัน แบ่งที่ว่างเท่าๆ กัน */
   .bank { display: flex; align-items: flex-end; gap: 8px; margin-top: 6px; }
-  .bank-field { display: flex; align-items: flex-end; gap: 4px; flex: 1; white-space: nowrap; }
-  .bank-field .dotted { flex: 1; }
+  .bank-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* แบ่งที่ว่างหลังหักหัวข้อให้เท่ากัน ช่องที่หัวข้อยาวจะได้ไม่เหลือเส้นสั้น (ตรงกับ ReceiptPaper) */
+  .bank-field { display: flex; align-items: flex-end; gap: 4px; flex: 1 1 auto; min-width: 0; white-space: nowrap; }
+  .bank-field .dotted { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: center; font-weight: 600; }
   /* กลุ่ม QR เริ่มใต้ช่องลงชื่อ 8 จุด แล้วขยายเต็มที่ว่างที่เหลือจนถึงขอบล่าง บิลสั้นได้ QR ใหญ่ บิลแน่นได้เล็กลง
      แสดงครบชุดเสมอ (โลโก้ QR ชื่อร้าน บรรทัดสแกน) แผ่นสุดท้ายรับรายการได้ตาม QR_PAGE_LINES ให้ QR ได้ขนาด QR_SIZE เต็มเสมอ
      (บิล 10 รายการไม่มีส่วนลดยังจบในแผ่นเดียว)
@@ -650,6 +706,8 @@ const RECEIPT_STYLES = `
   .qr .hint { margin: 0; font-size: 11pt; }
   .sign { display: flex; gap: 16px; margin-top: 22px; }
   td.one-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* ใบวางบิล: ทะเบียนกับเบอร์รถ / ยี่ห้อรุ่น สองบรรทัดทุกแถว (ตรงกับ CreditSummaryPaper) */
+  td.two-line div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sign p { display: flex; align-items: flex-end; gap: 4px; flex: 1; margin: 0; }
 `;
 
@@ -667,18 +725,23 @@ ${body}
 </body>
 </html>`;
 
-// withCopy = false คือเอาเฉพาะต้นฉบับ (บันทึกเป็นรูปส่งให้ลูกค้า)
-const buildReceiptHtml = (rawRepair, { withCopy = true, ...options } = {}) => {
+// ใบส่งของเลือกพิมพ์ต้นฉบับ สำเนา หรือทั้งคู่ (ต้องตรงกับ COPY_CHOICES ใน client/src/utils/receipt.js)
+const COPY_CHOICES = {
+  both: ["ต้นฉบับ", "สำเนา"],
+  original: ["ต้นฉบับ"],
+  copy: ["สำเนา"],
+};
+
+const buildReceiptHtml = (rawRepair, { copyChoice, ...options } = {}) => {
   const repair = asIssued(rawRepair);
   return receiptDocument(
     `${receiptDocTitle(repair)} ${receiptDocNo(repair)}`,
     repair.status === "CREDIT"
-      ? [
-          receiptPagesHtml(repair, { ...options, copyLabel: "ต้นฉบับ" }),
-          ...(withCopy
-            ? [receiptPagesHtml(repair, { ...options, copyLabel: "สำเนา" })]
-            : []),
-        ].join("")
+      ? (COPY_CHOICES[copyChoice] || COPY_CHOICES.both)
+          .map((copyLabel) =>
+            receiptPagesHtml(repair, { ...options, copyLabel }),
+          )
+          .join("")
       : receiptPagesHtml(repair, options),
   );
 };
@@ -927,29 +990,38 @@ const buildJobSheetHtml = (repair) => {
 </html>`;
 };
 
-const formatThaiDate = (value) => {
-  const date = new Date(value || Date.now());
-  return date.toLocaleDateString("th-TH", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-};
-
-// คำเดียวกับหัวการ์ดในหน้าเว็บ (ดู getRepairTitle ใน client/src/utils/repairDisplay.js)
-const repairTitle = (repair) => {
-  if (repair.type === "SALE") return "ขายอะไหล่หน้าร้าน";
-  if (!repair.vehicle) return "งานบริการ";
+// ใบวางบิล: ยี่ห้อรุ่น / ทะเบียน (เบอร์รถ) ค่าอะไหล่กับค่าบริการมีบรรทัดเดียว (ต้องตรงกับ billLines ใน CreditSummaryPaper)
+const billLines = (repair) => {
+  // ใบวางบิลเขียนจากฝั่งคนจ่าย จึงเป็น "ค่า…" ไม่ใช่ชื่อบิลแบบในแอป
+  if (repair.type === "SALE") return ["ค่าอะไหล่", ""];
+  if (!repair.vehicle) return ["ค่าบริการ", ""];
 
   const fleet = repair.vehicle.fleetNo
-    ? ` เบอร์รถ ${repair.vehicle.fleetNo}`
+    ? `เบอร์รถ ${repair.vehicle.fleetNo}`
     : "";
+  const model = displayBrand(repair.vehicle.vehicleModel) || "งานซ่อม";
   const plate = repair.vehicle.licensePlate;
-  if (plate?.plateNumber) {
-    return `${`${formatPlate(plate.plateNumber)} ${shortProvince(plate.province)}`.trim()}${fleet}`;
+  if (plate?.plateNumber && plate?.province) {
+    const plateText =
+      `${formatPlate(plate.plateNumber)} ${shortProvince(plate.province)}`.trim();
+    // ในวงเล็บใส่แค่ตัวเลข มีคำว่าเบอร์รถด้วยจะยาวจนเลขถูกตัด
+    return [
+      model,
+      repair.vehicle.fleetNo
+        ? `${plateText} (${repair.vehicle.fleetNo})`
+        : plateText,
+    ];
   }
-  return `${displayBrand(repair.vehicle.vehicleModel) || "งานซ่อม"}${fleet}`;
+  return [model, fleet];
 };
+
+// ปีสองหลัก (3 พ.ย. 69) ช่องวันที่จะได้แคบ เหลือที่ให้ยี่ห้อรุ่น (ตรงกับ billDate ใน CreditSummaryPaper)
+const billDate = (value) =>
+  new Date(value).toLocaleDateString("th-TH", {
+    day: "numeric",
+    month: "short",
+    year: "2-digit",
+  });
 
 const buildOrganizationBillHtml = (customer, repairs, billingNo) => {
   // วันที่วางบิลคือวันที่พิมพ์ ต่างจากใบเสร็จที่ใช้วันเปิดบิล
@@ -963,8 +1035,11 @@ const buildOrganizationBillHtml = (customer, repairs, billingNo) => {
   const rowHtml = (repair, index) => `<tr>
         <td class="c">${index + 1}</td>
         <td class="c" style="white-space:nowrap">${escapeHtml(repair.deliveryNo || repair.receiptNo || String(repair.id))}</td>
-        <td class="c" style="white-space:nowrap">${escapeHtml(formatThaiDate(repair.createdAt))}</td>
-        <td class="one-line">${escapeHtml(repairTitle(repair))}</td>
+        <td class="c" style="white-space:nowrap">${escapeHtml(billDate(repair.createdAt))}</td>
+        <td class="two-line">${billLines(repair)
+          .filter(Boolean)
+          .map((line) => `<div>${escapeHtml(line)}</div>`)
+          .join("")}</td>
         <td class="r">${formatMoney(Number(repair.totalPrice || 0))}</td>
       </tr>`;
 
@@ -1009,10 +1084,10 @@ const buildOrganizationBillHtml = (customer, repairs, billingNo) => {
     <thead>
       <tr>
         <th style="width:40px">ลำดับ</th>
-        <th style="width:112px">เลขที่ใบส่งของ</th>
-        <th style="width:100px">วันที่</th>
+        <th style="width:104px">เลขที่ใบส่งของ</th>
+        <th style="width:74px">วันที่</th>
         <th>รายละเอียด</th>
-        <th style="width:92px">จำนวนเงิน</th>
+        <th style="width:80px">จำนวนเงิน</th>
       </tr>
     </thead>
     <tbody>

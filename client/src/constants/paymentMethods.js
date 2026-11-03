@@ -13,5 +13,27 @@ export const PAYMENT_OPTIONS_WITH_CREDIT = [
   { id: CREDIT_OPTION_ID, name: "เครดิต" },
 ];
 
+// หน่วยงานมาจ่ายบิลเครดิตด้วยเช็ค บิลอื่นรับเช็คไม่ได้ จึงไม่อยู่ใน PAYMENT_METHODS
+export const CHEQUE_METHOD_ID = "CHEQUE";
+export const ALL_PAYMENT_METHODS = [
+  ...PAYMENT_METHODS,
+  { id: CHEQUE_METHOD_ID, name: "เช็ค" },
+];
+
+// กำลังตัดเครดิต หรือเคยเป็นใบส่งของแล้วมาแก้วิธีจ่ายทีหลัง (ตรงกับ updateRepairStatus ฝั่งเซิร์ฟเวอร์)
+export const canPayByCheque = (repair) =>
+  repair?.status === "CREDIT" || !!repair?.deliveryNo;
+
+// ต้องตรงกับ updateRepairStatusSchema ฝั่งเซิร์ฟเวอร์
+// วันที่บนเช็คไม่บังคับ ไม่ได้เลือกช่องลงวันที่บนใบเสร็จก็เว้นไว้เขียนมือ
+export const chequeErrorsOf = ({ bank, no }) => ({
+  ...(String(bank || "").trim()
+    ? {}
+    : { chequeBank: { message: "กรุณากรอกธนาคาร" } }),
+  ...(String(no || "").trim()
+    ? {}
+    : { chequeNo: { message: "กรุณากรอกเลขที่" } }),
+});
+
 export const getPaymentMethodText = (method) =>
-  PAYMENT_METHODS.find((item) => item.id === method)?.name || "";
+  ALL_PAYMENT_METHODS.find((item) => item.id === method)?.name || "";

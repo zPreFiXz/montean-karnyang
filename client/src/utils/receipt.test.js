@@ -7,6 +7,9 @@ import {
   receiptDocTitle,
   shortWorkName,
   shortWorkNameBase,
+  hasPaymentQr,
+  paymentLineFields,
+  showsPaymentBoxes,
 } from "@/utils/receipt";
 import { partLine, repairWith, serviceLine } from "@/test/fixtures";
 
@@ -186,5 +189,37 @@ describe("ชื่อและเลขของเอกสาร", () => {
     });
     expect(issued).toMatchObject({ status: "CREDIT", isCancelled: true });
     expect(receiptDocNo(issued)).toBe("DO-6910-0002");
+  });
+});
+
+describe("ใบเสร็จของบิลเครดิตที่จ่ายแล้ว", () => {
+  it("มีช่องวิธีจ่ายแทน QR บิลจ่ายสดยังมี QR", () => {
+    const paidCredit = repairWith([], { status: "PAID", deliveryNo: "DO-1" });
+    const paidCash = repairWith([], { status: "PAID", deliveryNo: null });
+    expect(showsPaymentBoxes(paidCredit)).toBe(true);
+    expect(hasPaymentQr(paidCredit)).toBe(false);
+    expect(showsPaymentBoxes(paidCash)).toBe(false);
+    expect(hasPaymentQr(paidCash)).toBe(true);
+  });
+
+  it("จ่ายด้วยเช็คกรอกธนาคาร เลขที่ วันที่ และยอดบิลให้ วิธีอื่นเว้นว่าง", () => {
+    const cheque = {
+      paymentMethod: "CHEQUE",
+      chequeBank: "กรุงไทย",
+      chequeNo: "10234567",
+      chequeDate: "2026-10-06T00:00:00.000Z",
+      totalPrice: 4920,
+    };
+    expect(paymentLineFields(cheque).map((f) => f.value)).toEqual([
+      "กรุงไทย",
+      "10234567",
+      "6 ตุลาคม 2569",
+      "4,920",
+    ]);
+    expect(
+      paymentLineFields({ ...cheque, paymentMethod: "CASH" }).every(
+        (f) => f.value === "",
+      ),
+    ).toBe(true);
   });
 });
