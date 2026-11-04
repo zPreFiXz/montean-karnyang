@@ -12,7 +12,7 @@ const Row = ({ label, at }) => (
 // ใบประเมินยังไม่ได้เริ่มงาน เวลาที่สร้างจึงเป็นเวลาประเมิน
 // พอเปลี่ยนเป็นกำลังซ่อม เซิร์ฟเวอร์ตั้ง createdAt ใหม่เป็นเวลาเริ่มจริง
 const startLabel = (repair, isSale) => {
-  if (repair.status === "ESTIMATE") return "ประเมินราคา:";
+  if (repair.status === "ESTIMATE") return "เสนอราคา:";
   return isSale ? "ขาย:" : "เริ่มซ่อม:";
 };
 

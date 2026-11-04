@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import usePaperFit, {
   MM,
   PAPER_HEIGHT_MM,
@@ -8,7 +8,9 @@ import { X, Printer, Download, LoaderCircle } from "lucide-react";
 import FormButton from "@/components/forms/FormButton";
 import ReceiptPaper from "@/components/receipt/ReceiptPaper";
 import {
+  asDeliveryNote,
   asIssued,
+  canReprintDeliveryNote,
   hasShortenableName,
   jobSheetNo,
   receiptDocNo,
@@ -41,6 +43,51 @@ const downloadPng = (base64, fileName) => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
+// แถบเลื่อนแบบเดียวกับแท็บช่วงล่างและแท็บในหน้ารายงาน ให้ต่างจากแถวเลือกเอกสารด้านบน
+// "ต้นฉบับและสำเนา" ยาวกว่าช่องอื่น ช่องจึงกว้างไม่เท่ากัน แถบเลื่อนวัดตำแหน่งจากปุ่มจริง
+const CopyChoicePicker = ({ value, onChange }) => {
+  const buttonRefs = useRef({});
+  const [thumb, setThumb] = useState(null);
+
+  useLayoutEffect(() => {
+    const button = buttonRefs.current[value];
+    if (button)
+      setThumb({ left: button.offsetLeft, width: button.offsetWidth });
+  }, [value]);
+
+  return (
+    <div
+      role="tablist"
+      className="relative flex w-full rounded-lg bg-gray-100 p-1"
+    >
+      {thumb && (
+        <div
+          aria-hidden="true"
+          className="bg-gradient-primary absolute top-1 bottom-1 rounded-lg shadow-lg duration-300 ease-out"
+          style={thumb}
+        />
+      )}
+      {COPY_CHOICES.map((choice) => (
+        <button
+          key={choice.id}
+          ref={(node) => {
+            buttonRefs.current[choice.id] = node;
+          }}
+          type="button"
+          role="tab"
+          aria-selected={value === choice.id}
+          onClick={() => onChange(choice.id)}
+          className={`font-athiti relative z-10 flex h-10 min-w-0 cursor-pointer items-center justify-center rounded-lg text-lg font-semibold whitespace-nowrap duration-300 ease-out md:text-xl ${
+            choice.id === "both" ? "flex-[1.6]" : "flex-1"
+          } ${value === choice.id ? "text-white" : "text-subtle-dark"}`}
+        >
+          {choice.label}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
   const repair = asIssued(rawRepair);
   // วาดขนาดจริงของ A5 แล้วสเกลทั้งแผ่นให้พอดีไดอะล็อก ตัวอย่างจึงตรงกับที่พิมพ์
@@ -56,9 +103,9 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
   const { contentRef, paperRef, scale, isMeasured } = usePaperFit({
     open,
     chromeEstimate: 180,
-    // เปิดใหม่ทุกครั้งกลับไปค่าเริ่มต้น ข้อมูลลูกค้าปิดไว้ก่อน ต้องการค่อยเปิดเอง
+    // เปิดใหม่ทุกครั้งกลับไปค่าเริ่มต้น หน่วยงานกับร้านค้าใช้ใบไปเบิกจ่าย จึงแสดงข้อมูลลูกค้าไว้ก่อน
     onOpen: () => {
-      setShowCustomer(false);
+      setShowCustomer(!!repair?.customer?.organizationType);
       setShowBrand(false);
       setDocType("receipt");
       setCopyChoice("both");
@@ -67,12 +114,13 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
 
   if (!repair) return null;
 
+  const docRepair = docType === "delivery" ? asDeliveryNote(repair) : repair;
   const pageCount =
-    docType === "job" ? 1 : receiptPageCount(repair, { showBrand });
+    docType === "job" ? 1 : receiptPageCount(docRepair, { showBrand });
 
-  const isCreditBill = repair.status === "CREDIT";
+  const isCreditBill = docRepair.status === "CREDIT";
   const copyLabels =
-    docType === "job" ? [null] : receiptCopyLabels(repair, copyChoice);
+    docType === "job" ? [null] : receiptCopyLabels(docRepair, copyChoice);
   const sheets = copyLabels.flatMap((copyLabel) =>
     Array.from({ length: pageCount }, (_, page) => ({ page, copyLabel })),
   );
@@ -91,6 +139,17 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
     !isNoVehicleRepair(repair) &&
     repair.status === "IN_PROGRESS" &&
     !repair.isCancelled;
+  const docTabs = showJobSheetTab
+    ? [
+        { id: "receipt", label: receiptDocTitle(repair) },
+        { id: "job", label: "ใบสั่งซ่อม" },
+      ]
+    : canReprintDeliveryNote(repair)
+      ? [
+          { id: "receipt", label: "ใบเสร็จรับเงิน" },
+          { id: "delivery", label: "ใบส่งของ" },
+        ]
+      : [];
   const canShortenNames = hasShortenableName(repair.repairItems || []);
 
   const handlePrintAtShop = async () => {
@@ -110,7 +169,7 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
       toast.success(
         docType === "job"
           ? "สั่งพิมพ์ใบสั่งซ่อมแล้ว"
-          : `สั่งพิมพ์${receiptDocTitle(repair)}แล้ว`,
+          : `สั่งพิมพ์${receiptDocTitle(docRepair)}แล้ว`,
       );
     } catch (error) {
       toastError(
@@ -138,8 +197,9 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
       const images = res.data?.images || [];
       // ไม่ใช้ภาษาไทยในชื่อไฟล์ เพราะบางระบบอ่านเพี้ยน
       const docNo =
-        docType === "job" ? jobSheetNo(repair) : receiptDocNo(repair);
-      const title = docType === "job" ? "ใบสั่งซ่อม" : receiptDocTitle(repair);
+        docType === "job" ? jobSheetNo(repair) : receiptDocNo(docRepair);
+      const title =
+        docType === "job" ? "ใบสั่งซ่อม" : receiptDocTitle(docRepair);
       const fileBase = docNo === repair.id ? `${title}-${repair.id}` : docNo;
 
       // บางเบราว์เซอร์บล็อกการดาวน์โหลดหลายไฟล์ที่สั่งพร้อมกัน จึงเว้นจังหวะให้ทีละแผ่น
@@ -168,18 +228,18 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
       <DialogContent
         ref={contentRef}
         // ถ้ากว้างตามกระดาษ ขนาดกระดาษก็คิดจากไดอะล็อกอีกที จะวนกันจนเห็นขยับตอนเปิด
-        className={`flex max-h-[90svh] w-full max-w-[calc(100%-2rem)] flex-col overflow-hidden p-0 sm:max-w-155 ${
+        className={`flex max-h-[90svh] w-full max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-155 ${
           isMeasured ? "" : "opacity-0"
         }`}
         showCloseButton={false}
         // ไม่งั้น Radix จะโฟกัสปุ่มกากบาทแล้วขึ้นกรอบไฮไลท์ตั้งแต่เปิด
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <div className="receipt-chrome relative mt-4 flex min-h-11 flex-shrink-0 items-center justify-center px-16">
+        <div className="receipt-chrome relative mt-4 mb-2 flex min-h-11 flex-shrink-0 items-center justify-center px-16">
           <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
             {docType === "job"
               ? "ตัวอย่างใบสั่งซ่อม"
-              : `ตัวอย่าง${receiptDocTitle(repair)}`}
+              : `ตัวอย่าง${receiptDocTitle(docRepair)}`}
           </DialogTitle>
           <DialogDescription className="sr-only">
             ตัวอย่างใบเสร็จก่อนพิมพ์
@@ -194,12 +254,9 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
           </button>
         </div>
 
-        {showJobSheetTab && (
+        {docTabs.length > 0 && (
           <div className="receipt-chrome mx-4 mb-2 flex justify-center gap-2">
-            {[
-              { id: "receipt", label: receiptDocTitle(repair) },
-              { id: "job", label: "ใบสั่งซ่อม" },
-            ].map((tab) => (
+            {docTabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
@@ -216,26 +273,22 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
           </div>
         )}
 
-        {/* บิลเครดิตไม่มีแท็บใบสั่งซ่อม แถวนี้จึงใช้เลือกว่าจะเอาใบส่งของใบไหน */}
-        {isCreditBill && (
-          <div className="receipt-chrome mx-4 mb-2 flex justify-center gap-2">
-            {COPY_CHOICES.map((choice) => (
-              <button
-                key={choice.id}
-                type="button"
-                onClick={() => setCopyChoice(choice.id)}
-                aria-pressed={copyChoice === choice.id}
-                className={`font-athiti h-9.5 cursor-pointer rounded-[20px] border px-3 text-lg font-semibold whitespace-nowrap duration-300 md:text-xl ${
-                  choice.id === "both" ? "flex-[1.6]" : "flex-1"
-                } ${
-                  copyChoice === choice.id
-                    ? "bg-primary text-surface border-transparent"
-                    : "border-subtle-light text-subtle-dark bg-surface"
-                }`}
-              >
-                {choice.label}
-              </button>
-            ))}
+        {/* บิลที่สลับใบเสร็จกับใบส่งของได้ แถบนี้กาง/ยุบตามเอกสารที่เลือก
+            receipt-chrome อยู่ชั้นในสุด ตอนยุบยังวัดได้ความสูงจริง ขนาดกระดาษจึงเผื่อที่ไว้ให้ตอนกาง */}
+        {(isCreditBill || canReprintDeliveryNote(repair)) && (
+          <div
+            inert={!isCreditBill}
+            className={`grid transition-all duration-200 motion-reduce:transition-none ${
+              isCreditBill
+                ? "grid-rows-[1fr] opacity-100"
+                : "grid-rows-[0fr] opacity-0"
+            }`}
+          >
+            <div className="overflow-hidden">
+              <div className="receipt-chrome mx-4 pb-2">
+                <CopyChoicePicker value={copyChoice} onChange={setCopyChoice} />
+              </div>
+            </div>
           </div>
         )}
 
@@ -243,7 +296,7 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
         {(hasCustomerInfo || canShortenNames) && (
           <div
             className={`receipt-chrome mx-4 mb-2 flex flex-wrap justify-center gap-x-5 gap-y-1 ${
-              docType === "receipt" ? "" : "invisible"
+              docType === "job" ? "invisible" : ""
             }`}
           >
             {[
@@ -323,7 +376,7 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
                     <JobSheetPaper repair={repair} />
                   ) : (
                     <ReceiptPaper
-                      repair={repair}
+                      repair={docRepair}
                       showCustomer={showCustomer}
                       showBrand={showBrand}
                       pageIndex={page}

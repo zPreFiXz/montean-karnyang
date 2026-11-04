@@ -8,6 +8,7 @@ const { authCheck } = require("../middlewares/auth");
 const {
   listRepairs,
   listChequeBanks,
+  listDocumentNumbers,
   getRepair,
   createRepair,
   updateRepair,
@@ -19,8 +20,9 @@ const {
 } = require("../controllers/repair");
 
 router.get("/repairs", authCheck, listRepairs);
-// ต้องอยู่ก่อน /repairs/:id ไม่งั้น cheque-banks ถูกจับเป็น id
+// ต้องอยู่ก่อน /repairs/:id ไม่งั้น cheque-banks กับ document-numbers ถูกจับเป็น id
 router.get("/repairs/cheque-banks", authCheck, listChequeBanks);
+router.get("/repairs/document-numbers", authCheck, listDocumentNumbers);
 router.get("/repairs/:id", authCheck, getRepair);
 router.post("/repairs", authCheck, validate(repairSchema), createRepair);
 router.put("/repairs/:id", authCheck, validate(repairSchema), updateRepair);

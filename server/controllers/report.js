@@ -100,12 +100,19 @@ const groupPartItems = (items) => {
   return [...groups.values()].filter((group) => group.kind === "part");
 };
 
-// นับจากบิลที่เก็บเงินแล้ว
+// อันดับอะไหล่กับรุ่นรถใช้ดูจำนวนเพื่อสั่งสต็อก จึงนับตามวันเปิดบิล (วันที่ของออกจากร้าน)
+// รวมบิลที่ยังไม่จ่าย เช่นเครดิต ไม่นับใบเสนอราคาที่ยังไม่เบิกของ และบิลที่ยกเลิกคืนของแล้ว
+// ต่างจากรายงานยอดขายที่นับตามวันรับเงิน
+const outOfStockInRange = ({ from, to }) => ({
+  status: { in: ["IN_PROGRESS", "COMPLETED", "CREDIT", "PAID"] },
+  createdAt: { gte: from, lte: to },
+});
+
 exports.listTopItems = async (req, res) => {
-  const { from, to } = parseRange(req.query);
+  const range = parseRange(req.query);
 
   const items = await prisma.repairItem.findMany({
-    where: { repair: { status: "PAID", paidAt: { gte: from, lte: to } } },
+    where: { repair: outOfStockInRange(range) },
     select: PART_ITEM_SELECT,
   });
 
@@ -113,12 +120,11 @@ exports.listTopItems = async (req, res) => {
 };
 
 exports.listTopVehicleModels = async (req, res) => {
-  const { from, to } = parseRange(req.query);
+  const range = parseRange(req.query);
 
   const repairs = await prisma.repair.findMany({
     where: {
-      status: "PAID",
-      paidAt: { gte: from, lte: to },
+      ...outOfStockInRange(range),
       vehicleId: { not: null },
     },
     select: {
@@ -163,27 +169,26 @@ exports.listTopVehicleModels = async (req, res) => {
 
 // อะไหล่ที่ขายให้รถรุ่นนี้ในช่วงเวลาที่เลือก คู่กับสต็อกตอนนี้ และรถรุ่นนี้ที่เข้าร้าน ใช้ตัดสินใจสั่งของ
 exports.getVehicleModelReport = async (req, res) => {
-  const { from, to } = parseRange(req.query);
+  const range = parseRange(req.query);
   const vehicleModelId = Number(req.params.id);
   if (!Number.isInteger(vehicleModelId)) {
     createError(400, "รหัสไม่ถูกต้อง");
   }
 
-  const paidInRange = {
-    status: "PAID",
-    paidAt: { gte: from, lte: to },
+  const modelInRange = {
+    ...outOfStockInRange(range),
     vehicle: { vehicleModelId },
   };
 
   const [items, repairs] = await Promise.all([
     prisma.repairItem.findMany({
-      where: { repair: paidInRange },
+      where: { repair: modelInRange },
       select: PART_ITEM_SELECT,
     }),
     prisma.repair.findMany({
-      where: paidInRange,
+      where: modelInRange,
       select: {
-        paidAt: true,
+        createdAt: true,
         vehicle: {
           select: {
             id: true,
@@ -230,12 +235,14 @@ exports.getVehicleModelReport = async (req, res) => {
         id: vehicle.id,
         licensePlate: vehicle.licensePlate,
         visits: 0,
-        lastPaidAt: repair.paidAt,
+        lastVisitAt: repair.createdAt,
       });
     }
     const entry = vehicles.get(vehicle.id);
     entry.visits += 1;
-    if (repair.paidAt > entry.lastPaidAt) entry.lastPaidAt = repair.paidAt;
+    if (repair.createdAt > entry.lastVisitAt) {
+      entry.lastVisitAt = repair.createdAt;
+    }
   }
 
   res.json({

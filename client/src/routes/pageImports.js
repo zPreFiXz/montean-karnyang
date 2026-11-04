@@ -11,6 +11,7 @@ export const pageImports = {
   RepairReview: () => import("@/pages/repairs/RepairReview"),
   RepairList: () => import("@/pages/repairs/RepairList"),
   RepairDetail: () => import("@/pages/repairs/RepairDetail"),
+  DocumentNumbers: () => import("@/pages/repairs/DocumentNumbers"),
   InventoryList: () => import("@/pages/inventory/InventoryList"),
   InventoryForm: () => import("@/pages/inventory/InventoryForm"),
   InventoryUsage: () => import("@/pages/inventory/InventoryUsage"),

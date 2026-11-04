@@ -117,7 +117,7 @@ const VehicleModelReportDialog = ({
   );
   const vehicles = [...(report?.vehicles || [])].sort(
     (a, b) =>
-      b.visits - a.visits || new Date(b.lastPaidAt) - new Date(a.lastPaidAt),
+      b.visits - a.visits || new Date(b.lastVisitAt) - new Date(a.lastVisitAt),
   );
 
   return (
@@ -277,7 +277,7 @@ const VehicleModelReportDialog = ({
                               ? `${formatPlate(vehicle.licensePlate.plateNumber)} ${vehicle.licensePlate.province}`
                               : "ไม่ระบุทะเบียนรถ"
                           }
-                          brand={`${vehicle.visits} ครั้ง | ล่าสุด ${formatDate(vehicle.lastPaidAt)}`}
+                          brand={`${vehicle.visits} ครั้ง | ล่าสุด ${formatDate(vehicle.lastVisitAt)}`}
                         />
                       </Link>
                     ))}

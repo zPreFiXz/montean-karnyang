@@ -118,13 +118,6 @@ const VehicleFields = ({
           />
         </div>
       </div>
-      <KnownVehicleHint
-        plate={plateText}
-        brand={watch("brand")}
-        model={watch("model")}
-        province={watch("province")}
-        excludeRepairId={excludeRepairId}
-      />
     </div>
 
     <FleetNoField
@@ -134,6 +127,27 @@ const VehicleFields = ({
       value={watch("fleetNo")}
       onClear={() => setValue("fleetNo", "", { shouldValidate: true })}
     />
+
+    {/* ต่อท้ายข้อมูลรถทั้งหมด กล่องโผล่ทีหลังพิมพ์ทะเบียน จะได้ไม่ดันปุ่มเพิ่มเบอร์รถหนีมือ */}
+    <div className="px-5">
+      <KnownVehicleHint
+        plate={plateText}
+        brand={watch("brand")}
+        model={watch("model")}
+        province={watch("province")}
+        excludeRepairId={excludeRepairId}
+        onUseKnownModel={(known) => {
+          setValue("brand", known.brand, {
+            shouldValidate: true,
+            shouldTouch: true,
+          });
+          setValue("model", known.model, {
+            shouldValidate: true,
+            shouldTouch: true,
+          });
+        }}
+      />
+    </div>
 
     <FormInput
       register={register}

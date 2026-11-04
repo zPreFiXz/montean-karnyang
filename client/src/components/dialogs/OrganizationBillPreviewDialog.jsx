@@ -81,13 +81,13 @@ const OrganizationBillPreviewDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         ref={contentRef}
-        className={`flex max-h-[90svh] w-full max-w-[calc(100%-2rem)] flex-col overflow-hidden p-0 sm:max-w-155 ${
+        className={`flex max-h-[90svh] w-full max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-155 ${
           isMeasured ? "" : "opacity-0"
         }`}
         showCloseButton={false}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <div className="receipt-chrome relative mt-4 flex min-h-11 flex-shrink-0 items-center justify-center px-16">
+        <div className="receipt-chrome relative mt-4 mb-2 flex min-h-11 flex-shrink-0 items-center justify-center px-16">
           <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
             ตัวอย่างใบวางบิล
           </DialogTitle>

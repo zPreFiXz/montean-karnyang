@@ -22,7 +22,7 @@ export const getStatusInfo = (status) => {
   switch (status) {
     case "ESTIMATE":
       return {
-        text: "ใบประเมินราคา",
+        text: "ใบเสนอราคา",
         color: "text-status-estimate",
         bg: "bg-status-estimate",
         softBorder: "border-status-estimate/30",

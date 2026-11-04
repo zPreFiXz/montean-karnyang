@@ -80,7 +80,7 @@ test("ออกเลขแล้วไม่ออกซ้ำ เครดิ�
   assert.equal(db.repairs[0].deliveryNo, "DO-6910-0001");
 });
 
-test("ใบประเมินราคาได้เลข QT ไม่ได้เลขใบเสร็จ", async () => {
+test("ใบเสนอราคาได้เลข QT ไม่ได้เลขใบเสร็จ", async () => {
   const db = fakeDb([bill(1, "ESTIMATE")]);
   await assignRepairDocumentNo(db, 1);
   assert.equal(db.repairs[0].quotationNo, "QT-6910-0001");

@@ -183,26 +183,50 @@ const ReceiptPaper = ({
             </tr>
           </thead>
           <tbody>
-            {items.map(({ item, quantity, sideLabel }) => {
-              const amount = Number(item.unitPrice) * quantity;
-              return (
-                <tr key={item.id}>
-                  <td className="h-5.5 border border-black px-[3px] text-center">
-                    {quantityLabel(item, quantity)}
-                  </td>
-                  <td className="border border-black px-1 break-words">
-                    {showBrand ? item.itemName : shortWorkName(item)}
-                    {sideLabel ? ` (${sideLabel})` : ""}
-                  </td>
-                  <td className="border border-black px-1 text-right">
-                    {formatAmount(item.unitPrice)}
-                  </td>
-                  <td className="border border-black px-1 text-right">
-                    {formatAmount(amount)}
-                  </td>
-                </tr>
-              );
-            })}
+            {items.map(
+              ({
+                item,
+                quantity,
+                sideLabel,
+                note,
+                noteRef,
+                amount: noteAmount,
+              }) => {
+                if (note)
+                  return (
+                    <tr key="note">
+                      <td className="h-5.5 border border-black" />
+                      <td className="border border-black px-1 break-words">
+                        {/* เลขใบส่งของยาวเกินบรรทัดให้ขึ้นบรรทัดใหม่ทั้งเลข ไม่ตัดกลางเลข */}
+                        {note}{" "}
+                        <span className="whitespace-nowrap">{noteRef}</span>
+                      </td>
+                      <td className="border border-black" />
+                      <td className="border border-black px-1 text-right">
+                        {formatAmount(noteAmount)}
+                      </td>
+                    </tr>
+                  );
+                const amount = Number(item.unitPrice) * quantity;
+                return (
+                  <tr key={item.id}>
+                    <td className="h-5.5 border border-black px-[3px] text-center">
+                      {quantityLabel(item, quantity)}
+                    </td>
+                    <td className="border border-black px-1 break-words">
+                      {showBrand ? item.itemName : shortWorkName(item)}
+                      {sideLabel ? ` (${sideLabel})` : ""}
+                    </td>
+                    <td className="border border-black px-1 text-right">
+                      {formatAmount(item.unitPrice)}
+                    </td>
+                    <td className="border border-black px-1 text-right">
+                      {formatAmount(amount)}
+                    </td>
+                  </tr>
+                );
+              },
+            )}
             {Array.from({ length: blankRows }).map((_, index) => (
               <tr key={`blank-${index}`}>
                 <td className="h-5.5 border border-black" />
@@ -274,18 +298,10 @@ const ReceiptPaper = ({
             {paymentLineRows(repair).map((row) => (
               <div
                 key={row[0].label}
-                className={`mt-1.5 items-end gap-2 ${
-                  row.length === 2
-                    ? "grid grid-cols-2"
-                    : "flex"
-                }`}
+                className="mt-1.5 grid grid-cols-2 items-end gap-2"
               >
                 {row.map(({ label, value, suffix }) => (
-                  // บรรทัดเดียวแบ่งที่ว่างหลังหักหัวข้อให้เท่ากัน ช่องที่หัวข้อยาวจะได้ไม่เหลือเส้นสั้น
-                  <span
-                    key={label}
-                    className="flex min-w-0 flex-[1_1_auto] items-end gap-1"
-                  >
+                  <span key={label} className="flex min-w-0 items-end gap-1">
                     <span className="whitespace-nowrap">{label}</span>
                     <span className="min-w-0 flex-1 truncate border-b border-dotted border-black text-center font-semibold">
                       {value}

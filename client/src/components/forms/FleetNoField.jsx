@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Minus, Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import FormInput from "@/components/forms/FormInput";
 
 // เบอร์ข้างรถที่บริษัทเจ้าของรถตั้งไว้ รถส่วนใหญ่ไม่มี จึงซ่อนช่องไว้หลังปุ่ม
@@ -25,45 +25,61 @@ const FleetNoField = ({ register, errors, value, onClear }) => {
     );
   };
 
-  const Icon = isOpen ? Minus : Plus;
+  // ปุ่มยุบพร้อมกับที่ช่องกาง ความเร็วเดียวกัน ความสูงรวมจึงเปลี่ยนต่อเนื่อง ของด้านล่างไม่กระตุก
+  const collapse = (show) =>
+    `grid transition-all duration-200 motion-reduce:transition-none ${
+      show ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+    }`;
 
   return (
     <>
-      <div className="flex justify-center px-5 pt-1">
-        <button
-          type="button"
-          onClick={handleToggle}
-          aria-expanded={isOpen}
-          className="text-surface/70 xl:text-subtle-dark flex h-10 cursor-pointer items-center gap-1.5 px-3 text-lg font-semibold md:text-xl"
-        >
-          <Icon className="h-4 w-4" />
-          {isOpen ? "ลบเบอร์รถ" : "เพิ่มเบอร์รถ"}
-        </button>
-      </div>
-
-      <div
-        inert={!isOpen}
-        className={`grid transition-all duration-200 motion-reduce:transition-none ${
-          isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-        }`}
-      >
+      {/* ช่องอยู่เหนือปุ่ม ระหว่างปุ่มยุบ ช่องจะกางลงมาจากด้านบน ไม่ถูกดึงขึ้นมาจากข้างล่าง */}
+      <div inert={!isOpen} className={collapse(isOpen)}>
         <div className="overflow-hidden">
-          <div
-            className={`transition-transform duration-200 motion-reduce:transition-none ${
-              isOpen ? "translate-y-0" : "-translate-y-full"
-            }`}
-          >
-            <FormInput
-              register={register}
-              name="fleetNo"
-              label="เบอร์รถ"
-              type="text"
-              placeholder="เช่น 12"
-              color="surface"
-              errors={errors}
-              maxLength={20}
-              customClass="px-5"
-            />
+          {/* ปุ่มลบอยู่ขวาหัวข้อช่อง ติดกับสิ่งที่ลบ */}
+          <div className="mt-4 flex items-center justify-between px-5">
+            <label
+              htmlFor="fleetNo"
+              className="text-surface xl:text-subtle-dark text-xl font-medium"
+            >
+              เบอร์รถ
+            </label>
+            <button
+              type="button"
+              onClick={handleToggle}
+              aria-expanded={isOpen}
+              // ทรงเดียวกับปุ่ม "ล้างข้อมูล" หัวหน้า บนพื้นน้ำเงินตัวแดงอ่านยากจึงมีพื้นขาว
+              className="text-destructive bg-surface flex shrink-0 cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-lg font-medium duration-300 md:text-xl xl:bg-transparent xl:px-0"
+            >
+              <X className="h-4 w-4" />
+              ลบเบอร์รถ
+            </button>
+          </div>
+          <FormInput
+            register={register}
+            name="fleetNo"
+            type="text"
+            placeholder="เช่น 12"
+            color="surface"
+            errors={errors}
+            maxLength={20}
+            customClass="px-5"
+          />
+        </div>
+      </div>
+      {/* ปุ่มเส้นประแบบ "เพิ่มรถรุ่นอื่น" ในหน้าสต็อก มือถืออยู่บนพื้นน้ำเงิน จอใหญ่อยู่บนพื้นขาว */}
+      <div inert={isOpen} className={collapse(!isOpen)}>
+        <div className="overflow-hidden">
+          <div className="mt-4 px-5">
+            <button
+              type="button"
+              onClick={handleToggle}
+              aria-expanded={false}
+              className="text-surface border-surface/60 xl:text-subtle-light flex h-[41px] w-full cursor-pointer items-center justify-center gap-2 rounded-[20px] border-2 border-dashed text-lg font-medium duration-200 md:text-xl xl:border-gray-300 xl:hover:border-gray-400 xl:hover:bg-gray-50"
+            >
+              <Plus className="h-5 w-5" />
+              เพิ่มเบอร์รถ
+            </button>
           </div>
         </div>
       </div>

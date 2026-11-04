@@ -20,6 +20,12 @@ export const listChequeBanks = async () => {
   return await apiClient.get("/repairs/cheque-banks");
 };
 
+export const listDocumentNumbers = async (prefix, period) => {
+  return await apiClient.get("/repairs/document-numbers", {
+    params: { prefix, period },
+  });
+};
+
 export const updateRepairStatus = async (id, data) => {
   return await apiClient.patch(`/repairs/${id}/status`, data);
 };

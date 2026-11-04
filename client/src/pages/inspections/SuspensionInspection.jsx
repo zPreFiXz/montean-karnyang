@@ -320,7 +320,7 @@ const SuspensionInspection = () => {
 
       // แก้บิลที่บันทึกแล้ว ของถูกหักไปแล้ว ต้องบวกคืนตอนคิดว่าเบิกได้เท่าไหร่
       const map = {};
-      // ใบประเมินราคายังไม่เคยเบิกของออกจากคลัง จึงไม่มีอะไรให้บวกคืน
+      // ใบเสนอราคายังไม่เคยเบิกของออกจากคลัง จึงไม่มีอะไรให้บวกคืน
       if (editRepairId && !restored.stockNotDeducted) {
         for (const it of savedItems) {
           if (it?.partNumber && typeof it.quantity === "number") {
@@ -848,7 +848,7 @@ const SuspensionInspection = () => {
                 <p className="text-surface xl:text-primary truncate text-2xl font-semibold md:text-[26px]">
                   {isEditing
                     ? location.state?.stockNotDeducted
-                      ? "แก้ไขใบประเมินราคา"
+                      ? "แก้ไขใบเสนอราคา"
                       : "แก้ไขงานซ่อม"
                     : "เช็กช่วงล่าง"}
                 </p>

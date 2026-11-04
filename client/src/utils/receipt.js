@@ -180,7 +180,20 @@ export const asIssued = (repair) =>
     ? { ...repair, status: repair.cancelledStatus || "PAID", isCancelled: true }
     : repair;
 
-// ใบประเมินราคา = ใบเสนอราคา, เครดิต = ใบส่งของ, เรียกใบเสร็จได้เฉพาะตอนรับเงินแล้ว
+// บิลเครดิตที่จ่ายแล้วพิมพ์ใบส่งของซ้ำได้ ใบส่งของออกตอนยังไม่รู้ว่าจ่ายด้วยอะไร ช่องวิธีจ่ายจึงว่าง
+// (ต้องตรงกับ asDeliveryNote ใน receiptHtml.js)
+export const canReprintDeliveryNote = (repair) =>
+  repair?.status === "PAID" && !!repair?.deliveryNo;
+export const asDeliveryNote = (repair) => ({
+  ...repair,
+  status: "CREDIT",
+  paymentMethod: null,
+  chequeBank: null,
+  chequeNo: null,
+  chequeDate: null,
+});
+
+// ยังไม่ซ่อม = ใบเสนอราคา, เครดิต = ใบส่งของ, เรียกใบเสร็จได้เฉพาะตอนรับเงินแล้ว
 export const receiptDocTitle = (repair) => {
   if (repair?.status === "ESTIMATE") return "ใบเสนอราคา";
   if (repair?.status === "CREDIT") return "ใบส่งของ";
@@ -338,7 +351,8 @@ const makeRoomForQr = (pages, linesOf, summaryRows, limit) => {
   return moved.length ? [...pages.slice(0, -1), last, moved] : pages;
 };
 
-const rowName = ({ item, sideLabel }, showBrand) => {
+const rowName = ({ item, sideLabel, note, noteRef }, showBrand) => {
+  if (note) return `${note} ${noteRef}`;
   const base = showBrand ? item.itemName : shortWorkName(item);
   return sideLabel ? `${base} (${sideLabel})` : base;
 };
@@ -388,15 +402,31 @@ const receiptOrder = (repair, items) => {
   return [...before, ...orderTabItems(tabItems), ...after];
 };
 
+// ใบเสร็จของบิลเครดิตที่จ่ายด้วยเช็ค มีบรรทัดเดียวอ้างใบส่งของ ยอดเท่ายอดบิล รายการดูได้จากใบส่งของ
+// (ต้องตรงกับ chequeNoteRow ใน receiptHtml.js)
+export const chequeNoteRow = (repair) =>
+  repair?.status === "PAID" &&
+  repair?.paymentMethod === "CHEQUE" &&
+  repair?.deliveryNo
+    ? {
+        note: "ได้รับเงินตามใบส่งของเลขที่",
+        noteRef: repair.deliveryNo,
+        amount: Number(repair.totalPrice || 0),
+      }
+    : null;
+
 export const buildReceiptPages = (repair, { showBrand = true } = {}) => {
   const allItems = repair?.repairItems || [];
-  const discountItems = allItems.filter(isDiscountItem);
-  const rows = mergeBySide(
-    receiptOrder(
-      repair,
-      allItems.filter((item) => !isDiscountItem(item)),
-    ),
-  );
+  const noteRow = chequeNoteRow(repair);
+  const discountItems = noteRow ? [] : allItems.filter(isDiscountItem);
+  const rows = noteRow
+    ? [noteRow]
+    : mergeBySide(
+        receiptOrder(
+          repair,
+          allItems.filter((item) => !isDiscountItem(item)),
+        ),
+      );
   const linesOf = (row) => rowLines(row, showBrand);
   const discountTotal = discountItems.reduce(
     (sum, item) => sum + Number(item.unitPrice) * Number(item.quantity),
@@ -405,9 +435,11 @@ export const buildReceiptPages = (repair, { showBrand = true } = {}) => {
   // ต้องตรงกับ receiptPagesHtml ฝั่งเซิร์ฟเวอร์
   const lastPageLimit = hasPaymentQr(repair)
     ? QR_PAGE_LINES
-    : showsPaymentBoxes(repair)
-      ? // เช็คใช้บรรทัดธนาคารสองบรรทัด แผ่นสุดท้ายจึงรับรายการได้น้อยลงหนึ่ง
-        DELIVERY_PAGE_LINES - paymentLineRows(repair).length + 1
+    : isCreditDocument(repair)
+      ? // บรรทัดธนาคารมีสองบรรทัด แผ่นสุดท้ายจึงรับรายการได้น้อยลงหนึ่ง
+        DELIVERY_PAGE_LINES -
+        (showsPaymentBoxes(repair) ? paymentLineRows(repair).length : 0) +
+        1
       : null;
   const pages = lastPageLimit
     ? makeRoomForQr(
@@ -421,18 +453,23 @@ export const buildReceiptPages = (repair, { showBrand = true } = {}) => {
   return { pages, discountItems };
 };
 
-// ช่องวิธีจ่ายกับบรรทัดธนาคารมีในใบส่งของ และใบเสร็จของบิลเครดิตที่มาจ่ายแล้ว ติ๊กว่าจ่ายด้วยอะไร
-// (ต้องตรงกับ showsPaymentBoxes ใน receiptHtml.js)
-export const showsPaymentBoxes = (repair) =>
+// ใบส่งของ และใบเสร็จของบิลเครดิตที่มาจ่ายแล้ว (ต้องตรงกับ receiptHtml.js)
+const isCreditDocument = (repair) =>
   repair?.status === "CREDIT" ||
   (repair?.status === "PAID" && !!repair?.deliveryNo);
 
+// ช่องวิธีจ่ายกับบรรทัดธนาคารมีเฉพาะเอกสารเครดิตของหน่วยงาน ร้านค้ากับลูกค้าทั่วไปเหลือแค่บรรทัดลงชื่อ
+// (ต้องตรงกับ showsPaymentBoxes ใน receiptHtml.js)
+export const showsPaymentBoxes = (repair) =>
+  isCreditDocument(repair) &&
+  repair?.customer?.organizationType === "GOVERNMENT";
+
 // QR มีเฉพาะใบเสร็จ ใบเสนอราคายังไม่ถึงตอนจ่าย ใบส่งของลูกค้าจ่ายทีหลังตามใบวางบิล
-// บิลเครดิตที่จ่ายแล้วไม่ต้องสแกนอีก ที่ตรงนั้นใช้ช่องวิธีจ่ายแทน
+// บิลเครดิตที่จ่ายแล้วไม่ต้องสแกนอีก
 export const hasPaymentQr = (repair) =>
   !repair?.isCancelled &&
   !["ESTIMATE", "CREDIT"].includes(repair?.status) &&
-  !showsPaymentBoxes(repair);
+  !isCreditDocument(repair);
 
 // ค่าในบรรทัดใต้ช่องวิธีจ่าย มีเฉพาะจ่ายด้วยเช็ค จำนวนเงินเท่ายอดบิล (ต้องตรงกับ receiptHtml.js)
 export const paymentLineFields = (repair) => {
@@ -456,13 +493,10 @@ export const paymentLineFields = (repair) => {
 
 // จ่ายด้วยเช็คแบ่งเป็นสองบรรทัด ธนาคารกับเลขที่ / วันที่กับจำนวนเงิน ชื่อยาวจะได้ไม่ถูกตัด ใบที่ยังว่างคงบรรทัดเดียว
 // (ต้องตรงกับ bankRows ใน receiptHtml.js)
-// สองบรรทัดของเช็คแบ่งครึ่งเป็นสองคอลัมน์ เลขที่กับจำนวนเงินเริ่มตรงกลางบรรทัด
-// บรรทัดเดียวของใบที่ยังว่างแบ่งเส้นเท่ากันทุกช่องไว้เขียนมือ
+// สองบรรทัดแบ่งครึ่งเป็นสองคอลัมน์ เลขที่กับจำนวนเงินเริ่มตรงกลางบรรทัด ใบที่ยังว่างก็วางแบบเดียวกับเช็ค
 export const paymentLineRows = (repair) => {
   const fields = paymentLineFields(repair);
-  return repair?.paymentMethod === "CHEQUE"
-    ? [fields.slice(0, 2), fields.slice(2)]
-    : [fields];
+  return [fields.slice(0, 2), fields.slice(2)];
 };
 
 // ใบส่งของมีต้นฉบับให้ลูกค้า สำเนาให้ลูกค้าเซ็นรับแล้วร้านเก็บไว้ เลือกพิมพ์ทีละใบหรือทั้งคู่ก็ได้

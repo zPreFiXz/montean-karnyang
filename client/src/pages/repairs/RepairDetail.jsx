@@ -216,7 +216,7 @@ const RepairDetail = () => {
         updateRepairStatus(repair.id, { status: "ESTIMATE" }),
       );
       setIsEstimateConfirmOpen(false);
-      toast.success("บันทึกเป็นใบประเมินราคาเรียบร้อยแล้ว");
+      toast.success("บันทึกเป็นใบเสนอราคาเรียบร้อยแล้ว");
       // replace: บิลย้ายกองแล้ว กดย้อนกลับครั้งเดียวต้องถึงรายการที่มาแต่แรก
       navigate("/repairs?status=estimate", { replace: true });
     } catch (error) {
@@ -342,7 +342,7 @@ const RepairDetail = () => {
           typeof window.history.state?.idx === "number"
             ? window.history.state.idx - 1
             : null,
-        // ใบประเมินราคายังไม่เคยเบิกของ ห้ามบวกของในบิลคืนตอนคิดว่าเบิกได้เท่าไหร่
+        // ใบเสนอราคายังไม่เคยเบิกของ ห้ามบวกของในบิลคืนตอนคิดว่าเบิกได้เท่าไหร่
         stockNotDeducted: repair.status === "ESTIMATE",
         from: location.state?.from,
         statusSlug: location.state?.statusSlug,
@@ -357,7 +357,7 @@ const RepairDetail = () => {
 
   const deleteTargetName =
     repair?.status === "ESTIMATE"
-      ? "ใบประเมินราคา"
+      ? "ใบเสนอราคา"
       : isSaleRepair(repair)
         ? "รายการขาย"
         : "งานซ่อม";
@@ -500,7 +500,7 @@ const RepairDetail = () => {
               <button
                 onClick={() => setIsEstimateConfirmOpen(true)}
                 disabled={isSavingEstimate}
-                aria-label="บันทึกเป็นใบประเมินราคา"
+                aria-label="บันทึกเป็นใบเสนอราคา"
                 className="bg-status-estimate flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full disabled:opacity-60"
               >
                 {isSavingEstimate ? (
@@ -817,7 +817,7 @@ const RepairDetail = () => {
         isOpen={isEstimateConfirmOpen}
         onClose={() => setIsEstimateConfirmOpen(false)}
         onConfirm={handleSaveAsEstimate}
-        title="บันทึกเป็นใบประเมินราคา"
+        title="บันทึกเป็นใบเสนอราคา"
         itemName={getRepairTitle(repair)}
         itemDetail={confirmItemDetail}
         confirmLabel="บันทึก"

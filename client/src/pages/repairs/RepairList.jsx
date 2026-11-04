@@ -122,7 +122,7 @@ const RepairList = () => {
   const getStatusTitle = () => {
     switch (status) {
       case "estimate":
-        return "รายการใบประเมินราคา";
+        return "รายการใบเสนอราคา";
       case "in-progress":
         return "รายการกำลังซ่อม";
       case "completed":
@@ -194,7 +194,7 @@ const RepairList = () => {
       case "estimate":
         return search
           ? `ไม่พบ "${searchParams.get("search")}"`
-          : "ไม่มีใบประเมินราคา";
+          : "ไม่มีใบเสนอราคา";
       case "in-progress":
         return "ไม่มีรายการที่กำลังซ่อม";
       case "completed":
@@ -295,7 +295,7 @@ const RepairList = () => {
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <p className="text-surface truncate text-2xl font-semibold md:text-[26px]">
             {status === "estimate"
-              ? "ใบประเมินราคา"
+              ? "ใบเสนอราคา"
               : status === "credit"
                 ? "เครดิต"
                 : "สถานะการซ่อม"}
@@ -311,8 +311,8 @@ const RepairList = () => {
         {status !== "estimate" && status !== "credit" && (
           <Link
             to="/repairs?status=estimate"
-            aria-label={`ใบประเมินราคา ${estimateCount} รายการ`}
-            title="ใบประเมินราคา"
+            aria-label={`ใบเสนอราคา ${estimateCount} รายการ`}
+            title="ใบเสนอราคา"
             className="bg-surface/20 relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
           >
             <ClipboardList className="text-surface h-5 w-5" />

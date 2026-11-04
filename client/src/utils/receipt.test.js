@@ -194,10 +194,21 @@ describe("ชื่อและเลขของเอกสาร", () => {
 
 describe("ใบเสร็จของบิลเครดิตที่จ่ายแล้ว", () => {
   it("มีช่องวิธีจ่ายแทน QR บิลจ่ายสดยังมี QR", () => {
-    const paidCredit = repairWith([], { status: "PAID", deliveryNo: "DO-1" });
+    const paidCredit = repairWith([], {
+      status: "PAID",
+      deliveryNo: "DO-1",
+      customer: { organizationType: "GOVERNMENT" },
+    });
+    const paidShopCredit = repairWith([], {
+      status: "PAID",
+      deliveryNo: "DO-1",
+      customer: { organizationType: "SHOP" },
+    });
     const paidCash = repairWith([], { status: "PAID", deliveryNo: null });
     expect(showsPaymentBoxes(paidCredit)).toBe(true);
     expect(hasPaymentQr(paidCredit)).toBe(false);
+    expect(showsPaymentBoxes(paidShopCredit)).toBe(false);
+    expect(hasPaymentQr(paidShopCredit)).toBe(false);
     expect(showsPaymentBoxes(paidCash)).toBe(false);
     expect(hasPaymentQr(paidCash)).toBe(true);
   });

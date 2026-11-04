@@ -66,6 +66,73 @@ exports.listRepairs = async (req, res) => {
   res.json(repairs);
 };
 
+// เลขเอกสารของเดือนหนึ่งเรียงครบตั้งแต่ 0001 ถึงเลขล่าสุดที่ออก เลขที่ไม่มีเอกสารคือบิลที่ถูกลบไปแล้ว
+const DOC_NO_FIELDS = { RE: "receiptNo", DO: "deliveryNo", QT: "quotationNo" };
+const DOC_NO_PREFIXES = [...Object.keys(DOC_NO_FIELDS), "BL"];
+
+exports.listDocumentNumbers = async (req, res) => {
+  const prefix = String(req.query.prefix || "");
+  const period = String(req.query.period || "");
+  if (!DOC_NO_PREFIXES.includes(prefix) || !/^\d{4}$/.test(period)) {
+    createError(400, "ประเภทเอกสารหรือเดือนไม่ถูกต้อง");
+  }
+
+  const start = `${prefix}-${period}-`;
+  const counter = await prisma.documentCounter.findUnique({
+    where: { prefix_period: { prefix, period } },
+  });
+
+  const docs =
+    prefix === "BL"
+      ? (
+          await prisma.billingNote.findMany({
+            where: { number: { startsWith: start } },
+            select: {
+              number: true,
+              createdAt: true,
+              customer: {
+                select: { id: true, name: true, organizationType: true },
+              },
+            },
+          })
+        ).map((note) => ({ no: note.number, billingNote: note }))
+      : (
+          await prisma.repair.findMany({
+            where: { [DOC_NO_FIELDS[prefix]]: { startsWith: start } },
+            include: {
+              customer: { select: { name: true, organizationType: true } },
+              repairItems: {
+                select: {
+                  itemName: true,
+                  partId: true,
+                  part: { select: { category: { select: { name: true } } } },
+                },
+              },
+              vehicle: {
+                include: {
+                  licensePlate: {
+                    select: { plateNumber: true, province: true },
+                  },
+                  vehicleModel: { select: { brand: true, model: true } },
+                },
+              },
+            },
+          })
+        ).map((repair) => ({ no: repair[DOC_NO_FIELDS[prefix]], repair }));
+
+  const bySeq = new Map(
+    docs.map((doc) => [Number(doc.no.slice(start.length)), doc]),
+  );
+  const lastNo = Math.max(counter?.lastNo || 0, ...bySeq.keys(), 0);
+  const entries = Array.from({ length: lastNo }, (_, index) => {
+    const seq = index + 1;
+    const no = `${start}${String(seq).padStart(4, "0")}`;
+    return bySeq.get(seq) || { no, missing: true };
+  });
+
+  res.json({ prefix, period, lastNo, entries });
+};
+
 // ธนาคารที่เคยรับเช็ค ไว้เป็นตัวเลือกตอนกรอก ใช้บ่อยขึ้นก่อน ชื่อจะได้สะกดตรงกันทุกบิล
 exports.listChequeBanks = async (req, res) => {
   const rows = await prisma.repair.groupBy({
@@ -285,7 +352,7 @@ exports.updateRepair = async (req, res) => {
       currentRepair.customer,
     );
 
-    // ใบประเมินราคายังไม่เคยตัดสต็อก ไม่มีอะไรให้คืนและไม่ต้องตัดใหม่
+    // ใบเสนอราคายังไม่เคยตัดสต็อก ไม่มีอะไรให้คืนและไม่ต้องตัดใหม่
     const isEstimate = currentRepair.status === "ESTIMATE";
 
     const existingItems = await tx.repairItem.findMany({
@@ -423,7 +490,7 @@ exports.deleteRepair = async (req, res) => {
       },
     });
 
-    // ใบประเมินราคาไม่เคยเบิกของออกจากคลัง บิลที่ยกเลิกคืนของไปแล้วตอนยกเลิก ลบทิ้งจึงไม่มีอะไรให้คืน
+    // ใบเสนอราคาไม่เคยเบิกของออกจากคลัง บิลที่ยกเลิกคืนของไปแล้วตอนยกเลิก ลบทิ้งจึงไม่มีอะไรให้คืน
     if (!["ESTIMATE", "CANCELLED"].includes(repair.status)) {
       for (const item of items) {
         if (item.partId) {
@@ -514,7 +581,7 @@ exports.updateRepairStatus = async (req, res) => {
     data.chequeDate = null;
   }
 
-  // ใบประเมินราคาเปิดไว้ล่วงหน้าได้นาน วันที่บิลจึงนับใหม่ตอนเริ่มซ่อมจริง
+  // ใบเสนอราคาเปิดไว้ล่วงหน้าได้นาน วันที่บิลจึงนับใหม่ตอนเริ่มซ่อมจริง
   if (fromEstimate) {
     data.createdAt = new Date();
   }
@@ -584,6 +651,7 @@ const buildRepairDocument = async (id, body, { forImage = false } = {}) => {
     : buildReceiptHtml(repair, {
         showCustomer,
         showBrand,
+        asDelivery: body?.docType === "delivery",
         // รูปส่งให้ลูกค้าทางแชท ไม่ได้บอกมาก็เอาแค่ต้นฉบับ
         copyChoice: body?.copyChoice || (forImage ? "original" : "both"),
       });
@@ -600,7 +668,11 @@ exports.printRepairReceipt = async (req, res) => {
   await printReceipt(html, repair.id);
 
   res.json({
-    message: isJobSheet ? "สั่งพิมพ์ใบสั่งซ่อมแล้ว" : "สั่งพิมพ์ใบเสร็จแล้ว",
+    message: isJobSheet
+      ? "สั่งพิมพ์ใบสั่งซ่อมแล้ว"
+      : req.body?.docType === "delivery"
+        ? "สั่งพิมพ์ใบส่งของแล้ว"
+        : "สั่งพิมพ์ใบเสร็จแล้ว",
   });
 };
 

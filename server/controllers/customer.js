@@ -96,7 +96,7 @@ exports.listOrganizations = async (req, res) => {
   res.json(organizations);
 };
 
-// ใบประเมินราคาไม่นับเป็นประวัติ เพราะยังไม่ได้ซ่อมและไม่มีรายได้
+// ใบเสนอราคาไม่นับเป็นประวัติ เพราะยังไม่ได้ซ่อมและไม่มีรายได้
 exports.listOrganizationRepairs = async (req, res) => {
   const { id } = req.params;
   const { scope } = req.query;

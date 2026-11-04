@@ -143,7 +143,7 @@ const moveStock = async (tx, part, partId, quantity, direction) => {
   }
 };
 
-// ใบประเมินราคายังไม่ได้ซ่อม ของต้องอยู่ในคลัง ย้ายเข้า/ออกสถานะนี้จึงคืนหรือตัดสต็อก
+// ใบเสนอราคายังไม่ได้ซ่อม ของต้องอยู่ในคลัง ย้ายเข้า/ออกสถานะนี้จึงคืนหรือตัดสต็อก
 const restoreStockForRepair = async (tx, repairId) => {
   const items = await tx.repairItem.findMany({
     where: { repairId },
@@ -190,7 +190,7 @@ const createRepairItemsAndDecrementStock = async (
   tx,
   repairId,
   repairItems,
-  // ใบประเมินราคาบันทึกรายการอย่างเดียว ของยังไม่ได้ถูกเบิกออกจากคลัง
+  // ใบเสนอราคาบันทึกรายการอย่างเดียว ของยังไม่ได้ถูกเบิกออกจากคลัง
   deductStock = true,
 ) => {
   // snapshot ชื่อ ณ วันซ่อม เผื่ออะไหล่ถูกลบภายหลัง

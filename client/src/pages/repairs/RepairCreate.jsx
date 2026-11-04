@@ -365,7 +365,7 @@ const RepairCreate = () => {
           },
           repairItems: repairItems,
           editRepairId: location.state?.editRepairId,
-          // ใบประเมินราคายังไม่เคยเบิกของ ต้องติดไปกลับด้วย ไม่งั้นย้อนกลับมาจะบวกสต็อกคืนเกิน
+          // ใบเสนอราคายังไม่เคยเบิกของ ต้องติดไปกลับด้วย ไม่งั้นย้อนกลับมาจะบวกสต็อกคืนเกิน
           stockNotDeducted: location.state?.stockNotDeducted,
           backIdx: location.state?.backIdx,
           origin: location.state?.origin || location.state?.from,
@@ -481,7 +481,7 @@ const RepairCreate = () => {
               <p className="text-surface xl:text-primary truncate text-2xl font-semibold md:text-[26px]">
                 {isEditing
                   ? location.state?.stockNotDeducted
-                    ? "แก้ไขใบประเมินราคา"
+                    ? "แก้ไขใบเสนอราคา"
                     : isSale
                       ? "แก้ไขการขายอะไหล่"
                       : isService

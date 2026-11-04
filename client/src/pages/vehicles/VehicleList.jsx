@@ -1,6 +1,7 @@
 import PageSpinner from "@/components/ui/PageSpinner";
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigationType, useSearchParams } from "react-router";
+import { ListOrdered } from "lucide-react";
 import SearchBar from "@/components/forms/SearchBar";
 import CarCard from "@/components/cards/CarCard";
 import { listVehicles } from "@/api/vehicle";
@@ -110,11 +111,11 @@ const VehicleList = () => {
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
-      <div className="flex items-center gap-2 pt-4 pl-5">
+      <div className="flex items-center gap-2 px-5 pt-4">
         <div className="bg-surface/20 flex h-10 w-10 items-center justify-center rounded-full">
           <Document color="#ffffff" />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <p className="text-surface text-2xl font-semibold md:text-[26px]">
             ประวัติรถ
           </p>
@@ -124,6 +125,14 @@ const VehicleList = () => {
             </span>
           )}
         </div>
+        <Link
+          to="/repairs/document-numbers"
+          aria-label="เลขที่เอกสาร"
+          title="เลขที่เอกสาร"
+          className="bg-surface/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+        >
+          <ListOrdered className="text-surface h-5 w-5" />
+        </Link>
       </div>
       <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-28 xl:pb-4">
         <div className="flex flex-1 flex-col px-5 pt-4">

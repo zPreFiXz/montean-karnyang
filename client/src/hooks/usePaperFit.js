@@ -64,11 +64,23 @@ const usePaperFit = ({ open, chromeEstimate, onOpen }) => {
       }
 
       // คิดที่ว่างจากขนาดจอลบแถวพวกนี้ ไม่ใช่วัดจากกรอบซึ่งจะวนกันเอง
-      const chromeParts =
-        contentRef.current?.querySelectorAll(".receipt-chrome") || [];
-      const chromeHeight =
-        [...chromeParts].reduce((sum, part) => sum + part.offsetHeight, 0) ||
-        chromeEstimate;
+      // นับขอบนอกของแต่ละแถวและช่องว่างระหว่างแถวของกล่องด้วย ไม่งั้นกระดาษล้นกรอบ
+      const content = contentRef.current;
+      const chromeParts = content?.querySelectorAll(".receipt-chrome") || [];
+      const partsHeight = [...chromeParts].reduce((sum, part) => {
+        const style = getComputedStyle(part);
+        return (
+          sum +
+          part.offsetHeight +
+          parseFloat(style.marginTop) +
+          parseFloat(style.marginBottom)
+        );
+      }, 0);
+      const rowGap = content
+        ? (parseFloat(getComputedStyle(content).rowGap) || 0) *
+          Math.max(0, content.children.length - 1)
+        : 0;
+      const chromeHeight = partsHeight ? partsHeight + rowGap : chromeEstimate;
 
       const maxDialogWidth = Math.min(DIALOG_MAX_WIDTH, window.innerWidth - 32);
       const availableWidth = maxDialogWidth - VIEWPORT_MARGIN * 2;

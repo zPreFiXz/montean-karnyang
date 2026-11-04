@@ -54,6 +54,8 @@ for (const count of [1, 8, 10, 11, 14, 22]) {
         chequeBank: "ธนาคารเพื่อการเกษตรและสหกรณ์การเกษตร",
         chequeNo: "10234567",
         quotationNo: "QT-6910-0001",
+        // ช่องวิธีจ่ายมีเฉพาะหน่วยงาน
+        customer: { organizationType: count % 4 < 2 ? "GOVERNMENT" : "SHOP" },
       }),
     );
   }
@@ -74,7 +76,8 @@ describe("ตัวอย่างบนจอกับใบที่พิม�
     for (const showBrand of [true, false]) {
       const c = buildReceiptPages(client, { showBrand });
       const s = server.receiptPages(serverBill, { showBrand });
-      const clientName = ({ item, sideLabel }) => {
+      const clientName = ({ item, sideLabel, note, noteRef }) => {
+        if (note) return `${note} ${noteRef}`;
         const base = showBrand ? item.itemName : shortWorkName(item);
         return sideLabel ? `${base} (${sideLabel})` : base;
       };

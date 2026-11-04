@@ -1,49 +1,61 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, History, TriangleAlert } from "lucide-react";
 import { lookupVehicleByPlate } from "@/api/vehicle";
 import { formatDateShort } from "@/utils/formats";
+import { DISCOUNT_SERVICE_NAME } from "@/constants/services";
+import { getDisplayBrand } from "@/utils/repairDisplay";
 
 // เท่ากับจังหวะยุบแถวของรายการซ่อน ทั้งระบบจะได้เคลื่อนไหวความเร็วเดียวกัน
 const SLIDE_MS = 150;
 
 // บอกว่ารถคันนี้เคยมาเมื่อไหร่ ไมล์เท่าไหร่ ทำอะไรไป
 // รุ่นที่กรอกไม่ตรงกับประวัติก็บอกไว้ เผื่อพิมพ์ทะเบียนผิดคัน
+const sameModel = (known, brand, model) =>
+  !brand ||
+  !model ||
+  !known ||
+  (known.brand === brand && known.model === model);
+
 const KnownVehicleHint = ({
   plate,
   province,
   excludeRepairId,
   brand,
   model,
+  // เปลี่ยนยี่ห้อกับรุ่นในฟอร์มเป็นรุ่นในประวัติ
+  onUseKnownModel,
 }) => {
-  const [vehicle, setVehicle] = useState(null);
-  // แยกจาก vehicle เพราะตอนหาย ต้องคาเนื้อหาไว้จนกว่าจะยุบเสร็จ
+  // ผลค้นของทะเบียนที่กรอกอยู่ เก็บคู่กับทะเบียน ผลของทะเบียนเก่าจะได้ไม่โผล่ค้าง
+  const [lookup, setLookup] = useState(null);
+  // ข้อมูลที่กำลังแสดง แยกจาก lookup เพราะตอนหาย ต้องคาเนื้อหาไว้จนกว่าจะยุบเสร็จ
+  const [shown, setShown] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
+  // แก้บิลเดิม ทะเบียนถูกเติมมาตั้งแต่เปิดหน้า เป็นรถคันเดิมของบิลอยู่แล้ว ไม่ต้องบอกว่าเคยมา
+  // ถ้าโหลดมาทีหลังกล่องจะดันฟอร์มทั้งหน้าให้กระตุก จึงขึ้นเฉพาะตอนแก้รุ่นไม่ตรงกับที่บันทึกไว้
+  const originalPlateRef = useRef(null);
+
+  const plateText = String(plate || "").trim();
+  const provinceText = String(province || "").trim();
+  const plateKey =
+    plateText && provinceText ? `${plateText}|${provinceText}` : "";
+  if (excludeRepairId && plateKey && originalPlateRef.current === null) {
+    originalPlateRef.current = plateKey;
+  }
+  const isOriginalPlate =
+    !!excludeRepairId && !!plateKey && plateKey === originalPlateRef.current;
 
   useEffect(() => {
-    const plateText = String(plate || "").trim();
-    const provinceText = String(province || "").trim();
-
-    if (!plateText || !provinceText) {
-      setIsOpen(false);
-      return;
-    }
+    if (!plateKey) return;
 
     let cancelled = false;
     const timer = setTimeout(() => {
       lookupVehicleByPlate(plateText, provinceText, excludeRepairId)
         .then((res) => {
-          if (cancelled) return;
-          if (res.data?._count?.repairs > 0) {
-            setVehicle(res.data);
-            // เปิดในเฟรมถัดไป ให้เบราว์เซอร์ทันวาดตอนยังยุบอยู่ แถบจะได้ไหลลงมาให้เห็น
-            requestAnimationFrame(() => setIsOpen(true));
-          } else {
-            setIsOpen(false);
-          }
+          if (!cancelled) setLookup({ key: plateKey, vehicle: res.data });
         })
         .catch(() => {
-          if (!cancelled) setIsOpen(false);
+          if (!cancelled) setLookup(null);
         });
     }, 400);
 
@@ -51,35 +63,61 @@ const KnownVehicleHint = ({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [plate, province, excludeRepairId]);
+    // plateText กับ provinceText รวมอยู่ใน plateKey แล้ว
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plateKey, excludeRepairId]);
+
+  const found = lookup?.key === plateKey ? lookup.vehicle : null;
+  const isOtherModel = !!found && !sameModel(found.vehicleModel, brand, model);
+  const shouldShow =
+    !!found && (isOriginalPlate ? isOtherModel : found._count?.repairs > 0);
+
+  useEffect(() => {
+    if (!shouldShow) {
+      setIsOpen(false);
+      return;
+    }
+    setShown(found);
+    // เปิดในเฟรมถัดไป ให้เบราว์เซอร์ทันวาดตอนยังยุบอยู่ แถบจะได้ไหลลงมาให้เห็น
+    const frame = requestAnimationFrame(() => setIsOpen(true));
+    return () => cancelAnimationFrame(frame);
+  }, [shouldShow, found]);
 
   // ยุบเสร็จแล้วค่อยทิ้งข้อมูล ระหว่างยุบยังต้องมีเนื้อหาให้เห็น
   useEffect(() => {
     if (isOpen) return;
-    const timer = setTimeout(() => setVehicle(null), SLIDE_MS);
+    const timer = setTimeout(() => setShown(null), SLIDE_MS);
     return () => clearTimeout(timer);
   }, [isOpen]);
 
+  const vehicle = shown;
   if (!vehicle) return null;
 
   const lastVisit = vehicle.repairs?.[0] || null;
   const knownModel = vehicle.vehicleModel;
-  const isOtherModel =
-    !!brand &&
-    !!model &&
-    !!knownModel &&
-    (knownModel.brand !== brand || knownModel.model !== model);
+  const showsModelWarning = !sameModel(knownModel, brand, model);
 
-  const firstItem = lastVisit?.repairItems?.[0];
-  const lastJobText =
-    firstItem?.itemName || firstItem?.part?.name || firstItem?.service?.name;
+  // ซ้าย-ขวาเป็นสองบรรทัดในบิล นับเป็นรายการเดียว ส่วนลดไม่ใช่งานที่ทำ
+  const lastJobNames = [
+    ...new Set(
+      (lastVisit?.repairItems || [])
+        .map((item) => item.itemName || item.part?.name || item.service?.name)
+        .filter((name) => name && name !== DISCOUNT_SERVICE_NAME),
+    ),
+  ];
 
+  // อยู่ในกล่องนี้รู้อยู่แล้วว่าเป็นครั้งล่าสุด จึงไม่มีคำนำหน้า "ล่าสุด"
+  // วันที่ขึ้นก่อน ยาวเกินจะถูกตัดแค่ท้ายชื่อลูกค้า
   const visitLine = [
-    lastVisit && `ล่าสุด ${formatDateShort(lastVisit.createdAt)}`,
+    lastVisit && formatDateShort(lastVisit.createdAt),
     lastVisit?.mileage != null &&
       `${Number(lastVisit.mileage).toLocaleString()} กม.`,
     lastVisit?.customer?.name,
   ].filter(Boolean);
+
+  // ปุ่มรองขอบน้ำเงินแบบเดียวกับปุ่มรองอื่นในโปรเจกต์ ทรงเดียวกันทั้งดูประวัติและใช้รุ่นนี้
+  const pillClass =
+    "bg-surface text-primary border-primary flex h-8 shrink-0 cursor-pointer items-center justify-center gap-0.5 rounded-2xl border px-3 text-base font-semibold md:text-lg";
 
   return (
     <div
@@ -88,37 +126,82 @@ const KnownVehicleHint = ({
       }`}
     >
       <div className="overflow-hidden">
-        <div className="bg-surface/15 xl:bg-primary/5 xl:border-primary/20 mt-2 flex items-center gap-2 rounded-lg px-3 py-2 xl:border">
-          <div className="min-w-0 flex-1">
-            <p className="text-surface xl:text-subtle-dark text-lg leading-tight font-semibold md:text-xl">
-              เคยมาซ่อม {vehicle._count?.repairs || 0} ครั้ง
-            </p>
-            {visitLine.length > 0 && (
-              <p className="text-surface/80 xl:text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
-                {visitLine.join(" | ")}
-              </p>
-            )}
-            {lastJobText && (
-              <p className="text-surface/80 xl:text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
-                ครั้งก่อน: {lastJobText}
-              </p>
-            )}
-            {isOtherModel && (
-              <p className="text-surface xl:text-status-progress truncate text-base leading-tight font-semibold md:text-lg">
-                รุ่นในประวัติ: {knownModel.brand} {knownModel.model}
-              </p>
-            )}
-          </div>
-          {/* แก้บิลเดิมไม่มีร่าง ออกไปแล้วที่แก้ไว้จะหาย จึงไม่มีปุ่มนี้ */}
-          {!excludeRepairId && (
-            <Link
-              to={`/vehicles/${vehicle.id}`}
-              // มือถืออยู่บนพื้นน้ำเงิน จอใหญ่อยู่บนพื้นขาว ปุ่มขาวจะกลืน จึงใช้เส้นขอบแทน
-              className="bg-surface text-primary xl:border-primary flex h-8 shrink-0 items-center justify-center gap-0.5 rounded-2xl pr-2 pl-3 text-base font-semibold md:text-lg xl:border"
+        {/* การ์ดขาวแบบกล่องข้อมูลลูกค้า จอใหญ่ฟอร์มอยู่บนพื้นขาวอยู่แล้ว จึงใช้พื้นจางกับเส้นขอบแทน */}
+        {/* ระยะห่างและขอบในเท่ากล่องข้อมูลลูกค้ากับช่องกรอกอื่นในฟอร์ม (mt-4, px-4 py-3)
+            แก้บิลเดิมมีแค่แถวเตือน การ์ดทั้งใบจึงเป็นแถวเตือนเอง ไม่มีกรอบขาวซ้อนอีกชั้น */}
+        <div
+          className={`bg-surface mt-4 rounded-lg ${
+            isOriginalPlate
+              ? "xl:border-status-progress/30 overflow-hidden xl:border"
+              : "xl:bg-primary/5 xl:border-primary/20 px-4 py-3 xl:border"
+          }`}
+        >
+          {/* แก้บิลเดิมด้วยทะเบียนเดิม เป็นรถคันนี้อยู่แล้ว เหลือแค่แถวเตือนรุ่น */}
+          {!isOriginalPlate && (
+            <div>
+              {/* ปุ่มอยู่บรรทัดหัวข้อที่สั้น บรรทัดรายละเอียดจะได้ใช้ความกว้างเต็มกล่อง ไม่ถูกตัดบนมือถือ */}
+              <div className="flex items-center justify-between gap-2">
+                {/* ไอคอนขนาดเท่าไอคอนแถวเตือน สองส่วนจะดูเป็นชุดเดียวกัน */}
+                <p className="text-primary flex min-w-0 items-center gap-1.5 text-lg leading-tight font-semibold md:text-xl">
+                  <History className="text-primary h-5 w-5 shrink-0" />
+                  <span className="truncate">
+                    เคยมาซ่อม {vehicle._count?.repairs || 0} ครั้ง
+                  </span>
+                </p>
+                {/* แก้บิลเดิมไม่มีร่าง ออกไปแล้วที่แก้ไว้จะหาย จึงไม่มีปุ่มนี้ */}
+                {!excludeRepairId && (
+                  <Link
+                    to={`/vehicles/${vehicle.id}`}
+                    className={`${pillClass} pr-2`}
+                  >
+                    ดูประวัติ
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                )}
+              </div>
+              {/* บรรทัดละเรื่อง ยาวเกินตัดท้าย กล่องจะสูงไม่เกินสามบรรทัด ดูละเอียดได้จากปุ่มดูประวัติ */}
+              {visitLine.length > 0 && (
+                <p className="text-subtle-dark mt-1 truncate text-base leading-tight font-medium md:text-lg">
+                  {visitLine.join(" | ")}
+                </p>
+              )}
+              {/* จำนวนรายการไม่ถูกตัด ตัดแค่ท้ายชื่อรายการแรก */}
+              {lastJobNames.length > 0 && (
+                <p className="text-subtle-dark flex min-w-0 gap-1 text-base leading-tight font-medium md:text-lg">
+                  <span className="truncate">{lastJobNames[0]}</span>
+                  {lastJobNames.length > 1 && (
+                    <span className="shrink-0 whitespace-nowrap">
+                      และอีก {lastJobNames.length - 1} รายการ
+                    </span>
+                  )}
+                </p>
+              )}
+            </div>
+          )}
+          {/* ทะเบียนหนึ่งผูกกับรถคันเดียว บันทึกรุ่นอื่นไป รุ่นของคันนี้จะเปลี่ยนทุกบิล (ดู repairVehicle.js)
+              จึงมีปุ่มให้กลับไปใช้รุ่นในประวัติได้ทันที ถ้ารุ่นในประวัติผิดเองก็บันทึกต่อได้เลย */}
+          {showsModelWarning && (
+            <div
+              className={`bg-status-progress/10 flex items-center gap-2 ${
+                isOriginalPlate
+                  ? "px-4 py-3"
+                  : "mt-3 rounded-md py-1.5 pr-1.5 pl-2"
+              }`}
             >
-              ดูประวัติ
-              <ChevronRight className="h-4 w-4" />
-            </Link>
+              <TriangleAlert className="text-status-progress h-5 w-5 shrink-0" />
+              <p className="text-status-progress min-w-0 flex-1 truncate text-base leading-tight font-semibold md:text-lg">
+                เคยบันทึกเป็น {getDisplayBrand(knownModel)}
+              </p>
+              {onUseKnownModel && (
+                <button
+                  type="button"
+                  onClick={() => onUseKnownModel(knownModel)}
+                  className={pillClass}
+                >
+                  ใช้รุ่นนี้
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>

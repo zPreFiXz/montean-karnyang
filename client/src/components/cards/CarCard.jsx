@@ -23,6 +23,7 @@ const CarCard = ({
     completed: "bg-status-completed",
     paid: "bg-status-paid",
     credit: "bg-status-credit",
+    cancelled: "bg-destructive",
   };
 
   const textColorMap = {
@@ -32,6 +33,7 @@ const CarCard = ({
     completed: "text-status-completed",
     paid: "text-status-paid",
     credit: "text-status-credit",
+    cancelled: "text-destructive",
   };
 
   return (

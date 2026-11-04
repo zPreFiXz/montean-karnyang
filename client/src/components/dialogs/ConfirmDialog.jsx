@@ -21,7 +21,7 @@ const ConfirmDialog = ({
   note = "",
   confirmLabel = "ลบ",
   confirmClass = "bg-destructive",
-  // งานที่ลบของทิ้งต้องกดค้าง งานที่ย้อนกลับได้ (เช่นบันทึกเป็นใบประเมินราคา) กดครั้งเดียวพอ
+  // งานที่ลบของทิ้งต้องกดค้าง งานที่ย้อนกลับได้ (เช่นบันทึกเป็นใบเสนอราคา) กดครั้งเดียวพอ
   requireHold = true,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
