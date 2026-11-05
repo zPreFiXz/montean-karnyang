@@ -15,6 +15,8 @@ import { getDateRange, getPeriodType } from "@/utils/reportPeriod";
 import ItemImage from "@/components/ui/ItemImage";
 import VehicleModelReportDialog from "@/components/dialogs/VehicleModelReportDialog";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
+import { useReopenStockItem } from "@/hooks/useReopenStockItem";
+import { useScrollRestoration } from "@/utils/scrollPosition";
 import useInventoryPreview, {
   inventoryRefOf,
 } from "@/hooks/useInventoryPreview";
@@ -66,8 +68,30 @@ const TopItemsReport = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [openModel, setOpenModel] = useState(null);
   const [modelRestore, setModelRestore] = useState(null);
-  const { previewItem, isPreviewOpen, setIsPreviewOpen, openPreview } =
-    useInventoryPreview();
+  const {
+    previewItem,
+    isPreviewOpen,
+    setIsPreviewOpen,
+    openPreview,
+    showItem,
+  } = useInventoryPreview();
+  // อะไหล่ที่เปิดจากหน้าต่างรุ่นรถ ส่งให้หน้าต่างนั้นเปิดต่อเอง
+  const [modelItem, setModelItem] = useState(null);
+  // แก้อะไหล่แล้วกลับมา เปิดหน้าต่างอะไหล่เดิมและเลื่อนไปที่แถวเดิม
+  useReopenStockItem((item) => {
+    if (location.state?.reopenModel) setModelItem(item);
+    else showItem(item);
+  });
+  useScrollRestoration(location.pathname + location.search, !isLoading);
+
+  // เก็บช่วงเวลาไว้ในประวัติของหน้านี้ ไปหน้าอื่นแล้วย้อนกลับมาจะได้อยู่ช่วงเดิม
+  const handleDateChange = (date) => {
+    setCurrentDate(date);
+    navigate(`${location.pathname}${location.search}`, {
+      replace: true,
+      state: { ...location.state, currentDate: date.toISOString() },
+    });
+  };
 
   useEffect(() => {
     if (location.state?.currentDate) {
@@ -106,6 +130,8 @@ const TopItemsReport = () => {
     }
     const rest = { ...location.state };
     delete rest.reopenModel;
+    // useReopenStockItem ล้างไปแล้ว อย่าเขียนกลับ ไม่งั้นหน้าต่างอะไหล่จะเปิดซ้ำ
+    delete rest.openStockItem;
     navigate(`${location.pathname}${location.search}`, {
       replace: true,
       state: rest,
@@ -144,7 +170,7 @@ const TopItemsReport = () => {
         basePath={`/admin/reports/top-items${view === "models" ? "?view=models" : ""}`}
         periodType={periodType}
         currentDate={currentDate}
-        onDateChange={setCurrentDate}
+        onDateChange={handleDateChange}
         onBack={handleBack}
       >
         <p className="text-surface text-[32px] font-semibold md:text-[34px]">
@@ -302,9 +328,12 @@ const TopItemsReport = () => {
         itemName={itemName}
         restore={modelRestore}
         onLeave={rememberOpenModel}
+        reopenItem={modelItem}
+        onReopenItemShown={() => setModelItem(null)}
         onClose={() => {
           setOpenModel(null);
           setModelRestore(null);
+          setModelItem(null);
         }}
       />
     </div>

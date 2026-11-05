@@ -192,8 +192,9 @@ exports.getInventory = async (req, res) => {
         soldPriceStats(usedTireIds([inventory])),
         loadVehicleSorter(),
       ]);
+      // ต้องคิดสต็อกชุดน้ำมันเหมือนหน้ารายการ ไม่งั้นหน้าต่างที่เปิดหลังแก้จะขึ้นจำนวนในฐานข้อมูลแทน
       inventory = {
-        ...inventory,
+        ...withOilKitStock(inventory),
         compatibleVehicles: sortVehicles(inventory.compatibleVehicles),
         type: "part",
         category: { name: inventory.category.name },

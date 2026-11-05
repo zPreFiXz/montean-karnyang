@@ -27,7 +27,19 @@ const useInventoryPreview = ({ onBeforeOpen } = {}) => {
     }
   };
 
-  return { previewItem, isPreviewOpen, setIsPreviewOpen, openPreview };
+  // ของที่ดึงมาแล้ว เช่น กลับมาจากหน้าแก้ไข (ดู useReopenStockItem)
+  const showItem = (item) => {
+    setPreviewItem(item);
+    setIsPreviewOpen(true);
+  };
+
+  return {
+    previewItem,
+    isPreviewOpen,
+    setIsPreviewOpen,
+    openPreview,
+    showItem,
+  };
 };
 
 export default useInventoryPreview;

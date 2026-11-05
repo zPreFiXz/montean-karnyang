@@ -8,6 +8,7 @@ import {
   billPageHeight,
   BILL_PAGE_LIMITS,
   buildReceiptPages,
+  jobSheetPages,
   receiptDocNo,
   receiptDocTitle,
   shortWorkName,
@@ -115,6 +116,24 @@ describe("ใบวางบิลแบ่งแผ่นตรงกันท�
       for (const page of client) {
         expect(billPageHeight(page)).toBeLessThanOrEqual(BILL_PAGE_LIMITS.page);
       }
+    });
+  }
+});
+
+// ใบสั่งซ่อมแบ่งแผ่นตามความสูงโดยประมาณ ตัวอย่างบนจอต้องได้แผ่นเท่ากับใบที่พิมพ์
+describe("ใบสั่งซ่อมแบ่งแผ่นตรงกันทั้งสองฝั่ง", () => {
+  const shapeOf = ({ pages }) =>
+    pages.map((page) => ({
+      sides: page.sides.map((pair) => pair.map((row) => row?.item.id ?? null)),
+      others: page.others.map((row) => row.item.id),
+      extra: page.extra,
+    }));
+  for (const bill of bills) {
+    it(`บิล ${bill.repairItems.length} รายการ ${bill.type}`, () => {
+      const repair = { ...bill, description: "ช่วงล่างมีเสียง ".repeat(4) };
+      expect(shapeOf(jobSheetPages(repair))).toEqual(
+        shapeOf(server.jobSheetPages(repair)),
+      );
     });
   }
 });

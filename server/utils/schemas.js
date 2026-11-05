@@ -63,9 +63,9 @@ exports.repairSchema = z
       message: "ประเภทงานซ่อมไม่ถูกต้อง",
     }),
     noVehicle: z.boolean().optional(),
-    // CREDIT ไม่ใช่วิธีจ่าย คอนโทรลเลอร์จะเปลี่ยนเป็นสถานะเครดิตแทน
+    // CREDIT กับ PAY_LATER ไม่ใช่วิธีจ่าย คอนโทรลเลอร์จะเปลี่ยนเป็นสถานะเครดิต/รอชำระแทน
     paymentMethod: z
-      .enum(["CASH", "CREDIT_CARD", "QR_CODE", "CREDIT"], {
+      .enum(["CASH", "CREDIT_CARD", "QR_CODE", "CREDIT", "PAY_LATER"], {
         message: "วิธีชำระเงินไม่ถูกต้อง",
       })
       .optional(),

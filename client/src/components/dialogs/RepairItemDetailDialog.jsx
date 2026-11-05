@@ -85,6 +85,8 @@ const RepairItemDetailDialog = ({
   open,
   onOpenChange,
   onStockUpdate,
+  // เรียกก่อนออกไปหน้าแก้ไขหรือหน้าประวัติการใช้ ให้หน้าที่เปิดไว้จำสิ่งที่ต้องเปิดกลับ
+  onBeforeLeave,
 }) => {
   const [isAddStockVisible, setIsAddStockVisible] = useState(false);
   const [isStockFormShown, setIsStockFormShown] = useState(false);
@@ -215,6 +217,8 @@ const RepairItemDetailDialog = ({
 
   // แทนที่รายการเดิมในประวัติ กดย้อนกลับมาไดอะล็อกจึงเปิดค้างไว้
   const rememberOpenItem = () => {
+    // ก่อน markStockItemOpen เพราะเครื่องหมายต้องเขียนทับลงบน state ที่หน้านั้นจำไว้
+    onBeforeLeave?.();
     // หน้าอื่นไม่รู้จักพารามิเตอร์นี้ จึงฝากไว้ใน state ของประวัติแทน (ดู useReopenStockItem)
     if (window.location.pathname !== "/inventory") {
       const current = `${window.location.pathname}${window.location.search}`;

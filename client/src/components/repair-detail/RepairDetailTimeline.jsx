@@ -38,16 +38,6 @@ const RepairDetailTimeline = ({ repair, isSale, paidOnCreate }) => (
         />
       )}
       {repair.cancelledAt && <Row label="ยกเลิก:" at={repair.cancelledAt} />}
-      {repair.cancelReason && (
-        <div className="flex justify-between gap-3">
-          <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
-            เหตุผล:
-          </p>
-          <p className="text-normal min-w-0 text-right text-lg font-medium break-words md:text-xl">
-            {repair.cancelReason}
-          </p>
-        </div>
-      )}
     </div>
   </div>
 );

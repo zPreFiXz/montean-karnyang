@@ -6,6 +6,7 @@ import { splitSuspensionBlocks } from "@/utils/repairItemGroups";
 import { getOilSize, ALL_OIL_USES, oilUseLineName } from "@/utils/oil";
 import { VEHICLE_COMPATIBLE_CATEGORIES } from "@/constants/categories";
 import {
+  DEFAULT_LABOR_SERVICE_NAME,
   isDiscountItem,
   isSingleQuantityItem,
   lineUnit,
@@ -517,3 +518,136 @@ export const receiptCopyLabels = (repair, copyChoice = "both") =>
 
 export const receiptPageCount = (repair, options) =>
   buildReceiptPages(repair, options).pages.length;
+
+export const JOB_SHEET = {
+  // วัดจากกระดาษจริง ความกว้างชื่อหักที่เสียไปตอนตัดคำขึ้นบรรทัดใหม่แล้ว
+  page: 714,
+  head: 112,
+  noteBase: 51,
+  noteLine: 28,
+  // ข้อความรายละเอียดตัว 16pt ใช้ที่มากกว่าตัว 12pt ราวหนึ่งในสาม
+  noteWidth: 340,
+  gap: 10,
+  sideHead: 34,
+  listHead: 34,
+  fullName: 350,
+  halfName: 150,
+  blankRows: 2,
+};
+const jobCharWidth = (ch) => {
+  if (THAI_COMBINING.test(ch)) return 0;
+  if (/[\u0E00-\u0E7F]/.test(ch)) return 10;
+  if (/[A-Z]/.test(ch)) return 9.5;
+  if (/[a-z]/.test(ch)) return 8;
+  if (/[0-9]/.test(ch)) return 9;
+  if (ch === " ") return 4.5;
+  return 7.5;
+};
+const jobLines = (text, width) =>
+  String(text || "")
+    .split("\n")
+    .reduce(
+      (sum, line) =>
+        sum +
+        Math.max(
+          1,
+          Math.ceil(
+            [...line].reduce((w, ch) => w + jobCharWidth(ch), 0) / width,
+          ),
+        ),
+      0,
+    );
+const jobRowHeight = (lines) => Math.max(34, 11 + lines * 20);
+
+// ชื่อแถวของใบสั่งซ่อม (ต้องตรงกับ nameOf ใน buildJobSheetHtml)
+export const jobRowName = ({ item, sideLabel }) => {
+  const base = shortWorkNameBase(item);
+  return sideLabel ? `${base} (${sideLabel})` : base;
+};
+
+// ค่าแรงกับส่วนลดไม่ต้องขึ้น ใบนี้ไม่เกี่ยวกับเงิน
+export const jobSheetPages = (repair, nameOf = jobRowName) => {
+  const allItems = (repair?.repairItems || []).filter(
+    (item) =>
+      !isDiscountItem(item) &&
+      item.service?.name !== DEFAULT_LABOR_SERVICE_NAME &&
+      item.itemName !== DEFAULT_LABOR_SERVICE_NAME,
+  );
+  const hasSides = allItems.some(
+    (item) => item.side === "LEFT" || item.side === "RIGHT",
+  );
+  // อยู่ในคอลัมน์ของข้างนั้นแล้ว ชื่อไม่ต้องมี (L) (R) ต่อท้าย
+  const sideRows = (side) =>
+    hasSides
+      ? mergeBySide(allItems.filter((item) => item.side === side)).map(
+          (row) => ({ ...row, sideLabel: "" }),
+        )
+      : [];
+  const left = sideRows("LEFT");
+  const right = sideRows("RIGHT");
+  const pairs = Array.from({ length: Math.max(left.length, right.length) }).map(
+    (_, i) => [left[i] || null, right[i] || null],
+  );
+  const others = mergeBySide(
+    hasSides
+      ? allItems.filter((i) => i.side !== "LEFT" && i.side !== "RIGHT")
+      : allItems,
+  );
+
+  const pages = [];
+  let page;
+  let used = 0;
+  const newPage = () => {
+    page = { sides: [], others: [], extra: false };
+    pages.push(page);
+    used =
+      JOB_SHEET.head +
+      (pages.length === 1 && repair?.description
+        ? JOB_SHEET.noteBase +
+          JOB_SHEET.noteLine * jobLines(repair.description, JOB_SHEET.noteWidth)
+        : 0);
+  };
+  // ไม่พอที่ก็ขึ้นแผ่นใหม่ ยกเว้นแผ่นนี้ยังไม่มีรายการเลย ขึ้นใหม่ก็ไม่ช่วย
+  const place = (costOn, add) => {
+    if (
+      used + costOn(page) > JOB_SHEET.page &&
+      (page.sides.length || page.others.length)
+    ) {
+      newPage();
+    }
+    used += costOn(page);
+    add(page);
+  };
+  newPage();
+
+  for (const pair of pairs) {
+    const lines = Math.max(
+      ...pair.map((row) =>
+        row ? jobLines(nameOf(row), JOB_SHEET.halfName) : 1,
+      ),
+    );
+    place(
+      (p) =>
+        (p.sides.length ? 0 : JOB_SHEET.gap + JOB_SHEET.sideHead) +
+        jobRowHeight(lines),
+      (p) => p.sides.push(pair),
+    );
+  }
+  for (const row of others) {
+    place(
+      (p) =>
+        (p.others.length ? 0 : JOB_SHEET.gap + JOB_SHEET.listHead) +
+        jobRowHeight(jobLines(nameOf(row), JOB_SHEET.fullName)),
+      (p) => p.others.push(row),
+    );
+  }
+  // แถวเพิ่มเติมไม่พอที่ในแผ่นสุดท้าย ก็ไม่ต้องมี ไม่ขึ้นแผ่นใหม่ที่มีแค่แถวว่าง
+  const extraCost =
+    (page.others.length
+      ? JOB_SHEET.listHead
+      : JOB_SHEET.gap + JOB_SHEET.listHead) +
+    JOB_SHEET.blankRows * jobRowHeight(1);
+  if (used + extraCost <= JOB_SHEET.page) page.extra = true;
+
+  return { pages, hasSides };
+};

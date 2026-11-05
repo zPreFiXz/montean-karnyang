@@ -13,6 +13,7 @@ import {
   canReprintDeliveryNote,
   hasShortenableName,
   jobSheetNo,
+  jobSheetPages,
   receiptDocNo,
   receiptCopyLabels,
   COPY_CHOICES,
@@ -116,7 +117,9 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
 
   const docRepair = docType === "delivery" ? asDeliveryNote(repair) : repair;
   const pageCount =
-    docType === "job" ? 1 : receiptPageCount(docRepair, { showBrand });
+    docType === "job"
+      ? jobSheetPages(repair).pages.length
+      : receiptPageCount(docRepair, { showBrand });
 
   const isCreditBill = docRepair.status === "CREDIT";
   const copyLabels =
@@ -373,7 +376,7 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
                   style={{ transform: `scale(${scale})` }}
                 >
                   {docType === "job" ? (
-                    <JobSheetPaper repair={repair} />
+                    <JobSheetPaper repair={repair} pageIndex={page} />
                   ) : (
                     <ReceiptPaper
                       repair={docRepair}

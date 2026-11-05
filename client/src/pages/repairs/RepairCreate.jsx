@@ -128,7 +128,7 @@ const RepairCreate = () => {
       navState ||
       (!isEditing && !draftRestoredRef.current && loadDraft(DRAFT_REPAIR));
     draftRestoredRef.current = true;
-    if (restored && !navState) toast.info("กู้คืนข้อมูลที่กรอกค้างไว้แล้ว");
+    if (restored && !navState) toast.info("ใช้ข้อมูลที่กรอกค้างไว้ต่อ");
 
     if (restored) {
       const { repairData, repairItems: savedItems } = restored;
@@ -425,7 +425,9 @@ const RepairCreate = () => {
         <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-full">
           <ClipboardList className="text-primary h-5 w-5" />
         </div>
-        <p className="text-[22px] font-semibold md:text-2xl">รายการซ่อม</p>
+        <p className="text-[22px] font-semibold md:text-2xl">
+          {isSale ? "รายการอะไหล่" : "รายการซ่อม"}
+        </p>
         <ReorderButton bill={bill} />
         <FreebieButton bill={bill} />
       </div>
@@ -434,9 +436,10 @@ const RepairCreate = () => {
         selectedItems={repairItems}
         restoredStockMap={restoredStockMap}
         vehicle={{ brand: watch("brand"), model: watch("model") }}
+        listName={isSale ? "รายการอะไหล่" : "รายการซ่อม"}
       >
         <p className="text-primary cursor-pointer text-lg font-semibold md:text-xl">
-          + เพิ่มรายการซ่อม
+          {isSale ? "+ เพิ่มอะไหล่" : "+ เพิ่มรายการซ่อม"}
         </p>
       </AddRepairItemDialog>
     </div>
@@ -596,7 +599,7 @@ const RepairCreate = () => {
                   }`}
                 >
                   <p className="text-subtle-light text-xl md:text-[22px]">
-                    กรุณาเพิ่มรายการซ่อม
+                    {isSale ? "กรุณาเพิ่มอะไหล่" : "กรุณาเพิ่มรายการซ่อม"}
                   </p>
                 </div>
                 <div className="pb-23" />
@@ -625,7 +628,7 @@ const RepairCreate = () => {
             <div>
               <div className="flex h-57 items-center justify-center">
                 <p className="text-subtle-light text-xl md:text-[22px]">
-                  กรุณาเพิ่มรายการซ่อม
+                  {isSale ? "กรุณาเพิ่มอะไหล่" : "กรุณาเพิ่มรายการซ่อม"}
                 </p>
               </div>
             </div>

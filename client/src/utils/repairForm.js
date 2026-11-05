@@ -1,4 +1,7 @@
-import { CREDIT_OPTION_ID } from "@/constants/paymentMethods";
+import {
+  CREDIT_OPTION_ID,
+  PAY_LATER_OPTION_ID,
+} from "@/constants/paymentMethods";
 import {
   hasTypedUnit,
   isPartLikeItem,
@@ -37,7 +40,9 @@ export const repairToForm = (repair) => {
     paymentMethod:
       repair?.status === "CREDIT"
         ? CREDIT_OPTION_ID
-        : repair?.paymentMethod || "",
+        : repair?.type === "SALE" && repair?.status === "COMPLETED"
+          ? PAY_LATER_OPTION_ID
+          : repair?.paymentMethod || "",
     // บิลที่ไม่ได้ผูกกับรถ (งานบริการ) ต้องกลับเข้าโหมดเดิม ไม่งั้นจะถูกบังคับให้เลือกรถ
     noVehicle: !repair?.vehicle,
   };

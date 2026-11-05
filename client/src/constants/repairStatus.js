@@ -18,7 +18,11 @@ export const DEFAULT_STATUS_INFO = {
   icon: CircleEllipsis,
 };
 
-export const getStatusInfo = (status) => {
+// บิลขายที่ชำระทีหลังพักไว้ที่สถานะซ่อมเสร็จสิ้น แต่ไม่มีงานซ่อม จึงเรียกตามที่รออยู่
+export const getStatusInfo = (status, type) => {
+  if (type === "SALE" && status === "COMPLETED") {
+    return { ...getStatusInfo(status), text: "รอชำระเงิน" };
+  }
   switch (status) {
     case "ESTIMATE":
       return {

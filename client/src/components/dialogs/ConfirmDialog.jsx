@@ -147,7 +147,8 @@ const ConfirmDialog = ({
               className="font-athiti bg-surface text-subtle-dark border-subtle-light flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
               ref={cancelButtonRef}
             >
-              ยกเลิก
+              {/* ปุ่มยืนยันมีคำว่ายกเลิกอยู่แล้ว ปุ่มนี้ใช้ "ปิด" สองปุ่มจะได้ไม่ใช้คำเดียวกันแต่ความหมายตรงข้าม */}
+              {confirmLabel.includes("ยกเลิก") ? "ปิด" : "ยกเลิก"}
             </button>
 
             {requireHold ? (

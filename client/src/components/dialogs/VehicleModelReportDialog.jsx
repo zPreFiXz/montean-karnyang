@@ -44,13 +44,16 @@ const TABS = [
 
 // model = แถวที่กดในอันดับรุ่นรถ, range = ช่วงเวลาเดียวกับหน้ารายงาน
 // restore = แท็บกับตำแหน่งเลื่อนตอนกดไปดูรถ ใช้เปิดกลับมาที่เดิมเมื่อกดย้อนกลับ
-// onLeave = เรียกก่อนไปหน้าประวัติรถ ให้หน้ารายงานจำไว้ว่าต้องเปิดหน้าต่างนี้กลับ
+// onLeave = เรียกก่อนไปหน้าประวัติรถหรือหน้าแก้ไขอะไหล่ ให้หน้ารายงานจำไว้ว่าต้องเปิดหน้าต่างนี้กลับ
+// reopenItem = อะไหล่ที่เพิ่งแก้มา เปิดรายละเอียดต่อให้ ปิดแล้วกลับมาที่หน้าต่างนี้ตรงแถวเดิม
 const VehicleModelReportDialog = ({
   model,
   range,
   itemName,
   restore,
   onLeave,
+  reopenItem,
+  onReopenItemShown,
   onClose,
 }) => {
   const [report, setReport] = useState(null);
@@ -59,12 +62,17 @@ const VehicleModelReportDialog = ({
   const listRef = useRef(null);
   const savedScrollRef = useRef(0);
   // เปิดรายละเอียดอะไหล่แทนที่หน้าต่างนี้ชั่วคราว ไม่ซ้อนกัน เพราะหน้าต่างอะไหล่หาพื้นที่เลื่อนจากไดอะล็อกแรกในหน้า
-  const { previewItem, isPreviewOpen, setIsPreviewOpen, openPreview } =
-    useInventoryPreview({
-      onBeforeOpen: () => {
-        savedScrollRef.current = listRef.current?.scrollTop || 0;
-      },
-    });
+  const {
+    previewItem,
+    isPreviewOpen,
+    setIsPreviewOpen,
+    openPreview,
+    showItem,
+  } = useInventoryPreview({
+    onBeforeOpen: () => {
+      savedScrollRef.current = listRef.current?.scrollTop || 0;
+    },
+  });
 
   // ตอนปิด model กลายเป็น null ก่อนแอนิเมชันปิดจะจบ ต้องวาดรุ่นเดิมต่อ ไม่งั้นอ่าน brand จาก null แล้วจอขาว
   const [lastModel, setLastModel] = useState(model);
@@ -111,6 +119,13 @@ const VehicleModelReportDialog = ({
     savedScrollRef.current = restore?.scroll || 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelId]);
+
+  useEffect(() => {
+    if (!reopenItem || !modelId) return;
+    showItem(reopenItem);
+    onReopenItemShown?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reopenItem, modelId]);
 
   const parts = [...(report?.parts || [])].sort(
     (a, b) => b.quantity - a.quantity || b.revenue - a.revenue,
@@ -294,6 +309,9 @@ const VehicleModelReportDialog = ({
         open={isPreviewOpen}
         onOpenChange={setIsPreviewOpen}
         onStockUpdate={() => setReloadToken((n) => n + 1)}
+        onBeforeLeave={() =>
+          onLeave?.({ tab: "parts", scroll: savedScrollRef.current })
+        }
       />
     </>
   );

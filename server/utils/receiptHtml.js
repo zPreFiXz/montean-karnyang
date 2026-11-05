@@ -897,14 +897,50 @@ const workName = (item) => {
 };
 
 // ตรงกับ client/src/components/receipt/JobSheetPaper.jsx แก้ต้องแก้คู่กัน
-const buildJobSheetHtml = (repair) => {
-  const plate = repair.vehicle?.licensePlate;
-  const plateText = plate?.plateNumber
-    ? `${formatPlate(plate.plateNumber)} ${shortProvince(plate.province)}`.trim()
-    : "";
-  const model = repair.vehicle?.vehicleModel;
-  const vehicleName = displayBrand(model);
+// ใบสั่งซ่อมแบ่งแผ่นตามความสูงโดยประมาณ ชื่อยาวขึ้นหลายบรรทัด แถวจึงสูงไม่เท่ากัน
+// ทุกแผ่นมีหัวใบกับทะเบียน รายละเอียดการซ่อมอยู่แผ่นแรก แถวเพิ่มเติมอยู่แผ่นสุดท้าย
+// ค่าเป็นพิกเซลของกระดาษ A5 ตัวอักษร 12pt เผื่อไว้เล็กน้อย (ต้องตรงกับ jobSheetPages ฝั่งหน้าเว็บ)
+const JOB = {
+  // วัดจากกระดาษจริง ความกว้างชื่อหักที่เสียไปตอนตัดคำขึ้นบรรทัดใหม่แล้ว
+  page: 714,
+  head: 112,
+  noteBase: 51,
+  noteLine: 28,
+  // ข้อความรายละเอียดตัว 16pt ใช้ที่มากกว่าตัว 12pt ราวหนึ่งในสาม
+  noteWidth: 340,
+  gap: 10,
+  sideHead: 34,
+  listHead: 34,
+  fullName: 350,
+  halfName: 150,
+  blankRows: 2,
+};
+const jobCharWidth = (ch) => {
+  if (THAI_COMBINING.test(ch)) return 0;
+  if (/[\u0E00-\u0E7F]/.test(ch)) return 10;
+  if (/[A-Z]/.test(ch)) return 9.5;
+  if (/[a-z]/.test(ch)) return 8;
+  if (/[0-9]/.test(ch)) return 9;
+  if (ch === " ") return 4.5;
+  return 7.5;
+};
+const jobLines = (text, width) =>
+  String(text || "")
+    .split("\n")
+    .reduce(
+      (sum, line) =>
+        sum +
+        Math.max(
+          1,
+          Math.ceil(
+            [...line].reduce((w, ch) => w + jobCharWidth(ch), 0) / width,
+          ),
+        ),
+      0,
+    );
+const jobRowHeight = (lines) => Math.max(34, 11 + lines * 20);
 
+const jobSheetPages = (repair, nameOf) => {
   const allItems = (repair.repairItems || []).filter((item) => {
     const name = item.service?.name || item.itemName;
     return name !== "ค่าแรง" && name !== "ส่วนลด" && item.itemName !== "ค่าแรง";
@@ -912,59 +948,182 @@ const buildJobSheetHtml = (repair) => {
   const hasSides = allItems.some(
     (item) => item.side === "LEFT" || item.side === "RIGHT",
   );
-  const rows = mergeBySide(allItems);
-  const blankRows = 2;
+  // อยู่ในคอลัมน์ของข้างนั้นแล้ว ชื่อไม่ต้องมี (L) (R) ต่อท้าย
+  const sideRows = (side) =>
+    hasSides
+      ? mergeBySide(allItems.filter((item) => item.side === side)).map(
+          (row) => ({ ...row, sideLabel: "" }),
+        )
+      : [];
+  const left = sideRows("LEFT");
+  const right = sideRows("RIGHT");
+  const pairs = Array.from({ length: Math.max(left.length, right.length) }).map(
+    (_, i) => [left[i] || null, right[i] || null],
+  );
+  const others = mergeBySide(
+    hasSides
+      ? allItems.filter((i) => i.side !== "LEFT" && i.side !== "RIGHT")
+      : allItems,
+  );
 
-  const workRow = ({ item, quantity, sideLabel }) => {
-    const base = workName(item);
-    const name = sideLabel ? `${base} (${sideLabel})` : base;
-    return `<tr>
-        <td class="tick"></td>
-        <td class="wrap">${escapeHtml(name)}</td>
-        <td class="qty">${escapeHtml(`${formatQuantity(quantity)} ${unitOf(item)}`.trim())}</td>
-      </tr>`;
+  const pages = [];
+  let page;
+  let used = 0;
+  const newPage = () => {
+    page = { sides: [], others: [], extra: false };
+    pages.push(page);
+    used =
+      JOB.head +
+      (pages.length === 1 && repair.description
+        ? JOB.noteBase +
+          JOB.noteLine * jobLines(repair.description, JOB.noteWidth)
+        : 0);
   };
+  // ไม่พอที่ก็ขึ้นแผ่นใหม่ ยกเว้นแผ่นนี้ยังไม่มีรายการเลย ขึ้นใหม่ก็ไม่ช่วย
+  const place = (costOn, add) => {
+    if (
+      used + costOn(page) > JOB.page &&
+      (page.sides.length || page.others.length)
+    ) {
+      newPage();
+    }
+    used += costOn(page);
+    add(page);
+  };
+  newPage();
 
-  const groupRow = (label) =>
-    `<tr><td colspan="3" class="group">${label}</td></tr>`;
+  for (const pair of pairs) {
+    const lines = Math.max(
+      ...pair.map((row) => (row ? jobLines(nameOf(row), JOB.halfName) : 1)),
+    );
+    place(
+      (p) =>
+        (p.sides.length ? 0 : JOB.gap + JOB.sideHead) + jobRowHeight(lines),
+      (p) => p.sides.push(pair),
+    );
+  }
+  for (const row of others) {
+    place(
+      (p) =>
+        (p.others.length ? 0 : JOB.gap + JOB.listHead) +
+        jobRowHeight(jobLines(nameOf(row), JOB.fullName)),
+      (p) => p.others.push(row),
+    );
+  }
+  // แถวเพิ่มเติมไม่พอที่ในแผ่นสุดท้าย ก็ไม่ต้องมี ไม่ขึ้นแผ่นใหม่ที่มีแค่แถวว่าง
+  const extraCost =
+    (page.others.length ? JOB.listHead : JOB.gap + JOB.listHead) +
+    JOB.blankRows * jobRowHeight(1);
+  if (used + extraCost <= JOB.page) page.extra = true;
+
+  return { pages, hasSides };
+};
+
+const buildJobSheetHtml = (repair) => {
+  const plate = repair.vehicle?.licensePlate;
+  const plateText = plate?.plateNumber
+    ? `${formatPlate(plate.plateNumber)} ${shortProvince(plate.province)}`.trim()
+    : "";
+  const model = repair.vehicle?.vehicleModel;
+  const vehicleName = displayBrand(model);
+  const nameOf = ({ item, sideLabel }) => {
+    const base = workName(item);
+    return sideLabel ? `${base} (${sideLabel})` : base;
+  };
+  const { pages, hasSides } = jobSheetPages(repair, nameOf);
+
+  // งานที่ไม่มีหน่วยและทำครั้งเดียว เช่น ตั้งศูนย์ ไม่ต้องบอกจำนวน (ต้องตรงกับ jobQuantity ฝั่งหน้าเว็บ)
+  const jobQuantity = (item, quantity) =>
+    !unitOf(item) && Number(quantity) === 1
+      ? ""
+      : `${formatQuantity(quantity)} ${unitOf(item)}`.trim();
+
+  const workRow = (row) => `<tr>
+        <td class="wrap">${escapeHtml(nameOf(row))}</td>
+        <td class="qty">${escapeHtml(jobQuantity(row.item, row.quantity))}</td>
+      </tr>`;
+
+  // หัวข้อเพิ่มเติมเป็นแถวหัวตารางอีกแถว มีช่องจำนวนเหมือนหัวข้ออื่นๆ
+  const headRow = (label) =>
+    `<tr class="head-row"><th class="name">${label}</th><th class="qty">จำนวน</th></tr>`;
 
   const noteBlock = repair.description
     ? `<div class="note">
-    <p class="note-row"><span class="note-label">รายละเอียดการซ่อม</span><span class="dotted note-line">${escapeHtml(repair.description)}</span></p>
+    <p class="note-label">รายละเอียดการซ่อม</p>
+    <p class="note-text">${escapeHtml(repair.description)}</p>
   </div>`
     : "";
 
-  const itemRows = hasSides
-    ? [
-        {
-          label: "ข้างซ้าย (L)",
-          items: allItems.filter((i) => i.side === "LEFT"),
-        },
-        {
-          label: "ข้างขวา (R)",
-          items: allItems.filter((i) => i.side === "RIGHT"),
-        },
-        {
-          label: "อื่นๆ",
-          items: allItems.filter(
-            (i) => i.side !== "LEFT" && i.side !== "RIGHT",
-          ),
-        },
-      ]
-        .filter((group) => group.items.length > 0)
-        .map(
-          (group) =>
-            groupRow(group.label) +
-            mergeBySide(group.items)
-              .map((row) => workRow({ ...row, sideLabel: "" }))
-              .join(""),
-        )
-        .join("")
-    : rows.map(workRow).join("");
+  // บิลแยกข้าง: ข้างซ้ายอยู่ครึ่งซ้ายของกระดาษ ข้างขวาครึ่งขวา ตรงกับตัวรถ ไม่ต้องพึ่งแถบเทาซึ่งพิมพ์ขาวดำแล้วจาง
+  // ข้างที่รายการน้อยกว่าเติมแถวว่างให้ยาวเท่ากัน ไว้จดงานที่เจอเพิ่มของข้างนั้น (ต้องตรงกับ JobSheetPaper)
+  const halfCells = (row, isRight) => {
+    const edge = isRight ? ' class="split"' : "";
+    if (!row) return `<td${edge}></td><td></td>`;
+    return `<td class="wrap${isRight ? " split" : ""}">${escapeHtml(nameOf(row))}</td>
+        <td class="c">${escapeHtml(jobQuantity(row.item, row.quantity))}</td>`;
+  };
+  const sideTable = (pairs) =>
+    pairs.length
+      ? `<table class="sides">
+    <colgroup><col /><col class="half-qty" /><col /><col class="half-qty" /></colgroup>
+    <thead>
+      <tr><th colspan="2" class="side">ข้างซ้าย (L)</th><th colspan="2" class="side split">ข้างขวา (R)</th></tr>
+    </thead>
+    <tbody>
+      ${pairs.map(([l, r]) => `<tr>${halfCells(l, false)}${halfCells(r, true)}</tr>`).join("")}
+    </tbody>
+  </table>`
+      : "";
 
-  const emptyRows = Array.from({ length: blankRows })
-    .map(() => '<tr><td class="tick"></td><td></td><td></td></tr>')
+  // ตารางเต็มกว้าง: งานที่ไม่แยกข้าง แผ่นสุดท้ายตามด้วยแถวว่างไว้เขียนงานเพิ่มเติม
+  const emptyRows = Array.from({ length: JOB.blankRows })
+    .map(() => "<tr><td></td><td></td></tr>")
     .join("");
+  const listTable = (page) => {
+    if (!page.others.length && !page.extra) return "";
+    const heading = page.others.length
+      ? hasSides
+        ? "อื่นๆ"
+        : "รายการ"
+      : "เพิ่มเติม";
+    const extraRows = page.extra
+      ? `${page.others.length ? headRow("เพิ่มเติม") : ""}${emptyRows}`
+      : "";
+    return `<table>
+    <thead>
+      <tr><th class="name">${heading}</th><th class="qty">จำนวน</th></tr>
+    </thead>
+    <tbody>
+      ${page.others.map(workRow).join("")}${extraRows}
+    </tbody>
+  </table>`;
+  };
+
+  // หลายแผ่นเขียนเลขต่อเนื่องแบบใบเสร็จ JO-6910-0001/1 JO-6910-0001/2
+  const docNo = jobSheetNo(repair);
+  const pageHtml = (page, index) => `<div class="receipt-paper">
+  <div class="head">
+    <p class="doc">ใบสั่งซ่อม</p>
+    <p class="no">เลขที่<span class="dotted" style="min-width:42px;text-align:center;font-weight:600">${
+      pages.length > 1 ? `${docNo}/${index + 1}` : docNo
+    }</span></p>
+  </div>
+
+  <div class="car">
+    <div class="plate">${escapeHtml(plateText || "ไม่ระบุทะเบียนรถ")}${
+      repair.vehicle?.fleetNo
+        ? `<span style="margin-left:8px;font-size:16pt">เบอร์รถ ${escapeHtml(repair.vehicle.fleetNo)}</span>`
+        : ""
+    }</div>
+    <div class="model">${escapeHtml(vehicleName)}</div>
+  </div>
+
+  ${index === 0 ? noteBlock : ""}
+
+  ${sideTable(page.sides)}
+
+  ${listTable(page)}
+</div>`;
 
   return `<!doctype html>
 <html lang="th">
@@ -976,11 +1135,13 @@ const buildJobSheetHtml = (repair) => {
   @page { size: A5 portrait; margin: 0; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; width: 148mm; height: 210mm; padding: 10mm; overflow: hidden;
-    color: #000; background: #fff;
+    margin: 0; color: #000; background: #fff;
     font-family: "Athiti", "Sarabun", "Tahoma", sans-serif;
     font-size: 11pt; line-height: 1.25;
   }
+  /* แต่ละแผ่นเป็นกระดาษ A5 ของตัวเอง */
+  .receipt-paper { width: 148mm; height: 210mm; padding: 10mm; overflow: hidden; break-after: page; }
+  .receipt-paper:last-of-type { break-after: auto; }
   /* หัวใบมีเส้นคาดหนาแทนพื้นทึบ ประหยัดหมึกและอ่านง่ายพอกัน */
   .head { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #000; padding-bottom: 4px; }
   .head .doc { font-size: 17pt; font-weight: 600; line-height: 1; }
@@ -996,45 +1157,24 @@ const buildJobSheetHtml = (repair) => {
   thead tr { background: #e5e7eb; }
   th { font-weight: 600; text-align: center; }
   th.name { text-align: left; }
-  th.tick, td.tick { width: 36px; text-align: center; }
   th.qty, td.qty { width: 92px; text-align: center; }
   td.c { text-align: center; }
   td.wrap { word-break: break-word; }
-  td.group { background: #e5e7eb; font-weight: 600; height: 26px; font-size: 16px; }
-  /* รายละเอียดการซ่อมเป็นบรรทัดเดียว ข้อความชิดซ้ายเหมือนการเขียนมือ */
-  .note { margin-top: 10px; font-size: 16px; }
-  .note-row { display: flex; align-items: flex-end; gap: 6px; margin: 0; }
-  .note-label { white-space: nowrap; font-weight: 600; }
-  .note-line { flex: 1; text-align: left; }
+  tr.head-row { background: #e5e7eb; }
+  /* อาการที่ลูกค้าแจ้ง ช่างต้องอ่านก่อนลงมือ จึงเป็นกล่องเด่นเหนือตาราง (ต้องตรงกับ JobSheetPaper) */
+  /* เส้นกับแถบหัวข้อแบบเดียวกับตารางรายการ เด่นด้วยขนาดตัวอักษร */
+  .note { margin-top: 10px; border: 1px solid #000; }
+  .note-label { margin: 0; background: #e5e7eb; border-bottom: 1px solid #000; padding: 3px 8px; font-size: 16px; font-weight: 600; }
+  /* หัวข้อข้างตัวใหญ่ และเส้นกลางหนาแบ่งสองข้าง มองออกแม้พิมพ์ขาวดำ */
+  table.sides th.side { font-size: 14pt; padding: 4px 8px; }
+  table.sides .split { border-left: 2px solid #000; }
+  table.sides col.half-qty { width: 62px; }
+  table.sides td { padding: 5px 4px; }
+  .note-text { margin: 0; padding: 5px 8px 6px; font-size: 16pt; font-weight: 600; line-height: 1.3; white-space: pre-wrap; word-break: break-word; }
 </style>
 </head>
 <body>
-  <div class="head">
-    <p class="doc">ใบสั่งซ่อม</p>
-    <p class="no">เลขที่<span class="dotted" style="min-width:42px;text-align:center;font-weight:600">${jobSheetNo(repair)}</span></p>
-  </div>
-
-  <div class="car">
-    <div class="plate">${escapeHtml(plateText || "ไม่ระบุทะเบียนรถ")}${
-      repair.vehicle?.fleetNo
-        ? `<span style="margin-left:8px;font-size:16pt">เบอร์รถ ${escapeHtml(repair.vehicle.fleetNo)}</span>`
-        : ""
-    }</div>
-    <div class="model">${escapeHtml(vehicleName)}</div>
-  </div>
-
-  <table>
-    <thead>
-      <tr><th class="tick">✓</th><th class="name">รายการ</th><th class="qty">จำนวน</th></tr>
-    </thead>
-    <tbody>
-      ${itemRows}
-      ${groupRow("เพิ่มเติม")}
-      ${emptyRows}
-    </tbody>
-  </table>
-
-  ${noteBlock}
+  ${pages.map(pageHtml).join("")}
 </body>
 </html>`;
 };
@@ -1177,5 +1317,15 @@ module.exports = {
   buildJobSheetHtml,
   buildOrganizationBillHtml,
   // ใช้ในเทสต์เทียบกับฝั่งหน้าเว็บเท่านั้น
-  _test: { asIssued, receiptPages, receiptDocNo, receiptDocTitle, billPages },
+  _test: {
+    asIssued,
+    receiptPages,
+    receiptDocNo,
+    receiptDocTitle,
+    billPages,
+    jobSheetPages: (repair) =>
+      jobSheetPages(repair, ({ item, sideLabel }) =>
+        sideLabel ? `${workName(item)} (${sideLabel})` : workName(item),
+      ),
+  },
 };

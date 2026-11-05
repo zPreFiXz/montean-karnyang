@@ -24,6 +24,16 @@ const cacheKey = (search) => search || "";
 // numeric: true ให้เทียบกลุ่มตัวเลขตามค่าจริง ทะเบียน 999 จึงมาก่อน 1234
 const plateCollator = new Intl.Collator("th", { numeric: true });
 
+// ค้นเจอจากเลขเอกสาร บอกเลขที่ตรง ไม่งั้นบอกชื่อลูกค้าที่ตรง
+const matchNote = (repair, search) => {
+  if (!repair) return undefined;
+  const q = String(search || "").toLowerCase();
+  const docNo = [repair.receiptNo, repair.deliveryNo, repair.quotationNo].find(
+    (no) => no && q && no.toLowerCase().includes(q),
+  );
+  return docNo || repair.customer?.name;
+};
+
 const VehicleList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const isInitializing = useRef(false);
@@ -136,7 +146,7 @@ const VehicleList = () => {
       </div>
       <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-28 xl:pb-4">
         <div className="flex flex-1 flex-col px-5 pt-4">
-          <SearchBar placeholder="ค้นหาทะเบียน, จังหวัด, ยี่ห้อ, รุ่นรถ, ชื่อลูกค้า" />
+          <SearchBar placeholder="ค้นหาทะเบียน, ยี่ห้อ, รุ่นรถ, ชื่อลูกค้า" />
 
           {isLoading ? (
             <PageSpinner />
@@ -162,7 +172,7 @@ const VehicleList = () => {
                         : "ไม่ระบุทะเบียนรถ"
                     }
                     brand={getDisplayBrand(item.vehicleModel)}
-                    note={item.repairs?.[0]?.customer?.name}
+                    note={matchNote(item.repairs?.[0], search)}
                   />
                 </Link>
               </div>

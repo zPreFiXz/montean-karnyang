@@ -256,8 +256,11 @@ exports.createRepair = async (req, res) => {
     });
 
     // ขายหน้าร้านบันทึกจบในครั้งเดียว ยกเว้นเลือกเครดิต บิลไปพักที่สถานะเครดิต ยอดยังไม่เข้ารายงาน
+    // ชำระทีหลัง (ลูกค้าไปเอาเงินแป๊บเดียว) พักไว้ที่ซ่อมเสร็จสิ้นแบบงานซ่อมที่รอจ่าย ไม่ออกเลขใบส่งของ
     const isCreditSale = isSale && paymentMethod === "CREDIT";
-    const paidNow = isSale && !isCreditSale ? new Date() : null;
+    const isPayLaterSale = isSale && paymentMethod === "PAY_LATER";
+    const paidNow =
+      isSale && !isCreditSale && !isPayLaterSale ? new Date() : null;
 
     const repair = await tx.repair.create({
       data: {
@@ -267,14 +270,16 @@ exports.createRepair = async (req, res) => {
         type,
         ...(isCreditSale
           ? { status: "CREDIT", completedAt: new Date() }
-          : isSale
-            ? {
-                status: "PAID",
-                completedAt: paidNow,
-                paidAt: paidNow,
-                paymentMethod: paymentMethod || "CASH",
-              }
-            : {}),
+          : isPayLaterSale
+            ? { status: "COMPLETED", completedAt: new Date() }
+            : isSale
+              ? {
+                  status: "PAID",
+                  completedAt: paidNow,
+                  paidAt: paidNow,
+                  paymentMethod: paymentMethod || "CASH",
+                }
+              : {}),
         user: { connect: { id: req.user.id } },
         ...(vehicle ? { vehicle: { connect: { id: vehicle.id } } } : {}),
         ...(customer ? { customer: { connect: { id: customer.id } } } : {}),
@@ -395,16 +400,18 @@ exports.updateRepair = async (req, res) => {
         mileage: mileage ?? null,
         totalPrice,
         type,
-        // บิลขาย: เลือกวิธีจ่ายให้บิลเครดิต = ตัดเครดิต, เลือกเครดิตให้บิลที่จ่ายแล้ว = แก้ที่บันทึกผิด
+        // บิลขาย: เลือกวิธีจ่ายให้บิลเครดิตหรือบิลรอชำระ = รับเงิน, เลือกเครดิต/ชำระทีหลังให้บิลที่จ่ายแล้ว = แก้ที่บันทึกผิด
         ...(isSale && paymentMethod
           ? paymentMethod === "CREDIT"
             ? { status: "CREDIT", paidAt: null, paymentMethod: null }
-            : {
-                paymentMethod,
-                ...(currentRepair.status === "CREDIT"
-                  ? { status: "PAID", paidAt: new Date() }
-                  : {}),
-              }
+            : paymentMethod === "PAY_LATER"
+              ? { status: "COMPLETED", paidAt: null, paymentMethod: null }
+              : {
+                  paymentMethod,
+                  ...(["CREDIT", "COMPLETED"].includes(currentRepair.status)
+                    ? { status: "PAID", paidAt: new Date() }
+                    : {}),
+                }
           : {}),
         ...(vehicle
           ? { vehicle: { connect: { id: vehicle.id } } }
@@ -430,9 +437,6 @@ const CANNOT_EDIT_CANCELLED = "แก้ไขไม่ได้ เพราะ
 // คืนของเข้าคลัง และไม่นับเป็นยอดขายหรือครั้งที่มาซ่อม
 exports.cancelRepair = async (req, res) => {
   const { id } = req.params;
-  const reason = String(req.body?.reason || "")
-    .trim()
-    .slice(0, 200);
 
   const repair = await prisma.repair.findUnique({
     where: { id: Number(id) },
@@ -454,7 +458,6 @@ exports.cancelRepair = async (req, res) => {
         status: "CANCELLED",
         cancelledStatus: repair.status,
         cancelledAt: new Date(),
-        cancelReason: reason || null,
       },
     });
   });

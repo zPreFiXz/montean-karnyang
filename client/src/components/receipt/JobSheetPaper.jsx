@@ -1,54 +1,48 @@
 import { Fragment } from "react";
 import { formatQuantity } from "@/utils/formats";
-import { jobSheetNo } from "@/utils/receipt";
 import {
-  DEFAULT_LABOR_SERVICE_NAME,
-  isDiscountItem,
-} from "@/constants/services";
-import {
-  mergeBySide,
-  unitOf,
+  JOB_SHEET,
+  jobRowName,
+  jobSheetNo,
+  jobSheetPages,
   receiptHeaderInfo,
-  shortWorkNameBase,
+  unitOf,
 } from "@/utils/receipt";
 
 // ไม่ใส่ราคา เพราะใบนี้วางอยู่หน้ารถให้คนเดินผ่านเห็นได้
-// แถวว่างท้ายตารางไว้เขียนงานที่เจอหน้างาน
-const EXTRA_ROWS = 2;
+// แผ่นสุดท้ายมีแถวว่างไว้เขียนงานที่เจอหน้างาน
 
-const JobSheetPaper = ({ repair }) => {
+// งานที่ไม่มีหน่วยและทำครั้งเดียว เช่น ตั้งศูนย์ ไม่ต้องบอกจำนวน (ต้องตรงกับ jobQuantity ฝั่งเซิร์ฟเวอร์)
+const jobQuantity = (item, quantity) =>
+  !unitOf(item) && Number(quantity) === 1
+    ? ""
+    : `${formatQuantity(quantity)} ${unitOf(item)}`.trim();
+
+// แผ่นละหน้า บิลยาวแบ่งหลายแผ่น (ดู jobSheetPages)
+const JobSheetPaper = ({ repair, pageIndex = 0 }) => {
   const { vehicleName, plateText } = receiptHeaderInfo(repair);
+  const { pages, hasSides } = jobSheetPages(repair);
+  const page = pages[pageIndex] || pages[0];
+  const docNo = jobSheetNo(repair);
+  const listHeading = page.others.length
+    ? hasSides
+      ? "อื่นๆ"
+      : "รายการ"
+    : "เพิ่มเติม";
 
-  // แบ่งตามฝั่ง ของที่ใส่ทั้งสองข้างแยกเป็นแถวของแต่ละฝั่ง ไม่ยุบเป็น L-R
-  // ค่าแรงกับส่วนลดไม่ต้องขึ้น ใบนี้ไม่เกี่ยวกับเงิน
-  const allItems = (repair.repairItems || []).filter(
-    (item) =>
-      !isDiscountItem(item) &&
-      item.service?.name !== DEFAULT_LABOR_SERVICE_NAME &&
-      item.itemName !== DEFAULT_LABOR_SERVICE_NAME,
-  );
-  const groups = [
-    {
-      key: "left",
-      label: "ข้างซ้าย (L)",
-      items: allItems.filter((i) => i.side === "LEFT"),
-    },
-    {
-      key: "right",
-      label: "ข้างขวา (R)",
-      items: allItems.filter((i) => i.side === "RIGHT"),
-    },
-    {
-      key: "other",
-      label: "อื่นๆ",
-      items: allItems.filter((i) => i.side !== "LEFT" && i.side !== "RIGHT"),
-    },
-  ].filter((group) => group.items.length > 0);
-
-  const hasSides = allItems.some(
-    (item) => item.side === "LEFT" || item.side === "RIGHT",
-  );
-  const items = mergeBySide(allItems);
+  const halfCells = (row, side, isRight) => {
+    const edge = isRight ? "border-l-2" : "";
+    return (
+      <Fragment key={side}>
+        <td className={`h-8.5 border border-black px-1 break-words ${edge}`}>
+          {row && jobRowName(row)}
+        </td>
+        <td className="border border-black px-1 text-center">
+          {row && jobQuantity(row.item, row.quantity)}
+        </td>
+      </Fragment>
+    );
+  };
 
   return (
     <>
@@ -57,7 +51,7 @@ const JobSheetPaper = ({ repair }) => {
         <p className="flex items-end gap-1 text-[12pt] whitespace-nowrap">
           เลขที่
           <span className="min-w-10.5 border-b border-dotted border-black text-center font-semibold">
-            {jobSheetNo(repair)}
+            {pages.length > 1 ? `${docNo}/${pageIndex + 1}` : docNo}
           </span>
         </p>
       </div>
@@ -76,82 +70,98 @@ const JobSheetPaper = ({ repair }) => {
         </p>
       </div>
 
-      <table className="mt-2.5 w-full table-fixed border-collapse text-[12pt]">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="w-9 border border-black p-[5px] font-semibold">✓</th>
-            <th className="border border-black p-[5px] text-left font-semibold">
-              รายการ
-            </th>
-            <th className="w-23 border border-black p-[5px] font-semibold">
-              จำนวน
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {hasSides
-            ? groups.map((group) => (
-                <Fragment key={group.key}>
-                  <tr>
-                    <td
-                      colSpan={3}
-                      className="border border-black bg-gray-200 px-2 py-[3px] text-[16px] font-semibold"
-                    >
-                      {group.label}
-                    </td>
-                  </tr>
-                  {mergeBySide(group.items).map(({ item, quantity }) => (
-                    <tr key={`${group.key}-${item.id}`}>
-                      <td className="h-8.5 border border-black" />
-                      <td className="border border-black px-2 break-words">
-                        {shortWorkNameBase(item)}
-                      </td>
-                      <td className="border border-black px-2 text-center">
-                        {`${formatQuantity(quantity)} ${unitOf(item)}`.trim()}
-                      </td>
-                    </tr>
-                  ))}
-                </Fragment>
-              ))
-            : items.map(({ item, quantity, sideLabel }) => (
-                <tr key={item.id}>
-                  <td className="h-8.5 border border-black" />
-                  <td className="border border-black px-2 break-words">
-                    {shortWorkNameBase(item)}
-                    {sideLabel ? ` (${sideLabel})` : ""}
-                  </td>
-                  <td className="border border-black px-2 text-center">
-                    {`${formatQuantity(quantity)} ${unitOf(item)}`.trim()}
-                  </td>
-                </tr>
-              ))}
-          <tr>
-            <td
-              colSpan={3}
-              className="border border-black bg-gray-200 px-2 py-[3px] text-[16px] font-semibold"
-            >
-              เพิ่มเติม
-            </td>
-          </tr>
-          {Array.from({ length: EXTRA_ROWS }).map((_, index) => (
-            <tr key={`blank-${index}`}>
-              <td className="h-8.5 border border-black" />
-              <td className="border border-black" />
-              <td className="border border-black" />
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {repair.description && (
-        <div className="mt-2.5 flex items-end gap-1.5 text-[16px]">
-          <span className="font-semibold whitespace-nowrap">
+      {/* อาการที่ลูกค้าแจ้ง ช่างต้องอ่านก่อนลงมือ จึงเป็นกล่องเด่นเหนือตาราง (ต้องตรงกับ .note ฝั่งเซิร์ฟเวอร์) */}
+      {pageIndex === 0 && repair.description && (
+        <div className="mt-2.5 border border-black">
+          <p className="border-b border-black bg-gray-200 px-2 py-[3px] text-[16px] font-semibold">
             รายละเอียดการซ่อม
-          </span>
-          <span className="flex-1 border-b border-dotted border-black">
+          </p>
+          <p className="px-2 pt-[5px] pb-1.5 text-[16pt] leading-[1.3] font-semibold break-words whitespace-pre-wrap">
             {repair.description}
-          </span>
+          </p>
         </div>
+      )}
+
+      {page.sides.length > 0 && (
+        <table className="mt-2.5 w-full table-fixed border-collapse text-[12pt]">
+          <colgroup>
+            <col />
+            <col className="w-15.5" />
+            <col />
+            <col className="w-15.5" />
+          </colgroup>
+          <thead>
+            {/* หัวข้อข้างตัวใหญ่ และเส้นกลางหนาแบ่งสองข้าง มองออกแม้พิมพ์ขาวดำ */}
+            <tr className="bg-gray-200">
+              <th
+                colSpan={2}
+                className="border border-black px-2 py-1 text-[14pt] font-semibold"
+              >
+                ข้างซ้าย (L)
+              </th>
+              <th
+                colSpan={2}
+                className="border border-l-2 border-black px-2 py-1 text-[14pt] font-semibold"
+              >
+                ข้างขวา (R)
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {page.sides.map(([left, right], index) => (
+              <tr key={index}>
+                {halfCells(left, "left", false)}
+                {halfCells(right, "right", true)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {(page.others.length > 0 || page.extra) && (
+        <table className="mt-2.5 w-full table-fixed border-collapse text-[12pt]">
+          <thead>
+            <tr className="bg-gray-200">
+              <th className="border border-black p-[5px] text-left font-semibold">
+                {listHeading}
+              </th>
+              <th className="w-23 border border-black p-[5px] font-semibold">
+                จำนวน
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {page.others.map((row) => (
+              <tr key={row.item.id}>
+                <td className="h-8.5 border border-black px-2 break-words">
+                  {jobRowName(row)}
+                </td>
+                <td className="border border-black px-2 text-center">
+                  {jobQuantity(row.item, row.quantity)}
+                </td>
+              </tr>
+            ))}
+            {/* หัวข้อเพิ่มเติมเป็นแถวหัวตารางอีกแถว มีช่องจำนวนเหมือนหัวข้ออื่นๆ */}
+            {page.extra && page.others.length > 0 && (
+              <tr className="bg-gray-200">
+                <th className="border border-black p-[5px] text-left font-semibold">
+                  เพิ่มเติม
+                </th>
+                <th className="border border-black p-[5px] font-semibold">
+                  จำนวน
+                </th>
+              </tr>
+            )}
+            {Array.from({ length: page.extra ? JOB_SHEET.blankRows : 0 }).map(
+              (_, index) => (
+                <tr key={`blank-${index}`}>
+                  <td className="h-8.5 border border-black" />
+                  <td className="border border-black" />
+                </tr>
+              ),
+            )}
+          </tbody>
+        </table>
       )}
     </>
   );

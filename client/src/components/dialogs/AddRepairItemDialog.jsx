@@ -17,6 +17,7 @@ const AddRepairItemDialog = ({
   selectedItems = [],
   restoredStockMap = {},
   vehicle = null,
+  listName = "รายการซ่อม",
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
@@ -88,7 +89,7 @@ const AddRepairItemDialog = ({
             เลือกอะไหล่หรือบริการ
           </DialogTitle>
           <DialogDescription className="sr-only">
-            เลือกอะไหล่หรือบริการที่ต้องการเพิ่มลงในรายการซ่อม
+            {`เลือกอะไหล่หรือบริการที่ต้องการเพิ่มลงใน${listName}`}
           </DialogDescription>
           <button
             onClick={() => setIsDialogOpen(false)}
@@ -121,6 +122,7 @@ const AddRepairItemDialog = ({
 
       <ItemPreviewDialog
         item={previewItem}
+        listName={listName}
         quantity={
           previewItem?.partNumber
             ? Math.max(getStockInfo(previewItem).remainingAddable, 0)

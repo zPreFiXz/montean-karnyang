@@ -156,14 +156,11 @@ model Repair {
   completedAt     DateTime?
   paymentMethod   PaymentMethod?
   paidAt          DateTime?
-  // มีเฉพาะบิลเครดิตที่ลูกค้ามาจ่ายด้วยเช็ค
   chequeBank      String?        @db.VarChar(100)
   chequeNo        String?        @db.VarChar(50)
   chequeDate      DateTime?      @db.Date
-  // ยกเลิกแทนการลบ เลขเอกสารจึงไม่ขาดช่วง cancelledStatus คือสถานะก่อนยกเลิก (ใช้เลือกชื่อใบตอนพิมพ์)
   cancelledAt     DateTime?
   cancelledStatus RepairStatus?
-  cancelReason    String?        @db.VarChar(200)
   receiptNo       String?        @unique @db.VarChar(20)
   deliveryNo      String?        @unique @db.VarChar(20)
   quotationNo     String?        @unique @db.VarChar(20)

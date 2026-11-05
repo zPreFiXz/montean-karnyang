@@ -1,6 +1,14 @@
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
 
+const DOC_NO_FIELDS = ["receiptNo", "deliveryNo", "quotationNo"];
+const repairMatch = (search) => ({
+  OR: [
+    { customer: { name: { contains: search } } },
+    ...DOC_NO_FIELDS.map((field) => ({ [field]: { contains: search } })),
+  ],
+});
+
 exports.listVehicles = async (req, res) => {
   const { search } = req.query;
 
@@ -26,20 +34,9 @@ exports.listVehicles = async (req, res) => {
           },
         },
         { fleetNo: { contains: search } },
-        // ค้นจากชื่อ/เบอร์ลูกค้าที่เคยกรอกไว้ในบิลของรถคันนั้น
+        // ค้นจากชื่อลูกค้าและเลขเอกสารในบิลของรถคันนั้น
         // (ข้อมูลลูกค้าผูกกับบิลเป็นรายใบ ไม่ได้ผูกกับตัวรถ จึงต้องไล่ผ่านบิล)
-        {
-          repairs: {
-            some: {
-              customer: {
-                OR: [
-                  { name: { contains: search } },
-                  { phoneNumber: { contains: search } },
-                ],
-              },
-            },
-          },
-        },
+        { repairs: { some: repairMatch(search) } },
       ],
     };
   }
@@ -52,15 +49,13 @@ exports.listVehicles = async (req, res) => {
       ...(search
         ? {
             repairs: {
-              where: {
-                customer: {
-                  OR: [
-                    { name: { contains: search } },
-                    { phoneNumber: { contains: search } },
-                  ],
-                },
+              where: repairMatch(search),
+              select: {
+                receiptNo: true,
+                deliveryNo: true,
+                quotationNo: true,
+                customer: { select: { name: true } },
               },
-              select: { customer: { select: { name: true } } },
               orderBy: { createdAt: "desc" },
               take: 1,
             },

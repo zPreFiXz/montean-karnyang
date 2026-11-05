@@ -107,7 +107,7 @@ const DocumentNumbers = () => {
   };
 
   const renderRepair = ({ no, repair }) => {
-    const info = getStatusInfo(repair.status);
+    const info = getStatusInfo(repair.status, repair.type);
     return (
       <Link
         to={`/repairs/${repair.id}`}

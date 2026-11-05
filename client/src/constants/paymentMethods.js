@@ -13,6 +13,13 @@ export const PAYMENT_OPTIONS_WITH_CREDIT = [
   { id: CREDIT_OPTION_ID, name: "เครดิต" },
 ];
 
+// บิลขายที่ลูกค้าไปเอาเงินมาจ่ายแป๊บเดียว บิลพักไว้ที่ซ่อมเสร็จสิ้นเหมือนงานซ่อมที่รอจ่าย
+export const PAY_LATER_OPTION_ID = "PAY_LATER";
+export const SALE_PAYMENT_OPTIONS = [
+  ...PAYMENT_OPTIONS_WITH_CREDIT,
+  { id: PAY_LATER_OPTION_ID, name: "ชำระทีหลัง" },
+];
+
 // หน่วยงานมาจ่ายบิลเครดิตด้วยเช็ค บิลอื่นรับเช็คไม่ได้ จึงไม่อยู่ใน PAYMENT_METHODS
 export const CHEQUE_METHOD_ID = "CHEQUE";
 export const ALL_PAYMENT_METHODS = [

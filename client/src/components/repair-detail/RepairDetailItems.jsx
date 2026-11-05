@@ -44,6 +44,7 @@ const ItemGroup = ({
 
 const RepairDetailItems = ({ repair, canEdit, onEdit, onItemClick }) => {
   const items = repair.repairItems || [];
+  const isSale = repair.type === "SALE";
   const blocks =
     repair.type === "SUSPENSION"
       ? splitSuspensionBlocks(items, repair.vehicle?.vehicleModel)
@@ -63,7 +64,7 @@ const RepairDetailItems = ({ repair, canEdit, onEdit, onItemClick }) => {
     <div className="mb-4 px-5">
       <div className="mb-2 flex items-center justify-between">
         <p className="text-normal text-[22px] font-semibold md:text-2xl">
-          รายการซ่อม
+          {isSale ? "รายการอะไหล่" : "รายการซ่อม"}
         </p>
         {canEdit && (
           <button
@@ -71,7 +72,7 @@ const RepairDetailItems = ({ repair, canEdit, onEdit, onItemClick }) => {
             className="text-primary flex cursor-pointer items-center gap-1 text-xl font-semibold md:text-[22px]"
           >
             <Edit className="h-5 w-5" />
-            แก้ไขรายการซ่อม
+            {isSale ? "แก้ไขรายการอะไหล่" : "แก้ไขรายการซ่อม"}
           </button>
         )}
       </div>

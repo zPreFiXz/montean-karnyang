@@ -126,9 +126,9 @@ const RepairDetail = () => {
       case "IN_PROGRESS":
         return "ยืนยันการซ่อมเสร็จสิ้น";
       case "COMPLETED":
-        return isCreditSelected ? "ยืนยันการลงเครดิต" : "ยืนยันการชำระเงิน";
+        return isCreditSelected ? "ยืนยันการลงเครดิต" : "ยืนยันการรับเงิน";
       case "CREDIT":
-        return "ยืนยันการชำระเงิน";
+        return "ยืนยันการรับเงิน";
     }
   };
 
@@ -280,13 +280,13 @@ const RepairDetail = () => {
       if (nextStatus === "CREDIT") {
         toast.success("ลงเครดิตเรียบร้อยแล้ว");
       } else if (skipToCompleted) {
-        toast.success("ซ่อมเสร็จสิ้นและชำระเงินเรียบร้อยแล้ว");
+        toast.success("ซ่อมเสร็จสิ้นและรับเงินเรียบร้อยแล้ว");
       } else if (nextStatus === "COMPLETED") {
         toast.success("ซ่อมเสร็จเรียบร้อยแล้ว");
       } else if (nextStatus === "IN_PROGRESS") {
         toast.success("เริ่มซ่อมแล้ว");
       } else if (nextStatus === "PAID") {
-        toast.success("ชำระเงินเรียบร้อยแล้ว");
+        toast.success("รับเงินเรียบร้อยแล้ว");
       }
 
       if (
@@ -319,7 +319,8 @@ const RepairDetail = () => {
     !!repair?.paidAt &&
     Math.abs(new Date(repair.paidAt) - new Date(repair.createdAt)) < 60 * 1000;
 
-  const statusInfo = getStatusInfo(repair?.status) ?? DEFAULT_STATUS_INFO;
+  const statusInfo =
+    getStatusInfo(repair?.status, repair?.type) ?? DEFAULT_STATUS_INFO;
   // บิลที่ยกเลิกยังถือเลขของใบเดิมก่อนยกเลิก
   const docNo = receiptDocNo(asIssued(repair));
   const earlierDocNos = [repair?.deliveryNo, repair?.quotationNo].filter(
@@ -375,7 +376,7 @@ const RepairDetail = () => {
   const handleCancelRepair = async () => {
     try {
       await withMinDuration(() => cancelRepair(repair.id));
-      toast.success(`ยกเลิก${deleteTargetName}เรียบร้อยแล้ว`);
+      toast.success("ยกเลิกบิลเรียบร้อยแล้ว");
       setIsCancelConfirmOpen(false);
       fetchRepairDetail();
     } catch (error) {
@@ -482,7 +483,7 @@ const RepairDetail = () => {
             repair?.status === "IN_PROGRESS" ? "text-xl" : "text-2xl"
           }`}
         >
-          รายละเอียดการซ่อม
+          {isSaleRepair(repair) ? "รายละเอียดการขาย" : "รายละเอียดการซ่อม"}
         </p>
         {/* รอข้อมูลก่อนค่อยขึ้นทั้งแถว ไม่งั้นปุ่มที่แทรกทีหลังจะดันปุ่มลบมาอยู่ใต้นิ้ว */}
         {!isLoading && (
@@ -733,7 +734,7 @@ const RepairDetail = () => {
             {repair.user && (
               <div className="px-5">
                 <p className="text-normal mb-2 text-[22px] font-semibold md:text-2xl">
-                  ผู้เปิดบิล
+                  {isSale ? "ผู้ขาย" : "ผู้รับงานซ่อม"}
                 </p>
                 <div className="rounded-lg bg-gray-50 p-4">
                   <p className="text-normal text-lg font-medium md:text-xl">
@@ -756,7 +757,7 @@ const RepairDetail = () => {
                     label={
                       isCreditSelected
                         ? "ยืนยันการซ่อมเสร็จสิ้นและลงเครดิต"
-                        : "ยืนยันการซ่อมเสร็จสิ้นและชำระเงิน"
+                        : "ยืนยันการซ่อมเสร็จสิ้นและรับเงิน"
                     }
                     isLoading={isUpdatingSkip}
                     disabled={isUpdatingSkip}
@@ -838,11 +839,10 @@ const RepairDetail = () => {
         isOpen={isCancelConfirmOpen}
         onClose={() => setIsCancelConfirmOpen(false)}
         onConfirm={handleCancelRepair}
-        title={`ยืนยันการยกเลิก${deleteTargetName}`}
+        title="ยืนยันการยกเลิกบิล"
         itemName={getRepairTitle(repair)}
         itemDetail={confirmItemDetail}
         confirmLabel="ยกเลิกบิล"
-        note="ลบไม่ได้เพราะไม่ใช่บิลล่าสุด ยกเลิกแล้วเลขที่บิลยังอยู่ ของในบิลคืนเข้าสต็อก และไม่นับเป็นยอดขาย"
       />
     </div>
   );

@@ -10,7 +10,14 @@ import ItemImage from "@/components/ui/ItemImage";
 import { SparePart } from "@/components/icons/Icons";
 
 // quantity = จำนวนที่เบิกได้ในบิลนี้ (null = ไม่ต้องบอก เช่น บริการ)
-const ItemPreviewDialog = ({ item, quantity, canPick, onPick, onClose }) => {
+const ItemPreviewDialog = ({
+  item,
+  quantity,
+  canPick,
+  onPick,
+  onClose,
+  listName = "รายการซ่อม",
+}) => {
   const category = item?.category?.name;
   const isService = category === "บริการ";
   const readsAsService = isService && !isPartLikeItem(item || {});
@@ -107,7 +114,7 @@ const ItemPreviewDialog = ({ item, quantity, canPick, onPick, onClose }) => {
             disabled={!canPick}
             className="font-athiti text-surface bg-gradient-primary flex h-11 w-full cursor-pointer items-center justify-center rounded-[20px] text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-40 md:text-xl"
           >
-            เพิ่มลงรายการซ่อม
+            {`เพิ่มลง${listName}`}
           </button>
         </div>
       </DialogContent>

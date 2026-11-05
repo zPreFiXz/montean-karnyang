@@ -17,6 +17,7 @@ import { formatPhone, getProvinceName } from "@/utils/formats";
 import { createRepair, updateRepair } from "@/api/repair";
 import { clearAllDrafts } from "@/utils/repairDraft";
 import { toast } from "sonner";
+import { focusFirstInvalid } from "@/utils/focusInvalidField";
 import {
   Edit,
   ChevronLeft,
@@ -30,8 +31,9 @@ import {
 import ComboBox from "@/components/ui/ComboBox";
 import PartPreviewDialog from "@/components/dialogs/PartPreviewDialog";
 import {
-  PAYMENT_OPTIONS_WITH_CREDIT,
+  SALE_PAYMENT_OPTIONS,
   CREDIT_OPTION_ID,
+  PAY_LATER_OPTION_ID,
 } from "@/constants/paymentMethods";
 import { usePrefetchPages } from "@/routes/pageImports";
 import { getDisplayBrand } from "@/utils/repairDisplay";
@@ -104,7 +106,10 @@ const RepairReview = () => {
         ? "สรุปเช็กช่วงล่าง"
         : "สรุปงานซ่อม";
 
+  // ยังไม่ได้เลือกขึ้นข้อความใต้ช่องแบบฟอร์มอื่น toast เก็บไว้แจ้งตอนเซิร์ฟเวอร์ไม่ให้บันทึก
+  const [paymentErrors, setPaymentErrors] = useState({});
   const isCreditChoice = isSale && paymentMethod === CREDIT_OPTION_ID;
+  const isPayLaterChoice = isSale && paymentMethod === PAY_LATER_OPTION_ID;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -157,12 +162,16 @@ const RepairReview = () => {
     : isSale
       ? isCreditChoice
         ? "ขายและลงเครดิต"
-        : "ขายและรับเงิน"
+        : isPayLaterChoice
+          ? "ขายและรับเงินทีหลัง"
+          : "ขายและรับเงิน"
       : "สร้างงานซ่อม";
 
   const handleConfirmRepair = async () => {
     if (isSale && !paymentMethod) {
-      toast.error("กรุณาเลือกวิธีชำระเงิน");
+      const errs = { paymentMethod: { message: "กรุณาเลือกวิธีชำระเงิน" } };
+      setPaymentErrors(errs);
+      focusFirstInvalid(errs);
       return;
     }
 
@@ -232,9 +241,11 @@ const RepairReview = () => {
         toast.success(
           isCreditChoice
             ? "ขายเรียบร้อยแล้ว ลงเครดิตไว้"
-            : isSale
-              ? "ขายเรียบร้อยแล้ว"
-              : "สร้างงานซ่อมเรียบร้อยแล้ว",
+            : isPayLaterChoice
+              ? "ขายเรียบร้อยแล้ว รอชำระเงิน"
+              : isSale
+                ? "ขายเรียบร้อยแล้ว"
+                : "สร้างงานซ่อมเรียบร้อยแล้ว",
         );
         const isDesktop = window.innerWidth >= 1280;
         if (isDesktop) {
@@ -243,9 +254,11 @@ const RepairReview = () => {
           navigate(
             isCreditChoice
               ? "/organizations?type=general"
-              : isSale
-                ? "/repairs?status=paid"
-                : "/repairs?status=in-progress",
+              : isPayLaterChoice
+                ? "/repairs?status=completed"
+                : isSale
+                  ? "/repairs?status=paid"
+                  : "/repairs?status=in-progress",
           );
         }
       }
@@ -491,9 +504,13 @@ const RepairReview = () => {
                 <ComboBox
                   label="วิธีชำระเงิน"
                   color="text-subtle-dark"
-                  options={PAYMENT_OPTIONS_WITH_CREDIT}
+                  options={SALE_PAYMENT_OPTIONS}
                   value={paymentMethod}
-                  onChange={setPaymentMethod}
+                  onChange={(value) => {
+                    setPaymentMethod(value);
+                    setPaymentErrors({});
+                  }}
+                  errors={paymentErrors}
                   placeholder="-- เลือกวิธีชำระเงิน --"
                   name="paymentMethod"
                 />
@@ -506,7 +523,7 @@ const RepairReview = () => {
               <div className="mb-4 flex items-center justify-between px-5">
                 <div className="flex items-center gap-2">
                   <p className="text-[22px] font-semibold md:text-2xl">
-                    รายการซ่อม
+                    {isSale ? "รายการอะไหล่" : "รายการซ่อม"}
                   </p>
                 </div>
                 <button
@@ -514,7 +531,7 @@ const RepairReview = () => {
                   className="text-primary flex cursor-pointer items-center gap-1 text-xl font-semibold md:text-[22px]"
                 >
                   <Edit className="h-5 w-5" />
-                  แก้ไขรายการซ่อม
+                  {isSale ? "แก้ไขรายการอะไหล่" : "แก้ไขรายการซ่อม"}
                 </button>
               </div>
               <div className="px-5">{renderItemList()}</div>
@@ -542,7 +559,7 @@ const RepairReview = () => {
                 <ClipboardList className="text-primary h-5 w-5" />
               </div>
               <p className="text-[22px] font-semibold md:text-2xl">
-                รายการซ่อม
+                {isSale ? "รายการอะไหล่" : "รายการซ่อม"}
               </p>
             </div>
             <button
@@ -550,7 +567,7 @@ const RepairReview = () => {
               className="text-primary flex cursor-pointer items-center gap-1 text-xl font-semibold md:text-[22px]"
             >
               <Edit className="h-5 w-5" />
-              แก้ไขรายการซ่อม
+              {isSale ? "แก้ไขรายการอะไหล่" : "แก้ไขรายการซ่อม"}
             </button>
           </div>
           <div className="px-5 pt-4">{renderItemList()}</div>
