@@ -5,10 +5,16 @@ import PartPreviewDialog from "@/components/dialogs/PartPreviewDialog";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router";
+import { Link, useNavigate, useLocation } from "react-router";
 import { listParts } from "@/api/part";
 import { listInventory } from "@/api/inventory";
-import { ClipboardList, X, LoaderCircle, ChevronLeft } from "lucide-react";
+import {
+  ArrowUpDown,
+  ClipboardList,
+  X,
+  LoaderCircle,
+  ChevronLeft,
+} from "lucide-react";
 import BillTotal from "@/components/bill/BillTotal";
 import CustomerInfoSection from "@/components/bill/CustomerInfoSection";
 import VehicleFields from "@/components/bill/VehicleFields";
@@ -693,6 +699,18 @@ const SuspensionInspection = () => {
         : "left",
     );
     setActiveTab(next);
+    // เลื่อนดูอยู่กลางรายการ สลับข้างแล้วกลับไปเริ่มที่อะไหล่ตัวแรกของข้างนั้น
+    const block = [
+      ...document.querySelectorAll("[data-suspension-block]"),
+    ].find((el) => el.offsetParent !== null);
+    const sticky = block?.querySelector("[data-suspension-sticky]");
+    if (
+      block &&
+      sticky &&
+      block.getBoundingClientRect().top < sticky.getBoundingClientRect().top
+    ) {
+      block.scrollIntoView({ block: "start" });
+    }
   };
 
   const extrasTotal = repairItems.reduce(
@@ -711,38 +729,53 @@ const SuspensionInspection = () => {
   // จอใหญ่อยู่นอกฟอร์ม ปุ่มถัดไปจึงผูกกับฟอร์มด้วยชื่อ
   const renderItemsSection = (isDesktop) => (
     <>
-      <div data-repair-items-top className="flex items-center gap-2 px-5 pt-4">
-        <div className="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-full">
-          <ClipboardList className="text-primary h-6 w-6" />
+      {/* หัวข้อกับแถบแท็บติดขอบบนระหว่างเลื่อนดูอะไหล่ เลื่อนลงไปแล้วยังรู้ว่าอยู่ข้างไหน
+          หมดก้อนอะไหล่แล้วเลื่อนตามขึ้นไป ไม่บังรายการซ่อมเพิ่มเติม */}
+      <div data-suspension-block>
+        {/* ชั้นนอกเป็นสีพื้นหลังหน้า ตอนติดขอบบนมุมโค้งของกล่องขาวจะยังเห็นเหมือนตอนอยู่กับที่ */}
+        <div
+          data-suspension-sticky
+          className="bg-gradient-primary xl:bg-surface-muted sticky top-0 z-10 xl:bg-none"
+        >
+          <div className="bg-surface rounded-t-2xl pb-2">
+            <div
+              data-repair-items-top
+              className="flex items-center gap-2 px-5 pt-4"
+            >
+              <div className="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-full">
+                <ClipboardList className="text-primary h-6 w-6" />
+              </div>
+              <p className="text-[22px] font-semibold md:text-2xl">
+                รายการซ่อมช่วงล่าง
+              </p>
+            </div>
+            {compatibleParts.length > 0 && (
+              <SuspensionTabs activeTab={activeTab} onChange={goToTab} />
+            )}
+          </div>
         </div>
-        <p className="text-[22px] font-semibold md:text-2xl">
-          รายการซ่อมช่วงล่าง
-        </p>
-      </div>
-      {compatibleParts.length > 0 && (
-        <SuspensionTabs activeTab={activeTab} onChange={goToTab} />
-      )}
-      {/* ใช้ clip ไม่ใช่ hidden เพราะ hidden ทำให้แกนตั้งเป็น auto แล้วตัดเงาการ์ด */}
-      <div className="overflow-x-clip">
-        <SuspensionPartPanel
-          key={`panel-${activeTab}-${slideFrom}`}
-          side={activeTab}
-          slideFrom={slideFrom}
-          tabs={tabs}
-          perSideService={perSideService}
-          emptyMessage={
-            !hasVehicleSelected
-              ? "กรุณาเลือกยี่ห้อและรุ่นรถ"
-              : compatibleParts.length === 0
-                ? "ไม่มีอะไหล่ช่วงล่างของรถรุ่นนี้"
-                : "ไม่พบอะไหล่ในตำแหน่งนี้"
-          }
-          onSwitchToGeneral={
-            hasNoCompatibleParts ? handleSwitchToGeneralRepair : null
-          }
-          onPreview={setPreviewPart}
-          onEditPrice={handleEditCompatiblePrice}
-        />
+        {/* ใช้ clip ไม่ใช่ hidden เพราะ hidden ทำให้แกนตั้งเป็น auto แล้วตัดเงาการ์ด */}
+        <div className="overflow-x-clip">
+          <SuspensionPartPanel
+            key={`panel-${activeTab}-${slideFrom}`}
+            side={activeTab}
+            slideFrom={slideFrom}
+            tabs={tabs}
+            perSideService={perSideService}
+            emptyMessage={
+              !hasVehicleSelected
+                ? "กรุณาเลือกยี่ห้อและรุ่นรถ"
+                : compatibleParts.length === 0
+                  ? "ไม่มีอะไหล่ช่วงล่างของรถรุ่นนี้"
+                  : "ไม่พบอะไหล่ในตำแหน่งนี้"
+            }
+            onSwitchToGeneral={
+              hasNoCompatibleParts ? handleSwitchToGeneralRepair : null
+            }
+            onPreview={setPreviewPart}
+            onEditPrice={handleEditCompatiblePrice}
+          />
+        </div>
       </div>
       {hasVehicleSelected &&
         (!hasNoCompatibleParts || repairItems.length > 0) && (
@@ -854,16 +887,27 @@ const SuspensionInspection = () => {
                 </p>
               </div>
             </div>
-            {hasAnythingToClear && !isEditing && (
-              <button
-                type="button"
-                onClick={() => setIsClearConfirmOpen(true)}
-                className="text-destructive bg-surface flex shrink-0 cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-lg font-medium duration-300 md:text-xl xl:bg-transparent xl:px-0"
+            <div className="flex shrink-0 items-center gap-2">
+              {hasAnythingToClear && !isEditing && (
+                <button
+                  type="button"
+                  onClick={() => setIsClearConfirmOpen(true)}
+                  className="text-destructive bg-surface flex shrink-0 cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-lg font-medium duration-300 md:text-xl xl:bg-transparent xl:px-0"
+                >
+                  <X className="h-4 w-4" />
+                  ล้างข้อมูล
+                </button>
+              )}
+              {/* ที่กรอกไว้มีร่างเก็บไว้ ไปจัดเรียงแล้วกลับมายังอยู่ครบ */}
+              <Link
+                to="/inspections/suspension/order"
+                aria-label="เรียงลำดับอะไหล่ช่วงล่าง"
+                title="เรียงลำดับอะไหล่ช่วงล่าง"
+                className="bg-surface/20 xl:bg-primary/10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
               >
-                <X className="h-4 w-4" />
-                ล้างข้อมูล
-              </button>
-            )}
+                <ArrowUpDown className="text-surface xl:text-primary h-5 w-5" />
+              </Link>
+            </div>
           </div>
           <form
             id="suspension-form"

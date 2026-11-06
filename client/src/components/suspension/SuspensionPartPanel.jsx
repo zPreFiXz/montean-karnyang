@@ -1,7 +1,8 @@
 import GroupHeading from "@/components/suspension/GroupHeading";
 import PerSideServiceCard from "@/components/suspension/PerSideServiceCard";
 import SuspensionPartCard from "@/components/suspension/SuspensionPartCard";
-import { groupOtherParts, groupPartsByType } from "@/utils/suspension";
+import { groupPartsByType } from "@/utils/suspension";
+import useSuspensionTypeOrder from "@/hooks/useSuspensionTypeOrder";
 
 // ข้อความว่างอยู่นิ่ง อนิเมชันใส่เฉพาะตอนมีรายการ เพื่อบอกว่าเนื้อหาเปลี่ยนตอนสลับแท็บ
 const SuspensionPartPanel = ({
@@ -14,9 +15,12 @@ const SuspensionPartPanel = ({
   onPreview,
   onEditPrice,
 }) => {
+  const typeOrder = useSuspensionTypeOrder();
   const parts = tabs.getPartsForSide(side);
-  const groups =
-    side === "other" ? groupOtherParts(parts) : groupPartsByType(parts);
+  const groups = groupPartsByType(
+    parts,
+    side === "other" ? typeOrder.other : typeOrder.side,
+  );
   const showService =
     perSideService && (side === "left" || side === "right") && parts.length > 0;
 

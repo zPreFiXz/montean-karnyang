@@ -271,3 +271,13 @@ model BillingNote {
 
   @@unique([customerId, repairKey])
 }
+
+// ลำดับหัวข้อชนิดอะไหล่ในหน้าเช็กช่วงล่าง group = "side" (แท็บซ้ายกับขวาใช้ร่วมกัน) หรือ "other"
+// ชนิดที่ไม่มีในตารางนี้ต่อท้ายเรียงตามตัวอักษร
+model SuspensionTypeOrder {
+  group     String @db.VarChar(10)
+  type      String @db.VarChar(100)
+  sortOrder Int
+
+  @@id([group, type])
+}

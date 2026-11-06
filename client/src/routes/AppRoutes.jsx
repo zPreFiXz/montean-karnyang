@@ -17,6 +17,7 @@ const Login = lazy(pageImports.Login);
 const Dashboard = lazy(pageImports.Dashboard);
 const VehicleModelList = lazy(pageImports.VehicleModelList);
 const SuspensionInspection = lazy(pageImports.SuspensionInspection);
+const SuspensionTypeOrder = lazy(pageImports.SuspensionTypeOrder);
 const RepairCreate = lazy(pageImports.RepairCreate);
 const RepairReview = lazy(pageImports.RepairReview);
 const RepairList = lazy(pageImports.RepairList);
@@ -88,6 +89,10 @@ const AppRoutes = () => {
           <Route
             path="inspections/suspension"
             element={<BillPage page={SuspensionInspection} />}
+          />
+          <Route
+            path="inspections/suspension/order"
+            element={<SuspensionTypeOrder />}
           />
 
           <Route path="repairs" element={<RepairList />} />

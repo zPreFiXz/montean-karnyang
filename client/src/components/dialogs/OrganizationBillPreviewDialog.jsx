@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { peekOrganizationBillNo, printOrganizationBill } from "@/api/customer";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
-import { billPages } from "@/utils/receipt";
+import { billPages, byDeliveryNo } from "@/utils/receipt";
 
 const OrganizationBillPreviewDialog = ({
   customer,
@@ -50,8 +50,8 @@ const OrganizationBillPreviewDialog = ({
 
   if (!customer || !repairs?.length) return null;
 
-  // เรียงตามลำดับที่เปิดบิล ให้ตรงกับใบที่พิมพ์
-  const ordered = [...repairs].sort((a, b) => a.id - b.id);
+  // เรียงตามเลขใบส่งของ ให้ตรงกับใบที่พิมพ์
+  const ordered = [...repairs].sort(byDeliveryNo);
   const pages = billPages(ordered);
   const total = ordered.reduce(
     (sum, repair) => sum + Number(repair.totalPrice || 0),

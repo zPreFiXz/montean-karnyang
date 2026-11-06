@@ -22,7 +22,8 @@ export const getPartType = (name) =>
     .trim()
     .split(/\s+/)[0] || "อื่นๆ";
 
-// ลำดับที่ช่างไล่ตรวจจริง ชนิดที่ไม่อยู่ในลิสต์ตกไปท้ายสุด
+// ลำดับตั้งต้นที่ช่างไล่ตรวจจริง ใช้ระหว่างรอลำดับที่ร้านจัดไว้ (ตาราง SuspensionTypeOrder)
+// ชนิดที่ไม่อยู่ในลำดับตกไปท้ายสุดเรียงตามตัวอักษร
 export const SUSPENSION_PART_TYPE_ORDER = [
   "ลูกหมากปีกนกบน",
   "สลักปีกนกบน",
@@ -40,41 +41,33 @@ export const SUSPENSION_PART_TYPE_ORDER = [
   "สกรูกันโคลง",
   "ยางกันโคลง",
 ];
+export const OTHER_TAB_ORDER = ["คันส่งกลาง", "โช้คหน้า", "โช้คหลัง"];
+export const DEFAULT_TYPE_ORDER = {
+  side: SUSPENSION_PART_TYPE_ORDER,
+  other: OTHER_TAB_ORDER,
+};
 
 const typeCollator = new Intl.Collator("th", { numeric: true });
 
-export const suspensionTypeRank = (type) => {
-  const index = SUSPENSION_PART_TYPE_ORDER.indexOf(type);
-  return index === -1 ? SUSPENSION_PART_TYPE_ORDER.length : index;
+export const compareTypesBy = (order) => {
+  const rank = (type) => {
+    const index = order.indexOf(type);
+    return index === -1 ? order.length : index;
+  };
+  return (a, b) => rank(a) - rank(b) || typeCollator.compare(a, b);
 };
 
-export const compareSuspensionTypes = (a, b) =>
-  suspensionTypeRank(a) - suspensionTypeRank(b) || typeCollator.compare(a, b);
-
-export const groupPartsByType = (parts) => {
+export const groupPartsByType = (parts, order = SUSPENSION_PART_TYPE_ORDER) => {
   const groups = new Map();
   for (const part of parts) {
     const type = getPartType(part.name);
     if (!groups.has(type)) groups.set(type, []);
     groups.get(type).push(part);
   }
+  const compare = compareTypesBy(order);
   return [...groups.entries()]
     .map(([type, items]) => ({ type, items }))
-    .sort((a, b) => compareSuspensionTypes(a.type, b.type));
-};
-
-// สามชนิดที่ช่างไล่ตรวจประจำในแท็บอื่นๆ ขึ้นก่อน ที่เหลือเรียงตามตัวอักษร
-const OTHER_TAB_ORDER = ["คันส่งกลาง", "โช้คหน้า", "โช้คหลัง"];
-
-export const groupOtherParts = (parts) => {
-  const rank = (type) => {
-    const index = OTHER_TAB_ORDER.indexOf(type);
-    return index === -1 ? OTHER_TAB_ORDER.length : index;
-  };
-  return groupPartsByType(parts).sort(
-    (a, b) =>
-      rank(a.type) - rank(b.type) || typeCollator.compare(a.type, b.type),
-  );
+    .sort((a, b) => compare(a.type, b.type));
 };
 
 export const SUSPENSION_TABS = ["left", "right", "other"];

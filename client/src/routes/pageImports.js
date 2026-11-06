@@ -7,6 +7,7 @@ export const pageImports = {
   VehicleModelList: () => import("@/pages/admin/VehicleModelList"),
   SuspensionInspection: () =>
     import("@/pages/inspections/SuspensionInspection"),
+  SuspensionTypeOrder: () => import("@/pages/inspections/SuspensionTypeOrder"),
   RepairCreate: () => import("@/pages/repairs/RepairCreate"),
   RepairReview: () => import("@/pages/repairs/RepairReview"),
   RepairList: () => import("@/pages/repairs/RepairList"),

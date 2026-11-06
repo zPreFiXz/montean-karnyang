@@ -64,7 +64,7 @@ const rimGroupOf = (item) =>
 const byRim = (items) => [...items].sort((a, b) => rimOf(a) - rimOf(b));
 
 // หมวดที่แบ่งหัวข้อตามประเภท เรียงตามตัวอักษรทั้งหัวข้อและรายการ (ชื่อที่เห็นบนการ์ด = ยี่ห้อ + ชื่อ)
-// หน้าเช็กช่วงล่างยังเรียงหัวข้อตามลำดับที่ช่างไล่ตรวจ (compareSuspensionTypes ใน suspension.js)
+// หน้าเช็กช่วงล่างยังเรียงหัวข้อตามลำดับที่ช่างไล่ตรวจ (useSuspensionTypeOrder ที่ร้านจัดเรียงเองได้)
 const nameCollator = new Intl.Collator("th", { numeric: true });
 export const compareTypeNames = (a, b) =>
   nameCollator.compare(a || "", b || "");

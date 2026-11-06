@@ -209,6 +209,17 @@ const findBillRepairs = async (id, month) => {
     },
     orderBy: { id: "asc" },
   });
+  // เรียงตามเลขใบส่งของ (ต้องตรงกับ byDeliveryNo ฝั่งหน้าเว็บ)
+  repairs.sort(
+    (a, b) =>
+      (!a.deliveryNo !== !b.deliveryNo
+        ? a.deliveryNo
+          ? -1
+          : 1
+        : String(a.deliveryNo || "").localeCompare(
+            String(b.deliveryNo || ""),
+          )) || a.id - b.id,
+  );
 
   if (repairs.length === 0) {
     createError(400, "ไม่มีบิลเครดิตให้พิมพ์");

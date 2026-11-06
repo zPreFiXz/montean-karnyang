@@ -216,9 +216,16 @@ export const jobSheetNo = (repair) =>
 export const shortProvince = (province) =>
   province === "กรุงเทพมหานคร" ? "กรุงเทพฯ" : province || "";
 
+// ใบเสร็จที่รับเงินแล้วลงวันที่รับเงิน บิลเครดิตที่มาจ่ายทีหลังจะได้ตรงกับวันที่หน่วยงานจ่ายจริง
+// ใบอื่นและใบเสร็จที่ยังไม่จ่าย (พิมพ์ให้ก่อนเก็บเงิน) ลงวันเปิดบิล พิมพ์ซ้ำกี่ครั้งก็ได้วันเดิม
+// (ต้องตรงกับ receiptDateOf ใน receiptHtml.js)
+export const receiptDateOf = (repair) =>
+  repair?.status === "PAID" && repair?.paidAt
+    ? repair.paidAt
+    : repair?.createdAt;
+
 export const receiptHeaderInfo = (repair) => {
-  // วันเปิดบิล ไม่ใช่วันรับเงิน ต้องตรงกับ buildReceiptHtml ใน server/utils/receiptHtml.js
-  const issuedAt = new Date(repair.createdAt || Date.now());
+  const issuedAt = new Date(receiptDateOf(repair) || Date.now());
   const plate = repair.vehicle?.licensePlate;
 
   return {
@@ -576,22 +583,35 @@ export const jobSheetPages = (repair, nameOf = jobRowName) => {
   const hasSides = allItems.some(
     (item) => item.side === "LEFT" || item.side === "RIGHT",
   );
+  // เรียงแบบใบเสร็จและหน้ารายละเอียด: ของที่ใส่ทั้งสองข้างก่อน ตามด้วยข้างเดียว แล้วงานอื่นๆ
+  // ของชิ้นเดียวกันสองข้างอยู่แถวเดียวกัน ที่เหลือของแต่ละข้างเรียงต่อกันในคอลัมน์ของตัวเอง
+  const ordered = receiptOrder(repair, allItems);
+  const keyOf = ({ item }) => `${item.itemName}|${item.unitPrice}`;
   // อยู่ในคอลัมน์ของข้างนั้นแล้ว ชื่อไม่ต้องมี (L) (R) ต่อท้าย
   const sideRows = (side) =>
     hasSides
-      ? mergeBySide(allItems.filter((item) => item.side === side)).map(
+      ? mergeBySide(ordered.filter((item) => item.side === side)).map(
           (row) => ({ ...row, sideLabel: "" }),
         )
       : [];
   const left = sideRows("LEFT");
   const right = sideRows("RIGHT");
-  const pairs = Array.from({ length: Math.max(left.length, right.length) }).map(
-    (_, i) => [left[i] || null, right[i] || null],
-  );
+  const rightKeys = new Set(right.map(keyOf));
+  const leftKeys = new Set(left.map(keyOf));
+  const leftOnly = left.filter((row) => !rightKeys.has(keyOf(row)));
+  const rightOnly = right.filter((row) => !leftKeys.has(keyOf(row)));
+  const pairs = [
+    ...left
+      .filter((row) => rightKeys.has(keyOf(row)))
+      .map((row) => [row, right.find((other) => keyOf(other) === keyOf(row))]),
+    ...Array.from({ length: Math.max(leftOnly.length, rightOnly.length) }).map(
+      (_, i) => [leftOnly[i] || null, rightOnly[i] || null],
+    ),
+  ];
   const others = mergeBySide(
     hasSides
-      ? allItems.filter((i) => i.side !== "LEFT" && i.side !== "RIGHT")
-      : allItems,
+      ? ordered.filter((i) => i.side !== "LEFT" && i.side !== "RIGHT")
+      : ordered,
   );
 
   const pages = [];
@@ -651,3 +671,13 @@ export const jobSheetPages = (repair, nameOf = jobRowName) => {
 
   return { pages, hasSides };
 };
+
+// ใบวางบิลกับหน้าหน่วยงานเรียงบิลตามเลขใบส่งของ (ต้องตรงกับ byDeliveryNo ใน receiptHtml.js)
+// เลขเป็น DO-ปปดด-ลำดับ เทียบเป็นข้อความได้ บิลที่ไม่มีเลขต่อท้ายตามลำดับที่เปิด
+export const byDeliveryNo = (a, b) =>
+  !a.deliveryNo !== !b.deliveryNo
+    ? a.deliveryNo
+      ? -1
+      : 1
+    : String(a.deliveryNo || "").localeCompare(String(b.deliveryNo || "")) ||
+      a.id - b.id;

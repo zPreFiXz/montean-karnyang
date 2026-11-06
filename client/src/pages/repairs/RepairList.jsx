@@ -81,7 +81,6 @@ const RepairList = () => {
       plate?.province,
       repair?.vehicle?.vehicleModel?.brand,
       repair?.vehicle?.vehicleModel?.model,
-      repair?.vehicle?.fleetNo,
       repair?.customer?.name,
       repair?.receiptNo,
       repair?.deliveryNo,

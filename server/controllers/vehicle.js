@@ -33,7 +33,6 @@ exports.listVehicles = async (req, res) => {
             ],
           },
         },
-        { fleetNo: { contains: search } },
         // ค้นจากชื่อลูกค้าและเลขเอกสารในบิลของรถคันนั้น
         // (ข้อมูลลูกค้าผูกกับบิลเป็นรายใบ ไม่ได้ผูกกับตัวรถ จึงต้องไล่ผ่านบิล)
         { repairs: { some: repairMatch(search) } },

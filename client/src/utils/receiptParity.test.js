@@ -9,6 +9,7 @@ import {
   BILL_PAGE_LIMITS,
   buildReceiptPages,
   jobSheetPages,
+  receiptDateOf,
   receiptDocNo,
   receiptDocTitle,
   shortWorkName,
@@ -136,4 +137,23 @@ describe("ใบสั่งซ่อมแบ่งแผ่นตรงกั�
       );
     });
   }
+});
+
+// ใบเสร็จที่จ่ายแล้วลงวันที่รับเงิน ใบอื่นลงวันเปิดบิล
+describe("วันที่บนใบเสร็จตรงกันทั้งสองฝั่ง", () => {
+  const createdAt = "2026-10-06T03:00:00.000Z";
+  const paidAt = "2026-11-05T03:00:00.000Z";
+  it.each([
+    [{ status: "PAID", createdAt, paidAt }, paidAt],
+    [
+      { status: "CANCELLED", cancelledStatus: "PAID", createdAt, paidAt },
+      paidAt,
+    ],
+    [{ status: "CREDIT", createdAt }, createdAt],
+    [{ status: "COMPLETED", createdAt }, createdAt],
+    [{ status: "ESTIMATE", createdAt }, createdAt],
+  ])("%o", (raw, expected) => {
+    expect(receiptDateOf(asIssued(raw))).toBe(expected);
+    expect(server.receiptDateOf(server.asIssued(raw))).toBe(expected);
+  });
 });

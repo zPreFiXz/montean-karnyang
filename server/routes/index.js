@@ -15,6 +15,7 @@ const routes = [
   "repair",
   "report",
   "service",
+  "suspensionTypeOrder",
   "user",
   "vehicleModel",
   "vehicle",
