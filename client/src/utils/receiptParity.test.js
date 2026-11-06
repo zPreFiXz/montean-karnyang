@@ -139,7 +139,7 @@ describe("ใบสั่งซ่อมแบ่งแผ่นตรงกั�
   }
 });
 
-// ใบเสร็จที่จ่ายแล้วลงวันที่รับเงิน ใบอื่นลงวันเปิดบิล
+// ใบเสร็จที่จ่ายแล้วลงวันที่รับเงิน ใบส่งของลงวันที่ส่งมอบ ใบอื่นลงวันเปิดบิล
 describe("วันที่บนใบเสร็จตรงกันทั้งสองฝั่ง", () => {
   const createdAt = "2026-10-06T03:00:00.000Z";
   const paidAt = "2026-11-05T03:00:00.000Z";
@@ -150,7 +150,19 @@ describe("วันที่บนใบเสร็จตรงกันทั�
       paidAt,
     ],
     [{ status: "CREDIT", createdAt }, createdAt],
+    [{ status: "CREDIT", createdAt, completedAt: paidAt }, paidAt],
+    [
+      {
+        status: "CANCELLED",
+        cancelledStatus: "CREDIT",
+        createdAt,
+        completedAt: paidAt,
+      },
+      paidAt,
+    ],
     [{ status: "COMPLETED", createdAt }, createdAt],
+    [{ status: "COMPLETED", createdAt, completedAt: paidAt }, paidAt],
+    [{ status: "IN_PROGRESS", createdAt }, createdAt],
     [{ status: "ESTIMATE", createdAt }, createdAt],
   ])("%o", (raw, expected) => {
     expect(receiptDateOf(asIssued(raw))).toBe(expected);

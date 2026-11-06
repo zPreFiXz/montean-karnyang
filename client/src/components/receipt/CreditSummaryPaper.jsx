@@ -1,4 +1,9 @@
-import { billLines, PAYMENT_QR_NAME, SHOP } from "@/utils/receipt";
+import {
+  billLines,
+  PAYMENT_QR_NAME,
+  SHOP,
+  receiptDateOf,
+} from "@/utils/receipt";
 import { bahtText } from "@/utils/bahtText";
 import { formatPhone } from "@/utils/formats";
 
@@ -131,7 +136,7 @@ const CreditSummaryPaper = ({
                   {repair.deliveryNo || repair.receiptNo || repair.id}
                 </td>
                 <td className="border border-black px-1 text-center whitespace-nowrap">
-                  {billDate(repair.createdAt)}
+                  {billDate(receiptDateOf(repair))}
                 </td>
                 {/* สองบรรทัดทุกแถว แถวสูงเท่ากันจะได้นับบิลต่อแผ่นได้แน่นอน
                     ขอบบนล่าง 2px เท่าเซลล์ของใบพิมพ์ แถวจะสูงเท่ากัน */}

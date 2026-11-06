@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { PER_SIDE_SERVICE_NAME } from "@/constants/services";
-import { getPartType, isPerSide } from "@/utils/suspension";
+import { getPartType, groupPartsByType, isPerSide } from "@/utils/suspension";
+import useSuspensionTypeOrder from "@/hooks/useSuspensionTypeOrder";
 
 const SIDES = ["left", "right", "other"];
 const emptySelection = () => ({
@@ -35,6 +36,7 @@ const useSuspensionTabs = ({
   const [priceOverrides, setPriceOverrides] = useState({});
   // ของที่บิลเดิมใช้ไปแล้ว ตอนแก้บิลยังเลือกได้ถึงจำนวนเดิมแม้สต็อกตอนนี้จะเหลือน้อยกว่า
   const initialRef = useRef({ selected: emptySelection(), quantities: {} });
+  const typeOrder = useSuspensionTypeOrder();
 
   // อะไหล่นอกหมวดช่วงล่างอยู่ช่องอื่นๆ เท่านั้น ไม่งั้นจะเผลอบันทึกข้างที่ไม่มีความหมาย
   const getPartsForSide = (side) =>
@@ -172,11 +174,16 @@ const useSuspensionTabs = ({
     setPerSideServiceSides((prev) => ({ ...prev, [side]: !prev[side] }));
 
   // เก็บเป็นเซ็ตของ id ต้องคลี่กลับเป็นรายการเต็มก่อนส่งไปหน้าสรุปและเก็บร่าง
+  // เรียงตามที่แสดงในแท็บ (หัวข้อตามหน้าเรียงลำดับอะไหล่ช่วงล่าง) ไม่ใช่ลำดับที่ติ๊ก
+  // บิลจึงเรียงเหมือนกันทุกที่ ทั้งหน้าสรุป หน้ารายละเอียด และใบที่พิมพ์
   const buildTabItems = () => [
     ...SIDES.flatMap((side) =>
-      [...selected[side]]
-        .map((id) => getPartsForSide(side).find((p) => p.id === id))
-        .filter(Boolean)
+      groupPartsByType(
+        getPartsForSide(side),
+        side === "other" ? typeOrder.other : typeOrder.side,
+      )
+        .flatMap((group) => group.items)
+        .filter((part) => selected[side].has(part.id))
         .map((part) => ({
           ...part,
           sellingPrice: getPriceForPart(part),

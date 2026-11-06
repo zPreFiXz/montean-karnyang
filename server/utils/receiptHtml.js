@@ -187,8 +187,7 @@ const hasPaymentQr = (repair) =>
 const bankRows = (fields) => [fields.slice(0, 2), fields.slice(2)];
 
 const PAYMENT_BOXES = [
-  { label: "เงินสด", method: "CASH" },
-  { label: "สแกนจ่าย", method: "QR_CODE" },
+  { label: "เงินสด/โอน", method: "CASH" },
   { label: "บัตรเครดิต", method: "CREDIT_CARD" },
   { label: "เช็ค", method: "CHEQUE" },
 ];
@@ -432,9 +431,17 @@ const receiptPages = (repair, { showBrand = true } = {}) => {
   return { pages, discountItems, discountTotal, rowName, rowLines };
 };
 
-// ใบเสร็จที่รับเงินแล้วลงวันที่รับเงิน ใบอื่นลงวันเปิดบิล (ต้องตรงกับ receiptDateOf ฝั่งหน้าเว็บ)
-const receiptDateOf = (repair) =>
-  repair.status === "PAID" && repair.paidAt ? repair.paidAt : repair.createdAt;
+// ใบเสร็จที่รับเงินแล้วลงวันที่รับเงิน ใบส่งของและใบเสร็จที่ซ่อมเสร็จแต่ยังไม่จ่ายลงวันที่ซ่อมเสร็จ ใบอื่นลงวันเปิดบิล (ต้องตรงกับ receiptDateOf ฝั่งหน้าเว็บ)
+const receiptDateOf = (repair) => {
+  if (repair.status === "PAID" && repair.paidAt) return repair.paidAt;
+  if (
+    (repair.status === "CREDIT" || repair.status === "COMPLETED") &&
+    repair.completedAt
+  ) {
+    return repair.completedAt;
+  }
+  return repair.createdAt;
+};
 
 const receiptPagesHtml = (
   repair,
@@ -1240,7 +1247,7 @@ const buildOrganizationBillHtml = (customer, repairs, billingNo) => {
   const rowHtml = (repair, index) => `<tr>
         <td class="c">${index + 1}</td>
         <td class="c" style="white-space:nowrap">${escapeHtml(repair.deliveryNo || repair.receiptNo || String(repair.id))}</td>
-        <td class="c" style="white-space:nowrap">${escapeHtml(billDate(repair.createdAt))}</td>
+        <td class="c" style="white-space:nowrap">${escapeHtml(billDate(receiptDateOf(repair)))}</td>
         <td class="two-line">${billLines(repair)
           .filter(Boolean)
           .map((line) => `<div>${escapeHtml(line)}</div>`)

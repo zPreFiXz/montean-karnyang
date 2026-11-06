@@ -65,7 +65,7 @@ exports.repairSchema = z
     noVehicle: z.boolean().optional(),
     // CREDIT กับ PAY_LATER ไม่ใช่วิธีจ่าย คอนโทรลเลอร์จะเปลี่ยนเป็นสถานะเครดิต/รอชำระแทน
     paymentMethod: z
-      .enum(["CASH", "CREDIT_CARD", "QR_CODE", "CREDIT", "PAY_LATER"], {
+      .enum(["CASH", "CREDIT_CARD", "CREDIT", "PAY_LATER"], {
         message: "วิธีชำระเงินไม่ถูกต้อง",
       })
       .optional(),
@@ -198,7 +198,7 @@ exports.updateRepairStatusSchema = z
       message: "สถานะไม่ถูกต้อง",
     }),
     paymentMethod: z
-      .enum(["CASH", "CREDIT_CARD", "QR_CODE", "CHEQUE"], {
+      .enum(["CASH", "CREDIT_CARD", "CHEQUE"], {
         message: "วิธีชำระเงินไม่ถูกต้อง",
       })
       .optional(),

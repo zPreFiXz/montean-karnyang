@@ -26,8 +26,7 @@ export const PAYMENT_QR_NAME = "มณเฑียรการยาง";
 
 // เช็คไม่มีในระบบ เว้นไว้ให้ติ๊กมือ
 export const PAYMENT_BOXES = [
-  { label: "เงินสด", method: "CASH" },
-  { label: "สแกนจ่าย", method: "QR_CODE" },
+  { label: "เงินสด/โอน", method: "CASH" },
   { label: "บัตรเครดิต", method: "CREDIT_CARD" },
   { label: "เช็ค", method: "CHEQUE" },
 ];
@@ -217,12 +216,20 @@ export const shortProvince = (province) =>
   province === "กรุงเทพมหานคร" ? "กรุงเทพฯ" : province || "";
 
 // ใบเสร็จที่รับเงินแล้วลงวันที่รับเงิน บิลเครดิตที่มาจ่ายทีหลังจะได้ตรงกับวันที่หน่วยงานจ่ายจริง
+// ใบส่งของลงวันที่ส่งมอบ (ซ่อมเสร็จหรือขาย) ซึ่งเป็นตอนที่ได้เลข DO วันที่จึงเรียงไปทางเดียวกับเลข
+// ใบเสร็จของบิลที่ซ่อมเสร็จแต่ยังไม่จ่ายก็ลงวันที่ซ่อมเสร็จ ส่วนใหญ่จ่ายวันเดียวกัน ใบที่พิมพ์ก่อนจ่ายจะได้ตรงกับหลังจ่าย
 // ใบอื่นและใบเสร็จที่ยังไม่จ่าย (พิมพ์ให้ก่อนเก็บเงิน) ลงวันเปิดบิล พิมพ์ซ้ำกี่ครั้งก็ได้วันเดิม
 // (ต้องตรงกับ receiptDateOf ใน receiptHtml.js)
-export const receiptDateOf = (repair) =>
-  repair?.status === "PAID" && repair?.paidAt
-    ? repair.paidAt
-    : repair?.createdAt;
+export const receiptDateOf = (repair) => {
+  if (repair?.status === "PAID" && repair?.paidAt) return repair.paidAt;
+  if (
+    (repair?.status === "CREDIT" || repair?.status === "COMPLETED") &&
+    repair?.completedAt
+  ) {
+    return repair.completedAt;
+  }
+  return repair?.createdAt;
+};
 
 export const receiptHeaderInfo = (repair) => {
   const issuedAt = new Date(receiptDateOf(repair) || Date.now());

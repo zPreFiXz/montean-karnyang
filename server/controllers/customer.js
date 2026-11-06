@@ -199,6 +199,9 @@ const findBillRepairs = async (id, month) => {
       deliveryNo: true,
       totalPrice: true,
       createdAt: true,
+      // วันที่ในใบวางบิลเป็นวันที่ส่งมอบ ตรงกับวันที่บนใบส่งของ
+      completedAt: true,
+      status: true,
       vehicle: {
         select: {
           fleetNo: true,
