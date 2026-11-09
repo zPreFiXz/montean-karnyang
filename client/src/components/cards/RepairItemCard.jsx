@@ -1,7 +1,17 @@
-import { Wrench, TicketPercent } from "lucide-react";
-import { formatCurrency, formatQuantity } from "@/utils/formats";
+import { ChevronRight, Wrench, TicketPercent } from "lucide-react";
+import { Link } from "react-router";
+import {
+  formatCurrency,
+  formatDateShort,
+  formatQuantity,
+} from "@/utils/formats";
 import { onKeyActivate } from "@/utils/a11y";
-import { isPartLikeItem, isDiscountItem, lineUnit } from "@/constants/services";
+import {
+  alignmentNoteOf,
+  isPartLikeItem,
+  isDiscountItem,
+  lineUnit,
+} from "@/constants/services";
 import { SparePart } from "@/components/icons/Icons";
 import { soldLotEntries } from "@/utils/tireLot";
 import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
@@ -88,7 +98,50 @@ const RepairItemCard = ({ item, variant, onClick, sideLabel, rightSlot }) => {
         </div>
 
         <div className="flex min-w-0 flex-col">
-          {renderProductInfo(item)}
+          {alignmentNoteOf(item) ? (
+            // ป้ายตั้งศูนย์ค้าง/ฟรีที่ค้างไว้อยู่ขวาชื่อ บรรทัดล่างบอกว่ามาจากบิลไหนหรือใช้ไปในบิลไหนแล้ว
+            <>
+              <div className="flex min-w-0 items-center gap-1.5">
+                <div className="shrink-0">{renderProductInfo(item)}</div>
+                <span
+                  className={`min-w-0 truncate rounded-full px-2 py-px text-sm font-semibold md:text-base ${
+                    item.alignmentDeferred
+                      ? "bg-status-progress/10 text-status-progress"
+                      : "bg-status-paid/10 text-status-paid"
+                  }`}
+                >
+                  {alignmentNoteOf(item)}
+                </span>
+              </div>
+              {/* กดไปบิลต้นทางหรือบิลที่มาใช้สิทธิ์ แยกจากการกดการ์ดที่เปิดรายละเอียดรายการ */}
+              {variant === "detail" &&
+                [
+                  item.alignmentFromRepair && {
+                    label: "ค้างจาก",
+                    repair: item.alignmentFromRepair,
+                  },
+                  item.alignmentUsedIn && {
+                    label: "ใช้แล้ว",
+                    repair: item.alignmentUsedIn,
+                  },
+                ]
+                  .filter(Boolean)
+                  .map(({ label, repair }) => (
+                    <Link
+                      key={label}
+                      to={`/repairs/${repair.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      className="text-primary -my-1 flex items-center self-start py-1 text-sm font-semibold md:text-base"
+                    >
+                      {label} {formatDateShort(repair.createdAt)}
+                      <ChevronRight className="h-4 w-4" />
+                    </Link>
+                  ))}
+            </>
+          ) : (
+            renderProductInfo(item)
+          )}
           {soldLots.length > 0 && (
             <div className="mt-0.5 flex flex-wrap items-center gap-1">
               <span className="text-subtle-light text-sm font-medium md:text-base">

@@ -16,6 +16,11 @@ const {
 } = require("../utils/repairVehicle");
 const { resolveCustomer } = require("../utils/repairCustomer");
 const {
+  checkAlignmentRedeems,
+  pendingAlignmentsFor,
+  lateAlignmentPairs,
+} = require("../utils/repairAlignment");
+const {
   restoreTireLotsFromSoldLots,
   moveStock,
   restoreStockForRepair,
@@ -133,6 +138,10 @@ exports.listDocumentNumbers = async (req, res) => {
   res.json({ prefix, period, lastNo, entries });
 };
 
+exports.listLateAlignments = async (req, res) => {
+  res.json(await lateAlignmentPairs(prisma));
+};
+
 // ธนาคารที่เคยรับเช็ค ไว้เป็นตัวเลือกตอนกรอก ใช้บ่อยขึ้นก่อน ชื่อจะได้สะกดตรงกันทุกบิล
 exports.listChequeBanks = async (req, res) => {
   const rows = await prisma.repair.groupBy({
@@ -194,6 +203,16 @@ exports.getRepair = async (req, res) => {
               category: true,
             },
           },
+          alignmentFromRepair: {
+            select: { id: true, receiptNo: true, createdAt: true },
+          },
+        },
+      },
+      // สิทธิ์ตั้งศูนย์ที่ค้างในบิลนี้ ถูกใช้ไปในบิลไหนแล้ว
+      alignmentRedeems: {
+        where: { repair: { status: { not: "CANCELLED" } } },
+        select: {
+          repair: { select: { id: true, receiptNo: true, createdAt: true } },
         },
       },
     },
@@ -210,7 +229,29 @@ exports.getRepair = async (req, res) => {
       item.part ? { ...item, part: withOilKitStock(item.part) } : item,
     ),
     docNosSkippedOnDelete: await docNosSkippedOnDelete(prisma, repair),
+    // ส่งไปพร้อมหน้าแก้บิล แถวสิทธิ์ตั้งศูนย์จะขึ้นได้ตั้งแต่เฟรมแรก ไม่ต้องรอค้นทะเบียน
+    pendingAlignments: await pendingAlignmentsFor(
+      prisma,
+      repair.vehicleId,
+      repair.id,
+    ),
   });
+};
+
+// อะไหล่อื่นๆ พิมพ์ชื่อเองจึงไม่มีหน่วยในคลัง ต้องมีหน่วยติดมากับบรรทัด (ต้องตรงกับ validateUnits ฝั่งหน้าเว็บ)
+const PART_PLACEHOLDER_SERVICE_NAME = "อะไหล่อื่นๆ";
+const requireUnitsForTypedParts = async (repairItems = []) => {
+  const serviceIds = repairItems
+    .filter((item) => item.serviceId && !String(item.itemUnit || "").trim())
+    .map((item) => Number(item.serviceId));
+  if (!serviceIds.length) return;
+  const placeholder = await prisma.service.findFirst({
+    where: { id: { in: serviceIds }, name: PART_PLACEHOLDER_SERVICE_NAME },
+    select: { id: true },
+  });
+  if (placeholder) {
+    createError(400, "กรุณากรอกหน่วยของอะไหล่อื่นๆ");
+  }
 };
 
 exports.createRepair = async (req, res) => {
@@ -233,6 +274,7 @@ exports.createRepair = async (req, res) => {
     repairItems,
   } = req.body;
   const fleet = fleetNo?.trim() || null;
+  await requireUnitsForTypedParts(repairItems);
 
   const isSale = type === "SALE";
   const skipVehicle = isSale || !!noVehicle;
@@ -287,6 +329,7 @@ exports.createRepair = async (req, res) => {
     });
 
     if (repairItems?.length) {
+      await checkAlignmentRedeems(tx, repairItems, vehicle?.id, repair.id);
       await createRepairItemsAndDecrementStock(tx, repair.id, repairItems);
     }
 
@@ -317,6 +360,7 @@ exports.updateRepair = async (req, res) => {
     repairItems,
   } = req.body;
   const fleet = fleetNo?.trim() || null;
+  await requireUnitsForTypedParts(repairItems);
 
   const isSale = type === "SALE";
   const skipVehicle = isSale || !!noVehicle;
@@ -385,6 +429,7 @@ exports.updateRepair = async (req, res) => {
     await tx.repairItem.deleteMany({ where: { repairId: Number(id) } });
 
     if (repairItems?.length) {
+      await checkAlignmentRedeems(tx, repairItems, vehicle?.id, Number(id));
       await createRepairItemsAndDecrementStock(
         tx,
         Number(id),

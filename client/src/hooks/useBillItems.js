@@ -7,6 +7,7 @@ import {
   TIRE_FREEBIE_NAMES,
   freebieQuantityFor,
   hasTypedUnit,
+  isPartPlaceholderItem,
   isDiscountItem,
   isPartLikeItem,
   isSingleQuantityItem,
@@ -29,6 +30,12 @@ const scrollToLastRow = () =>
     const visible = [...rows].filter((el) => el.offsetParent !== null);
     return visible[visible.length - 1];
   });
+const scrollToRow = (index) =>
+  scrollToNewRow(() =>
+    [...document.querySelectorAll(`[data-repair-row="${index}"]`)].find(
+      (el) => el.offsetParent !== null,
+    ),
+  );
 
 // แถวที่ยกจากหน้างานซ่อมใหม่หรือกู้จากร่างมีรหัสเดิมติดมา ตัวนับที่เริ่มใหม่ทุกหน้าจะออกรหัสชนกัน
 // แล้ว React แสดงแถวซ้ำตอนสลับลำดับ จึงผสมเวลาด้วย (crypto.randomUUID ใช้ไม่ได้บน http ในวงแลน)
@@ -228,6 +235,97 @@ const useBillItems = ({
     );
   };
 
+  // อะไหล่อื่นๆ พิมพ์ชื่อเองจึงไม่มีหน่วยในคลัง ต้องกรอกหน่วยก่อนไปหน้าสรุป (ต้องตรงกับ repair.js ฝั่งเซิร์ฟเวอร์)
+  // ขอบแดงขึ้นหลังกดถัดไปครั้งแรก กรอกครบแล้วหายเอง
+  const [showUnitErrors, setShowUnitErrors] = useState(false);
+  const isMissingUnit = (item) =>
+    isPartPlaceholderItem(item) && !String(item.unit || "").trim();
+  const validateUnits = () => {
+    const missing = repairItems.findIndex(isMissingUnit);
+    if (missing === -1) return true;
+    setShowUnitErrors(true);
+    requestAnimationFrame(() => {
+      const input = [
+        ...document.querySelectorAll(`[data-unit-input="${missing}"]`),
+      ].find((el) => el.offsetParent !== null);
+      input?.focus({ preventScroll: true });
+      input?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+    return false;
+  };
+  const hasUnitError = (item) => showUnitErrors && isMissingUnit(item);
+
+  // ตั้งศูนย์ฟรีจากยางสี่เส้น ช่วงล่างหลวมตั้งวันนี้ไม่ได้ ค้างสิทธิ์ไว้ให้รถคันนี้มาตั้งฟรีครั้งหน้า
+  const canDeferAlignment = (item) =>
+    item.name === TIRE_ALIGNMENT_FREEBIE_NAME &&
+    item.isFreebie &&
+    !item.alignmentFromRepairId;
+  const toggleAlignmentDeferred = (index) => {
+    setRepairItems((prev) =>
+      prev.map((item, i) =>
+        i === index
+          ? { ...item, alignmentDeferred: !item.alignmentDeferred }
+          : item,
+      ),
+    );
+  };
+
+  // ใช้สิทธิ์ที่ค้างไว้: มีบรรทัดตั้งศูนย์อยู่แล้ว (เช่น บริการตั้งต้นของเช็กช่วงล่าง) ทำให้ฟรีแทน ไม่งั้นเพิ่มบรรทัดใหม่
+  const redeemAlignment = async (source) => {
+    const existing = repairItems.findIndex(
+      (item) =>
+        item.name === TIRE_ALIGNMENT_FREEBIE_NAME &&
+        !item.isFreebie &&
+        !item.alignmentFromRepairId,
+    );
+    if (existing !== -1) {
+      setRepairItems((prev) =>
+        prev.map((item, i) =>
+          i === existing
+            ? {
+                ...item,
+                basePrice: item.sellingPrice,
+                sellingPrice: 0,
+                alignmentFromRepairId: source.id,
+              }
+            : item,
+        ),
+      );
+      // ใช้สิทธิ์จากกล่องประวัติรถด้านบน เลื่อนลงไปให้เห็นบรรทัดตั้งศูนย์ที่กลายเป็นฟรี
+      scrollToRow(existing);
+      return;
+    }
+    try {
+      const services = await loadFreebieServices();
+      const service = services.find(
+        (item) => item.name === TIRE_ALIGNMENT_FREEBIE_NAME,
+      );
+      if (!service) {
+        toast.error("ไม่พบบริการตั้งศูนย์ในคลัง");
+        return;
+      }
+      withViewTransition(() =>
+        setRepairItems((prev) => [
+          ...prev,
+          withRowId({
+            ...service,
+            quantity: 1,
+            side: null,
+            sellingPrice: 0,
+            basePrice: service.sellingPrice,
+            alignmentFromRepairId: source.id,
+          }),
+        ]),
+      );
+      scrollToLastRow();
+    } catch (error) {
+      toastError(error);
+    }
+  };
+  const redeemedAlignmentIds = new Set(
+    repairItems.map((item) => item.alignmentFromRepairId).filter(Boolean),
+  );
+
   const handleUnitChange = (index, unit) => {
     setRepairItems((prev) =>
       prev.map((item, i) => (i === index ? { ...item, unit } : item)),
@@ -314,7 +412,13 @@ const useBillItems = ({
       let changed = false;
 
       const next = prev.map((item) => {
-        if (item.name !== TIRE_ALIGNMENT_FREEBIE_NAME) return item;
+        // บรรทัดที่ใช้สิทธิ์ค้างจากบิลก่อนฟรีอยู่แล้ว ไม่ขึ้นกับจำนวนยางในบิลนี้
+        if (
+          item.name !== TIRE_ALIGNMENT_FREEBIE_NAME ||
+          item.alignmentFromRepairId
+        ) {
+          return item;
+        }
 
         const shouldBeFree = tireCount >= ALIGNMENT_FREE_TIRE_COUNT;
 
@@ -461,6 +565,12 @@ const useBillItems = ({
     setQuantityItem,
     handleSetQuantity,
     handleUnitChange,
+    canDeferAlignment,
+    toggleAlignmentDeferred,
+    redeemAlignment,
+    redeemedAlignmentIds,
+    validateUnits,
+    hasUnitError,
     handleIncreaseQuantity,
     handleDecreaseQuantity,
     handleMoveItem,

@@ -79,6 +79,9 @@ exports.repairSchema = z
             unitPrice: z.coerce.number(),
             itemName: z.string().max(191).optional(),
             itemUnit: z.string().trim().max(20).optional(),
+            // ตั้งศูนย์ฟรีที่ค้างไว้ / ใช้สิทธิ์ที่ค้างจากบิลไหน (ตรวจต่อใน repairAlignment.js)
+            alignmentDeferred: z.boolean().optional(),
+            alignmentFromRepairId: z.number().int().positive().optional(),
             // น้ำมันขายครึ่งลิตรได้ จึงเช็กแค่ว่ามากกว่า 0 ไม่ใช่ต้องถึง 1
             quantity: z.coerce.number().gt(0, "จำนวนต้องมากกว่า 0"),
             // client ส่งตัวพิมพ์เล็ก (UI state) → แปลงเป็นตัวใหญ่ให้ตรง enum Side ใน DB

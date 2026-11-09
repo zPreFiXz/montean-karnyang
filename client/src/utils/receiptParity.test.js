@@ -8,11 +8,11 @@ import {
   billPageHeight,
   BILL_PAGE_LIMITS,
   buildReceiptPages,
+  receiptRowName,
   jobSheetPages,
   receiptDateOf,
   receiptDocNo,
   receiptDocTitle,
-  shortWorkName,
 } from "@/utils/receipt";
 import { partLine, repairWith, serviceLine } from "@/test/fixtures";
 
@@ -78,11 +78,7 @@ describe("ตัวอย่างบนจอกับใบที่พิม�
     for (const showBrand of [true, false]) {
       const c = buildReceiptPages(client, { showBrand });
       const s = server.receiptPages(serverBill, { showBrand });
-      const clientName = ({ item, sideLabel, note, noteRef }) => {
-        if (note) return `${note} ${noteRef}`;
-        const base = showBrand ? item.itemName : shortWorkName(item);
-        return sideLabel ? `${base} (${sideLabel})` : base;
-      };
+      const clientName = (row) => receiptRowName(row, showBrand);
       expect(shape(c.pages, clientName)).toEqual(shape(s.pages, s.rowName));
       expect(c.discountItems).toEqual(s.discountItems);
     }

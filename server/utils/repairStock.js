@@ -261,6 +261,8 @@ const createRepairItemsAndDecrementStock = async (
             ? buildPartItemName(partById.get(item.partId))
             : buildServiceItemName(serviceById.get(item.serviceId))),
         itemUnit: item.itemUnit || null,
+        alignmentDeferred: !!item.alignmentDeferred,
+        alignmentFromRepairId: item.alignmentFromRepairId || null,
       },
     });
   }

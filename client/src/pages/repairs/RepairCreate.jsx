@@ -352,6 +352,7 @@ const RepairCreate = () => {
     isDraftWorthSaving({ repairData: watchedValues, repairItems });
 
   const onSubmit = async (data) => {
+    if (!bill.validateUnits()) return;
     setIsLoading(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, SUBMIT_FEEDBACK_MS));
@@ -555,6 +556,9 @@ const RepairCreate = () => {
               plateText={plateText}
               excludeRepairId={location.state?.editRepairId}
               fleetKey={clearCount}
+              onRedeemAlignment={bill.redeemAlignment}
+              redeemedAlignmentIds={bill.redeemedAlignmentIds}
+              initialPendingAlignments={location.state?.pendingAlignments}
             />
           )}
           <FormInput

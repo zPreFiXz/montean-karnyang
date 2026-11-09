@@ -16,6 +16,9 @@ const VehicleFields = ({
   plateText,
   excludeRepairId,
   fleetKey,
+  onRedeemAlignment,
+  redeemedAlignmentIds,
+  initialPendingAlignments,
 }) => (
   <>
     <div className="mt-4 px-5">
@@ -136,6 +139,9 @@ const VehicleFields = ({
         model={watch("model")}
         province={watch("province")}
         excludeRepairId={excludeRepairId}
+        onRedeemAlignment={onRedeemAlignment}
+        redeemedIds={redeemedAlignmentIds}
+        initialPendingAlignments={initialPendingAlignments}
         onUseKnownModel={(known) => {
           setValue("brand", known.brand, {
             shouldValidate: true,

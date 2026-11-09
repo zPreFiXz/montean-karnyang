@@ -138,6 +138,15 @@ export const sortServices = (items = []) =>
 // อ้างด้วยชื่อ เพราะรหัสของแต่ละเครื่องไม่ตรงกัน
 export const TIRE_FREEBIE_NAMES = ["จุ๊บลม", "ถ่วงล้อ"];
 export const TIRE_ALIGNMENT_FREEBIE_NAME = "ตั้งศูนย์";
+// ตั้งศูนย์ฟรีจากยางสี่เส้นที่ค้างไว้ (ช่วงล่างหลวม) กับบรรทัดที่มาใช้สิทธิ์ทีหลัง (ต้องตรงกับ receiptHtml.js)
+export const ALIGNMENT_DEFERRED_NOTE = "ค้างไว้ ตั้งฟรีครั้งหน้า";
+export const ALIGNMENT_REDEEMED_NOTE = "ฟรีที่ค้างไว้";
+export const alignmentNoteOf = (item) =>
+  item?.alignmentDeferred
+    ? ALIGNMENT_DEFERRED_NOTE
+    : item?.alignmentFromRepairId
+      ? ALIGNMENT_REDEEMED_NOTE
+      : "";
 export const ALIGNMENT_FREE_TIRE_COUNT = 4;
 // ถ่วงล้อแถมได้มากสุดสองล้อ ต่อให้ซื้อยางสี่เส้น
 export const MAX_FREE_BALANCING = 2;

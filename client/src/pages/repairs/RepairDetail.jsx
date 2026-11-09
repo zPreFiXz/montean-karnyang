@@ -105,7 +105,16 @@ const RepairDetail = () => {
     setIsLoading(true);
     try {
       const res = await getRepair(id);
-      setRepair(res.data);
+      // สิทธิ์ตั้งศูนย์ที่ค้างในบิลนี้ถูกใช้ไปแล้ว ติดไว้กับบรรทัดที่ค้าง การ์ดจะได้บอกว่าใช้ในบิลไหน
+      const usedIn = res.data?.alignmentRedeems?.[0]?.repair || null;
+      setRepair({
+        ...res.data,
+        repairItems: (res.data?.repairItems || []).map((item) =>
+          item.alignmentDeferred && usedIn
+            ? { ...item, alignmentUsedIn: usedIn }
+            : item,
+        ),
+      });
       setSelectedPaymentMethod(res.data.paymentMethod || "");
       setCheque({
         bank: res.data.chequeBank || "",
@@ -338,6 +347,13 @@ const RepairDetail = () => {
         repairItems,
         scrollToItems: true,
         editRepairId: repair.id,
+        // เฉพาะสิทธิ์ที่บิลนี้ยังไม่ได้ใช้ ที่ใช้ไปแล้วไม่ต้องขึ้นแถวให้กดอีก
+        pendingAlignments: (repair.pendingAlignments || []).filter(
+          (source) =>
+            !repairItems.some(
+              (item) => item.alignmentFromRepairId === source.id,
+            ),
+        ),
         // หลังบันทึกถอยกลับไปหน้าที่มาแต่แรกทีเดียว
         backIdx:
           typeof window.history.state?.idx === "number"

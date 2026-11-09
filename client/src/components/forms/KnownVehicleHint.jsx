@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { ChevronRight, History, TriangleAlert } from "lucide-react";
+import { ChevronRight, History, Ticket, TriangleAlert } from "lucide-react";
 import { lookupVehicleByPlate } from "@/api/vehicle";
 import { formatDateShort } from "@/utils/formats";
 import { DISCOUNT_SERVICE_NAME } from "@/constants/services";
@@ -25,12 +25,28 @@ const KnownVehicleHint = ({
   model,
   // เปลี่ยนยี่ห้อกับรุ่นในฟอร์มเป็นรุ่นในประวัติ
   onUseKnownModel,
+  // สิทธิ์ตั้งศูนย์ฟรีที่รถคันนี้ค้างไว้ กดแล้วใส่ตั้งศูนย์ราคา 0 ลงบิล redeemedIds = บิลต้นทางที่ใช้ในบิลนี้แล้ว
+  onRedeemAlignment,
+  redeemedIds,
+  // แก้บิลเดิม: สิทธิ์ค้างของรถคันนี้ติดมากับบิล แถวสิทธิ์จะขึ้นตั้งแต่เปิดหน้า ฟอร์มไม่กระตุกตอนค้นเสร็จ
+  initialPendingAlignments,
 }) => {
   // ผลค้นของทะเบียนที่กรอกอยู่ เก็บคู่กับทะเบียน ผลของทะเบียนเก่าจะได้ไม่โผล่ค้าง
   const [lookup, setLookup] = useState(null);
   // ข้อมูลที่กำลังแสดง แยกจาก lookup เพราะตอนหาย ต้องคาเนื้อหาไว้จนกว่าจะยุบเสร็จ
-  const [shown, setShown] = useState(null);
-  const [isOpen, setIsOpen] = useState(false);
+  // แก้บิลเดิมที่ยังมีสิทธิ์ไม่ได้ใช้ ใช้ข้อมูลที่ติดมากับบิลไปก่อนจนกว่าจะค้นเสร็จ
+  // เก็บครั้งเดียวตอนเปิดหน้า ค่าต้องคงที่ ไม่งั้นเอฟเฟกต์ข้างล่างวนตั้งค่าไม่หยุด
+  const [presetVehicle] = useState(() =>
+    excludeRepairId && initialPendingAlignments?.length
+      ? {
+          pendingAlignments: initialPendingAlignments,
+          // ยังไม่รู้รุ่นในประวัติ เว้นไว้ แถวเตือนรุ่นไม่ตรงจะไม่โผล่ผิดๆ ก่อนค้นเสร็จ
+          vehicleModel: null,
+        }
+      : null,
+  );
+  const [shown, setShown] = useState(presetVehicle);
+  const [isOpen, setIsOpen] = useState(!!presetVehicle);
   // แก้บิลเดิม ทะเบียนถูกเติมมาตั้งแต่เปิดหน้า เป็นรถคันเดิมของบิลอยู่แล้ว ไม่ต้องบอกว่าเคยมา
   // ถ้าโหลดมาทีหลังกล่องจะดันฟอร์มทั้งหน้าให้กระตุก จึงขึ้นเฉพาะตอนแก้รุ่นไม่ตรงกับที่บันทึกไว้
   const originalPlateRef = useRef(null);
@@ -42,8 +58,10 @@ const KnownVehicleHint = ({
   if (excludeRepairId && plateKey && originalPlateRef.current === null) {
     originalPlateRef.current = plateKey;
   }
+  // ทะเบียนของบิลถูกเติมลงฟอร์มหลังเฟรมแรก ระหว่างนั้นถือว่าเป็นคันเดิม กล่องจะได้วาดแบบเดียวกันตั้งแต่ต้น
   const isOriginalPlate =
-    !!excludeRepairId && !!plateKey && plateKey === originalPlateRef.current;
+    !!excludeRepairId &&
+    (plateKey ? plateKey === originalPlateRef.current : !!presetVehicle);
 
   useEffect(() => {
     if (!plateKey) return;
@@ -67,13 +85,34 @@ const KnownVehicleHint = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plateKey, excludeRepairId]);
 
-  const found = lookup?.key === plateKey ? lookup.vehicle : null;
+  const found =
+    lookup?.key === plateKey
+      ? lookup.vehicle
+      : isOriginalPlate
+        ? presetVehicle
+        : null;
   const isOtherModel = !!found && !sameModel(found.vehicleModel, brand, model);
+  // แก้บิลเดิมที่ใช้สิทธิ์ไปแล้ว ไม่ต้องขึ้นแถวสิทธิ์ ไม่งั้นกล่องโผล่ทีหลังแล้วดันฟอร์มกระตุก
+  // ขึ้นเฉพาะยังมีสิทธิ์ที่บิลนี้ยังไม่ได้ใช้ (เช่น ลืมกดใช้ตอนเปิดบิล)
+  const hasUnusedAlignment = (found?.pendingAlignments || []).some(
+    (source) => !redeemedIds?.has(source.id),
+  );
   const shouldShow =
-    !!found && (isOriginalPlate ? isOtherModel : found._count?.repairs > 0);
+    !!found &&
+    (isOriginalPlate
+      ? isOtherModel || hasUnusedAlignment
+      : hasUnusedAlignment || found._count?.repairs > 0);
+
+  // กดใช้สิทธิ์แล้วแถวหายทันที ถ้ากล่องเหลือแค่แถวนั้นก็หายทันทีเหมือนกัน ไม่ต้องรอยุบ
+  // จอกำลังเลื่อนลงไปที่บรรทัดตั้งศูนย์ ถ้ายุบช้าๆ ฟอร์มจะขยับระหว่างเลื่อน
+  const [isInstantHide, setIsInstantHide] = useState(false);
 
   useEffect(() => {
     if (!shouldShow) {
+      if (isInstantHide) {
+        setShown(null);
+        setIsInstantHide(false);
+      }
       setIsOpen(false);
       return;
     }
@@ -81,6 +120,8 @@ const KnownVehicleHint = ({
     // เปิดในเฟรมถัดไป ให้เบราว์เซอร์ทันวาดตอนยังยุบอยู่ แถบจะได้ไหลลงมาให้เห็น
     const frame = requestAnimationFrame(() => setIsOpen(true));
     return () => cancelAnimationFrame(frame);
+    // isInstantHide อ่านค่าตอนกล่องต้องหายเท่านั้น ไม่ต้องรันใหม่เมื่อค่าเปลี่ยน
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldShow, found]);
 
   // ยุบเสร็จแล้วค่อยทิ้งข้อมูล ระหว่างยุบยังต้องมีเนื้อหาให้เห็น
@@ -96,6 +137,11 @@ const KnownVehicleHint = ({
   const lastVisit = vehicle.repairs?.[0] || null;
   const knownModel = vehicle.vehicleModel;
   const showsModelWarning = !sameModel(knownModel, brand, model);
+  const pendingAlignments = vehicle.pendingAlignments || [];
+  const unusedAlignments = pendingAlignments.filter(
+    (source) => !redeemedIds?.has(source.id),
+  );
+  const nextAlignment = unusedAlignments[0];
 
   // ซ้าย-ขวาเป็นสองบรรทัดในบิล นับเป็นรายการเดียว ส่วนลดไม่ใช่งานที่ทำ
   const lastJobNames = [
@@ -121,7 +167,7 @@ const KnownVehicleHint = ({
 
   return (
     <div
-      className={`grid transition-all duration-150 ${
+      className={`grid duration-150 ${isInstantHide ? "" : "transition-all"} ${
         isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
       }`}
     >
@@ -199,6 +245,37 @@ const KnownVehicleHint = ({
                   className={pillClass}
                 >
                   ใช้รุ่นนี้
+                </button>
+              )}
+            </div>
+          )}
+          {/* อยู่ใต้แถวเตือนรุ่นรถ ต้องแน่ใจว่าเป็นรถคันเดียวกันก่อนใช้สิทธิ์
+              ซื้อยางสี่เส้นแต่ช่วงล่างหลวม ตั้งศูนย์ฟรีค้างไว้ รถคันนี้กลับมาเมื่อไหร่ก็ใช้สิทธิ์ได้ */}
+          {nextAlignment && (
+            <div
+              className={`bg-primary/10 flex items-center gap-2 ${
+                isOriginalPlate
+                  ? "px-4 py-3"
+                  : "mt-3 rounded-md py-1.5 pr-1.5 pl-2"
+              }`}
+            >
+              <Ticket className="text-primary h-5 w-5 shrink-0" />
+              {/* บรรทัดเดียวแบบแถวเตือนรุ่นรถ หลายครั้งบอกจำนวน ครั้งเดียวบอกวันที่เปลี่ยนยาง */}
+              <p className="text-primary min-w-0 flex-1 truncate text-base leading-tight font-semibold md:text-lg">
+                {unusedAlignments.length > 1
+                  ? `ค้างตั้งศูนย์ฟรี ${unusedAlignments.length} ครั้ง`
+                  : `ค้างตั้งศูนย์ฟรี | ${formatDateShort(nextAlignment.createdAt)}`}
+              </p>
+              {onRedeemAlignment && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsInstantHide(true);
+                    onRedeemAlignment(nextAlignment);
+                  }}
+                  className={pillClass}
+                >
+                  ใช้สิทธิ์
                 </button>
               )}
             </div>

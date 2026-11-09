@@ -1,5 +1,6 @@
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
+const { pendingAlignmentsFor } = require("../utils/repairAlignment");
 
 const DOC_NO_FIELDS = ["receiptNo", "deliveryNo", "quotationNo"];
 const repairMatch = (search) => ({
@@ -113,7 +114,18 @@ exports.lookupVehicleByPlate = async (req, res) => {
     },
   });
 
-  res.json(vehicle || null);
+  res.json(
+    vehicle
+      ? {
+          ...vehicle,
+          pendingAlignments: await pendingAlignmentsFor(
+            prisma,
+            vehicle.id,
+            excludeId,
+          ),
+        }
+      : null,
+  );
 };
 
 exports.getVehicle = async (req, res) => {

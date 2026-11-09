@@ -26,6 +26,11 @@ export const listDocumentNumbers = async (prefix, period) => {
   });
 };
 
+// รถที่เปลี่ยนยางสี่เส้นแล้วมาตั้งศูนย์ในบิลถัดไป
+export const listLateAlignments = async () => {
+  return await apiClient.get("/repairs/late-alignments");
+};
+
 export const updateRepairStatus = async (id, data) => {
   return await apiClient.patch(`/repairs/${id}/status`, data);
 };

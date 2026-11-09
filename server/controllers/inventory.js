@@ -321,3 +321,48 @@ exports.listUnits = async (req, res) => {
     serviceUnits: rank([services, "unit"], [serviceLines, "itemUnit"]),
   });
 };
+
+// บรรทัดอะไหล่อื่นๆ ที่ยังไม่มีหน่วย (บิลก่อนบังคับกรอกหน่วย) ไว้ไล่เติมทีละบรรทัด
+const PART_PLACEHOLDER_SERVICE_NAME = "อะไหล่อื่นๆ";
+const missingUnitWhere = {
+  service: { name: PART_PLACEHOLDER_SERVICE_NAME },
+  OR: [{ itemUnit: null }, { itemUnit: "" }],
+  repair: { status: { not: "CANCELLED" } },
+};
+
+exports.listMissingUnitItems = async (req, res) => {
+  const items = await prisma.repairItem.findMany({
+    where: missingUnitWhere,
+    select: {
+      id: true,
+      itemName: true,
+      quantity: true,
+      unitPrice: true,
+      repair: {
+        include: {
+          customer: { select: { name: true } },
+          repairItems: { select: { itemName: true, partId: true } },
+          vehicle: {
+            include: {
+              licensePlate: {
+                select: { plateNumber: true, province: true },
+              },
+              vehicleModel: { select: { brand: true, model: true } },
+            },
+          },
+        },
+      },
+    },
+    orderBy: [{ repair: { createdAt: "desc" } }, { id: "asc" }],
+  });
+  res.json(items);
+};
+
+// นับเป็นจำนวนบิล ตรงกับการ์ดในหน้า ไม่ใช่จำนวนบรรทัด
+exports.countMissingUnitItems = async (req, res) => {
+  const bills = await prisma.repairItem.groupBy({
+    by: ["repairId"],
+    where: missingUnitWhere,
+  });
+  res.json({ count: bills.length });
+};

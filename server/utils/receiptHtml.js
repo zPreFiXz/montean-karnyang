@@ -382,6 +382,14 @@ const chequeNoteRow = (repair) =>
       }
     : null;
 
+// ตั้งศูนย์ที่ค้างสิทธิ์ไว้หรือมาใช้สิทธิ์ (ต้องตรงกับ alignmentNoteOf ฝั่งหน้าเว็บ)
+const alignmentNoteOf = (item) =>
+  item.alignmentDeferred
+    ? "ค้างไว้ ตั้งฟรีครั้งหน้า"
+    : item.alignmentFromRepairId
+      ? "ฟรีที่ค้างไว้"
+      : "";
+
 const receiptPages = (repair, { showBrand = true } = {}) => {
   // ราคาติดลบมีแต่ส่วนลด ใช้รองรับบรรทัดที่ถูกเปลี่ยนชื่อ
   const isDiscount = (item) =>
@@ -407,7 +415,9 @@ const receiptPages = (repair, { showBrand = true } = {}) => {
   const rowName = ({ item, sideLabel, note, noteRef }) => {
     if (note) return `${note} ${noteRef}`;
     const base = showBrand ? item.itemName : receiptWorkName(item);
-    return sideLabel ? `${base} (${sideLabel})` : base;
+    const alignment = alignmentNoteOf(item);
+    const named = alignment ? `${base} (${alignment})` : base;
+    return sideLabel ? `${named} (${sideLabel})` : named;
   };
   const rowLines = (row) => estimateNameLines(rowName(row));
   // ใบส่งของไม่มี QR แต่มีแถววิธีจ่ายเงินกับบรรทัดต้นฉบับ/สำเนาใต้ชื่อใบ แผ่นสุดท้ายจึงรับได้จำกัดเหมือนกัน
@@ -953,7 +963,13 @@ const jobRowHeight = (lines) => Math.max(34, 11 + lines * 20);
 const jobSheetPages = (repair, nameOf) => {
   const allItems = (repair.repairItems || []).filter((item) => {
     const name = item.service?.name || item.itemName;
-    return name !== "ค่าแรง" && name !== "ส่วนลด" && item.itemName !== "ค่าแรง";
+    // ตั้งศูนย์ที่ค้างไว้ยังไม่ได้ทำวันนี้ ช่างไม่ต้องเห็น
+    return (
+      name !== "ค่าแรง" &&
+      name !== "ส่วนลด" &&
+      item.itemName !== "ค่าแรง" &&
+      !item.alignmentDeferred
+    );
   });
   const hasSides = allItems.some(
     (item) => item.side === "LEFT" || item.side === "RIGHT",

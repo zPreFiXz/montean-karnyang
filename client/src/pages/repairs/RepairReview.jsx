@@ -209,6 +209,10 @@ const RepairReview = () => {
             unitPrice: Number(item.sellingPrice),
             quantity: item.quantity,
             ...(item.side ? { side: item.side } : {}),
+            ...(item.alignmentDeferred ? { alignmentDeferred: true } : {}),
+            ...(item.alignmentFromRepairId
+              ? { alignmentFromRepairId: item.alignmentFromRepairId }
+              : {}),
           };
         }),
       };

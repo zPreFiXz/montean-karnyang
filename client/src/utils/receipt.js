@@ -6,6 +6,7 @@ import { splitSuspensionBlocks } from "@/utils/repairItemGroups";
 import { getOilSize, ALL_OIL_USES, oilUseLineName } from "@/utils/oil";
 import { VEHICLE_COMPATIBLE_CATEGORIES } from "@/constants/categories";
 import {
+  alignmentNoteOf,
   DEFAULT_LABOR_SERVICE_NAME,
   isDiscountItem,
   isSingleQuantityItem,
@@ -366,11 +367,18 @@ const makeRoomForQr = (pages, linesOf, summaryRows, limit) => {
   return moved.length ? [...pages.slice(0, -1), last, moved] : pages;
 };
 
-const rowName = ({ item, sideLabel, note, noteRef }, showBrand) => {
+// ตั้งศูนย์ที่ค้างสิทธิ์ไว้หรือมาใช้สิทธิ์ บอกในวงเล็บ ลูกค้าจะได้มีหลักฐานว่ายังตั้งฟรีได้อีกครั้ง
+export const receiptRowName = (
+  { item, sideLabel, note, noteRef },
+  showBrand,
+) => {
   if (note) return `${note} ${noteRef}`;
   const base = showBrand ? item.itemName : shortWorkName(item);
-  return sideLabel ? `${base} (${sideLabel})` : base;
+  const alignment = alignmentNoteOf(item);
+  const named = alignment ? `${base} (${alignment})` : base;
+  return sideLabel ? `${named} (${sideLabel})` : named;
 };
+const rowName = receiptRowName;
 
 export const rowLines = (row, showBrand) =>
   estimateNameLines(rowName(row, showBrand));
@@ -585,7 +593,9 @@ export const jobSheetPages = (repair, nameOf = jobRowName) => {
     (item) =>
       !isDiscountItem(item) &&
       item.service?.name !== DEFAULT_LABOR_SERVICE_NAME &&
-      item.itemName !== DEFAULT_LABOR_SERVICE_NAME,
+      item.itemName !== DEFAULT_LABOR_SERVICE_NAME &&
+      // ตั้งศูนย์ที่ค้างไว้ยังไม่ได้ทำวันนี้ ช่างไม่ต้องเห็น
+      !item.alignmentDeferred,
   );
   const hasSides = allItems.some(
     (item) => item.side === "LEFT" || item.side === "RIGHT",

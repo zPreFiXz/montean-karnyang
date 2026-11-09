@@ -16,7 +16,7 @@ import {
   receiptDocTitle,
   receiptHeaderInfo,
   rowLines,
-  shortWorkName,
+  receiptRowName,
 } from "@/utils/receipt";
 
 const ReceiptPaper = ({
@@ -214,8 +214,7 @@ const ReceiptPaper = ({
                       {quantityLabel(item, quantity)}
                     </td>
                     <td className="border border-black px-1 break-words">
-                      {showBrand ? item.itemName : shortWorkName(item)}
-                      {sideLabel ? ` (${sideLabel})` : ""}
+                      {receiptRowName({ item, sideLabel }, showBrand)}
                     </td>
                     <td className="border border-black px-1 text-right">
                       {formatAmount(item.unitPrice)}

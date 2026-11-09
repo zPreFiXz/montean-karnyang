@@ -19,6 +19,7 @@ import {
   isDiscountItem,
   isPartLikeItem,
   isSingleQuantityItem,
+  ALIGNMENT_REDEEMED_NOTE,
 } from "@/constants/services";
 import ItemImage from "@/components/ui/ItemImage";
 
@@ -107,8 +108,14 @@ const QuantityControls = ({ item, index, bill }) => {
           }}
           maxLength={20}
           placeholder="หน่วย"
+          data-unit-input={index}
           aria-label={`หน่วยของ ${getProductName(item)}`}
-          className="text-subtle-dark placeholder:text-subtle-light bg-surface focus:border-primary ml-1 h-9 w-11 shrink-0 rounded-md border border-gray-200 px-1 text-center text-base font-medium outline-none md:text-lg"
+          aria-invalid={bill.hasUnitError(item) || undefined}
+          className={`text-subtle-dark placeholder:text-subtle-light bg-surface ml-1 h-9 w-11 shrink-0 rounded-md border px-1 text-center text-base font-medium outline-none md:text-lg ${
+            bill.hasUnitError(item)
+              ? "border-destructive placeholder:text-destructive"
+              : "focus:border-primary border-gray-200"
+          }`}
         />
       )}
     </div>
@@ -204,7 +211,58 @@ const BillItemRows = ({ bill, onRowClick, transitionPrefix, marker }) => {
                 />
               </div>
               <div className="flex min-w-0 flex-1 flex-col">
-                <ProductName item={item} />
+                {bill.canDeferAlignment(item) || item.alignmentFromRepairId ? (
+                  // ตั้งศูนย์ฟรีจากยางสี่เส้น ช่วงล่างหลวมเปิดค้างไว้ให้รถคันนี้มาตั้งฟรีครั้งหน้า
+                  // อยู่บรรทัดเดียวกับชื่อ การ์ดจะสูงเท่าการ์ดอื่น เว้นขวาไว้ไม่ชนปุ่มเอาออก
+                  <div className="flex min-w-0 items-center gap-2 pr-12">
+                    <p className="text-normal shrink-0 text-base leading-tight font-semibold md:text-lg">
+                      {getProductName(item)}
+                    </p>
+                    {item.alignmentFromRepairId ? (
+                      <span className="bg-status-paid/10 text-status-paid min-w-0 truncate rounded-full px-2.5 py-px text-sm font-semibold md:text-base">
+                        {ALIGNMENT_REDEEMED_NOTE}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={stop(() =>
+                          bill.toggleAlignmentDeferred(index),
+                        )}
+                        disabled={isReordering}
+                        aria-pressed={!!item.alignmentDeferred}
+                        className="flex min-w-0 cursor-pointer items-center gap-1.5 disabled:cursor-default"
+                      >
+                        <span
+                          className={`flex h-5.5 w-9.5 shrink-0 items-center rounded-full p-[3px] transition-colors duration-300 ${
+                            item.alignmentDeferred
+                              ? "bg-status-progress"
+                              : "bg-gray-300"
+                          }`}
+                        >
+                          <span
+                            className={`bg-surface h-4 w-4 rounded-full transition-transform duration-300 ${
+                              item.alignmentDeferred
+                                ? "translate-x-4"
+                                : "translate-x-0"
+                            }`}
+                          />
+                        </span>
+                        <span
+                          className={`truncate text-base font-semibold md:text-lg ${
+                            item.alignmentDeferred
+                              ? "text-status-progress"
+                              : "text-subtle-dark"
+                          }`}
+                        >
+                          {/* สวิตช์บอกสถานะอยู่แล้ว ข้อความคงเดิมแบบสวิตช์อื่น ข้อความเต็มอยู่บนใบเสร็จ */}
+                          ค้างไว้ก่อน
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <ProductName item={item} />
+                )}
                 {!hasNoQuantity && (
                   <p className="text-subtle-light truncate text-base leading-tight font-medium md:text-lg">
                     {formatCurrency(Number(item.sellingPrice))}
