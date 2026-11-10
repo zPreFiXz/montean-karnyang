@@ -7,7 +7,6 @@ import {
   TIRE_FREEBIE_NAMES,
   freebieQuantityFor,
   hasTypedUnit,
-  isPartPlaceholderItem,
   isDiscountItem,
   isPartLikeItem,
   isSingleQuantityItem,
@@ -234,26 +233,6 @@ const useBillItems = ({
       ),
     );
   };
-
-  // อะไหล่อื่นๆ พิมพ์ชื่อเองจึงไม่มีหน่วยในคลัง ต้องกรอกหน่วยก่อนไปหน้าสรุป (ต้องตรงกับ repair.js ฝั่งเซิร์ฟเวอร์)
-  // ขอบแดงขึ้นหลังกดถัดไปครั้งแรก กรอกครบแล้วหายเอง
-  const [showUnitErrors, setShowUnitErrors] = useState(false);
-  const isMissingUnit = (item) =>
-    isPartPlaceholderItem(item) && !String(item.unit || "").trim();
-  const validateUnits = () => {
-    const missing = repairItems.findIndex(isMissingUnit);
-    if (missing === -1) return true;
-    setShowUnitErrors(true);
-    requestAnimationFrame(() => {
-      const input = [
-        ...document.querySelectorAll(`[data-unit-input="${missing}"]`),
-      ].find((el) => el.offsetParent !== null);
-      input?.focus({ preventScroll: true });
-      input?.scrollIntoView({ block: "center", behavior: "smooth" });
-    });
-    return false;
-  };
-  const hasUnitError = (item) => showUnitErrors && isMissingUnit(item);
 
   // ตั้งศูนย์ฟรีจากยางสี่เส้น ช่วงล่างหลวมตั้งวันนี้ไม่ได้ ค้างสิทธิ์ไว้ให้รถคันนี้มาตั้งฟรีครั้งหน้า
   const canDeferAlignment = (item) =>
@@ -569,8 +548,6 @@ const useBillItems = ({
     toggleAlignmentDeferred,
     redeemAlignment,
     redeemedAlignmentIds,
-    validateUnits,
-    hasUnitError,
     handleIncreaseQuantity,
     handleDecreaseQuantity,
     handleMoveItem,

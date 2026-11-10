@@ -482,7 +482,7 @@ const RepairItemDetailDialog = ({
                 className="font-athiti text-primary border-primary bg-surface mb-2 flex h-11 w-full cursor-pointer items-center justify-center gap-1 rounded-[20px] border text-lg font-semibold md:text-xl"
               >
                 <Ticket className="h-4 w-4" />
-                เปลี่ยนยางแล้วมาตั้งศูนย์ทีหลัง
+                เปลี่ยนยาง 4 เส้น
               </button>
             )}
             <div className="flex items-center gap-2">

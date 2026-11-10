@@ -47,8 +47,7 @@ const checkAlignmentRedeems = async (tx, repairItems, vehicleId, repairId) => {
   }
 };
 
-// รถที่เปลี่ยนยางสี่เส้นโดยไม่ได้ตั้งศูนย์ในบิลนั้น แล้วมาตั้งศูนย์ในบิลถัดไป
-// ไว้ไล่เติมสิทธิ์ค้างย้อนหลังให้บิลที่เกิดก่อนมีระบบนี้ done = จับคู่สิทธิ์กันแล้ว
+// บิลเปลี่ยนยางสี่เส้น ไว้ไล่เติมสิทธิ์ตั้งศูนย์ค้างย้อนหลังให้บิลที่เกิดก่อนมีระบบนี้
 const TIRE_CATEGORY = "ยาง";
 const ALIGNMENT_NAME = "ตั้งศูนย์";
 const ALIGNMENT_MIN_TIRES = 4;
@@ -105,34 +104,53 @@ const lateAlignmentPairs = async (db) => {
     byVehicle.get(repair.vehicleId).push(repair);
   }
 
+  // บิลเปลี่ยนยางสี่เส้นทุกใบ บอกว่าตั้งศูนย์ไปแล้วหรือยัง ถ้ายัง หาบิลถัดไปที่มาตั้งศูนย์ไว้ให้จับคู่
+  // status: same = ตั้งในบิลเดียวกัน, pending = ค้างไว้ยังไม่มาตั้ง, used = มาตั้งด้วยสิทธิ์แล้ว, none = ไม่มีตั้งศูนย์ในบิล
   const pairs = [];
   for (const list of byVehicle.values()) {
     list.forEach((tireBill, index) => {
-      const ownLine = alignmentLine(tireBill);
       if (tireCount(tireBill) < ALIGNMENT_MIN_TIRES) return;
-      // จ่ายค่าตั้งศูนย์ในบิลเดียวกัน แปลว่าตั้งไปแล้วจริง ส่วนตั้งศูนย์ฟรี (0 บาท) อาจลงไว้ตามระบบของแถมแต่ยังไม่ได้ตั้ง
-      if (ownLine && Number(ownLine.unitPrice) > 0) return;
-      const later = list
-        .slice(index + 1)
-        .find((repair) => alignmentLine(repair));
-      if (!later) return;
-      const laterLine = alignmentLine(later);
+      const ownLine = alignmentLine(tireBill);
+      const laterBills = list.slice(index + 1);
+      const usedIn = laterBills.find((repair) =>
+        repair.repairItems.some(
+          (item) => item.alignmentFromRepairId === tireBill.id,
+        ),
+      );
+      const later =
+        usedIn || laterBills.find((repair) => alignmentLine(repair)) || null;
+      const laterLine = later && alignmentLine(later);
+      const status = usedIn
+        ? "used"
+        : ownLine?.alignmentDeferred
+          ? "pending"
+          : ownLine
+            ? "same"
+            : "none";
       pairs.push({
         vehicle: tireBill.vehicle,
-        tireBill: { ...brief(tireBill), tires: tireCount(tireBill) },
-        alignmentBill: {
-          ...brief(later),
-          price: Number(laterLine.unitPrice) * Number(laterLine.quantity),
+        tireBill: {
+          ...brief(tireBill),
+          tires: tireCount(tireBill),
+          alignmentPrice: ownLine
+            ? Number(ownLine.unitPrice) * Number(ownLine.quantity)
+            : null,
         },
-        done: laterLine.alignmentFromRepairId === tireBill.id,
+        // ตั้งฟรีในบิลเดียวกัน (0 บาท) แต่มีบิลถัดไปมาตั้งอีก อาจลงตามระบบของแถมแต่ยังไม่ได้ตั้งจริง จึงยังโชว์บิลนั้น
+        alignmentBill:
+          !later || (status === "same" && Number(ownLine.unitPrice) > 0)
+            ? null
+            : {
+                ...brief(later),
+                price: Number(laterLine.unitPrice) * Number(laterLine.quantity),
+              },
+        status,
       });
     });
   }
-  // ที่ยังไม่ได้แก้ขึ้นก่อน ใหม่สุดอยู่บน
+  // บิลเปลี่ยนยางใหม่สุดอยู่บน
   return pairs.sort(
-    (a, b) =>
-      a.done - b.done ||
-      new Date(b.alignmentBill.createdAt) - new Date(a.alignmentBill.createdAt),
+    (a, b) => new Date(b.tireBill.createdAt) - new Date(a.tireBill.createdAt),
   );
 };
 

@@ -561,7 +561,6 @@ const SuspensionInspection = () => {
     isDraftWorthSaving({ repairData: watchedValues, repairItems: draftItems });
 
   const onSubmit = async (data) => {
-    if (!bill.validateUnits()) return;
     setIsLoading(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, SUBMIT_FEEDBACK_MS));

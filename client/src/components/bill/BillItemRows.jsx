@@ -108,14 +108,8 @@ const QuantityControls = ({ item, index, bill }) => {
           }}
           maxLength={20}
           placeholder="หน่วย"
-          data-unit-input={index}
           aria-label={`หน่วยของ ${getProductName(item)}`}
-          aria-invalid={bill.hasUnitError(item) || undefined}
-          className={`text-subtle-dark placeholder:text-subtle-light bg-surface ml-1 h-9 w-11 shrink-0 rounded-md border px-1 text-center text-base font-medium outline-none md:text-lg ${
-            bill.hasUnitError(item)
-              ? "border-destructive placeholder:text-destructive"
-              : "focus:border-primary border-gray-200"
-          }`}
+          className="text-subtle-dark placeholder:text-subtle-light bg-surface focus:border-primary ml-1 h-9 w-11 shrink-0 rounded-md border border-gray-200 px-1 text-center text-base font-medium outline-none md:text-lg"
         />
       )}
     </div>

@@ -238,22 +238,6 @@ exports.getRepair = async (req, res) => {
   });
 };
 
-// อะไหล่อื่นๆ พิมพ์ชื่อเองจึงไม่มีหน่วยในคลัง ต้องมีหน่วยติดมากับบรรทัด (ต้องตรงกับ validateUnits ฝั่งหน้าเว็บ)
-const PART_PLACEHOLDER_SERVICE_NAME = "อะไหล่อื่นๆ";
-const requireUnitsForTypedParts = async (repairItems = []) => {
-  const serviceIds = repairItems
-    .filter((item) => item.serviceId && !String(item.itemUnit || "").trim())
-    .map((item) => Number(item.serviceId));
-  if (!serviceIds.length) return;
-  const placeholder = await prisma.service.findFirst({
-    where: { id: { in: serviceIds }, name: PART_PLACEHOLDER_SERVICE_NAME },
-    select: { id: true },
-  });
-  if (placeholder) {
-    createError(400, "กรุณากรอกหน่วยของอะไหล่อื่นๆ");
-  }
-};
-
 exports.createRepair = async (req, res) => {
   const {
     name,
@@ -274,7 +258,6 @@ exports.createRepair = async (req, res) => {
     repairItems,
   } = req.body;
   const fleet = fleetNo?.trim() || null;
-  await requireUnitsForTypedParts(repairItems);
 
   const isSale = type === "SALE";
   const skipVehicle = isSale || !!noVehicle;
@@ -360,7 +343,6 @@ exports.updateRepair = async (req, res) => {
     repairItems,
   } = req.body;
   const fleet = fleetNo?.trim() || null;
-  await requireUnitsForTypedParts(repairItems);
 
   const isSale = type === "SALE";
   const skipVehicle = isSale || !!noVehicle;

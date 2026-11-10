@@ -14,8 +14,21 @@ import {
 
 const SCROLL_KEY = "late-alignments";
 
-// รถที่เปลี่ยนยางสี่เส้นแล้วมาตั้งศูนย์ในบิลถัดไป ไว้ไล่เปิดสองบิลนั้นตั้งสิทธิ์ค้างย้อนหลัง
-// บิลเปลี่ยนยาง: เปิดสวิตช์ค้างไว้ก่อน  บิลตั้งศูนย์: กดใช้สิทธิ์
+// บิลเปลี่ยนยางสี่เส้นทุกใบ ไว้ไล่ตั้งสิทธิ์ตั้งศูนย์ค้างย้อนหลัง
+// บิลเปลี่ยนยาง: เปิดสวิตช์ค้างไว้ก่อน  บิลที่มาตั้งศูนย์: กดใช้สิทธิ์
+// ป้ายสีเดียวกับป้ายบนการ์ดตั้งศูนย์ ส้ม = ค้างอยู่ น้ำเงิน = ฟรีที่ค้างไว้ถูกใช้แล้ว
+const STATUS = {
+  same: { label: "ตั้งในบิลนี้", className: "bg-gray-100 text-subtle-dark" },
+  none: { label: "ไม่ได้ตั้งศูนย์", className: "bg-gray-100 text-subtle-dark" },
+  pending: {
+    label: "ค้างไว้ ตั้งฟรีครั้งหน้า",
+    className: "bg-status-progress/10 text-status-progress",
+  },
+  used: {
+    label: "ใช้สิทธิ์แล้ว",
+    className: "bg-status-paid/10 text-status-paid",
+  },
+};
 const LateAlignments = () => {
   const navigate = useNavigate();
   const [pairs, setPairs] = useState(null);
@@ -49,8 +62,6 @@ const LateAlignments = () => {
     </Link>
   );
 
-  const todo = (pairs || []).filter((pair) => !pair.done).length;
-
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-2 px-5 pt-4">
@@ -63,8 +74,13 @@ const LateAlignments = () => {
           <ChevronLeft className="text-surface" />
         </button>
         <p className="text-surface min-w-0 flex-1 truncate text-2xl font-semibold md:text-[26px]">
-          เปลี่ยนยางแล้วมาตั้งศูนย์ทีหลัง
+          เปลี่ยนยาง 4 เส้น
         </p>
+        {pairs?.length > 0 && (
+          <span className="text-surface/70 shrink-0 text-xl font-medium md:text-[22px]">
+            ({pairs.length})
+          </span>
+        )}
       </div>
 
       <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl px-5 pb-28 xl:pb-4">
@@ -73,21 +89,16 @@ const LateAlignments = () => {
         ) : pairs.length === 0 ? (
           <div className="flex flex-1 items-center justify-center">
             <p className="text-subtle-light text-center text-xl text-balance md:text-[22px]">
-              ไม่มีรถที่เปลี่ยนยางแล้วมาตั้งศูนย์ทีหลัง
+              ไม่มีบิลที่เปลี่ยนยาง 4 เส้น
             </p>
           </div>
         ) : (
           <>
-            <p className="text-subtle-dark pt-4 text-lg font-medium md:text-xl">
-              {todo > 0
-                ? `ยังไม่ได้ตั้งสิทธิ์ ${todo} คัน`
-                : "ตั้งสิทธิ์ครบทุกคันแล้ว"}
-            </p>
-            {pairs.map(({ vehicle, tireBill, alignmentBill, done }) => {
+            {pairs.map(({ vehicle, tireBill, alignmentBill, status }) => {
               const plate = vehicle.licensePlate;
               return (
                 <div
-                  key={`${tireBill.id}-${alignmentBill.id}`}
+                  key={tireBill.id}
                   className="bg-surface shadow-primary mt-4 rounded-lg p-3"
                 >
                   <div className="mb-2 flex items-center gap-2">
@@ -102,24 +113,31 @@ const LateAlignments = () => {
                         {getDisplayBrand(vehicle.vehicleModel)}
                       </p>
                     </div>
-                    {/* สีเดียวกับป้ายฟรีที่ค้างไว้บนการ์ดตั้งศูนย์ */}
-                    {done && (
-                      <span className="bg-status-paid/10 text-status-paid shrink-0 rounded-full px-2.5 py-px text-sm font-semibold md:text-base">
-                        ตั้งสิทธิ์แล้ว
-                      </span>
-                    )}
+                    <span
+                      className={`shrink-0 rounded-full px-2.5 py-px text-sm font-semibold md:text-base ${STATUS[status].className}`}
+                    >
+                      {STATUS[status].label}
+                    </span>
                   </div>
                   <div className="space-y-2">
                     {billLink(
                       `/repairs/${tireBill.id}`,
                       `เปลี่ยนยาง ${tireBill.tires} เส้น`,
-                      formatDateShort(tireBill.createdAt),
+                      [
+                        formatDateShort(tireBill.createdAt),
+                        tireBill.alignmentPrice != null &&
+                          `ตั้งศูนย์ ${formatCurrency(tireBill.alignmentPrice)}`,
+                      ]
+                        .filter(Boolean)
+                        .join(" | "),
                     )}
-                    {billLink(
-                      `/repairs/${alignmentBill.id}`,
-                      "ตั้งศูนย์",
-                      `${formatDateShort(alignmentBill.createdAt)} | ${formatCurrency(alignmentBill.price)}`,
-                    )}
+                    {/* บิลถัดไปที่มาตั้งศูนย์ ไว้กดใช้สิทธิ์ย้อนหลัง */}
+                    {alignmentBill &&
+                      billLink(
+                        `/repairs/${alignmentBill.id}`,
+                        "มาตั้งศูนย์",
+                        `${formatDateShort(alignmentBill.createdAt)} | ${formatCurrency(alignmentBill.price)}`,
+                      )}
                   </div>
                 </div>
               );
