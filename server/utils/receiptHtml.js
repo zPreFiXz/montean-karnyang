@@ -884,6 +884,15 @@ const workName = (item) => {
   ) {
     return item.itemName;
   }
+  // บริการที่พิมพ์ชื่อทับขึ้นตามที่พิมพ์ ไม่ย่อแบบชื่อน้ำมัน (ต้องตรงกับ shortWorkNameBase ฝั่งหน้าเว็บ)
+  if (
+    !item.part &&
+    item.service?.name &&
+    item.itemName &&
+    item.itemName !== item.service.name
+  ) {
+    return item.itemName;
+  }
 
   // ชื่อในคลังของหมวดพวกนี้เป็น "ยี่ห้อ ชนิด รุ่นรถ" ตัดเหลือคำแรกซึ่งเป็นชนิดอะไหล่
   if (

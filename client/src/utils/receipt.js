@@ -86,6 +86,16 @@ export const shortWorkNameBase = (item) => {
   ) {
     return item.itemName;
   }
+  // บริการที่พิมพ์ชื่อทับ (เช่น ค่าแรงที่พิมพ์ว่าน้ำมันเกียร์ MTF) ขึ้นตามที่พิมพ์ ไม่ย่อแบบชื่อน้ำมัน
+  // (ต้องตรงกับ workName ใน receiptHtml.js)
+  if (
+    !item.part &&
+    item.service?.name &&
+    item.itemName &&
+    item.itemName !== item.service.name
+  ) {
+    return item.itemName;
+  }
 
   if (
     VEHICLE_COMPATIBLE_CATEGORIES.includes(item.part?.category?.name) &&
