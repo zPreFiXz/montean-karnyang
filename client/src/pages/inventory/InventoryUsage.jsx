@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   ChevronLeft,
-  Ruler,
   ShoppingBag,
   Wrench as WrenchOutline,
   TicketPercent,
@@ -13,11 +12,7 @@ import SearchBar from "@/components/forms/SearchBar";
 import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { SparePart } from "@/components/icons/Icons";
-import {
-  countMissingUnitItems,
-  getInventory,
-  listInventoryRepairs,
-} from "@/api/inventory";
+import { getInventory, listInventoryRepairs } from "@/api/inventory";
 import {
   isSaleRepair,
   isNoVehicleRepair,
@@ -65,15 +60,6 @@ const InventoryUsage = () => {
   const [usages, setUsages] = useState(cached || []);
   const [isLoading, setIsLoading] = useState(!cached);
   const [item, setItem] = useState(itemCache.get(cacheKey(type, id)) ?? null);
-  const [missingUnitCount, setMissingUnitCount] = useState(0);
-
-  // นับใหม่ทุกครั้งที่กลับมา เติมหน่วยแล้วเลขบนปุ่มจะลดลงทันที
-  useEffect(() => {
-    if (itemName !== PART_PLACEHOLDER_SERVICE_NAME) return;
-    countMissingUnitItems()
-      .then((res) => setMissingUnitCount(res.data?.count || 0))
-      .catch(() => {});
-  }, [itemName]);
 
   useEffect(() => {
     let cancelled = false;
@@ -178,22 +164,6 @@ const InventoryUsage = () => {
         <p className="text-surface min-w-0 flex-1 truncate text-2xl font-semibold md:text-[26px]">
           ประวัติการใช้
         </p>
-        {/* อะไหล่อื่นๆ ที่บันทึกก่อนบังคับกรอกหน่วย ไปเติมหน่วยทีละบรรทัด */}
-        {itemName === PART_PLACEHOLDER_SERVICE_NAME && (
-          <Link
-            to="/inventory/missing-units"
-            aria-label={`อะไหล่อื่นๆ ที่ไม่มีหน่วย ${missingUnitCount} บิล`}
-            title="อะไหล่อื่นๆ ที่ไม่มีหน่วย"
-            className="bg-surface/20 relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-          >
-            <Ruler className="text-surface h-5 w-5" />
-            {missingUnitCount > 0 && (
-              <span className="bg-surface text-primary absolute -top-0.5 -right-0.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-sm font-semibold">
-                {missingUnitCount}
-              </span>
-            )}
-          </Link>
-        )}
       </div>
 
       <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl px-5 pb-28">

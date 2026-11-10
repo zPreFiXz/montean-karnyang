@@ -27,7 +27,6 @@ const LateAlignments = lazy(pageImports.LateAlignments);
 const InventoryList = lazy(pageImports.InventoryList);
 const InventoryForm = lazy(pageImports.InventoryForm);
 const InventoryUsage = lazy(pageImports.InventoryUsage);
-const MissingUnits = lazy(pageImports.MissingUnits);
 const OrganizationList = lazy(pageImports.OrganizationList);
 const OrganizationDetail = lazy(pageImports.OrganizationDetail);
 const OrganizationHistory = lazy(pageImports.OrganizationHistory);
@@ -119,7 +118,6 @@ const AppRoutes = () => {
 
           <Route path="inventory" element={<InventoryList />} />
           <Route path="inventory/new" element={<InventoryForm />} />
-          <Route path="inventory/missing-units" element={<MissingUnits />} />
           <Route
             path="inventory/:type/:id/usage"
             element={<InventoryUsage />}

@@ -97,22 +97,19 @@ const KnownVehicleHint = ({
   const hasUnusedAlignment = (found?.pendingAlignments || []).some(
     (source) => !redeemedIds?.has(source.id),
   );
+  // กดใช้สิทธิ์ในหน้านี้แล้ว แถวยังอยู่ที่เดิมแค่เปลี่ยนเป็นใช้แล้ว ฟอร์มจะไม่ขยับระหว่างจอเลื่อนลงไปหาตั้งศูนย์
+  const showedAlignmentRef = useRef(false);
+  if (hasUnusedAlignment) showedAlignmentRef.current = true;
+  const keepsAlignmentRow =
+    showedAlignmentRef.current && (found?.pendingAlignments?.length || 0) > 0;
   const shouldShow =
     !!found &&
     (isOriginalPlate
-      ? isOtherModel || hasUnusedAlignment
-      : hasUnusedAlignment || found._count?.repairs > 0);
-
-  // กดใช้สิทธิ์แล้วแถวหายทันที ถ้ากล่องเหลือแค่แถวนั้นก็หายทันทีเหมือนกัน ไม่ต้องรอยุบ
-  // จอกำลังเลื่อนลงไปที่บรรทัดตั้งศูนย์ ถ้ายุบช้าๆ ฟอร์มจะขยับระหว่างเลื่อน
-  const [isInstantHide, setIsInstantHide] = useState(false);
+      ? isOtherModel || keepsAlignmentRow
+      : keepsAlignmentRow || found._count?.repairs > 0);
 
   useEffect(() => {
     if (!shouldShow) {
-      if (isInstantHide) {
-        setShown(null);
-        setIsInstantHide(false);
-      }
       setIsOpen(false);
       return;
     }
@@ -120,8 +117,6 @@ const KnownVehicleHint = ({
     // เปิดในเฟรมถัดไป ให้เบราว์เซอร์ทันวาดตอนยังยุบอยู่ แถบจะได้ไหลลงมาให้เห็น
     const frame = requestAnimationFrame(() => setIsOpen(true));
     return () => cancelAnimationFrame(frame);
-    // isInstantHide อ่านค่าตอนกล่องต้องหายเท่านั้น ไม่ต้องรันใหม่เมื่อค่าเปลี่ยน
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldShow, found]);
 
   // ยุบเสร็จแล้วค่อยทิ้งข้อมูล ระหว่างยุบยังต้องมีเนื้อหาให้เห็น
@@ -167,7 +162,7 @@ const KnownVehicleHint = ({
 
   return (
     <div
-      className={`grid duration-150 ${isInstantHide ? "" : "transition-all"} ${
+      className={`grid transition-all duration-150 ${
         isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
       }`}
     >
@@ -251,7 +246,7 @@ const KnownVehicleHint = ({
           )}
           {/* อยู่ใต้แถวเตือนรุ่นรถ ต้องแน่ใจว่าเป็นรถคันเดียวกันก่อนใช้สิทธิ์
               ซื้อยางสี่เส้นแต่ช่วงล่างหลวม ตั้งศูนย์ฟรีค้างไว้ รถคันนี้กลับมาเมื่อไหร่ก็ใช้สิทธิ์ได้ */}
-          {nextAlignment && (
+          {keepsAlignmentRow && (
             <div
               className={`bg-primary/10 flex items-center gap-2 ${
                 isOriginalPlate
@@ -264,20 +259,24 @@ const KnownVehicleHint = ({
               <p className="text-primary min-w-0 flex-1 truncate text-base leading-tight font-semibold md:text-lg">
                 {unusedAlignments.length > 1
                   ? `ค้างตั้งศูนย์ฟรี ${unusedAlignments.length} ครั้ง`
-                  : `ค้างตั้งศูนย์ฟรี | ${formatDateShort(nextAlignment.createdAt)}`}
+                  : `ค้างตั้งศูนย์ฟรี | ${formatDateShort(
+                      (nextAlignment || pendingAlignments[0]).createdAt,
+                    )}`}
               </p>
-              {onRedeemAlignment && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsInstantHide(true);
-                    onRedeemAlignment(nextAlignment);
-                  }}
-                  className={pillClass}
-                >
-                  ใช้สิทธิ์
-                </button>
-              )}
+              {onRedeemAlignment &&
+                (nextAlignment ? (
+                  <button
+                    type="button"
+                    onClick={() => onRedeemAlignment(nextAlignment)}
+                    className={pillClass}
+                  >
+                    ใช้สิทธิ์
+                  </button>
+                ) : (
+                  <span className="text-primary shrink-0 pr-2 text-base font-semibold md:text-lg">
+                    ✓ ใช้แล้ว
+                  </span>
+                ))}
             </div>
           )}
         </div>
