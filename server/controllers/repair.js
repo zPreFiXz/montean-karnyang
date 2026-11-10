@@ -17,6 +17,7 @@ const {
 const { resolveCustomer } = require("../utils/repairCustomer");
 const {
   checkAlignmentRedeems,
+  checkRedeemsOnConfirm,
   pendingAlignmentsFor,
   lateAlignmentPairs,
 } = require("../utils/repairAlignment");
@@ -210,7 +211,7 @@ exports.getRepair = async (req, res) => {
       },
       // สิทธิ์ตั้งศูนย์ที่ค้างในบิลนี้ ถูกใช้ไปในบิลไหนแล้ว
       alignmentRedeems: {
-        where: { repair: { status: { not: "CANCELLED" } } },
+        where: { repair: { status: { notIn: ["CANCELLED", "ESTIMATE"] } } },
         select: {
           repair: { select: { id: true, receiptNo: true, createdAt: true } },
         },
@@ -618,7 +619,10 @@ exports.updateRepairStatus = async (req, res) => {
 
   await prisma.$transaction(async (tx) => {
     if (toEstimate) await restoreStockForRepair(tx, Number(id));
-    if (fromEstimate) await deductStockForRepair(tx, Number(id));
+    if (fromEstimate) {
+      await checkRedeemsOnConfirm(tx, Number(id));
+      await deductStockForRepair(tx, Number(id));
+    }
 
     await tx.repair.update({
       where: { id: Number(id) },

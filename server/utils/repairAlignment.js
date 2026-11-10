@@ -1,8 +1,9 @@
 const createError = require("./createError");
 
-// สิทธิ์ตั้งศูนย์ฟรีที่ค้างไว้ = บรรทัดตั้งศูนย์ที่ติ๊กค้างไว้ในบิลที่ไม่ได้ยกเลิก
-// ใช้สิทธิ์แล้ว = มีบรรทัดในบิลอื่นที่ไม่ได้ยกเลิกชี้กลับมาที่บิลนั้น สิทธิ์ผูกกับรถของบิลต้นทาง
-const ACTIVE = { status: { not: "CANCELLED" } };
+// สิทธิ์ตั้งศูนย์ฟรีที่ค้างไว้ = บรรทัดตั้งศูนย์ที่ติ๊กค้างไว้ในบิลจริง
+// ใช้สิทธิ์แล้ว = มีบรรทัดในบิลจริงอีกใบชี้กลับมาที่บิลนั้น สิทธิ์ผูกกับรถของบิลต้นทาง
+// บิลจริง = ไม่ยกเลิกและไม่ใช่ใบเสนอราคา ใบเสนอราคาแค่เสนอ ลูกค้าอาจไม่ตกลง จึงยังไม่ได้หรือใช้สิทธิ์
+const ACTIVE = { status: { notIn: ["CANCELLED", "ESTIMATE"] } };
 
 // บิลที่ยังมีสิทธิ์ค้างของรถคันนี้ exceptRepairId = บิลที่กำลังแก้ ไม่นับว่าบิลนั้นใช้สิทธิ์ไปแล้วและไม่เสนอสิทธิ์ของตัวเอง
 const pendingAlignmentsFor = async (db, vehicleId, exceptRepairId = null) => {
@@ -42,7 +43,7 @@ const checkAlignmentRedeems = async (tx, repairItems, vehicleId, repairId) => {
   if (sourceIds.some((id) => !pendingIds.has(id))) {
     createError(
       400,
-      "สิทธิ์ตั้งศูนย์ฟรีนี้ใช้ไม่ได้แล้ว กรุณาเปิดบิลใหม่อีกครั้ง",
+      "สิทธิ์ตั้งศูนย์ฟรีนี้ใช้ในบิลอื่นไปแล้ว กรุณาแก้ไขรายการตั้งศูนย์ก่อนบันทึก",
     );
   }
 };
@@ -154,7 +155,31 @@ const lateAlignmentPairs = async (db) => {
   );
 };
 
+// ใบเสนอราคาที่กดใช้สิทธิ์ไว้ ตอนตกลงซ่อมต้องเช็กใหม่ เผื่อบิลอื่นใช้สิทธิ์นั้นไปก่อนแล้ว
+const checkRedeemsOnConfirm = async (tx, repairId) => {
+  const repair = await tx.repair.findUnique({
+    where: { id: repairId },
+    select: {
+      vehicleId: true,
+      repairItems: { select: { alignmentFromRepairId: true } },
+    },
+  });
+  const sourceIds = (repair?.repairItems || [])
+    .map((item) => item.alignmentFromRepairId)
+    .filter(Boolean);
+  if (!sourceIds.length) return;
+  const pending = await pendingAlignmentsFor(tx, repair.vehicleId, repairId);
+  const pendingIds = new Set(pending.map((source) => source.id));
+  if (sourceIds.some((id) => !pendingIds.has(id))) {
+    createError(
+      400,
+      "สิทธิ์ตั้งศูนย์ฟรีนี้ใช้ในบิลอื่นไปแล้ว กรุณาแก้ไขรายการตั้งศูนย์ก่อนเริ่มซ่อม",
+    );
+  }
+};
+
 module.exports = {
+  checkRedeemsOnConfirm,
   pendingAlignmentsFor,
   checkAlignmentRedeems,
   lateAlignmentPairs,

@@ -10,6 +10,7 @@ import {
   alignmentNoteOf,
   isPartLikeItem,
   isDiscountItem,
+  isSingleQuantityItem,
   lineUnit,
 } from "@/constants/services";
 import { SparePart } from "@/components/icons/Icons";
@@ -157,13 +158,16 @@ const RepairItemCard = ({ item, variant, onClick, sideLabel, rightSlot }) => {
               ))}
             </div>
           )}
-          <p className="text-subtle-dark line-clamp-1 text-base font-semibold md:text-lg">
-            {formatCurrency(unitPrice)}
-            {/* เกินหนึ่งครั้งต้องบอก ไม่งั้นราคาต่อหน่วยกับยอดรวมจะไม่ตรงกัน */}
-            {isService && !isPartLine && !unit && Number(item.quantity) === 1
-              ? null
-              : ` × ${formatQuantity(item.quantity)} ${unit || ""}`.trimEnd()}
-          </p>
+          {/* บริการที่มีได้ครั้งเดียวต่อบิล (ตั้งศูนย์ ค่าแรง) ราคาต่อหน่วยเท่ายอดทางขวาเสมอ ไม่ต้องบอกซ้ำ */}
+          {!(isSingleQuantityItem(item) && Number(item.quantity) === 1) && (
+            <p className="text-subtle-dark line-clamp-1 text-base font-semibold md:text-lg">
+              {formatCurrency(unitPrice)}
+              {/* เกินหนึ่งครั้งต้องบอก ไม่งั้นราคาต่อหน่วยกับยอดรวมจะไม่ตรงกัน */}
+              {isService && !isPartLine && !unit && Number(item.quantity) === 1
+                ? null
+                : ` × ${formatQuantity(item.quantity)} ${unit || ""}`.trimEnd()}
+            </p>
+          )}
         </div>
       </div>
 
