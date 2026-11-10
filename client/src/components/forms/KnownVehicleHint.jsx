@@ -273,7 +273,8 @@ const KnownVehicleHint = ({
                     ใช้สิทธิ์
                   </button>
                 ) : (
-                  <span className="text-primary shrink-0 pr-2 text-base font-semibold md:text-lg">
+                  // สูงเท่าปุ่มใช้สิทธิ์ (h-8 รวมเส้นขอบ) กดแล้วแถวจะไม่ยุบ
+                  <span className="text-primary flex h-8 shrink-0 items-center border border-transparent px-3 text-base font-semibold md:text-lg">
                     ✓ ใช้แล้ว
                   </span>
                 ))}
