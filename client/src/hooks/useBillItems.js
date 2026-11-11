@@ -266,6 +266,7 @@ const useBillItems = ({
                 basePrice: item.sellingPrice,
                 sellingPrice: 0,
                 alignmentFromRepairId: source.id,
+                alignmentFromRepair: source,
               }
             : item,
         ),
@@ -293,6 +294,7 @@ const useBillItems = ({
             sellingPrice: 0,
             basePrice: service.sellingPrice,
             alignmentFromRepairId: source.id,
+            alignmentFromRepair: source,
           }),
         ]),
       );

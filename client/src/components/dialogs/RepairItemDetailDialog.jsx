@@ -10,7 +10,6 @@ import {
   Trash,
   History,
   ShoppingCart,
-  Ticket,
 } from "lucide-react";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -35,10 +34,7 @@ import {
   USED_TIRE_CATEGORY,
 } from "@/constants/categories";
 import { quantityInputProps } from "@/utils/numberInput";
-import {
-  isPartLikeItem,
-  TIRE_ALIGNMENT_FREEBIE_NAME,
-} from "@/constants/services";
+import { isPartLikeItem } from "@/constants/services";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
 import { stockStatusOf } from "@/utils/inventoryItem";
@@ -470,21 +466,6 @@ const RepairItemDetailDialog = ({
           </div>
 
           <div className="flex-shrink-0 px-5 pb-4">
-            {/* ตั้งศูนย์ไปหน้ารถที่เปลี่ยนยางสี่เส้นแล้วมาตั้งทีหลัง ไว้ตั้งสิทธิ์ค้างย้อนหลัง */}
-            {isService && currentItem.name === TIRE_ALIGNMENT_FREEBIE_NAME && (
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenChange(false);
-                  rememberOpenItem();
-                  navigate("/repairs/late-alignments");
-                }}
-                className="font-athiti text-primary border-primary bg-surface mb-2 flex h-11 w-full cursor-pointer items-center justify-center gap-1 rounded-[20px] border text-lg font-semibold md:text-xl"
-              >
-                <Ticket className="h-4 w-4" />
-                เปลี่ยนยาง 4 เส้น
-              </button>
-            )}
             <div className="flex items-center gap-2">
               <button
                 onClick={() =>

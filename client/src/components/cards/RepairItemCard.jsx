@@ -99,50 +99,57 @@ const RepairItemCard = ({ item, variant, onClick, sideLabel, rightSlot }) => {
         </div>
 
         <div className="flex min-w-0 flex-col">
-          {alignmentNoteOf(item) ? (
-            // ป้ายตั้งศูนย์ค้าง/ฟรีที่ค้างไว้อยู่ขวาชื่อ บรรทัดล่างบอกว่ามาจากบิลไหนหรือใช้ไปในบิลไหนแล้ว
-            <>
-              <div className="flex min-w-0 items-center gap-1.5">
-                <div className="shrink-0">{renderProductInfo(item)}</div>
-                <span
-                  className={`min-w-0 truncate rounded-full px-2 py-px text-sm font-semibold md:text-base ${
-                    item.alignmentDeferred
-                      ? "bg-status-progress/10 text-status-progress"
-                      : "bg-status-paid/10 text-status-paid"
-                  }`}
-                >
-                  {alignmentNoteOf(item)}
-                </span>
-              </div>
-              {/* กดไปบิลต้นทางหรือบิลที่มาใช้สิทธิ์ แยกจากการกดการ์ดที่เปิดรายละเอียดรายการ */}
-              {variant === "detail" &&
-                [
-                  item.alignmentFromRepair && {
-                    label: "ค้างจาก",
-                    repair: item.alignmentFromRepair,
-                  },
-                  item.alignmentUsedIn && {
-                    label: "ใช้แล้ว",
-                    repair: item.alignmentUsedIn,
-                  },
-                ]
-                  .filter(Boolean)
-                  .map(({ label, repair }) => (
-                    <Link
-                      key={label}
-                      to={`/repairs/${repair.id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => e.stopPropagation()}
-                      className="text-primary -my-1 flex items-center self-start py-1 text-sm font-semibold md:text-base"
-                    >
-                      {label} {formatDateShort(repair.createdAt)}
-                      <ChevronRight className="h-4 w-4" />
-                    </Link>
-                  ))}
-            </>
-          ) : (
-            renderProductInfo(item)
-          )}
+          {/* ตั้งศูนย์ค้าง/ฟรีจากยาง 4 เส้น: ป้ายอยู่ขวาชื่อ บรรทัดล่างเป็นวันที่ของอีกบิล
+              หน้ารายละเอียดกดวันที่ไปบิลนั้นได้ (บิลเปลี่ยนยาง / บิลที่มาใช้สิทธิ์) แยกจากการกดการ์ด */}
+          {alignmentNoteOf(item)
+            ? (() => {
+                const other = item.alignmentDeferred
+                  ? item.alignmentUsedIn
+                  : item.alignmentFromRepair;
+                const badgeClass = item.alignmentDeferred
+                  ? "bg-status-progress/10 text-status-progress"
+                  : "bg-status-paid/10 text-status-paid";
+                const date =
+                  other?.createdAt &&
+                  (item.alignmentDeferred
+                    ? `ตั้งแล้ว ${formatDateShort(other.createdAt)}`
+                    : `เปลี่ยนยาง ${formatDateShort(other.createdAt)}`);
+                const isLink = variant === "detail" && !!other?.id;
+                const dateLine = date && (
+                  <>
+                    {date}
+                    {isLink && <ChevronRight className="h-4 w-4 shrink-0" />}
+                  </>
+                );
+                return (
+                  <>
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <div className="shrink-0">{renderProductInfo(item)}</div>
+                      <span
+                        className={`min-w-0 truncate rounded-full px-2 py-px text-sm font-semibold md:text-base ${badgeClass}`}
+                      >
+                        {alignmentNoteOf(item)}
+                      </span>
+                    </div>
+                    {dateLine &&
+                      (isLink ? (
+                        <Link
+                          to={`/repairs/${other.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          className="text-subtle-dark mt-0.5 flex items-center self-start text-sm font-medium md:text-base"
+                        >
+                          {dateLine}
+                        </Link>
+                      ) : (
+                        <span className="text-subtle-dark mt-0.5 text-sm font-medium md:text-base">
+                          {dateLine}
+                        </span>
+                      ))}
+                  </>
+                );
+              })()
+            : renderProductInfo(item)}
           {soldLots.length > 0 && (
             <div className="mt-0.5 flex flex-wrap items-center gap-1">
               <span className="text-subtle-light text-sm font-medium md:text-base">

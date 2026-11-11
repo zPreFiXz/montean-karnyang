@@ -19,7 +19,6 @@ const {
   checkAlignmentRedeems,
   checkRedeemsOnConfirm,
   pendingAlignmentsFor,
-  lateAlignmentPairs,
 } = require("../utils/repairAlignment");
 const {
   restoreTireLotsFromSoldLots,
@@ -137,10 +136,6 @@ exports.listDocumentNumbers = async (req, res) => {
   });
 
   res.json({ prefix, period, lastNo, entries });
-};
-
-exports.listLateAlignments = async (req, res) => {
-  res.json(await lateAlignmentPairs(prisma));
 };
 
 // ธนาคารที่เคยรับเช็ค ไว้เป็นตัวเลือกตอนกรอก ใช้บ่อยขึ้นก่อน ชื่อจะได้สะกดตรงกันทุกบิล

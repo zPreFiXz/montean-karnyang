@@ -385,9 +385,9 @@ const chequeNoteRow = (repair) =>
 // ตั้งศูนย์ที่ค้างสิทธิ์ไว้หรือมาใช้สิทธิ์ (ต้องตรงกับ alignmentNoteOf ฝั่งหน้าเว็บ)
 const alignmentNoteOf = (item) =>
   item.alignmentDeferred
-    ? "ค้างไว้ ตั้งฟรีครั้งหน้า"
+    ? "ค้างตั้งศูนย์"
     : item.alignmentFromRepairId
-      ? "ฟรีที่ค้างไว้"
+      ? "ฟรีจากยาง 4 เส้นครั้งก่อน"
       : "";
 
 const receiptPages = (repair, { showBrand = true } = {}) => {

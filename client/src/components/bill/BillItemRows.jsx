@@ -12,14 +12,18 @@ import ProductName from "@/components/bill/ProductName";
 import SideBadge from "@/components/bill/SideBadge";
 import { SparePart } from "@/components/icons/Icons";
 import { onKeyActivate } from "@/utils/a11y";
-import { formatCurrency, formatQuantity } from "@/utils/formats";
+import {
+  formatCurrency,
+  formatDateShort,
+  formatQuantity,
+} from "@/utils/formats";
 import { getProductName, stepOf } from "@/utils/billItems";
 import {
   hasTypedUnit,
   isDiscountItem,
   isPartLikeItem,
   isSingleQuantityItem,
-  ALIGNMENT_REDEEMED_NOTE,
+  alignmentNoteOf,
 } from "@/constants/services";
 import ItemImage from "@/components/ui/ItemImage";
 
@@ -214,7 +218,7 @@ const BillItemRows = ({ bill, onRowClick, transitionPrefix, marker }) => {
                     </p>
                     {item.alignmentFromRepairId ? (
                       <span className="bg-status-paid/10 text-status-paid min-w-0 truncate rounded-full px-2.5 py-px text-sm font-semibold md:text-base">
-                        {ALIGNMENT_REDEEMED_NOTE}
+                        {alignmentNoteOf(item)}
                       </span>
                     ) : (
                       <button
@@ -249,7 +253,7 @@ const BillItemRows = ({ bill, onRowClick, transitionPrefix, marker }) => {
                           }`}
                         >
                           {/* สวิตช์บอกสถานะอยู่แล้ว ข้อความคงเดิมแบบสวิตช์อื่น ข้อความเต็มอยู่บนใบเสร็จ */}
-                          ค้างไว้ก่อน
+                          ค้างตั้งศูนย์
                         </span>
                       </button>
                     )}
@@ -266,6 +270,13 @@ const BillItemRows = ({ bill, onRowClick, transitionPrefix, marker }) => {
                 <div className="flex w-full items-center justify-between">
                   <p className="text-primary min-w-0 truncate text-xl leading-tight font-semibold text-nowrap md:text-[22px]">
                     {formatCurrency(item.quantity * item.sellingPrice)}
+                    {/* วันที่เปลี่ยนยางของสิทธิ์ที่มาใช้ อยู่บรรทัดยอดซึ่งยังมีที่ว่าง */}
+                    {item.alignmentFromRepair?.createdAt && (
+                      <span className="text-subtle-dark ml-2 text-sm font-medium md:text-base">
+                        เปลี่ยนยาง{" "}
+                        {formatDateShort(item.alignmentFromRepair.createdAt)}
+                      </span>
+                    )}
                   </p>
                   {isReordering ? (
                     <MoveButtons

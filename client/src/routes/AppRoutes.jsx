@@ -23,7 +23,6 @@ const RepairReview = lazy(pageImports.RepairReview);
 const RepairList = lazy(pageImports.RepairList);
 const RepairDetail = lazy(pageImports.RepairDetail);
 const DocumentNumbers = lazy(pageImports.DocumentNumbers);
-const LateAlignments = lazy(pageImports.LateAlignments);
 const InventoryList = lazy(pageImports.InventoryList);
 const InventoryForm = lazy(pageImports.InventoryForm);
 const InventoryUsage = lazy(pageImports.InventoryUsage);
@@ -102,7 +101,6 @@ const AppRoutes = () => {
             element={<BillPage page={RepairCreate} />}
           />
           <Route path="repairs/review" element={<RepairReview />} />
-          <Route path="repairs/late-alignments" element={<LateAlignments />} />
           <Route
             path="repairs/document-numbers"
             element={<DocumentNumbers />}

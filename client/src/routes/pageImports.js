@@ -13,7 +13,6 @@ export const pageImports = {
   RepairList: () => import("@/pages/repairs/RepairList"),
   RepairDetail: () => import("@/pages/repairs/RepairDetail"),
   DocumentNumbers: () => import("@/pages/repairs/DocumentNumbers"),
-  LateAlignments: () => import("@/pages/repairs/LateAlignments"),
   InventoryList: () => import("@/pages/inventory/InventoryList"),
   InventoryForm: () => import("@/pages/inventory/InventoryForm"),
   InventoryUsage: () => import("@/pages/inventory/InventoryUsage"),

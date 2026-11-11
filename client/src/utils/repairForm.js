@@ -94,6 +94,7 @@ export const repairToForm = (repair) => {
       // สิทธิ์ตั้งศูนย์ฟรีที่ค้างไว้ / ใช้สิทธิ์จากบิลก่อน ต้องติดไปตอนแก้บิล ไม่งั้นบันทึกแล้วสิทธิ์หาย
       alignmentDeferred: !!ri.alignmentDeferred,
       alignmentFromRepairId: ri.alignmentFromRepairId || null,
+      alignmentFromRepair: ri.alignmentFromRepair || null,
     };
   });
 
