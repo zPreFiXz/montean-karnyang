@@ -1,14 +1,46 @@
 import PageSpinner from "@/components/ui/PageSpinner";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { ChevronLeft, IdCard, MapPin, Phone } from "lucide-react";
+import {
+  ChevronLeft,
+  IdCard,
+  MapPin,
+  Phone,
+  ShoppingBag,
+  Wrench as WrenchOutline,
+} from "lucide-react";
 import CarCard from "@/components/cards/CarCard";
 import BrandIcons from "@/components/icons/BrandIcons";
+import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import { getCustomer } from "@/api/customer";
 import { organizationIcon, organizationLabel } from "@/constants/organizations";
 import { formatDateShort, formatPhone, formatPlate } from "@/utils/formats";
-import { getDisplayBrand } from "@/utils/repairDisplay";
+import {
+  getDisplayBrand,
+  getRepairTitle,
+  isSaleRepair,
+} from "@/utils/repairDisplay";
+import { getStatusInfo } from "@/constants/repairStatus";
 import { toastError } from "@/utils/handleError";
+
+// สีการ์ดบอกสถานะบิล แบบเดียวกับหน้าประวัติบิลของหน่วยงาน
+const CARD_BG = {
+  IN_PROGRESS: "progress",
+  COMPLETED: "completed",
+  PAID: "paid",
+  CREDIT: "credit",
+};
+
+const SectionTitle = ({ title, count }) => (
+  <div className="mt-6 flex items-center gap-2">
+    <p className="text-normal text-[22px] font-semibold md:text-2xl">{title}</p>
+    {count > 0 && (
+      <span className="text-subtle-light shrink-0 text-lg font-medium md:text-xl">
+        ({count})
+      </span>
+    )}
+  </div>
+);
 
 const CustomerDetail = () => {
   const { id } = useParams();
@@ -38,6 +70,7 @@ const CustomerDetail = () => {
 
   const Icon = organizationIcon(customer?.organizationType);
   const vehicles = customer?.vehicles || [];
+  const bills = customer?.bills || [];
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
@@ -119,18 +152,10 @@ const CustomerDetail = () => {
               </div>
             </div>
 
-            <div className="mt-6 flex items-center gap-2">
-              <p className="text-normal text-[22px] font-semibold md:text-2xl">
-                รถของลูกค้า
-              </p>
-              {vehicles.length > 0 && (
-                <span className="text-subtle-light shrink-0 text-lg font-medium md:text-xl">
-                  ({vehicles.length})
-                </span>
-              )}
-            </div>
-
-            {vehicles.length === 0 ? (
+            {(vehicles.length > 0 || bills.length === 0) && (
+              <SectionTitle title="รถของลูกค้า" count={vehicles.length} />
+            )}
+            {vehicles.length === 0 && bills.length === 0 ? (
               <div className="flex flex-1 items-center justify-center">
                 <p className="text-subtle-light px-5 text-center text-xl text-balance md:text-[22px]">
                   ไม่มีรถ
@@ -156,6 +181,40 @@ const CustomerDetail = () => {
                   />
                 </Link>
               ))
+            )}
+
+            {/* ซื้ออะไหล่ไปเองหรืองานบริการที่ไม่ผูกรถ ไม่มีในประวัติรถคันไหน จึงแสดงเป็นรายบิล */}
+            {bills.length > 0 && (
+              <>
+                <SectionTitle
+                  title="ซื้ออะไหล่และบริการ"
+                  count={bills.length}
+                />
+                {bills.map((bill) => (
+                  <Link
+                    key={bill.id}
+                    to={`/repairs/${bill.id}`}
+                    className="mt-4 block w-full"
+                  >
+                    <CarCard
+                      bg={CARD_BG[bill.status] || "primary"}
+                      icon={
+                        <OutlineCardIcon
+                          icon={
+                            isSaleRepair(bill) ? ShoppingBag : WrenchOutline
+                          }
+                          color={
+                            getStatusInfo(bill.status, bill.type).iconColor
+                          }
+                        />
+                      }
+                      licensePlate={getRepairTitle(bill)}
+                      brand={formatDateShort(bill.createdAt)}
+                      price={Number(bill.totalPrice) || 0}
+                    />
+                  </Link>
+                ))}
+              </>
             )}
           </>
         )}

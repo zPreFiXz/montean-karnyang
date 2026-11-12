@@ -104,8 +104,26 @@ exports.getCustomer = async (req, res) => {
     }
   }
 
+  // ขายอะไหล่และงานบริการที่ไม่ผูกรถ ใบเสนอราคายังไม่ได้ซื้อจริงจึงไม่นับ
+  const bills = await prisma.repair.findMany({
+    where: {
+      customerId: id,
+      vehicleId: null,
+      status: { notIn: ["ESTIMATE", "CANCELLED"] },
+    },
+    select: {
+      id: true,
+      type: true,
+      status: true,
+      totalPrice: true,
+      createdAt: true,
+      repairItems: { select: { itemName: true, partId: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
   delete customer.repairs;
-  res.json({ ...customer, vehicles: [...vehicles.values()] });
+  res.json({ ...customer, vehicles: [...vehicles.values()], bills });
 };
 
 const ORGANIZATION_TYPES = ["GOVERNMENT", "SHOP"];
