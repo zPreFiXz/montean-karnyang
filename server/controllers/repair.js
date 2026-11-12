@@ -14,7 +14,10 @@ const {
   resolveVehicleForEdit,
   removeOrphanVehicle,
 } = require("../utils/repairVehicle");
-const { resolveCustomer } = require("../utils/repairCustomer");
+const {
+  resolveCustomer,
+  removeOrphanCustomer,
+} = require("../utils/repairCustomer");
 const {
   checkAlignmentRedeems,
   checkRedeemsOnConfirm,
@@ -448,6 +451,9 @@ exports.updateRepair = async (req, res) => {
     if (currentRepair.vehicleId !== vehicle?.id) {
       await removeOrphanVehicle(tx, currentRepair.vehicleId);
     }
+    if (currentRepair.customer && currentRepair.customer.id !== customer?.id) {
+      await removeOrphanCustomer(tx, currentRepair.customer.id);
+    }
     await assignRepairDocumentNo(tx, Number(id));
   });
 
@@ -502,10 +508,7 @@ exports.deleteRepair = async (req, res) => {
   }
 
   if ((await docNosSkippedOnDelete(prisma, repair)).length > 0) {
-    createError(
-      400,
-      "ลบไม่ได้ เพราะไม่ใช่บิลล่าสุด เลขที่บิลจะขาดช่วง ให้ยกเลิกบิลแทน",
-    );
+    createError(400, "ลบไม่ได้ เพราะไม่ใช่บิลล่าสุด เลขที่บิลจะขาดช่วง ให้ยกเลิกบิลแทน");
   }
 
   await prisma.$transaction(async (tx) => {
@@ -535,6 +538,7 @@ exports.deleteRepair = async (req, res) => {
     await tx.repairItem.deleteMany({ where: { repairId: Number(id) } });
     await releaseRepairDocumentNo(tx, repair);
     await tx.repair.delete({ where: { id: Number(id) } });
+    await removeOrphanCustomer(tx, repair.customerId);
   });
 
   res.json({ message: "ลบงานซ่อมเรียบร้อยแล้ว" });

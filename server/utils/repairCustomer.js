@@ -121,4 +121,16 @@ const resolveCustomer = async (
   });
 };
 
-module.exports = { resolveCustomer };
+// ลูกค้าที่ไม่เหลือบิลหรือใบวางบิลอ้างถึง (ลบบิล ย้ายบิลไปรายอื่น) เก็บกวาดทิ้ง ไม่ให้ค้างในระบบ
+const removeOrphanCustomer = async (tx, customerId) => {
+  if (!customerId) return;
+  const old = await tx.customer.findUnique({
+    where: { id: customerId },
+    select: { _count: { select: { repairs: true, billingNotes: true } } },
+  });
+  if (old && old._count.repairs === 0 && old._count.billingNotes === 0) {
+    await tx.customer.delete({ where: { id: customerId } });
+  }
+};
+
+module.exports = { resolveCustomer, removeOrphanCustomer };

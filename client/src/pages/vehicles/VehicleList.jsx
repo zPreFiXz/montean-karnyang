@@ -1,7 +1,7 @@
 import PageSpinner from "@/components/ui/PageSpinner";
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigationType, useSearchParams } from "react-router";
-import { ListOrdered } from "lucide-react";
+import { ListOrdered, Users } from "lucide-react";
 import SearchBar from "@/components/forms/SearchBar";
 import CarCard from "@/components/cards/CarCard";
 import { listVehicles } from "@/api/vehicle";
@@ -142,6 +142,14 @@ const VehicleList = () => {
           className="bg-surface/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
         >
           <ListOrdered className="text-surface h-5 w-5" />
+        </Link>
+        <Link
+          to="/customers"
+          aria-label="รายชื่อลูกค้า"
+          title="รายชื่อลูกค้า"
+          className="bg-surface/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+        >
+          <Users className="text-surface h-5 w-5" />
         </Link>
       </div>
       <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-28 xl:pb-4">

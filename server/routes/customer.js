@@ -5,6 +5,8 @@ const { authCheck } = require("../middlewares/auth");
 
 const {
   listCustomers,
+  listCustomerDirectory,
+  getCustomer,
   updateCustomerOrganizationType,
   listOrganizations,
   listOrganizationRepairs,
@@ -13,6 +15,7 @@ const {
 } = require("../controllers/customer");
 
 router.get("/customers", authCheck, listCustomers);
+router.get("/customers/directory", authCheck, listCustomerDirectory);
 // ต้องมาก่อน "/customers/:id" ไม่งั้น organizations จะถูกอ่านเป็นไอดี
 router.get("/customers/organizations", authCheck, listOrganizations);
 router.get(
@@ -30,6 +33,7 @@ router.post(
   authCheck,
   printOrganizationBill,
 );
+router.get("/customers/:id", authCheck, getCustomer);
 router.patch(
   "/customers/:id/organization-type",
   authCheck,

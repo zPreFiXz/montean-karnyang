@@ -38,3 +38,11 @@ export const printOrganizationBill = async (id, month) => {
     ...(month ? { month } : {}),
   });
 };
+
+export const listCustomerDirectory = async () => {
+  return await apiClient.get("/customers/directory");
+};
+
+export const getCustomer = async (id) => {
+  return await apiClient.get(`/customers/${id}`);
+};

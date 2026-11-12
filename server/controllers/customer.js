@@ -31,6 +31,83 @@ exports.listCustomers = async (req, res) => {
   res.json(customers);
 };
 
+// บิลยกเลิกไม่นับ ลูกค้าที่มีแต่บิลยกเลิกจึงไม่ขึ้นในรายชื่อ
+const NOT_CANCELLED = { status: { not: "CANCELLED" } };
+
+exports.listCustomerDirectory = async (req, res) => {
+  const customers = await prisma.customer.findMany({
+    where: { repairs: { some: NOT_CANCELLED } },
+    select: {
+      id: true,
+      name: true,
+      phoneNumber: true,
+      organizationType: true,
+      repairs: {
+        where: NOT_CANCELLED,
+        select: { vehicleId: true, createdAt: true },
+      },
+    },
+  });
+
+  res.json(
+    customers.map(({ repairs, ...customer }) => ({
+      ...customer,
+      vehicleCount: new Set(repairs.map((r) => r.vehicleId).filter(Boolean))
+        .size,
+      lastVisitAt: repairs.reduce(
+        (latest, r) => (!latest || r.createdAt > latest ? r.createdAt : latest),
+        null,
+      ),
+    })),
+  );
+};
+
+exports.getCustomer = async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) createError(400, "ไม่พบลูกค้า");
+
+  const customer = await prisma.customer.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      phoneNumber: true,
+      address: true,
+      taxId: true,
+      organizationType: true,
+      repairs: {
+        where: { ...NOT_CANCELLED, vehicleId: { not: null } },
+        select: {
+          createdAt: true,
+          vehicle: {
+            select: {
+              id: true,
+              licensePlate: { select: { plateNumber: true, province: true } },
+              vehicleModel: { select: { brand: true, model: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      },
+    },
+  });
+  if (!customer) createError(404, "ไม่พบลูกค้า");
+
+  // เรียงจากบิลล่าสุดลงไป รถคันแรกที่เจอจึงเป็นครั้งล่าสุดที่มา
+  const vehicles = new Map();
+  for (const repair of customer.repairs) {
+    if (!vehicles.has(repair.vehicle.id)) {
+      vehicles.set(repair.vehicle.id, {
+        ...repair.vehicle,
+        lastVisitAt: repair.createdAt,
+      });
+    }
+  }
+
+  delete customer.repairs;
+  res.json({ ...customer, vehicles: [...vehicles.values()] });
+};
+
 const ORGANIZATION_TYPES = ["GOVERNMENT", "SHOP"];
 
 exports.updateCustomerOrganizationType = async (req, res) => {

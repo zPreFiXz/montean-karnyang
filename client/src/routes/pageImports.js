@@ -22,6 +22,8 @@ export const pageImports = {
     import("@/pages/organizations/OrganizationHistory"),
   VehicleList: () => import("@/pages/vehicles/VehicleList"),
   VehicleDetail: () => import("@/pages/vehicles/VehicleDetail"),
+  CustomerList: () => import("@/pages/customers/CustomerList"),
+  CustomerDetail: () => import("@/pages/customers/CustomerDetail"),
   UserList: () => import("@/pages/admin/UserList"),
   EmployeeList: () => import("@/pages/admin/EmployeeList"),
   SalesReport: () => import("@/pages/reports/SalesReport"),

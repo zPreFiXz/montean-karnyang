@@ -162,12 +162,29 @@ const InventoryForm = () => {
 
   // รับเฉพาะเส้นทางภายใน กัน //ภายนอก ที่เบราว์เซอร์ตีความเป็นเว็บอื่น
   const inventoryPathFor = (categoryId) => {
+    const name = category.find((cat) => cat.id === categoryId)?.name;
     const from = searchParams.get("from");
     if (from && from.startsWith("/") && !from.startsWith("//")) {
+      // ย้ายหมวดแล้วกลับไปหมวดเดิมจะไม่เห็นรายการนี้ ไปหมวดใหม่แทน ตัวกรองของหมวดเดิมใช้ไม่ได้จึงทิ้ง
+      const url = new URL(from, window.location.origin);
+      const fromCategory = url.searchParams.get("category");
+      if (
+        url.pathname === "/inventory" &&
+        name &&
+        fromCategory &&
+        fromCategory !== "ทั้งหมด" &&
+        fromCategory !== name
+      ) {
+        const next = new URLSearchParams({ category: name });
+        for (const key of ["search", "item"]) {
+          const value = url.searchParams.get(key);
+          if (value) next.set(key, value);
+        }
+        return `/inventory?${next}`;
+      }
       return from;
     }
 
-    const name = category.find((cat) => cat.id === categoryId)?.name;
     return name
       ? `/inventory?category=${encodeURIComponent(name)}`
       : "/inventory";

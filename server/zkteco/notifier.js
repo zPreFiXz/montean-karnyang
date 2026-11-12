@@ -175,6 +175,8 @@ const createNotifier = ({ prisma }) => {
     const now = new Date();
     if (!isDue(getMinuteOfDay(now), attCfg.summaryAtMinutes)) return;
     const dateKey = getDateKey(now);
+    // ไม่มีใครสแกนเลย = ร้านปิด ไม่ต้องสรุปว่าทุกคนขาด
+    if (!(await countPresent(dateKey))) return;
     await sendOnce(
       "summary",
       dateKey,

@@ -104,9 +104,13 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
   const { contentRef, paperRef, scale, isMeasured } = usePaperFit({
     open,
     chromeEstimate: 180,
-    // เปิดใหม่ทุกครั้งกลับไปค่าเริ่มต้น หน่วยงานกับร้านค้าใช้ใบไปเบิกจ่าย จึงแสดงข้อมูลลูกค้าไว้ก่อน
+    // เปิดใหม่ทุกครั้งกลับไปค่าเริ่มต้น หน่วยงานกับร้านค้าใช้ใบไปเบิกจ่าย
+    // ลูกค้าชื่อ "นอกสถานที่" ก็แสดงไว้ก่อน
     onOpen: () => {
-      setShowCustomer(!!repair?.customer?.organizationType);
+      setShowCustomer(
+        !!repair?.customer?.organizationType ||
+          repair?.customer?.name?.trim() === "นอกสถานที่",
+      );
       setShowBrand(false);
       setDocType("receipt");
       setCopyChoice("both");
