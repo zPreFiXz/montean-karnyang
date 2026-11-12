@@ -44,7 +44,7 @@ exports.listCustomerDirectory = async (req, res) => {
       organizationType: true,
       repairs: {
         where: NOT_CANCELLED,
-        select: { vehicleId: true, createdAt: true },
+        select: { vehicleId: true },
       },
     },
   });
@@ -54,10 +54,6 @@ exports.listCustomerDirectory = async (req, res) => {
       ...customer,
       vehicleCount: new Set(repairs.map((r) => r.vehicleId).filter(Boolean))
         .size,
-      lastVisitAt: repairs.reduce(
-        (latest, r) => (!latest || r.createdAt > latest ? r.createdAt : latest),
-        null,
-      ),
     })),
   );
 };
@@ -93,14 +89,11 @@ exports.getCustomer = async (req, res) => {
   });
   if (!customer) createError(404, "ไม่พบลูกค้า");
 
-  // เรียงจากบิลล่าสุดลงไป รถคันแรกที่เจอจึงเป็นครั้งล่าสุดที่มา
+  // บิลเรียงจากล่าสุดลงไป รถจึงเรียงจากคันที่มาล่าสุด
   const vehicles = new Map();
   for (const repair of customer.repairs) {
     if (!vehicles.has(repair.vehicle.id)) {
-      vehicles.set(repair.vehicle.id, {
-        ...repair.vehicle,
-        lastVisitAt: repair.createdAt,
-      });
+      vehicles.set(repair.vehicle.id, repair.vehicle);
     }
   }
 

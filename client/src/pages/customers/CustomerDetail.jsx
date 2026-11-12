@@ -57,7 +57,13 @@ const CustomerDetail = () => {
         const res = await getCustomer(id);
         if (!cancelled) setCustomer(res.data);
       } catch (error) {
-        if (!cancelled) toastError(error);
+        if (cancelled) return;
+        // ลูกค้าถูกเก็บกวาดไปหลังบิลย้ายไปรายอื่น ไม่ใช่ข้อผิดพลาด กลับไปหน้ารายชื่อเงียบๆ
+        if (error?.response?.status === 404) {
+          navigate("/customers", { replace: true });
+          return;
+        }
+        toastError(error);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -66,11 +72,17 @@ const CustomerDetail = () => {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, navigate]);
 
   const Icon = organizationIcon(customer?.organizationType);
   const vehicles = customer?.vehicles || [];
   const bills = customer?.bills || [];
+  const hasDetails = !!(
+    customer?.organizationType ||
+    customer?.phoneNumber ||
+    customer?.address ||
+    customer?.taxId
+  );
 
   return (
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
@@ -85,7 +97,7 @@ const CustomerDetail = () => {
           <ChevronLeft className="text-surface" />
         </button>
         <p className="text-surface min-w-0 flex-1 truncate text-2xl font-semibold md:text-[26px]">
-          ลูกค้า
+          ข้อมูลลูกค้า
         </p>
       </div>
 
@@ -100,8 +112,13 @@ const CustomerDetail = () => {
           </div>
         ) : (
           <>
-            <div className="mt-4 flex items-start gap-2">
-              <div className="bg-primary mt-0.5 flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full">
+            {/* มีแต่ชื่อบรรทัดเดียวให้อยู่กลางไอคอน หลายบรรทัด (ที่อยู่ยาว) ชิดบนแบบหน้าหน่วยงาน */}
+            <div
+              className={`mt-4 flex gap-2 ${hasDetails ? "items-start" : "items-center"}`}
+            >
+              <div
+                className={`bg-primary flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full ${hasDetails ? "mt-0.5" : ""}`}
+              >
                 <Icon className="text-surface h-6 w-6" />
               </div>
               <div className="flex min-w-0 flex-1 flex-col">
@@ -153,7 +170,7 @@ const CustomerDetail = () => {
             </div>
 
             {(vehicles.length > 0 || bills.length === 0) && (
-              <SectionTitle title="รถของลูกค้า" count={vehicles.length} />
+              <SectionTitle title="รายการรถ" count={vehicles.length} />
             )}
             {vehicles.length === 0 && bills.length === 0 ? (
               <div className="flex flex-1 items-center justify-center">
@@ -177,7 +194,6 @@ const CustomerDetail = () => {
                         : "ไม่ระบุทะเบียนรถ"
                     }
                     brand={getDisplayBrand(vehicle.vehicleModel)}
-                    date={formatDateShort(vehicle.lastVisitAt)}
                   />
                 </Link>
               ))
@@ -187,7 +203,7 @@ const CustomerDetail = () => {
             {bills.length > 0 && (
               <>
                 <SectionTitle
-                  title="ซื้ออะไหล่และบริการ"
+                  title="ประวัติการซื้อและบริการ"
                   count={bills.length}
                 />
                 {bills.map((bill) => (
