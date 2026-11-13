@@ -45,8 +45,7 @@ const FONT_FACES = [
 const SHOP = {
   name: "ร้านมณเฑียรการยาง",
   address: "543 หมู่ที่ 5 ตำบลน้ำอ้อม อำเภอกันทรลักษ์ จังหวัดศรีสะเกษ 33110",
-  contact:
-    "โทร. 089-849-2861, 093-326-1705  เลขประจำตัวผู้เสียภาษี 3 33030032502 1",
+  contact: "โทร. 089-849-2861, 093-326-1705  เลขประจำตัวผู้เสียภาษี 3 33030032502 1",
 };
 
 const MIN_ROWS = 10;
@@ -126,8 +125,34 @@ const billPages = (repairs) => {
   return pages;
 };
 const DELIVERY_PAGE_LINES = 14;
-const summaryLinesOf = (discountCount) =>
-  discountCount ? discountCount + 2 : 1;
+// มัดจำที่ยังหักจากยอด คืนเงินไปแล้วไม่ต้องหัก (ต้องตรงกับ depositOf ฝั่งหน้าเว็บ)
+const depositOf = (repair) =>
+  repair?.depositAmount && !repair?.depositRefundedAt
+    ? Number(repair.depositAmount)
+    : 0;
+// แถวใต้ยอดรวม: ใบที่หักมัดจำบอกหักมัดจำกับคงเหลือชำระ ใบรับเงินมัดจำบอกยอดรวมทั้งบิลกับคงเหลือชำระ
+// (ต้องตรงกับ depositRowsOf ฝั่งหน้าเว็บ)
+const depositRowsOf = (repair) => {
+  if (repair.isDeposit) {
+    return [
+      { label: "ยอดรวมทั้งบิล", amount: repair.billTotal },
+      {
+        label: "คงเหลือชำระ",
+        amount: repair.billTotal - Number(repair.totalPrice || 0),
+        bold: true,
+      },
+    ];
+  }
+  const deposit = depositOf(repair);
+  if (!deposit) return [];
+  const total = Number(repair.totalPrice || 0);
+  return [
+    { label: "หักมัดจำ", amount: -deposit },
+    { label: "คงเหลือชำระ", amount: total - deposit, bold: true },
+  ];
+};
+const summaryLinesOf = (discountCount, depositRows) =>
+  (discountCount ? discountCount + 2 : 1) + depositRows;
 const makeRoomForQr = (pages, linesOf, summaryRows, limit) => {
   const last = [...pages[pages.length - 1]];
   const moved = [];
@@ -152,8 +177,37 @@ const asIssued = (repair) =>
     ? { ...repair, status: repair.cancelledStatus || "PAID", isCancelled: true }
     : repair;
 
+// ใบรับเงินมัดจำเป็นใบเสร็จของเงินมัดจำก้อนเดียว ใช้เลขของบิลเดิมอ้างอิง ลงวันที่รับมัดจำ
+// (ต้องตรงกับ asDepositReceipt ฝั่งหน้าเว็บ)
+const DEPOSIT_LINE_NAME = "เงินมัดจำค่าอะไหล่และค่าบริการ";
+const asDepositReceipt = (repair) => {
+  const deposit = Number(repair.depositAmount || 0);
+  return {
+    ...repair,
+    isDeposit: true,
+    type: "GENERAL",
+    status: "PAID",
+    receiptNo: receiptDocNo(repair),
+    deliveryNo: null,
+    paidAt: repair.depositPaidAt,
+    paymentMethod: repair.depositMethod,
+    totalPrice: deposit,
+    billTotal: Number(repair.totalPrice || 0),
+    depositAmount: null,
+    repairItems: [
+      {
+        id: "deposit",
+        itemName: DEPOSIT_LINE_NAME,
+        quantity: 1,
+        unitPrice: deposit,
+      },
+    ],
+  };
+};
+
 // ยังไม่ซ่อม = ใบเสนอราคา, เครดิต = ใบส่งของ, เรียกใบเสร็จได้เฉพาะตอนรับเงินแล้ว
 const receiptDocTitle = (repair) => {
+  if (repair.isDeposit) return "ใบรับเงินมัดจำ";
   if (repair.status === "ESTIMATE") return "ใบเสนอราคา";
   if (repair.status === "CREDIT") return "ใบส่งของ";
   return "ใบเสร็จรับเงิน";
@@ -249,11 +303,7 @@ const unitOf = (item) =>
   "";
 
 // ตรงกับ quantityLabel ฝั่งหน้าเว็บ
-const SINGLE_QUANTITY_SERVICE_NAMES = [
-  "ค่าแรง",
-  "ตั้งศูนย์",
-  "สลับยาง+ถ่วงล้อ",
-];
+const SINGLE_QUANTITY_SERVICE_NAMES = ["ค่าแรง", "ตั้งศูนย์", "สลับยาง+ถ่วงล้อ"];
 const quantityLabel = (item, quantity) => {
   const unit = unitOf(item);
   const isSingle =
@@ -387,7 +437,7 @@ const alignmentNoteOf = (item) =>
   item.alignmentDeferred
     ? "ค้างตั้งศูนย์"
     : item.alignmentFromRepairId
-      ? "ฟรีจากยาง 4 เส้นครั้งก่อน"
+      ? "ฟรีจากยางใหม่ 4 เส้น"
       : "";
 
 const receiptPages = (repair, { showBrand = true } = {}) => {
@@ -434,7 +484,10 @@ const receiptPages = (repair, { showBrand = true } = {}) => {
     ? makeRoomForQr(
         paginateRows(rows, rowLines),
         rowLines,
-        summaryLinesOf(discountTotal ? discountItems.length : 0),
+        summaryLinesOf(
+          discountTotal ? discountItems.length : 0,
+          depositRowsOf(repair).length,
+        ),
         lastPageLimit,
       )
     : paginateRows(rows, rowLines);
@@ -478,8 +531,12 @@ const receiptPagesHtml = (
     receiptPages(repair, { showBrand });
   const hasDiscount = discountTotal !== 0;
 
-  // แถวสรุปที่วาดจริง: มีส่วนลด = รวมเป็นเงิน + แถวส่วนลด + ยอดรวม (ตรงกับ summaryLinesOf)
-  const summaryRows = discountItems.length ? discountItems.length + 2 : 1;
+  const depositRows = depositRowsOf(repair);
+  // แถวสรุปที่วาดจริง ต้องตรงกับ summaryLinesOf
+  const summaryRows = summaryLinesOf(
+    hasDiscount ? discountItems.length : 0,
+    depositRows.length,
+  );
   // QR มีเฉพาะใบเสร็จ ใบเสนอราคายังไม่ถึงตอนจ่าย ใบส่งของลูกค้าจ่ายทีหลังตามใบวางบิล
   const showPaymentQr = hasPaymentQr(repair);
   // ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ
@@ -540,7 +597,16 @@ const receiptPagesHtml = (
         <td colspan="2">จำนวนเงินรวมทั้งสิ้น <span class="sum-text">${escapeHtml(bahtText(total))}</span></td>
         <td class="c">จำนวนเงินรวม</td>
         <td class="r" style="font-weight:600;font-size:13pt">${formatMoney(total)}</td>
-      </tr>`;
+      </tr>${depositRows
+        .map(
+          (row) => `
+      <tr>
+        <td colspan="2" class="blank"></td>
+        <td class="c">${row.label}</td>
+        <td class="r"${row.bold ? ' style="font-weight:600"' : ""}>${formatMoney(row.amount)}</td>
+      </tr>`,
+        )
+        .join("")}`;
 
   // ปิดข้อมูลลูกค้า = เว้นช่องไว้ ไม่เอาบรรทัดออก (ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
   const phone = showCustomer ? formatPhone(repair.customer?.phoneNumber) : "";
@@ -799,10 +865,14 @@ const asDeliveryNote = (repair) =>
 
 const buildReceiptHtml = (
   rawRepair,
-  { copyChoice, asDelivery = false, ...options } = {},
+  { copyChoice, asDelivery = false, asDeposit = false, ...options } = {},
 ) => {
   const issued = asIssued(rawRepair);
-  const repair = asDelivery ? asDeliveryNote(issued) : issued;
+  const repair = asDelivery
+    ? asDeliveryNote(issued)
+    : asDeposit && issued.depositAmount
+      ? asDepositReceipt(issued)
+      : issued;
   return receiptDocument(
     `${receiptDocTitle(repair)} ${receiptDocNo(repair)}`,
     repair.status === "CREDIT"
@@ -829,12 +899,7 @@ const VEHICLE_COMPATIBLE_CATEGORIES = [
 const FULL_NAME_CATEGORIES = ["ยาง", "ยางเปอร์เซ็นต์", "แบตเตอรี่"];
 
 // ต้องประกอบแบบเดียวกับ oilUseLineName ใน client/src/utils/oil.js
-const OIL_USES = [
-  "น้ำมันเครื่อง",
-  "น้ำมันเกียร์",
-  "น้ำมันเฟืองท้าย",
-  "น้ำมันพาวเวอร์",
-];
+const OIL_USES = ["น้ำมันเครื่อง", "น้ำมันเกียร์", "น้ำมันเฟืองท้าย", "น้ำมันพาวเวอร์"];
 const isOilUseLine = (item) => {
   if (!item.part) return false;
   const grade = String(item.part.name || "").replace(
@@ -1367,6 +1432,7 @@ module.exports = {
   // ใช้ในเทสต์เทียบกับฝั่งหน้าเว็บเท่านั้น
   _test: {
     asIssued,
+    asDepositReceipt,
     receiptPages,
     receiptDocNo,
     receiptDocTitle,

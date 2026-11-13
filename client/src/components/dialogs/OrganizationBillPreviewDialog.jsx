@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import usePaperFit, {
+  FADE_ONLY_STYLE,
   MM,
   PAPER_HEIGHT_MM,
   PAPER_WIDTH_MM,
@@ -81,6 +82,7 @@ const OrganizationBillPreviewDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         ref={contentRef}
+        style={FADE_ONLY_STYLE}
         className={`flex max-h-[90svh] w-full max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-155 ${
           isMeasured ? "" : "opacity-0"
         }`}

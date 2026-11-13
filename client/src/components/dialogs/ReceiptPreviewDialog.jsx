@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import usePaperFit, {
+  FADE_ONLY_STYLE,
   MM,
   PAPER_HEIGHT_MM,
   PAPER_WIDTH_MM,
@@ -9,6 +10,7 @@ import FormButton from "@/components/forms/FormButton";
 import ReceiptPaper from "@/components/receipt/ReceiptPaper";
 import {
   asDeliveryNote,
+  asDepositReceipt,
   asIssued,
   canReprintDeliveryNote,
   hasShortenableName,
@@ -119,7 +121,12 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
 
   if (!repair) return null;
 
-  const docRepair = docType === "delivery" ? asDeliveryNote(repair) : repair;
+  const docRepair =
+    docType === "delivery"
+      ? asDeliveryNote(repair)
+      : docType === "deposit"
+        ? asDepositReceipt(repair)
+        : repair;
   const pageCount =
     docType === "job"
       ? jobSheetPages(repair).pages.length
@@ -146,7 +153,7 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
     !isNoVehicleRepair(repair) &&
     repair.status === "IN_PROGRESS" &&
     !repair.isCancelled;
-  const docTabs = showJobSheetTab
+  const baseTabs = showJobSheetTab
     ? [
         { id: "receipt", label: receiptDocTitle(repair) },
         { id: "job", label: "ใบสั่งซ่อม" },
@@ -157,6 +164,15 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
           { id: "delivery", label: "ใบส่งของ" },
         ]
       : [];
+  // บิลที่รับมัดจำพิมพ์ใบรับเงินมัดจำให้ลูกค้าเก็บเป็นหลักฐานได้ตลอด
+  const docTabs = repair.depositAmount
+    ? [
+        ...(baseTabs.length
+          ? baseTabs
+          : [{ id: "receipt", label: receiptDocTitle(repair) }]),
+        { id: "deposit", label: "ใบรับเงินมัดจำ" },
+      ]
+    : baseTabs;
   const canShortenNames = hasShortenableName(repair.repairItems || []);
 
   const handlePrintAtShop = async () => {
@@ -207,7 +223,10 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
         docType === "job" ? jobSheetNo(repair) : receiptDocNo(docRepair);
       const title =
         docType === "job" ? "ใบสั่งซ่อม" : receiptDocTitle(docRepair);
-      const fileBase = docNo === repair.id ? `${title}-${repair.id}` : docNo;
+      // ใบรับเงินมัดจำใช้เลขเดียวกับบิล ต่อท้ายชื่อไฟล์ไว้ ไม่งั้นทับไฟล์ใบเสร็จ
+      const fileBase =
+        (docNo === repair.id ? `${title}-${repair.id}` : docNo) +
+        (docType === "deposit" ? "_deposit" : "");
 
       // บางเบราว์เซอร์บล็อกการดาวน์โหลดหลายไฟล์ที่สั่งพร้อมกัน จึงเว้นจังหวะให้ทีละแผ่น
       for (const [index, image] of images.entries()) {
@@ -234,6 +253,7 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         ref={contentRef}
+        style={FADE_ONLY_STYLE}
         // ถ้ากว้างตามกระดาษ ขนาดกระดาษก็คิดจากไดอะล็อกอีกที จะวนกันจนเห็นขยับตอนเปิด
         className={`flex max-h-[90svh] w-full max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-155 ${
           isMeasured ? "" : "opacity-0"

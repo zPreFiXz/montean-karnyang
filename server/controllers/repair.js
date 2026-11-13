@@ -352,6 +352,7 @@ exports.updateRepair = async (req, res) => {
       select: {
         vehicleId: true,
         status: true,
+        depositAmount: true,
         customer: {
           select: {
             id: true,
@@ -366,6 +367,9 @@ exports.updateRepair = async (req, res) => {
 
     if (currentRepair?.status === "CANCELLED") {
       createError(400, CANNOT_EDIT_CANCELLED);
+    }
+    if (currentRepair?.depositAmount > Number(totalPrice)) {
+      createError(400, "ยอดบิลน้อยกว่ามัดจำที่รับไว้ กรุณาแก้มัดจำก่อน");
     }
 
     const vehicle = skipVehicle
@@ -476,17 +480,27 @@ exports.cancelRepair = async (req, res) => {
   if (repair.status === "CANCELLED") {
     createError(400, "บิลนี้ยกเลิกไปแล้ว");
   }
+  // บิลที่ชำระแล้ว มัดจำหักไปในยอดแล้ว เหลือแต่บิลที่ยังไม่จ่ายที่ต้องเลือกว่าคืนหรือริบ
+  const hasOpenDeposit = !!repair.depositAmount && repair.status !== "PAID";
+  const { depositAction } = req.body;
+  if (hasOpenDeposit && !depositAction) {
+    createError(400, "กรุณาเลือกว่าจะคืนมัดจำหรือริบมัดจำ");
+  }
 
   await prisma.$transaction(async (tx) => {
     if (repair.status !== "ESTIMATE") {
       await restoreStockForRepair(tx, Number(id));
     }
+    const now = new Date();
     await tx.repair.update({
       where: { id: Number(id) },
       data: {
         status: "CANCELLED",
         cancelledStatus: repair.status,
-        cancelledAt: new Date(),
+        cancelledAt: now,
+        ...(hasOpenDeposit && depositAction === "REFUND"
+          ? { depositRefundedAt: now }
+          : {}),
       },
     });
   });
@@ -509,6 +523,10 @@ exports.deleteRepair = async (req, res) => {
 
   if ((await docNosSkippedOnDelete(prisma, repair)).length > 0) {
     createError(400, "ลบไม่ได้ เพราะไม่ใช่บิลล่าสุด เลขที่บิลจะขาดช่วง ให้ยกเลิกบิลแทน");
+  }
+  // ลบแล้วเงินมัดจำจะหายจากรายงานยอดขายของวันที่รับ
+  if (repair.depositAmount) {
+    createError(400, "ลบไม่ได้ เพราะรับมัดจำไว้แล้ว ให้ยกเลิกบิลแทน");
   }
 
   await prisma.$transaction(async (tx) => {
@@ -565,6 +583,10 @@ exports.updateRepairStatus = async (req, res) => {
   if (status === "COMPLETED") {
     data.completedAt = new Date();
   } else if (status === "CREDIT") {
+    // ยอดค้างของเครดิตและใบวางบิลนับเต็มยอดบิล ยังไม่รองรับการหักมัดจำ
+    if (repair.depositAmount) {
+      createError(400, "บิลที่รับมัดจำไว้ ลงเครดิตไม่ได้");
+    }
     // ติดเครดิตไม่ตั้งเวลาชำระเงิน ยอดจะยังไม่เข้ารายงานจนกว่าจะตัดเครดิต
     if (!repair.completedAt) {
       data.completedAt = new Date();
@@ -637,6 +659,42 @@ exports.updateRepairStatus = async (req, res) => {
   });
 };
 
+// มัดจำรับได้ก่อนชำระเงิน ใบเสนอราคาก็รับได้ (สั่งอะไหล่รอรถเข้า) บิลขายจ่ายจบในครั้งเดียวจึงไม่มีมัดจำ
+const DEPOSIT_STATUSES = ["ESTIMATE", "IN_PROGRESS", "COMPLETED"];
+
+exports.setRepairDeposit = async (req, res) => {
+  const { id } = req.params;
+  const { amount, method } = req.body;
+
+  const repair = await prisma.repair.findUnique({
+    where: { id: Number(id) },
+  });
+  if (!repair) {
+    createError(404, "ไม่พบงานซ่อม");
+  }
+  if (repair.type === "SALE" || !DEPOSIT_STATUSES.includes(repair.status)) {
+    createError(400, "บิลนี้รับมัดจำไม่ได้");
+  }
+  if (amount > repair.totalPrice) {
+    createError(400, "มัดจำต้องไม่เกินยอดบิล");
+  }
+
+  // แก้จำนวนหรือวิธีจ่ายคือแก้ที่บันทึกผิด วันที่รับยังเป็นวันเดิม
+  const data = amount
+    ? {
+        depositAmount: amount,
+        depositMethod: method,
+        depositPaidAt: repair.depositPaidAt ?? new Date(),
+      }
+    : { depositAmount: null, depositMethod: null, depositPaidAt: null };
+
+  await prisma.repair.update({ where: { id: Number(id) }, data });
+
+  res.json({
+    message: amount ? "บันทึกมัดจำเรียบร้อยแล้ว" : "ลบมัดจำเรียบร้อยแล้ว",
+  });
+};
+
 const buildRepairDocument = async (id, body, { forImage = false } = {}) => {
   const repair = await prisma.repair.findUnique({
     where: { id: Number(id) },
@@ -685,6 +743,7 @@ const buildRepairDocument = async (id, body, { forImage = false } = {}) => {
         showCustomer,
         showBrand,
         asDelivery: body?.docType === "delivery",
+        asDeposit: body?.docType === "deposit",
         // รูปส่งให้ลูกค้าทางแชท ไม่ได้บอกมาก็เอาแค่ต้นฉบับ
         copyChoice: body?.copyChoice || (forImage ? "original" : "both"),
       });

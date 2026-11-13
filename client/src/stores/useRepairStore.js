@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { listRepairs } from "@/api/repair";
 import { toastError } from "@/utils/handleError";
 import { toLocalDateKey } from "@/utils/date";
+import { salesEntriesOf } from "@/utils/salesEntries";
 
 // จ่ายเงินวันนี้ตามเวลาไทย
 const filterTodayPaidRepairs = (repairs) => {
@@ -42,12 +43,11 @@ const repairStore = (set, get) => ({
   },
 
   getTodaySales: () => {
-    const { repairs } = get();
-
-    return filterTodayPaidRepairs(repairs).reduce(
-      (total, repair) => total + Number(repair.totalPrice),
-      0,
-    );
+    const todayKey = toLocalDateKey();
+    return salesEntriesOf(
+      get().repairs,
+      (at) => toLocalDateKey(at) === todayKey,
+    ).reduce((total, entry) => total + entry.amount, 0);
   },
 });
 

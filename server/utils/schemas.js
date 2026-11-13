@@ -231,6 +231,26 @@ exports.updateRepairStatusSchema = z
     }
   });
 
+// amount = 0 คือลบมัดจำที่บันทึกผิด เพดานเทียบยอดบิลที่ controller (ต้องตรงกับ DepositDialog ฝั่งหน้าเว็บ)
+exports.repairDepositSchema = z
+  .object({
+    amount: z
+      .number({ message: "กรุณากรอกจำนวนเงิน" })
+      .int("จำนวนเงินต้องเป็นจำนวนเต็ม")
+      .min(0, "จำนวนเงินไม่ถูกต้อง"),
+    method: z
+      .enum(["CASH", "CREDIT_CARD"], { message: "กรุณาเลือกวิธีชำระเงิน" })
+      .optional(),
+  })
+  .refine((data) => data.amount === 0 || data.method, {
+    path: ["method"],
+    message: "กรุณาเลือกวิธีชำระเงิน",
+  });
+
+exports.cancelRepairSchema = z.object({
+  depositAction: z.enum(["REFUND", "KEEP"]).optional(),
+});
+
 // ต้องรับ lots ด้วย ไม่งั้นยางจะติดด่าน quantity แล้วกลายเป็น NaN
 exports.updatePartStockSchema = z
   .object({

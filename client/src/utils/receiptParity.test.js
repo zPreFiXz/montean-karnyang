@@ -3,6 +3,7 @@
 import { createRequire } from "module";
 import { describe, expect, it } from "vitest";
 import {
+  asDepositReceipt,
   asIssued,
   billPages,
   billPageHeight,
@@ -56,6 +57,12 @@ for (const count of [1, 8, 10, 11, 14, 22]) {
         chequeBank: "ธนาคารเพื่อการเกษตรและสหกรณ์การเกษตร",
         chequeNo: "10234567",
         quotationNo: "QT-6910-0001",
+        // มัดจำเพิ่มสองแถวใต้ยอดรวม แผ่นสุดท้ายที่มี QR รับรายการได้น้อยลง คืนมัดจำแล้วไม่หัก
+        depositAmount: count % 3 === 2 ? 500 : null,
+        depositPaidAt: "2026-11-10T03:00:00.000Z",
+        depositMethod: "CASH",
+        depositRefundedAt:
+          status === "CANCELLED" && count === 14 ? "2026-11-13" : null,
         // ช่องวิธีจ่ายมีเฉพาะหน่วยงาน
         customer: { organizationType: count % 4 < 2 ? "GOVERNMENT" : "SHOP" },
       }),
@@ -82,6 +89,25 @@ describe("ตัวอย่างบนจอกับใบที่พิม�
       expect(shape(c.pages, clientName)).toEqual(shape(s.pages, s.rowName));
       expect(c.discountItems).toEqual(s.discountItems);
     }
+  });
+
+  // ใบรับเงินมัดจำ ใช้เลขของบิลเดิม รายการเดียว
+  it.each(
+    bills
+      .map((b, i) => [i, b])
+      .filter(([, b]) => b.depositAmount && b.status !== "CREDIT"),
+  )("ใบรับเงินมัดจำของบิลชุดที่ %i", (_, raw) => {
+    const client = asDepositReceipt(asIssued(raw));
+    const serverBill = server.asDepositReceipt(server.asIssued(raw));
+    expect(receiptDocTitle(client)).toBe("ใบรับเงินมัดจำ");
+    expect(server.receiptDocTitle(serverBill)).toBe("ใบรับเงินมัดจำ");
+    expect(receiptDocNo(client)).toBe(server.receiptDocNo(serverBill));
+    expect(receiptDocNo(client)).toBe(receiptDocNo(asIssued(raw)));
+    expect(receiptDateOf(client)).toEqual(server.receiptDateOf(serverBill));
+    const c = buildReceiptPages(client);
+    const s = server.receiptPages(serverBill);
+    const clientName = (row) => receiptRowName(row, true);
+    expect(shape(c.pages, clientName)).toEqual(shape(s.pages, s.rowName));
   });
 });
 

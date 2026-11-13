@@ -70,3 +70,8 @@ export const renderRepairImages = async (id, options = {}) => {
     copyChoice,
   });
 };
+
+// amount = 0 คือลบมัดจำที่บันทึกผิด
+export const setRepairDeposit = async (id, data) => {
+  return await apiClient.patch(`/repairs/${id}/deposit`, data);
+};

@@ -456,3 +456,18 @@ export const vehicleModelSchema = z.object({
   brand: z.string().trim().min(1, "กรุณาเลือกยี่ห้อรถ"),
   model: z.string().trim().min(1, "กรุณากรอกรุ่นรถ"),
 });
+
+// ต้องตรงกับ repairDepositSchema และ setRepairDeposit ฝั่งเซิร์ฟเวอร์ เพดานคือยอดบิล
+export const depositSchemaFor = (total) =>
+  z.object({
+    amount: z.preprocess(
+      (value) =>
+        typeof value === "string" && value.trim() === "" ? undefined : value,
+      z.coerce
+        .number({ error: "กรุณากรอกจำนวนเงินมัดจำ" })
+        .int("จำนวนเงินต้องเป็นจำนวนเต็ม")
+        .min(1, "กรุณากรอกจำนวนเงินมัดจำ")
+        .max(total, `มัดจำต้องไม่เกินยอดบิล ${total.toLocaleString()} บาท`),
+    ),
+    method: z.string().min(1, "กรุณาเลือกวิธีชำระเงิน"),
+  });

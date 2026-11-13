@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar as CalendarIcon, Edit, X } from "lucide-react";
+import { Calendar as CalendarIcon, Edit, HandCoins, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -7,7 +7,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { formatDate } from "@/utils/formats";
+import { formatCurrency, formatDate } from "@/utils/formats";
+import { depositOf } from "@/utils/receipt";
 import { isSaleRepair } from "@/utils/repairDisplay";
 import ComboBox from "@/components/ui/ComboBox";
 import FieldErrorList from "@/components/forms/FieldErrorList";
@@ -171,14 +172,19 @@ const RepairDetailPayment = ({
   onSavePaidMethod,
   isSavingPaidMethod,
   canSavePaidMethod,
+  // ไม่ส่งมา = บิลนี้รับหรือแก้มัดจำไม่ได้แล้ว
+  onEditDeposit,
 }) => {
   const methodText = getPaymentMethodText(repair.paymentMethod) || "ไม่ระบุ";
   const showMethod =
     repair.status !== "ESTIMATE" && !(isCancelled && !repair.paymentMethod);
   const isPaidView =
     isCancelled || (repair.status === "PAID" && !isEditingPaidMethod);
+  // บิลที่รับมัดจำไว้ลงเครดิตไม่ได้ (ต้องตรงกับ updateRepairStatus ฝั่งเซิร์ฟเวอร์)
   const baseOptions =
-    repair.status === "PAID" || repair.status === "CREDIT"
+    repair.status === "PAID" ||
+    repair.status === "CREDIT" ||
+    repair.depositAmount
       ? PAYMENT_METHODS
       : PAYMENT_OPTIONS_WITH_CREDIT;
   const options = canPayByCheque(repair) ? ALL_PAYMENT_METHODS : baseOptions;
@@ -190,8 +196,25 @@ const RepairDetailPayment = ({
       {/* ปุ่มแก้ไขอยู่ที่หัวข้อแบบเดียวกับรายการซ่อม เพราะแก้ได้ทั้งวิธีจ่ายและข้อมูลเช็ค */}
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-normal text-[22px] font-semibold md:text-2xl">
-          {repair.status === "ESTIMATE" ? "สถานะ" : "การชำระเงิน"}
+          {repair.status === "ESTIMATE" && !onEditDeposit
+            ? "สถานะ"
+            : "การชำระเงิน"}
         </p>
+        {/* ปุ่มอยู่ที่หัวข้อแบบเดียวกับแก้ไขการชำระเงิน บิลที่จ่ายแล้วแก้มัดจำไม่ได้ จึงไม่ชนกัน */}
+        {onEditDeposit && (
+          <button
+            type="button"
+            onClick={onEditDeposit}
+            className="text-primary flex cursor-pointer items-center gap-1 text-xl font-semibold md:text-[22px]"
+          >
+            {repair.depositAmount ? (
+              <Edit className="h-5 w-5" />
+            ) : (
+              <HandCoins className="h-5 w-5" />
+            )}
+            {repair.depositAmount ? "แก้ไขมัดจำ" : "รับมัดจำ"}
+          </button>
+        )}
         {repair.status === "PAID" &&
           !isCancelled &&
           (isEditingPaidMethod ? (
@@ -302,6 +325,32 @@ const RepairDetailPayment = ({
                   error={chequeErrors.chequeDate?.message}
                 />
               </>
+            )}
+          </>
+        )}
+        {repair.depositAmount > 0 && (
+          <>
+            {/* วันที่รับ คืน หรือริบมัดจำอยู่ในส่วนวันเวลา */}
+            <InfoRow label="มัดจำ:">
+              {formatCurrency(Number(repair.depositAmount))}
+              {repair.depositMethod &&
+                ` (${getPaymentMethodText(repair.depositMethod)})`}
+            </InfoRow>
+            {depositOf(repair) > 0 && !isCancelled && (
+              <div className="flex justify-between gap-2">
+                <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                  {repair.status === "PAID"
+                    ? "ชำระส่วนที่เหลือ:"
+                    : "คงเหลือชำระ:"}
+                </p>
+                <p
+                  className={`text-lg font-semibold md:text-xl ${statusInfo.color}`}
+                >
+                  {formatCurrency(
+                    Number(repair.totalPrice) - depositOf(repair),
+                  )}
+                </p>
+              </div>
             )}
           </>
         )}

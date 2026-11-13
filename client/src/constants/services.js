@@ -141,7 +141,7 @@ export const TIRE_ALIGNMENT_FREEBIE_NAME = "ตั้งศูนย์";
 // ตั้งศูนย์ฟรีจากยางสี่เส้นที่ค้างไว้ (ช่วงล่างหลวม) กับบรรทัดที่มาตั้งทีหลัง
 // ป้ายในแอปกับใบเสร็จใช้คำเดียวกัน (ต้องตรงกับ receiptHtml.js)
 export const ALIGNMENT_DEFERRED_NOTE = "ค้างตั้งศูนย์";
-export const ALIGNMENT_REDEEMED_NOTE = "ฟรีจากยาง 4 เส้นครั้งก่อน";
+export const ALIGNMENT_REDEEMED_NOTE = "ฟรีจากยางใหม่ 4 เส้น";
 export const alignmentNoteOf = (item) =>
   item?.alignmentDeferred
     ? ALIGNMENT_DEFERRED_NOTE

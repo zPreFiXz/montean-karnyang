@@ -6,6 +6,7 @@ import {
   updateRepairStatus,
   deleteRepair,
   cancelRepair,
+  setRepairDeposit,
 } from "@/api/repair";
 import { withMinDuration } from "@/utils/withMinDuration";
 import { formatCurrency } from "@/utils/formats";
@@ -58,6 +59,7 @@ import {
   chequeErrorsOf,
   CREDIT_OPTION_ID,
 } from "@/constants/paymentMethods";
+import DepositDialog from "@/components/dialogs/DepositDialog";
 import {
   isSaleRepair,
   isNoVehicleRepair,
@@ -88,6 +90,20 @@ const RepairDetail = () => {
   const [isSavingPaidMethod, setIsSavingPaidMethod] = useState(false);
   const [isSavingEstimate, setIsSavingEstimate] = useState(false);
   const [isEstimateConfirmOpen, setIsEstimateConfirmOpen] = useState(false);
+  const [isDepositOpen, setIsDepositOpen] = useState(false);
+
+  const handleSaveDeposit = async ({ amount, method }) => {
+    await setRepairDeposit(repair.id, { amount, method });
+    setRepair((prev) => ({
+      ...prev,
+      depositAmount: amount || null,
+      depositMethod: amount ? method : null,
+      depositPaidAt: amount
+        ? (prev.depositPaidAt ?? new Date().toISOString())
+        : null,
+    }));
+    toast.success(amount ? "บันทึกมัดจำเรียบร้อยแล้ว" : "ลบมัดจำเรียบร้อยแล้ว");
+  };
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState(null);
   const isCreditSelected = selectedPaymentMethod === CREDIT_OPTION_ID;
@@ -323,6 +339,10 @@ const RepairDetail = () => {
 
   // บิลขายที่จ่ายตอนสร้าง เกิดและจบพร้อมกัน มีแค่เวลาเดียว
   const isSale = isSaleRepair(repair);
+  // ต้องตรงกับ DEPOSIT_STATUSES ฝั่งเซิร์ฟเวอร์
+  const canEditDeposit =
+    !isSale &&
+    ["ESTIMATE", "IN_PROGRESS", "COMPLETED"].includes(repair?.status);
   const paidOnCreate =
     isSale &&
     !!repair?.paidAt &&
@@ -386,12 +406,19 @@ const RepairDetail = () => {
 
   // ลบได้เฉพาะบิลเลขล่าสุด บิลอื่นยกเลิกแทน เลขจะได้ไม่ขาดช่วง
   const isCancelled = repair?.status === "CANCELLED";
-  const canDelete = !repair?.docNosSkippedOnDelete?.length;
+  // ลบบิลที่รับมัดจำ เงินจะหายจากรายงานวันที่รับ จึงต้องยกเลิกแทน (ต้องตรงกับ deleteRepair ฝั่งเซิร์ฟเวอร์)
+  const canDelete =
+    !repair?.docNosSkippedOnDelete?.length && !repair?.depositAmount;
   const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
+  // บิลที่จ่ายแล้วหักมัดจำไปในยอดแล้ว ที่ยังไม่จ่ายต้องเลือกว่าคืนหรือริบ
+  const hasOpenDeposit = !!repair?.depositAmount && repair?.status !== "PAID";
+  const [depositAction, setDepositAction] = useState("");
 
   const handleCancelRepair = async () => {
     try {
-      await withMinDuration(() => cancelRepair(repair.id));
+      await withMinDuration(() =>
+        cancelRepair(repair.id, hasOpenDeposit ? { depositAction } : {}),
+      );
       toast.success("ยกเลิกบิลเรียบร้อยแล้ว");
       setIsCancelConfirmOpen(false);
       fetchRepairDetail();
@@ -736,6 +763,9 @@ const RepairDetail = () => {
                 });
               }}
               chequeErrors={chequeErrors}
+              onEditDeposit={
+                canEditDeposit ? () => setIsDepositOpen(true) : undefined
+              }
               isSavingPaidMethod={isSavingPaidMethod}
               canSavePaidMethod={hasPaidMethodChanged}
               onSavePaidMethod={() =>
@@ -853,12 +883,51 @@ const RepairDetail = () => {
 
       <ConfirmDialog
         isOpen={isCancelConfirmOpen}
-        onClose={() => setIsCancelConfirmOpen(false)}
+        onClose={() => {
+          setIsCancelConfirmOpen(false);
+          setDepositAction("");
+        }}
         onConfirm={handleCancelRepair}
         title="ยืนยันการยกเลิกบิล"
         itemName={getRepairTitle(repair)}
         itemDetail={confirmItemDetail}
         confirmLabel="ยกเลิกบิล"
+        confirmDisabled={hasOpenDeposit && !depositAction}
+      >
+        {hasOpenDeposit && (
+          <div className="mt-4 w-full">
+            <p className="text-subtle-dark mb-2 text-center text-lg font-medium md:text-xl">
+              มัดจำ {formatCurrency(Number(repair.depositAmount))}
+            </p>
+            <div className="flex gap-2">
+              {[
+                { id: "REFUND", label: "คืนมัดจำ" },
+                { id: "KEEP", label: "ริบมัดจำ" },
+              ].map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setDepositAction(option.id)}
+                  aria-pressed={depositAction === option.id}
+                  className={`h-[41px] flex-1 cursor-pointer rounded-[20px] border text-lg font-semibold duration-300 md:text-xl ${
+                    depositAction === option.id
+                      ? "bg-primary text-surface border-primary"
+                      : "text-subtle-dark bg-surface border-gray-300"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </ConfirmDialog>
+
+      <DepositDialog
+        isOpen={isDepositOpen}
+        onClose={() => setIsDepositOpen(false)}
+        repair={repair}
+        onSave={handleSaveDeposit}
       />
     </div>
   );

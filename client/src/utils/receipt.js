@@ -204,8 +204,37 @@ export const asDeliveryNote = (repair) => ({
   chequeDate: null,
 });
 
+// ใบรับเงินมัดจำเป็นใบเสร็จของเงินมัดจำก้อนเดียว ใช้เลขของบิลเดิมอ้างอิง ลงวันที่รับมัดจำ
+// (ต้องตรงกับ asDepositReceipt ใน receiptHtml.js)
+export const DEPOSIT_LINE_NAME = "เงินมัดจำค่าอะไหล่และค่าบริการ";
+export const asDepositReceipt = (repair) => {
+  const deposit = Number(repair?.depositAmount || 0);
+  return {
+    ...repair,
+    isDeposit: true,
+    type: "GENERAL",
+    status: "PAID",
+    receiptNo: receiptDocNo(repair),
+    deliveryNo: null,
+    paidAt: repair?.depositPaidAt,
+    paymentMethod: repair?.depositMethod,
+    totalPrice: deposit,
+    billTotal: Number(repair?.totalPrice || 0),
+    depositAmount: null,
+    repairItems: [
+      {
+        id: "deposit",
+        itemName: DEPOSIT_LINE_NAME,
+        quantity: 1,
+        unitPrice: deposit,
+      },
+    ],
+  };
+};
+
 // ยังไม่ซ่อม = ใบเสนอราคา, เครดิต = ใบส่งของ, เรียกใบเสร็จได้เฉพาะตอนรับเงินแล้ว
 export const receiptDocTitle = (repair) => {
+  if (repair?.isDeposit) return "ใบรับเงินมัดจำ";
   if (repair?.status === "ESTIMATE") return "ใบเสนอราคา";
   if (repair?.status === "CREDIT") return "ใบส่งของ";
   return "ใบเสร็จรับเงิน";
@@ -361,8 +390,34 @@ export const billPages = (repairs) => {
   return pages;
 };
 const DELIVERY_PAGE_LINES = 14;
-const summaryLinesOf = (discountCount) =>
-  discountCount ? discountCount + 2 : 1;
+// มัดจำที่ยังหักจากยอด คืนเงินไปแล้วไม่ต้องหัก (ต้องตรงกับ depositOf ใน receiptHtml.js)
+export const depositOf = (repair) =>
+  repair?.depositAmount && !repair?.depositRefundedAt
+    ? Number(repair.depositAmount)
+    : 0;
+// แถวใต้ยอดรวม: ใบที่หักมัดจำบอกหักมัดจำกับคงเหลือชำระ ใบรับเงินมัดจำบอกยอดรวมทั้งบิลกับคงเหลือชำระ
+// (ต้องตรงกับ depositRowsOf ใน receiptHtml.js)
+export const depositRowsOf = (repair) => {
+  if (repair?.isDeposit) {
+    return [
+      { label: "ยอดรวมทั้งบิล", amount: repair.billTotal },
+      {
+        label: "คงเหลือชำระ",
+        amount: repair.billTotal - Number(repair.totalPrice || 0),
+        bold: true,
+      },
+    ];
+  }
+  const deposit = depositOf(repair);
+  if (!deposit) return [];
+  const total = Number(repair.totalPrice || 0);
+  return [
+    { label: "หักมัดจำ", amount: -deposit },
+    { label: "คงเหลือชำระ", amount: total - deposit, bold: true },
+  ];
+};
+export const summaryLinesOf = (discountCount, depositRows) =>
+  (discountCount ? discountCount + 2 : 1) + depositRows;
 const makeRoomForQr = (pages, linesOf, summaryRows, limit) => {
   const last = [...pages[pages.length - 1]];
   const moved = [];
@@ -478,7 +533,10 @@ export const buildReceiptPages = (repair, { showBrand = true } = {}) => {
     ? makeRoomForQr(
         paginateRows(rows, linesOf),
         linesOf,
-        summaryLinesOf(discountTotal ? discountItems.length : 0),
+        summaryLinesOf(
+          discountTotal ? discountItems.length : 0,
+          depositRowsOf(repair).length,
+        ),
         lastPageLimit,
       )
     : paginateRows(rows, linesOf);

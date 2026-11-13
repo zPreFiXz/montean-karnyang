@@ -6,6 +6,8 @@ import {
   PAYMENT_QR_NAME,
   SHOP,
   buildReceiptPages,
+  depositRowsOf,
+  summaryLinesOf,
   formatAmount,
   formatMoney,
   hasPaymentQr,
@@ -51,11 +53,10 @@ const ReceiptPaper = ({
     0,
   );
   const hasDiscount = isLastPage && discountTotal !== 0;
-  // แถวสรุปที่วาดจริง: มีส่วนลด = รวมเป็นเงิน + แถวส่วนลด + ยอดรวม (ตรงกับ summaryLinesOf)
+  const depositRows = depositRowsOf(repair);
+  // แถวสรุปที่วาดจริง ต้องตรงกับ summaryLinesOf
   const summaryRows = isLastPage
-    ? hasDiscount
-      ? discountItems.length + 2
-      : 1
+    ? summaryLinesOf(hasDiscount ? discountItems.length : 0, depositRows.length)
     : 0;
   const usedLines = items.reduce(
     (sum, row) => sum + rowLines(row, showBrand),
@@ -274,6 +275,20 @@ const ReceiptPaper = ({
                 </td>
               </tr>
             )}
+            {isLastPage &&
+              depositRows.map((row) => (
+                <tr key={row.label}>
+                  <td colSpan={2} />
+                  <td className="border border-black px-1 text-center whitespace-nowrap">
+                    {row.label}
+                  </td>
+                  <td
+                    className={`border border-black px-1 text-right ${row.bold ? "font-semibold" : ""}`}
+                  >
+                    {formatMoney(row.amount)}
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
 

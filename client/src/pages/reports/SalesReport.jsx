@@ -23,6 +23,7 @@ import BrandIcons from "@/components/icons/BrandIcons";
 import { Paid } from "@/components/icons/Icons";
 import { ShoppingBag } from "lucide-react";
 import { ALL_PAYMENT_METHODS } from "@/constants/paymentMethods";
+import { ENTRY_NOTES, salesEntriesOf } from "@/utils/salesEntries";
 import {
   isSaleRepair,
   isNoVehicleRepair,
@@ -84,58 +85,41 @@ const SalesReport = () => {
     const periodType = getPeriodType();
     const { startDate, endDate } = getDateRange(currentDate, periodType);
 
-    const periodPaidRepairs = repairs.filter((repair) => {
-      if (repair.status !== "PAID" || !repair.paidAt) {
-        return false;
-      }
-
-      const paidDate = new Date(repair.paidAt);
-      return paidDate >= startDate && paidDate <= endDate;
+    const entries = salesEntriesOf(repairs, (at) => {
+      const date = new Date(at);
+      return date >= startDate && date <= endDate;
     });
 
-    const totalRevenue = periodPaidRepairs.reduce((total, repair) => {
-      return total + parseFloat(repair.totalPrice || 0);
-    }, 0);
-
     return {
-      totalRevenue,
-      repairs: periodPaidRepairs.sort(
-        (a, b) => new Date(b.paidAt) - new Date(a.paidAt),
-      ),
+      totalRevenue: entries.reduce((total, entry) => total + entry.amount, 0),
+      entries,
     };
   };
 
-  const getCarCardData = (repair) => {
-    const paidTime = repair.paidAt ? formatTime(repair.paidAt) : "";
-
-    return {
-      licensePlate: getRepairTitle(repair, getProvinceName),
-      brand: getRepairSubtitle(repair),
-      time: paidTime,
-      price: parseFloat(repair.totalPrice || 0),
-    };
-  };
+  const getCarCardData = ({ repair, kind, at, amount }) => ({
+    licensePlate: getRepairTitle(repair, getProvinceName),
+    brand: getRepairSubtitle(repair),
+    time: formatTime(at),
+    note: ENTRY_NOTES[kind],
+    price: amount,
+  });
 
   const periodType = getPeriodType();
-  const { totalRevenue, repairs: periodRepairs } = getReportsData();
+  const { totalRevenue, entries: periodRepairs } = getReportsData();
 
-  // บิลเก่าที่ไม่มีวิธีชำระเงินถือเป็นเงินสด ตรงกับค่าเริ่มต้นของฐานข้อมูล
   const revenueByPaymentMethod = ALL_PAYMENT_METHODS.map((method) => ({
     ...method,
     total: periodRepairs.reduce(
-      (sum, repair) =>
-        (repair.paymentMethod || "CASH") === method.id
-          ? sum + Number(repair.totalPrice || 0)
-          : sum,
+      (sum, entry) => (entry.method === method.id ? sum + entry.amount : sum),
       0,
     ),
-  })).filter((method) => method.total > 0);
+  })).filter((method) => method.total !== 0);
 
-  const groupRepairsByDay = (repairsList) => {
-    return repairsList.reduce((acc, r) => {
-      const key = formatDateWithWeekday(r.paidAt || r.createdAt || new Date());
+  const groupRepairsByDay = (entries) => {
+    return entries.reduce((acc, entry) => {
+      const key = formatDateWithWeekday(entry.at);
       if (!acc[key]) acc[key] = [];
-      acc[key].push(r);
+      acc[key].push(entry);
       return acc;
     }, {});
   };
@@ -195,12 +179,13 @@ const SalesReport = () => {
         ) : periodRepairs.length > 0 ? (
           <div className={periodType === "daily" ? "pt-4" : "pt-2"}>
             {periodType === "daily"
-              ? periodRepairs.map((repair, index) => {
-                  const carData = getCarCardData(repair);
+              ? periodRepairs.map((entry, index) => {
+                  const repair = entry.repair;
+                  const carData = getCarCardData(entry);
                   return (
                     <Link
                       to={`/repairs/${repair.id}`}
-                      key={index}
+                      key={entry.key}
                       className={index > 0 ? "mt-4 block" : "block"}
                       state={{
                         returnTo: location.pathname + location.search,
@@ -235,6 +220,7 @@ const SalesReport = () => {
                         }
                         brand={carData.brand}
                         time={carData.time}
+                        note={carData.note}
                         price={carData.price}
                       />
                     </Link>
@@ -246,12 +232,13 @@ const SalesReport = () => {
                       <p className="text-subtle-dark mb-2 text-lg font-medium md:text-xl">
                         {day}
                       </p>
-                      {repairsForDay.map((repair, i) => {
-                        const carData = getCarCardData(repair);
+                      {repairsForDay.map((entry, i) => {
+                        const repair = entry.repair;
+                        const carData = getCarCardData(entry);
                         return (
                           <Link
                             to={`/repairs/${repair.id}`}
-                            key={i}
+                            key={entry.key}
                             className={i > 0 ? "mt-3 block" : "block"}
                             state={{
                               returnTo: location.pathname + location.search,
@@ -286,6 +273,7 @@ const SalesReport = () => {
                               }
                               brand={carData.brand}
                               time={carData.time}
+                              note={carData.note}
                               price={carData.price}
                             />
                           </Link>

@@ -130,3 +130,7 @@ const usePaperFit = ({ open, chromeEstimate, onOpen }) => {
 };
 
 export default usePaperFit;
+
+// ไดอะล็อกเอกสารใหญ่เกือบเต็มจอ แอนิเมชันขยาย 95% ของ shadcn ทำให้ขอบเลื่อนเกือบ 20px ดูเหมือนกล่องขยับ
+// ทับตัวแปรสเกลของ tw-animate-css ให้เปิดปิดแบบจางอย่างเดียว (ค่าในแท็ก style ชนะคลาส)
+export const FADE_ONLY_STYLE = { "--tw-enter-scale": 1, "--tw-exit-scale": 1 };

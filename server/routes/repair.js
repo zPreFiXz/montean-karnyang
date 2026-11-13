@@ -1,7 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const validate = require("../middlewares/validate");
-const { repairSchema, updateRepairStatusSchema } = require("../utils/schemas");
+const {
+  repairSchema,
+  updateRepairStatusSchema,
+  repairDepositSchema,
+  cancelRepairSchema,
+} = require("../utils/schemas");
 
 const { authCheck } = require("../middlewares/auth");
 
@@ -15,6 +20,7 @@ const {
   updateRepairStatus,
   deleteRepair,
   cancelRepair,
+  setRepairDeposit,
   printRepairReceipt,
   renderRepairImages,
 } = require("../controllers/repair");
@@ -27,7 +33,18 @@ router.get("/repairs/:id", authCheck, getRepair);
 router.post("/repairs", authCheck, validate(repairSchema), createRepair);
 router.put("/repairs/:id", authCheck, validate(repairSchema), updateRepair);
 router.delete("/repairs/:id", authCheck, deleteRepair);
-router.patch("/repairs/:id/cancel", authCheck, cancelRepair);
+router.patch(
+  "/repairs/:id/cancel",
+  authCheck,
+  validate(cancelRepairSchema),
+  cancelRepair,
+);
+router.patch(
+  "/repairs/:id/deposit",
+  authCheck,
+  validate(repairDepositSchema),
+  setRepairDeposit,
+);
 router.post("/repairs/:id/print", authCheck, printRepairReceipt);
 router.post("/repairs/:id/image", authCheck, renderRepairImages);
 router.patch(

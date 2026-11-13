@@ -23,6 +23,9 @@ const ConfirmDialog = ({
   confirmClass = "bg-destructive",
   // งานที่ลบของทิ้งต้องกดค้าง งานที่ย้อนกลับได้ (เช่นบันทึกเป็นใบเสนอราคา) กดครั้งเดียวพอ
   requireHold = true,
+  // ตัวเลือกเพิ่มใต้ชิป (เช่นคืนหรือริบมัดจำตอนยกเลิกบิล) ยังไม่เลือกก็ยืนยันไม่ได้
+  children,
+  confirmDisabled = false,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const cancelButtonRef = useRef(null);
@@ -136,6 +139,7 @@ const ConfirmDialog = ({
               {note}
             </p>
           )}
+          {children}
         </div>
 
         <div className="flex-shrink-0 px-5 pb-4">
@@ -154,7 +158,7 @@ const ConfirmDialog = ({
             {requireHold ? (
               <button
                 type="button"
-                disabled={isLoading}
+                disabled={isLoading || confirmDisabled}
                 onPointerDown={(e) => {
                   // กันเบราว์เซอร์สร้างเหตุการณ์เมาส์จำลองตามหลังการแตะ
                   e.preventDefault();
@@ -193,7 +197,7 @@ const ConfirmDialog = ({
               <FormButton
                 label={confirmLabel}
                 isLoading={isLoading}
-                disabled={isLoading}
+                disabled={isLoading || confirmDisabled}
                 onClick={handleConfirm}
                 className={`font-athiti ${confirmClass} mr-0 ml-0 flex-1`}
               />
