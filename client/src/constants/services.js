@@ -39,11 +39,17 @@ export const SUSPENSION_DEFAULT_SERVICE_NAMES = [
 
 // ราคาติดลบ ยอดรวมจึงบวกกันตรงๆ ได้ ไม่ต้องมีช่องส่วนลดแยก
 export const DISCOUNT_SERVICE_NAME = "ส่วนลด";
+// รับยางเก่าลูกค้ามาหักราคา ทำงานแบบส่วนลด (ต้องตรงกับ DISCOUNT_SERVICE_NAMES ฝั่งเซิร์ฟเวอร์)
+export const TRADE_IN_SERVICE_NAME = "เทิร์นยางเก่า";
+export const DISCOUNT_SERVICE_NAMES = [
+  DISCOUNT_SERVICE_NAME,
+  TRADE_IN_SERVICE_NAME,
+];
 
 export const isDiscountItem = (item) =>
   !!item?.isDiscountLine ||
-  item?.service?.name === DISCOUNT_SERVICE_NAME ||
-  (!item?.partNumber && item?.name === DISCOUNT_SERVICE_NAME) ||
+  DISCOUNT_SERVICE_NAMES.includes(item?.service?.name) ||
+  (!item?.partNumber && DISCOUNT_SERVICE_NAMES.includes(item?.name)) ||
   // ราคาติดลบมีแต่ส่วนลดเท่านั้น ใช้เป็นตาข่ายรองรับบรรทัดที่ถูกเปลี่ยนชื่อ
   // หรือร่างเก่าที่บันทึกไว้ก่อนระบบจะติดธงบอกชนิดบรรทัด
   Number(item?.sellingPrice ?? item?.unitPrice ?? 0) < 0;
@@ -87,6 +93,7 @@ export const isNoCategoryItem = (item) =>
 export const NO_CATEGORY_ORDER = [
   PART_PLACEHOLDER_SERVICE_NAME,
   DISCOUNT_SERVICE_NAME,
+  TRADE_IN_SERVICE_NAME,
 ];
 
 export const PER_SIDE_SERVICE_NAME = "ตั้งลูกปืนล้อ";

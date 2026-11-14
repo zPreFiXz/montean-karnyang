@@ -125,6 +125,8 @@ const billPages = (repairs) => {
   }
   return pages;
 };
+// ส่วนลดกับเทิร์นยางเก่าหักจากยอด (ต้องตรงกับ DISCOUNT_SERVICE_NAMES ฝั่งหน้าเว็บ)
+const DISCOUNT_SERVICE_NAMES = ["ส่วนลด", "เทิร์นยางเก่า"];
 const DELIVERY_PAGE_LINES = 14;
 // มัดจำที่ยังหักจากยอด คืนเงินไปแล้วไม่ต้องหัก (ต้องตรงกับ depositOf ฝั่งหน้าเว็บ)
 const depositOf = (repair) =>
@@ -561,7 +563,7 @@ const alignmentNoteOf = (item) =>
 const receiptPages = (repair, { showBrand = true } = {}) => {
   // ราคาติดลบมีแต่ส่วนลด ใช้รองรับบรรทัดที่ถูกเปลี่ยนชื่อ
   const isDiscount = (item) =>
-    (item.service?.name || item.itemName) === "ส่วนลด" ||
+    DISCOUNT_SERVICE_NAMES.includes(item.service?.name || item.itemName) ||
     Number(item.unitPrice) < 0;
   const noteRow = chequeNoteRow(repair);
   const discountItems = noteRow
@@ -1131,7 +1133,7 @@ const jobSheetPages = (repair, nameOf) => {
     // ตั้งศูนย์ที่ค้างไว้ยังไม่ได้ทำวันนี้ ช่างไม่ต้องเห็น
     return (
       name !== "ค่าแรง" &&
-      name !== "ส่วนลด" &&
+      !DISCOUNT_SERVICE_NAMES.includes(name) &&
       item.itemName !== "ค่าแรง" &&
       !item.alignmentDeferred
     );

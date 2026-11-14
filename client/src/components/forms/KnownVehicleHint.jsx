@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { ChevronRight, History, Ticket, TriangleAlert } from "lucide-react";
 import { lookupVehicleByPlate } from "@/api/vehicle";
 import { formatDateShort } from "@/utils/formats";
-import { DISCOUNT_SERVICE_NAME } from "@/constants/services";
+import { DISCOUNT_SERVICE_NAMES } from "@/constants/services";
 import { getDisplayBrand } from "@/utils/repairDisplay";
 
 // เท่ากับจังหวะยุบแถวของรายการซ่อน ทั้งระบบจะได้เคลื่อนไหวความเร็วเดียวกัน
@@ -143,7 +143,7 @@ const KnownVehicleHint = ({
     ...new Set(
       (lastVisit?.repairItems || [])
         .map((item) => item.itemName || item.part?.name || item.service?.name)
-        .filter((name) => name && name !== DISCOUNT_SERVICE_NAME),
+        .filter((name) => name && !DISCOUNT_SERVICE_NAMES.includes(name)),
     ),
   ];
 

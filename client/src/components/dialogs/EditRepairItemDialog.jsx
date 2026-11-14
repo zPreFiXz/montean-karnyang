@@ -10,6 +10,7 @@ import {
   PLACEHOLDER_SERVICE_NAMES,
   isPartLikeItem,
   isDiscountItem,
+  TRADE_IN_SERVICE_NAME,
 } from "@/constants/services";
 import { editNamePriceSchema } from "@/utils/schemas";
 import { formatCurrency } from "@/utils/formats";
@@ -34,6 +35,7 @@ const EditRepairItemDialog = ({
 }) => {
   // ส่วนลดเก็บเป็นเลขติดลบ แต่ให้กรอกเป็นเลขบวก ดูจากธงไม่ใช่ชื่อ เพราะส่วนลดเปลี่ยนชื่อได้
   const isDiscount = isDiscountItem({ name: currentName, isDiscountLine });
+  const isTradeIn = (currentName || "").trim() === TRADE_IN_SERVICE_NAME;
   const nameLabel = isDiscount
     ? "ชื่อส่วนลด"
     : !isService || isPartLikeItem({ name: currentName, isPartLine })
@@ -72,8 +74,9 @@ const EditRepairItemDialog = ({
 
   const watchedPrice = watch("price");
   const price = watchedPrice || currentPrice?.toString() || "0";
+  // เทิร์นยางเก่าแยกการ์ดออกมาให้ชื่อตรงกันทุกบิล จึงไม่ให้แก้ชื่อ
   const isNameEditable =
-    typeof canEditName === "boolean" ? canEditName : isService;
+    !isTradeIn && (typeof canEditName === "boolean" ? canEditName : isService);
   const hasAdjustedPrice =
     originalPrice != null && Number(originalPrice) !== Number(currentPrice);
 
@@ -205,7 +208,13 @@ const EditRepairItemDialog = ({
                   <FormInput
                     register={register}
                     name="price"
-                    label={isDiscount ? "ส่วนลด (บาท)" : "ราคาต่อหน่วย (บาท)"}
+                    label={
+                      isTradeIn
+                        ? "เทิร์นยางเก่า (บาท)"
+                        : isDiscount
+                          ? "ส่วนลด (บาท)"
+                          : "ราคาต่อหน่วย (บาท)"
+                    }
                     // ช่องตัวเลขคืนค่าว่างระหว่างพิมพ์ไม่จบ ("15.") เลขที่พิมพ์จะหาย
                     type="text"
                     placeholder="0"

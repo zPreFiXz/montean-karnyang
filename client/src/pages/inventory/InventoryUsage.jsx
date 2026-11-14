@@ -23,6 +23,7 @@ import { formatDateShort, formatMonth, monthKey } from "@/utils/formats";
 import { getStatusInfo } from "@/constants/repairStatus";
 import {
   isDiscountItem,
+  DISCOUNT_SERVICE_NAME,
   isPartLikeItem,
   PART_PLACEHOLDER_SERVICE_NAME,
   SERVICE_PLACEHOLDER_SERVICE_NAME,
@@ -96,7 +97,8 @@ const InventoryUsage = () => {
   const isService = type === "service";
 
   // รายการเปล่าไว้พิมพ์ชื่อทับ ชื่อในบิลจึงต่างกันทุกใบ เช่นส่วนลดที่เปลี่ยนชื่อเป็นหักมัดจำ
-  const isDiscount = isDiscountItem({ name: itemName });
+  // ชื่อเทิร์นยางเก่าตายตัว มีแต่ส่วนลดที่ถูกเปลี่ยนชื่อในบิล
+  const isDiscount = itemName === DISCOUNT_SERVICE_NAME;
   const isRenamable =
     itemName === PART_PLACEHOLDER_SERVICE_NAME ||
     itemName === SERVICE_PLACEHOLDER_SERVICE_NAME ||
@@ -140,7 +142,7 @@ const InventoryUsage = () => {
       names.find((name) => String(name).toLowerCase().includes(keyword))) ||
     names[0];
 
-  const usageNoun = isDiscountItem({ name: itemName })
+  const usageNoun = isDiscount
     ? "ส่วนลด"
     : isService && !isPartLikeItem({ name: itemName })
       ? "บริการ"

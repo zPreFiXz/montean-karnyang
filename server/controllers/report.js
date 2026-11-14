@@ -9,8 +9,10 @@ const PLACEHOLDER_SERVICE_NAMES = ["ค่าแรง", "บริการอ�
 // บริการที่จริงๆ เป็นของชิ้นหนึ่ง นับอยู่ฝั่งอะไหล่ (ต้องตรงกับ isPartLikeItem ฝั่งหน้าเว็บ)
 const PART_LIKE_SERVICE_NAMES = ["อะไหล่อื่นๆ", "จุ๊บลม", "จาระบี"];
 
+// ส่วนลดกับเทิร์นยางเก่าหักจากยอด ไม่ใช่ของที่ขาย (ต้องตรงกับ DISCOUNT_SERVICE_NAMES ฝั่งหน้าเว็บ)
+const DISCOUNT_SERVICE_NAMES = ["ส่วนลด", "เทิร์นยางเก่า"];
 const isDiscount = (item) =>
-  (item.service?.name || item.itemName) === "ส่วนลด" ||
+  DISCOUNT_SERVICE_NAMES.includes(item.service?.name || item.itemName) ||
   Number(item.unitPrice) < 0;
 
 // ขอบเขตวันส่งมาจากหน้าเว็บ ตรงกับรายงานยอดขาย

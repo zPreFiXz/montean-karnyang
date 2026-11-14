@@ -46,6 +46,9 @@ for (const count of [1, 8, 10, 11, 14, 22]) {
     });
     if (count % 2 === 0)
       items.push(serviceLine({ name: "ส่วนลด", unitPrice: -50 }));
+    // เทิร์นยางเก่าหักแบบส่วนลด ต้องไปอยู่แถวสรุปทั้งสองฝั่ง ไม่ใช่แถวรายการ
+    if (count === 11 || count === 22)
+      items.push(serviceLine({ name: "เทิร์นยางเก่า", unitPrice: -400 }));
     bills.push(
       repairWith(items, {
         type: count % 2 ? "SUSPENSION" : "GENERAL",
