@@ -6,8 +6,7 @@ import {
   PAYMENT_QR_NAME,
   SHOP,
   buildReceiptPages,
-  depositRowsOf,
-  summaryLinesOf,
+  receiptSummaryOf,
   formatAmount,
   formatMoney,
   hasPaymentQr,
@@ -48,24 +47,31 @@ const ReceiptPaper = ({
         ? ["ผู้อนุมัติ", "ผู้เสนอราคา"]
         : ["ผู้จ่ายเงิน", "ผู้รับเงิน"];
 
-  const discountTotal = discountItems.reduce(
-    (sum, item) => sum + Number(item.unitPrice) * Number(item.quantity),
-    0,
-  );
-  const hasDiscount = isLastPage && discountTotal !== 0;
-  const depositRows = depositRowsOf(repair);
-  // แถวสรุปที่วาดจริง ต้องตรงกับ summaryLinesOf
-  const summaryRows = isLastPage
-    ? summaryLinesOf(hasDiscount ? discountItems.length : 0, depositRows.length)
-    : 0;
+  const summary = receiptSummaryOf(repair, discountItems);
+  const summaryRows = isLastPage ? summary.lines : 0;
   const usedLines = items.reduce(
     (sum, row) => sum + rowLines(row, showBrand),
     0,
   );
   const blankRows = Math.max(0, MIN_ROWS - usedLines - summaryRows);
-  // ยอดในบิลหักส่วนลดไปแล้ว ยอดก่อนหักจึงต้องบวกกลับ (ส่วนลดเก็บเป็นเลขติดลบ)
-  const total = Number(repair.totalPrice || 0);
-  const subtotal = total - discountTotal;
+  // ชื่อส่วนลดพิมพ์เองได้ยาวเท่าไรก็ได้ ให้ตัดขึ้นบรรทัดใหม่ แถวอื่นเป็นคำสั้นที่ระบบตั้ง
+  const summaryRow = (row) => (
+    <tr key={row.key}>
+      <td colSpan={2} />
+      <td
+        className={`border border-black px-1 text-center ${
+          row.key.startsWith("discount-") ? "" : "whitespace-nowrap"
+        }`}
+      >
+        {row.label}
+      </td>
+      <td
+        className={`border border-black px-1 text-right ${row.bold ? "font-semibold" : ""}`}
+      >
+        {formatMoney(row.amount)}
+      </td>
+    </tr>
+  );
 
   return (
     <>
@@ -235,60 +241,26 @@ const ReceiptPaper = ({
                 <td className="border border-black" />
               </tr>
             ))}
-            {hasDiscount && (
+            {isLastPage && (
               <>
-                <tr>
-                  <td colSpan={2} />
-                  <td className="border border-black px-1 text-center whitespace-nowrap">
-                    รวมเป็นเงิน
+                {summary.above.map(summaryRow)}
+                <tr className="bg-gray-200">
+                  <td colSpan={2} className="border border-black px-1 py-[5px]">
+                    <span className="mr-1.5">จำนวนเงินรวมทั้งสิ้น</span>
+                    <span className="font-semibold">
+                      {bahtText(summary.sum.amount)}
+                    </span>
                   </td>
-                  <td className="border border-black px-1 text-right">
-                    {formatMoney(subtotal)}
+                  <td className="border border-black px-1 text-center whitespace-nowrap">
+                    {summary.sum.label}
+                  </td>
+                  <td className="border border-black px-1 text-right text-[13pt] font-semibold">
+                    {formatMoney(summary.sum.amount)}
                   </td>
                 </tr>
-                {discountItems.map((item) => (
-                  <tr key={item.id}>
-                    <td colSpan={2} />
-                    <td className="border border-black px-1 text-center">
-                      {item.itemName}
-                    </td>
-                    <td className="border border-black px-1 text-right">
-                      {formatMoney(
-                        Number(item.unitPrice) * Number(item.quantity),
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {summary.below.map(summaryRow)}
               </>
             )}
-            {isLastPage && (
-              <tr className="bg-gray-200">
-                <td colSpan={2} className="border border-black px-1 py-[5px]">
-                  <span className="mr-1.5">จำนวนเงินรวมทั้งสิ้น</span>
-                  <span className="font-semibold">{bahtText(total)}</span>
-                </td>
-                <td className="border border-black px-1 text-center whitespace-nowrap">
-                  จำนวนเงินรวม
-                </td>
-                <td className="border border-black px-1 text-right text-[13pt] font-semibold">
-                  {formatMoney(total)}
-                </td>
-              </tr>
-            )}
-            {isLastPage &&
-              depositRows.map((row) => (
-                <tr key={row.label}>
-                  <td colSpan={2} />
-                  <td className="border border-black px-1 text-center whitespace-nowrap">
-                    {row.label}
-                  </td>
-                  <td
-                    className={`border border-black px-1 text-right ${row.bold ? "font-semibold" : ""}`}
-                  >
-                    {formatMoney(row.amount)}
-                  </td>
-                </tr>
-              ))}
           </tbody>
         </table>
 

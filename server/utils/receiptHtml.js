@@ -130,29 +130,58 @@ const depositOf = (repair) =>
   repair?.depositAmount && !repair?.depositRefundedAt
     ? Number(repair.depositAmount)
     : 0;
-// แถวใต้ยอดรวม: ใบที่หักมัดจำบอกหักมัดจำกับคงเหลือชำระ ใบรับเงินมัดจำบอกยอดรวมทั้งบิลกับคงเหลือชำระ
-// (ต้องตรงกับ depositRowsOf ฝั่งหน้าเว็บ)
-const depositRowsOf = (repair) => {
-  if (repair.isDeposit) {
-    return [
-      { label: "ยอดรวมทั้งบิล", amount: repair.billTotal },
-      {
-        label: "คงเหลือชำระ",
-        amount: repair.billTotal - Number(repair.totalPrice || 0),
-        bold: true,
-      },
-    ];
-  }
-  const deposit = depositOf(repair);
-  if (!deposit) return [];
+// แถวสรุปท้ายตาราง: แถวเหนือแถวเทา แถวเทา (มีจำนวนเงินเป็นตัวอักษร) และแถวใต้แถวเทา
+// แถวเทาคือยอดที่ลูกค้าจ่ายจริง ส่วนลดและมัดจำหักอยู่เหนือแถวนี้ ใบรับเงินมัดจำบอกยอดทั้งบิลไว้ข้างใต้
+// (ต้องตรงกับ receiptSummaryOf ฝั่งหน้าเว็บ)
+const receiptSummaryOf = (repair, discountItems = []) => {
   const total = Number(repair.totalPrice || 0);
-  return [
-    { label: "หักมัดจำ", amount: -deposit },
-    { label: "คงเหลือชำระ", amount: total - deposit, bold: true },
-  ];
+  const discountTotal = discountItems.reduce(
+    (sum, item) => sum + Number(item.unitPrice) * Number(item.quantity),
+    0,
+  );
+  const hasDiscount = discountTotal !== 0;
+  const deposit = repair.isDeposit ? 0 : depositOf(repair);
+
+  const above = [];
+  if (hasDiscount || deposit) {
+    // ยอดในบิลหักส่วนลดไปแล้ว ยอดก่อนหักจึงต้องบวกกลับ (ส่วนลดเก็บเป็นเลขติดลบ)
+    above.push({
+      key: "subtotal",
+      label: "รวมเป็นเงิน",
+      amount: total - discountTotal,
+    });
+  }
+  if (hasDiscount) {
+    for (const item of discountItems) {
+      above.push({
+        key: `discount-${item.id}`,
+        label: item.itemName,
+        amount: Number(item.unitPrice) * Number(item.quantity),
+      });
+    }
+  }
+  if (deposit) {
+    above.push({ key: "deposit", label: "หักมัดจำ", amount: -deposit });
+  }
+
+  const sum = deposit
+    ? { label: "ยอดสุทธิ", amount: total - deposit }
+    : { label: "จำนวนเงินรวม", amount: total };
+
+  const below = repair.isDeposit
+    ? [
+        { key: "bill-total", label: "ยอดรวมทั้งบิล", amount: repair.billTotal },
+        {
+          key: "remaining",
+          label: "คงเหลือชำระ",
+          amount: repair.billTotal - total,
+          bold: true,
+        },
+      ]
+    : [];
+
+  return { above, sum, below, lines: above.length + 1 + below.length };
 };
-const summaryLinesOf = (discountCount, depositRows) =>
-  (discountCount ? discountCount + 2 : 1) + depositRows;
 const makeRoomForQr = (pages, linesOf, summaryRows, limit) => {
   const last = [...pages[pages.length - 1]];
   const moved = [];
@@ -179,7 +208,7 @@ const asIssued = (repair) =>
 
 // ใบรับเงินมัดจำเป็นใบเสร็จของเงินมัดจำก้อนเดียว ใช้เลขของบิลเดิมอ้างอิง ลงวันที่รับมัดจำ
 // (ต้องตรงกับ asDepositReceipt ฝั่งหน้าเว็บ)
-const DEPOSIT_LINE_NAME = "เงินมัดจำค่าอะไหล่และค่าบริการ";
+const DEPOSIT_LINE_NAME = "เงินมัดจำค่าอะไหล่";
 const asDepositReceipt = (repair) => {
   const deposit = Number(repair.depositAmount || 0);
   return {
@@ -484,10 +513,7 @@ const receiptPages = (repair, { showBrand = true } = {}) => {
     ? makeRoomForQr(
         paginateRows(rows, rowLines),
         rowLines,
-        summaryLinesOf(
-          discountTotal ? discountItems.length : 0,
-          depositRowsOf(repair).length,
-        ),
+        receiptSummaryOf(repair, discountTotal ? discountItems : []).lines,
         lastPageLimit,
       )
     : paginateRows(rows, rowLines);
@@ -527,16 +553,11 @@ const receiptPagesHtml = (
     ? `<span style="white-space:nowrap">เบอร์รถ</span><span class="dotted fleet">${escapeHtml(repair.vehicle.fleetNo)}</span>`
     : "";
 
-  const { pages, discountItems, discountTotal, rowName, rowLines } =
-    receiptPages(repair, { showBrand });
-  const hasDiscount = discountTotal !== 0;
-
-  const depositRows = depositRowsOf(repair);
-  // แถวสรุปที่วาดจริง ต้องตรงกับ summaryLinesOf
-  const summaryRows = summaryLinesOf(
-    hasDiscount ? discountItems.length : 0,
-    depositRows.length,
-  );
+  const { pages, discountItems, rowName, rowLines } = receiptPages(repair, {
+    showBrand,
+  });
+  const summary = receiptSummaryOf(repair, discountItems);
+  const summaryRows = summary.lines;
   // QR มีเฉพาะใบเสร็จ ใบเสนอราคายังไม่ถึงตอนจ่าย ใบส่งของลูกค้าจ่ายทีหลังตามใบวางบิล
   const showPaymentQr = hasPaymentQr(repair);
   // ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ
@@ -546,9 +567,6 @@ const receiptPagesHtml = (
       : repair.status === "ESTIMATE"
         ? ["ผู้อนุมัติ", "ผู้เสนอราคา"]
         : ["ผู้จ่ายเงิน", "ผู้รับเงิน"];
-  // ยอดในบิลหักส่วนลดไปแล้ว ยอดก่อนหักจึงต้องบวกกลับ (ส่วนลดเก็บเป็นเลขติดลบ)
-  const total = Number(repair.totalPrice || 0);
-  const subtotal = total - discountTotal;
 
   const rowHtml = ({
     item,
@@ -575,38 +593,17 @@ const receiptPagesHtml = (
       </tr>`;
   };
 
-  const summaryHtml = `${
-    hasDiscount
-      ? `<tr>
+  const summaryRowHtml = (row) => `<tr>
         <td colspan="2" class="blank"></td>
-        <td class="c">รวมเป็นเงิน</td>
-        <td class="r">${formatMoney(subtotal)}</td>
-      </tr>
-      ${discountItems
-        .map(
-          (item) => `<tr>
-        <td colspan="2" class="blank"></td>
-        <td class="c">${escapeHtml(item.itemName)}</td>
-        <td class="r">${formatMoney(Number(item.unitPrice) * Number(item.quantity))}</td>
-      </tr>`,
-        )
-        .join("")}`
-      : ""
-  }
-      <tr class="sum">
-        <td colspan="2">จำนวนเงินรวมทั้งสิ้น <span class="sum-text">${escapeHtml(bahtText(total))}</span></td>
-        <td class="c">จำนวนเงินรวม</td>
-        <td class="r" style="font-weight:600;font-size:13pt">${formatMoney(total)}</td>
-      </tr>${depositRows
-        .map(
-          (row) => `
-      <tr>
-        <td colspan="2" class="blank"></td>
-        <td class="c">${row.label}</td>
+        <td class="c">${escapeHtml(row.label)}</td>
         <td class="r"${row.bold ? ' style="font-weight:600"' : ""}>${formatMoney(row.amount)}</td>
-      </tr>`,
-        )
-        .join("")}`;
+      </tr>`;
+  const summaryHtml = `${summary.above.map(summaryRowHtml).join("")}
+      <tr class="sum">
+        <td colspan="2">จำนวนเงินรวมทั้งสิ้น <span class="sum-text">${escapeHtml(bahtText(summary.sum.amount))}</span></td>
+        <td class="c">${summary.sum.label}</td>
+        <td class="r" style="font-weight:600;font-size:13pt">${formatMoney(summary.sum.amount)}</td>
+      </tr>${summary.below.map(summaryRowHtml).join("")}`;
 
   // ปิดข้อมูลลูกค้า = เว้นช่องไว้ ไม่เอาบรรทัดออก (ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ)
   const phone = showCustomer ? formatPhone(repair.customer?.phoneNumber) : "";
@@ -1432,6 +1429,7 @@ module.exports = {
   // ใช้ในเทสต์เทียบกับฝั่งหน้าเว็บเท่านั้น
   _test: {
     asIssued,
+    receiptSummaryOf,
     asDepositReceipt,
     receiptPages,
     receiptDocNo,

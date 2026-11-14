@@ -4,6 +4,7 @@ import { createRequire } from "module";
 import { describe, expect, it } from "vitest";
 import {
   asDepositReceipt,
+  receiptSummaryOf,
   asIssued,
   billPages,
   billPageHeight,
@@ -88,6 +89,9 @@ describe("ตัวอย่างบนจอกับใบที่พิม�
       const clientName = (row) => receiptRowName(row, showBrand);
       expect(shape(c.pages, clientName)).toEqual(shape(s.pages, s.rowName));
       expect(c.discountItems).toEqual(s.discountItems);
+      expect(receiptSummaryOf(client, c.discountItems)).toEqual(
+        server.receiptSummaryOf(serverBill, s.discountItems),
+      );
     }
   });
 
@@ -108,6 +112,9 @@ describe("ตัวอย่างบนจอกับใบที่พิม�
     const s = server.receiptPages(serverBill);
     const clientName = (row) => receiptRowName(row, true);
     expect(shape(c.pages, clientName)).toEqual(shape(s.pages, s.rowName));
+    expect(receiptSummaryOf(client, c.discountItems)).toEqual(
+      server.receiptSummaryOf(serverBill, s.discountItems),
+    );
   });
 });
 
