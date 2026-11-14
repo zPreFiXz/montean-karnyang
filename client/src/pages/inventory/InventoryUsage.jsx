@@ -95,10 +95,12 @@ const InventoryUsage = () => {
 
   const isService = type === "service";
 
-  // สองตัวนี้เป็นรายการเปล่าไว้พิมพ์ชื่อทับ ชื่อในบิลจึงต่างกันทุกใบ มีแค่สองตัวนี้ที่ค้นหาได้
+  // รายการเปล่าไว้พิมพ์ชื่อทับ ชื่อในบิลจึงต่างกันทุกใบ เช่นส่วนลดที่เปลี่ยนชื่อเป็นหักมัดจำ
+  const isDiscount = isDiscountItem({ name: itemName });
   const isRenamable =
     itemName === PART_PLACEHOLDER_SERVICE_NAME ||
-    itemName === SERVICE_PLACEHOLDER_SERVICE_NAME;
+    itemName === SERVICE_PLACEHOLDER_SERVICE_NAME ||
+    isDiscount;
 
   const keyword = isRenamable
     ? (searchParams.get("search") || "").trim().toLowerCase()
@@ -196,9 +198,11 @@ const InventoryUsage = () => {
           <div className="pt-4">
             <SearchBar
               placeholder={
-                itemName === SERVICE_PLACEHOLDER_SERVICE_NAME
-                  ? "ค้นหาชื่อบริการ, ยี่ห้อรถ, รุ่นรถ"
-                  : "ค้นหาชื่ออะไหล่, ยี่ห้อรถ, รุ่นรถ"
+                isDiscount
+                  ? "ค้นหาชื่อส่วนลด, ยี่ห้อรถ, รุ่นรถ"
+                  : itemName === SERVICE_PLACEHOLDER_SERVICE_NAME
+                    ? "ค้นหาชื่อบริการ, ยี่ห้อรถ, รุ่นรถ"
+                    : "ค้นหาชื่ออะไหล่, ยี่ห้อรถ, รุ่นรถ"
               }
             />
           </div>
