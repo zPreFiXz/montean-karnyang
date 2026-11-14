@@ -45,4 +45,7 @@ export const salesEntriesOf = (repairs, isInRange) => {
   return entries.sort((a, b) => new Date(b.at) - new Date(a.at));
 };
 
-export const ENTRY_NOTES = { deposit: "รับมัดจำ", refund: "คืนมัดจำ" };
+export const ENTRY_BADGES = {
+  deposit: { label: "รับมัดจำ", tone: "primary" },
+  refund: { label: "คืนมัดจำ", tone: "destructive" },
+};

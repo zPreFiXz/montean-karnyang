@@ -15,6 +15,8 @@ const CarCard = ({
   status,
   // ป้ายหน้าบรรทัดรอง เช่น บิลที่เปิดผิดประเภท
   badge,
+  // primary = ข้อมูลทั่วไป (เช่นรับมัดจำ) ค่าเริ่มต้นสีแดงไว้เตือน
+  badgeTone = "destructive",
 }) => {
   const bgColorMap = {
     primary: "bg-primary",
@@ -55,7 +57,13 @@ const CarCard = ({
             <p className="text-subtle-dark truncate text-base font-medium md:text-lg">
               {/* อยู่บรรทัดล่าง ทะเบียนบนหัวการ์ดจะได้ไม่ถูกตัด */}
               {badge && (
-                <span className="bg-destructive/10 text-destructive mr-1.5 rounded-full px-2 py-px text-sm font-semibold md:text-base">
+                <span
+                  className={`mr-1.5 rounded-full px-2 py-px text-sm font-semibold md:text-base ${
+                    badgeTone === "primary"
+                      ? "bg-primary/10 text-primary"
+                      : "bg-destructive/10 text-destructive"
+                  }`}
+                >
                   {badge}
                 </span>
               )}

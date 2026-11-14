@@ -23,7 +23,7 @@ import BrandIcons from "@/components/icons/BrandIcons";
 import { Paid } from "@/components/icons/Icons";
 import { ShoppingBag } from "lucide-react";
 import { ALL_PAYMENT_METHODS } from "@/constants/paymentMethods";
-import { ENTRY_NOTES, salesEntriesOf } from "@/utils/salesEntries";
+import { ENTRY_BADGES, salesEntriesOf } from "@/utils/salesEntries";
 import {
   isSaleRepair,
   isNoVehicleRepair,
@@ -100,7 +100,8 @@ const SalesReport = () => {
     licensePlate: getRepairTitle(repair, getProvinceName),
     brand: getRepairSubtitle(repair),
     time: formatTime(at),
-    note: ENTRY_NOTES[kind],
+    // ป้ายต้นบรรทัดไม่โดนตัด ต่างจากข้อความท้ายบรรทัด
+    badge: ENTRY_BADGES[kind],
     price: amount,
   });
 
@@ -214,13 +215,14 @@ const SalesReport = () => {
                         }
                         licensePlate={carData.licensePlate}
                         badge={
-                          hasMisfiledSuspension(repair)
+                          carData.badge?.label ??
+                          (hasMisfiledSuspension(repair)
                             ? "มีอะไหล่ช่วงล่าง"
-                            : undefined
+                            : undefined)
                         }
+                        badgeTone={carData.badge?.tone}
                         brand={carData.brand}
                         time={carData.time}
-                        note={carData.note}
                         price={carData.price}
                       />
                     </Link>
@@ -267,13 +269,14 @@ const SalesReport = () => {
                               }
                               licensePlate={carData.licensePlate}
                               badge={
-                                hasMisfiledSuspension(repair)
+                                carData.badge?.label ??
+                                (hasMisfiledSuspension(repair)
                                   ? "มีอะไหล่ช่วงล่าง"
-                                  : undefined
+                                  : undefined)
                               }
+                              badgeTone={carData.badge?.tone}
                               brand={carData.brand}
                               time={carData.time}
-                              note={carData.note}
                               price={carData.price}
                             />
                           </Link>
