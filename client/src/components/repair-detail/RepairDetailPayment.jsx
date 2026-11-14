@@ -8,7 +8,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { formatCurrency, formatDate } from "@/utils/formats";
-import { depositOf } from "@/utils/receipt";
+import { depositOf, depositTermsOf } from "@/utils/receipt";
 import { isSaleRepair } from "@/utils/repairDisplay";
 import ComboBox from "@/components/ui/ComboBox";
 import FieldErrorList from "@/components/forms/FieldErrorList";
@@ -212,7 +212,9 @@ const RepairDetailPayment = ({
             ) : (
               <HandCoins className="h-5 w-5" />
             )}
-            {repair.depositAmount ? "แก้ไขมัดจำ" : "รับมัดจำ"}
+            {repair.depositAmount
+              ? depositTermsOf(repair).edit
+              : depositTermsOf(repair).action}
           </button>
         )}
         {repair.status === "PAID" &&
@@ -331,7 +333,7 @@ const RepairDetailPayment = ({
         {repair.depositAmount > 0 && (
           <>
             {/* วันที่รับ คืน หรือริบมัดจำอยู่ในส่วนวันเวลา */}
-            <InfoRow label="มัดจำ:">
+            <InfoRow label={depositTermsOf(repair).row}>
               {formatCurrency(Number(repair.depositAmount))}
               {repair.depositMethod &&
                 ` (${getPaymentMethodText(repair.depositMethod)})`}

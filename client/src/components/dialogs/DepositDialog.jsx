@@ -11,11 +11,15 @@ import { PAYMENT_METHODS } from "@/constants/paymentMethods";
 import { depositSchemaFor } from "@/utils/schemas";
 import { formatCurrency } from "@/utils/formats";
 import { getRepairTitle } from "@/utils/repairDisplay";
+import { depositTermsOf } from "@/utils/receipt";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
 
 const DepositDialog = ({ isOpen, onClose, repair, onSave }) => {
   const isEditing = !!repair?.depositAmount;
+  // รับก่อนซ่อมเสร็จ = มัดจำ หลังซ่อมเสร็จ = ชำระบางส่วน
+  const terms = depositTermsOf(repair);
+  const title = isEditing ? terms.edit : terms.action;
   const total = Number(repair?.totalPrice || 0);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -28,7 +32,7 @@ const DepositDialog = ({ isOpen, onClose, repair, onSave }) => {
     reset,
     formState: { errors },
   } = useForm({
-    resolver: zodResolver(depositSchemaFor(total)),
+    resolver: zodResolver(depositSchemaFor(total, terms)),
     defaultValues: { amount: "", method: "" },
   });
 
@@ -63,8 +67,8 @@ const DepositDialog = ({ isOpen, onClose, repair, onSave }) => {
           showCloseButton={false}
         >
           <DialogTitleBar
-            title={isEditing ? "แก้ไขมัดจำ" : "รับมัดจำ"}
-            description={`${isEditing ? "แก้ไขมัดจำ" : "รับมัดจำ"} ${getRepairTitle(repair)}`}
+            title={title}
+            description={`${title} ${getRepairTitle(repair)}`}
             onClose={onClose}
           />
 
@@ -87,7 +91,7 @@ const DepositDialog = ({ isOpen, onClose, repair, onSave }) => {
                 <FormInput
                   register={register}
                   name="amount"
-                  label="มัดจำ (บาท)"
+                  label={terms.amountLabel}
                   type="text"
                   placeholder="เช่น 1500"
                   textSize="text-lg md:text-xl"
@@ -130,7 +134,7 @@ const DepositDialog = ({ isOpen, onClose, repair, onSave }) => {
                   type="button"
                   onClick={() => setIsDeleteConfirmOpen(true)}
                   disabled={isSaving}
-                  aria-label="ลบมัดจำ"
+                  aria-label={`ลบ${terms.chip}`}
                   className="text-surface bg-destructive flex h-[41px] w-[41px] shrink-0 cursor-pointer items-center justify-center rounded-[20px] disabled:opacity-70"
                 >
                   <Trash className="h-4 w-4" />
@@ -167,8 +171,8 @@ const DepositDialog = ({ isOpen, onClose, repair, onSave }) => {
           await withMinDuration(() => onSave({ amount: 0 }));
           onClose();
         }}
-        title="ยืนยันการลบมัดจำ"
-        itemName={`มัดจำ ${formatCurrency(Number(repair?.depositAmount || 0))}`}
+        title={terms.deleteTitle}
+        itemName={`${terms.chip} ${formatCurrency(Number(repair?.depositAmount || 0))}`}
       />
     </>
   );

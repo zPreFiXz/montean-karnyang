@@ -11,6 +11,7 @@ import ReceiptPaper from "@/components/receipt/ReceiptPaper";
 import {
   asDeliveryNote,
   asDepositReceipt,
+  depositTermsOf,
   asIssued,
   canReprintDeliveryNote,
   hasShortenableName,
@@ -121,6 +122,10 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
 
   if (!repair) return null;
 
+  const previewTitle = (docRepair) =>
+    docType === "deposit"
+      ? depositTermsOf(repair).tabLabel
+      : receiptDocTitle(docRepair);
   const docRepair =
     docType === "delivery"
       ? asDeliveryNote(repair)
@@ -170,7 +175,7 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
         ...(baseTabs.length
           ? baseTabs
           : [{ id: "receipt", label: receiptDocTitle(repair) }]),
-        { id: "deposit", label: "ใบรับเงินมัดจำ" },
+        { id: "deposit", label: depositTermsOf(repair).tabLabel },
       ]
     : baseTabs;
   const canShortenNames = hasShortenableName(repair.repairItems || []);
@@ -266,7 +271,7 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
           <DialogTitle className="font-athiti text-subtle-dark text-center text-[22px] font-medium md:text-2xl">
             {docType === "job"
               ? "ตัวอย่างใบสั่งซ่อม"
-              : `ตัวอย่าง${receiptDocTitle(docRepair)}`}
+              : `ตัวอย่าง${previewTitle(docRepair)}`}
           </DialogTitle>
           <DialogDescription className="sr-only">
             ตัวอย่างใบเสร็จก่อนพิมพ์

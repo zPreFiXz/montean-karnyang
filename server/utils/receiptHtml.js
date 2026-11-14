@@ -45,7 +45,8 @@ const FONT_FACES = [
 const SHOP = {
   name: "ร้านมณเฑียรการยาง",
   address: "543 หมู่ที่ 5 ตำบลน้ำอ้อม อำเภอกันทรลักษ์ จังหวัดศรีสะเกษ 33110",
-  contact: "โทร. 089-849-2861, 093-326-1705  เลขประจำตัวผู้เสียภาษี 3 33030032502 1",
+  contact:
+    "โทร. 089-849-2861, 093-326-1705  เลขประจำตัวผู้เสียภาษี 3 33030032502 1",
 };
 
 const MIN_ROWS = 10;
@@ -141,6 +142,42 @@ const receiptSummaryOf = (repair, discountItems = []) => {
   );
   const hasDiscount = discountTotal !== 0;
   const deposit = repair.isDeposit ? 0 : depositOf(repair);
+  // ใบรับเงินชำระบางส่วน: รายการครบ แถวเทาคือเงินที่จ่ายครั้งนี้ ยอดคงเหลืออยู่ข้างใต้
+  if (repair.isDeposit && repair.depositKind === "partial") {
+    const partialAbove = hasDiscount
+      ? [
+          {
+            key: "subtotal",
+            label: "รวมเป็นเงิน",
+            amount: total - discountTotal,
+          },
+          ...discountItems.map((item) => ({
+            key: `discount-${item.id}`,
+            label: item.itemName,
+            amount: Number(item.unitPrice) * Number(item.quantity),
+          })),
+        ]
+      : [];
+    partialAbove.push({
+      key: "bill-total",
+      label: "จำนวนเงินรวม",
+      amount: total,
+    });
+    const below = [
+      {
+        key: "remaining",
+        label: "คงเหลือชำระ",
+        amount: total - repair.depositPaid,
+        bold: true,
+      },
+    ];
+    return {
+      above: partialAbove,
+      sum: { label: "ชำระครั้งนี้", amount: repair.depositPaid },
+      below,
+      lines: partialAbove.length + 1 + below.length,
+    };
+  }
 
   const above = [];
   if (hasDiscount || deposit) {
@@ -161,7 +198,11 @@ const receiptSummaryOf = (repair, discountItems = []) => {
     }
   }
   if (deposit) {
-    above.push({ key: "deposit", label: "หักมัดจำ", amount: -deposit });
+    above.push({
+      key: "deposit",
+      label: depositTermsOf(repair).deduct,
+      amount: -deposit,
+    });
   }
 
   const sum = deposit
@@ -206,14 +247,58 @@ const asIssued = (repair) =>
     ? { ...repair, status: repair.cancelledStatus || "PAID", isCancelled: true }
     : repair;
 
-// ใบรับเงินมัดจำเป็นใบเสร็จของเงินมัดจำก้อนเดียว ใช้เลขของบิลเดิมอ้างอิง ลงวันที่รับมัดจำ
+// เงินก้อนแรกที่รับก่อนซ่อมเสร็จคือมัดจำ รับหลังซ่อมเสร็จแล้วคือแบ่งจ่ายสองก้อน ใช้ช่องเดียวกัน ต่างแค่คำ
+// (ต้องตรงกับ depositKindOf และ DEPOSIT_TERMS ฝั่งหน้าเว็บ)
+const depositKindOf = (repair) => {
+  if (!repair.depositPaidAt) {
+    return repair.status === "COMPLETED" ? "partial" : "deposit";
+  }
+  return repair.completedAt &&
+    new Date(repair.depositPaidAt) >= new Date(repair.completedAt)
+    ? "partial"
+    : "deposit";
+};
+const DEPOSIT_TERMS = {
+  deposit: {
+    docTitle: "ใบรับเงินมัดจำ",
+    line: "เงินมัดจำค่าอะไหล่",
+    deduct: "หักมัดจำ",
+  },
+  partial: {
+    docTitle: "ใบรับเงิน (ชำระบางส่วน)",
+    line: "ชำระค่าซ่อมบางส่วน",
+    deduct: "หักชำระแล้ว",
+  },
+};
+const depositTermsOf = (repair) => DEPOSIT_TERMS[depositKindOf(repair)];
+
+// ใบรับเงินของเงินก้อนแรก (มัดจำหรือชำระบางส่วน) ใช้เลขของบิลเดิมอ้างอิง ลงวันที่รับเงิน
 // (ต้องตรงกับ asDepositReceipt ฝั่งหน้าเว็บ)
-const DEPOSIT_LINE_NAME = "เงินมัดจำค่าอะไหล่";
 const asDepositReceipt = (repair) => {
   const deposit = Number(repair.depositAmount || 0);
+  const kind = depositKindOf(repair);
+  const terms = DEPOSIT_TERMS[kind];
+  // ชำระบางส่วนหลังซ่อมเสร็จ งานจบแล้ว แสดงรายการครบเหมือนใบเสร็จ มัดจำยังไม่ได้ซ่อม จึงเป็นบรรทัดเดียว
+  if (kind === "partial") {
+    return {
+      ...repair,
+      isDeposit: true,
+      depositKind: kind,
+      depositDocTitle: terms.docTitle,
+      receiptNo: receiptDocNo(repair),
+      deliveryNo: null,
+      status: "PAID",
+      paidAt: repair.depositPaidAt,
+      paymentMethod: repair.depositMethod,
+      depositPaid: deposit,
+      depositAmount: null,
+    };
+  }
   return {
     ...repair,
     isDeposit: true,
+    depositKind: kind,
+    depositDocTitle: terms.docTitle,
     type: "GENERAL",
     status: "PAID",
     receiptNo: receiptDocNo(repair),
@@ -226,7 +311,7 @@ const asDepositReceipt = (repair) => {
     repairItems: [
       {
         id: "deposit",
-        itemName: DEPOSIT_LINE_NAME,
+        itemName: terms.line,
         quantity: 1,
         unitPrice: deposit,
       },
@@ -236,7 +321,7 @@ const asDepositReceipt = (repair) => {
 
 // ยังไม่ซ่อม = ใบเสนอราคา, เครดิต = ใบส่งของ, เรียกใบเสร็จได้เฉพาะตอนรับเงินแล้ว
 const receiptDocTitle = (repair) => {
-  if (repair.isDeposit) return "ใบรับเงินมัดจำ";
+  if (repair.isDeposit) return repair.depositDocTitle;
   if (repair.status === "ESTIMATE") return "ใบเสนอราคา";
   if (repair.status === "CREDIT") return "ใบส่งของ";
   return "ใบเสร็จรับเงิน";
@@ -332,7 +417,11 @@ const unitOf = (item) =>
   "";
 
 // ตรงกับ quantityLabel ฝั่งหน้าเว็บ
-const SINGLE_QUANTITY_SERVICE_NAMES = ["ค่าแรง", "ตั้งศูนย์", "สลับยาง+ถ่วงล้อ"];
+const SINGLE_QUANTITY_SERVICE_NAMES = [
+  "ค่าแรง",
+  "ตั้งศูนย์",
+  "สลับยาง+ถ่วงล้อ",
+];
 const quantityLabel = (item, quantity) => {
   const unit = unitOf(item);
   const isSingle =
@@ -896,7 +985,12 @@ const VEHICLE_COMPATIBLE_CATEGORIES = [
 const FULL_NAME_CATEGORIES = ["ยาง", "ยางเปอร์เซ็นต์", "แบตเตอรี่"];
 
 // ต้องประกอบแบบเดียวกับ oilUseLineName ใน client/src/utils/oil.js
-const OIL_USES = ["น้ำมันเครื่อง", "น้ำมันเกียร์", "น้ำมันเฟืองท้าย", "น้ำมันพาวเวอร์"];
+const OIL_USES = [
+  "น้ำมันเครื่อง",
+  "น้ำมันเกียร์",
+  "น้ำมันเฟืองท้าย",
+  "น้ำมันพาวเวอร์",
+];
 const isOilUseLine = (item) => {
   if (!item.part) return false;
   const grade = String(item.part.name || "").replace(

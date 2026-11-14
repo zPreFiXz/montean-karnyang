@@ -28,7 +28,7 @@ import OrganizationTypeDialog from "@/components/dialogs/OrganizationTypeDialog"
 import { creditPathFor } from "@/constants/organizations";
 import FormButton from "@/components/forms/FormButton";
 import ReceiptPreviewDialog from "@/components/dialogs/ReceiptPreviewDialog";
-import { asIssued, receiptDocNo } from "@/utils/receipt";
+import { asIssued, depositTermsOf, receiptDocNo } from "@/utils/receipt";
 import { repairToForm } from "@/utils/repairForm";
 import {
   DEFAULT_STATUS_INFO,
@@ -102,7 +102,8 @@ const RepairDetail = () => {
         ? (prev.depositPaidAt ?? new Date().toISOString())
         : null,
     }));
-    toast.success(amount ? "บันทึกมัดจำเรียบร้อยแล้ว" : "ลบมัดจำเรียบร้อยแล้ว");
+    const terms = depositTermsOf(repair);
+    toast.success(amount ? terms.saved : terms.deleted);
   };
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState(null);
@@ -897,12 +898,13 @@ const RepairDetail = () => {
         {hasOpenDeposit && (
           <div className="mt-4 w-full">
             <p className="text-subtle-dark mb-2 text-center text-lg font-medium md:text-xl">
-              มัดจำ {formatCurrency(Number(repair.depositAmount))}
+              {depositTermsOf(repair).chip}{" "}
+              {formatCurrency(Number(repair.depositAmount))}
             </p>
             <div className="flex gap-2">
               {[
-                { id: "REFUND", label: "คืนมัดจำ" },
-                { id: "KEEP", label: "ริบมัดจำ" },
+                { id: "REFUND", label: depositTermsOf(repair).refund },
+                { id: "KEEP", label: depositTermsOf(repair).keep },
               ].map((option) => (
                 <button
                   key={option.id}

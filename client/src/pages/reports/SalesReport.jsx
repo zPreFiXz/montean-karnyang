@@ -23,7 +23,7 @@ import BrandIcons from "@/components/icons/BrandIcons";
 import { Paid } from "@/components/icons/Icons";
 import { ShoppingBag } from "lucide-react";
 import { ALL_PAYMENT_METHODS } from "@/constants/paymentMethods";
-import { ENTRY_BADGES, salesEntriesOf } from "@/utils/salesEntries";
+import { entryBadgeOf, salesEntriesOf } from "@/utils/salesEntries";
 import {
   isSaleRepair,
   isNoVehicleRepair,
@@ -97,11 +97,11 @@ const SalesReport = () => {
   };
 
   const getCarCardData = ({ repair, kind, at, amount }) => ({
+    badge: entryBadgeOf({ kind, repair }),
     licensePlate: getRepairTitle(repair, getProvinceName),
     brand: getRepairSubtitle(repair),
     time: formatTime(at),
     // ป้ายต้นบรรทัดไม่โดนตัด ต่างจากข้อความท้ายบรรทัด
-    badge: ENTRY_BADGES[kind],
     price: amount,
   });
 

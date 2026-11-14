@@ -1,4 +1,5 @@
 import { formatDate, formatTime } from "@/utils/formats";
+import { depositTermsOf } from "@/utils/receipt";
 
 const Row = ({ label, at }) => (
   <div className="flex justify-between">
@@ -19,6 +20,7 @@ const startLabel = (repair, isSale) => {
 // บิลขายที่จ่ายตอนสร้าง (paidOnCreate) เกิดและจบพร้อมกัน มีแค่เวลาชำระเงิน
 // เรียงตามเวลาจริง มัดจำรับตอนเป็นใบเสนอราคาได้ ซึ่งก่อนเวลาเริ่มซ่อม
 const RepairDetailTimeline = ({ repair, isSale, paidOnCreate }) => {
+  const terms = depositTermsOf(repair);
   const rows = [
     !paidOnCreate && {
       label: startLabel(repair, isSale),
@@ -27,12 +29,12 @@ const RepairDetailTimeline = ({ repair, isSale, paidOnCreate }) => {
     !paidOnCreate &&
       !isSale && { label: "ซ่อมเสร็จสิ้น:", at: repair.completedAt },
     { label: paidOnCreate ? "วันเวลา:" : "ชำระเงิน:", at: repair.paidAt },
-    { label: "รับมัดจำ:", at: repair.depositPaidAt },
+    { label: terms.timeline, at: repair.depositPaidAt },
     { label: "ยกเลิก:", at: repair.cancelledAt },
     // ยกเลิกโดยไม่คืนเงิน = ร้านริบมัดจำ ตอนยกเลิก บิลที่จ่ายแล้วหักมัดจำไปในยอดแล้ว
     repair.depositAmount &&
       repair.cancelledStatus !== "PAID" && {
-        label: repair.depositRefundedAt ? "คืนมัดจำ:" : "ริบมัดจำ:",
+        label: `${repair.depositRefundedAt ? terms.refund : terms.keep}:`,
         at: repair.depositRefundedAt || repair.cancelledAt,
       },
   ]

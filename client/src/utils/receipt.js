@@ -204,14 +204,88 @@ export const asDeliveryNote = (repair) => ({
   chequeDate: null,
 });
 
-// ใบรับเงินมัดจำเป็นใบเสร็จของเงินมัดจำก้อนเดียว ใช้เลขของบิลเดิมอ้างอิง ลงวันที่รับมัดจำ
+// เงินก้อนแรกที่รับก่อนซ่อมเสร็จคือมัดจำ รับหลังซ่อมเสร็จแล้วคือแบ่งจ่ายสองก้อน ใช้ช่องเดียวกัน ต่างแค่คำ
+// ยังไม่ได้รับ ดูจากสถานะตอนนี้ (ต้องตรงกับ depositKindOf ใน receiptHtml.js)
+export const depositKindOf = (repair) => {
+  if (!repair?.depositPaidAt) {
+    return repair?.status === "COMPLETED" ? "partial" : "deposit";
+  }
+  return repair.completedAt &&
+    new Date(repair.depositPaidAt) >= new Date(repair.completedAt)
+    ? "partial"
+    : "deposit";
+};
+
+export const DEPOSIT_TERMS = {
+  deposit: {
+    action: "รับมัดจำ",
+    edit: "แก้ไขมัดจำ",
+    row: "มัดจำ:",
+    timeline: "รับมัดจำ:",
+    refund: "คืนมัดจำ",
+    keep: "ริบมัดจำ",
+    chip: "มัดจำ",
+    amountLabel: "มัดจำ (บาท)",
+    required: "กรุณากรอกจำนวนเงินมัดจำ",
+    max: "มัดจำต้องไม่เกินยอดบิล",
+    deleteTitle: "ยืนยันการลบมัดจำ",
+    saved: "บันทึกมัดจำเรียบร้อยแล้ว",
+    deleted: "ลบมัดจำเรียบร้อยแล้ว",
+    docTitle: "ใบรับเงินมัดจำ",
+    tabLabel: "ใบรับเงินมัดจำ",
+    line: "เงินมัดจำค่าอะไหล่",
+    deduct: "หักมัดจำ",
+  },
+  partial: {
+    action: "รับชำระบางส่วน",
+    edit: "แก้ไขการชำระบางส่วน",
+    row: "ชำระแล้ว:",
+    timeline: "ชำระบางส่วน:",
+    refund: "คืนเงิน",
+    keep: "ไม่คืนเงิน",
+    chip: "ชำระบางส่วน",
+    amountLabel: "ชำระบางส่วน (บาท)",
+    required: "กรุณากรอกจำนวนเงินที่ชำระ",
+    max: "ยอดชำระต้องไม่เกินยอดบิล",
+    deleteTitle: "ยืนยันการลบการชำระบางส่วน",
+    saved: "บันทึกการชำระบางส่วนเรียบร้อยแล้ว",
+    deleted: "ลบการชำระบางส่วนเรียบร้อยแล้ว",
+    docTitle: "ใบรับเงิน (ชำระบางส่วน)",
+    // ชื่อเต็มยาวเกินปุ่มแท็บบนมือถือ บนกระดาษยังพิมพ์ชื่อเต็ม
+    tabLabel: "ใบรับเงิน",
+    line: "ชำระค่าซ่อมบางส่วน",
+    deduct: "หักชำระแล้ว",
+  },
+};
+export const depositTermsOf = (repair) => DEPOSIT_TERMS[depositKindOf(repair)];
+
+// ใบรับเงินของเงินก้อนแรก (มัดจำหรือชำระบางส่วน) ใช้เลขของบิลเดิมอ้างอิง ลงวันที่รับเงิน
 // (ต้องตรงกับ asDepositReceipt ใน receiptHtml.js)
-export const DEPOSIT_LINE_NAME = "เงินมัดจำค่าอะไหล่";
 export const asDepositReceipt = (repair) => {
   const deposit = Number(repair?.depositAmount || 0);
+  const kind = depositKindOf(repair);
+  const terms = DEPOSIT_TERMS[kind];
+  // ชำระบางส่วนหลังซ่อมเสร็จ งานจบแล้ว แสดงรายการครบเหมือนใบเสร็จ มัดจำยังไม่ได้ซ่อม จึงเป็นบรรทัดเดียว
+  if (kind === "partial") {
+    return {
+      ...repair,
+      isDeposit: true,
+      depositKind: kind,
+      depositDocTitle: terms.docTitle,
+      receiptNo: receiptDocNo(repair),
+      deliveryNo: null,
+      status: "PAID",
+      paidAt: repair?.depositPaidAt,
+      paymentMethod: repair?.depositMethod,
+      depositPaid: deposit,
+      depositAmount: null,
+    };
+  }
   return {
     ...repair,
     isDeposit: true,
+    depositKind: kind,
+    depositDocTitle: terms.docTitle,
     type: "GENERAL",
     status: "PAID",
     receiptNo: receiptDocNo(repair),
@@ -224,7 +298,7 @@ export const asDepositReceipt = (repair) => {
     repairItems: [
       {
         id: "deposit",
-        itemName: DEPOSIT_LINE_NAME,
+        itemName: terms.line,
         quantity: 1,
         unitPrice: deposit,
       },
@@ -234,7 +308,7 @@ export const asDepositReceipt = (repair) => {
 
 // ยังไม่ซ่อม = ใบเสนอราคา, เครดิต = ใบส่งของ, เรียกใบเสร็จได้เฉพาะตอนรับเงินแล้ว
 export const receiptDocTitle = (repair) => {
-  if (repair?.isDeposit) return "ใบรับเงินมัดจำ";
+  if (repair?.isDeposit) return repair.depositDocTitle;
   if (repair?.status === "ESTIMATE") return "ใบเสนอราคา";
   if (repair?.status === "CREDIT") return "ใบส่งของ";
   return "ใบเสร็จรับเงิน";
@@ -406,6 +480,42 @@ export const receiptSummaryOf = (repair, discountItems = []) => {
   );
   const hasDiscount = discountTotal !== 0;
   const deposit = repair.isDeposit ? 0 : depositOf(repair);
+  // ใบรับเงินชำระบางส่วน: รายการครบ แถวเทาคือเงินที่จ่ายครั้งนี้ ยอดคงเหลืออยู่ข้างใต้
+  if (repair.isDeposit && repair.depositKind === "partial") {
+    const partialAbove = hasDiscount
+      ? [
+          {
+            key: "subtotal",
+            label: "รวมเป็นเงิน",
+            amount: total - discountTotal,
+          },
+          ...discountItems.map((item) => ({
+            key: `discount-${item.id}`,
+            label: item.itemName,
+            amount: Number(item.unitPrice) * Number(item.quantity),
+          })),
+        ]
+      : [];
+    partialAbove.push({
+      key: "bill-total",
+      label: "จำนวนเงินรวม",
+      amount: total,
+    });
+    const below = [
+      {
+        key: "remaining",
+        label: "คงเหลือชำระ",
+        amount: total - repair.depositPaid,
+        bold: true,
+      },
+    ];
+    return {
+      above: partialAbove,
+      sum: { label: "ชำระครั้งนี้", amount: repair.depositPaid },
+      below,
+      lines: partialAbove.length + 1 + below.length,
+    };
+  }
 
   const above = [];
   if (hasDiscount || deposit) {
@@ -426,7 +536,11 @@ export const receiptSummaryOf = (repair, discountItems = []) => {
     }
   }
   if (deposit) {
-    above.push({ key: "deposit", label: "หักมัดจำ", amount: -deposit });
+    above.push({
+      key: "deposit",
+      label: depositTermsOf(repair).deduct,
+      amount: -deposit,
+    });
   }
 
   const sum = deposit

@@ -1,3 +1,5 @@
+import { depositKindOf } from "@/utils/receipt";
+
 // เงินที่ร้านรับจริงแต่ละครั้ง รายงานยอดขายนับตามวันรับเงิน
 // มัดจำนับวันที่รับ ตอนชำระนับแค่ส่วนที่เหลือ ยกเลิกแล้วคืนมัดจำนับติดลบวันที่คืน ริบมัดจำก็ยังนับวันที่รับไว้
 export const salesEntriesOf = (repairs, isInRange) => {
@@ -45,7 +47,11 @@ export const salesEntriesOf = (repairs, isInRange) => {
   return entries.sort((a, b) => new Date(b.at) - new Date(a.at));
 };
 
-export const ENTRY_BADGES = {
-  deposit: { label: "รับมัดจำ", tone: "primary" },
-  refund: { label: "คืนมัดจำ", tone: "destructive" },
+// มัดจำ (รับก่อนซ่อมเสร็จ) กับชำระบางส่วน (รับหลังซ่อมเสร็จ) ใช้ป้ายต่างกัน
+export const entryBadgeOf = ({ kind, repair }) => {
+  if (kind === "paid") return undefined;
+  const isPartial = depositKindOf(repair) === "partial";
+  return kind === "deposit"
+    ? { label: isPartial ? "ชำระบางส่วน" : "รับมัดจำ", tone: "primary" }
+    : { label: isPartial ? "คืนเงิน" : "คืนมัดจำ", tone: "destructive" };
 };

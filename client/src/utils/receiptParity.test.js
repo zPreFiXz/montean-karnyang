@@ -118,6 +118,45 @@ describe("ตัวอย่างบนจอกับใบที่พิม�
   });
 });
 
+// เงินก้อนแรกที่รับหลังซ่อมเสร็จเป็นชำระบางส่วน ก่อนซ่อมเสร็จเป็นมัดจำ ทั้งสองฝั่งต้องใช้คำเดียวกัน
+describe("มัดจำกับชำระบางส่วนใช้คำตรงกันทั้งสองฝั่ง", () => {
+  const items = [serviceLine({ name: "ค่าแรง", unitPrice: 900 })];
+  const cases = [
+    ["มัดจำ", "2026-11-10T03:00:00.000Z", "ใบรับเงินมัดจำ", "หักมัดจำ"],
+    [
+      "ชำระบางส่วน",
+      "2026-11-12T03:00:00.000Z",
+      "ใบรับเงิน (ชำระบางส่วน)",
+      "หักชำระแล้ว",
+    ],
+  ];
+  it.each(cases)("%s", (_, depositPaidAt, title, deduct) => {
+    const raw = repairWith(items, {
+      status: "COMPLETED",
+      completedAt: "2026-11-11T03:00:00.000Z",
+      depositAmount: 300,
+      depositMethod: "CASH",
+      depositPaidAt,
+    });
+    const c = asDepositReceipt(asIssued(raw));
+    const s = server.asDepositReceipt(server.asIssued(raw));
+    expect(receiptDocTitle(c)).toBe(title);
+    expect(server.receiptDocTitle(s)).toBe(title);
+    expect(c.repairItems).toEqual(s.repairItems);
+    expect(receiptSummaryOf(c, [])).toEqual(server.receiptSummaryOf(s, []));
+    expect(
+      shape(buildReceiptPages(c).pages, (row) => receiptRowName(row, true)),
+    ).toEqual(
+      shape(server.receiptPages(s).pages, server.receiptPages(s).rowName),
+    );
+    const clientSummary = receiptSummaryOf(asIssued(raw), []);
+    expect(clientSummary).toEqual(
+      server.receiptSummaryOf(server.asIssued(raw), []),
+    );
+    expect(clientSummary.above.at(-1).label).toBe(deduct);
+  });
+});
+
 // ใบวางบิลแบ่งแผ่นตามความสูงแถว (รถสองบรรทัด ค่าอะไหล่/ค่าบริการบรรทัดเดียว)
 // แผ่นสุดท้ายรับได้น้อยกว่าเพราะต้องมีที่ให้ QR
 describe("ใบวางบิลแบ่งแผ่นตรงกันทั้งสองฝั่ง", () => {
