@@ -29,63 +29,77 @@ const ItemInfoSections = ({
   const lotRows = tracksLots ? summarizeTireLots(item.tireLots) : [];
   const vehicleGroups = groupVehiclesByBrand(item.compatibleVehicles);
 
+  const generalRows = (
+    <>
+      {!isService && item.partNumber && (
+        <InfoRow label="รหัสอะไหล่:">{item.partNumber}</InfoRow>
+      )}
+      <InfoRow label="หมวดหมู่:">{item.category?.name}</InfoRow>
+      {/* ช่วงล่างบอกทุกตัว หมวดอื่นบอกเฉพาะตัวที่แยกซ้าย-ขวา */}
+      {(item.category?.name === "ช่วงล่าง" || isPerSide(item.attributes)) && (
+        <InfoRow label="ข้าง:">
+          {isPerSide(item.attributes) ? "แยกซ้าย-ขวา" : "ไม่แยกข้าง"}
+        </InfoRow>
+      )}
+    </>
+  );
+
+  const priceRows = (
+    <>
+      {showCost && !isService && item.costPrice && (
+        <InfoRow label="ราคาต้นทุน:">
+          {formatCurrency(Number(item.costPrice))}
+        </InfoRow>
+      )}
+      <InfoRow
+        label={isService ? "ราคา:" : "ราคาขาย:"}
+        valueClass="text-primary"
+      >
+        {formatCurrency(Number(item.sellingPrice || item.price || 0))}
+      </InfoRow>
+      {/* ยางเปอร์เซ็นต์สภาพไม่เท่ากัน ช่วงราคาอย่างเดียวไม่บอกว่าส่วนใหญ่ขายราคาไหน */}
+      {item.soldPrices?.length > 0 && (
+        <div>
+          <p className="text-subtle-dark text-lg font-medium md:text-xl">
+            ประวัติราคาขาย:
+          </p>
+          {item.soldPrices.map(({ price, quantity }) => (
+            <div key={price} className="flex justify-between pl-4 tabular-nums">
+              <p className="text-normal text-lg font-semibold md:text-xl">
+                {formatCurrency(Number(price))}
+              </p>
+              <p className="text-subtle-dark text-lg font-semibold md:text-xl">
+                {withUnit(quantity, item.unit)}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+      {/* อะไหล่บอกหน่วยในกล่องสต็อกแล้ว */}
+      {isService && item.unit && <InfoRow label="หน่วย:">{item.unit}</InfoRow>}
+    </>
+  );
+
   return (
     <>
       <div className="mt-4 space-y-2">
-        {!isService && <Heading className="">ข้อมูลทั่วไป</Heading>}
-        <Box>
-          {!isService && item.partNumber && (
-            <InfoRow label="รหัสอะไหล่:">{item.partNumber}</InfoRow>
-          )}
-          <InfoRow label="หมวดหมู่:">{item.category?.name}</InfoRow>
-          {/* ช่วงล่างบอกทุกตัว หมวดอื่นบอกเฉพาะตัวที่แยกซ้าย-ขวา */}
-          {(item.category?.name === "ช่วงล่าง" ||
-            isPerSide(item.attributes)) && (
-            <InfoRow label="ข้าง:">
-              {isPerSide(item.attributes) ? "แยกซ้าย-ขวา" : "ไม่แยกข้าง"}
-            </InfoRow>
-          )}
-        </Box>
-
-        {!isService && <Heading>ข้อมูลราคา</Heading>}
-        <Box>
-          {showCost && !isService && item.costPrice && (
-            <InfoRow label="ราคาต้นทุน:">
-              {formatCurrency(Number(item.costPrice))}
-            </InfoRow>
-          )}
-          <InfoRow
-            label={isService ? "ราคา:" : "ราคาขาย:"}
-            valueClass="text-primary"
-          >
-            {formatCurrency(Number(item.sellingPrice || item.price || 0))}
-          </InfoRow>
-          {/* ยางเปอร์เซ็นต์สภาพไม่เท่ากัน ช่วงราคาอย่างเดียวไม่บอกว่าส่วนใหญ่ขายราคาไหน */}
-          {item.soldPrices?.length > 0 && (
-            <div>
-              <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                ประวัติราคาขาย:
-              </p>
-              {item.soldPrices.map(({ price, quantity }) => (
-                <div
-                  key={price}
-                  className="flex justify-between pl-4 tabular-nums"
-                >
-                  <p className="text-normal text-lg font-semibold md:text-xl">
-                    {formatCurrency(Number(price))}
-                  </p>
-                  <p className="text-subtle-dark text-lg font-semibold md:text-xl">
-                    {withUnit(quantity, item.unit)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-          {/* อะไหล่บอกหน่วยในกล่องสต็อกแล้ว */}
-          {isService && item.unit && (
-            <InfoRow label="หน่วย:">{item.unit}</InfoRow>
-          )}
-        </Box>
+        {/* บริการมีอย่างละบรรทัด รวมเป็นกล่องเดียวมีหัวข้อของตัวเอง ไม่งั้นดูเหมือนอยู่ใต้หัวข้อรายละเอียด */}
+        {isService ? (
+          <>
+            <Heading className="">ข้อมูลบริการ</Heading>
+            <Box>
+              {generalRows}
+              {priceRows}
+            </Box>
+          </>
+        ) : (
+          <>
+            <Heading className="">ข้อมูลทั่วไป</Heading>
+            <Box>{generalRows}</Box>
+            <Heading>ข้อมูลราคา</Heading>
+            <Box>{priceRows}</Box>
+          </>
+        )}
 
         {!isService && (
           <div className="space-y-2">

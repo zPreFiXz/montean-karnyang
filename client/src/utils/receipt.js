@@ -204,16 +204,18 @@ export const asDeliveryNote = (repair) => ({
   chequeDate: null,
 });
 
-// เงินก้อนแรกที่รับก่อนซ่อมเสร็จคือมัดจำ รับหลังซ่อมเสร็จแล้วคือแบ่งจ่ายสองก้อน ใช้ช่องเดียวกัน ต่างแค่คำ
-// ยังไม่ได้รับ ดูจากสถานะตอนนี้ (ต้องตรงกับ depositKindOf ใน receiptHtml.js)
+// เงินก้อนแรกที่รับตอนเป็นใบเสนอราคาคือมัดจำ รับหลังเริ่มซ่อมแล้วคือแบ่งจ่ายสองก้อน ใช้ช่องเดียวกัน ต่างแค่คำ
+// (ต้องตรงกับ depositKindOf ใน receiptHtml.js)
 export const depositKindOf = (repair) => {
-  if (!repair?.depositPaidAt) {
-    return repair?.status === "COMPLETED" ? "partial" : "deposit";
-  }
-  return repair.completedAt &&
-    new Date(repair.depositPaidAt) >= new Date(repair.completedAt)
-    ? "partial"
-    : "deposit";
+  // บิลที่ยกเลิกดูจากสถานะก่อนยกเลิก
+  const status =
+    repair?.status === "CANCELLED" ? repair.cancelledStatus : repair?.status;
+  if (status === "ESTIMATE") return "deposit";
+  if (!repair?.depositPaidAt) return "partial";
+  // ตกลงซ่อมจากใบเสนอราคาแล้ว createdAt เป็นเวลาเริ่มซ่อม รับก่อนหน้านั้นคือมัดจำ
+  return new Date(repair.depositPaidAt) < new Date(repair.createdAt)
+    ? "deposit"
+    : "partial";
 };
 
 export const DEPOSIT_TERMS = {
@@ -265,7 +267,7 @@ export const asDepositReceipt = (repair) => {
   const deposit = Number(repair?.depositAmount || 0);
   const kind = depositKindOf(repair);
   const terms = DEPOSIT_TERMS[kind];
-  // ชำระบางส่วนหลังซ่อมเสร็จ งานจบแล้ว แสดงรายการครบเหมือนใบเสร็จ มัดจำยังไม่ได้ซ่อม จึงเป็นบรรทัดเดียว
+  // ชำระบางส่วนหลังเริ่มซ่อม แสดงรายการครบเหมือนใบเสร็จ มัดจำยังไม่ได้ซ่อม รายการอาจเปลี่ยน จึงเป็นบรรทัดเดียว
   if (kind === "partial") {
     return {
       ...repair,
@@ -464,11 +466,19 @@ export const billPages = (repairs) => {
   return pages;
 };
 const DELIVERY_PAGE_LINES = 14;
-// มัดจำที่ยังหักจากยอด คืนเงินไปแล้วไม่ต้องหัก (ต้องตรงกับ depositOf ใน receiptHtml.js)
-export const depositOf = (repair) =>
-  repair?.depositAmount && !repair?.depositRefundedAt
-    ? Number(repair.depositAmount)
-    : 0;
+// เงินก้อนแรกที่หักจากยอด บิลที่ยกเลิกแล้วคืนเงินก็ยังหัก ใบที่พิมพ์ซ้ำต้องเหมือนใบที่ออกให้ลูกค้าไปแล้ว
+// การคืนเงินดูได้ที่กรอบการชำระเงินกับรายงาน (ต้องตรงกับ depositOf ใน receiptHtml.js)
+export const depositOf = (repair) => Number(repair?.depositAmount || 0);
+// ป้ายบนการ์ดบิลที่รับเงินก้อนแรกไว้แล้วแต่ยังจ่ายไม่ครบ จ่ายครบหรือยกเลิกแล้วไม่ต้องบอก
+export const depositBadgeOf = (repair) => {
+  const deposit = depositOf(repair);
+  if (!deposit || ["PAID", "CANCELLED"].includes(repair?.status)) {
+    return undefined;
+  }
+  const label = depositKindOf(repair) === "partial" ? "ชำระแล้ว" : "มัดจำ";
+  return `${label} ${deposit.toLocaleString()}`;
+};
+
 // แถวสรุปท้ายตาราง: แถวเหนือแถวเทา แถวเทา (มีจำนวนเงินเป็นตัวอักษร) และแถวใต้แถวเทา
 // แถวเทาคือยอดที่ลูกค้าจ่ายจริง ส่วนลดและมัดจำหักอยู่เหนือแถวนี้ ใบรับเงินมัดจำบอกยอดทั้งบิลไว้ข้างใต้
 // (ต้องตรงกับ receiptSummaryOf ใน receiptHtml.js)

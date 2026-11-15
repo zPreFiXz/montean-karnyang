@@ -1,4 +1,5 @@
 import PageSpinner from "@/components/ui/PageSpinner";
+import { depositBadgeOf } from "@/utils/receipt";
 import { countDisplayedItems } from "@/utils/repairItemGroups";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router";
@@ -163,6 +164,7 @@ const VehicleDetail = () => {
                         dateText={formatDate(item.createdAt)}
                         price={Number(item.totalPrice) || 0}
                         status={item.status}
+                        badge={depositBadgeOf(item)}
                       />
                     </Link>
                   ))}

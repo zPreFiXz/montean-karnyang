@@ -42,6 +42,15 @@ describe("ยอดขายนับตามวันรับเงิน", (
     expect(sum(salesEntriesOf([kept], () => true))).toBe(1500);
   });
 
+  it("ชำระครบแล้วค่อยยกเลิก ไม่นับทั้งบิลรวมมัดจำ", () => {
+    const cancelledPaid = {
+      ...deposited,
+      status: "CANCELLED",
+      cancelledStatus: "PAID",
+    };
+    expect(sum(salesEntriesOf([cancelledPaid], () => true))).toBe(0);
+  });
+
   it("บิลไม่มีมัดจำ นับเต็มยอดเหมือนเดิม", () => {
     const plain = { id: 2, status: "PAID", totalPrice: 900, paidAt: day(20) };
     expect(sum(salesEntriesOf([plain], onDay(20)))).toBe(900);

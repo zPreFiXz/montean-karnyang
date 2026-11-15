@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
 import { getInventory } from "@/api/inventory";
 import InventoryBrowser from "@/components/inventory/InventoryBrowser";
@@ -23,6 +23,15 @@ const InventoryList = () => {
   const [isItemDetailOpen, setIsItemDetailOpen] = useState(
     !!location.state?.openItem,
   );
+  // เพิ่งเพิ่มชิ้นนี้ ปิดไดอะล็อกแล้วเลื่อนไปให้เห็นในรายการพร้อมไฮไลต์สั้นๆ
+  const highlightKeyRef = useRef(
+    location.state?.highlightItem && location.state?.openItem
+      ? `${location.state.openItem.type}-${location.state.openItem.id}`
+      : null,
+  );
+
+  const [highlightedItem, setHighlightedItem] = useState(null);
+
   // เปลี่ยนค่านี้เพื่อสั่งให้รายการโหลดใหม่หลังแก้สต็อกจากไดอะล็อก
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -68,6 +77,34 @@ const InventoryList = () => {
   // ไม่ลบออกจาก URL รีเฟรชหรือย้อนกลับมาจะเด้งขึ้นมาเอง
   const handleItemDetailOpenChange = (open) => {
     setIsItemDetailOpen(open);
+    const highlightKey = highlightKeyRef.current;
+    if (!open && highlightKey) {
+      highlightKeyRef.current = null;
+      // รอไดอะล็อกปิดเสร็จก่อน ไม่งั้นหน้ายังถูกล็อกการเลื่อนอยู่
+      setTimeout(() => {
+        const card = document.querySelector(
+          `[data-inventory-item="${highlightKey}"]`,
+        );
+        if (!card) return;
+        // ไฮไลต์ตอนเลื่อนถึงแล้ว ไม่งั้นรายการยาวไฮไลต์หมดก่อนการ์ดขึ้นจอ
+        // เบราว์เซอร์ที่ไม่มี scrollend หรือไม่ต้องเลื่อนเลย ใช้เวลาสำรองแทน
+        let done = false;
+        const highlight = () => {
+          if (done) return;
+          done = true;
+          window.removeEventListener("scrollend", highlight);
+          setHighlightedItem(highlightKey);
+          setTimeout(() => setHighlightedItem(null), 1500);
+        };
+        window.addEventListener("scrollend", highlight, { once: true });
+        const before = window.scrollY;
+        card.scrollIntoView({ block: "center", behavior: "smooth" });
+        setTimeout(() => {
+          if (window.scrollY === before) highlight();
+        }, 100);
+        setTimeout(highlight, 1500);
+      }, 350);
+    }
     if (!open && openItemParam) {
       const next = new URLSearchParams(searchParams);
       next.delete("item");
@@ -99,6 +136,7 @@ const InventoryList = () => {
         <div className="flex flex-1 flex-col px-5 pt-4">
           <InventoryBrowser
             syncUrl
+            highlightedItem={highlightedItem}
             reloadToken={reloadToken}
             onLoadingChange={setIsListLoading}
             onItemClick={(item) => {

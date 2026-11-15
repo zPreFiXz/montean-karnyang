@@ -96,13 +96,13 @@ const InventoryUsage = () => {
 
   const isService = type === "service";
 
-  // รายการเปล่าไว้พิมพ์ชื่อทับ ชื่อในบิลจึงต่างกันทุกใบ เช่นส่วนลดที่เปลี่ยนชื่อเป็นหักมัดจำ
-  // ชื่อเทิร์นยางเก่าตายตัว มีแต่ส่วนลดที่ถูกเปลี่ยนชื่อในบิล
-  const isDiscount = itemName === DISCOUNT_SERVICE_NAME;
+  // สองตัวนี้เป็นรายการเปล่าไว้พิมพ์ชื่อทับ ชื่อในบิลจึงต่างกันทุกใบ มีแค่สองตัวนี้ที่ค้นหาได้
   const isRenamable =
     itemName === PART_PLACEHOLDER_SERVICE_NAME ||
-    itemName === SERVICE_PLACEHOLDER_SERVICE_NAME ||
-    isDiscount;
+    itemName === SERVICE_PLACEHOLDER_SERVICE_NAME;
+  // ส่วนลดค้นหาไม่ได้ แต่การ์ดยังบอกชื่อที่พิมพ์ไว้ในบิล เช่น ส่วนลดที่ตั้งชื่อว่าหักมัดจำ
+  const isDiscount = itemName === DISCOUNT_SERVICE_NAME;
+  const showsItemNames = isRenamable || isDiscount;
 
   const keyword = isRenamable
     ? (searchParams.get("search") || "").trim().toLowerCase()
@@ -200,11 +200,9 @@ const InventoryUsage = () => {
           <div className="pt-4">
             <SearchBar
               placeholder={
-                isDiscount
-                  ? "ค้นหาชื่อส่วนลด, ยี่ห้อรถ, รุ่นรถ"
-                  : itemName === SERVICE_PLACEHOLDER_SERVICE_NAME
-                    ? "ค้นหาชื่อบริการ, ยี่ห้อรถ, รุ่นรถ"
-                    : "ค้นหาชื่ออะไหล่, ยี่ห้อรถ, รุ่นรถ"
+                itemName === SERVICE_PLACEHOLDER_SERVICE_NAME
+                  ? "ค้นหาชื่อบริการ, ยี่ห้อรถ, รุ่นรถ"
+                  : "ค้นหาชื่ออะไหล่, ยี่ห้อรถ, รุ่นรถ"
               }
             />
           </div>
@@ -235,7 +233,7 @@ const InventoryUsage = () => {
               {group.usages.map(({ repair, itemNames }) => {
                 const status = getStatusInfo(repair.status);
                 const detail =
-                  isRenamable && itemNames?.length
+                  showsItemNames && itemNames?.length
                     ? billNameLabel(itemNames)
                     : null;
                 return (

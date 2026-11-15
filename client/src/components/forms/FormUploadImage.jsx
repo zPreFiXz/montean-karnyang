@@ -14,7 +14,6 @@ const FormUploadImage = ({
   setSelectedImage,
   selectedImage,
   publicId,
-  onMarkForDeletion,
   placeholder = "เลือกรูปภาพ",
 }) => {
   const [previewImage, setPreviewImage] = useState(null);
@@ -73,9 +72,6 @@ const FormUploadImage = ({
       }
 
       setIsMarkedForDeletion(false);
-      if (onMarkForDeletion) {
-        onMarkForDeletion(false);
-      }
 
       const newBlobUrl = URL.createObjectURL(file);
       setPreviewImage(newBlobUrl);
@@ -84,7 +80,7 @@ const FormUploadImage = ({
         setSelectedImage(file);
       }
     },
-    [previewImage, onMarkForDeletion, setSelectedImage],
+    [previewImage, setSelectedImage],
   );
 
   const handleOnChange = (e) => {
@@ -136,9 +132,6 @@ const FormUploadImage = ({
 
     if (publicId && typeof selectedImage === "string") {
       setIsMarkedForDeletion(true);
-      if (onMarkForDeletion) {
-        onMarkForDeletion(true);
-      }
     }
 
     setPreviewImage(null);

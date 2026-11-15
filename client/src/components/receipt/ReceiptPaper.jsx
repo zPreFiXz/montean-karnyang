@@ -75,6 +75,15 @@ const ReceiptPaper = ({
 
   return (
     <>
+      {/* ใบที่ยกเลิกประทับคำว่ายกเลิกทับกลางใบ เอาไปใช้เป็นหลักฐานจ่ายเงินไม่ได้ ยังอ่านรายการข้างใต้ได้
+          (ต้องตรงกับ .void-mark ใน receiptHtml.js) */}
+      {repair.isCancelled && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+          <span className="-rotate-30 rounded-xl border-[6px] border-black/15 px-6 text-[72pt] leading-tight font-bold text-black/15">
+            ยกเลิก
+          </span>
+        </div>
+      )}
       <div className="flex-none">
         <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
           <span />

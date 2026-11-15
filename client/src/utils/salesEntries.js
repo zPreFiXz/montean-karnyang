@@ -2,6 +2,7 @@ import { depositKindOf } from "@/utils/receipt";
 
 // เงินที่ร้านรับจริงแต่ละครั้ง รายงานยอดขายนับตามวันรับเงิน
 // มัดจำนับวันที่รับ ตอนชำระนับแค่ส่วนที่เหลือ ยกเลิกแล้วคืนมัดจำนับติดลบวันที่คืน ริบมัดจำก็ยังนับวันที่รับไว้
+// (ชำระบางส่วนใช้ช่องเดียวกับมัดจำ นับแบบเดียวกัน)
 export const salesEntriesOf = (repairs, isInRange) => {
   const entries = [];
   for (const repair of repairs) {
@@ -19,7 +20,15 @@ export const salesEntriesOf = (repairs, isInRange) => {
         method: repair.paymentMethod || "CASH",
       });
     }
-    if (deposit && repair.depositPaidAt && isInRange(repair.depositPaidAt)) {
+    // บิลที่ชำระครบแล้วค่อยยกเลิก หายจากรายงานทั้งบิลเหมือนบิลอื่นที่ยกเลิก มัดจำต้องหายไปด้วย
+    const isCancelledAfterPaid =
+      repair.status === "CANCELLED" && repair.cancelledStatus === "PAID";
+    if (
+      deposit &&
+      repair.depositPaidAt &&
+      !isCancelledAfterPaid &&
+      isInRange(repair.depositPaidAt)
+    ) {
       entries.push({
         key: `deposit-${repair.id}`,
         repair,
@@ -47,11 +56,12 @@ export const salesEntriesOf = (repairs, isInRange) => {
   return entries.sort((a, b) => new Date(b.at) - new Date(a.at));
 };
 
-// มัดจำ (รับก่อนซ่อมเสร็จ) กับชำระบางส่วน (รับหลังซ่อมเสร็จ) ใช้ป้ายต่างกัน
+// มัดจำ (รับตอนเป็นใบเสนอราคา) กับชำระบางส่วน (รับหลังเริ่มซ่อม) ใช้ป้ายต่างกัน
 export const entryBadgeOf = ({ kind, repair }) => {
   if (kind === "paid") return undefined;
   const isPartial = depositKindOf(repair) === "partial";
-  return kind === "deposit"
-    ? { label: isPartial ? "ชำระบางส่วน" : "รับมัดจำ", tone: "primary" }
-    : { label: isPartial ? "คืนเงิน" : "คืนมัดจำ", tone: "destructive" };
+  if (kind === "refund") {
+    return { label: isPartial ? "คืนเงิน" : "คืนมัดจำ", tone: "destructive" };
+  }
+  return { label: isPartial ? "ชำระบางส่วน" : "รับมัดจำ", tone: "primary" };
 };

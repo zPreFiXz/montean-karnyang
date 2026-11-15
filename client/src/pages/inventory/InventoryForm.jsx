@@ -80,8 +80,6 @@ const InventoryForm = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [inventory, setInventory] = useState(null);
   const [vehicleKey, setVehicleKey] = useState(0);
-  const [isImageMarkedForDeletion, setIsImageMarkedForDeletion] =
-    useState(false);
   const navigate = useNavigate();
   const { errors } = formState;
   const { user } = useAuthStore();
@@ -284,6 +282,9 @@ const InventoryForm = () => {
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
+    // รูปที่เพิ่งอัปโหลดในรอบนี้ บันทึกไม่ผ่านต้องลบทิ้ง ไม่งั้นค้างใน Cloudinary
+    let uploadedPublicId = null;
+    let isSaved = false;
     try {
       let image = null;
 
@@ -297,28 +298,14 @@ const InventoryForm = () => {
           publicId: res.data?.publicId,
           secureUrl: res.data?.secureUrl,
         };
-
-        if (inventory?.publicId) {
-          try {
-            await deleteImage(inventory.publicId);
-          } catch (error) {
-            toastError(error);
-          }
-        }
+        uploadedPublicId = image.publicId;
+        // รูปเก่าเซิร์ฟเวอร์ลบให้เองหลังบันทึกสำเร็จ ลบก่อนแล้วบันทึกไม่ผ่าน อะไหล่จะชี้ไปรูปที่ไม่มีแล้ว
       } else if (selectedImage && typeof selectedImage === "string") {
         image = {
           publicId: inventory?.publicId,
           secureUrl: inventory?.secureUrl,
         };
       } else if (selectedImage === null && isEdit) {
-        if (inventory?.publicId && isImageMarkedForDeletion) {
-          try {
-            await deleteImage(inventory.publicId);
-          } catch (error) {
-            toastError(error);
-          }
-        }
-
         image = {
           publicId: null,
           secureUrl: null,
@@ -341,12 +328,27 @@ const InventoryForm = () => {
       const itemType = isServiceCategory() ? "service" : "part";
 
       if (!isEdit) {
-        await withMinDuration(() =>
+        const created = await withMinDuration(() =>
           itemType === "service" ? createService(payload) : createPart(payload),
         );
+        isSaved = true;
         invalidateUnitOptions();
+
+        // เปิดรายละเอียดของชิ้นที่เพิ่งเพิ่ม ปิดแล้วรายการเลื่อนไปที่ชิ้นนั้น (ดู InventoryList)
+        let openItem = null;
+        try {
+          if (created?.data?.id) {
+            const res = await getInventory(created.data.id, itemType);
+            openItem = res.data || null;
+          }
+        } catch {
+          // ดึงไม่ได้ก็แค่ไม่เปิดไดอะล็อก การบันทึกสำเร็จไปแล้ว
+        }
+
+        navigate(inventoryPathFor(data.categoryId), {
+          state: openItem ? { openItem, highlightItem: true } : undefined,
+        });
         toast.success(`เพิ่ม${itemWord}เรียบร้อยแล้ว`);
-        navigate(inventoryPathFor(data.categoryId));
         reset();
         setSelectedImage(null);
         setVehicleKey((prev) => prev + 1);
@@ -358,6 +360,7 @@ const InventoryForm = () => {
           ? updateService(id, payload)
           : updatePart(id, payload),
       );
+      isSaved = true;
       invalidateUnitOptions();
 
       // เปิดมาจากนอกหน้าคลัง ถอยกลับไปรายการเดิม หน้านั้นเปิดไดอะล็อกต่อเอง (ดู useReopenStockItem)
@@ -371,7 +374,6 @@ const InventoryForm = () => {
         toast.success(`แก้ไข${itemWord}เรียบร้อยแล้ว`);
         reset();
         setSelectedImage(null);
-        setIsImageMarkedForDeletion(false);
         return;
       }
 
@@ -384,17 +386,27 @@ const InventoryForm = () => {
         // ดึงไม่ได้ก็แค่ไม่เปิดไดอะล็อกต่อ การบันทึกสำเร็จไปแล้ว ไม่ต้องแจ้งซ้ำ
       }
 
+      // ย้ายหมวดแล้ว ตำแหน่งที่จำไว้เป็นของหมวดเดิม ให้เลื่อนไปหาชิ้นนี้พร้อมไฮไลต์แบบตอนเพิ่มใหม่
+      const movedCategory =
+        !!inventory?.category?.name &&
+        category.find((cat) => cat.id === data.categoryId)?.name !==
+          inventory.category.name;
       navigate(inventoryPathFor(data.categoryId), {
-        state: { restoreScroll: true, ...(openItem ? { openItem } : {}) },
+        state: {
+          restoreScroll: !movedCategory,
+          ...(openItem ? { openItem, highlightItem: movedCategory } : {}),
+        },
       });
       // แจ้งหลังเปลี่ยนหน้า ไม่งั้นจะขึ้นก่อนไดอะล็อกเกือบครึ่งวินาที
       toast.success(`แก้ไข${itemWord}เรียบร้อยแล้ว`);
 
       reset();
       setSelectedImage(null);
-      setIsImageMarkedForDeletion(false);
     } catch (error) {
       toastError(error);
+      if (uploadedPublicId && !isSaved) {
+        deleteImage(uploadedPublicId).catch(() => {});
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -447,7 +459,6 @@ const InventoryForm = () => {
                 selectedImage={selectedImage}
                 setSelectedImage={setSelectedImage}
                 publicId={inventory?.publicId}
-                onMarkImageForDeletion={setIsImageMarkedForDeletion}
               />
             )}
 
@@ -458,7 +469,6 @@ const InventoryForm = () => {
                   setSelectedImage={setSelectedImage}
                   selectedImage={selectedImage}
                   publicId={inventory?.publicId}
-                  onMarkForDeletion={setIsImageMarkedForDeletion}
                 />
 
                 <FormInput

@@ -49,6 +49,8 @@ const InventoryBrowser = ({
   reloadToken,
   onLoadingChange,
   vehicle = null,
+  // "part-12" = การ์ดที่ต้องเน้นชั่วคราว เช่นชิ้นที่เพิ่งเพิ่ม
+  highlightedItem = null,
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [localCategory, setLocalCategory] = useState("ทั้งหมด");
@@ -389,14 +391,19 @@ const InventoryBrowser = ({
     return (
       <div
         key={`${item.category?.name}-${item.id}`}
+        data-inventory-item={`${item.type}-${item.id}`}
         role="button"
         tabIndex={disabled ? -1 : 0}
         aria-disabled={disabled || undefined}
         onKeyDown={onKeyActivate(() => !disabled && onItemClick?.(item))}
         onClick={() => !disabled && onItemClick?.(item)}
-        className={`mt-4 rounded-lg ${
-          disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-        }`}
+        // เน้นแบบเดียวกับการ์ดที่ถูกเลือก (ขอบน้ำเงิน พื้นฟ้าจาง) ค่อยๆ เฟดเข้าออก
+        // พื้นฟ้าเป็นชั้นทับการ์ด เพราะการ์ดมีพื้นขาวของตัวเอง
+        className={`after:bg-primary/5 relative mt-4 rounded-lg ring-2 transition-shadow duration-300 after:pointer-events-none after:absolute after:inset-0 after:rounded-lg after:transition-opacity after:duration-300 ${
+          highlightedItem === `${item.type}-${item.id}`
+            ? "ring-primary after:opacity-100"
+            : "ring-transparent after:opacity-0"
+        } ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
       >
         <InventoryCard
           item={item}

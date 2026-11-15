@@ -398,7 +398,7 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
                 {/* ตัวนี้คือสิ่งเดียวที่ถูกพิมพ์ (ดู @media print ใน index.css) */}
                 <div
                   ref={sheetIndex === 0 ? paperRef : undefined}
-                  className={`receipt-paper font-athiti h-[210mm] w-[148mm] origin-top-left overflow-hidden bg-white p-[10mm] text-[11pt] leading-tight text-black ${
+                  className={`receipt-paper font-athiti relative h-[210mm] w-[148mm] origin-top-left overflow-hidden bg-white p-[10mm] text-[11pt] leading-tight text-black ${
                     // ขอบล่าง 4 มม. เอาที่ให้ QR (ตรงกับ .receipt-fill ฝั่งเซิร์ฟเวอร์)
                     docType === "job" ? "" : "flex flex-col pb-[4mm]"
                   }`}

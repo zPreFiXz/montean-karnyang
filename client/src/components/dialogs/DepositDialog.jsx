@@ -17,7 +17,7 @@ import { withMinDuration } from "@/utils/withMinDuration";
 
 const DepositDialog = ({ isOpen, onClose, repair, onSave }) => {
   const isEditing = !!repair?.depositAmount;
-  // รับก่อนซ่อมเสร็จ = มัดจำ หลังซ่อมเสร็จ = ชำระบางส่วน
+  // ใบเสนอราคา = มัดจำ เริ่มซ่อมแล้ว = ชำระบางส่วน
   const terms = depositTermsOf(repair);
   const title = isEditing ? terms.edit : terms.action;
   const total = Number(repair?.totalPrice || 0);

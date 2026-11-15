@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { depositBadgeOf } from "@/utils/receipt";
 import { Link, useNavigate } from "react-router";
 import {
   Menu,
@@ -231,6 +232,8 @@ const Dashboard = () => {
                 )
               }
               licensePlate={getRepairTitle(repair)}
+              badge={depositBadgeOf(repair)}
+              badgeTone="primary"
               brand={getRepairSubtitle(repair)}
               time={repair[timeKey] && formatTime(repair[timeKey])}
               price={parseFloat(repair.totalPrice)}

@@ -149,6 +149,11 @@ exports.getVehicle = async (req, res) => {
           customer: { select: { name: true } },
           totalPrice: true,
           status: true,
+          // ป้ายมัดจำ/ชำระบางส่วนบนการ์ดประวัติการซ่อม (ดู depositBadgeOf ฝั่งหน้าเว็บ)
+          depositAmount: true,
+          depositPaidAt: true,
+          depositRefundedAt: true,
+          cancelledStatus: true,
         },
         orderBy: { createdAt: "desc" },
       },

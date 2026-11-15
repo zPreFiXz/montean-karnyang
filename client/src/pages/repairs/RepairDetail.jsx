@@ -20,6 +20,8 @@ import {
   Trash2,
   Ban,
   ChevronRight,
+  PiggyBank,
+  Undo2,
 } from "lucide-react";
 import BrandIcons from "@/components/icons/BrandIcons";
 import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
@@ -895,31 +897,64 @@ const RepairDetail = () => {
         confirmLabel="ยกเลิกบิล"
         confirmDisabled={hasOpenDeposit && !depositAction}
       >
+        {/* ตัวเลือกแบบการ์ดเหมือนเลือกประเภทลูกค้า (OrganizationTypeDialog) */}
         {hasOpenDeposit && (
           <div className="mt-4 w-full">
-            <p className="text-subtle-dark mb-2 text-center text-lg font-medium md:text-xl">
-              {depositTermsOf(repair).chip}{" "}
-              {formatCurrency(Number(repair.depositAmount))}
-            </p>
-            <div className="flex gap-2">
+            <div className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 p-4">
+              <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                {depositTermsOf(repair).row}
+              </p>
+              <p className="text-normal text-lg font-semibold md:text-xl">
+                {formatCurrency(Number(repair.depositAmount))}
+              </p>
+            </div>
+            <div className="mt-4 flex gap-2">
               {[
-                { id: "REFUND", label: depositTermsOf(repair).refund },
-                { id: "KEEP", label: depositTermsOf(repair).keep },
-              ].map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => setDepositAction(option.id)}
-                  aria-pressed={depositAction === option.id}
-                  className={`h-[41px] flex-1 cursor-pointer rounded-[20px] border text-lg font-semibold duration-300 md:text-xl ${
-                    depositAction === option.id
-                      ? "bg-primary text-surface border-primary"
-                      : "text-subtle-dark bg-surface border-gray-300"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
+                {
+                  id: "REFUND",
+                  label: depositTermsOf(repair).refund,
+                  Icon: Undo2,
+                },
+                {
+                  id: "KEEP",
+                  label: depositTermsOf(repair).keep,
+                  Icon: PiggyBank,
+                },
+              ].map(({ id, label, Icon }) => {
+                const isActive = depositAction === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setDepositAction(id)}
+                    aria-pressed={isActive}
+                    className={`flex h-[52px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border px-2 duration-300 ${
+                      isActive
+                        ? "border-primary bg-primary/5"
+                        : "border-gray-200 bg-gray-50"
+                    }`}
+                  >
+                    <span
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full duration-300 ${
+                        isActive ? "bg-primary" : "bg-subtle-light/25"
+                      }`}
+                    >
+                      <Icon
+                        className={`h-4 w-4 ${
+                          isActive ? "text-surface" : "text-subtle-dark"
+                        }`}
+                      />
+                    </span>
+                    <span
+                      className={`text-lg font-semibold md:text-xl ${
+                        isActive ? "text-primary" : "text-subtle-dark"
+                      }`}
+                    >
+                      {label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

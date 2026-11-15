@@ -106,8 +106,7 @@ describe("ตัวอย่างบนจอกับใบที่พิม�
   )("ใบรับเงินมัดจำของบิลชุดที่ %i", (_, raw) => {
     const client = asDepositReceipt(asIssued(raw));
     const serverBill = server.asDepositReceipt(server.asIssued(raw));
-    expect(receiptDocTitle(client)).toBe("ใบรับเงินมัดจำ");
-    expect(server.receiptDocTitle(serverBill)).toBe("ใบรับเงินมัดจำ");
+    expect(receiptDocTitle(client)).toBe(server.receiptDocTitle(serverBill));
     expect(receiptDocNo(client)).toBe(server.receiptDocNo(serverBill));
     expect(receiptDocNo(client)).toBe(receiptDocNo(asIssued(raw)));
     expect(receiptDateOf(client)).toEqual(server.receiptDateOf(serverBill));
@@ -121,22 +120,36 @@ describe("ตัวอย่างบนจอกับใบที่พิม�
   });
 });
 
-// เงินก้อนแรกที่รับหลังซ่อมเสร็จเป็นชำระบางส่วน ก่อนซ่อมเสร็จเป็นมัดจำ ทั้งสองฝั่งต้องใช้คำเดียวกัน
+// เงินก้อนแรกที่รับตอนเป็นใบเสนอราคาเป็นมัดจำ รับหลังเริ่มซ่อมเป็นชำระบางส่วน ทั้งสองฝั่งต้องใช้คำเดียวกัน
 describe("มัดจำกับชำระบางส่วนใช้คำตรงกันทั้งสองฝั่ง", () => {
   const items = [serviceLine({ name: "ค่าแรง", unitPrice: 900 })];
+  // เริ่มซ่อม 2026-10-20 (createdAt ของ fixture)
   const cases = [
-    ["มัดจำ", "2026-11-10T03:00:00.000Z", "ใบรับเงินมัดจำ", "หักมัดจำ"],
     [
-      "ชำระบางส่วน",
-      "2026-11-12T03:00:00.000Z",
+      "มัดจำตอนเป็นใบเสนอราคา",
+      "ESTIMATE",
+      "2026-10-25T03:00:00.000Z",
+      "ใบรับเงินมัดจำ",
+      "หักมัดจำ",
+    ],
+    [
+      "มัดจำก่อนเริ่มซ่อม",
+      "IN_PROGRESS",
+      "2026-10-15T03:00:00.000Z",
+      "ใบรับเงินมัดจำ",
+      "หักมัดจำ",
+    ],
+    [
+      "ชำระบางส่วนระหว่างซ่อม",
+      "IN_PROGRESS",
+      "2026-10-22T03:00:00.000Z",
       "ใบรับเงิน (ชำระบางส่วน)",
       "หักชำระแล้ว",
     ],
   ];
-  it.each(cases)("%s", (_, depositPaidAt, title, deduct) => {
+  it.each(cases)("%s", (_, status, depositPaidAt, title, deduct) => {
     const raw = repairWith(items, {
-      status: "COMPLETED",
-      completedAt: "2026-11-11T03:00:00.000Z",
+      status,
       depositAmount: 300,
       depositMethod: "CASH",
       depositPaidAt,

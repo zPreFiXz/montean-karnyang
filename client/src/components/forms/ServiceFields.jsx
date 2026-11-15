@@ -16,7 +16,6 @@ const ServiceFields = ({
   selectedImage,
   setSelectedImage,
   publicId,
-  onMarkImageForDeletion,
 }) => {
   const { serviceUnitOptions } = useUnitOptions();
 
@@ -28,7 +27,6 @@ const ServiceFields = ({
           setSelectedImage={setSelectedImage}
           selectedImage={selectedImage}
           publicId={publicId}
-          onMarkForDeletion={onMarkImageForDeletion}
         />
       )}
       <FormInput

@@ -37,6 +37,11 @@ import {
   getPeriodType as periodTypeOf,
 } from "@/utils/reportPeriod";
 
+// คืนเงินเกิดจากยกเลิกบิลเท่านั้น ใช้สีแดงแบบการ์ดบิลยกเลิก
+const cardBgOf = (entry) => (entry.kind === "refund" ? "cancelled" : "primary");
+const iconColorOf = (entry) =>
+  entry.kind === "refund" ? "#ef4444" : "#1976d2";
+
 const SalesReport = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -187,7 +192,7 @@ const SalesReport = () => {
                     <Link
                       to={`/repairs/${repair.id}`}
                       key={entry.key}
-                      className={index > 0 ? "mt-4 block" : "block"}
+                      className={`${index > 0 ? "mt-4" : ""} block`}
                       state={{
                         returnTo: location.pathname + location.search,
                         currentDate: currentDate.toISOString(),
@@ -195,21 +200,22 @@ const SalesReport = () => {
                       onClick={() => saveScrollPosition(scrollKey)}
                     >
                       <CarCard
-                        bg="primary"
+                        bg={cardBgOf(entry)}
                         icon={
                           isSaleRepair(repair) ? (
                             <OutlineCardIcon
                               icon={ShoppingBag}
-                              color="#1976d2"
+                              color={iconColorOf(entry)}
                             />
                           ) : isNoVehicleRepair(repair) ? (
                             <OutlineCardIcon
                               icon={WrenchOutline}
-                              color="#1976d2"
+                              color={iconColorOf(entry)}
                             />
                           ) : (
                             <BrandIcons
                               brand={repair.vehicle?.vehicleModel?.brand}
+                              color={iconColorOf(entry)}
                             />
                           )
                         }
@@ -241,7 +247,7 @@ const SalesReport = () => {
                           <Link
                             to={`/repairs/${repair.id}`}
                             key={entry.key}
-                            className={i > 0 ? "mt-3 block" : "block"}
+                            className={`${i > 0 ? "mt-3" : ""} block`}
                             state={{
                               returnTo: location.pathname + location.search,
                               currentDate: currentDate.toISOString(),
@@ -249,21 +255,22 @@ const SalesReport = () => {
                             onClick={() => saveScrollPosition(scrollKey)}
                           >
                             <CarCard
-                              bg="primary"
+                              bg={cardBgOf(entry)}
                               icon={
                                 isSaleRepair(repair) ? (
                                   <OutlineCardIcon
                                     icon={ShoppingBag}
-                                    color="#1976d2"
+                                    color={iconColorOf(entry)}
                                   />
                                 ) : isNoVehicleRepair(repair) ? (
                                   <OutlineCardIcon
                                     icon={WrenchOutline}
-                                    color="#1976d2"
+                                    color={iconColorOf(entry)}
                                   />
                                 ) : (
                                   <BrandIcons
                                     brand={repair.vehicle?.vehicleModel?.brand}
+                                    color={iconColorOf(entry)}
                                   />
                                 )
                               }

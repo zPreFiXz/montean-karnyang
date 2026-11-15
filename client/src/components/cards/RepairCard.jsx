@@ -9,6 +9,8 @@ const RepairCard = ({
   dateText,
   price,
   status,
+  // ป้ายหน้าบรรทัดล่าง เช่นมัดจำที่รับไว้แล้ว
+  badge,
 }) => {
   // บิลที่ยกเลิกขีดฆ่ายอด ไม่ได้นับเป็นเงินเข้า
   const info = getStatusInfo(status);
@@ -38,6 +40,11 @@ const RepairCard = ({
             {dateText}
           </p>
           <p className="text-subtle-dark truncate text-base leading-tight font-medium md:text-lg">
+            {badge && (
+              <span className="bg-primary/10 text-primary mr-1.5 rounded-full px-2 py-px text-sm font-semibold md:text-base">
+                {badge}
+              </span>
+            )}
             {details.join(" | ")}
           </p>
         </div>

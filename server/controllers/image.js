@@ -1,13 +1,10 @@
-const cloudinary = require("cloudinary").v2;
+const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-const UPLOAD_FOLDER = "montean-karnyang";
+const {
+  cloudinary,
+  UPLOAD_FOLDER,
+  isOwnImage,
+} = require("../utils/cloudinaryImage");
 // รับเฉพาะ data URI รูปภาพ กันการส่ง URL ให้เซิร์ฟเวอร์ไป fetch เอง (SSRF) และกันไฟล์ชนิดอื่น
 const IMAGE_DATA_URI_REGEX = /^data:image\/(png|jpe?g|webp);base64,/;
 // ~5MB หลังถอด base64 (base64 ยาวกว่าข้อมูลจริง ~33%)
@@ -36,15 +33,21 @@ exports.createImage = async (req, res) => {
 exports.deleteImage = async (req, res) => {
   const { publicId } = req.body;
 
-  // ลบได้เฉพาะรูปในโฟลเดอร์ของระบบนี้ กันลบ asset อื่นในบัญชี Cloudinary
-  if (
-    typeof publicId !== "string" ||
-    !publicId.startsWith(`${UPLOAD_FOLDER}/`)
-  ) {
+  if (!isOwnImage(publicId)) {
     createError(400, "รหัสรูปภาพไม่ถูกต้อง");
   }
 
-  await cloudinary.uploader.destroy(publicId);
+  // รูปที่อะไหล่หรือบริการยังใช้อยู่ห้ามลบผ่านทางนี้ รูปเก่าถูกลบที่เซิร์ฟเวอร์หลังบันทึกสำเร็จ
+  // ทางนี้มีไว้ทิ้งรูปที่เพิ่งอัปโหลดแต่บันทึกไม่ผ่าน
+  const [part, service] = await Promise.all([
+    prisma.part.findFirst({ where: { publicId }, select: { id: true } }),
+    prisma.service.findFirst({ where: { publicId }, select: { id: true } }),
+  ]);
+  if (part || service) {
+    createError(400, "ลบไม่ได้ เพราะรูปนี้ยังใช้อยู่");
+  }
+
+  await cloudinary.uploader.destroy(publicId, { invalidate: true });
 
   res.json({ message: "ลบรูปภาพเรียบร้อยแล้ว" });
 };

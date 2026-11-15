@@ -1,6 +1,7 @@
 const prisma = require("../config/prisma");
 const { buildPartItemName } = require("../utils/repairItemName");
 const createError = require("../utils/createError");
+const { destroyImageQuietly } = require("../utils/cloudinaryImage");
 
 // ยางส่งมาเป็นล็อต [{ dotCode, quantity }] — สต็อกรวม = ผลรวมทุกล็อต (stockQuantity เป็นตัวเลขหลักที่ต้องตรงกับล็อตเสมอ)
 const normalizeLots = (tireLots) =>
@@ -69,14 +70,19 @@ exports.createPart = async (req, res) => {
 
   const lots = normalizeLots(tireLots);
 
-  await prisma.part.create({
+  const created = await prisma.part.create({
     data: {
       ...partDataFrom(req.body, lots),
       tireLots: lots ? { create: lots } : undefined,
     },
   });
 
-  res.json({ message: "เพิ่มอะไหล่เรียบร้อยแล้ว" });
+  // ส่งรหัสกลับไป หน้าเว็บจะเปิดรายละเอียดของชิ้นที่เพิ่งเพิ่มได้
+  res.json({
+    message: "เพิ่มอะไหล่เรียบร้อยแล้ว",
+    id: created.id,
+    type: "part",
+  });
 };
 
 exports.updatePart = async (req, res) => {
@@ -94,6 +100,7 @@ exports.updatePart = async (req, res) => {
   const lots = normalizeLots(tireLots);
 
   const data = partDataFrom(req.body, lots, Number(id));
+  let replacedPublicId = null;
 
   await prisma.$transaction(async (tx) => {
     const before = await tx.part.findUnique({
@@ -101,6 +108,14 @@ exports.updatePart = async (req, res) => {
       include: { category: true },
     });
     const previousName = buildPartItemName(before);
+    // publicId ไม่ได้ส่งมา = ไม่แตะรูป ส่งมาแล้วต่างจากเดิม (รวมค่าว่าง) = รูปเดิมไม่มีใครใช้แล้ว
+    if (
+      data.publicId !== undefined &&
+      before?.publicId &&
+      before.publicId !== data.publicId
+    ) {
+      replacedPublicId = before.publicId;
+    }
 
     // ลบล็อตเก่าเสมอ รวมถึงตอนย้ายยางไปหมวดที่กรอกจำนวนตรงๆ ไม่งั้นตอนขายจะตัดจากล็อตที่ไม่ตรงกับสต็อก
     await tx.tireLot.deleteMany({ where: { partId: Number(id) } });
@@ -118,6 +133,8 @@ exports.updatePart = async (req, res) => {
       data: { itemName: buildPartItemName(part) },
     });
   });
+
+  await destroyImageQuietly(replacedPublicId);
 
   res.json({ message: "แก้ไขอะไหล่เรียบร้อยแล้ว" });
 };
@@ -172,9 +189,11 @@ exports.deletePart = async (req, res) => {
     createError(400, "ลบไม่ได้ เพราะมีงานซ่อมที่ใช้อะไหล่นี้อยู่");
   }
 
-  await prisma.part.delete({
+  const deleted = await prisma.part.delete({
     where: { id: Number(id) },
+    select: { publicId: true },
   });
+  await destroyImageQuietly(deleted.publicId);
 
   res.json({ message: "ลบอะไหล่เรียบร้อยแล้ว" });
 };

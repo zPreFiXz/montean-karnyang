@@ -1,4 +1,5 @@
 const prisma = require("../config/prisma");
+const { destroyImageQuietly } = require("../utils/cloudinaryImage");
 const createError = require("../utils/createError");
 
 exports.listServices = async (req, res) => {
@@ -19,7 +20,7 @@ exports.createService = async (req, res) => {
     createError(400, "ชื่อบริการนี้มีอยู่ในระบบแล้ว");
   }
 
-  await prisma.service.create({
+  const created = await prisma.service.create({
     data: {
       name,
       price,
@@ -32,7 +33,11 @@ exports.createService = async (req, res) => {
     },
   });
 
-  res.json({ message: "เพิ่มบริการเรียบร้อยแล้ว" });
+  res.json({
+    message: "เพิ่มบริการเรียบร้อยแล้ว",
+    id: created.id,
+    type: "service",
+  });
 };
 
 exports.updateService = async (req, res) => {
@@ -49,11 +54,22 @@ exports.updateService = async (req, res) => {
     createError(400, "ชื่อบริการนี้มีอยู่ในระบบแล้ว");
   }
 
+  let replacedPublicId = null;
+
   await prisma.$transaction(async (tx) => {
     const before = await tx.service.findUnique({
       where: { id: Number(id) },
-      select: { name: true },
+      select: { name: true, publicId: true },
     });
+    const nextPublicId =
+      image !== undefined ? image?.publicId || null : undefined;
+    if (
+      nextPublicId !== undefined &&
+      before?.publicId &&
+      before.publicId !== nextPublicId
+    ) {
+      replacedPublicId = before.publicId;
+    }
 
     await tx.service.update({
       where: { id: Number(id) },
@@ -83,6 +99,8 @@ exports.updateService = async (req, res) => {
     }
   });
 
+  await destroyImageQuietly(replacedPublicId);
+
   res.json({ message: "แก้ไขบริการเรียบร้อยแล้ว" });
 };
 
@@ -98,9 +116,11 @@ exports.deleteService = async (req, res) => {
     createError(400, "ลบไม่ได้ เพราะมีงานซ่อมที่ใช้บริการนี้อยู่");
   }
 
-  await prisma.service.delete({
+  const deleted = await prisma.service.delete({
     where: { id: Number(id) },
+    select: { publicId: true },
   });
+  await destroyImageQuietly(deleted.publicId);
 
   res.json({ message: "ลบบริการเรียบร้อยแล้ว" });
 };

@@ -188,6 +188,13 @@ const RepairDetailPayment = ({
       ? PAYMENT_METHODS
       : PAYMENT_OPTIONS_WITH_CREDIT;
   const options = canPayByCheque(repair) ? ALL_PAYMENT_METHODS : baseOptions;
+  // ยกเลิกแล้ววงเล็บบอกว่าเงินก้อนแรกไปทางไหน แทนวิธีจ่าย บิลที่จ่ายครบแล้วค่อยยกเลิกไม่มีให้เลือกคืน จึงบอกวิธีจ่ายเหมือนเดิม
+  const depositNote =
+    isCancelled && repair.cancelledStatus !== "PAID"
+      ? repair.depositRefundedAt
+        ? "คืนแล้ว"
+        : depositTermsOf(repair).keep
+      : getPaymentMethodText(repair.depositMethod);
   const isChequeSelected = !isPaidView && selectedMethod === CHEQUE_METHOD_ID;
   const bankOptions = useChequeBankOptions(isChequeSelected);
 
@@ -335,8 +342,7 @@ const RepairDetailPayment = ({
             {/* วันที่รับ คืน หรือริบมัดจำอยู่ในส่วนวันเวลา */}
             <InfoRow label={depositTermsOf(repair).row}>
               {formatCurrency(Number(repair.depositAmount))}
-              {repair.depositMethod &&
-                ` (${getPaymentMethodText(repair.depositMethod)})`}
+              {depositNote ? ` (${depositNote})` : ""}
             </InfoRow>
             {depositOf(repair) > 0 && !isCancelled && (
               <div className="flex justify-between gap-2">

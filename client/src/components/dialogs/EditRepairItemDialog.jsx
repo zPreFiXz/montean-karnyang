@@ -166,6 +166,18 @@ const EditRepairItemDialog = ({
                     </div>
                   )}
 
+                  {description && (
+                    <div className="flex gap-3">
+                      <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
+                        รายละเอียด:
+                      </p>
+                      {/* ไม่ใส่กฎตัดคำ เพราะภาษาไทยเขียนติดกัน เบราว์เซอร์จะตัดตรงไหนก็ได้ */}
+                      <p className="text-normal min-w-0 flex-1 text-right text-lg font-semibold whitespace-pre-line md:text-xl">
+                        {description}
+                      </p>
+                    </div>
+                  )}
+
                   {isNameEditable && (
                     <FormInput
                       register={register}
@@ -180,18 +192,6 @@ const EditRepairItemDialog = ({
                       autoFocus={false}
                       errors={errors}
                     />
-                  )}
-
-                  {description && (
-                    <div className="flex gap-3">
-                      <p className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl">
-                        รายละเอียด:
-                      </p>
-                      {/* ไม่ใส่กฎตัดคำ เพราะภาษาไทยเขียนติดกัน เบราว์เซอร์จะตัดตรงไหนก็ได้ */}
-                      <p className="text-normal min-w-0 flex-1 text-right text-lg font-semibold whitespace-pre-line md:text-xl">
-                        {description}
-                      </p>
-                    </div>
                   )}
 
                   {hasAdjustedPrice && (

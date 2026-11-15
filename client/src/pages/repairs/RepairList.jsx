@@ -1,4 +1,5 @@
 import PageSpinner from "@/components/ui/PageSpinner";
+import { depositBadgeOf, depositOf } from "@/utils/receipt";
 import { useState, useEffect } from "react";
 import { Link, Navigate, useSearchParams, useNavigate } from "react-router";
 import {
@@ -212,9 +213,20 @@ const RepairList = () => {
   const statusIcon = getStatusIcon();
 
   // ใบประเมินค้างได้นานหลายเดือน แบ่งตามเดือนเหมือนหน้าเครดิตและประวัติการใช้
+  // ใบที่รับมัดจำแล้วคืองานที่ตกลงแล้ว ต้องตามของกับนัดลูกค้า จึงแยกไว้บนสุด ที่เหลือแบ่งตามเดือน
   const monthGroups = [];
   if (status === "estimate") {
-    for (const repair of currentRepairs) {
+    const deposited = currentRepairs.filter((repair) => depositOf(repair) > 0);
+    if (deposited.length) {
+      monthGroups.push({
+        key: "deposited",
+        title: "มัดจำแล้ว",
+        repairs: deposited,
+      });
+    }
+    for (const repair of currentRepairs.filter(
+      (repair) => !(depositOf(repair) > 0),
+    )) {
       const at = cardTimeOf(repair);
       const key = monthKey(at);
       const last = monthGroups[monthGroups.length - 1];
@@ -252,6 +264,8 @@ const RepairList = () => {
           )
         }
         licensePlate={getRepairTitle(item)}
+        badge={depositBadgeOf(item)}
+        badgeTone="primary"
         brand={getRepairSubtitle(item)}
         time={
           showsDate

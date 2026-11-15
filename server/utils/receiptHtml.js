@@ -128,11 +128,9 @@ const billPages = (repairs) => {
 // ส่วนลดกับเทิร์นยางเก่าหักจากยอด (ต้องตรงกับ DISCOUNT_SERVICE_NAMES ฝั่งหน้าเว็บ)
 const DISCOUNT_SERVICE_NAMES = ["ส่วนลด", "เทิร์นยางเก่า"];
 const DELIVERY_PAGE_LINES = 14;
-// มัดจำที่ยังหักจากยอด คืนเงินไปแล้วไม่ต้องหัก (ต้องตรงกับ depositOf ฝั่งหน้าเว็บ)
-const depositOf = (repair) =>
-  repair?.depositAmount && !repair?.depositRefundedAt
-    ? Number(repair.depositAmount)
-    : 0;
+// เงินก้อนแรกที่หักจากยอด บิลที่ยกเลิกแล้วคืนเงินก็ยังหัก ใบที่พิมพ์ซ้ำต้องเหมือนใบที่ออกให้ลูกค้าไปแล้ว
+// การคืนเงินดูได้ที่กรอบการชำระเงินกับรายงาน (ต้องตรงกับ depositOf ฝั่งหน้าเว็บ)
+const depositOf = (repair) => Number(repair?.depositAmount || 0);
 // แถวสรุปท้ายตาราง: แถวเหนือแถวเทา แถวเทา (มีจำนวนเงินเป็นตัวอักษร) และแถวใต้แถวเทา
 // แถวเทาคือยอดที่ลูกค้าจ่ายจริง ส่วนลดและมัดจำหักอยู่เหนือแถวนี้ ใบรับเงินมัดจำบอกยอดทั้งบิลไว้ข้างใต้
 // (ต้องตรงกับ receiptSummaryOf ฝั่งหน้าเว็บ)
@@ -249,16 +247,18 @@ const asIssued = (repair) =>
     ? { ...repair, status: repair.cancelledStatus || "PAID", isCancelled: true }
     : repair;
 
-// เงินก้อนแรกที่รับก่อนซ่อมเสร็จคือมัดจำ รับหลังซ่อมเสร็จแล้วคือแบ่งจ่ายสองก้อน ใช้ช่องเดียวกัน ต่างแค่คำ
+// เงินก้อนแรกที่รับตอนเป็นใบเสนอราคาคือมัดจำ รับหลังเริ่มซ่อมแล้วคือแบ่งจ่ายสองก้อน ใช้ช่องเดียวกัน ต่างแค่คำ
 // (ต้องตรงกับ depositKindOf และ DEPOSIT_TERMS ฝั่งหน้าเว็บ)
 const depositKindOf = (repair) => {
-  if (!repair.depositPaidAt) {
-    return repair.status === "COMPLETED" ? "partial" : "deposit";
-  }
-  return repair.completedAt &&
-    new Date(repair.depositPaidAt) >= new Date(repair.completedAt)
-    ? "partial"
-    : "deposit";
+  // บิลที่ยกเลิกดูจากสถานะก่อนยกเลิก
+  const status =
+    repair.status === "CANCELLED" ? repair.cancelledStatus : repair.status;
+  if (status === "ESTIMATE") return "deposit";
+  if (!repair.depositPaidAt) return "partial";
+  // ตกลงซ่อมจากใบเสนอราคาแล้ว createdAt เป็นเวลาเริ่มซ่อม รับก่อนหน้านั้นคือมัดจำ
+  return new Date(repair.depositPaidAt) < new Date(repair.createdAt)
+    ? "deposit"
+    : "partial";
 };
 const DEPOSIT_TERMS = {
   deposit: {
@@ -280,7 +280,7 @@ const asDepositReceipt = (repair) => {
   const deposit = Number(repair.depositAmount || 0);
   const kind = depositKindOf(repair);
   const terms = DEPOSIT_TERMS[kind];
-  // ชำระบางส่วนหลังซ่อมเสร็จ งานจบแล้ว แสดงรายการครบเหมือนใบเสร็จ มัดจำยังไม่ได้ซ่อม จึงเป็นบรรทัดเดียว
+  // ชำระบางส่วนหลังเริ่มซ่อม แสดงรายการครบเหมือนใบเสร็จ มัดจำยังไม่ได้ซ่อม รายการอาจเปลี่ยน จึงเป็นบรรทัดเดียว
   if (kind === "partial") {
     return {
       ...repair,
@@ -722,7 +722,11 @@ const receiptPagesHtml = (
     const docNo = receiptDocNo(repair);
     const receiptNo = pages.length > 1 ? `${docNo}/${pageIndex + 1}` : docNo;
 
-    return `<div class="receipt-paper receipt-fill"><div class="page-body">
+    return `<div class="receipt-paper receipt-fill">${
+      repair.isCancelled
+        ? '<div class="void-mark"><span>ยกเลิก</span></div>'
+        : ""
+    }<div class="page-body">
   <div class="head">
     <span></span>
     <div class="title">
@@ -836,11 +840,32 @@ const RECEIPT_STYLES = `
   }
   /* บิลยาวเกินหนึ่งหน้าถูกแยกเป็นหลายแผ่น แต่ละแผ่นเป็นกระดาษ A5 ของตัวเอง */
   .receipt-paper {
+    position: relative;
     width: 148mm;
     height: 210mm;
     padding: 10mm;
     overflow: hidden;
     break-after: page;
+  }
+  /* ใบที่ยกเลิกประทับคำว่ายกเลิกทับกลางใบ (ต้องตรงกับ ReceiptPaper ฝั่งหน้าเว็บ) */
+  .void-mark {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .void-mark span {
+    transform: rotate(-30deg);
+    border: 6px solid rgba(0, 0, 0, 0.15);
+    border-radius: 12px;
+    padding: 0 24px;
+    font-size: 72pt;
+    font-weight: 700;
+    line-height: 1.25;
+    color: rgba(0, 0, 0, 0.15);
   }
   .receipt-paper:last-of-type { break-after: auto; }
   /* สามช่องกว้างเท่ากันซ้ายขวา ช่องซ้ายเว้นว่าง ชื่อเอกสารจึงอยู่กลางแผ่นเสมอ ไม่ถูกเลขที่ทางขวาดันเยื้อง */

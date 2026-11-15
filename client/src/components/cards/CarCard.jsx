@@ -54,11 +54,11 @@ const CarCard = ({
             >
               {licensePlate}
             </p>
-            <p className="text-subtle-dark truncate text-base font-medium md:text-lg">
-              {/* อยู่บรรทัดล่าง ทะเบียนบนหัวการ์ดจะได้ไม่ถูกตัด */}
+            {/* อยู่บรรทัดล่าง ทะเบียนบนหัวการ์ดจะได้ไม่ถูกตัด ป้ายไม่หด ข้อความหลังป้ายโดนตัดแทน */}
+            <p className="text-subtle-dark flex min-w-0 items-center text-base font-medium md:text-lg">
               {badge && (
                 <span
-                  className={`mr-1.5 rounded-full px-2 py-px text-sm font-semibold md:text-base ${
+                  className={`mr-1.5 shrink-0 rounded-full px-2 py-px text-sm font-semibold whitespace-nowrap md:text-base ${
                     badgeTone === "primary"
                       ? "bg-primary/10 text-primary"
                       : "bg-destructive/10 text-destructive"
@@ -67,25 +67,27 @@ const CarCard = ({
                   {badge}
                 </span>
               )}
-              {brand}
-              {date && (
-                <span className="text-subtle-dark">
-                  <span className="text-subtle-light"> | </span>
-                  <span>{date}</span>
-                </span>
-              )}
-              {time && (
-                <span className="text-subtle-dark">
-                  <span className="text-subtle-light"> | </span>
-                  <span>{time} น.</span>
-                </span>
-              )}
-              {note && (
-                <span className="text-subtle-dark">
-                  <span className="text-subtle-light"> | </span>
-                  <span>{note}</span>
-                </span>
-              )}
+              <span className="min-w-0 truncate">
+                {brand}
+                {date && (
+                  <span className="text-subtle-dark">
+                    <span className="text-subtle-light"> | </span>
+                    <span>{date}</span>
+                  </span>
+                )}
+                {time && (
+                  <span className="text-subtle-dark">
+                    <span className="text-subtle-light"> | </span>
+                    <span>{time} น.</span>
+                  </span>
+                )}
+                {note && (
+                  <span className="text-subtle-dark">
+                    <span className="text-subtle-light"> | </span>
+                    <span>{note}</span>
+                  </span>
+                )}
+              </span>
             </p>
           </div>
         ) : (
