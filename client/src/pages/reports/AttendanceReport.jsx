@@ -128,10 +128,12 @@ const AttendanceReport = () => {
         onDateChange={setCurrentDate}
         onBack={() => navigate("/dashboard")}
         showPeriodTabs={false}
+        pickerAtTop
+        compactPicker
       >
         <p className="text-surface/80 text-lg md:text-xl">สแกนครบ</p>
         <p className="text-surface text-[32px] leading-tight font-semibold md:text-[34px]">
-          {isLoading ? "-" : `${completedCount}/${totalEmployees} คน`}
+          {isLoading ? "0/0 คน" : `${completedCount}/${totalEmployees} คน`}
         </p>
       </ReportPeriodHeader>
 

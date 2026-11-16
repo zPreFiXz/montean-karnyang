@@ -898,15 +898,18 @@ const SuspensionInspection = () => {
                   ล้างข้อมูล
                 </button>
               )}
-              {/* ที่กรอกไว้มีร่างเก็บไว้ ไปจัดเรียงแล้วกลับมายังอยู่ครบ */}
-              <Link
-                to="/inspections/suspension/order"
-                aria-label="เรียงลำดับอะไหล่ช่วงล่าง"
-                title="เรียงลำดับอะไหล่ช่วงล่าง"
-                className="bg-surface/20 xl:bg-primary/10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-              >
-                <ArrowUpDown className="text-surface xl:text-primary h-5 w-5" />
-              </Link>
+              {/* ที่กรอกไว้มีร่างเก็บไว้ ไปจัดเรียงแล้วกลับมายังอยู่ครบ
+                  ตอนแก้บิลไม่มีร่าง ออกไปแล้วที่แก้ค้างไว้จะหาย จึงไม่มีปุ่มนี้ */}
+              {!isEditing && (
+                <Link
+                  to="/inspections/suspension/order"
+                  aria-label="เรียงลำดับอะไหล่ช่วงล่าง"
+                  title="เรียงลำดับอะไหล่ช่วงล่าง"
+                  className="bg-surface/20 xl:bg-primary/10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                >
+                  <ArrowUpDown className="text-surface xl:text-primary h-5 w-5" />
+                </Link>
+              )}
             </div>
           </div>
           <form

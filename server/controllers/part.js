@@ -197,3 +197,89 @@ exports.deletePart = async (req, res) => {
 
   res.json({ message: "ลบอะไหล่เรียบร้อยแล้ว" });
 };
+
+// ยี่ห้อกับชื่อที่เคยใช้ในหมวดนี้ ไว้ให้ฟอร์มเพิ่มอะไหล่แนะนำ ไม่ต้องพิมพ์เองทุกครั้ง
+exports.listPartHints = async (req, res) => {
+  const categoryId = Number(req.query.categoryId);
+  if (!Number.isInteger(categoryId)) {
+    createError(400, "หมวดหมู่ไม่ถูกต้อง");
+  }
+
+  const parts = await prisma.part.findMany({
+    where: { categoryId },
+    select: { brand: true, name: true },
+  });
+
+  res.json(parts);
+};
+
+const brandKeyOf = (brand) =>
+  String(brand || "")
+    .trim()
+    .toLowerCase();
+
+// ยี่ห้อเดียวกันที่พิมพ์ตัวพิมพ์เล็กใหญ่ต่างกัน (เช่น Roky กับ ROKY) ทำให้ค้นหาและกรองยี่ห้อแตกเป็นสองกลุ่ม
+exports.listBrandVariants = async (req, res) => {
+  const parts = await prisma.part.findMany({
+    where: { brand: { not: null } },
+    select: { brand: true },
+  });
+
+  const groups = new Map();
+  for (const { brand } of parts) {
+    const key = brandKeyOf(brand);
+    if (!key) continue;
+    if (!groups.has(key)) groups.set(key, new Map());
+    const spellings = groups.get(key);
+    spellings.set(brand, (spellings.get(brand) || 0) + 1);
+  }
+
+  res.json(
+    [...groups.entries()]
+      .filter(([, spellings]) => spellings.size > 1)
+      .map(([key, spellings]) => ({
+        key,
+        spellings: [...spellings.entries()]
+          .map(([brand, count]) => ({ brand, count }))
+          .sort((a, b) => b.count - a.count),
+      }))
+      .sort((a, b) => a.key.localeCompare(b.key)),
+  );
+};
+
+// เปลี่ยนทุกตัวสะกดของยี่ห้อนี้เป็นตัวที่เลือก ชื่อในบิลที่ระบบประกอบไว้เปลี่ยนตามแบบเดียวกับ updatePart
+exports.mergeBrandVariants = async (req, res) => {
+  const { key, brand } = req.body;
+  if (brandKeyOf(brand) !== brandKeyOf(key)) {
+    createError(400, "ตัวสะกดใหม่ต้องเป็นยี่ห้อเดียวกัน");
+  }
+
+  const parts = await prisma.part.findMany({
+    where: { brand: { not: null } },
+    include: { category: true },
+  });
+  const targets = parts.filter(
+    (part) =>
+      brandKeyOf(part.brand) === brandKeyOf(key) && part.brand !== brand,
+  );
+
+  await prisma.$transaction(async (tx) => {
+    for (const part of targets) {
+      const previousName = buildPartItemName(part);
+      const updated = await tx.part.update({
+        where: { id: part.id },
+        data: { brand },
+        include: { category: true },
+      });
+      await tx.repairItem.updateMany({
+        where: { partId: part.id, itemName: previousName },
+        data: { itemName: buildPartItemName(updated) },
+      });
+    }
+  });
+
+  res.json({
+    message: `แก้ยี่ห้อเป็น ${brand} แล้ว ${targets.length} รายการ`,
+    count: targets.length,
+  });
+};

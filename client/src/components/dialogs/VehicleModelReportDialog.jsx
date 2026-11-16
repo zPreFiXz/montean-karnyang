@@ -14,7 +14,7 @@ import useInventoryPreview, {
 } from "@/hooks/useInventoryPreview";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
 import { getDisplayBrand } from "@/utils/repairDisplay";
-import { formatDate, formatPlate, formatQuantity } from "@/utils/formats";
+import { formatPlate, formatQuantity } from "@/utils/formats";
 import { stockStatusOf } from "@/utils/inventoryItem";
 import { toastError } from "@/utils/handleError";
 
@@ -38,8 +38,8 @@ const stockLabel = (item) => {
 };
 
 const TABS = [
-  { id: "parts", label: "อะไหล่" },
-  { id: "vehicles", label: "รถ" },
+  { id: "parts", label: "อะไหล่ที่ใช้" },
+  { id: "vehicles", label: "รถที่เข้าร้าน" },
 ];
 
 // model = แถวที่กดในอันดับรุ่นรถ, range = ช่วงเวลาเดียวกับหน้ารายงาน
@@ -47,6 +47,7 @@ const TABS = [
 // onLeave = เรียกก่อนไปหน้าประวัติรถหรือหน้าแก้ไขอะไหล่ ให้หน้ารายงานจำไว้ว่าต้องเปิดหน้าต่างนี้กลับ
 // reopenItem = อะไหล่ที่เพิ่งแก้มา เปิดรายละเอียดต่อให้ ปิดแล้วกลับมาที่หน้าต่างนี้ตรงแถวเดิม
 const VehicleModelReportDialog = ({
+  periodLabel,
   model,
   range,
   itemName,
@@ -147,7 +148,23 @@ const VehicleModelReportDialog = ({
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <DialogTitleBar
-            title={shownModel ? getDisplayBrand(shownModel) : ""}
+            title={
+              shownModel ? (
+                <>
+                  <span className="block leading-tight">
+                    {getDisplayBrand(shownModel)}
+                  </span>
+                  {/* ช่วงเวลาเดียวกับหน้ารายงาน ไม่บอกไว้จะไม่รู้ว่าตัวเลขเป็นของช่วงไหน */}
+                  {periodLabel && (
+                    <span className="text-subtle-light block text-base leading-tight md:text-lg">
+                      {periodLabel}
+                    </span>
+                  )}
+                </>
+              ) : (
+                ""
+              )
+            }
             description="อะไหล่ที่ใช้และรถรุ่นนี้ที่เข้าร้าน"
             onClose={onClose}
             leftSlot={
@@ -238,7 +255,7 @@ const VehicleModelReportDialog = ({
                               <p className="text-normal line-clamp-2 text-base font-semibold break-words md:text-lg">
                                 {itemName(item)}
                               </p>
-                              <p className="text-subtle-dark text-base font-semibold md:text-lg">
+                              <p className="text-subtle-dark text-base font-medium md:text-lg">
                                 {`ใช้ไป ${formatQuantity(item.quantity)} ${item.unit || ""}`.trim()}
                                 {stock && (
                                   <>
@@ -292,7 +309,7 @@ const VehicleModelReportDialog = ({
                               ? `${formatPlate(vehicle.licensePlate.plateNumber)} ${vehicle.licensePlate.province}`
                               : "ไม่ระบุทะเบียนรถ"
                           }
-                          brand={`${vehicle.visits} ครั้ง | ล่าสุด ${formatDate(vehicle.lastVisitAt)}`}
+                          brand={`เข้าร้าน ${vehicle.visits} ครั้ง`}
                         />
                       </Link>
                     ))}

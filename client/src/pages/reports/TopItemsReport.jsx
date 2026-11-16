@@ -11,7 +11,11 @@ import { toastError } from "@/utils/handleError";
 import { formatCurrency, formatQuantity } from "@/utils/formats";
 import { formatProductName } from "@/utils/tireSize";
 import { isTireCategoryName, USED_TIRE_CATEGORY } from "@/constants/categories";
-import { getDateRange, getPeriodType } from "@/utils/reportPeriod";
+import {
+  getDateRange,
+  getDisplayDate,
+  getPeriodType,
+} from "@/utils/reportPeriod";
 import ItemImage from "@/components/ui/ItemImage";
 import VehicleModelReportDialog from "@/components/dialogs/VehicleModelReportDialog";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
@@ -325,6 +329,7 @@ const TopItemsReport = () => {
       <VehicleModelReportDialog
         model={openModel}
         range={getDateRange(currentDate, periodType)}
+        periodLabel={getDisplayDate(currentDate, periodType)}
         itemName={itemName}
         restore={modelRestore}
         onLeave={rememberOpenModel}

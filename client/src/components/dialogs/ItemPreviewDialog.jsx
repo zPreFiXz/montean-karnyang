@@ -85,7 +85,11 @@ const ItemPreviewDialog = ({
 
             {item?.description && <DescriptionNote text={item.description} />}
 
-            <div className="mt-4 space-y-2 rounded-lg bg-gray-50 p-4">
+            {/* มีหัวข้อของตัวเอง ไม่งั้นกล่องนี้ดูเหมือนอยู่ใต้หัวข้อรายละเอียด */}
+            <p className="font-athiti text-normal mt-4 mb-2 text-[22px] font-semibold md:text-2xl">
+              {isService ? "ข้อมูลบริการ" : "ข้อมูลอะไหล่"}
+            </p>
+            <div className="space-y-2 rounded-lg bg-gray-50 p-4">
               {!isService && item?.partNumber && (
                 <div className="flex justify-between">
                   <p className="text-subtle-dark text-lg font-medium md:text-xl">

@@ -24,9 +24,16 @@ const ReportPeriodHeader = ({
   onDateChange,
   onBack,
   showPeriodTabs = true,
+  // ปุ่มเลือกช่วงอยู่ขวาบนแบบหน้ารายงานยอดขาย ใช้ได้เมื่อชื่อหน้าสั้นพอ ไม่งั้นไปอยู่ที่วันที่
+  pickerAtTop = showPeriodTabs,
+  // ชื่อหน้ายาว จอแคบเหลือแค่ไอคอนปฏิทิน
+  compactPicker = false,
   children,
 }) => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const pickLabel = PERIOD_TYPES.find(
+    (type) => type.id === periodType,
+  )?.pickLabel;
 
   const handleDateSelect = (date) => {
     if (!date) return;
@@ -89,12 +96,19 @@ const ReportPeriodHeader = ({
             {title}
           </p>
         </div>
-        {showPeriodTabs &&
+        {pickerAtTop &&
           renderCalendarPopover(
-            <button className="text-surface flex cursor-pointer items-center gap-2">
-              <CalendarIcon className="h-5 w-5" />
-              <p className="text-xl font-semibold md:text-[22px]">
-                {PERIOD_TYPES.find((type) => type.id === periodType)?.pickLabel}
+            <button
+              aria-label={pickLabel}
+              className="text-surface flex shrink-0 cursor-pointer items-center gap-2"
+            >
+              <CalendarIcon className="h-5 w-5 shrink-0" />
+              <p
+                className={`text-xl font-semibold whitespace-nowrap md:text-[22px] ${
+                  compactPicker ? "max-[399px]:hidden" : ""
+                }`}
+              >
+                {pickLabel}
               </p>
             </button>,
             "end",
@@ -123,7 +137,7 @@ const ReportPeriodHeader = ({
       )}
 
       <div className="flex items-center justify-center pt-4">
-        {showPeriodTabs ? (
+        {pickerAtTop ? (
           <div className="text-surface text-[22px] font-semibold md:text-2xl">
             {getDisplayDate(currentDate, periodType)}
           </div>

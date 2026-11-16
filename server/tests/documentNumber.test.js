@@ -128,3 +128,30 @@ test("เปลี่ยนเป็นใบประเมินทันท�
   assert.equal(db.repairs[0].receiptNo, null);
   assert.equal(db.counters.get("RE:6910").lastNo, 0);
 });
+
+test("ขายเครดิตแล้วมาจ่ายเดือนถัดไป เลขใบเสร็จอยู่ชุดเดือนที่รับเงิน", async () => {
+  const db = fakeDb([bill(1, "CREDIT")]);
+  await assignRepairDocumentNo(db, 1);
+  assert.equal(db.repairs[0].receiptNo, undefined);
+  assert.equal(db.repairs[0].deliveryNo, "DO-6910-0001");
+
+  // 5 พ.ย. 2569
+  Object.assign(db.repairs[0], {
+    status: "PAID",
+    paidAt: new Date("2026-11-05T03:00:00Z"),
+  });
+  await assignRepairDocumentNo(db, 1);
+  assert.equal(db.repairs[0].receiptNo, "RE-6911-0001");
+  assert.equal(db.repairs[0].deliveryNo, "DO-6910-0001");
+});
+
+test("บิลซ่อมที่ได้เลขใบเสร็จตอนเปิดบิล จ่ายเดือนถัดไปยังใช้เลขเดิม", async () => {
+  const db = fakeDb([bill(1, "IN_PROGRESS")]);
+  await assignRepairDocumentNo(db, 1);
+  Object.assign(db.repairs[0], {
+    status: "PAID",
+    paidAt: new Date("2026-11-05T03:00:00Z"),
+  });
+  await assignRepairDocumentNo(db, 1);
+  assert.equal(db.repairs[0].receiptNo, "RE-6910-0001");
+});

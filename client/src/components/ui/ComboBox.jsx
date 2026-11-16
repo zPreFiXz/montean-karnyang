@@ -42,6 +42,8 @@ const ComboBox = ({
   // createLabel = ข้อความของแถวเพิ่ม เช่น (text) => `เพิ่มหน่วย "${text}"`
   creatable = false,
   createLabel = (text) => `เพิ่ม "${text}"`,
+  // ข้อความตอนยังไม่มีตัวเลือกเลย เช่นต้องเลือกช่องอื่นก่อน ตอนค้นแล้วไม่เจอยังเป็น "ไม่พบรายการ"
+  emptyText,
 }) => {
   const showSearch =
     creatable || (searchable ?? options.length > SEARCH_THRESHOLD);
@@ -180,7 +182,9 @@ const ComboBox = ({
                         customClass || "text-lg md:text-xl"
                       }`}
                     >
-                      ไม่พบรายการ
+                      {options.length === 0 && emptyText
+                        ? emptyText
+                        : "ไม่พบรายการ"}
                     </p>
                   </CommandEmpty>
                 )}

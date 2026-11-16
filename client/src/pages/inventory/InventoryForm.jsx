@@ -6,7 +6,9 @@ import StockFields from "@/components/forms/StockFields";
 import TireSizeFields from "@/components/forms/TireSizeFields";
 import { useForm } from "react-hook-form";
 import FormButton from "@/components/forms/FormButton";
-import { createPart, updatePart } from "@/api/part";
+import { createPart, listPartHints, updatePart } from "@/api/part";
+import PartNameInput from "@/components/forms/PartNameInput";
+import { brandOptionsOf } from "@/utils/partHints";
 import { createService, updateService } from "@/api/service";
 import { toast } from "sonner";
 import { firstErrorMessage } from "@/utils/formErrors";
@@ -81,6 +83,28 @@ const InventoryForm = () => {
   const [inventory, setInventory] = useState(null);
   const [vehicleKey, setVehicleKey] = useState(0);
   const navigate = useNavigate();
+  // ยี่ห้อกับชื่อที่เคยใช้ในหมวดที่เลือก ไว้แนะนำในช่องกรอก
+  const [partHints, setPartHints] = useState([]);
+  const watchedCategoryId = watch("categoryId");
+  useEffect(() => {
+    if (!watchedCategoryId) {
+      setPartHints([]);
+      return;
+    }
+    let cancelled = false;
+    listPartHints(watchedCategoryId)
+      .then((res) => {
+        if (!cancelled) setPartHints(res.data || []);
+      })
+      .catch(() => {
+        // ไม่มีคำแนะนำก็ยังพิมพ์เองได้ตามปกติ
+        if (!cancelled) setPartHints([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [watchedCategoryId]);
+  const brandOptions = brandOptionsOf(partHints);
   const { errors } = formState;
   const { user } = useAuthStore();
   // ช่องราคาทุนตอนแก้ไขเห็นเฉพาะแอดมิน ตอนเพิ่มใหม่ขึ้นทุกคนเหมือนเดิม
@@ -487,30 +511,44 @@ const InventoryForm = () => {
 
                 {!isUsedTire() && (
                   <>
-                    <FormInput
-                      register={register}
-                      name="brand"
-                      label="ยี่ห้อ"
-                      type="text"
-                      placeholder={
-                        isTireCategory() ? "เช่น LINGLONG" : "เช่น VALVOLINE"
-                      }
-                      color="subtle-dark"
-                      errors={errors}
-                    />
+                    {/* ยี่ห้อที่ใช้บ่อยในหมวดนี้ขึ้นก่อน พิมพ์ยี่ห้อใหม่ได้ ตัวสะกดจะได้ตรงกัน */}
+                    <div className="mt-4 px-5">
+                      <ComboBox
+                        label="ยี่ห้อ"
+                        color="text-subtle-dark"
+                        options={brandOptions}
+                        value={watch("brand") || ""}
+                        onChange={(value) =>
+                          setValue("brand", value, { shouldValidate: true })
+                        }
+                        placeholder="-- เลือกยี่ห้อ --"
+                        name="brand"
+                        errors={errors}
+                        creatable
+                        createLabel={(text) => `เพิ่มยี่ห้อ "${text}"`}
+                        emptyText={
+                          watch("categoryId")
+                            ? "ไม่มียี่ห้อในหมวดนี้"
+                            : "เลือกหมวดหมู่ก่อน"
+                        }
+                      />
+                      <input type="hidden" {...register("brand")} />
+                    </div>
 
-                    <FormInput
+                    <PartNameInput
                       register={register}
-                      name="name"
+                      errors={errors}
+                      setValue={setValue}
+                      value={watch("name") || ""}
+                      hints={partHints}
+                      isTire={isTireCategory()}
+                      brand={watch("brand") || ""}
                       label={isTireCategory() ? "รุ่น" : "ชื่ออะไหล่"}
-                      type="text"
                       placeholder={
                         isTireCategory()
                           ? "เช่น GREEN-Max HP010"
                           : "เช่น SYNTHETIC COMMONRAIL 5W-30"
                       }
-                      color="subtle-dark"
-                      errors={errors}
                     />
                   </>
                 )}

@@ -26,6 +26,7 @@ const DocumentNumbers = lazy(pageImports.DocumentNumbers);
 const InventoryList = lazy(pageImports.InventoryList);
 const InventoryForm = lazy(pageImports.InventoryForm);
 const InventoryUsage = lazy(pageImports.InventoryUsage);
+const BrandVariants = lazy(pageImports.BrandVariants);
 const OrganizationList = lazy(pageImports.OrganizationList);
 const OrganizationDetail = lazy(pageImports.OrganizationDetail);
 const OrganizationHistory = lazy(pageImports.OrganizationHistory);
@@ -118,6 +119,7 @@ const AppRoutes = () => {
 
           <Route path="inventory" element={<InventoryList />} />
           <Route path="inventory/new" element={<InventoryForm />} />
+          <Route path="inventory/brand-variants" element={<BrandVariants />} />
           <Route
             path="inventory/:type/:id/usage"
             element={<InventoryUsage />}

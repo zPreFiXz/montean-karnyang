@@ -45,7 +45,8 @@ const peekDocumentNo = async (db, prefix, date) => {
 // เลขที่ออกไปแล้วไม่เปลี่ยนอีก แม้สถานะจะย้อนกลับ ใบที่ลูกค้าถืออยู่จะได้ตรงกับระบบเสมอ
 // ใบเสร็จออกเลขตั้งแต่เปิดบิล เพราะร้านพิมพ์ใบเสร็จไปยื่นให้ลูกค้าก่อนแล้วค่อยเก็บเงิน
 // บิลที่กลายเป็นเครดิตทีหลังยังเก็บเลขใบเสร็จไว้ ใช้ตอนรับเงินจริง เลขจะได้ไม่ขาดช่วง
-// ทุกใบนับเดือนจากวันเปิดบิล ตรงกับวันที่บนหัวใบ
+// ทุกใบนับเดือนจากวันเปิดบิล ยกเว้นใบเสร็จที่ออกตอนรับเงิน (ขายเครดิตแล้วมาจ่ายทีหลัง) นับเดือนที่รับเงิน
+// ใบเสร็จลงวันที่รับเงิน เลขต้องอยู่ชุดเดือนเดียวกับวันที่บนใบ
 const assignRepairDocumentNo = async (tx, repairId) => {
   const repair = await tx.repair.findUnique({
     where: { id: repairId },
@@ -55,6 +56,7 @@ const assignRepairDocumentNo = async (tx, repairId) => {
       deliveryNo: true,
       quotationNo: true,
       createdAt: true,
+      paidAt: true,
     },
   });
   if (!repair) return;
@@ -64,7 +66,13 @@ const assignRepairDocumentNo = async (tx, repairId) => {
     repair.status,
   );
   if (needsReceipt && !repair.receiptNo) {
-    data.receiptNo = await nextDocumentNo(tx, PREFIX.receipt, repair.createdAt);
+    data.receiptNo = await nextDocumentNo(
+      tx,
+      PREFIX.receipt,
+      repair.status === "PAID" && repair.paidAt
+        ? repair.paidAt
+        : repair.createdAt,
+    );
   }
   if (repair.status === "CREDIT" && !repair.deliveryNo) {
     data.deliveryNo = await nextDocumentNo(

@@ -16,6 +16,7 @@ export const pageImports = {
   InventoryList: () => import("@/pages/inventory/InventoryList"),
   InventoryForm: () => import("@/pages/inventory/InventoryForm"),
   InventoryUsage: () => import("@/pages/inventory/InventoryUsage"),
+  BrandVariants: () => import("@/pages/inventory/BrandVariants"),
   OrganizationList: () => import("@/pages/organizations/OrganizationList"),
   OrganizationDetail: () => import("@/pages/organizations/OrganizationDetail"),
   OrganizationHistory: () =>

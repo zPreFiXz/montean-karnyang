@@ -251,6 +251,11 @@ exports.cancelRepairSchema = z.object({
   depositAction: z.enum(["REFUND", "KEEP"]).optional(),
 });
 
+exports.mergeBrandSchema = z.object({
+  key: z.string().trim().min(1, "ยี่ห้อไม่ถูกต้อง"),
+  brand: z.string().trim().min(1, "กรุณาเลือกตัวสะกด").max(100),
+});
+
 // ต้องรับ lots ด้วย ไม่งั้นยางจะติดด่าน quantity แล้วกลายเป็น NaN
 exports.updatePartStockSchema = z
   .object({

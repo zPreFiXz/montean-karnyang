@@ -9,7 +9,8 @@ import PageSpinner from "@/components/ui/PageSpinner";
 import { listDocumentNumbers } from "@/api/repair";
 import { getStatusInfo } from "@/constants/repairStatus";
 import { organizationIcon } from "@/constants/organizations";
-import { formatDateShort } from "@/utils/formats";
+import { formatDateWithWeekday } from "@/utils/formats";
+import { toLocalDateKey } from "@/utils/date";
 import { toastError } from "@/utils/handleError";
 import {
   getRepairTitle,
@@ -43,6 +44,9 @@ const CARD_BG = {
   CANCELLED: "cancelled",
 };
 
+// เก็บผลไว้นอกคอมโพเนนต์ กดย้อนกลับมาจะมีรายการตั้งแต่เฟรมแรก
+const dataCache = new Map();
+
 const DocumentNumbers = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -55,17 +59,28 @@ const DocumentNumbers = () => {
       ? new Date(location.state.currentDate)
       : new Date(),
   );
-  const [data, setData] = useState(null);
-  const [onlyProblems, setOnlyProblems] = useState(false);
+  // ตัวกรองอยู่ใน URL กดเข้าบิลแล้วย้อนกลับมายังติ๊กไว้เหมือนเดิม
+  const onlyProblems = searchParams.get("cancelled") === "1";
+  const setOnlyProblems = (value) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set("cancelled", "1");
+    else next.delete("cancelled");
+    setSearchParams(next, { replace: true, state: location.state });
+  };
   const period = periodOf(currentDate);
   const requestKey = `${prefix}-${period}`;
-  const isLoading = data?.key !== requestKey;
+  // ย้อนกลับมาจากหน้าบิลแสดงข้อมูลเดิมทันที ไม่ต้องหมุนรอ แล้วค่อยโหลดใหม่เงียบๆ
+  const [data, setData] = useState(() => dataCache.get(requestKey) || null);
+  const shownData = data?.key === requestKey ? data : dataCache.get(requestKey);
+  const isLoading = !shownData;
 
   useEffect(() => {
     let cancelled = false;
     listDocumentNumbers(prefix, period)
       .then((res) => {
-        if (!cancelled) setData({ key: `${prefix}-${period}`, ...res.data });
+        const next = { key: `${prefix}-${period}`, ...res.data };
+        dataCache.set(next.key, next);
+        if (!cancelled) setData(next);
       })
       .catch((error) => {
         if (!cancelled) toastError(error, "โหลดเลขที่เอกสารไม่ได้");
@@ -78,13 +93,14 @@ const DocumentNumbers = () => {
   const scrollKey = location.pathname + location.search;
   useScrollRestoration(scrollKey, !isLoading);
 
-  const entries = isLoading ? [] : data.entries;
+  const entries = isLoading ? [] : shownData.entries;
   const isCancelled = (entry) => entry.repair?.status === "CANCELLED";
   const cancelledCount = entries.filter(isCancelled).length;
   const missingCount = entries.filter((entry) => entry.missing).length;
-  const shown = onlyProblems
-    ? entries.filter((entry) => entry.missing || isCancelled(entry))
-    : entries;
+  // ใบวางบิลยกเลิกไม่ได้ จึงไม่มีตัวกรอง
+  const canFilterCancelled = prefix !== "BL";
+  const shown =
+    onlyProblems && canFilterCancelled ? entries.filter(isCancelled) : entries;
 
   const summary = [
     {
@@ -92,10 +108,26 @@ const DocumentNumbers = () => {
       count: entries.length - cancelledCount - missingCount,
     },
     prefix !== "BL" && { label: "ยกเลิก", count: cancelledCount },
-    { label: "เลขว่าง", count: missingCount },
+    // ระบบไม่ทำให้เลขขาดช่วง จะเกิดก็ต่อเมื่อแก้ฐานข้อมูลเอง จึงบอกเฉพาะตอนมี
+    missingCount > 0 && { label: "เลขว่าง", count: missingCount },
   ].filter(Boolean);
 
   const linkState = { currentDate: currentDate.toISOString() };
+
+  // แบ่งตามวันโดยคงลำดับเลข วันเดียวกันที่ติดกันรวมเป็นกลุ่มเดียว เลขว่างไม่มีวันที่ อยู่กลุ่มก่อนหน้า
+  const dayGroups = [];
+  for (const entry of shown) {
+    const at = entry.repair?.createdAt || entry.billingNote?.createdAt;
+    const key = at ? toLocalDateKey(at) : null;
+    const last = dayGroups[dayGroups.length - 1];
+    if (last && (!key || last.key === key)) last.entries.push(entry);
+    else
+      dayGroups.push({
+        key: key || `missing-${entry.no}`,
+        title: at ? formatDateWithWeekday(at) : "",
+        entries: [entry],
+      });
+  }
 
   // เก็บเดือนไว้ในประวัติของหน้านี้ ดูบิลแล้วย้อนกลับมาจะได้อยู่เดือนเดิม
   const handleDateChange = (date) => {
@@ -132,7 +164,6 @@ const DocumentNumbers = () => {
           licensePlate={no}
           badge={repair.status === "CANCELLED" ? "ยกเลิก" : undefined}
           brand={getRepairTitle(repair)}
-          date={formatDateShort(repair.createdAt)}
           price={Number(repair.totalPrice) || 0}
         />
       </Link>
@@ -155,7 +186,6 @@ const DocumentNumbers = () => {
         }
         licensePlate={no}
         brand={billingNote.customer.name}
-        date={formatDateShort(billingNote.createdAt)}
       />
     </Link>
   );
@@ -188,10 +218,11 @@ const DocumentNumbers = () => {
           window.history.length > 1 ? navigate(-1) : navigate("/vehicles")
         }
         showPeriodTabs={false}
+        pickerAtTop
       >
         <p className="text-surface/80 text-lg md:text-xl">ออกเลขแล้ว</p>
         <p className="text-surface text-[32px] leading-tight font-semibold md:text-[34px]">
-          {isLoading ? "-" : `${data.lastNo} เลข`}
+          {`${isLoading ? 0 : shownData.lastNo} เลข`}
         </p>
       </ReportPeriodHeader>
 
@@ -250,50 +281,63 @@ const DocumentNumbers = () => {
             </div>
 
             {/* สวิตช์แบบเดียวกับตัวกรองรุ่นรถในหน้าสต็อก */}
-            <button
-              type="button"
-              onClick={() => setOnlyProblems((value) => !value)}
-              aria-pressed={onlyProblems}
-              className="mt-4 flex cursor-pointer items-center gap-2 self-start"
-            >
-              <span
-                className={`flex h-5.5 w-9.5 shrink-0 items-center rounded-full p-[3px] duration-300 ${
-                  onlyProblems ? "bg-primary" : "bg-gray-300"
-                }`}
+            {canFilterCancelled && (
+              <button
+                type="button"
+                onClick={() => setOnlyProblems(!onlyProblems)}
+                aria-pressed={onlyProblems}
+                className="mt-4 flex cursor-pointer items-center gap-2 self-start"
               >
                 <span
-                  className={`bg-surface h-4 w-4 rounded-full duration-300 ${
-                    onlyProblems ? "translate-x-4" : "translate-x-0"
+                  className={`flex h-5.5 w-9.5 shrink-0 items-center rounded-full p-[3px] duration-300 ${
+                    onlyProblems ? "bg-primary" : "bg-gray-300"
                   }`}
-                />
-              </span>
-              <span
-                className={`text-base font-medium md:text-lg ${
-                  onlyProblems ? "text-primary" : "text-subtle-dark"
-                }`}
-              >
-                {prefix === "BL"
-                  ? "แสดงเฉพาะเลขว่าง"
-                  : "แสดงเฉพาะยกเลิกและเลขว่าง"}
-              </span>
-            </button>
+                >
+                  <span
+                    className={`bg-surface h-4 w-4 rounded-full duration-300 ${
+                      onlyProblems ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </span>
+                <span
+                  className={`text-base font-medium md:text-lg ${
+                    onlyProblems ? "text-primary" : "text-subtle-dark"
+                  }`}
+                >
+                  แสดงเฉพาะเลขที่ยกเลิก
+                </span>
+              </button>
+            )}
 
             {shown.length === 0 ? (
               <div className="flex flex-1 items-center justify-center py-10">
                 <p className="text-subtle-light text-center text-xl text-balance md:text-[22px]">
-                  {prefix === "BL"
-                    ? "ไม่พบเลขว่าง"
-                    : "ไม่พบเลขที่ยกเลิกหรือเลขว่าง"}
+                  {onlyProblems ? "ไม่พบเลขที่ยกเลิก" : "ไม่มีเลขที่เอกสาร"}
                 </p>
               </div>
             ) : (
-              shown.map((entry) => (
-                <div key={entry.no}>
-                  {entry.missing
-                    ? renderMissing(entry)
-                    : entry.billingNote
-                      ? renderBillingNote(entry)
-                      : renderRepair(entry)}
+              dayGroups.map((group, index) => (
+                <div key={`${group.key}-${index}`}>
+                  {group.title && (
+                    <div className="mt-4 flex items-center gap-2">
+                      <p className="text-subtle-dark text-lg font-semibold md:text-xl">
+                        {group.title}
+                      </p>
+                      <span className="text-subtle-light text-lg md:text-xl">
+                        ({group.entries.length})
+                      </span>
+                      <div className="bg-subtle-light/40 h-px flex-1" />
+                    </div>
+                  )}
+                  {group.entries.map((entry) => (
+                    <div key={entry.no}>
+                      {entry.missing
+                        ? renderMissing(entry)
+                        : entry.billingNote
+                          ? renderBillingNote(entry)
+                          : renderRepair(entry)}
+                    </div>
+                  ))}
                 </div>
               ))
             )}
