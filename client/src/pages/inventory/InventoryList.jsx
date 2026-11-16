@@ -4,7 +4,6 @@ import { getInventory } from "@/api/inventory";
 import InventoryBrowser from "@/components/inventory/InventoryBrowser";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
 import { BoxSearch } from "@/components/icons/Icons";
-import { CaseSensitive } from "lucide-react";
 import {
   inventoryScrollKey,
   useScrollRestoration,
@@ -129,14 +128,6 @@ const InventoryList = () => {
         <p className="text-surface min-w-0 flex-1 truncate text-2xl font-semibold md:text-[26px]">
           อะไหล่และบริการ
         </p>
-        <Link
-          to="/inventory/brand-variants"
-          aria-label="ยี่ห้อที่ตัวพิมพ์ไม่ตรงกัน"
-          title="ยี่ห้อที่ตัวพิมพ์ไม่ตรงกัน"
-          className="bg-surface/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-        >
-          <CaseSensitive className="text-surface h-5 w-5" />
-        </Link>
       </div>
 
       <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-28 xl:pb-4">
