@@ -6,6 +6,7 @@ import {
   hasTypedUnit,
   isPartLikeItem,
   isSingleQuantityItem,
+  isTradeInItem,
   lineUnit,
 } from "@/constants/services";
 import { isMultiUseOil } from "@/utils/oil";
@@ -83,6 +84,7 @@ export const repairToForm = (repair) => {
       name: ri.itemName || ri.service?.name || "",
       // ชื่อบนบรรทัดถูกพิมพ์ทับไปแล้ว ดูจากชื่อบริการต้นทางว่าเป็นบรรทัดอะไหล่ไหม
       isPartLine: isPartLikeItem(ri),
+      isTradeInLine: isTradeInItem(ri),
       isSingleLine: isSingleQuantityItem(ri),
       isTypedUnitLine: hasTypedUnit(ri),
       unit: lineUnit(ri),

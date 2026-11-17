@@ -10,7 +10,7 @@ import {
   PLACEHOLDER_SERVICE_NAMES,
   isPartLikeItem,
   isDiscountItem,
-  TRADE_IN_SERVICE_NAME,
+  isTradeInItem,
 } from "@/constants/services";
 import { editNamePriceSchema } from "@/utils/schemas";
 import { formatCurrency } from "@/utils/formats";
@@ -32,15 +32,18 @@ const EditRepairItemDialog = ({
   canEditName,
   isPartLine = false,
   isDiscountLine = false,
+  isTradeInLine = false,
 }) => {
   // ส่วนลดเก็บเป็นเลขติดลบ แต่ให้กรอกเป็นเลขบวก ดูจากธงไม่ใช่ชื่อ เพราะส่วนลดเปลี่ยนชื่อได้
   const isDiscount = isDiscountItem({ name: currentName, isDiscountLine });
-  const isTradeIn = (currentName || "").trim() === TRADE_IN_SERVICE_NAME;
-  const nameLabel = isDiscount
-    ? "ชื่อส่วนลด"
-    : !isService || isPartLikeItem({ name: currentName, isPartLine })
-      ? "ชื่ออะไหล่"
-      : "ชื่อบริการ";
+  const isTradeIn = isTradeInItem({ name: currentName, isTradeInLine });
+  const nameLabel = isTradeIn
+    ? "ชื่อรายการ"
+    : isDiscount
+      ? "ชื่อส่วนลด"
+      : !isService || isPartLikeItem({ name: currentName, isPartLine })
+        ? "ชื่ออะไหล่"
+        : "ชื่อบริการ";
 
   // ชื่อยังเป็นชื่อในคลัง = ยังไม่เคยตั้ง เปิดมาให้ช่องว่างพร้อมพิมพ์ทับ
   const isUntouchedName = PLACEHOLDER_SERVICE_NAMES.includes(
@@ -74,9 +77,8 @@ const EditRepairItemDialog = ({
 
   const watchedPrice = watch("price");
   const price = watchedPrice || currentPrice?.toString() || "0";
-  // เทิร์นยางเก่าแยกการ์ดออกมาให้ชื่อตรงกันทุกบิล จึงไม่ให้แก้ชื่อ
   const isNameEditable =
-    !isTradeIn && (typeof canEditName === "boolean" ? canEditName : isService);
+    typeof canEditName === "boolean" ? canEditName : isService;
   const hasAdjustedPrice =
     originalPrice != null && Number(originalPrice) !== Number(currentPrice);
 

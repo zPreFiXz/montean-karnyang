@@ -10,6 +10,7 @@ import {
   isDiscountItem,
   isPartLikeItem,
   isSingleQuantityItem,
+  isTradeInItem,
 } from "@/constants/services";
 import { USED_TIRE_CATEGORY, isTireCategoryName } from "@/constants/categories";
 import { isPerSide } from "@/utils/suspension";
@@ -189,7 +190,11 @@ const useBillItems = ({
                 : newPrice,
               // ชื่อที่พิมพ์เองต้องไม่ถูกชื่อจากคลังเขียนทับตอนบันทึก
               ...(newName && newName !== getProductName(item)
-                ? { name: newName, hasCustomName: true }
+                ? {
+                    name: newName,
+                    hasCustomName: true,
+                    isTradeInLine: isTradeInItem(item),
+                  }
                 : {}),
             }
           : item,

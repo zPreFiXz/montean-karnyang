@@ -33,6 +33,7 @@ import { toastError } from "@/utils/handleError";
 import {
   isPartLikeItem,
   isDiscountItem,
+  isTradeInItem,
   SUSPENSION_DEFAULT_SERVICE_NAMES,
   PER_SIDE_SERVICE_NAME,
 } from "@/constants/services";
@@ -55,6 +56,7 @@ import {
 import { SUSPENSION_CATEGORY } from "@/constants/categories";
 import {
   collapseSidePairs,
+  countDisplayedItems,
   expandBothSides,
   isSuspensionTabItem,
 } from "@/utils/repairItemGroups";
@@ -720,7 +722,7 @@ const SuspensionInspection = () => {
 
   const summaryBox = (
     <BillTotal
-      count={countSelectedInTabs() + repairItems.length}
+      count={countSelectedInTabs() + countDisplayedItems(repairItems)}
       total={tabTotal + extrasTotal}
       className="mt-4 mb-4"
     />
@@ -816,8 +818,9 @@ const SuspensionInspection = () => {
             onRowClick={handlePriceClick}
             transitionPrefix="suspension-item"
             marker={
+              // มีรายการเพิ่มเติมให้เทียบเมื่อไหร่ก็แสดง จะได้เห็นลำดับในบิลจริง
               hasTabSelection &&
-              (bill.isReordering || tabMarkerIndex > 0) && {
+              (bill.isReordering || repairItems.length > 0) && {
                 index: tabMarkerIndex,
                 label: `รายการซ่อมช่วงล่าง (${countSelectedInTabs()})`,
                 icon: <ClipboardList className="h-5 w-5 shrink-0" />,
@@ -838,7 +841,10 @@ const SuspensionInspection = () => {
                   label="ถัดไป"
                   isLoading={isLoading}
                   {...(isDesktop ? { form: "suspension-form" } : {})}
-                  disabled={countSelectedInTabs() + repairItems.length === 0}
+                  disabled={
+                    countSelectedInTabs() + countDisplayedItems(repairItems) ===
+                    0
+                  }
                 />
               </div>
             </>
@@ -1002,6 +1008,7 @@ const SuspensionInspection = () => {
         canEditName
         isPartLine={isPartLikeItem(editingItem)}
         isDiscountLine={isDiscountItem(editingItem)}
+        isTradeInLine={isTradeInItem(editingItem)}
       />
 
       <ConfirmDialog

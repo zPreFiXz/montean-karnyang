@@ -140,7 +140,7 @@ const ChequeDateField = ({ value, onChange, error }) => {
               type="button"
               onClick={() => onChange("")}
               aria-label="ล้างวันที่"
-              className="text-destructive absolute top-1/2 right-1 flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full"
+              className="text-subtle-dark absolute top-1/2 right-1 flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full"
             >
               <X className="h-4 w-4" />
             </button>
@@ -263,6 +263,7 @@ const RepairDetailPayment = ({
                     options={options}
                     value={selectedMethod}
                     onChange={onSelectMethod}
+                    clearable
                     placeholder="-- เลือกวิธีชำระเงิน --"
                     customClass="text-lg md:text-xl"
                     name="paymentMethod"

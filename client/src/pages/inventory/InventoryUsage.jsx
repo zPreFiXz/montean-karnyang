@@ -100,9 +100,7 @@ const InventoryUsage = () => {
   const isRenamable =
     itemName === PART_PLACEHOLDER_SERVICE_NAME ||
     itemName === SERVICE_PLACEHOLDER_SERVICE_NAME;
-  // ส่วนลดค้นหาไม่ได้ แต่การ์ดยังบอกชื่อที่พิมพ์ไว้ในบิล เช่น ส่วนลดที่ตั้งชื่อว่าหักมัดจำ
   const isDiscount = itemName === DISCOUNT_SERVICE_NAME;
-  const showsItemNames = isRenamable || isDiscount;
 
   const keyword = isRenamable
     ? (searchParams.get("search") || "").trim().toLowerCase()
@@ -232,10 +230,10 @@ const InventoryUsage = () => {
               </div>
               {group.usages.map(({ repair, itemNames }) => {
                 const status = getStatusInfo(repair.status);
-                const detail =
-                  showsItemNames && itemNames?.length
-                    ? billNameLabel(itemNames)
-                    : null;
+                // เซิร์ฟเวอร์ส่งมาเฉพาะชื่อที่พิมพ์เองในบิล
+                const detail = itemNames?.length
+                  ? billNameLabel(itemNames)
+                  : null;
                 return (
                   <Link
                     key={repair.id}
@@ -269,6 +267,10 @@ const InventoryUsage = () => {
                         isRenamable ? null : formatDateShort(repair.createdAt)
                       }
                       note={detail}
+                      noteSuffix={
+                        itemNames?.length > 1 &&
+                        `และอีก ${itemNames.length - 1} รายการ`
+                      }
                     />
                   </Link>
                 );

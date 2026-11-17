@@ -14,6 +14,7 @@ import {
   depositTermsOf,
   asIssued,
   canReprintDeliveryNote,
+  chequeNoteRow,
   hasShortenableName,
   jobSheetNo,
   jobSheetPages,
@@ -179,6 +180,11 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
       ]
     : baseTabs;
   const canShortenNames = hasShortenableName(repair.repairItems || []);
+  // ใบเสร็จรับเช็คกับใบรับเงินมัดจำมีบรรทัดเดียว ไม่มีชื่ออะไหล่ให้ย่อ
+  // (ใบส่งของ และใบรับเงินชำระบางส่วนของบิลเดียวกันยังมีรายการครบ)
+  const showsItemNames =
+    !chequeNoteRow(docRepair) &&
+    !(docType === "deposit" && docRepair.depositKind === "deposit");
 
   const handlePrintAtShop = async () => {
     if (isPrintingAtShop) return;
@@ -342,7 +348,7 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
                 label: "แสดงชื่ออะไหล่แบบเต็ม",
                 value: showBrand,
                 onToggle: () => setShowBrand((value) => !value),
-                visible: canShortenNames,
+                visible: canShortenNames && showsItemNames,
               },
             ]
               .filter((item) => item.visible)

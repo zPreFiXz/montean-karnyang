@@ -8,6 +8,22 @@ exports.listServices = async (req, res) => {
   res.json(services);
 };
 
+// ส่งรหัสบริการทั้งหมดในหมวดตามลำดับใหม่ บริการที่ไม่ได้ส่งมาคงลำดับเดิม
+exports.updateServiceOrder = async (req, res) => {
+  const { ids } = req.body;
+
+  await prisma.$transaction(
+    ids.map((id, index) =>
+      prisma.service.updateMany({
+        where: { id },
+        data: { sortOrder: index + 1 },
+      }),
+    ),
+  );
+
+  res.json({ message: "บันทึกลำดับเรียบร้อยแล้ว" });
+};
+
 exports.createService = async (req, res) => {
   const { name, price, description, unit, perSide, image, categoryId } =
     req.body;

@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { PER_SIDE_SERVICE_NAME } from "@/constants/services";
 import { getPartType, groupPartsByType, isPerSide } from "@/utils/suspension";
 import useSuspensionTypeOrder from "@/hooks/useSuspensionTypeOrder";
+import { countDisplayedItems } from "@/utils/repairItemGroups";
 
 const SIDES = ["left", "right", "other"];
 const emptySelection = () => ({
@@ -76,15 +77,8 @@ const useSuspensionTabs = ({
   const sumPerSideService = () =>
     countPerSideService() * (perSideService?.sellingPrice || 0);
 
-  const countSelectedInTabs = () =>
-    SIDES.reduce(
-      (sum, side) =>
-        sum +
-        [...selected[side]].filter((id) =>
-          getPartsForSide(side).some((part) => part.id === id),
-        ).length,
-      0,
-    ) + countPerSideService();
+  // นับแบบเดียวกับการ์ดในบิล ชิ้นเดียวกันซ้าย-ขวาเป็นรายการเดียว
+  const countSelectedInTabs = () => countDisplayedItems(buildTabItems());
 
   const hasTabSelection =
     SIDES.some((side) => selected[side].size > 0) || countPerSideService() > 0;

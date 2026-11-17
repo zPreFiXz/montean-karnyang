@@ -13,7 +13,7 @@ import {
   CommandList,
   CommandItem,
 } from "@/components/ui/command";
-import { Check, ChevronsUpDown, AlertCircle, Plus } from "lucide-react";
+import { Check, ChevronsUpDown, AlertCircle, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@radix-ui/react-label";
 
@@ -44,6 +44,8 @@ const ComboBox = ({
   createLabel = (text) => `เพิ่ม "${text}"`,
   // ข้อความตอนยังไม่มีตัวเลือกเลย เช่นต้องเลือกช่องอื่นก่อน ตอนค้นแล้วไม่เจอยังเป็น "ไม่พบรายการ"
   emptyText,
+  // มีปุ่มกากบาทล้างค่าที่เลือก (onChange(""))
+  clearable = false,
 }) => {
   const showSearch =
     creatable || (searchable ?? options.length > SEARCH_THRESHOLD);
@@ -88,6 +90,7 @@ const ComboBox = ({
   }, [open, selectedLabel]);
 
   const hasError = errors && errors[name];
+  const showClear = clearable && !!selectedLabel && !disabled;
 
   return (
     <div>
@@ -138,7 +141,12 @@ const ComboBox = ({
               }}
             >
               <span className="truncate">{selectedLabel || placeholder}</span>
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              {/* ที่ว่างให้ปุ่มกากบาทที่วางทับ (ปุ่มซ้อนในปุ่มไม่ได้) */}
+              {showClear ? (
+                <span className="ml-2 h-4 w-4 shrink-0" />
+              ) : (
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              )}
             </Button>
           </PopoverTrigger>
           <PopoverContent
@@ -247,6 +255,16 @@ const ComboBox = ({
             </Command>
           </PopoverContent>
         </Popover>
+        {showClear && (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            aria-label="ล้างที่เลือก"
+            className="text-subtle-dark absolute top-1/2 right-2 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
       {hasError && !hideErrorMessage && (
         <div className="mt-1.5 flex items-center gap-1 px-1">

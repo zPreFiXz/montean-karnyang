@@ -142,6 +142,8 @@ const KnownVehicleHint = ({
   const lastJobNames = [
     ...new Set(
       (lastVisit?.repairItems || [])
+        // ส่วนลดแก้ชื่อได้ ดูจากชื่อบริการต้นทางด้วย
+        .filter((item) => !DISCOUNT_SERVICE_NAMES.includes(item.service?.name))
         .map((item) => item.itemName || item.part?.name || item.service?.name)
         .filter((name) => name && !DISCOUNT_SERVICE_NAMES.includes(name)),
     ),

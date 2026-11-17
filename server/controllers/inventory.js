@@ -2,6 +2,11 @@ const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
 const { OIL_SOURCE_SELECT, withOilKitStock } = require("../utils/oilKit");
 const { loadVehicleSorter } = require("../utils/vehicleOrder");
+const {
+  buildPartItemName,
+  buildServiceItemName,
+  oilUseItemNames,
+} = require("../utils/repairItemName");
 
 const mapServiceToInventoryItem = (service) => ({
   ...service,
@@ -228,6 +233,28 @@ exports.listInventoryRepairs = async (req, res) => {
     createError(400, "ชนิดรายการไม่ถูกต้อง");
   }
 
+  // ชื่อที่ระบบใส่ให้ตอนเพิ่มลงบิล ชื่ออื่นคือชื่อที่พิมพ์เอง หน้าเว็บแสดงเฉพาะชื่อพวกนั้น
+  const part =
+    type === "part"
+      ? await prisma.part.findUnique({
+          where: { id: itemId },
+          include: { category: true },
+        })
+      : null;
+  const systemNames =
+    type === "service"
+      ? [
+          buildServiceItemName(
+            await prisma.service.findUnique({ where: { id: itemId } }),
+          ),
+        ]
+      : [buildPartItemName(part), ...oilUseItemNames(part)];
+  // บิลเก่ามีขนาดขวดในชื่อ เช่น "VALVOLINE (1L) น้ำมันเครื่อง ..."
+  const isTypedName = (name) =>
+    !!name &&
+    !systemNames.includes(name) &&
+    !systemNames.includes(name.replace(/ \(\d+(\.\d+)?L\)/, ""));
+
   const items = await prisma.repairItem.findMany({
     // บิลที่ยกเลิกคืนของเข้าคลังไปแล้ว ไม่นับว่าใช้ไป
     where: {
@@ -262,7 +289,10 @@ exports.listInventoryRepairs = async (req, res) => {
     if (current) {
       current.quantity += Number(item.quantity);
       current.total += Number(item.quantity) * item.unitPrice;
-      if (item.itemName && !current.itemNames.includes(item.itemName)) {
+      if (
+        isTypedName(item.itemName) &&
+        !current.itemNames.includes(item.itemName)
+      ) {
         current.itemNames.push(item.itemName);
       }
     } else {
@@ -270,7 +300,7 @@ exports.listInventoryRepairs = async (req, res) => {
         repair: item.repair,
         quantity: Number(item.quantity),
         total: Number(item.quantity) * item.unitPrice,
-        itemNames: item.itemName ? [item.itemName] : [],
+        itemNames: isTypedName(item.itemName) ? [item.itemName] : [],
       });
     }
   }

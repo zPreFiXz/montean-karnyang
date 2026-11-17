@@ -11,3 +11,7 @@ export const updateService = async (id, data) => {
 export const deleteService = async (id) => {
   return await apiClient.delete(`/services/${id}`);
 };
+
+export const updateServiceOrder = async (ids) => {
+  return await apiClient.put("/services/order", { ids });
+};

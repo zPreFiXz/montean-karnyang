@@ -247,6 +247,10 @@ exports.repairDepositSchema = z
     message: "กรุณาเลือกวิธีชำระเงิน",
   });
 
+exports.serviceOrderSchema = z.object({
+  ids: z.array(z.number().int().positive()).min(1).max(500),
+});
+
 exports.cancelRepairSchema = z.object({
   depositAction: z.enum(["REFUND", "KEEP"]).optional(),
 });

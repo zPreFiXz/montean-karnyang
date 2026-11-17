@@ -44,6 +44,8 @@ let categoryOrderCache = null;
 const InventoryBrowser = ({
   syncUrl = false,
   headerAction = null,
+  // ปุ่มเล็กต่อท้ายจำนวน ตามหมวดที่เลือก (หน้าอะไหล่และบริการใช้ ตอนเลือกลงบิลไม่มี)
+  titleActionFor = null,
   onItemClick,
   getCardProps = () => ({}),
   reloadToken,
@@ -619,6 +621,7 @@ const InventoryBrowser = ({
               ({visibleInventory.length})
             </span>
           )}
+          {!isLoading && titleActionFor?.(activeCategory)}
         </div>
         {headerAction}
       </div>

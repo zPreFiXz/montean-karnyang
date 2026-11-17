@@ -10,6 +10,8 @@ const CarCard = ({
   time,
   // ข้อความต่อท้ายแบบไม่มีหน่วยเวลา เช่น ชื่อลูกค้าที่ตรงกับคำค้น
   note,
+  // ต่อท้าย note แต่ไม่ถูกตัด เช่น "และอีก 2 รายการ"
+  noteSuffix,
   price,
   amount,
   status,
@@ -88,6 +90,11 @@ const CarCard = ({
                   </span>
                 )}
               </span>
+              {noteSuffix && (
+                <span className="text-subtle-dark shrink-0 whitespace-nowrap">
+                  &nbsp;{noteSuffix}
+                </span>
+              )}
             </p>
           </div>
         ) : (

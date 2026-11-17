@@ -794,14 +794,19 @@ const RepairDetail = () => {
             )}
             {getNextStatus(repair.status) && (
               <div className="mt-4 flex flex-col gap-4 pr-10">
-                <FormButton
-                  label={getNextStatusText(repair.status)}
-                  isLoading={isUpdating}
-                  disabled={isUpdating}
-                  onClick={() => handleUpdateStatus(false)}
-                  className={getNextStatusButtonClass(repair.status)}
-                />
-                {repair.status === "IN_PROGRESS" && (
+                {/* กำลังซ่อม: เลือกวิธีชำระเงินแล้ว = รับเงินพร้อมปิดงาน ยังไม่เลือก = ปิดงานอย่างเดียว */}
+                {!(
+                  repair.status === "IN_PROGRESS" && selectedPaymentMethod
+                ) && (
+                  <FormButton
+                    label={getNextStatusText(repair.status)}
+                    isLoading={isUpdating}
+                    disabled={isUpdating}
+                    onClick={() => handleUpdateStatus(false)}
+                    className={getNextStatusButtonClass(repair.status)}
+                  />
+                )}
+                {repair.status === "IN_PROGRESS" && selectedPaymentMethod && (
                   <FormButton
                     label={
                       isCreditSelected

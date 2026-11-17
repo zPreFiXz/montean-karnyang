@@ -46,6 +46,12 @@ export const DISCOUNT_SERVICE_NAMES = [
   TRADE_IN_SERVICE_NAME,
 ];
 
+// แก้ชื่อได้ จึงดูจากธงหรือชื่อบริการต้นทางเหมือน isPartPlaceholderItem
+export const isTradeInItem = (item) =>
+  !!item?.isTradeInLine ||
+  item?.service?.name === TRADE_IN_SERVICE_NAME ||
+  (!item?.partNumber && item?.name === TRADE_IN_SERVICE_NAME);
+
 export const isDiscountItem = (item) =>
   !!item?.isDiscountLine ||
   DISCOUNT_SERVICE_NAMES.includes(item?.service?.name) ||
@@ -98,49 +104,15 @@ export const NO_CATEGORY_ORDER = [
 
 export const PER_SIDE_SERVICE_NAME = "ตั้งลูกปืนล้อ";
 
-// บริการที่ไม่อยู่ในลิสต์ตกไปท้ายสุด เรียงตามตัวอักษรไทย
-const SERVICE_ORDER = [
-  "อะไหล่อื่นๆ",
-  "บริการอื่นๆ",
-  "ค่าแรง",
-  PART_PLACEHOLDER_SERVICE_NAME,
-  "ปะยาง",
-  "ปะยาง (แผ่นใหญ่)",
-  "ปะยาง (รถไถ)",
-  "อัดกาวขอบแมกซ์",
-  "อัดกาวขอบแม็กซ์ (มอเตอร์ไซค์)",
-  "จุ๊บลม",
-  "จาระบี",
-  "เปลี่ยนจุ๊บลม",
-  "ถ่วงล้อ",
-  "สลับยาง+ถ่วงล้อ",
-  "ตั้งศูนย์",
-  "ตั้งศูนย์ 4 ล้อ",
-  "ปะยางรถมอเตอร์ไซค์ (ไหมเสียบ)",
-  "ปะยางรถมอเตอร์ไซค์ (สตรีมเย็น)",
-  "ปะยางนอกรถหกล้อ",
-  "ปะยางในรถหกล้อ (สตรีมร้อน)",
-  "ปะยางในรถไถ ล้อหน้า (สตรีมเย็น)",
-  "ถอด-ใส่ยาง",
-  "ถอด-ใส่ยาง (มอเตอร์ไซค์)",
-  "ถอด-ใส่ยาง (ร้านมอเตอร์ไซค์)",
-  "เปลี่ยนยาง (มอเตอร์ไซค์)",
-  "เป่ากรองอากาศ",
-  "เช็กเดินทางไกล",
-];
-
 const serviceCollator = new Intl.Collator("th");
 
+// ลำดับที่ร้านจัดไว้ (หน้าเรียงลำดับบริการ) บริการใหม่ได้ 999 ตกไปท้ายเรียงตามตัวอักษร
 export const sortServices = (items = []) =>
-  [...items].sort((a, b) => {
-    const rankOf = (name) => {
-      const index = SERVICE_ORDER.indexOf(name);
-      return index === -1 ? SERVICE_ORDER.length : index;
-    };
-
-    const diff = rankOf(a.name) - rankOf(b.name);
-    return diff !== 0 ? diff : serviceCollator.compare(a.name, b.name);
-  });
+  [...items].sort(
+    (a, b) =>
+      (a.sortOrder ?? 999) - (b.sortOrder ?? 999) ||
+      serviceCollator.compare(a.name, b.name),
+  );
 
 // อ้างด้วยชื่อ เพราะรหัสของแต่ละเครื่องไม่ตรงกัน
 export const TIRE_FREEBIE_NAMES = ["จุ๊บลม", "ถ่วงล้อ"];

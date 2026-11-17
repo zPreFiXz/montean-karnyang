@@ -50,7 +50,8 @@ describe("แท็บซ้าย/ขวา/อื่นๆ ของหน้�
       [90, "left", 1],
     ]);
     expect(h.result.current.tabTotal).toBe(500 * 3 + 300);
-    expect(h.result.current.countSelectedInTabs()).toBe(4);
+    // บนซ้าย-ขวาเป็นรายการเดียว + แร็ค + ตั้งลูกปืนล้อซ้าย
+    expect(h.result.current.countSelectedInTabs()).toBe(3);
     expect(h.result.current.hasTabSelection).toBe(true);
   });
 

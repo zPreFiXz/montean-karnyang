@@ -22,7 +22,11 @@ import FormButton from "@/components/forms/FormButton";
 import { listParts } from "@/api/part";
 import { repairSchema } from "@/utils/schemas";
 import { SUSPENSION_CATEGORY } from "@/constants/categories";
-import { isPartLikeItem, isDiscountItem } from "@/constants/services";
+import {
+  isPartLikeItem,
+  isDiscountItem,
+  isTradeInItem,
+} from "@/constants/services";
 import {
   collapseSidePairs,
   countDisplayedItems,
@@ -672,6 +676,7 @@ const RepairCreate = () => {
         canEditName
         isPartLine={isPartLikeItem(editingItem)}
         isDiscountLine={isDiscountItem(editingItem)}
+        isTradeInLine={isTradeInItem(editingItem)}
       />
 
       <ConfirmDialog

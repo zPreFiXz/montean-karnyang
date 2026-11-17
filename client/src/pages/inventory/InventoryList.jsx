@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
+import { ArrowUpDown } from "lucide-react";
 import { getInventory } from "@/api/inventory";
 import InventoryBrowser from "@/components/inventory/InventoryBrowser";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
 import { BoxSearch } from "@/components/icons/Icons";
+import { SERVICE_CATEGORY } from "@/constants/categories";
 import {
   inventoryScrollKey,
   useScrollRestoration,
@@ -141,6 +143,18 @@ const InventoryList = () => {
               setSelectedItem(item);
               setIsItemDetailOpen(true);
             }}
+            titleActionFor={(category) =>
+              category === SERVICE_CATEGORY && (
+                <Link
+                  to="/inventory/service-order"
+                  aria-label="เรียงลำดับบริการ"
+                  title="เรียงลำดับบริการ"
+                  className="text-primary bg-primary/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                >
+                  <ArrowUpDown className="h-4.5 w-4.5" />
+                </Link>
+              )
+            }
             headerAction={
               <Link
                 to={
