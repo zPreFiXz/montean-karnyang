@@ -284,7 +284,7 @@ const SuspensionInspection = () => {
       navState ||
       (!isEditing && !draftRestoredRef.current && loadDraft(DRAFT_SUSPENSION));
     draftRestoredRef.current = true;
-    if (restored && !navState) toast.info("ใช้ข้อมูลที่กรอกค้างไว้ต่อ");
+    if (restored && !navState) toast.info("กู้คืนข้อมูลที่กรอกค้างไว้แล้ว");
     if (!restored) return;
 
     const {
@@ -604,7 +604,7 @@ const SuspensionInspection = () => {
     setIsSwitchingToGeneral(false);
 
     if (hasTabSelection) {
-      toast.error("ยกเลิกอะไหล่ช่วงล่างที่เลือกไว้ก่อน");
+      toast.error("กรุณาเอาอะไหล่ช่วงล่างที่เลือกไว้ออกก่อน");
       return;
     }
     handleSwitchToGeneralRepair();
@@ -769,7 +769,7 @@ const SuspensionInspection = () => {
                 ? "กรุณาเลือกยี่ห้อและรุ่นรถ"
                 : compatibleParts.length === 0
                   ? "ไม่มีอะไหล่ช่วงล่างของรถรุ่นนี้"
-                  : "ไม่พบอะไหล่ในตำแหน่งนี้"
+                  : "ไม่มีอะไหล่ในตำแหน่งนี้"
             }
             onSwitchToGeneral={
               hasNoCompatibleParts ? handleSwitchToGeneralRepair : null
@@ -789,7 +789,7 @@ const SuspensionInspection = () => {
               <FreebieButton bill={bill} />
               <ReorderButton
                 bill={bill}
-                label="จัดเรียงรายการซ่อมเพิ่มเติม"
+                label="เรียงลำดับรายการซ่อมเพิ่มเติม"
                 extraSlots={hasTabSelection ? 1 : 0}
               />
             </div>

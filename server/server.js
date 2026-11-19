@@ -68,7 +68,9 @@ app.use(
     limit: 10,
     standardHeaders: true,
     legacyHeaders: false,
-    message: { message: "พยายามเข้าสู่ระบบบ่อยเกินไป กรุณาลองใหม่ภายหลัง" },
+    message: {
+      message: "เข้าสู่ระบบหลายครั้งเกินไป กรุณารอ 15 นาทีแล้วลองใหม่",
+    },
   }),
 );
 

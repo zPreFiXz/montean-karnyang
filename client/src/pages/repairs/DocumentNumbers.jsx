@@ -83,7 +83,8 @@ const DocumentNumbers = () => {
         if (!cancelled) setData(next);
       })
       .catch((error) => {
-        if (!cancelled) toastError(error, "โหลดเลขที่เอกสารไม่ได้");
+        if (!cancelled)
+          toastError(error, "โหลดเลขที่เอกสารไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
       });
     return () => {
       cancelled = true;

@@ -143,7 +143,7 @@ const VehicleModelReportDialog = ({
         onOpenChange={(open) => !open && onClose()}
       >
         <DialogContent
-          className="flex h-[90svh] max-h-162.5 w-full flex-col p-0"
+          className="flex h-[90svh] w-full flex-col p-0"
           showCloseButton={false}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
@@ -225,7 +225,7 @@ const VehicleModelReportDialog = ({
                   (parts.length === 0 ? (
                     <div className="flex flex-1 items-center justify-center">
                       <p className="text-subtle-light text-center text-xl text-balance md:text-[22px]">
-                        ไม่มีการใช้อะไหล่
+                        ไม่มีอะไหล่ที่ใช้
                       </p>
                     </div>
                   ) : (

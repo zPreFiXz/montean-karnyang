@@ -2,6 +2,7 @@ const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
 const { OIL_SOURCE_SELECT, withOilKitStock } = require("../utils/oilKit");
 const { loadVehicleSorter } = require("../utils/vehicleOrder");
+const { cloudinary, UPLOAD_FOLDER } = require("../utils/cloudinaryImage");
 const {
   buildPartItemName,
   buildServiceItemName,
@@ -350,4 +351,57 @@ exports.listUnits = async (req, res) => {
     partUnits: rank([parts, "unit"], [partLines, "itemUnit"]),
     serviceUnits: rank([services, "unit"], [serviceLines, "itemUnit"]),
   });
+};
+
+// ขนาดรูปไม่ได้เก็บในฐานข้อมูล ถาม Cloudinary ทีละ 500 รูป (Admin API จำกัดจำนวนครั้งต่อชั่วโมง จึงจำไว้สักพัก)
+const IMAGE_SIZE_TTL_MS = 5 * 60 * 1000;
+let imageSizeCache = null;
+
+const loadImageSizes = async () => {
+  if (imageSizeCache && Date.now() - imageSizeCache.at < IMAGE_SIZE_TTL_MS) {
+    return imageSizeCache.sizes;
+  }
+  const sizes = new Map();
+  let cursor;
+  do {
+    const page = await cloudinary.api.resources({
+      type: "upload",
+      prefix: `${UPLOAD_FOLDER}/`,
+      max_results: 500,
+      next_cursor: cursor,
+    });
+    for (const r of page.resources) {
+      sizes.set(r.public_id, { width: r.width, height: r.height });
+    }
+    cursor = page.next_cursor;
+  } while (cursor);
+  imageSizeCache = { at: Date.now(), sizes };
+  return sizes;
+};
+
+// ต่างกันไม่เกิน 1% ถือว่าจัตุรัส (รูปที่ครอปมือมักคลาดไม่กี่พิกเซล)
+const isSquare = ({ width, height }) =>
+  Math.abs(width - height) / Math.max(width, height) <= 0.01;
+
+exports.listImageIssues = async (req, res) => {
+  const [sizes, parts, services] = await Promise.all([
+    loadImageSizes(),
+    prisma.part.findMany({
+      where: { publicId: { not: null } },
+      select: { id: true, publicId: true },
+    }),
+    prisma.service.findMany({
+      where: { publicId: { not: null } },
+      select: { id: true, publicId: true },
+    }),
+  ]);
+
+  const issues = [
+    ...parts.map((item) => ({ ...item, type: "part" })),
+    ...services.map((item) => ({ ...item, type: "service" })),
+  ]
+    .map(({ id, type, publicId }) => ({ id, type, ...sizes.get(publicId) }))
+    .filter((item) => item.width && item.height && !isSquare(item));
+
+  res.json(issues);
 };

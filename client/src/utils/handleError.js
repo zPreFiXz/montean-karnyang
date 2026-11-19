@@ -8,7 +8,7 @@ export const getErrorMessage = (error, fallbackMessage) => {
     return data.errors[0].message;
   }
   if (error?.code === "ERR_NETWORK") {
-    return "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ต";
+    return "เชื่อมต่อระบบไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่อีกครั้ง";
   }
 
   return fallbackMessage || "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง";

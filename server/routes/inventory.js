@@ -8,11 +8,13 @@ const {
   getInventory,
   listInventoryRepairs,
   listUnits,
+  listImageIssues,
 } = require("../controllers/inventory");
 
 router.get("/inventory", authCheck, listInventory);
 // วางก่อน "/inventory/:id" ไม่งั้นคำว่า units จะถูกจับเป็น id
 router.get("/inventory/units", authCheck, listUnits);
+router.get("/inventory/image-issues", authCheck, listImageIssues);
 // วางก่อน "/inventory/:id" ไม่งั้นคำว่า part/service จะถูกจับเป็น id
 router.get("/inventory/:type/:id/repairs", authCheck, listInventoryRepairs);
 router.get("/inventory/:id", authCheck, getInventory);

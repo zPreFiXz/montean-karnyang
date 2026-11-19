@@ -20,7 +20,6 @@ import BrandIcons from "@/components/icons/BrandIcons";
 import { Success, Wrench, Paid, Credit } from "@/components/icons/Icons";
 import SearchBar from "@/components/forms/SearchBar";
 import { ClipboardList } from "lucide-react";
-import { Wallet } from "lucide-react";
 import { ShoppingBag } from "lucide-react";
 import {
   isSaleRepair,
@@ -69,9 +68,6 @@ const RepairList = () => {
     }
     return repair.createdAt;
   };
-
-  const creditCount = repairs.filter((r) => r.status === "CREDIT").length;
-  const estimateCount = repairs.filter((r) => r.status === "ESTIMATE").length;
 
   const search = (searchParams.get("search") || "").trim().toLowerCase();
   const matchesSearch = (repair) => {
@@ -196,15 +192,15 @@ const RepairList = () => {
           ? `ไม่พบ "${searchParams.get("search")}"`
           : "ไม่มีใบเสนอราคา";
       case "in-progress":
-        return "ไม่มีรายการที่กำลังซ่อม";
+        return "ไม่มีบิลที่กำลังซ่อม";
       case "completed":
-        return "ไม่มีรายการที่ซ่อมเสร็จสิ้น";
+        return "ไม่มีบิลที่ซ่อมเสร็จสิ้น";
       case "credit":
         return search
           ? `ไม่พบ "${searchParams.get("search")}"`
-          : "ไม่มีรายการเครดิต";
+          : "ไม่มีบิลเครดิต";
       case "paid":
-        return "ไม่มีรายการที่ชำระเงินแล้ว";
+        return "ไม่มีบิลที่ชำระเงินแล้ว";
       default:
         return null;
     }
@@ -298,7 +294,7 @@ const RepairList = () => {
               navigate(-1);
               return;
             }
-            navigate(isSidePile ? "/repairs?status=in-progress" : "/dashboard");
+            navigate("/dashboard");
           }}
           aria-label="ย้อนกลับ"
           className="bg-surface/20 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full"
@@ -320,38 +316,6 @@ const RepairList = () => {
             </span>
           )}
         </div>
-
-        {status !== "estimate" && status !== "credit" && (
-          <Link
-            to="/repairs?status=estimate"
-            aria-label={`ใบเสนอราคา ${estimateCount} รายการ`}
-            title="ใบเสนอราคา"
-            className="bg-surface/20 relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-          >
-            <ClipboardList className="text-surface h-5 w-5" />
-            {estimateCount > 0 && (
-              <span className="bg-surface text-primary absolute -top-0.5 -right-0.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-sm font-semibold">
-                {estimateCount}
-              </span>
-            )}
-          </Link>
-        )}
-
-        {status !== "credit" && status !== "estimate" && (
-          <Link
-            to="/organizations"
-            aria-label={`เครดิต ${creditCount} รายการ`}
-            title="เครดิต"
-            className="bg-surface/20 relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-          >
-            <Wallet className="text-surface h-5 w-5" />
-            {creditCount > 0 && (
-              <span className="bg-surface text-primary absolute -top-0.5 -right-0.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-sm font-semibold">
-                {creditCount}
-              </span>
-            )}
-          </Link>
-        )}
       </div>
 
       {status !== "credit" && status !== "estimate" && (

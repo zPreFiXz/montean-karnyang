@@ -293,7 +293,7 @@ const InventoryForm = () => {
     if (focusTopmostInvalid(errs)) return;
     toast.error(
       firstErrorMessage(errs) ||
-        "กรอกข้อมูลไม่ครบ ตรวจสอบช่องที่ยังไม่ถูกต้องอีกครั้ง",
+        "กรอกข้อมูลไม่ครบ กรุณาตรวจสอบช่องที่ยังไม่ถูกต้อง",
     );
   };
 

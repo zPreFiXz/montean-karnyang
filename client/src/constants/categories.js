@@ -48,6 +48,7 @@ export const VEHICLE_COMPATIBLE_CATEGORIES = [
   "เบรก",
   "โช้คอัพ",
   "ระบบส่งกำลัง",
+  "แหนบ",
   "กรอง",
   "ไส้กรอง",
 ];

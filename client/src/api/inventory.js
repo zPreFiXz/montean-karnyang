@@ -21,3 +21,8 @@ export const listInventoryRepairs = async (type, id) => {
 export const listUnits = async () => {
   return await apiClient.get("/inventory/units");
 };
+
+// อะไหล่และบริการที่รูปไม่เป็นสี่เหลี่ยมจัตุรัส [{ type, id, width, height }]
+export const listImageIssues = async () => {
+  return await apiClient.get("/inventory/image-issues");
+};

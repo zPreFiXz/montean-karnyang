@@ -41,7 +41,7 @@ apiClient.interceptors.response.use(
           sessionExpiredNotified = true;
           toast.error(
             error.response?.data?.message ||
-              "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่",
+              "หมดเวลาการใช้งาน กรุณาเข้าสู่ระบบใหม่",
           );
           setTimeout(() => {
             sessionExpiredNotified = false;

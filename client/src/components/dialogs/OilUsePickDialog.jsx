@@ -9,7 +9,7 @@ const OilUsePickDialog = ({ isOpen, onClose, onPick, itemName, uses }) => (
       onOpenAutoFocus={(e) => e.preventDefault()}
     >
       <DialogTitleBar
-        title="ใช้เติมอะไร"
+        title="เลือกงานที่ใช้"
         description={<>เลือกงานที่ใช้ {itemName}</>}
         onClose={onClose}
       />

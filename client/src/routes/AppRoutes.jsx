@@ -27,6 +27,7 @@ const InventoryList = lazy(pageImports.InventoryList);
 const InventoryForm = lazy(pageImports.InventoryForm);
 const InventoryUsage = lazy(pageImports.InventoryUsage);
 const ServiceOrder = lazy(pageImports.ServiceOrder);
+const InventoryReview = lazy(pageImports.InventoryReview);
 const OrganizationList = lazy(pageImports.OrganizationList);
 const OrganizationDetail = lazy(pageImports.OrganizationDetail);
 const OrganizationHistory = lazy(pageImports.OrganizationHistory);
@@ -120,6 +121,7 @@ const AppRoutes = () => {
           <Route path="inventory" element={<InventoryList />} />
           <Route path="inventory/new" element={<InventoryForm />} />
           <Route path="inventory/service-order" element={<ServiceOrder />} />
+          <Route path="inventory/review" element={<InventoryReview />} />
           <Route
             path="inventory/:type/:id/usage"
             element={<InventoryUsage />}

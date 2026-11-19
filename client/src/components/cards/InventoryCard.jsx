@@ -28,11 +28,18 @@ const InventoryCard = ({
   alwaysWarnEmpty = false,
   // มีเมื่อการ์ดอยู่ในหน้าต่างเลือกรายการ กดรูปเพื่อดูรายละเอียดแทนการเลือกลงบิล
   onImageClick,
+  // หน้ารายการที่ต้องตรวจสอบ เทียบขั้นต่ำกับจำนวนในบรรทัดเดียวกัน
+  showMinStock = false,
 }) => {
   const isTire = isTireCategoryName(category);
   // ชุดน้ำมันไม่มีขั้นต่ำของตัวเอง แต่เหลือ 0 ชุดก็ต้องเตือน
   const warnEmpty = alwaysWarnEmpty || !!oilSource;
   const isService = category === "บริการ";
+  // เทียบขั้นต่ำด้วย ตัดหน่วยออก ไม่งั้นบรรทัดยาวเกินการ์ดบนมือถือ
+  const stockText = (withUnit) =>
+    showMinStock
+      ? `จำนวน: ${formatQuantity(quantity)} | ขั้นต่ำ: ${formatQuantity(minStockLevel || 0)}`
+      : `จำนวน: ${formatQuantity(quantity)} ${withUnit || ""}`.trim();
 
   const renderProductInfo = () => {
     return (
@@ -97,7 +104,7 @@ const InventoryCard = ({
             {!isService &&
               (!warnEmpty && !tracksStock(minStockLevel) ? (
                 <p className="text-subtle-dark text-base font-semibold md:text-lg">
-                  {`จำนวน: ${formatQuantity(quantity)} ${unit}`}
+                  {stockText(unit)}
                 </p>
               ) : Number(quantity) === 0 ? (
                 <div className="text-destructive flex items-center gap-1 text-base font-semibold md:text-lg">
@@ -109,11 +116,11 @@ const InventoryCard = ({
                 Number(quantity) < Number(minStockLevel) ? (
                 <div className="text-status-progress flex items-center gap-1 text-base font-semibold md:text-lg">
                   <AlertTriangle className="h-5 w-5" />
-                  <p className="line-clamp-1">{`จำนวน: ${formatQuantity(quantity)} ${unit || ""}`}</p>
+                  <p className="line-clamp-1">{stockText(unit)}</p>
                 </div>
               ) : (
                 <p className="text-subtle-dark text-base font-semibold md:text-lg">
-                  {`จำนวน: ${formatQuantity(quantity)} ${unit}`}
+                  {stockText(unit)}
                 </p>
               ))}
             {soldPriceRange && (

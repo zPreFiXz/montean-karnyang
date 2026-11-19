@@ -208,7 +208,7 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
     } catch (error) {
       toastError(
         error,
-        "พิมพ์ไม่ได้ กรุณาตรวจสอบเครื่องพิมพ์แล้วลองใหม่อีกครั้ง",
+        "พิมพ์ไม่สำเร็จ กรุณาตรวจสอบเครื่องพิมพ์แล้วลองใหม่อีกครั้ง",
       );
     } finally {
       setIsPrintingAtShop(false);
@@ -254,7 +254,7 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
           : "บันทึกรูปแล้ว",
       );
     } catch (error) {
-      toastError(error, "บันทึกรูปไม่ได้ ลองใหม่อีกครั้ง");
+      toastError(error, "บันทึกรูปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
     } finally {
       setIsSavingImage(false);
     }

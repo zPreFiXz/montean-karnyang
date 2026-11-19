@@ -244,7 +244,7 @@ const InventoryBrowser = ({
         setPartsList(partsListCache);
         setCategoryOrder(categoryOrderCache);
       } catch (error) {
-        toastError(error, "โหลดรายการอะไหล่ไม่สำเร็จ");
+        toastError(error, "โหลดรายการอะไหล่ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
         setPartsList([]);
       }
     })();
@@ -384,7 +384,8 @@ const InventoryBrowser = ({
       return `ไม่พบ "${term}"`;
     }
     if (hasTireFilter) return "ไม่พบยางตามเงื่อนไขที่เลือก";
-    if (activeCategory !== "ทั้งหมด") return "ไม่มีรายการในหมวดนี้";
+    if (activeCategory === "บริการ") return "ไม่มีบริการ";
+    if (activeCategory !== "ทั้งหมด") return "ไม่มีอะไหล่ในหมวดนี้";
     return "ไม่มีอะไหล่และบริการ";
   };
 

@@ -369,7 +369,10 @@ exports.updateRepair = async (req, res) => {
       createError(400, CANNOT_EDIT_CANCELLED);
     }
     if (currentRepair?.depositAmount > Number(totalPrice)) {
-      createError(400, "ยอดบิลน้อยกว่ามัดจำที่รับไว้ กรุณาแก้มัดจำก่อน");
+      createError(
+        400,
+        "ยอดบิลน้อยกว่าเงินที่รับไว้แล้ว กรุณาแก้จำนวนเงินที่รับไว้ก่อน",
+      );
     }
 
     const vehicle = skipVehicle
@@ -484,7 +487,7 @@ exports.cancelRepair = async (req, res) => {
   const hasOpenDeposit = !!repair.depositAmount && repair.status !== "PAID";
   const { depositAction } = req.body;
   if (hasOpenDeposit && !depositAction) {
-    createError(400, "กรุณาเลือกว่าจะคืนมัดจำหรือริบมัดจำ");
+    createError(400, "กรุณาเลือกว่าจะคืนเงินที่รับไว้หรือไม่");
   }
 
   await prisma.$transaction(async (tx) => {
@@ -522,11 +525,14 @@ exports.deleteRepair = async (req, res) => {
   }
 
   if ((await docNosSkippedOnDelete(prisma, repair)).length > 0) {
-    createError(400, "ลบไม่ได้ เพราะไม่ใช่บิลล่าสุด เลขที่บิลจะขาดช่วง ให้ยกเลิกบิลแทน");
+    createError(
+      400,
+      "ลบไม่ได้ เพราะไม่ใช่บิลล่าสุด เลขที่บิลจะขาดช่วง ให้ยกเลิกบิลแทน",
+    );
   }
   // ลบแล้วเงินมัดจำจะหายจากรายงานยอดขายของวันที่รับ
   if (repair.depositAmount) {
-    createError(400, "ลบไม่ได้ เพราะรับมัดจำไว้แล้ว ให้ยกเลิกบิลแทน");
+    createError(400, "ลบไม่ได้ เพราะรับเงินไว้แล้ว ให้ยกเลิกบิลแทน");
   }
 
   await prisma.$transaction(async (tx) => {
@@ -585,7 +591,7 @@ exports.updateRepairStatus = async (req, res) => {
   } else if (status === "CREDIT") {
     // ยอดค้างของเครดิตและใบวางบิลนับเต็มยอดบิล ยังไม่รองรับการหักมัดจำ
     if (repair.depositAmount) {
-      createError(400, "บิลที่รับมัดจำไว้ ลงเครดิตไม่ได้");
+      createError(400, "บิลที่รับเงินไว้แล้ว ลงเครดิตไม่ได้");
     }
     // ติดเครดิตไม่ตั้งเวลาชำระเงิน ยอดจะยังไม่เข้ารายงานจนกว่าจะตัดเครดิต
     if (!repair.completedAt) {
@@ -673,10 +679,10 @@ exports.setRepairDeposit = async (req, res) => {
     createError(404, "ไม่พบงานซ่อม");
   }
   if (repair.type === "SALE" || !DEPOSIT_STATUSES.includes(repair.status)) {
-    createError(400, "บิลนี้รับมัดจำไม่ได้");
+    createError(400, "บิลนี้รับมัดจำหรือชำระบางส่วนไม่ได้");
   }
   if (amount > repair.totalPrice) {
-    createError(400, "มัดจำต้องไม่เกินยอดบิล");
+    createError(400, "จำนวนเงินที่รับไว้ต้องไม่เกินยอดบิล");
   }
 
   // แก้จำนวนหรือวิธีจ่ายคือแก้ที่บันทึกผิด วันที่รับยังเป็นวันเดิม

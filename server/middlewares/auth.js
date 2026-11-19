@@ -31,7 +31,7 @@ exports.authCheck = async (req, res, next) => {
   } catch (error) {
     if (error.name === "TokenExpiredError") {
       error.code = 401;
-      error.message = "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่";
+      error.message = "หมดเวลาการใช้งาน กรุณาเข้าสู่ระบบใหม่";
     } else if (error.name === "JsonWebTokenError") {
       error.code = 401;
       error.message = "กรุณาเข้าสู่ระบบใหม่";

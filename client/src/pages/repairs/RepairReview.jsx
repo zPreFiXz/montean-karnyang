@@ -244,7 +244,7 @@ const RepairReview = () => {
         clearAllDrafts();
         toast.success(
           isCreditChoice
-            ? "ขายเรียบร้อยแล้ว ลงเครดิตไว้"
+            ? "ขายและลงเครดิตเรียบร้อยแล้ว"
             : isPayLaterChoice
               ? "ขายเรียบร้อยแล้ว รอชำระเงิน"
               : isSale

@@ -156,8 +156,8 @@ const OrganizationList = () => {
     <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-2 px-5 pt-4">
         <button
-          // ไม่ถอยประวัติ เพราะอาจถอยไปหน้าลูกค้าหรือบิลที่เพิ่งย้ายกองออกไป
-          onClick={() => navigate("/repairs?status=in-progress")}
+          // ไม่ถอยประวัติ เพราะอาจถอยไปหน้าลูกค้าหรือบิลที่เพิ่งย้ายกองออกไป เข้ามาจากปุ่มเครดิตในหน้าหลัก
+          onClick={() => navigate("/dashboard")}
           aria-label="ย้อนกลับ"
           className="bg-surface/20 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full"
         >

@@ -204,8 +204,8 @@ const VehicleModelList = () => {
                 aria-pressed={isReordering}
                 aria-label={
                   isReordering
-                    ? "ออกจากโหมดจัดเรียง"
-                    : "จัดเรียงยี่ห้อและรุ่นรถ"
+                    ? "ออกจากโหมดเรียงลำดับ"
+                    : "เรียงลำดับยี่ห้อและรุ่นรถ"
                 }
                 className={`flex h-10.25 w-10.25 shrink-0 cursor-pointer items-center justify-center rounded-lg border duration-300 ${
                   isReordering

@@ -51,7 +51,7 @@ const FormUploadImage = ({
     if (!file) return false;
 
     if (!ACCEPTED_TYPES.includes(file.type)) {
-      toast.error("รองรับเฉพาะไฟล์ PNG, JPG, WEBP เท่านั้น");
+      toast.error("รองรับเฉพาะไฟล์ PNG, JPG และ WEBP");
       return false;
     }
 
@@ -208,7 +208,7 @@ const FormUploadImage = ({
                     {placeholder}
                   </p>
                   <p className="text-subtle-light text-sm md:text-base">
-                    รองรับ PNG, JPG, WEBP
+                    รองรับไฟล์ PNG, JPG และ WEBP
                   </p>
                 </>
               )}

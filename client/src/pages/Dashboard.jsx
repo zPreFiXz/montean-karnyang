@@ -4,6 +4,8 @@ import { Link, useNavigate } from "react-router";
 import {
   Menu,
   CircleUserRound,
+  ClipboardList,
+  Wallet,
   LogOut,
   X,
   LoaderCircle,
@@ -102,6 +104,67 @@ const Dashboard = () => {
   const inProgressCount = getRepairCountByStatus("IN_PROGRESS");
   const completedCount = getRepairCountByStatus("COMPLETED");
   const paidCount = getRepairCountByStatus("PAID");
+
+  // งานที่ค้างไว้ ดูเป็นระยะ จึงเป็นปุ่มเล็ก แต่งแบบเดียวกับการ์ดสถานะ (พื้นขาว วงกลมสี)
+  const pendingLinks = [
+    {
+      to: "/repairs?status=estimate",
+      icon: ClipboardList,
+      label: "ใบเสนอราคา",
+      count: getRepairCountByStatus("ESTIMATE"),
+      unit: "ใบ",
+      circleClass: "bg-status-estimate",
+      textClass: "text-status-estimate",
+    },
+    {
+      to: "/organizations",
+      icon: Wallet,
+      label: "เครดิต",
+      count: getRepairCountByStatus("CREDIT"),
+      unit: "บิล",
+      circleClass: "bg-status-credit",
+      textClass: "text-status-credit",
+    },
+  ];
+  // compact = จอใหญ่ วางขวาของหัวข้อ ไม่คั่นระหว่างการ์ดกับรายการบิลใต้การ์ด
+  const renderPendingLinks = (compact = false) => (
+    <div className={compact ? "flex gap-3" : "grid grid-cols-2 gap-3 md:gap-4"}>
+      {pendingLinks.map(
+        ({ to, icon: Icon, label, count, unit, circleClass, textClass }) => (
+          <Link
+            key={to}
+            to={to}
+            aria-label={`${label} ${count} ${unit}`}
+            className={`bg-surface shadow-primary flex items-center justify-between gap-2 rounded-lg ${
+              compact
+                ? "h-11 px-2 pr-4"
+                : "h-14 px-2 pr-3 max-[399px]:px-1.5 max-[399px]:pr-2.5"
+            }`}
+          >
+            <span className="flex min-w-0 items-center gap-1.5 md:gap-2">
+              <span
+                className={`flex shrink-0 items-center justify-center rounded-full ${circleClass} ${
+                  compact ? "h-7 w-7" : "h-7 w-7 md:h-8 md:w-8"
+                }`}
+              >
+                <Icon className="text-surface h-4 w-4" />
+              </span>
+              <span
+                className={`truncate text-base font-semibold md:text-xl ${textClass}`}
+              >
+                {label}
+              </span>
+            </span>
+            <span
+              className={`shrink-0 text-lg font-semibold md:text-[22px] ${textClass}`}
+            >
+              {count}
+            </span>
+          </Link>
+        ),
+      )}
+    </div>
+  );
 
   const inProgressRepairs = getRepairsByStatus("IN_PROGRESS");
   const completedRepairs = getRepairsByStatus("COMPLETED");
@@ -212,7 +275,7 @@ const Dashboard = () => {
     </div>
   );
 
-  const renderRepairColumn = (repairs, bg, iconColor, timeKey) => (
+  const renderRepairColumn = (repairs, bg, iconColor, timeKey, emptyText) => (
     <div className="flex flex-col gap-3">
       {repairs.length > 0 ? (
         repairs.map((repair) => (
@@ -242,7 +305,7 @@ const Dashboard = () => {
         ))
       ) : (
         <p className="text-subtle-light py-6 text-center text-xl">
-          ไม่มีงานซ่อม
+          {emptyText}
         </p>
       )}
     </div>
@@ -252,9 +315,12 @@ const Dashboard = () => {
     <div className="w-full">
       <div className="hidden w-full px-5 xl:block">
         <div className="bg-surface shadow-primary mt-6 mb-6 w-full rounded-lg p-4">
-          <p className="text-subtle-dark text-[22px] font-medium">
-            สถานะการซ่อม
-          </p>
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-subtle-dark text-[22px] font-medium">
+              สถานะการซ่อม
+            </p>
+            {renderPendingLinks(true)}
+          </div>
 
           <div className="mt-4 grid grid-cols-3 gap-4">
             <Link to="/repairs?status=in-progress">
@@ -289,14 +355,22 @@ const Dashboard = () => {
               "progress",
               "#ffb000",
               "createdAt",
+              "ไม่มีบิลที่กำลังซ่อม",
             )}
             {renderRepairColumn(
               completedRepairs,
               "completed",
               "#22c55e",
               "completedAt",
+              "ไม่มีบิลที่ซ่อมเสร็จสิ้น",
             )}
-            {renderRepairColumn(paidRepairs, "paid", undefined, "paidAt")}
+            {renderRepairColumn(
+              paidRepairs,
+              "paid",
+              undefined,
+              "paidAt",
+              "ไม่มีบิลที่ชำระเงินแล้ว",
+            )}
           </div>
         </div>
 
@@ -472,6 +546,8 @@ const Dashboard = () => {
               amount={paidCount > 0 ? paidCount : "0"}
             />
           </Link>
+
+          {renderPendingLinks()}
 
           {(isInventoryLoading ||
             outOfStockItems.length > 0 ||

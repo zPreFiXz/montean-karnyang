@@ -29,23 +29,47 @@ const findChrome = () => {
   return found;
 };
 
+// เปิด Chrome ค้างไว้ตัวเดียวใช้ซ้ำ เปิดใหม่ทุกครั้งเสียเวลาเกือบวินาที (เครื่องร้านช้ากว่านั้น)
+// เก็บเป็น promise กันสองคำขอที่มาพร้อมกันเปิด Chrome ซ้อนกันสองตัว
+let browserPromise = null;
+
+const getBrowser = () => {
+  if (!browserPromise) {
+    browserPromise = puppeteer
+      .launch({
+        executablePath: findChrome(),
+        headless: true,
+        args: ["--no-sandbox", "--disable-dev-shm-usage"],
+      })
+      .then((browser) => {
+        // Chrome ปิดไปเอง (ค้าง ถูกฆ่า) รอบหน้าจะเปิดใหม่
+        browser.on("disconnected", () => {
+          browserPromise = null;
+        });
+        return browser;
+      })
+      .catch((error) => {
+        browserPromise = null;
+        throw error;
+      });
+  }
+  return browserPromise;
+};
+
 const withPage = async (html, work) => {
-  const browser = await puppeteer.launch({
-    executablePath: findChrome(),
-    headless: true,
-    args: ["--no-sandbox", "--disable-dev-shm-usage"],
-  });
+  const browser = await getBrowser();
+  const page = await browser.newPage();
 
   try {
-    const page = await browser.newPage();
     // ขนาดหน้าต่างเท่ากระดาษ A5 (148 x 210 มม.) รูปที่ถ่ายจะได้จัดหน้าเหมือนใบที่พิมพ์
     // ความละเอียดสองเท่า ตัวหนังสือในรูปจะคมตอนลูกค้าซูมดูในโทรศัพท์
     await page.setViewport({ width: 560, height: 794, deviceScaleFactor: 2 });
-    // waitUntil networkidle0 เพื่อให้ฟอนต์จากเน็ต (ถ้ามี) โหลดเสร็จก่อนแปลง
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    // ฟอนต์ฝังอยู่ใน HTML แล้ว ไม่ต้องรอเน็ตเงียบ (networkidle0 รอเปล่าครึ่งวินาที) รอแค่ฟอนต์พร้อม
+    await page.setContent(html, { waitUntil: "load" });
+    await page.evaluate(() => document.fonts.ready);
     return await work(page);
   } finally {
-    await browser.close();
+    await page.close().catch(() => {});
   }
 };
 
@@ -88,7 +112,7 @@ const ensurePrinterReady = async (printerName) => {
     const printer = require("pdf-to-printer");
     const printers = await printer.getPrinters().catch(() => []);
     if (printers.length === 0) {
-      createError(503, "ไม่พบเครื่องพิมพ์ ตรวจสอบสายและเปิดเครื่อง");
+      createError(503, "ไม่พบเครื่องพิมพ์ กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์");
     }
 
     // ถามสถานะจริงของเครื่อง ถ้าถามไม่ได้ก็ปล่อยผ่าน ดีกว่าบล็อกการพิมพ์เพราะตัวเช็กเอง
@@ -100,14 +124,17 @@ const ensurePrinterReady = async (printerName) => {
     ]).catch(() => "");
 
     if (/offline|error|paused/i.test(status)) {
-      createError(503, "เครื่องพิมพ์ไม่พร้อม ตรวจสอบสายและเปิดเครื่อง");
+      createError(
+        503,
+        "เครื่องพิมพ์ไม่พร้อม กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์",
+      );
     }
     return;
   }
 
   const listing = await run("lpstat", ["-p"]).catch(() => "");
   if (!listing.trim()) {
-    createError(503, "ไม่พบเครื่องพิมพ์ ตรวจสอบสายและเปิดเครื่อง");
+    createError(503, "ไม่พบเครื่องพิมพ์ กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์");
   }
 
   // ดูเฉพาะย่อหน้าของเครื่องที่จะใช้ ไม่งั้นเครื่องอื่นที่ออฟไลน์จะทำให้ทั้งระบบพิมพ์ไม่ได้
@@ -117,7 +144,7 @@ const ensurePrinterReady = async (printerName) => {
     : blocks[0] || "";
 
   if (/offline|ออฟไลน์|disabled|ปิดใช้งาน/i.test(block)) {
-    createError(503, "เครื่องพิมพ์ไม่พร้อม ตรวจสอบสายและเปิดเครื่อง");
+    createError(503, "เครื่องพิมพ์ไม่พร้อม กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์");
   }
 };
 
@@ -152,7 +179,7 @@ const toPrinterError = (error) => {
   const text = String(error?.message || "");
 
   if (/no default destination|ไม่พบเครื่องพิมพ์|no destinations/i.test(text)) {
-    return "ไม่พบเครื่องพิมพ์ ตรวจสอบสายและเปิดเครื่อง";
+    return "ไม่พบเครื่องพิมพ์ กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์";
   }
   if (/not found|ENOENT/i.test(text)) {
     return "เครื่องนี้สั่งพิมพ์ไม่ได้ ตรวจสอบการติดตั้งเครื่องพิมพ์";
@@ -161,13 +188,15 @@ const toPrinterError = (error) => {
 };
 
 const printReceipt = async (html, fileTag) => {
-  const pdf = await htmlToPdf(html);
+  // เช็กเครื่องพิมพ์ไปพร้อมกับสร้าง PDF บนวินโดวส์ต้องเรียก PowerShell ซึ่งช้าเกือบวินาที
+  const [pdf] = await Promise.all([
+    htmlToPdf(html),
+    ensurePrinterReady(process.env.PRINTER_NAME),
+  ]);
   const filePath = path.join(
     os.tmpdir(),
     `receipt-${fileTag}-${Date.now()}.pdf`,
   );
-
-  await ensurePrinterReady(process.env.PRINTER_NAME);
 
   await fs.writeFile(filePath, pdf);
   try {

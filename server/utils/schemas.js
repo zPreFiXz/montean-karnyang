@@ -154,11 +154,11 @@ exports.partSchema = z
     tireLots: z
       .array(
         z.object({
-          dotCode: z.string().min(1, "กรุณากรอก DOT"),
+          dotCode: z.string().min(1, "กรุณากรอกสัปดาห์/ปีผลิต"),
           quantity: z.coerce
             .number()
-            .int("จำนวนล็อตต้องเป็นจำนวนเต็ม")
-            .min(0, "จำนวนล็อตต้องไม่ติดลบ"),
+            .int("จำนวนต้องเป็นจำนวนเต็ม")
+            .min(0, "จำนวนต้องไม่ติดลบ"),
         }),
       )
       .optional(),
@@ -206,7 +206,7 @@ exports.updateRepairStatusSchema = z
       })
       .optional(),
     chequeBank: z.string().trim().max(100, "ชื่อธนาคารยาวเกินไป").optional(),
-    chequeNo: z.string().trim().max(50, "เลขที่ยาวเกินไป").optional(),
+    chequeNo: z.string().trim().max(50, "เลขที่เช็คยาวเกินไป").optional(),
     // วันที่บนเช็ค ไม่มีเวลา ส่งมาเป็น ปปปป-ดด-วว ไม่ได้เลือกส่งเป็นค่าว่าง
     chequeDate: z
       .string()
@@ -219,14 +219,14 @@ exports.updateRepairStatusSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["chequeBank"],
-        message: "กรุณากรอกธนาคาร",
+        message: "กรุณาเลือกธนาคาร",
       });
     }
     if (!data.chequeNo) {
       ctx.addIssue({
         code: "custom",
         path: ["chequeNo"],
-        message: "กรุณากรอกเลขที่",
+        message: "กรุณากรอกเลขที่เช็ค",
       });
     }
   });

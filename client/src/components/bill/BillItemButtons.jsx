@@ -17,7 +17,7 @@ export const FreebieButton = ({ bill }) =>
 // มีรายการเดียวไม่มีอะไรให้สลับ extraSlots = แถวที่เลื่อนได้นอกรายการ (แถวก้อนช่วงล่าง)
 export const ReorderButton = ({
   bill,
-  label = "จัดเรียงรายการซ่อม",
+  label = "เรียงลำดับรายการซ่อม",
   extraSlots = 0,
 }) =>
   bill.repairItems.length + extraSlots > 1 && (
@@ -25,7 +25,7 @@ export const ReorderButton = ({
       type="button"
       onClick={() => bill.setIsReordering((prev) => !prev)}
       aria-pressed={bill.isReordering}
-      aria-label={bill.isReordering ? "ออกจากโหมดจัดเรียง" : label}
+      aria-label={bill.isReordering ? "ออกจากโหมดเรียงลำดับ" : label}
       className={`flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border duration-300 ${
         bill.isReordering
           ? "bg-primary border-primary text-surface"

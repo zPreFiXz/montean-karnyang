@@ -286,7 +286,7 @@ const useBillItems = ({
         (item) => item.name === TIRE_ALIGNMENT_FREEBIE_NAME,
       );
       if (!service) {
-        toast.error("ไม่พบบริการตั้งศูนย์ในคลัง");
+        toast.error("ไม่พบบริการตั้งศูนย์ในระบบ");
         return;
       }
       withViewTransition(() =>
@@ -517,7 +517,7 @@ const useBillItems = ({
         .map(buildFreebieLine);
 
       if (added.length === 0) {
-        toast.error("ไม่พบบริการของแถมในคลัง");
+        toast.error("ไม่พบบริการของแถมในระบบ");
         return;
       }
 

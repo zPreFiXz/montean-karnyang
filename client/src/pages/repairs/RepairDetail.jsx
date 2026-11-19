@@ -308,11 +308,11 @@ const RepairDetail = () => {
       if (nextStatus === "CREDIT") {
         toast.success("ลงเครดิตเรียบร้อยแล้ว");
       } else if (skipToCompleted) {
-        toast.success("ซ่อมเสร็จสิ้นและรับเงินเรียบร้อยแล้ว");
+        toast.success("ซ่อมเสร็จและรับเงินเรียบร้อยแล้ว");
       } else if (nextStatus === "COMPLETED") {
         toast.success("ซ่อมเสร็จเรียบร้อยแล้ว");
       } else if (nextStatus === "IN_PROGRESS") {
-        toast.success("เริ่มซ่อมแล้ว");
+        toast.success("เริ่มซ่อมเรียบร้อยแล้ว");
       } else if (nextStatus === "PAID") {
         toast.success("รับเงินเรียบร้อยแล้ว");
       }

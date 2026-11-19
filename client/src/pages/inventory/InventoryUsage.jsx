@@ -212,8 +212,8 @@ const InventoryUsage = () => {
           <div className="flex flex-1 items-center justify-center">
             <p className="text-subtle-light px-5 text-center text-xl text-balance md:text-[22px]">
               {keyword
-                ? `ไม่พบรายการที่ตรงกับ "${searchParams.get("search").trim()}"`
-                : `ไม่มีรายการที่เคยใช้${usageNoun}นี้`}
+                ? `ไม่พบ "${searchParams.get("search").trim()}"`
+                : `ไม่มีประวัติการใช้${usageNoun}นี้`}
             </p>
           </div>
         ) : (

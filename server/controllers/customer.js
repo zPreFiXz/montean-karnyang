@@ -347,5 +347,5 @@ exports.printOrganizationBill = async (req, res) => {
 
   await printReceipt(html, `org-${customer.id}`);
 
-  res.json({ message: "ส่งใบวางบิลเข้าเครื่องพิมพ์แล้ว" });
+  res.json({ message: "สั่งพิมพ์ใบวางบิลแล้ว" });
 };

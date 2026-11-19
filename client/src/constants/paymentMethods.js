@@ -36,10 +36,10 @@ export const canPayByCheque = (repair) =>
 export const chequeErrorsOf = ({ bank, no }) => ({
   ...(String(bank || "").trim()
     ? {}
-    : { chequeBank: { message: "กรุณากรอกธนาคาร" } }),
+    : { chequeBank: { message: "กรุณาเลือกธนาคาร" } }),
   ...(String(no || "").trim()
     ? {}
-    : { chequeNo: { message: "กรุณากรอกเลขที่" } }),
+    : { chequeNo: { message: "กรุณากรอกเลขที่เช็ค" } }),
 });
 
 export const getPaymentMethodText = (method) =>

@@ -67,11 +67,11 @@ const OrganizationBillPreviewDialog = ({
       const res = await withMinDuration(() =>
         printOrganizationBill(customer.id, month),
       );
-      toast.success(res.data?.message || "ส่งใบวางบิลเข้าเครื่องพิมพ์แล้ว");
+      toast.success(res.data?.message || "สั่งพิมพ์ใบวางบิลแล้ว");
     } catch (error) {
       toastError(
         error,
-        "พิมพ์ไม่ได้ กรุณาตรวจสอบเครื่องพิมพ์แล้วลองใหม่อีกครั้ง",
+        "พิมพ์ไม่สำเร็จ กรุณาตรวจสอบเครื่องพิมพ์แล้วลองใหม่อีกครั้ง",
       );
     } finally {
       setIsPrinting(false);

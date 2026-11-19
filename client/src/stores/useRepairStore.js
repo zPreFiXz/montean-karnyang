@@ -24,7 +24,7 @@ const repairStore = (set, get) => ({
       set({ repairs: res.data });
       return res.data;
     } catch (error) {
-      toastError(error, "โหลดรายการซ่อมไม่สำเร็จ");
+      toastError(error, "โหลดรายการซ่อมไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
     }
   },
 

@@ -263,9 +263,12 @@ const OrganizationDetail = () => {
                       ({group.repairs.length})
                     </span>
                     <div className="bg-subtle-light/40 h-px flex-1" />
-                    <p className="text-status-credit text-lg font-semibold md:text-xl">
-                      {formatCurrency(group.total)}
-                    </p>
+                    {/* ใบเดียวยอดรวมเท่าราคาบนการ์ดใต้มัน ไม่ต้องขึ้นซ้ำ */}
+                    {group.repairs.length > 1 && (
+                      <p className="text-status-credit text-lg font-semibold md:text-xl">
+                        {formatCurrency(group.total)}
+                      </p>
+                    )}
                   </div>
                   {group.repairs.map((item) => (
                     <Link

@@ -138,7 +138,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
           >
             <div className="mb-2 flex items-center justify-between">
               <p className="text-subtle-dark text-xl font-medium md:text-[22px]">
-                รถคันที่ {index + 1}
+                รุ่นที่ {index + 1}
               </p>
 
               <div className="flex">
@@ -175,7 +175,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                   onChange={(value) =>
                     handleUpdateVehicle(index, "brand", value)
                   }
-                  placeholder="-- เลือกยี่ห้อ --"
+                  placeholder="-- เลือกยี่ห้อรถ --"
                   name="brand"
                   customClass="text-lg md:text-xl"
                 />
@@ -190,7 +190,7 @@ const VehicleCompatibilityInput = ({ setValue, initialData = null }) => {
                   onChange={(value) =>
                     handleUpdateVehicle(index, "model", value)
                   }
-                  placeholder="-- เลือกรุ่น --"
+                  placeholder="-- เลือกรุ่นรถ --"
                   name="model"
                   disabled={!vehicle.brand}
                   customClass="text-lg md:text-xl"

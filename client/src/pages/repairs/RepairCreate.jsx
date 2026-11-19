@@ -132,7 +132,7 @@ const RepairCreate = () => {
       navState ||
       (!isEditing && !draftRestoredRef.current && loadDraft(DRAFT_REPAIR));
     draftRestoredRef.current = true;
-    if (restored && !navState) toast.info("ใช้ข้อมูลที่กรอกค้างไว้ต่อ");
+    if (restored && !navState) toast.info("กู้คืนข้อมูลที่กรอกค้างไว้แล้ว");
 
     if (restored) {
       const { repairData, repairItems: savedItems } = restored;

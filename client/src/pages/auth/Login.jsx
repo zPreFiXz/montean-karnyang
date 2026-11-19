@@ -86,7 +86,7 @@ const Login = () => {
                   <p className="font-semibold">อีเมล</p>
                 </div>
               }
-              placeholder="you@example.com"
+              placeholder="name@example.com"
               autoComplete="email"
               color="primary"
               errors={errors}

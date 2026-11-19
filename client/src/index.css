@@ -1,4 +1,4 @@
-/* ฟอนต์ Athiti โหลดผ่าน <link> ใน index.html (เร็วกว่า @import ที่บล็อกการ render) */
+/* ฟอนต์ Athiti อยู่ใน fonts.css (ไฟล์ใน public/fonts ไม่พึ่งเน็ต) */
 @import "tailwindcss";
 @import "tw-animate-css";
 

@@ -7,7 +7,9 @@
     "test": "node --test \"tests/**/*.test.js\"",
     "dev": "concurrently \"npm:dev:server\" \"npm:dev:worker\"",
     "dev:server": "nodemon server.js",
-    "dev:worker": "nodemon worker.js"
+    "dev:worker": "nodemon worker.js",
+    "backup": "node scripts/backup.js",
+    "backup:decrypt": "node scripts/decryptBackup.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
