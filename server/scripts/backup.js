@@ -1,17 +1,18 @@
-// สำรองฐานข้อมูลทุกวัน: mysqldump → gzip → เข้ารหัส → เก็บในเครื่อง และคัดลอกไปโฟลเดอร์ Google Drive
+// สำรองฐานข้อมูลทุกวันเป็น .zip ใส่รหัส (AES-256) ข้างในเป็นไฟล์ .sql
+// เปิดด้วย 7-Zip หรือ WinRAR แล้วนำเข้า DBeaver ได้เลย เก็บในเครื่อง และคัดลอกไปโฟลเดอร์ Google Drive
 // ตั้งค่าใน .env: BACKUP_PASSWORD (จำเป็น), BACKUP_DIR, BACKUP_DRIVE_DIR, BACKUP_KEEP_DAYS, MYSQLDUMP_PATH
 require("dotenv").config({ quiet: true });
 const fs = require("fs");
 const os = require("os");
 const fsp = require("fs/promises");
 const path = require("path");
-const zlib = require("zlib");
 const { spawn } = require("child_process");
-const { pipeline } = require("stream/promises");
-const { createEncryptStream } = require("./backupCrypto");
+const archiver = require("archiver");
+
+archiver.registerFormat("zip-encrypted", require("archiver-zip-encrypted"));
 
 const FILE_PREFIX = "montean-db-";
-const FILE_SUFFIX = ".sql.gz.enc";
+const FILE_SUFFIX = ".zip";
 // ค่าเริ่มต้นอยู่นอกโปรเจค ไฟล์สำรองมีข้อมูลลูกค้า ห้ามหลุดขึ้น git
 const BACKUP_DIR =
   process.env.BACKUP_DIR || path.join(os.homedir(), "montean-backups");
@@ -72,7 +73,8 @@ const main = async () => {
   if (!database) throw new Error("อ่านชื่อฐานข้อมูลจาก DATABASE_URL ไม่ได้");
 
   await fsp.mkdir(BACKUP_DIR, { recursive: true });
-  const fileName = `${FILE_PREFIX}${stamp()}${FILE_SUFFIX}`;
+  const baseName = `${FILE_PREFIX}${stamp()}`;
+  const fileName = `${baseName}${FILE_SUFFIX}`;
   const target = path.join(BACKUP_DIR, fileName);
   const partial = `${target}.part`;
 
@@ -104,12 +106,21 @@ const main = async () => {
   });
 
   try {
-    await pipeline(
-      dump.stdout,
-      zlib.createGzip({ level: 9 }),
-      createEncryptStream(password),
-      fs.createWriteStream(partial),
-    );
+    // ส่งผลจาก mysqldump เข้า zip ตรงๆ ไฟล์ .sql ที่อ่านได้ไม่เคยถูกเขียนลงดิสก์
+    const output = fs.createWriteStream(partial);
+    const archive = archiver.create("zip-encrypted", {
+      zlib: { level: 9 },
+      encryptionMethod: "aes256",
+      password,
+    });
+    const written = new Promise((resolve, reject) => {
+      output.on("close", resolve);
+      archive.on("error", reject);
+    });
+    archive.pipe(output);
+    archive.append(dump.stdout, { name: `${baseName}.sql` });
+    await archive.finalize();
+    await written;
     const code = await exited;
     if (code !== 0) {
       throw new Error(`mysqldump ล้มเหลว: ${stderr.trim().slice(0, 300)}`);

@@ -8,8 +8,7 @@
     "dev": "concurrently \"npm:dev:server\" \"npm:dev:worker\"",
     "dev:server": "nodemon server.js",
     "dev:worker": "nodemon worker.js",
-    "backup": "node scripts/backup.js",
-    "backup:decrypt": "node scripts/decryptBackup.js"
+    "backup": "node scripts/backup.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
@@ -20,6 +19,8 @@
   "type": "commonjs",
   "dependencies": {
     "@prisma/client": "^6.14.0",
+    "archiver": "^7.0.1",
+    "archiver-zip-encrypted": "^2.0.0",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.7.0",
     "compression": "^1.8.2",
