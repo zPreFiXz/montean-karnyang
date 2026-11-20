@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const prisma = require("../config/prisma");
 const createError = require("../utils/createError");
+const { passwordFingerprint } = require("../utils/passwordFingerprint");
 
 exports.authCheck = async (req, res, next) => {
   try {
@@ -13,19 +14,29 @@ exports.authCheck = async (req, res, next) => {
     const token = headerToken.slice("Bearer ".length);
 
     const decode = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decode;
 
     // เช็คว่าบัญชียังมีอยู่จริง (เผื่อถูกลบหลังออก token) และใช้ role ล่าสุดจาก DB
+    // หาจาก id แล้วเทียบอีเมลซ้ำ ลบบัญชีแล้วสร้างใหม่ด้วยอีเมลเดิม token ของคนเก่าจะใช้ไม่ได้
     const user = await prisma.user.findUnique({
-      where: { email: req.user.email },
-      select: { id: true, email: true, role: true, name: true },
+      where: { id: Number(decode.id) || 0 },
+      select: { id: true, email: true, role: true, name: true, password: true },
     });
 
-    if (!user) {
+    if (!user || user.email !== decode.email) {
       createError(401, "ไม่พบบัญชีผู้ใช้งาน กรุณาเข้าสู่ระบบใหม่");
     }
 
-    req.user = user;
+    // token รุ่นก่อนยังไม่มีลายนิ้วมือ ให้เข้าสู่ระบบใหม่ครั้งเดียว ไม่ใช่เพราะรหัสถูกเปลี่ยน
+    if (!decode.pv) {
+      createError(401, "กรุณาเข้าสู่ระบบใหม่");
+    }
+    // เปลี่ยนรหัสผ่านแล้ว token ที่ออกด้วยรหัสเดิมใช้ไม่ได้
+    if (decode.pv !== passwordFingerprint(user.password)) {
+      createError(401, "รหัสผ่านถูกเปลี่ยน กรุณาเข้าสู่ระบบใหม่");
+    }
+
+    const { password: _password, ...safeUser } = user;
+    req.user = safeUser;
 
     next();
   } catch (error) {

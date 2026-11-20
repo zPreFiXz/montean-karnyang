@@ -100,3 +100,28 @@ export const hasMisfiledSuspension = (repair) =>
   (repair.repairItems || []).some(
     (ri) => ri.part?.category?.name === "ช่วงล่าง",
   );
+
+// ตั้งกำหนดชำระได้เฉพาะบิลที่ยังค้างเงิน: เครดิต หรือรับชำระบางส่วน/มัดจำไว้แล้วแต่ยังไม่จ่ายครบ
+// (ต้องตรงกับ canSetPaymentDueDate ใน server/controllers/repair.js)
+export const canSetPaymentDueDate = (repair) =>
+  repair?.status === "CREDIT" ||
+  (["IN_PROGRESS", "COMPLETED"].includes(repair?.status) &&
+    Number(repair?.depositAmount) > 0);
+
+// เก็บเป็นวันที่ล้วน (DATE) เซิร์ฟเวอร์ส่งมาเป็นเที่ยงคืน UTC เอาแค่ส่วนวันที่มาเทียบ
+const dueDateKeyOf = (repair) =>
+  String(repair?.paymentDueDate || "").slice(0, 10);
+
+// ป้ายแดงบนการ์ด เฉพาะบิลที่ถึงหรือเกินกำหนดแล้ว จะได้รู้ว่าต้องตามบิลไหน
+// บิลที่ยังไม่ถึงกำหนดไม่ขึ้นบนการ์ด ดูวันที่ได้ในหน้ารายละเอียดบิล
+export const dueNoteOf = (repair, todayKey) => {
+  const dueKey = dueDateKeyOf(repair);
+  if (!dueKey || !canSetPaymentDueDate(repair)) return null;
+  const days = Math.round(
+    (new Date(`${dueKey}T00:00:00Z`) - new Date(`${todayKey}T00:00:00Z`)) /
+      86_400_000,
+  );
+  if (days < 0) return `เกินกำหนดชำระ ${-days} วัน`;
+  if (days === 0) return "กำหนดชำระวันนี้";
+  return null;
+};

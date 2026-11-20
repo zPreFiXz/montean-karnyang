@@ -12,6 +12,7 @@ import {
   ShoppingBag,
   Wrench as WrenchOutline,
 } from "lucide-react";
+import { toLocalDateKey } from "@/utils/date";
 import CarCard from "@/components/cards/CarCard";
 import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import InventoryCard from "@/components/cards/InventoryCard";
@@ -38,6 +39,7 @@ import {
   isNoVehicleRepair,
   getRepairTitle,
   getRepairSubtitle,
+  dueNoteOf,
 } from "@/utils/repairDisplay";
 import { usePrefetchPages } from "@/routes/pageImports";
 import { useReopenStockItem } from "@/hooks/useReopenStockItem";
@@ -299,6 +301,7 @@ const Dashboard = () => {
               badgeTone="primary"
               brand={getRepairSubtitle(repair)}
               time={repair[timeKey] && formatTime(repair[timeKey])}
+              dueNote={dueNoteOf(repair, toLocalDateKey())}
               price={parseFloat(repair.totalPrice)}
             />
           </Link>

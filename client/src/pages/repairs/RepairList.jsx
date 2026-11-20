@@ -7,6 +7,7 @@ import {
   useScrollRestoration,
 } from "@/utils/scrollPosition";
 import { ChevronLeft, Wrench as WrenchOutline } from "lucide-react";
+import { toLocalDateKey } from "@/utils/date";
 import CarCard from "@/components/cards/CarCard";
 import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import useRepairStore from "@/stores/useRepairStore";
@@ -26,6 +27,7 @@ import {
   isNoVehicleRepair,
   getRepairTitle,
   getRepairSubtitle,
+  dueNoteOf,
 } from "@/utils/repairDisplay";
 import { toastError } from "@/utils/handleError";
 import { usePrefetchPages } from "@/routes/pageImports";
@@ -273,6 +275,7 @@ const RepairList = () => {
             ? formatDateShort(cardTimeOf(item))
             : undefined
         }
+        dueNote={dueNoteOf(item, toLocalDateKey())}
         price={Number(item.totalPrice) || 0}
       />
     </Link>

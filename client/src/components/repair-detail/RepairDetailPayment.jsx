@@ -1,15 +1,8 @@
-import { useState } from "react";
-import { Calendar as CalendarIcon, Edit, HandCoins, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Edit, HandCoins, X } from "lucide-react";
+import DateField from "@/components/forms/DateField";
 import { formatCurrency, formatDate } from "@/utils/formats";
 import { depositOf, depositTermsOf } from "@/utils/receipt";
-import { isSaleRepair } from "@/utils/repairDisplay";
+import { canSetPaymentDueDate, isSaleRepair } from "@/utils/repairDisplay";
 import ComboBox from "@/components/ui/ComboBox";
 import FieldErrorList from "@/components/forms/FieldErrorList";
 import FormButton from "@/components/forms/FormButton";
@@ -59,99 +52,6 @@ const ChequeField = ({ name, label, error, onChange, ...props }) => (
   </>
 );
 
-// วันที่เก็บเป็น ปปปป-ดด-วว ตามเวลาท้องถิ่น ไม่ผ่าน toISOString ไม่งั้นวันเลื่อนตามเขตเวลา
-const toDateValue = (date) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-const fromDateValue = (value) => {
-  const [year, month, day] = String(value || "")
-    .split("-")
-    .map(Number);
-  return year ? new Date(year, month - 1, day) : undefined;
-};
-
-// หน้าตาเหมือนช่องเลือกวิธีชำระเงิน เปิดปฏิทินแบบเดียวกับหน้ารายงาน
-const ChequeDateField = ({ value, onChange, error }) => {
-  const [open, setOpen] = useState(false);
-  const selected = fromDateValue(value);
-
-  return (
-    <>
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-subtle-dark text-lg font-medium md:text-xl">
-          ลงวันที่:
-        </p>
-        {/* กากบาทอยู่นอกปุ่มเปิดปฏิทิน (ปุ่มซ้อนปุ่มไม่ได้) จึงวางทับมุมขวาของช่อง */}
-        <div className="relative w-52.5 shrink-0">
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                name="chequeDate"
-                variant="outline"
-                aria-invalid={error ? "true" : undefined}
-                className={`h-[41px] w-full cursor-pointer justify-between rounded-[20px] text-lg focus:!border-2 focus:ring-[3px] md:text-xl ${
-                  selected
-                    ? "text-foreground font-medium"
-                    : "text-muted-foreground font-light"
-                } ${
-                  error
-                    ? "border-destructive focus:!border-destructive"
-                    : "border-input focus:!border-primary"
-                }`}
-                style={{
-                  "--tw-ring-color": error
-                    ? "rgba(255, 69, 69, 0.3)"
-                    : "rgba(25, 118, 210, 0.35)",
-                }}
-              >
-                <span className="truncate">
-                  {selected ? formatDate(selected) : "-- เลือกวันที่ --"}
-                </span>
-                {selected ? (
-                  <span className="h-4 w-4 shrink-0" />
-                ) : (
-                  <CalendarIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-auto p-0"
-              align="end"
-              onOpenAutoFocus={(e) => e.preventDefault()}
-            >
-              <Calendar
-                mode="single"
-                selected={selected}
-                defaultMonth={selected || new Date()}
-                // กดวันเดิมซ้ำก็ล้างวันที่ได้เหมือนกากบาท
-                onSelect={(date) => {
-                  onChange(date ? toDateValue(date) : "");
-                  setOpen(false);
-                }}
-                captionLayout="dropdown"
-                fromYear={2025}
-                toYear={2035}
-                monthFormat="long"
-                className="rounded-md shadow-sm"
-              />
-            </PopoverContent>
-          </Popover>
-          {selected && (
-            <button
-              type="button"
-              onClick={() => onChange("")}
-              aria-label="ล้างวันที่"
-              className="text-subtle-dark absolute top-1/2 right-1 flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      </div>
-      <FieldErrorList messages={[error]} className="items-end" />
-    </>
-  );
-};
-
 // บิลที่จ่ายแล้วเป็นข้อความ กดแก้ไขที่หัวข้อถึงจะกลายเป็นช่องเลือก
 // ทุกวิธีต้องกดบันทึก เปลี่ยนใจกดยกเลิกได้ ข้อมูลเงินของบิลที่จ่ายแล้วจะได้ไม่เปลี่ยนเพราะเผลอเลือก
 // ใบเสนอราคายังไม่มีการเก็บเงิน จึงมีแค่บรรทัดสถานะ
@@ -174,6 +74,8 @@ const RepairDetailPayment = ({
   canSavePaidMethod,
   // ไม่ส่งมา = บิลนี้รับหรือแก้มัดจำไม่ได้แล้ว
   onEditDeposit,
+  onDueDateChange,
+  isSavingDueDate,
 }) => {
   const methodText = getPaymentMethodText(repair.paymentMethod) || "ไม่ระบุ";
   const showMethod =
@@ -329,7 +231,9 @@ const RepairDetailPayment = ({
                   onChange={(value) => onChequeChange("no", value)}
                   error={chequeErrors.chequeNo?.message}
                 />
-                <ChequeDateField
+                <DateField
+                  label="ลงวันที่:"
+                  name="chequeDate"
                   value={cheque.date}
                   onChange={(value) => onChequeChange("date", value)}
                   error={chequeErrors.chequeDate?.message}
@@ -362,6 +266,16 @@ const RepairDetailPayment = ({
               </div>
             )}
           </>
+        )}
+        {/* เลือกแล้วบันทึกทันที ไม่ต้องกดปุ่ม จ่ายครบแล้วบรรทัดนี้หายไป */}
+        {onDueDateChange && canSetPaymentDueDate(repair) && !isCancelled && (
+          <DateField
+            label="กำหนดชำระ:"
+            name="paymentDueDate"
+            value={String(repair.paymentDueDate || "").slice(0, 10)}
+            onChange={onDueDateChange}
+            disabled={isSavingDueDate}
+          />
         )}
         <div className="flex justify-between">
           <p className="text-subtle-dark text-lg font-medium md:text-xl">

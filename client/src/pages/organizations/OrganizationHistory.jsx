@@ -71,6 +71,7 @@ const OrganizationHistory = () => {
 
   const [customer, setCustomer] = useState(null);
   const [repairs, setRepairs] = useState([]);
+  const [purchases, setPurchases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
@@ -83,6 +84,7 @@ const OrganizationHistory = () => {
         if (cancelled) return;
         setCustomer(res.data?.customer || null);
         setRepairs(res.data?.repairs || []);
+        setPurchases(res.data?.purchases || []);
       } catch (error) {
         if (!cancelled) toastError(error);
       } finally {
@@ -128,6 +130,10 @@ const OrganizationHistory = () => {
   const creditRepairs = monthRepairs.filter(
     (repair) => repair.status === "CREDIT",
   );
+  // ร้านค้า: อะไหล่ที่รับจากร้านในเดือนนี้ที่ยังไม่หักกลบ เซิร์ฟเวอร์ใส่ในใบวางบิลรายเดือนด้วย
+  const monthPurchases = month
+    ? purchases.filter((purchase) => monthKey(purchase.takenAt) === month)
+    : [];
   const monthBox = monthStatusInfo(
     new Set(monthRepairs.map((repair) => repair.status)),
   );
@@ -338,6 +344,7 @@ const OrganizationHistory = () => {
       <OrganizationBillPreviewDialog
         customer={customer}
         repairs={creditRepairs}
+        purchases={monthPurchases}
         month={month}
         open={isPreviewOpen}
         onOpenChange={setIsPreviewOpen}

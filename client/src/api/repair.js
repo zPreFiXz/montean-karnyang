@@ -75,3 +75,8 @@ export const renderRepairImages = async (id, options = {}) => {
 export const setRepairDeposit = async (id, data) => {
   return await apiClient.patch(`/repairs/${id}/deposit`, data);
 };
+
+// dueDate = "ปปปป-ดด-วว" หรือ null เพื่อล้าง
+export const setRepairDueDate = async (id, dueDate) => {
+  return await apiClient.patch(`/repairs/${id}/due-date`, { dueDate });
+};

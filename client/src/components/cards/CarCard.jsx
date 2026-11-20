@@ -12,6 +12,8 @@ const CarCard = ({
   note,
   // ต่อท้าย note แต่ไม่ถูกตัด เช่น "และอีก 2 รายการ"
   noteSuffix,
+  // ถึงหรือเกินกำหนดชำระ ขึ้นเป็นป้ายแดงแทนป้ายเดิม ป้ายไม่ถูกตัด จอแคบก็ยังเห็น (ดู dueNoteOf)
+  dueNote,
   price,
   amount,
   status,
@@ -20,6 +22,9 @@ const CarCard = ({
   // primary = ข้อมูลทั่วไป (เช่นรับมัดจำ) ค่าเริ่มต้นสีแดงไว้เตือน
   badgeTone = "destructive",
 }) => {
+  const shownBadge = dueNote || badge;
+  const shownBadgeTone = dueNote ? "destructive" : badgeTone;
+
   const bgColorMap = {
     primary: "bg-primary",
     estimate: "bg-status-estimate",
@@ -58,15 +63,15 @@ const CarCard = ({
             </p>
             {/* อยู่บรรทัดล่าง ทะเบียนบนหัวการ์ดจะได้ไม่ถูกตัด ป้ายไม่หด ข้อความหลังป้ายโดนตัดแทน */}
             <p className="text-subtle-dark flex min-w-0 items-center text-base font-medium md:text-lg">
-              {badge && (
+              {shownBadge && (
                 <span
                   className={`mr-1.5 shrink-0 rounded-full px-2 py-px text-sm font-semibold whitespace-nowrap md:text-base ${
-                    badgeTone === "primary"
+                    shownBadgeTone === "primary"
                       ? "bg-primary/10 text-primary"
                       : "bg-destructive/10 text-destructive"
                   }`}
                 >
-                  {badge}
+                  {shownBadge}
                 </span>
               )}
               <span className="min-w-0 truncate">

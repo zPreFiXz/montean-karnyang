@@ -1,11 +1,13 @@
+import { Fragment } from "react";
 import {
   billLines,
+  purchaseAmountOf,
   PAYMENT_QR_NAME,
   SHOP,
   receiptDateOf,
 } from "@/utils/receipt";
 import { bahtText } from "@/utils/bahtText";
-import { formatPhone } from "@/utils/formats";
+import { formatPhone, formatQuantity } from "@/utils/formats";
 
 // ต้องตรงกับ buildOrganizationBillHtml ใน server/utils/receiptHtml.js
 const money = (value) => Number(value || 0).toLocaleString("th-TH");
@@ -17,17 +19,28 @@ const billDate = (value) =>
     year: "2-digit",
   });
 
-// repairs = บิลของแผ่นนี้ startIndex = ลำดับแรกของแผ่น total = ยอดรวมทุกแผ่น
+// แถวอะไหล่ที่รับจากร้าน: ชื่อ / จำนวน × ราคา (ต้องตรงกับ purchaseLines ใน receiptHtml.js)
+const purchaseLines = (purchase) => [
+  purchase.itemName,
+  `${formatQuantity(purchase.quantity)}${purchase.unit ? ` ${purchase.unit}` : ""} × ${money(purchase.unitPrice)}`,
+];
+
+// entries = แถวของแผ่นนี้จาก billSheets (บิล แล้วต่อด้วยอะไหล่ที่รับจากร้าน)
+// billTotal / purchaseTotal = ยอดรวมทุกแผ่น hasPurchases = ร้านค้าที่มีรายการหักกลบ
 // ยอดรวม ช่องเซ็น และ QR อยู่เฉพาะแผ่นสุดท้าย (ต้องตรงกับ buildOrganizationBillHtml)
 const CreditSummaryPaper = ({
   customer,
-  repairs,
-  startIndex = 0,
-  total,
+  entries,
+  billTotal,
+  purchaseTotal = 0,
+  hasPurchases = false,
   docNo,
   isLastPage = true,
 }) => {
   const billedAt = new Date();
+  // ติดลบ = ร้านเราต้องจ่ายร้านเขา ไม่มี QR รับเงิน
+  const net = billTotal - purchaseTotal;
+  const cell = "border border-black px-1";
 
   return (
     <>
@@ -97,11 +110,6 @@ const CreditSummaryPaper = ({
               {customer?.phoneNumber ? formatPhone(customer.phoneNumber) : ""}
             </span>
           </p>
-          {/* เว้นไว้ให้เขียนตอนวางบิล แต่ละหน่วยงานรอบจ่ายไม่เท่ากัน จำนวนบิลดูจากคอลัมน์ลำดับ */}
-          <p className="flex items-end gap-1.5">
-            <span className="whitespace-nowrap">วันนัดชำระ</span>
-            <span className="h-full flex-1 border-b border-dotted border-black" />
-          </p>
         </div>
 
         <table className="mt-2 w-full table-fixed border-collapse">
@@ -126,42 +134,94 @@ const CreditSummaryPaper = ({
             </tr>
           </thead>
           <tbody>
-            {repairs.map((repair, index) => (
-              <tr key={repair.id}>
-                <td className="border border-black px-1 text-center">
-                  {startIndex + index + 1}
-                </td>
-                {/* บิลเครดิตอ้างเลขใบส่งของที่ลูกค้าเซ็นรับไว้ */}
-                <td className="border border-black px-1 text-center whitespace-nowrap">
-                  {repair.deliveryNo || repair.receiptNo || repair.id}
-                </td>
-                <td className="border border-black px-1 text-center whitespace-nowrap">
-                  {billDate(receiptDateOf(repair))}
-                </td>
-                {/* สองบรรทัดทุกแถว แถวสูงเท่ากันจะได้นับบิลต่อแผ่นได้แน่นอน
-                    ขอบบนล่าง 2px เท่าเซลล์ของใบพิมพ์ แถวจะสูงเท่ากัน */}
-                <td className="border border-black px-1 py-0.5">
-                  {billLines(repair)
-                    .filter(Boolean)
-                    .map((line) => (
-                      <div key={line} className="truncate">
-                        {line}
-                      </div>
-                    ))}
-                </td>
-                <td className="border border-black px-1 text-right">
-                  {money(repair.totalPrice)}
-                </td>
-              </tr>
-            ))}
+            {entries.map(({ kind, item, index }) =>
+              kind === "bill" ? (
+                <tr key={`bill-${item.id}`}>
+                  <td className={`${cell} text-center`}>{index + 1}</td>
+                  {/* บิลเครดิตอ้างเลขใบส่งของที่ลูกค้าเซ็นรับไว้ */}
+                  <td className={`${cell} text-center whitespace-nowrap`}>
+                    {item.deliveryNo || item.receiptNo || item.id}
+                  </td>
+                  <td className={`${cell} text-center whitespace-nowrap`}>
+                    {billDate(receiptDateOf(item))}
+                  </td>
+                  {/* ขอบบนล่าง 2px เท่าเซลล์ของใบพิมพ์ แถวจะสูงเท่ากัน */}
+                  <td className={`${cell} py-0.5`}>
+                    {billLines(item)
+                      .filter(Boolean)
+                      .map((line) => (
+                        <div key={line} className="truncate">
+                          {line}
+                        </div>
+                      ))}
+                  </td>
+                  <td className={`${cell} text-right`}>
+                    {money(item.totalPrice)}
+                  </td>
+                </tr>
+              ) : (
+                <Fragment key={`purchase-${item.id}`}>
+                  {index === 0 && (
+                    <tr>
+                      <td colSpan={5} className={`${cell} font-semibold`}>
+                        อะไหล่ที่{SHOP.name}รับจากร้าน (หักกลบ)
+                      </td>
+                    </tr>
+                  )}
+                  <tr>
+                    <td className={`${cell} text-center`}>{index + 1}</td>
+                    <td className={`${cell} text-center`}>-</td>
+                    <td className={`${cell} text-center whitespace-nowrap`}>
+                      {billDate(item.takenAt)}
+                    </td>
+                    <td className={`${cell} py-0.5`}>
+                      {purchaseLines(item).map((line) => (
+                        <div key={line} className="truncate">
+                          {line}
+                        </div>
+                      ))}
+                    </td>
+                    <td className={`${cell} text-right`}>
+                      {money(purchaseAmountOf(item))}
+                    </td>
+                  </tr>
+                </Fragment>
+              ),
+            )}
+            {isLastPage && hasPurchases && (
+              <>
+                <tr>
+                  <td colSpan={4} className={cell}>
+                    รวมค่าบิล
+                  </td>
+                  <td className={`${cell} text-right`}>{money(billTotal)}</td>
+                </tr>
+                <tr>
+                  <td colSpan={4} className={cell}>
+                    หัก ค่าอะไหล่ที่รับจากร้าน
+                  </td>
+                  <td className={`${cell} text-right`}>
+                    {money(purchaseTotal)}
+                  </td>
+                </tr>
+              </>
+            )}
             {isLastPage && (
               <tr className="bg-gray-200">
-                <td colSpan={4} className="border border-black px-1 py-[5px]">
-                  <span className="mr-1.5">จำนวนเงินรวมทั้งสิ้น</span>
-                  <span className="font-semibold">{bahtText(total)}</span>
+                <td colSpan={4} className={`${cell} py-[5px]`}>
+                  <span className="mr-1.5">
+                    {!hasPurchases
+                      ? "จำนวนเงินรวมทั้งสิ้น"
+                      : net >= 0
+                        ? "ยอดสุทธิที่ต้องชำระ"
+                        : `${SHOP.name}ต้องชำระ`}
+                  </span>
+                  <span className="font-semibold">
+                    {bahtText(Math.abs(net))}
+                  </span>
                 </td>
-                <td className="border border-black px-1 text-right text-[13pt] font-semibold">
-                  {money(total)}
+                <td className={`${cell} text-right text-[13pt] font-semibold`}>
+                  {money(Math.abs(net))}
                 </td>
               </tr>
             )}
@@ -183,7 +243,7 @@ const CreditSummaryPaper = ({
       </div>
 
       {/* ลูกค้าจ่ายตามใบวางบิล QR จึงอยู่ที่นี่ ขนาดเท่าใบเสร็จ (ดู .receipt-qr ใน index.css) */}
-      {isLastPage && (
+      {isLastPage && net > 0 && (
         <div className="receipt-qr-area">
           <div className="receipt-qr">
             <img

@@ -8,6 +8,7 @@ import {
   asIssued,
   billPages,
   billPageHeight,
+  billSheets,
   BILL_PAGE_LIMITS,
   buildReceiptPages,
   receiptRowName,
@@ -201,6 +202,48 @@ describe("ใบวางบิลแบ่งแผ่นตรงกันท�
       for (const page of client) {
         expect(billPageHeight(page)).toBeLessThanOrEqual(BILL_PAGE_LIMITS.page);
       }
+    });
+  }
+});
+
+// ร้านค้ามีอะไหล่ที่เรารับจากร้านต่อท้ายบิล ตัวอย่างบนจอต้องแบ่งแผ่นเหมือนใบที่พิมพ์
+describe("ใบวางบิลร้านค้าที่มีอะไหล่หักกลบแบ่งแผ่นตรงกันทั้งสองฝั่ง", () => {
+  const bill = (id) => ({
+    id,
+    type: "GENERAL",
+    vehicle: {
+      fleetNo: id % 2 ? "12" : null,
+      licensePlate: { plateNumber: "กข 1234", province: "ศรีสะเกษ" },
+      vehicleModel: { brand: "Toyota", model: "Revo" },
+    },
+  });
+  const purchase = (id) => ({
+    id,
+    itemName: `อะไหล่ ${id}`,
+    quantity: 2,
+    unitPrice: 350,
+  });
+  const shapeOf = (pages) =>
+    pages.map((page) => page.map((entry) => `${entry.kind}:${entry.item.id}`));
+  for (const [bills, purchases] of [
+    [0, 1],
+    [1, 1],
+    [5, 3],
+    [6, 4],
+    [11, 5],
+    [0, 12],
+    [16, 10],
+  ]) {
+    it(`${bills} บิล ${purchases} อะไหล่`, () => {
+      const repairs = Array.from({ length: bills }, (_, i) => bill(i + 1));
+      const items = Array.from({ length: purchases }, (_, i) =>
+        purchase(i + 1),
+      );
+      const client = billSheets(repairs, items);
+      expect(shapeOf(server.billSheets(repairs, items))).toEqual(
+        shapeOf(client),
+      );
+      expect(client.flat()).toHaveLength(bills + purchases);
     });
   }
 });

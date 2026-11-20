@@ -3,6 +3,7 @@ const createError = require("../utils/createError");
 const { buildOrganizationBillHtml } = require("../utils/receiptHtml");
 const { printReceipt } = require("../utils/printReceipt");
 const { peekBillingNo, issueBillingNo } = require("../utils/documentNumber");
+const { buildPartItemName } = require("../utils/repairItemName");
 
 // กันชื่อเดียวกันถูกพิมพ์ต่างกันจนกลายเป็นคนละราย (ระบบจับคู่ด้วยชื่อเมื่อไม่มีเบอร์ ดู utils/repairCustomer.js)
 exports.listCustomers = async (req, res) => {
@@ -237,7 +238,196 @@ exports.listOrganizationRepairs = async (req, res) => {
     orderBy: { createdAt: "desc" },
   });
 
-  res.json({ customer, repairs });
+  // ร้านค้าเราไปรับอะไหล่จากเขาด้วย ส่งรายการที่ยังไม่หักกลบมาคู่กับบิลเครดิต
+  const purchases =
+    customer.organizationType === "SHOP"
+      ? await findOpenPurchases(customer.id)
+      : [];
+
+  res.json({ customer, repairs, purchases });
+};
+
+// อะไหล่ที่รับจากร้านค้าที่ยังไม่หักกลบ เก่าสุดก่อนแบบเดียวกับบิล
+// month (2026-09) = เฉพาะที่รับในเดือนนั้น
+const findOpenPurchases = (customerId, monthRange = null) =>
+  prisma.shopPurchase.findMany({
+    where: {
+      customerId,
+      settledAt: null,
+      ...(monthRange ? { takenAt: monthRange } : {}),
+    },
+    orderBy: [{ takenAt: "asc" }, { id: "asc" }],
+  });
+
+const findShop = async (id) => {
+  const customer = await prisma.customer.findUnique({
+    where: { id: Number(id) },
+    select: { id: true, organizationType: true },
+  });
+  if (!customer) createError(404, "ไม่พบลูกค้า");
+  // หน่วยงานราชการเราไม่ได้ไปรับของ มีเฉพาะร้านค้า
+  if (customer.organizationType !== "SHOP") {
+    createError(400, "บันทึกอะไหล่ที่รับมาได้เฉพาะร้านค้า");
+  }
+  return customer;
+};
+
+// ยางใหม่นับสต็อกตามล็อต DOT (ต้องตรงกับ tracksTireLots ฝั่งหน้าเว็บ)
+const tracksTireLots = (part) => part.category?.name === "ยาง";
+
+exports.createShopPurchase = async (req, res) => {
+  const shop = await findShop(req.params.id);
+  const { partId, takenAt, quantity, dotCode, unitPrice } = req.body;
+
+  // อะไหล่อื่นๆ พิมพ์ชื่อเอง ไม่มีในคลัง บันทึกไว้หักกลบอย่างเดียว ไม่แตะสต็อก
+  if (!partId) {
+    await prisma.shopPurchase.create({
+      data: {
+        customerId: shop.id,
+        takenAt: new Date(`${takenAt}T00:00:00.000Z`),
+        itemName: req.body.itemName,
+        quantity,
+        unit: req.body.unit || null,
+        unitPrice,
+      },
+    });
+    return res.json({ message: "เพิ่มอะไหล่ที่รับมาเรียบร้อยแล้ว" });
+  }
+
+  const part = await prisma.part.findUnique({
+    where: { id: partId },
+    include: { category: true },
+  });
+  if (!part) createError(404, "ไม่พบอะไหล่");
+  // ชุดน้ำมันนับสต็อกจากขวดน้ำมัน รับเข้าที่ตัวชุดไม่ได้
+  if (part.oilSourceId) {
+    createError(400, "ชุดน้ำมันรับเข้าไม่ได้ กรุณาเลือกขวดน้ำมันแทน");
+  }
+  const isLot = tracksTireLots(part);
+  if (isLot && !dotCode) createError(400, "กรุณากรอกสัปดาห์/ปีผลิต");
+  if (isLot && !Number.isInteger(quantity)) {
+    createError(400, "จำนวนต้องเป็นจำนวนเต็ม");
+  }
+
+  // รับของเข้าร้านจริง บวกสต็อกพร้อมบันทึกรายการในคราวเดียว
+  await prisma.$transaction(async (tx) => {
+    await tx.part.update({
+      where: { id: part.id },
+      data: { stockQuantity: { increment: quantity } },
+    });
+    if (isLot) {
+      const lot = await tx.tireLot.findFirst({
+        where: { partId: part.id, dotCode },
+      });
+      if (lot) {
+        await tx.tireLot.update({
+          where: { id: lot.id },
+          data: { quantity: lot.quantity + quantity },
+        });
+      } else {
+        await tx.tireLot.create({
+          data: { partId: part.id, dotCode, quantity },
+        });
+      }
+    }
+    await tx.shopPurchase.create({
+      data: {
+        customerId: shop.id,
+        partId: part.id,
+        takenAt: new Date(`${takenAt}T00:00:00.000Z`),
+        // ชื่อตอนรับ ลบอะไหล่ออกจากคลังทีหลังใบวางบิลยังอ่านได้
+        itemName: buildPartItemName(part),
+        quantity,
+        unit: part.unit || null,
+        dotCode: isLot ? dotCode : null,
+        unitPrice,
+      },
+    });
+  });
+
+  res.json({ message: "เพิ่มอะไหล่ที่รับมาเรียบร้อยแล้ว" });
+};
+
+const findOpenPurchase = async (customerId, id) => {
+  const purchase = await prisma.shopPurchase.findUnique({
+    where: { id: Number(id) || 0 },
+  });
+  if (!purchase || purchase.customerId !== Number(customerId)) {
+    createError(404, "ไม่พบรายการ");
+  }
+  // หักกลบแล้วคือปิดบัญชีกับร้านไปแล้ว แก้หรือลบจะทำให้ยอดที่ตกลงกันไม่ตรง
+  if (purchase.settledAt) createError(400, "รายการนี้หักกลบแล้ว แก้ไขไม่ได้");
+  return purchase;
+};
+
+// แก้ได้แค่วันที่กับราคา ชนิดกับจำนวนผูกกับสต็อกที่รับเข้าไปแล้ว
+exports.updateShopPurchase = async (req, res) => {
+  const purchase = await findOpenPurchase(req.params.id, req.params.purchaseId);
+  await prisma.shopPurchase.update({
+    where: { id: purchase.id },
+    data: {
+      takenAt: new Date(`${req.body.takenAt}T00:00:00.000Z`),
+      unitPrice: req.body.unitPrice,
+      // ชื่อของอะไหล่จากสต็อกเป็นชื่อในคลังตอนรับ แก้ได้เฉพาะอะไหล่อื่นๆ
+      ...(!purchase.partId && req.body.itemName
+        ? { itemName: req.body.itemName, unit: req.body.unit || null }
+        : {}),
+    },
+  });
+  res.json({ message: "แก้ไขอะไหล่ที่รับมาเรียบร้อยแล้ว" });
+};
+
+// บันทึกผิดแล้วลบ หักของที่รับเข้าไปออกจากสต็อกคืน ขายไปแล้วหักคืนไม่ได้ จึงห้ามลบ
+exports.deleteShopPurchase = async (req, res) => {
+  const purchase = await findOpenPurchase(req.params.id, req.params.purchaseId);
+  const quantity = Number(purchase.quantity);
+
+  await prisma.$transaction(async (tx) => {
+    const part = purchase.partId
+      ? await tx.part.findUnique({ where: { id: purchase.partId } })
+      : null;
+    if (part) {
+      if (Number(part.stockQuantity) < quantity) {
+        createError(
+          400,
+          "ลบไม่ได้ เพราะอะไหล่นี้ขายออกไปแล้ว สต็อกเหลือไม่พอให้หักคืน",
+        );
+      }
+      await tx.part.update({
+        where: { id: part.id },
+        data: { stockQuantity: { decrement: quantity } },
+      });
+      if (purchase.dotCode) {
+        const lot = await tx.tireLot.findFirst({
+          where: { partId: part.id, dotCode: purchase.dotCode },
+        });
+        if (lot) {
+          const left = lot.quantity - quantity;
+          await (left > 0
+            ? tx.tireLot.update({
+                where: { id: lot.id },
+                data: { quantity: left },
+              })
+            : tx.tireLot.delete({ where: { id: lot.id } }));
+        }
+      }
+    }
+    await tx.shopPurchase.delete({ where: { id: purchase.id } });
+  });
+  res.json({ message: "ลบอะไหล่ที่รับมาเรียบร้อยแล้ว" });
+};
+
+// หักกลบเฉพาะรายการที่หน้าจอส่งมา รายการที่เพิ่งเพิ่มระหว่างนั้นจะไม่ถูกปิดไปโดยไม่ได้เห็น
+exports.settleShopPurchases = async (req, res) => {
+  const shop = await findShop(req.params.id);
+  const result = await prisma.shopPurchase.updateMany({
+    where: { id: { in: req.body.ids }, customerId: shop.id, settledAt: null },
+    data: { settledAt: new Date() },
+  });
+  res.json({
+    message: "หักกลบเรียบร้อยแล้ว",
+    count: result.count,
+  });
 };
 
 // ใช้ร่วมกันระหว่างหน้าตัวอย่างกับตอนพิมพ์ ชุดบิลจะได้ตรงกัน
@@ -312,38 +502,55 @@ const findBillRepairs = async (id, month) => {
           )) || a.id - b.id,
   );
 
-  if (repairs.length === 0) {
+  const purchases =
+    customer.organizationType === "SHOP"
+      ? await findOpenPurchases(customer.id, monthRange)
+      : [];
+
+  if (repairs.length === 0 && purchases.length === 0) {
     createError(400, "ไม่มีบิลเครดิตให้พิมพ์");
   }
 
-  return { customer, repairs };
+  return { customer, repairs, purchases };
 };
+
+// อะไหล่ที่รับมาเป็นส่วนหนึ่งของชุด เพิ่มหรือลบรายการแล้วต้องได้ใบวางบิลเลขใหม่
+// ใช้เลขติดลบแทนรายการ ไม่ชนกับเลขบิล ชุดที่ไม่มีอะไหล่ได้กุญแจเดิมเหมือนก่อนมีฟีเจอร์นี้
+const billingIdsOf = (repairs, purchases) => [
+  ...repairs.map((repair) => repair.id),
+  ...purchases.map((purchase) => -purchase.id),
+];
 
 // เลขใบวางบิลที่จะได้ถ้าพิมพ์ตอนนี้ ชุดบิลที่เคยพิมพ์แล้วได้เลขเดิม ชุดใหม่แสดงเลขถัดไปโดยยังไม่จอง
 exports.peekOrganizationBillNo = async (req, res) => {
-  const { customer, repairs } = await findBillRepairs(
+  const { customer, repairs, purchases } = await findBillRepairs(
     req.params.id,
     req.query.month,
   );
   const number = await peekBillingNo(
     prisma,
     customer.id,
-    repairs.map((repair) => repair.id),
+    billingIdsOf(repairs, purchases),
   );
   res.json({ number });
 };
 
 exports.printOrganizationBill = async (req, res) => {
-  const { customer, repairs } = await findBillRepairs(
+  const { customer, repairs, purchases } = await findBillRepairs(
     req.params.id,
     req.body?.month,
   );
   const billingNo = await issueBillingNo(
     prisma,
     customer.id,
-    repairs.map((repair) => repair.id),
+    billingIdsOf(repairs, purchases),
   );
-  const html = buildOrganizationBillHtml(customer, repairs, billingNo);
+  const html = buildOrganizationBillHtml(
+    customer,
+    repairs,
+    billingNo,
+    purchases,
+  );
 
   await printReceipt(html, `org-${customer.id}`);
 

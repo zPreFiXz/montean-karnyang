@@ -251,6 +251,65 @@ exports.serviceOrderSchema = z.object({
   ids: z.array(z.number().int().positive()).min(1).max(500),
 });
 
+exports.repairDueDateSchema = z.object({
+  dueDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "วันที่ไม่ถูกต้อง")
+    .nullable(),
+});
+
+// รับเข้าสต็อกตอนเพิ่ม ชนิดกับจำนวนแก้ทีหลังไม่ได้ (ลบแล้วเพิ่มใหม่) แก้ได้แค่วันที่กับราคา
+// partId = เลือกจากสต็อก (บวกเข้าสต็อก) ไม่ส่ง = อะไหล่อื่นๆ พิมพ์ชื่อเอง ไม่แตะสต็อก
+const purchaseNameField = z
+  .string()
+  .trim()
+  .max(200, "ชื่ออะไหล่ยาวเกินไป")
+  .optional();
+const purchaseUnitField = z
+  .string()
+  .trim()
+  .max(20, "หน่วยยาวเกินไป")
+  .optional();
+
+exports.shopPurchaseSchema = z
+  .object({
+    partId: z.coerce.number().int().positive().optional(),
+    itemName: purchaseNameField,
+    unit: purchaseUnitField,
+    takenAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "กรุณาเลือกวันที่รับ"),
+    quantity: z.coerce
+      .number({ message: "กรุณากรอกจำนวน" })
+      .positive("จำนวนต้องมากกว่า 0"),
+    // เฉพาะยางที่นับตามล็อต ตรวจว่าต้องมีที่ controller เพราะต้องรู้หมวดของอะไหล่
+    dotCode: z
+      .string()
+      .regex(/^(\d{4})?$/, "สัปดาห์/ปีผลิตต้องเป็นเลข 4 หลัก")
+      .optional(),
+    unitPrice: z.coerce
+      .number({ message: "กรุณากรอกราคาต่อหน่วย" })
+      .int("ราคาต้องเป็นจำนวนเต็ม")
+      .min(0, "ราคาต้องไม่ติดลบ"),
+  })
+  .refine((data) => data.partId || data.itemName, {
+    path: ["itemName"],
+    message: "กรุณากรอกชื่ออะไหล่",
+  });
+
+// แก้ได้แค่วันที่กับราคา อะไหล่อื่นๆ แก้ชื่อกับหน่วยได้ด้วยเพราะไม่ผูกกับสต็อก
+exports.updateShopPurchaseSchema = z.object({
+  takenAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "กรุณาเลือกวันที่รับ"),
+  unitPrice: z.coerce
+    .number({ message: "กรุณากรอกราคาต่อหน่วย" })
+    .int("ราคาต้องเป็นจำนวนเต็ม")
+    .min(0, "ราคาต้องไม่ติดลบ"),
+  itemName: purchaseNameField,
+  unit: purchaseUnitField,
+});
+
+exports.settleShopPurchasesSchema = z.object({
+  ids: z.array(z.number().int().positive()).min(1).max(500),
+});
+
 exports.cancelRepairSchema = z.object({
   depositAction: z.enum(["REFUND", "KEEP"]).optional(),
 });

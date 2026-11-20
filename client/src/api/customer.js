@@ -46,3 +46,32 @@ export const listCustomerDirectory = async () => {
 export const getCustomer = async (id) => {
   return await apiClient.get(`/customers/${id}`);
 };
+
+// อะไหล่ที่ร้านเราไปรับจากร้านค้า (เฉพาะลูกค้าประเภทร้านค้า) ไว้หักกลบตอนวางบิล
+export const createShopPurchase = async (shopId, data) => {
+  return await apiClient.post(
+    `/customers/organizations/${shopId}/purchases`,
+    data,
+  );
+};
+
+export const updateShopPurchase = async (shopId, purchaseId, data) => {
+  return await apiClient.put(
+    `/customers/organizations/${shopId}/purchases/${purchaseId}`,
+    data,
+  );
+};
+
+export const deleteShopPurchase = async (shopId, purchaseId) => {
+  return await apiClient.delete(
+    `/customers/organizations/${shopId}/purchases/${purchaseId}`,
+  );
+};
+
+// ids = รายการที่เห็นอยู่บนจอ รายการที่เพิ่งเพิ่มระหว่างนั้นจะไม่ถูกปิดไปด้วย
+export const settleShopPurchases = async (shopId, ids) => {
+  return await apiClient.post(
+    `/customers/organizations/${shopId}/purchases/settle`,
+    { ids },
+  );
+};

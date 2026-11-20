@@ -701,6 +701,41 @@ exports.setRepairDeposit = async (req, res) => {
   });
 };
 
+// ตั้งกำหนดชำระได้เฉพาะบิลที่ยังค้างเงิน: เครดิต หรือรับชำระบางส่วน/มัดจำไว้แล้วแต่ยังไม่จ่ายครบ
+// (ต้องตรงกับ canSetPaymentDueDate ฝั่งหน้าเว็บ)
+const canSetPaymentDueDate = (repair) =>
+  repair.status === "CREDIT" ||
+  (["IN_PROGRESS", "COMPLETED"].includes(repair.status) &&
+    Number(repair.depositAmount) > 0);
+
+exports.setRepairDueDate = async (req, res) => {
+  const { id } = req.params;
+  const { dueDate } = req.body;
+
+  const repair = await prisma.repair.findUnique({
+    where: { id: Number(id) },
+  });
+  if (!repair) {
+    createError(404, "ไม่พบงานซ่อม");
+  }
+  if (!canSetPaymentDueDate(repair)) {
+    createError(400, "บิลนี้ตั้งกำหนดชำระไม่ได้");
+  }
+
+  await prisma.repair.update({
+    where: { id: Number(id) },
+    data: {
+      paymentDueDate: dueDate ? new Date(`${dueDate}T00:00:00.000Z`) : null,
+    },
+  });
+
+  res.json({
+    message: dueDate
+      ? "บันทึกกำหนดชำระเรียบร้อยแล้ว"
+      : "ลบกำหนดชำระเรียบร้อยแล้ว",
+  });
+};
+
 const buildRepairDocument = async (id, body, { forImage = false } = {}) => {
   const repair = await prisma.repair.findUnique({
     where: { id: Number(id) },

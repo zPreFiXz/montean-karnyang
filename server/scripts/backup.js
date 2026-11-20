@@ -1,17 +1,20 @@
 // สำรองฐานข้อมูลทุกวันเป็น .zip ใส่รหัส (AES-256) ข้างในเป็นไฟล์ .sql
 // เปิดด้วย 7-Zip หรือ WinRAR แล้วนำเข้า DBeaver ได้เลย เก็บในเครื่อง และคัดลอกไปโฟลเดอร์ Google Drive
 // ตั้งค่าใน .env: BACKUP_PASSWORD (จำเป็น), BACKUP_DIR, BACKUP_DRIVE_DIR, BACKUP_KEEP_DAYS, MYSQLDUMP_PATH
-require("dotenv").config({ quiet: true });
 const fs = require("fs");
 const os = require("os");
 const fsp = require("fs/promises");
 const path = require("path");
 const { spawn } = require("child_process");
-const archiver = require("archiver");
 
-archiver.registerFormat("zip-encrypted", require("archiver-zip-encrypted"));
+// อ่าน .env จากโฟลเดอร์ server เสมอ ไม่ขึ้นกับว่า Task Scheduler เปิดสคริปต์จากโฟลเดอร์ไหน
+require("dotenv").config({
+  path: path.join(__dirname, "..", ".env"),
+  quiet: true,
+});
 
-const FILE_PREFIX = "montean-db-";
+// ตั้งชื่อแบบเดียวกับที่ DBeaver ตั้งตอนสั่ง Dump เช่น dump-montean_karnyang-202611172251
+const prefixOf = (database) => `dump-${database}-`;
 const FILE_SUFFIX = ".zip";
 // ค่าเริ่มต้นอยู่นอกโปรเจค ไฟล์สำรองมีข้อมูลลูกค้า ห้ามหลุดขึ้น git
 const BACKUP_DIR =
@@ -39,7 +42,7 @@ const findMysqldump = () => {
 
 const stamp = (date = new Date()) => {
   const p = (n) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}_${p(date.getHours())}${p(date.getMinutes())}`;
+  return `${date.getFullYear()}${p(date.getMonth() + 1)}${p(date.getDate())}${p(date.getHours())}${p(date.getMinutes())}`;
 };
 
 const log = async (message) => {
@@ -48,12 +51,12 @@ const log = async (message) => {
   await fsp.appendFile(path.join(BACKUP_DIR, "backup.log"), line);
 };
 
-const removeOld = async (dir) => {
+const removeOld = async (dir, prefix) => {
   const cutoff = Date.now() - KEEP_DAYS * 86_400_000;
   const names = await fsp.readdir(dir).catch(() => []);
   let removed = 0;
   for (const name of names) {
-    if (!name.startsWith(FILE_PREFIX) || !name.endsWith(FILE_SUFFIX)) continue;
+    if (!name.startsWith(prefix) || !name.endsWith(FILE_SUFFIX)) continue;
     const file = path.join(dir, name);
     if ((await fsp.stat(file)).mtimeMs < cutoff) {
       await fsp.unlink(file);
@@ -64,6 +67,12 @@ const removeOld = async (dir) => {
 };
 
 const main = async () => {
+  // โหลดตรงนี้ ไม่ใช่บนสุด ลืม npm install แล้วจะได้มีบรรทัดบอกใน backup.log ไม่ใช่ปิดไปเงียบๆ
+  const archiver = require("archiver");
+  if (!archiver.isRegisteredFormat("zip-encrypted")) {
+    archiver.registerFormat("zip-encrypted", require("archiver-zip-encrypted"));
+  }
+
   const password = process.env.BACKUP_PASSWORD;
   if (!password || password.length < 8) {
     throw new Error("ตั้ง BACKUP_PASSWORD ใน .env อย่างน้อย 8 ตัวอักษรก่อน");
@@ -73,7 +82,7 @@ const main = async () => {
   if (!database) throw new Error("อ่านชื่อฐานข้อมูลจาก DATABASE_URL ไม่ได้");
 
   await fsp.mkdir(BACKUP_DIR, { recursive: true });
-  const baseName = `${FILE_PREFIX}${stamp()}`;
+  const baseName = `${prefixOf(database)}${stamp()}`;
   const fileName = `${baseName}${FILE_SUFFIX}`;
   const target = path.join(BACKUP_DIR, fileName);
   const partial = `${target}.part`;
@@ -141,8 +150,8 @@ const main = async () => {
   }
 
   const removed =
-    (await removeOld(BACKUP_DIR)) +
-    (DRIVE_DIR ? await removeOld(DRIVE_DIR) : 0);
+    (await removeOld(BACKUP_DIR, prefixOf(database))) +
+    (DRIVE_DIR ? await removeOld(DRIVE_DIR, prefixOf(database)) : 0);
   if (removed)
     await log(`ลบไฟล์สำรองที่เก่ากว่า ${KEEP_DAYS} วัน ${removed} ไฟล์`);
 };

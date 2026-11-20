@@ -18,11 +18,13 @@ import { toast } from "sonner";
 import { peekOrganizationBillNo, printOrganizationBill } from "@/api/customer";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
-import { billPages, byDeliveryNo } from "@/utils/receipt";
+import { billSheets, byDeliveryNo, purchaseTotalOf } from "@/utils/receipt";
 
 const OrganizationBillPreviewDialog = ({
   customer,
   repairs,
+  // ร้านค้า: อะไหล่ที่เรารับจากร้านที่ยังไม่หักกลบ (ชุดเดียวกับที่เซิร์ฟเวอร์ใส่ในใบที่พิมพ์)
+  purchases = [],
   // พิมพ์ของเดือนไหน (เช่น 2026-09) ไม่ส่งมา = บิลที่ยังค้างชำระทั้งหมด
   month,
   open,
@@ -49,15 +51,16 @@ const OrganizationBillPreviewDialog = ({
     chromeEstimate: 140,
   });
 
-  if (!customer || !repairs?.length) return null;
+  if (!customer || (!repairs?.length && !purchases.length)) return null;
 
   // เรียงตามเลขใบส่งของ ให้ตรงกับใบที่พิมพ์
-  const ordered = [...repairs].sort(byDeliveryNo);
-  const pages = billPages(ordered);
-  const total = ordered.reduce(
+  const ordered = [...(repairs || [])].sort(byDeliveryNo);
+  const pages = billSheets(ordered, purchases);
+  const billTotal = ordered.reduce(
     (sum, repair) => sum + Number(repair.totalPrice || 0),
     0,
   );
+  const purchaseTotal = purchaseTotalOf(purchases);
 
   const handlePrint = async () => {
     if (isPrinting) return;
@@ -110,7 +113,7 @@ const OrganizationBillPreviewDialog = ({
           className="mx-5 mb-2 min-h-0 shrink overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]"
         >
           <div className="flex flex-col items-center gap-3">
-            {pages.map((pageRepairs, pageIndex) => (
+            {pages.map((pageEntries, pageIndex) => (
               <div
                 key={pageIndex}
                 style={{
@@ -126,11 +129,10 @@ const OrganizationBillPreviewDialog = ({
                 >
                   <CreditSummaryPaper
                     customer={customer}
-                    repairs={pageRepairs}
-                    startIndex={pages
-                      .slice(0, pageIndex)
-                      .reduce((sum, page) => sum + page.length, 0)}
-                    total={total}
+                    entries={pageEntries}
+                    billTotal={billTotal}
+                    purchaseTotal={purchaseTotal}
+                    hasPurchases={purchases.length > 0}
                     // หลายแผ่นเขียนเลขต่อเนื่องแบบใบเสร็จ (ตรงกับฝั่งเซิร์ฟเวอร์)
                     docNo={
                       pages.length > 1 && billingNo

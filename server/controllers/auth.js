@@ -3,6 +3,10 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const createError = require("../utils/createError");
 const { nextSessionExpiry } = require("../utils/sessionExpiry");
+const { passwordFingerprint } = require("../utils/passwordFingerprint");
+
+// อีเมลไม่มีในระบบก็ยังเทียบรหัสกับค่าหลอก เวลาตอบจะเท่ากับรหัสผิด เดาอีเมลจากเวลาไม่ได้
+const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", 10);
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -13,13 +17,13 @@ exports.login = async (req, res) => {
     },
   });
 
-  if (!user) {
-    createError(400, "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
-  }
+  // compare แบบ async ไม่บล็อกคำขออื่นระหว่างคำนวณ
+  const checkPassword = await bcrypt.compare(
+    password,
+    user?.password || DUMMY_HASH,
+  );
 
-  const checkPassword = bcrypt.compareSync(password, user.password);
-
-  if (!checkPassword) {
+  if (!user || !checkPassword) {
     createError(400, "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
   }
 
@@ -31,9 +35,13 @@ exports.login = async (req, res) => {
   };
 
   const expiresAt = nextSessionExpiry();
-  const token = jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
-  });
+  const token = jwt.sign(
+    { ...payload, pv: passwordFingerprint(user.password) },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: Math.floor((expiresAt.getTime() - Date.now()) / 1000),
+    },
+  );
 
   res.json({
     message: "เข้าสู่ระบบเรียบร้อยแล้ว",

@@ -472,3 +472,47 @@ export const depositSchemaFor = (total, terms) =>
     ),
     method: z.string().min(1, "กรุณาเลือกวิธีชำระเงิน"),
   });
+
+// อะไหล่ที่รับจากร้านค้า (ต้องตรงกับ shopPurchaseSchema ใน server/utils/schemas.js)
+// needsDot = ยางใหม่ที่นับสต็อกตามล็อต ต้องมีสัปดาห์/ปีผลิตและจำนวนเต็ม
+// needsName = อะไหล่อื่นๆ ที่พิมพ์ชื่อเอง (ไม่อยู่ในคลัง)
+export const shopPurchaseSchemaFor = (needsDot, needsName = false) =>
+  z
+    .object({
+      itemName: needsName
+        ? z
+            .string()
+            .trim()
+            .min(1, "กรุณากรอกชื่ออะไหล่")
+            .max(200, "ชื่ออะไหล่ยาวเกินไป")
+        : z.string().optional(),
+      unit: z.string().trim().max(20, "หน่วยยาวเกินไป").optional(),
+      takenAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "กรุณาเลือกวันที่รับ"),
+      quantity: z.coerce
+        .number({ message: "กรุณากรอกจำนวน" })
+        .positive("จำนวนต้องมากกว่า 0"),
+      dotCode: z.string().optional(),
+      unitPrice: z.coerce
+        .number({ message: "กรุณากรอกราคาต่อหน่วย" })
+        .int("ราคาต้องเป็นจำนวนเต็ม")
+        .min(0, "ราคาต้องไม่ติดลบ"),
+    })
+    .superRefine((data, ctx) => {
+      if (!needsDot) return;
+      if (!/^\d{4}$/.test(data.dotCode || "")) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["dotCode"],
+          message: data.dotCode
+            ? "สัปดาห์/ปีผลิตต้องเป็นเลข 4 หลัก"
+            : "กรุณากรอกสัปดาห์/ปีผลิต",
+        });
+      }
+      if (!Number.isInteger(data.quantity)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["quantity"],
+          message: "จำนวนต้องเป็นจำนวนเต็ม",
+        });
+      }
+    });

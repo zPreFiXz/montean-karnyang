@@ -418,13 +418,8 @@ export const billLines = (repair) => {
   if (plate?.plateNumber && plate?.province) {
     const plateText =
       `${formatPlate(plate.plateNumber)} ${shortProvince(plate.province)}`.trim();
-    // ในวงเล็บใส่แค่ตัวเลข มีคำว่าเบอร์รถด้วยจะยาวจนเลขถูกตัด
-    return [
-      model,
-      repair.vehicle.fleetNo
-        ? `${plateText} (${repair.vehicle.fleetNo})`
-        : plateText,
-    ];
+    // เบอร์รถอยู่บรรทัดที่สามเสมอ ต่อท้ายทะเบียนแล้วจังหวัดชื่อยาวจะเกินช่อง
+    return [model, plateText, fleet];
   }
   return [model, fleet];
 };
@@ -432,7 +427,7 @@ export const billLines = (repair) => {
 // แถวสูงตามจำนวนบรรทัดรายละเอียด จึงแบ่งแผ่นด้วยความสูงแทนจำนวนบิล
 // ค่าวัดจากหน้าเอกสารจริงใน Chrome: แผ่นกลางมีที่ให้แถวราว 493px แผ่นสุดท้ายต้องเหลือที่ให้ยอดรวม
 // ช่องเซ็น และ QR 28 มม. เต็มขนาด ต้องตรงกับ billPages ใน server/utils/receiptHtml.js
-const BILL_ROW_HEIGHT = { 1: 23.4, 2: 41.7 };
+const BILL_ROW_HEIGHT = { 1: 23.4, 2: 41.7, 3: 60 };
 const BILL_PAGE_HEIGHT = 490;
 const BILL_LAST_PAGE_HEIGHT = 230;
 const billRowHeight = (repair) =>
@@ -444,27 +439,56 @@ export const BILL_PAGE_LIMITS = {
   page: BILL_PAGE_HEIGHT,
   lastPage: BILL_LAST_PAGE_HEIGHT,
 };
-export const billPages = (repairs) => {
+// ร้านค้า: อะไหล่ที่เรารับจากร้านต่อท้ายบิลในตารางเดียวกัน แถวละสองบรรทัด (ชื่อ / จำนวน × ราคา)
+// แถวแรกมีแถวหัวข้อนำหน้า แผ่นสุดท้ายมีแถวสรุปเพิ่มอีกสองแถว (รวมค่าบิล หักค่าอะไหล่)
+const PURCHASE_ROW_HEIGHT = BILL_ROW_HEIGHT[2];
+const PURCHASE_HEADER_HEIGHT = BILL_ROW_HEIGHT[1];
+const NET_ROWS_HEIGHT = BILL_ROW_HEIGHT[1] * 2;
+export const purchaseAmountOf = (purchase) =>
+  Math.round(Number(purchase.quantity || 0) * Number(purchase.unitPrice || 0));
+export const purchaseTotalOf = (purchases = []) =>
+  purchases.reduce((sum, purchase) => sum + purchaseAmountOf(purchase), 0);
+// แผ่นละรายการ [{ kind: "bill" | "purchase", item, index }] index = ลำดับในหมวดของตัวเอง
+export const billSheets = (repairs, purchases = []) => {
+  const entries = [
+    ...repairs.map((item, index) => ({
+      kind: "bill",
+      item,
+      index,
+      height: billRowHeight(item),
+    })),
+    ...purchases.map((item, index) => ({
+      kind: "purchase",
+      item,
+      index,
+      height: PURCHASE_ROW_HEIGHT + (index === 0 ? PURCHASE_HEADER_HEIGHT : 0),
+    })),
+  ];
+  const heightOf = (page) => page.reduce((sum, entry) => sum + entry.height, 0);
   const pages = [];
   let used = Infinity;
-  for (const repair of repairs) {
-    const height = billRowHeight(repair);
-    if (used + height > BILL_PAGE_HEIGHT) {
+  for (const entry of entries) {
+    if (used + entry.height > BILL_PAGE_HEIGHT) {
       pages.push([]);
       used = 0;
     }
-    pages[pages.length - 1].push(repair);
-    used += height;
+    pages[pages.length - 1].push(entry);
+    used += entry.height;
   }
   if (pages.length === 0) return [[]];
-  // แผ่นสุดท้ายเกินที่ QR รับได้ แผ่นนี้ยังอยู่ในความสูงแผ่นกลาง จึงยกไปแค่บิลสุดท้ายใบเดียว
+  // แผ่นสุดท้ายเกินที่ยอดรวม ช่องเซ็น และ QR รับได้ แผ่นนี้ยังอยู่ในความสูงแผ่นกลาง
+  // จึงยกไปแค่แถวสุดท้ายแถวเดียว (แถวเดียวเตี้ยกว่าที่แผ่นสุดท้ายรับได้เสมอ)
+  const lastLimit =
+    BILL_LAST_PAGE_HEIGHT - (purchases.length ? NET_ROWS_HEIGHT : 0);
   const last = pages[pages.length - 1];
-  if (billPageHeight(last) > BILL_LAST_PAGE_HEIGHT) {
+  if (heightOf(last) > lastLimit) {
     pages[pages.length - 1] = last.slice(0, -1);
     pages.push(last.slice(-1));
   }
   return pages;
 };
+export const billPages = (repairs) =>
+  billSheets(repairs).map((page) => page.map((entry) => entry.item));
 const DELIVERY_PAGE_LINES = 14;
 // เงินก้อนแรกที่หักจากยอด บิลที่ยกเลิกแล้วคืนเงินก็ยังหัก ใบที่พิมพ์ซ้ำต้องเหมือนใบที่ออกให้ลูกค้าไปแล้ว
 // การคืนเงินดูได้ที่กรอบการชำระเงินกับรายงาน (ต้องตรงกับ depositOf ใน receiptHtml.js)

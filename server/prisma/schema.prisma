@@ -37,6 +37,7 @@ model Customer {
   updatedAt        DateTime          @updatedAt
   repairs          Repair[]
   billingNotes     BillingNote[]
+  shopPurchases    ShopPurchase[]
 
   @@index([organizationType])
 }
@@ -92,30 +93,31 @@ model Category {
 }
 
 model Part {
-  id                 Int          @id @default(autoincrement())
-  partNumber         String       @unique
+  id                 Int            @id @default(autoincrement())
+  partNumber         String         @unique
   brand              String?
   name               String
-  description        String?      @db.Text
+  description        String?        @db.Text
   costPrice          Int?
   sellingPrice       Int
   unit               String
-  stockQuantity      Decimal      @db.Decimal(10, 2)
+  stockQuantity      Decimal        @db.Decimal(10, 2)
   minStockLevel      Int
   attributes         Json?
   compatibleVehicles Json?
   publicId           String?
   secureUrl          String?
-  oilLiters          Decimal?     @db.Decimal(6, 2)
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  category           Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  oilLiters          Decimal?       @db.Decimal(6, 2)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  category           Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   categoryId         Int
-  oilSource          Part?        @relation("OilKit", fields: [oilSourceId], references: [id], onDelete: SetNull)
+  oilSource          Part?          @relation("OilKit", fields: [oilSourceId], references: [id], onDelete: SetNull)
   oilSourceId        Int?
   repairItems        RepairItem[]
   tireLots           TireLot[]
-  oilKits            Part[]       @relation("OilKit")
+  oilKits            Part[]         @relation("OilKit")
+  shopPurchases      ShopPurchase[]
 }
 
 model TireLot {
@@ -164,6 +166,7 @@ model Repair {
   depositMethod     PaymentMethod?
   depositPaidAt     DateTime?
   depositRefundedAt DateTime?
+  paymentDueDate    DateTime?      @db.Date
   cancelledAt       DateTime?
   cancelledStatus   RepairStatus?
   receiptNo         String?        @unique @db.VarChar(20)
@@ -267,6 +270,26 @@ model DocumentCounter {
   lastNo Int
 
   @@id([prefix, period])
+}
+
+// อะไหล่ที่ร้านเราไปรับมาจากร้านค้า เลือกจากสต็อกแล้วบวกเข้าสต็อก หักกลบตอนวางบิล
+model ShopPurchase {
+  id         Int       @id @default(autoincrement())
+  customer   Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId Int
+  part       Part?     @relation(fields: [partId], references: [id], onDelete: SetNull)
+  partId     Int?
+  takenAt    DateTime  @db.Date
+  itemName   String    @db.VarChar(200)
+  quantity   Decimal   @db.Decimal(10, 2)
+  unit       String?   @db.VarChar(20)
+  dotCode    String?   @db.VarChar(4)
+  unitPrice  Int
+  settledAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([customerId, settledAt])
 }
 
 model BillingNote {

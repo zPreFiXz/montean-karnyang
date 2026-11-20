@@ -9,6 +9,7 @@ import {
   CircleUserRound,
   ShoppingBag,
 } from "lucide-react";
+import { toLocalDateKey } from "@/utils/date";
 import CarCard from "@/components/cards/CarCard";
 import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import BrandIcons from "@/components/icons/BrandIcons";
@@ -20,8 +21,9 @@ import {
   isNoVehicleRepair,
   getRepairTitle,
   getRepairSubtitle,
+  dueNoteOf,
 } from "@/utils/repairDisplay";
-import { formatDateShort, formatMonth, monthKey } from "@/utils/formats";
+import { formatMonth, monthKey } from "@/utils/formats";
 import { toastError } from "@/utils/handleError";
 import {
   useScrollRestoration,
@@ -251,7 +253,7 @@ const OrganizationList = () => {
                         ? getRepairTitle(item)
                         : getRepairSubtitle(item)
                     }
-                    note={formatDateShort(item.createdAt)}
+                    dueNote={dueNoteOf(item, toLocalDateKey())}
                     price={Number(item.totalPrice) || 0}
                   />
                 </Link>

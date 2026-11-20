@@ -2,6 +2,12 @@ const express = require("express");
 const router = express.Router();
 
 const { authCheck } = require("../middlewares/auth");
+const validate = require("../middlewares/validate");
+const {
+  shopPurchaseSchema,
+  updateShopPurchaseSchema,
+  settleShopPurchasesSchema,
+} = require("../utils/schemas");
 
 const {
   listCustomers,
@@ -12,6 +18,10 @@ const {
   listOrganizationRepairs,
   printOrganizationBill,
   peekOrganizationBillNo,
+  createShopPurchase,
+  updateShopPurchase,
+  deleteShopPurchase,
+  settleShopPurchases,
 } = require("../controllers/customer");
 
 router.get("/customers", authCheck, listCustomers);
@@ -32,6 +42,29 @@ router.post(
   "/customers/organizations/:id/print",
   authCheck,
   printOrganizationBill,
+);
+router.post(
+  "/customers/organizations/:id/purchases",
+  authCheck,
+  validate(shopPurchaseSchema),
+  createShopPurchase,
+);
+router.post(
+  "/customers/organizations/:id/purchases/settle",
+  authCheck,
+  validate(settleShopPurchasesSchema),
+  settleShopPurchases,
+);
+router.put(
+  "/customers/organizations/:id/purchases/:purchaseId",
+  authCheck,
+  validate(updateShopPurchaseSchema),
+  updateShopPurchase,
+);
+router.delete(
+  "/customers/organizations/:id/purchases/:purchaseId",
+  authCheck,
+  deleteShopPurchase,
 );
 router.get("/customers/:id", authCheck, getCustomer);
 router.patch(

@@ -97,7 +97,7 @@ const QR_SIZE = "28mm";
 // แถวใบวางบิลสูงตามจำนวนบรรทัดรายละเอียด (ดู billLines) จึงแบ่งแผ่นด้วยความสูงแทนจำนวนบิล
 // ค่าวัดจากหน้าเอกสารจริงใน Chrome: แผ่นกลางมีที่ให้แถวราว 493px แผ่นสุดท้ายต้องเหลือที่ให้ยอดรวม
 // ช่องเซ็น และ QR 28 มม. เต็มขนาด ต้องตรงกับ billPages ฝั่งหน้าเว็บ
-const BILL_ROW_HEIGHT = { 1: 23.4, 2: 41.7 };
+const BILL_ROW_HEIGHT = { 1: 23.4, 2: 41.7, 3: 60 };
 const BILL_PAGE_HEIGHT = 490;
 const BILL_LAST_PAGE_HEIGHT = 230;
 const billRowHeight = (repair) =>
@@ -105,27 +105,56 @@ const billRowHeight = (repair) =>
   BILL_ROW_HEIGHT[2];
 const billPageHeight = (repairs) =>
   repairs.reduce((sum, repair) => sum + billRowHeight(repair), 0);
-const billPages = (repairs) => {
+// ร้านค้า: อะไหล่ที่เรารับจากร้านต่อท้ายบิลในตารางเดียวกัน แถวละสองบรรทัด (ชื่อ / จำนวน × ราคา)
+// แถวแรกมีแถวหัวข้อนำหน้า แผ่นสุดท้ายมีแถวสรุปเพิ่มอีกสองแถว (รวมค่าบิล หักค่าอะไหล่)
+const PURCHASE_ROW_HEIGHT = BILL_ROW_HEIGHT[2];
+const PURCHASE_HEADER_HEIGHT = BILL_ROW_HEIGHT[1];
+const NET_ROWS_HEIGHT = BILL_ROW_HEIGHT[1] * 2;
+const purchaseAmountOf = (purchase) =>
+  Math.round(Number(purchase.quantity || 0) * Number(purchase.unitPrice || 0));
+const purchaseTotalOf = (purchases = []) =>
+  purchases.reduce((sum, purchase) => sum + purchaseAmountOf(purchase), 0);
+// แผ่นละรายการ [{ kind: "bill" | "purchase", item, index }] index = ลำดับในหมวดของตัวเอง
+const billSheets = (repairs, purchases = []) => {
+  const entries = [
+    ...repairs.map((item, index) => ({
+      kind: "bill",
+      item,
+      index,
+      height: billRowHeight(item),
+    })),
+    ...purchases.map((item, index) => ({
+      kind: "purchase",
+      item,
+      index,
+      height: PURCHASE_ROW_HEIGHT + (index === 0 ? PURCHASE_HEADER_HEIGHT : 0),
+    })),
+  ];
+  const heightOf = (page) => page.reduce((sum, entry) => sum + entry.height, 0);
   const pages = [];
   let used = Infinity;
-  for (const repair of repairs) {
-    const height = billRowHeight(repair);
-    if (used + height > BILL_PAGE_HEIGHT) {
+  for (const entry of entries) {
+    if (used + entry.height > BILL_PAGE_HEIGHT) {
       pages.push([]);
       used = 0;
     }
-    pages[pages.length - 1].push(repair);
-    used += height;
+    pages[pages.length - 1].push(entry);
+    used += entry.height;
   }
   if (pages.length === 0) return [[]];
-  // แผ่นสุดท้ายเกินที่ QR รับได้ แผ่นนี้ยังอยู่ในความสูงแผ่นกลาง จึงยกไปแค่บิลสุดท้ายใบเดียว
+  // แผ่นสุดท้ายเกินที่ยอดรวม ช่องเซ็น และ QR รับได้ แผ่นนี้ยังอยู่ในความสูงแผ่นกลาง
+  // จึงยกไปแค่แถวสุดท้ายแถวเดียว (แถวเดียวเตี้ยกว่าที่แผ่นสุดท้ายรับได้เสมอ)
+  const lastLimit =
+    BILL_LAST_PAGE_HEIGHT - (purchases.length ? NET_ROWS_HEIGHT : 0);
   const last = pages[pages.length - 1];
-  if (billPageHeight(last) > BILL_LAST_PAGE_HEIGHT) {
+  if (heightOf(last) > lastLimit) {
     pages[pages.length - 1] = last.slice(0, -1);
     pages.push(last.slice(-1));
   }
   return pages;
 };
+const billPages = (repairs) =>
+  billSheets(repairs).map((page) => page.map((entry) => entry.item));
 // ส่วนลดกับเทิร์นยางเก่าหักจากยอด (ต้องตรงกับ DISCOUNT_SERVICE_NAMES ฝั่งหน้าเว็บ)
 const DISCOUNT_SERVICE_NAMES = ["ส่วนลด", "เทิร์นยางเก่า"];
 const DELIVERY_PAGE_LINES = 14;
@@ -1396,7 +1425,7 @@ const buildJobSheetHtml = (repair) => {
 </html>`;
 };
 
-// ใบวางบิล: ยี่ห้อรุ่น / ทะเบียน (เบอร์รถ) ค่าอะไหล่กับค่าบริการมีบรรทัดเดียว (ต้องตรงกับ billLines ใน CreditSummaryPaper)
+// ใบวางบิล: ยี่ห้อรุ่น / ทะเบียน / เบอร์รถ ค่าอะไหล่กับค่าบริการมีบรรทัดเดียว (ต้องตรงกับ billLines ใน CreditSummaryPaper)
 const billLines = (repair) => {
   // ใบวางบิลเขียนจากฝั่งคนจ่าย จึงเป็น "ค่า…" ไม่ใช่ชื่อบิลแบบในแอป
   if (repair.type === "SALE") return ["ค่าอะไหล่", ""];
@@ -1410,13 +1439,8 @@ const billLines = (repair) => {
   if (plate?.plateNumber && plate?.province) {
     const plateText =
       `${formatPlate(plate.plateNumber)} ${shortProvince(plate.province)}`.trim();
-    // ในวงเล็บใส่แค่ตัวเลข มีคำว่าเบอร์รถด้วยจะยาวจนเลขถูกตัด
-    return [
-      model,
-      repair.vehicle.fleetNo
-        ? `${plateText} (${repair.vehicle.fleetNo})`
-        : plateText,
-    ];
+    // เบอร์รถอยู่บรรทัดที่สามเสมอ ต่อท้ายทะเบียนแล้วจังหวัดชื่อยาวจะเกินช่อง
+    return [model, plateText, fleet];
   }
   return [model, fleet];
 };
@@ -1429,16 +1453,32 @@ const billDate = (value) =>
     year: "2-digit",
   });
 
-const buildOrganizationBillHtml = (customer, repairs, billingNo) => {
+// จำนวนทศนิยมเท่าที่มี 2 ชิ้น 1.5 ลิตร (ตรงกับ formatQuantity ฝั่งหน้าเว็บ)
+const quantityText = (value) => String(Number(Number(value || 0).toFixed(2)));
+// แถวอะไหล่ที่รับจากร้าน: ชื่อ / จำนวน × ราคา (ต้องตรงกับ purchaseLines ใน CreditSummaryPaper)
+const purchaseLines = (purchase) => [
+  purchase.itemName,
+  `${quantityText(purchase.quantity)}${purchase.unit ? ` ${purchase.unit}` : ""} × ${formatMoney(purchase.unitPrice)}`,
+];
+
+// purchases = อะไหล่ที่เรารับจากร้านค้า หักกลบในใบเดียว ยอดติดลบ = ร้านเราต้องจ่ายร้านเขา
+const buildOrganizationBillHtml = (
+  customer,
+  repairs,
+  billingNo,
+  purchases = [],
+) => {
   // วันที่วางบิลคือวันที่พิมพ์ ต่างจากใบเสร็จที่ใช้วันเปิดบิล
   const billedAt = new Date();
-  const total = repairs.reduce(
+  const billTotal = repairs.reduce(
     (sum, repair) => sum + Number(repair.totalPrice || 0),
     0,
   );
-  const pages = billPages(repairs);
+  const purchaseTotal = purchaseTotalOf(purchases);
+  const net = billTotal - purchaseTotal;
+  const pages = billSheets(repairs, purchases);
 
-  const rowHtml = (repair, index) => `<tr>
+  const billRowHtml = (repair, index) => `<tr>
         <td class="c">${index + 1}</td>
         <td class="c" style="white-space:nowrap">${escapeHtml(repair.deliveryNo || repair.receiptNo || String(repair.id))}</td>
         <td class="c" style="white-space:nowrap">${escapeHtml(billDate(receiptDateOf(repair)))}</td>
@@ -1449,15 +1489,52 @@ const buildOrganizationBillHtml = (customer, repairs, billingNo) => {
         <td class="r">${formatMoney(Number(repair.totalPrice || 0))}</td>
       </tr>`;
 
-  let rowNo = 0;
-  const pageHtml = (pageRepairs, pageIndex) => {
+  const purchaseRowHtml = (purchase, index) => `${
+    index === 0
+      ? `<tr><td colspan="5" style="font-weight:600">อะไหล่ที่${SHOP.name}รับจากร้าน (หักกลบ)</td></tr>`
+      : ""
+  }<tr>
+        <td class="c">${index + 1}</td>
+        <td class="c">-</td>
+        <td class="c" style="white-space:nowrap">${escapeHtml(billDate(purchase.takenAt))}</td>
+        <td class="two-line">${purchaseLines(purchase)
+          .map((line) => `<div>${escapeHtml(line)}</div>`)
+          .join("")}</td>
+        <td class="r">${formatMoney(purchaseAmountOf(purchase))}</td>
+      </tr>`;
+
+  const summaryHtml = purchases.length
+    ? `<tr>
+        <td colspan="4">รวมค่าบิล</td>
+        <td class="r">${formatMoney(billTotal)}</td>
+      </tr>
+      <tr>
+        <td colspan="4">หัก ค่าอะไหล่ที่รับจากร้าน</td>
+        <td class="r">${formatMoney(purchaseTotal)}</td>
+      </tr>
+      <tr class="sum">
+        <td colspan="4">${net >= 0 ? "ยอดสุทธิที่ต้องชำระ" : `${SHOP.name}ต้องชำระ`} <span style="font-weight:600">${escapeHtml(bahtText(Math.abs(net)))}</span></td>
+        <td class="r" style="font-weight:600;font-size:13pt">${formatMoney(Math.abs(net))}</td>
+      </tr>`
+    : `<tr class="sum">
+        <td colspan="4">จำนวนเงินรวมทั้งสิ้น <span style="font-weight:600">${escapeHtml(bahtText(billTotal))}</span></td>
+        <td class="r" style="font-weight:600;font-size:13pt">${formatMoney(billTotal)}</td>
+      </tr>`;
+
+  const pageHtml = (pageEntries, pageIndex) => {
     const isLastPage = pageIndex === pages.length - 1;
     // หลายแผ่นเขียนเลขต่อเนื่องแบบใบเสร็จ BL-6910-0001/1 BL-6910-0001/2
     const docNo =
       pages.length > 1
         ? `${billingNo || ""}/${pageIndex + 1}`
         : billingNo || "";
-    const rows = pageRepairs.map((repair) => rowHtml(repair, rowNo++)).join("");
+    const rows = pageEntries
+      .map((entry) =>
+        entry.kind === "bill"
+          ? billRowHtml(entry.item, entry.index)
+          : purchaseRowHtml(entry.item, entry.index),
+      )
+      .join("");
 
     // ลูกค้าจ่ายตามใบวางบิล QR จึงอยู่ที่นี่ ไม่ใช่ใบส่งของ
     return `<div class="receipt-paper receipt-fill"><div class="page-body">
@@ -1483,7 +1560,6 @@ const buildOrganizationBillHtml = (customer, repairs, billingNo) => {
     <p>ชื่อลูกค้า<span class="dotted v cut">${escapeHtml(customer?.name || "")}</span></p>
     <p>ที่อยู่<span class="dotted v cut">${escapeHtml(customer?.address || "")}</span></p>
     <p class="halves"><span class="half">เลขประจำตัวผู้เสียภาษีอากร<span class="dotted v">${escapeHtml(customer?.taxId || "")}</span></span><span class="half">เบอร์โทรศัพท์<span class="dotted v">${escapeHtml(formatPhone(customer?.phoneNumber))}</span></span></p>
-    <p>วันนัดชำระ<span class="dotted v"></span></p>
   </div>
 
   <table style="margin-top:8px">
@@ -1498,14 +1574,7 @@ const buildOrganizationBillHtml = (customer, repairs, billingNo) => {
     </thead>
     <tbody>
       ${rows}
-      ${
-        isLastPage
-          ? `<tr class="sum">
-        <td colspan="4">จำนวนเงินรวมทั้งสิ้น <span style="font-weight:600">${escapeHtml(bahtText(total))}</span></td>
-        <td class="r" style="font-weight:600;font-size:13pt">${formatMoney(total)}</td>
-      </tr>`
-          : ""
-      }
+      ${isLastPage ? summaryHtml : ""}
     </tbody>
   </table>
 
@@ -1519,7 +1588,7 @@ const buildOrganizationBillHtml = (customer, repairs, billingNo) => {
   }
 
   </div>
-  ${isLastPage ? PAYMENT_QR_HTML : ""}
+  ${isLastPage && net > 0 ? PAYMENT_QR_HTML : ""}
 </div>`;
   };
 
@@ -1542,6 +1611,7 @@ module.exports = {
     receiptDocNo,
     receiptDocTitle,
     billPages,
+    billSheets,
     receiptDateOf,
     jobSheetPages: (repair) =>
       jobSheetPages(repair, ({ item, sideLabel }) =>

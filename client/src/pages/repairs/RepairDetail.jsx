@@ -7,6 +7,7 @@ import {
   deleteRepair,
   cancelRepair,
   setRepairDeposit,
+  setRepairDueDate,
 } from "@/api/repair";
 import { withMinDuration } from "@/utils/withMinDuration";
 import { formatCurrency } from "@/utils/formats";
@@ -106,6 +107,36 @@ const RepairDetail = () => {
     }));
     const terms = depositTermsOf(repair);
     toast.success(amount ? terms.saved : terms.deleted);
+  };
+  const [isSavingDueDate, setIsSavingDueDate] = useState(false);
+  const handleDueDateChange = async (dueDate) => {
+    const previous = String(repair.paymentDueDate || "").slice(0, 10);
+    setIsSavingDueDate(true);
+    try {
+      await setRepairDueDate(repair.id, dueDate || null);
+      setRepair((prev) => ({ ...prev, paymentDueDate: dueDate || null }));
+      if (dueDate) {
+        toast.success("บันทึกกำหนดชำระเรียบร้อยแล้ว");
+      } else {
+        // ลบทันทีไม่ถามยืนยัน กดกากบาทพลาดจึงเอาวันเดิมคืนได้จากแจ้งเตือน
+        toast.success("ลบกำหนดชำระเรียบร้อยแล้ว", {
+          duration: 6000,
+          action: previous && {
+            label: (
+              <>
+                <Undo2 className="h-4 w-4" />
+                เลิกทำ
+              </>
+            ),
+            onClick: () => handleDueDateChange(previous),
+          },
+        });
+      }
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setIsSavingDueDate(false);
+    }
   };
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState(null);
@@ -769,6 +800,8 @@ const RepairDetail = () => {
               onEditDeposit={
                 canEditDeposit ? () => setIsDepositOpen(true) : undefined
               }
+              onDueDateChange={handleDueDateChange}
+              isSavingDueDate={isSavingDueDate}
               isSavingPaidMethod={isSavingPaidMethod}
               canSavePaidMethod={hasPaidMethodChanged}
               onSavePaidMethod={() =>
