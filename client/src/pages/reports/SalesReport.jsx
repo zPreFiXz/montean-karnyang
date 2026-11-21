@@ -18,7 +18,7 @@ import {
   formatTime,
   getProvinceName,
 } from "@/utils/formats";
-import useRepairStore from "@/stores/useRepairStore";
+import { listRepairs } from "@/api/repair";
 import BrandIcons from "@/components/icons/BrandIcons";
 import { Paid } from "@/components/icons/Icons";
 import { ShoppingBag } from "lucide-react";
@@ -42,22 +42,49 @@ const cardBgOf = (entry) => (entry.kind === "refund" ? "cancelled" : "primary");
 const iconColorOf = (entry) =>
   entry.kind === "refund" ? "#ef4444" : "#1976d2";
 
+// จำผลของแต่ละช่วงไว้ กลับมาหรือสลับกลับมาช่วงเดิมแสดงทันที แล้วค่อยโหลดใหม่เงียบๆ
+const rangeCache = new Map();
+
 const SalesReport = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { repairs, fetchRepairs } = useRepairStore();
-  const [isLoading, setIsLoading] = useState(repairs.length === 0);
   const [currentDate, setCurrentDate] = useState(() => {
     if (location.state?.currentDate) {
       return new Date(location.state.currentDate);
     }
     return new Date();
   });
+  // ดึงเฉพาะบิลที่มีเงินเข้าออกในช่วงที่ดู ไม่ใช้รายการบิลกลาง (เป็นบิลวันนี้กับบิลที่ยังไม่ปิด)
+  const { startDate, endDate } = getDateRange(
+    currentDate,
+    periodTypeOf(searchParams),
+  );
+  const rangeKey = `${startDate.toISOString()}|${endDate.toISOString()}`;
+  const [loaded, setLoaded] = useState(() =>
+    rangeCache.has(rangeKey)
+      ? { key: rangeKey, repairs: rangeCache.get(rangeKey) }
+      : null,
+  );
+  const repairs =
+    loaded?.key === rangeKey ? loaded.repairs : rangeCache.get(rangeKey) || [];
+  const isLoading = loaded?.key !== rangeKey && !rangeCache.has(rangeKey);
 
   useEffect(() => {
-    fetchRepairsData();
-  }, [fetchRepairs]);
+    let cancelled = false;
+    const [from, to] = rangeKey.split("|");
+    listRepairs({ from, to, open: "0" })
+      .then((res) => {
+        rangeCache.set(rangeKey, res.data || []);
+        if (!cancelled) setLoaded({ key: rangeKey, repairs: res.data || [] });
+      })
+      .catch((error) => {
+        if (!cancelled) toastError(error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [rangeKey]);
 
   const scrollKey = location.pathname + location.search;
   useScrollRestoration(scrollKey, !isLoading);
@@ -73,23 +100,9 @@ const SalesReport = () => {
     }
   }, [location.state?.currentDate]);
 
-  const fetchRepairsData = async () => {
-    if (repairs.length === 0) setIsLoading(true);
-    try {
-      await fetchRepairs();
-    } catch (error) {
-      toastError(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const getPeriodType = () => periodTypeOf(searchParams);
 
   const getReportsData = () => {
-    const periodType = getPeriodType();
-    const { startDate, endDate } = getDateRange(currentDate, periodType);
-
     const entries = salesEntriesOf(repairs, (at) => {
       const date = new Date(at);
       return date >= startDate && date <= endDate;

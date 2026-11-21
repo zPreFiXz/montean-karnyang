@@ -1,7 +1,9 @@
 import apiClient from "@/api/apiClient";
 
-export const listRepairs = async () => {
-  return await apiClient.get("/repairs");
+// params = { from, to, open } (ISO) บิลที่ยังไม่ปิดกับบิลที่มีเงินเข้าออกในช่วงนั้น ไม่ส่ง = ทุกบิล
+// open: "0" = ไม่เอาบิลที่ยังไม่ปิด (รายงานยอดขายใช้แค่เงินในช่วง)
+export const listRepairs = async (params) => {
+  return await apiClient.get("/repairs", { params });
 };
 
 export const getRepair = async (id) => {

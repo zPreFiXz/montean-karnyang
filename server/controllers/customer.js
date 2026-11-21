@@ -157,10 +157,16 @@ exports.listOrganizations = async (req, res) => {
       organizationType: true,
       repairs: {
         where: { status: "CREDIT" },
-        select: { totalPrice: true, createdAt: true },
+        select: { totalPrice: true, createdAt: true, paymentDueDate: true },
       },
     },
   });
+
+  // กำหนดชำระเก็บเป็นวันที่ล้วน (เที่ยงคืน UTC) เทียบกับวันนี้ตามเวลาไทย
+  const todayKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+  }).format(new Date());
+  const today = new Date(`${todayKey}T00:00:00.000Z`);
 
   const organizations = customers
     .map(({ repairs, ...customer }) => ({
@@ -170,6 +176,10 @@ exports.listOrganizations = async (req, res) => {
         (sum, repair) => sum + Number(repair.totalPrice || 0),
         0,
       ),
+      // บิลที่ถึงหรือเกินกำหนดชำระ การ์ดหน่วยงานขึ้นป้ายแดงให้รู้ว่าต้องตามรายไหน
+      overdueCount: repairs.filter(
+        (repair) => repair.paymentDueDate && repair.paymentDueDate <= today,
+      ).length,
       oldestUnpaidAt: repairs.reduce(
         (oldest, repair) =>
           !oldest || repair.createdAt < oldest ? repair.createdAt : oldest,
@@ -275,77 +285,83 @@ const findShop = async (id) => {
 // ยางใหม่นับสต็อกตามล็อต DOT (ต้องตรงกับ tracksTireLots ฝั่งหน้าเว็บ)
 const tracksTireLots = (part) => part.category?.name === "ยาง";
 
-exports.createShopPurchase = async (req, res) => {
+// บันทึกทั้งชุดหรือไม่บันทึกเลย สต็อกจะไม่ค้างครึ่งๆ กลางๆ
+exports.createShopPurchases = async (req, res) => {
   const shop = await findShop(req.params.id);
-  const { partId, takenAt, quantity, dotCode, unitPrice } = req.body;
+  const { takenAt, items } = req.body;
+  const takenDate = new Date(`${takenAt}T00:00:00.000Z`);
 
-  // อะไหล่อื่นๆ พิมพ์ชื่อเอง ไม่มีในคลัง บันทึกไว้หักกลบอย่างเดียว ไม่แตะสต็อก
-  if (!partId) {
-    await prisma.shopPurchase.create({
-      data: {
-        customerId: shop.id,
-        takenAt: new Date(`${takenAt}T00:00:00.000Z`),
-        itemName: req.body.itemName,
-        quantity,
-        unit: req.body.unit || null,
-        unitPrice,
-      },
-    });
-    return res.json({ message: "เพิ่มอะไหล่ที่รับมาเรียบร้อยแล้ว" });
-  }
-
-  const part = await prisma.part.findUnique({
-    where: { id: partId },
+  const partIds = [
+    ...new Set(items.filter((item) => item.partId).map((item) => item.partId)),
+  ];
+  const parts = await prisma.part.findMany({
+    where: { id: { in: partIds } },
     include: { category: true },
   });
-  if (!part) createError(404, "ไม่พบอะไหล่");
-  // ชุดน้ำมันนับสต็อกจากขวดน้ำมัน รับเข้าที่ตัวชุดไม่ได้
-  if (part.oilSourceId) {
-    createError(400, "ชุดน้ำมันรับเข้าไม่ได้ กรุณาเลือกขวดน้ำมันแทน");
-  }
-  const isLot = tracksTireLots(part);
-  if (isLot && !dotCode) createError(400, "กรุณากรอกสัปดาห์/ปีผลิต");
-  if (isLot && !Number.isInteger(quantity)) {
-    createError(400, "จำนวนต้องเป็นจำนวนเต็ม");
+  const partById = new Map(parts.map((part) => [part.id, part]));
+
+  for (const item of items) {
+    if (!item.partId) continue;
+    const part = partById.get(item.partId);
+    if (!part) createError(404, "ไม่พบอะไหล่");
+    const name = buildPartItemName(part);
+    // ชุดน้ำมันนับสต็อกจากขวดน้ำมัน รับเข้าที่ตัวชุดไม่ได้
+    if (part.oilSourceId) {
+      createError(400, `${name} รับเข้าไม่ได้ กรุณาเลือกขวดน้ำมันแทน`);
+    }
+    // ยางรับเข้าโดยไม่ถามสัปดาห์/ปีผลิต จึงไม่เข้าล็อต แต่ยังนับเป็นเส้น
+    if (tracksTireLots(part) && !Number.isInteger(item.quantity)) {
+      createError(400, `จำนวนของ ${name} ต้องเป็นจำนวนเต็ม`);
+    }
   }
 
   // รับของเข้าร้านจริง บวกสต็อกพร้อมบันทึกรายการในคราวเดียว
-  await prisma.$transaction(async (tx) => {
-    await tx.part.update({
-      where: { id: part.id },
-      data: { stockQuantity: { increment: quantity } },
-    });
-    if (isLot) {
-      const lot = await tx.tireLot.findFirst({
-        where: { partId: part.id, dotCode },
-      });
-      if (lot) {
-        await tx.tireLot.update({
-          where: { id: lot.id },
-          data: { quantity: lot.quantity + quantity },
+  await prisma.$transaction(
+    async (tx) => {
+      for (const item of items) {
+        const { quantity, unitPrice } = item;
+
+        // อะไหล่อื่นๆ พิมพ์ชื่อเอง ไม่มีในคลัง บันทึกไว้หักกลบอย่างเดียว ไม่แตะสต็อก
+        if (!item.partId) {
+          await tx.shopPurchase.create({
+            data: {
+              customerId: shop.id,
+              takenAt: takenDate,
+              itemName: item.itemName,
+              quantity,
+              unit: item.unit || null,
+              unitPrice,
+            },
+          });
+          continue;
+        }
+
+        const part = partById.get(item.partId);
+        await tx.part.update({
+          where: { id: part.id },
+          data: { stockQuantity: { increment: quantity } },
         });
-      } else {
-        await tx.tireLot.create({
-          data: { partId: part.id, dotCode, quantity },
+        await tx.shopPurchase.create({
+          data: {
+            customerId: shop.id,
+            partId: part.id,
+            takenAt: takenDate,
+            // ชื่อตอนรับ ลบอะไหล่ออกจากคลังทีหลังใบวางบิลยังอ่านได้
+            itemName: buildPartItemName(part),
+            quantity,
+            unit: part.unit || null,
+            unitPrice,
+          },
         });
       }
-    }
-    await tx.shopPurchase.create({
-      data: {
-        customerId: shop.id,
-        partId: part.id,
-        takenAt: new Date(`${takenAt}T00:00:00.000Z`),
-        // ชื่อตอนรับ ลบอะไหล่ออกจากคลังทีหลังใบวางบิลยังอ่านได้
-        itemName: buildPartItemName(part),
-        quantity,
-        unit: part.unit || null,
-        dotCode: isLot ? dotCode : null,
-        unitPrice,
-      },
-    });
-  });
+    },
+    // ครั้งละหลายรายการ เผื่อเวลาเกินค่าเริ่มต้น 5 วินาที
+    { timeout: 20000 },
+  );
 
-  res.json({ message: "เพิ่มอะไหล่ที่รับมาเรียบร้อยแล้ว" });
+  res.json({
+    message: `บันทึกอะไหล่ที่รับมา ${items.length} รายการเรียบร้อยแล้ว`,
+  });
 };
 
 const findOpenPurchase = async (customerId, id) => {

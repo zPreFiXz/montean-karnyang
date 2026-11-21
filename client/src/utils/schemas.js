@@ -360,17 +360,19 @@ export const partServiceSchema = z
     }
   });
 
-export const editNamePriceSchema = z.object({
-  name: z.string().min(1, "กรุณากรอกชื่อบริการ"),
-  // ต้องดักช่องว่างก่อน เพราะ coerce.number แปลง "" เป็น 0 แล้วผ่านไปเงียบๆ
-  price: z.preprocess(
-    (value) =>
-      typeof value === "string" && value.trim() === "" ? undefined : value,
-    z.coerce
-      .number({ error: "กรุณากรอกราคาต่อหน่วย" })
-      .min(0, "ราคาต้องไม่ติดลบ"),
-  ),
-});
+// nameLabel ตามชนิดบรรทัด (ชื่ออะไหล่ ชื่อบริการ ชื่อส่วนลด) ข้อความเตือนจะตรงกับหัวช่อง
+export const editNamePriceSchemaFor = (nameLabel = "ชื่อบริการ") =>
+  z.object({
+    name: z.string().min(1, `กรุณากรอก${nameLabel}`),
+    // ต้องดักช่องว่างก่อน เพราะ coerce.number แปลง "" เป็น 0 แล้วผ่านไปเงียบๆ
+    price: z.preprocess(
+      (value) =>
+        typeof value === "string" && value.trim() === "" ? undefined : value,
+      z.coerce
+        .number({ error: "กรุณากรอกราคาต่อหน่วย" })
+        .min(0, "ราคาต้องไม่ติดลบ"),
+    ),
+  });
 
 // schema เดียวทั้งอะไหล่และยาง ดูจากรูปร่างข้อมูล
 // แยกสอง schema ไม่ได้ เพราะเรนเดอร์แรกยังไม่รู้ชนิดสินค้า resolver จะผูกผิดตัวค้างไว้
@@ -474,45 +476,59 @@ export const depositSchemaFor = (total, terms) =>
   });
 
 // อะไหล่ที่รับจากร้านค้า (ต้องตรงกับ shopPurchaseSchema ใน server/utils/schemas.js)
-// needsDot = ยางใหม่ที่นับสต็อกตามล็อต ต้องมีสัปดาห์/ปีผลิตและจำนวนเต็ม
-// needsName = อะไหล่อื่นๆ ที่พิมพ์ชื่อเอง (ไม่อยู่ในคลัง)
-export const shopPurchaseSchemaFor = (needsDot, needsName = false) =>
-  z
-    .object({
-      itemName: needsName
-        ? z
-            .string()
-            .trim()
-            .min(1, "กรุณากรอกชื่ออะไหล่")
-            .max(200, "ชื่ออะไหล่ยาวเกินไป")
-        : z.string().optional(),
-      unit: z.string().trim().max(20, "หน่วยยาวเกินไป").optional(),
-      takenAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "กรุณาเลือกวันที่รับ"),
-      quantity: z.coerce
-        .number({ message: "กรุณากรอกจำนวน" })
-        .positive("จำนวนต้องมากกว่า 0"),
-      dotCode: z.string().optional(),
-      unitPrice: z.coerce
-        .number({ message: "กรุณากรอกราคาต่อหน่วย" })
-        .int("ราคาต้องเป็นจำนวนเต็ม")
-        .min(0, "ราคาต้องไม่ติดลบ"),
-    })
-    .superRefine((data, ctx) => {
-      if (!needsDot) return;
-      if (!/^\d{4}$/.test(data.dotCode || "")) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["dotCode"],
-          message: data.dotCode
-            ? "สัปดาห์/ปีผลิตต้องเป็นเลข 4 หลัก"
-            : "กรุณากรอกสัปดาห์/ปีผลิต",
-        });
-      }
-      if (!Number.isInteger(data.quantity)) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["quantity"],
-          message: "จำนวนต้องเป็นจำนวนเต็ม",
-        });
-      }
-    });
+// ยางต้องเป็นจำนวนเต็ม เซิร์ฟเวอร์ตรวจจากหมวดของอะไหล่ หน้าเว็บกันไว้ที่ช่องแก้จำนวน
+const purchaseItemNameField = z
+  .string()
+  .trim()
+  .max(200, "ชื่ออะไหล่ยาวเกินไป")
+  .optional();
+const purchaseUnitField = z
+  .string()
+  .trim()
+  .max(20, "หน่วยยาวเกินไป")
+  .optional();
+const purchaseUnitPriceField = z.coerce
+  .number({ message: "กรุณากรอกราคาต่อหน่วย" })
+  .int("ราคาต้องเป็นจำนวนเต็ม")
+  .min(0, "ราคาต้องไม่ติดลบ");
+const purchaseTakenAtField = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "กรุณาเลือกวันที่รับ");
+
+export const shopPurchaseSchema = z.object({
+  takenAt: purchaseTakenAtField,
+  items: z
+    .array(
+      z
+        .object({
+          partId: z.number().int().positive().optional(),
+          itemName: purchaseItemNameField,
+          unit: purchaseUnitField,
+          quantity: z
+            .number({ message: "กรุณากรอกจำนวน" })
+            .positive("จำนวนต้องมากกว่า 0"),
+          unitPrice: purchaseUnitPriceField,
+        })
+        .refine((data) => data.partId || data.itemName, {
+          path: ["itemName"],
+          message: "กรุณากรอกชื่ออะไหล่",
+        }),
+    )
+    .min(1, "กรุณาเพิ่มอะไหล่")
+    .max(100, "เพิ่มได้ครั้งละไม่เกิน 100 รายการ"),
+});
+
+// ต้องตรงกับ updateShopPurchaseSchema แก้ได้แค่วันที่กับราคา needsName = อะไหล่อื่นๆ แก้ชื่อได้ด้วย
+export const updateShopPurchaseSchemaFor = (needsName) =>
+  z.object({
+    itemName: needsName
+      ? z
+          .string()
+          .trim()
+          .min(1, "กรุณากรอกชื่ออะไหล่")
+          .max(200, "ชื่ออะไหล่ยาวเกินไป")
+      : z.string().optional(),
+    unit: purchaseUnitField,
+    takenAt: purchaseTakenAtField,
+    unitPrice: purchaseUnitPriceField,
+  });

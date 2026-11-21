@@ -1,20 +1,26 @@
 // ใช้ localStorage ไม่ใช่ sessionStorage เพราะบนมือถือแท็บถูกปิดทิ้งเองได้
-// สองหน้าเก็บร่างแยกกัน เพราะรูปร่างข้อมูลต่างกัน
+// แต่ละหน้าเก็บร่างแยกกัน เพราะรูปร่างข้อมูลต่างกัน
 export const DRAFT_REPAIR = "repair";
 export const DRAFT_SUSPENSION = "suspension";
+export const DRAFT_SHOP_PURCHASE = "shop-purchase";
 
 const STORAGE_KEYS = {
   [DRAFT_REPAIR]: "repair-draft",
   [DRAFT_SUSPENSION]: "suspension-draft",
+  [DRAFT_SHOP_PURCHASE]: "shop-purchase-draft",
 };
+
+// scope แยกร่างของแต่ละร้านค้า ร่างของร้านหนึ่งจะไม่ไปโผล่อีกร้าน
+const storageKey = (kind, scope) =>
+  scope != null ? `${STORAGE_KEYS[kind]}-${scope}` : STORAGE_KEYS[kind];
 
 // หมดอายุใน 12 ชั่วโมง — ร่างของเมื่อวานไม่ควรโผล่มาตอนเปิดบิลใหม่เช้านี้
 const MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
-export const saveDraft = (kind, draft) => {
+export const saveDraft = (kind, draft, scope) => {
   try {
     localStorage.setItem(
-      STORAGE_KEYS[kind],
+      storageKey(kind, scope),
       JSON.stringify({ savedAt: Date.now(), ...draft }),
     );
   } catch {
@@ -22,14 +28,14 @@ export const saveDraft = (kind, draft) => {
   }
 };
 
-export const loadDraft = (kind) => {
+export const loadDraft = (kind, scope) => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS[kind]);
+    const raw = localStorage.getItem(storageKey(kind, scope));
     if (!raw) return null;
 
     const draft = JSON.parse(raw);
     if (!draft?.savedAt || Date.now() - draft.savedAt > MAX_AGE_MS) {
-      clearDraft(kind);
+      clearDraft(kind, scope);
       return null;
     }
 
@@ -39,9 +45,9 @@ export const loadDraft = (kind) => {
   }
 };
 
-export const clearDraft = (kind) => {
+export const clearDraft = (kind, scope) => {
   try {
-    localStorage.removeItem(STORAGE_KEYS[kind]);
+    localStorage.removeItem(storageKey(kind, scope));
   } catch {
     // ลบไม่ได้ก็ปล่อยไว้ เดี๋ยวหมดอายุเอง
   }

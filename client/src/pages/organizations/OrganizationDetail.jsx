@@ -28,7 +28,6 @@ import BrandIcons from "@/components/icons/BrandIcons";
 import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import { listOrganizationRepairs, settleShopPurchases } from "@/api/customer";
 import { purchaseAmountOf, purchaseTotalOf } from "@/utils/receipt";
-import { isPartPlaceholderItem } from "@/constants/services";
 import {
   organizationIcon,
   organizationLabel,
@@ -53,7 +52,6 @@ import { toastError } from "@/utils/handleError";
 import OrganizationTypeDialog from "@/components/dialogs/OrganizationTypeDialog";
 import OrganizationBillPreviewDialog from "@/components/dialogs/OrganizationBillPreviewDialog";
 import ShopPurchaseDialog from "@/components/dialogs/ShopPurchaseDialog";
-import StockPickDialog from "@/components/dialogs/StockPickDialog";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import {
   useScrollRestoration,
@@ -75,9 +73,8 @@ const OrganizationDetail = () => {
   const [repairs, setRepairs] = useState(cached?.repairs || []);
   // อะไหล่ที่เรารับจากร้านค้าที่ยังไม่หักกลบ (มีเฉพาะร้านค้า)
   const [purchases, setPurchases] = useState(cached?.purchases || []);
-  // { part } = เพิ่มใหม่จากอะไหล่ที่เลือก { item } = แก้ไขรายการเดิม
-  const [purchaseDialog, setPurchaseDialog] = useState(null);
-  const [isPickOpen, setIsPickOpen] = useState(false);
+  // รายการเดิมที่กำลังแก้ (เพิ่มใหม่อยู่หน้าเพิ่มอะไหล่ที่รับมา)
+  const [editingPurchase, setEditingPurchase] = useState(null);
   // แท็บอยู่ใน URL กดเข้าบิลแล้วย้อนกลับมายังอยู่แท็บเดิม
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get("tab") === "purchases" ? "purchases" : "bills";
@@ -456,7 +453,11 @@ const OrganizationDetail = () => {
                 {/* ปุ่มเส้นประแบบเดียวกับเพิ่มรถรุ่นอื่นหรือเพิ่มเบอร์รถ ชื่อแท็บบอกอยู่แล้วจึงไม่มีหัวข้อซ้ำ */}
                 <button
                   type="button"
-                  onClick={() => setIsPickOpen(true)}
+                  onClick={() =>
+                    navigate(`/organizations/${id}/purchases/new`, {
+                      state: { organization: customer },
+                    })
+                  }
                   className="text-subtle-light mt-4 flex h-[41px] w-full cursor-pointer items-center justify-center gap-2 rounded-[20px] border-2 border-dashed border-gray-300 text-lg font-medium transition-colors duration-200 hover:border-gray-400 hover:bg-gray-50 md:text-xl"
                 >
                   <Plus className="h-5 w-5" />
@@ -490,9 +491,7 @@ const OrganizationDetail = () => {
                           <button
                             key={purchase.id}
                             type="button"
-                            onClick={() =>
-                              setPurchaseDialog({ item: purchase })
-                            }
+                            onClick={() => setEditingPurchase(purchase)}
                             className="mt-4 block w-full cursor-pointer text-left"
                           >
                             <CarCard
@@ -539,28 +538,11 @@ const OrganizationDetail = () => {
 
       {isShop && (
         <>
-          <StockPickDialog
-            isOpen={isPickOpen}
-            onClose={() => setIsPickOpen(false)}
-            title="เลือกอะไหล่ที่รับมา"
-            onPick={(part) => {
-              setIsPickOpen(false);
-              setPurchaseDialog(
-                isPartPlaceholderItem(part) ? { custom: true } : { part },
-              );
-            }}
-          />
           <ShopPurchaseDialog
-            isOpen={!!purchaseDialog}
-            onClose={() => setPurchaseDialog(null)}
+            isOpen={!!editingPurchase}
+            onClose={() => setEditingPurchase(null)}
             shop={customer}
-            part={purchaseDialog?.part || null}
-            isCustom={!!purchaseDialog?.custom}
-            editingItem={purchaseDialog?.item || null}
-            onChangePart={() => {
-              setPurchaseDialog(null);
-              setIsPickOpen(true);
-            }}
+            editingItem={editingPurchase}
             onSaved={() => setReloadToken((n) => n + 1)}
           />
         </>

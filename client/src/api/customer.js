@@ -48,7 +48,8 @@ export const getCustomer = async (id) => {
 };
 
 // อะไหล่ที่ร้านเราไปรับจากร้านค้า (เฉพาะลูกค้าประเภทร้านค้า) ไว้หักกลบตอนวางบิล
-export const createShopPurchase = async (shopId, data) => {
+// data = { takenAt, items } บันทึกทั้งชุดในคราวเดียว
+export const createShopPurchases = async (shopId, data) => {
   return await apiClient.post(
     `/customers/organizations/${shopId}/purchases`,
     data,

@@ -18,9 +18,18 @@ const filterTodayPaidRepairs = (repairs) => {
 const repairStore = (set, get) => ({
   repairs: [],
 
+  // หน้าหลัก สถานะการซ่อม หน้าเครดิต และยอดขายวันนี้ ใช้แค่บิลที่ยังไม่ปิดกับเงินเข้าออกวันนี้
+  // ไม่ดึงทุกบิล ข้อมูลโตปีละพันบิลจนโหลดช้าผ่าน Wi-Fi ร้าน (รายงานยอดขายดึงช่วงของตัวเองแยก)
   fetchRepairs: async () => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
     try {
-      const res = await listRepairs();
+      const res = await listRepairs({
+        from: start.toISOString(),
+        to: end.toISOString(),
+      });
       set({ repairs: res.data });
       return res.data;
     } catch (error) {

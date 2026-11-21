@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toLocalDateKey } from "@/utils/date";
 import CarCard from "@/components/cards/CarCard";
+import AlertCountBadge from "@/components/cards/AlertCountBadge";
 import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import BrandIcons from "@/components/icons/BrandIcons";
 import useRepairStore from "@/stores/useRepairStore";
@@ -277,8 +278,14 @@ const OrganizationList = () => {
                   key={item.id}
                   to={`/organizations/${item.id}`}
                   state={{ organization: item }}
-                  className="mt-4 block w-full"
+                  aria-label={
+                    item.overdueCount > 0
+                      ? `${item.name} ${item.creditCount} บิล ถึงหรือเกินกำหนดชำระ ${item.overdueCount} บิล`
+                      : undefined
+                  }
+                  className="relative mt-4 block w-full"
                 >
+                  <AlertCountBadge count={item.overdueCount} />
                   <CarCard
                     bg="credit"
                     icon={

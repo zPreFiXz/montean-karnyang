@@ -18,6 +18,7 @@ import OutlineCardIcon from "@/components/icons/OutlineCardIcon";
 import InventoryCard from "@/components/cards/InventoryCard";
 import RepairItemDetailDialog from "@/components/dialogs/RepairItemDetailDialog";
 import StatusCard from "@/components/cards/StatusCard";
+import AlertCountBadge from "@/components/cards/AlertCountBadge";
 import { listInventory } from "@/api/inventory";
 import { listCategories } from "@/api/category";
 import {
@@ -108,6 +109,18 @@ const Dashboard = () => {
   const paidCount = getRepairCountByStatus("PAID");
 
   // งานที่ค้างไว้ ดูเป็นระยะ จึงเป็นปุ่มเล็ก แต่งแบบเดียวกับการ์ดสถานะ (พื้นขาว วงกลมสี)
+  // บิลที่ถึงหรือเกินกำหนดชำระ ขึ้นตัวเลขแดงที่ปุ่มหรือการ์ดสถานะของบิลนั้น
+  const todayKey = toLocalDateKey();
+  const dueCountOf = (status) =>
+    repairs.filter(
+      (repair) => repair.status === status && dueNoteOf(repair, todayKey),
+    ).length;
+  const overdueCreditCount = dueCountOf("CREDIT");
+  const dueInProgressCount = dueCountOf("IN_PROGRESS");
+  const dueCompletedCount = dueCountOf("COMPLETED");
+  const dueLabel = (label, count, due) =>
+    `${label} ${count} คัน${due ? ` ถึงหรือเกินกำหนดชำระ ${due} บิล` : ""}`;
+
   const pendingLinks = [
     {
       to: "/repairs?status=estimate",
@@ -123,6 +136,7 @@ const Dashboard = () => {
       icon: Wallet,
       label: "เครดิต",
       count: getRepairCountByStatus("CREDIT"),
+      alertCount: overdueCreditCount,
       unit: "บิล",
       circleClass: "bg-status-credit",
       textClass: "text-status-credit",
@@ -132,12 +146,23 @@ const Dashboard = () => {
   const renderPendingLinks = (compact = false) => (
     <div className={compact ? "flex gap-3" : "grid grid-cols-2 gap-3 md:gap-4"}>
       {pendingLinks.map(
-        ({ to, icon: Icon, label, count, unit, circleClass, textClass }) => (
+        ({
+          to,
+          icon: Icon,
+          label,
+          count,
+          unit,
+          circleClass,
+          textClass,
+          alertCount,
+        }) => (
           <Link
             key={to}
             to={to}
-            aria-label={`${label} ${count} ${unit}`}
-            className={`bg-surface shadow-primary flex items-center justify-between gap-2 rounded-lg ${
+            aria-label={`${label} ${count} ${unit}${
+              alertCount ? ` ถึงหรือเกินกำหนดชำระ ${alertCount} ${unit}` : ""
+            }`}
+            className={`bg-surface shadow-primary relative flex items-center justify-between gap-2 rounded-lg ${
               compact
                 ? "h-11 px-2 pr-4"
                 : "h-14 px-2 pr-3 max-[399px]:px-1.5 max-[399px]:pr-2.5"
@@ -162,6 +187,7 @@ const Dashboard = () => {
             >
               {count}
             </span>
+            <AlertCountBadge count={alertCount} />
           </Link>
         ),
       )}
@@ -326,21 +352,39 @@ const Dashboard = () => {
           </div>
 
           <div className="mt-4 grid grid-cols-3 gap-4">
-            <Link to="/repairs?status=in-progress">
+            <Link
+              to="/repairs?status=in-progress"
+              aria-label={dueLabel(
+                "กำลังซ่อม",
+                inProgressCount,
+                dueInProgressCount,
+              )}
+              className="relative"
+            >
               <StatusCard
                 bg="progress"
                 icon={Wrench}
                 label={"กำลังซ่อม"}
                 amount={inProgressCount}
               />
+              <AlertCountBadge count={dueInProgressCount} />
             </Link>
-            <Link to="/repairs?status=completed">
+            <Link
+              to="/repairs?status=completed"
+              aria-label={dueLabel(
+                "ซ่อมเสร็จสิ้น",
+                completedCount,
+                dueCompletedCount,
+              )}
+              className="relative"
+            >
               <StatusCard
                 bg="completed"
                 icon={Success}
                 label={"ซ่อมเสร็จสิ้น"}
                 amount={completedCount}
               />
+              <AlertCountBadge count={dueCompletedCount} />
             </Link>
             <Link to="/repairs?status=paid">
               <StatusCard
@@ -523,22 +567,40 @@ const Dashboard = () => {
             สถานะการซ่อม
           </p>
 
-          <Link to="/repairs?status=in-progress">
+          <Link
+            to="/repairs?status=in-progress"
+            aria-label={dueLabel(
+              "กำลังซ่อม",
+              inProgressCount,
+              dueInProgressCount,
+            )}
+            className="relative"
+          >
             <CarCard
               bg="progress"
               icon={Wrench}
               status={"กำลังซ่อม"}
               amount={inProgressCount > 0 ? inProgressCount : "0"}
             />
+            <AlertCountBadge count={dueInProgressCount} />
           </Link>
 
-          <Link to="/repairs?status=completed">
+          <Link
+            to="/repairs?status=completed"
+            aria-label={dueLabel(
+              "ซ่อมเสร็จสิ้น",
+              completedCount,
+              dueCompletedCount,
+            )}
+            className="relative"
+          >
             <CarCard
               bg="completed"
               icon={Success}
               status={"ซ่อมเสร็จสิ้น"}
               amount={completedCount > 0 ? completedCount : "0"}
             />
+            <AlertCountBadge count={dueCompletedCount} />
           </Link>
 
           <Link to="/repairs?status=paid">

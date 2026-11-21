@@ -271,20 +271,14 @@ const purchaseUnitField = z
   .max(20, "หน่วยยาวเกินไป")
   .optional();
 
-exports.shopPurchaseSchema = z
+const shopPurchaseItemSchema = z
   .object({
     partId: z.coerce.number().int().positive().optional(),
     itemName: purchaseNameField,
     unit: purchaseUnitField,
-    takenAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "กรุณาเลือกวันที่รับ"),
     quantity: z.coerce
       .number({ message: "กรุณากรอกจำนวน" })
       .positive("จำนวนต้องมากกว่า 0"),
-    // เฉพาะยางที่นับตามล็อต ตรวจว่าต้องมีที่ controller เพราะต้องรู้หมวดของอะไหล่
-    dotCode: z
-      .string()
-      .regex(/^(\d{4})?$/, "สัปดาห์/ปีผลิตต้องเป็นเลข 4 หลัก")
-      .optional(),
     unitPrice: z.coerce
       .number({ message: "กรุณากรอกราคาต่อหน่วย" })
       .int("ราคาต้องเป็นจำนวนเต็ม")
@@ -294,6 +288,15 @@ exports.shopPurchaseSchema = z
     path: ["itemName"],
     message: "กรุณากรอกชื่ออะไหล่",
   });
+
+// รับของหลายรายการในคราวเดียวแบบเปิดบิล วันที่รับใช้ร่วมกันทั้งชุด
+exports.shopPurchaseSchema = z.object({
+  takenAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "กรุณาเลือกวันที่รับ"),
+  items: z
+    .array(shopPurchaseItemSchema)
+    .min(1, "กรุณาเพิ่มอะไหล่")
+    .max(100, "เพิ่มได้ครั้งละไม่เกิน 100 รายการ"),
+});
 
 // แก้ได้แค่วันที่กับราคา อะไหล่อื่นๆ แก้ชื่อกับหน่วยได้ด้วยเพราะไม่ผูกกับสต็อก
 exports.updateShopPurchaseSchema = z.object({

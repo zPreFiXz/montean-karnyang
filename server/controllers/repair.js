@@ -31,8 +31,33 @@ const {
   createRepairItemsAndDecrementStock,
 } = require("../utils/repairStock");
 
+// บิลที่ยังไม่ปิด ใช้ในหน้าหลัก สถานะการซ่อม และหน้าเครดิต
+const OPEN_STATUSES = ["ESTIMATE", "IN_PROGRESS", "COMPLETED", "CREDIT"];
+
+// from/to (ISO) = บิลที่ยังไม่ปิด และบิลที่มีเงินเข้าออกในช่วงนั้น (ชำระ รับมัดจำ คืนมัดจำ)
+// ไม่ส่งบิลทั้งร้าน เดิมส่งทุกบิลทุกครั้ง ข้อมูลโตปีละพันบิลจนหน้าโหลดช้าในวง Wi-Fi
+// (ช่วงเงินต้องตรงกับ salesEntriesOf ฝั่งหน้าเว็บ)
+const repairListWhere = (query) => {
+  if (!query.from && !query.to) return {};
+  const from = new Date(query.from);
+  const to = new Date(query.to);
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
+    createError(400, "ช่วงเวลาไม่ถูกต้อง");
+  }
+  const range = { gte: from, lte: to };
+  return {
+    OR: [
+      ...(query.open === "0" ? [] : [{ status: { in: OPEN_STATUSES } }]),
+      { paidAt: range },
+      { depositPaidAt: range },
+      { depositRefundedAt: range },
+    ],
+  };
+};
+
 exports.listRepairs = async (req, res) => {
   const repairs = await prisma.repair.findMany({
+    where: repairListWhere(req.query),
     include: {
       customer: {
         select: {

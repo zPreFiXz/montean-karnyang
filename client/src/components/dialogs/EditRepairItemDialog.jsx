@@ -12,7 +12,7 @@ import {
   isDiscountItem,
   isTradeInItem,
 } from "@/constants/services";
-import { editNamePriceSchema } from "@/utils/schemas";
+import { editNamePriceSchemaFor } from "@/utils/schemas";
 import { formatCurrency } from "@/utils/formats";
 import ItemImage from "@/components/ui/ItemImage";
 import { SparePart } from "@/components/icons/Icons";
@@ -68,7 +68,7 @@ const EditRepairItemDialog = ({
     getValues,
     formState: { errors },
   } = useForm({
-    resolver: zodResolver(editNamePriceSchema),
+    resolver: zodResolver(editNamePriceSchemaFor(nameLabel)),
     defaultValues: {
       price: initialPrice,
       name: initialName,

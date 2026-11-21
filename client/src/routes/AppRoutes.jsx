@@ -31,6 +31,7 @@ const InventoryReview = lazy(pageImports.InventoryReview);
 const OrganizationList = lazy(pageImports.OrganizationList);
 const OrganizationDetail = lazy(pageImports.OrganizationDetail);
 const OrganizationHistory = lazy(pageImports.OrganizationHistory);
+const ShopPurchaseCreate = lazy(pageImports.ShopPurchaseCreate);
 const VehicleList = lazy(pageImports.VehicleList);
 const VehicleDetail = lazy(pageImports.VehicleDetail);
 const CustomerList = lazy(pageImports.CustomerList);
@@ -115,6 +116,10 @@ const AppRoutes = () => {
           <Route
             path="organizations/:id/history"
             element={<OrganizationHistory />}
+          />
+          <Route
+            path="organizations/:id/purchases/new"
+            element={<ShopPurchaseCreate />}
           />
           <Route path="organizations/:id" element={<OrganizationDetail />} />
 

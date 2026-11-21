@@ -22,6 +22,7 @@ export const pageImports = {
   OrganizationDetail: () => import("@/pages/organizations/OrganizationDetail"),
   OrganizationHistory: () =>
     import("@/pages/organizations/OrganizationHistory"),
+  ShopPurchaseCreate: () => import("@/pages/organizations/ShopPurchaseCreate"),
   VehicleList: () => import("@/pages/vehicles/VehicleList"),
   VehicleDetail: () => import("@/pages/vehicles/VehicleDetail"),
   CustomerList: () => import("@/pages/customers/CustomerList"),

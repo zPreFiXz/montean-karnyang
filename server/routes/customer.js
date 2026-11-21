@@ -18,7 +18,7 @@ const {
   listOrganizationRepairs,
   printOrganizationBill,
   peekOrganizationBillNo,
-  createShopPurchase,
+  createShopPurchases,
   updateShopPurchase,
   deleteShopPurchase,
   settleShopPurchases,
@@ -47,7 +47,7 @@ router.post(
   "/customers/organizations/:id/purchases",
   authCheck,
   validate(shopPurchaseSchema),
-  createShopPurchase,
+  createShopPurchases,
 );
 router.post(
   "/customers/organizations/:id/purchases/settle",

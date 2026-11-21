@@ -41,7 +41,7 @@ const DateField = ({
           {label}
         </p>
         {/* กากบาทอยู่นอกปุ่มเปิดปฏิทิน (ปุ่มซ้อนปุ่มไม่ได้) จึงวางทับมุมขวาของช่อง */}
-        <div className="relative w-52.5 shrink-0">
+        <div className="relative w-52.5 shrink-0 md:w-60">
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
               <Button
