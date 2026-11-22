@@ -198,6 +198,7 @@ const BillItemRows = ({ bill, onRowClick, transitionPrefix, marker }) => {
               <div className="shadow-primary bg-surface relative flex h-15 w-15 shrink-0 items-center justify-center rounded-lg border border-gray-200">
                 <SideBadge side={item.side} />
                 <ItemImage
+                  thumbnail
                   src={item.secureUrl}
                   alt={item.name}
                   className="h-full w-full rounded-lg object-cover"

@@ -172,6 +172,7 @@ const InventoryUsage = () => {
         <div className="flex items-center gap-2 pt-4">
           <div className="shadow-primary bg-surface flex h-15 w-15 shrink-0 items-center justify-center rounded-lg border border-gray-200">
             <ItemImage
+              thumbnail
               src={item?.secureUrl}
               alt={itemName}
               className="h-full w-full rounded-lg object-cover"

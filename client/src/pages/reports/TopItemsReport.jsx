@@ -288,6 +288,7 @@ const TopItemsReport = () => {
                     </div>
                     <div className="bg-surface flex h-15 w-15 shrink-0 items-center justify-center rounded-lg border border-gray-200">
                       <ItemImage
+                        thumbnail
                         src={imageUrl}
                         alt={name}
                         className="h-full w-full rounded-lg object-cover"

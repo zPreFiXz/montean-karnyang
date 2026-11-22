@@ -49,6 +49,7 @@ const SuspensionPartCard = ({ part, side, tabs, onPreview, onEditPrice }) => {
             className="shadow-primary bg-surface flex h-15 w-15 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-gray-200"
           >
             <ItemImage
+              thumbnail
               src={part.secureUrl}
               alt={part.name}
               className="h-full w-full rounded-lg object-cover"

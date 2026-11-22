@@ -243,6 +243,7 @@ const VehicleModelReportDialog = ({
                             {/* การ์ดเดียวกับอันดับอะไหล่ในหน้ารายงาน */}
                             <div className="bg-surface flex h-15 w-15 shrink-0 items-center justify-center rounded-lg border border-gray-200">
                               <ItemImage
+                                thumbnail
                                 src={item.secureUrl}
                                 alt={itemName(item)}
                                 className="h-full w-full rounded-lg object-cover"

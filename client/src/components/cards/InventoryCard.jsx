@@ -81,6 +81,7 @@ const InventoryCard = ({
             }`}
           >
             <ItemImage
+              thumbnail
               src={secureUrl}
               alt={name}
               className="h-15 w-15 rounded-lg object-cover"

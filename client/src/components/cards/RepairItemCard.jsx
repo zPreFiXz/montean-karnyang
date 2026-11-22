@@ -81,6 +81,7 @@ const RepairItemCard = ({ item, variant, onClick, sideLabel, rightSlot }) => {
             </span>
           )}
           <ItemImage
+            thumbnail
             src={imageUrl}
             alt={itemName}
             className="h-15 w-15 rounded-lg object-cover"
