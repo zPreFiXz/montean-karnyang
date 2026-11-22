@@ -29,6 +29,7 @@ const StockPickDialog = ({ isOpen, onClose, onPick, title }) => {
         />
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5 pt-1 pb-4">
           <InventoryBrowser
+            incremental
             reloadToken={reloadToken}
             onItemClick={(item) => onPick(item)}
             getCardProps={(item) => ({

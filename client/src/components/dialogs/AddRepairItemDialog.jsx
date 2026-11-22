@@ -103,6 +103,7 @@ const AddRepairItemDialog = ({
 
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5 pt-1 pb-4">
           <InventoryBrowser
+            incremental
             reloadToken={reloadToken}
             vehicle={vehicle}
             onItemClick={handleAddItemToRepair}

@@ -37,6 +37,8 @@ const cacheKey = (categoryName, searchTerm, filterParams) =>
 let partsListCache = null;
 let categoryOrderCache = null;
 
+const RENDER_BATCH = 40;
+
 // หน้าคลังกับไดอะล็อกเลือกอะไหล่ลงบิลใช้ร่วมกัน
 // syncUrl = เก็บหมวดหมู่กับคำค้นไว้ใน URL (ไดอะล็อกไม่ใช้)
 // reloadToken = เปลี่ยนค่าเมื่อไหร่ก็โหลดรายการใหม่
@@ -53,6 +55,9 @@ const InventoryBrowser = ({
   vehicle = null,
   // "part-12" = การ์ดที่ต้องเน้นชั่วคราว เช่นชิ้นที่เพิ่งเพิ่ม
   highlightedItem = null,
+  // วาดการ์ดทีละชุด เลื่อนใกล้ท้ายค่อยเพิ่ม (หน้าต่างเลือกรายการ)
+  // หน้าคลังไม่ใช้ เพราะต้องเลื่อนกลับไปการ์ดเดิมได้ การ์ดทุกใบต้องอยู่ครบ
+  incremental = false,
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [localCategory, setLocalCategory] = useState("ทั้งหมด");
@@ -316,40 +321,106 @@ const InventoryBrowser = ({
     !!(vehicle?.brand && vehicle?.model) &&
     inventory.some((item) => item.compatibleVehicles?.length > 0);
 
-  // ซ่อนเฉพาะอะไหล่ที่ระบุรุ่นรถไว้และไม่มีรุ่นนี้ ของที่ไม่ได้ระบุ (เช่นน้ำมัน) ใช้ได้ทุกคัน
-  const matchesVehicle = (item) => {
-    const list = item.compatibleVehicles;
-    if (!Array.isArray(list) || list.length === 0) return true;
+  // คำนวณครั้งเดียวต่อชุดตัวกรอง ไม่งั้นการ์ดทุกชุดที่วาดเพิ่มต้องกรองและเรียงทั้งคลังใหม่ทุกรอบ
+  const vehicleBrand = vehicle?.brand;
+  const vehicleModel = vehicle?.model;
+  const visibleInventory = useMemo(() => {
+    // ซ่อนเฉพาะอะไหล่ที่ระบุรุ่นรถไว้และไม่มีรุ่นนี้ ของที่ไม่ได้ระบุ (เช่นน้ำมัน) ใช้ได้ทุกคัน
+    const matchesVehicle = (item) => {
+      const list = item.compatibleVehicles;
+      if (!Array.isArray(list) || list.length === 0) return true;
 
-    return list.some(
-      (v) =>
-        String(v?.brand || "").trim() === String(vehicle.brand).trim() &&
-        String(v?.model || "").trim() === String(vehicle.model).trim(),
-    );
-  };
+      return list.some(
+        (v) =>
+          String(v?.brand || "").trim() === String(vehicleBrand).trim() &&
+          String(v?.model || "").trim() === String(vehicleModel).trim(),
+      );
+    };
 
-  const filteredByVehicle =
-    hasVehicleFilter && onlyMatchingVehicle
-      ? inventory.filter(matchesVehicle)
-      : inventory;
+    const filteredByVehicle =
+      hasVehicleFilter && onlyMatchingVehicle
+        ? inventory.filter(matchesVehicle)
+        : inventory;
 
-  const filteredByPartType =
-    hasTypeFilter(activeCategory) && partType
-      ? filteredByVehicle.filter(
-          (item) => typeOf(activeCategory, item) === partType,
-        )
-      : filteredByVehicle;
+    const filteredByPartType =
+      hasTypeFilter(activeCategory) && partType
+        ? filteredByVehicle.filter(
+            (item) => typeOf(activeCategory, item) === partType,
+          )
+        : filteredByVehicle;
 
-  const filteredByOilSize =
-    activeCategory === OIL_CATEGORY && oilSize
-      ? filteredByPartType.filter((item) => oilGroupOf(item) === oilSize)
-      : filteredByPartType;
+    const filteredByOilSize =
+      activeCategory === OIL_CATEGORY && oilSize
+        ? filteredByPartType.filter((item) => oilGroupOf(item) === oilSize)
+        : filteredByPartType;
 
-  const visibleInventory = sortForCategory(activeCategory, filteredByOilSize);
+    return sortForCategory(activeCategory, filteredByOilSize);
+  }, [
+    inventory,
+    hasVehicleFilter,
+    onlyMatchingVehicle,
+    vehicleBrand,
+    vehicleModel,
+    activeCategory,
+    partType,
+    oilSize,
+  ]);
   const inventoryGroups = useMemo(
     () => groupInventory(activeCategory, visibleInventory, categoryOrder),
     [visibleInventory, activeCategory, categoryOrder],
   );
+
+  // เปลี่ยนหมวด คำค้น หรือตัวกรอง เริ่มนับชุดใหม่ ปรับระหว่างเรนเดอร์ จะได้ไม่วาดรายการยาวก่อนหนึ่งรอบ
+  const listKey = [
+    activeCategory,
+    search,
+    width,
+    aspectRatio,
+    rimDiameter,
+    tireBrand,
+    partType,
+    oilSize,
+    reloadToken,
+  ].join("|");
+  const [renderLimit, setRenderLimit] = useState(RENDER_BATCH);
+  const [limitKey, setLimitKey] = useState(listKey);
+  if (limitKey !== listKey) {
+    setLimitKey(listKey);
+    setRenderLimit(RENDER_BATCH);
+  }
+  const shownLimit = incremental ? renderLimit : Infinity;
+  const hasMore = shownLimit < visibleInventory.length;
+  const sentinelRef = useRef(null);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!hasMore || !sentinel) return;
+    // วัดจากกล่องที่เลื่อนจริง (ในไดอะล็อก) ไม่ใช่หน้าจอ ระยะเผื่อจะได้ใช้ได้
+    let root = sentinel.parentElement;
+    while (root && !/(auto|scroll)/.test(getComputedStyle(root).overflowY)) {
+      root = root.parentElement;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setRenderLimit((limit) => limit + RENDER_BATCH);
+        }
+      },
+      { root, rootMargin: "800px 0px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, renderLimit]);
+
+  const shownGroups = [];
+  if (inventoryGroups) {
+    let remaining = shownLimit;
+    for (const group of inventoryGroups) {
+      if (remaining <= 0) break;
+      shownGroups.push({ ...group, shown: group.items.slice(0, remaining) });
+      remaining -= group.items.length;
+    }
+  }
 
   const hasTireFilter = !!(
     width ||
@@ -636,7 +707,7 @@ const InventoryBrowser = ({
           </p>
         </div>
       ) : inventoryGroups ? (
-        inventoryGroups.map((group) => (
+        shownGroups.map((group) => (
           <div key={group.name}>
             {group.name !== NO_CATEGORY_GROUP && (
               <div className="mt-4 flex items-center gap-2">
@@ -649,12 +720,13 @@ const InventoryBrowser = ({
                 <div className="bg-subtle-light/40 h-px flex-1" />
               </div>
             )}
-            {group.items.map(renderItem)}
+            {group.shown.map(renderItem)}
           </div>
         ))
       ) : (
-        visibleInventory.map(renderItem)
+        visibleInventory.slice(0, shownLimit).map(renderItem)
       )}
+      {hasMore && <div ref={sentinelRef} className="h-px" />}
     </div>
   );
 };
