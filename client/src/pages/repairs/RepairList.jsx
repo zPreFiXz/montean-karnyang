@@ -287,7 +287,7 @@ const RepairList = () => {
   }
 
   return (
-    <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
+    <div className="bg-gradient-primary shadow-primary desktop-column flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-2 px-5 pt-4">
         <button
           // เข้ามาจากแท็บไหนก็ได้ จึงถอยประวัติ (เปิดลิงก์ตรงๆ ไม่มีประวัติ จึงมีเส้นทางสำรอง)

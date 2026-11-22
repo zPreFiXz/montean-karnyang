@@ -8,7 +8,7 @@ const Sidebar = () => {
   const resetCurrentPage = useResetCurrentPage();
 
   return (
-    <nav className="shadow-primary hidden min-h-[calc(100vh-73px)] w-64 flex-col items-center gap-6 px-4 lg:flex">
+    <nav className="shadow-primary hidden min-h-[calc(100vh-73px)] w-64 flex-col items-center gap-6 px-4 xl:flex">
       <Link
         to="/repairs/new"
         className="bg-gradient-primary shadow-primary mt-6 flex h-16 w-full cursor-pointer items-center justify-center gap-2 rounded-lg duration-300 hover:opacity-90"

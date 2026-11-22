@@ -737,7 +737,7 @@ const SuspensionInspection = () => {
         {/* ชั้นนอกเป็นสีพื้นหลังหน้า ตอนติดขอบบนมุมโค้งของกล่องขาวจะยังเห็นเหมือนตอนอยู่กับที่ */}
         <div
           data-suspension-sticky
-          className="bg-gradient-primary xl:bg-surface-muted sticky top-0 z-10 xl:bg-none"
+          className="bg-gradient-primary sticky top-0 z-10"
         >
           <div className="bg-surface rounded-t-2xl pb-2">
             <div
@@ -806,7 +806,7 @@ const SuspensionInspection = () => {
           </div>
         )}
       {repairItems.length === 0 && compatibleParts.length === 0 ? (
-        <div className={isDesktop ? "" : "h-24 lg:h-0"} />
+        <div className={isDesktop ? "" : "h-24 xl:h-0"} />
       ) : (
         <div
           className={

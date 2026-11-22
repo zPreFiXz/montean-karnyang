@@ -120,7 +120,7 @@ const AttendanceReport = () => {
   ].filter((row) => row.people.length > 0);
 
   return (
-    <div className="flex min-h-svh flex-col">
+    <div className="desktop-column flex min-h-svh flex-col">
       <ReportPeriodHeader
         title="รายงานเวลาเข้า-ออกงาน"
         periodType="daily"

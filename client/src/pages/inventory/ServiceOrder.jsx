@@ -50,7 +50,7 @@ const ServiceOrder = () => {
     "text-subtle-dark bg-surface flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-gray-200 disabled:cursor-not-allowed disabled:opacity-40";
 
   return (
-    <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
+    <div className="bg-gradient-primary shadow-primary desktop-column flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-2 px-5 pt-4">
         <button
           type="button"

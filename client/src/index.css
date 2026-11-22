@@ -112,12 +112,30 @@
   }
 }
 
-@layer utilities {
-  /* น้ำเงินแบรนด์แบบเบาลง: near-solid ไล่เฉดบางๆ ไม่ฉูดฉาด */
-  .bg-gradient-primary {
+/* น้ำเงินแบรนด์แบบเบาลง: near-solid ไล่เฉดบางๆ ไม่ฉูดฉาด
+   เป็น @utility ไม่ใช่คลาสใน @layer utilities ไม่งั้นถูกวางท้ายไฟล์ แล้วทับ xl:bg-none ที่ใช้ปิดพื้นบนจอคอม */
+@utility bg-gradient-primary {
+  background: linear-gradient(180deg, #2280d8 0%, #1f77cf 100%);
+}
+
+/* หน้าแบบมือถือ (หัวน้ำเงิน แผ่นขาว) บนจอคอม: เนื้อหาอยู่กลางจอ ไม่ยืดเต็มความกว้าง ขอบสองข้างเป็นพื้นน้ำเงิน
+   ใส่ที่กล่องนอกสุดของหน้า กล่องที่ไม่มีพื้นน้ำเงินเอง (หน้ารายงาน) จะได้พื้นน้ำเงินด้วย */
+@utility desktop-column {
+  @media (width >= 80rem) {
+    padding-inline: max(0px, calc((100% - 64rem) / 2));
     background: linear-gradient(180deg, #2280d8 0%, #1f77cf 100%);
   }
+}
 
+/* แบบเดียวกันแต่แคบกว่า สำหรับฟอร์มกรอกข้อมูลทั้งหน้า ช่องกรอกจะไม่ยาวเกินจำเป็น */
+@utility desktop-column-narrow {
+  @media (width >= 80rem) {
+    padding-inline: max(0px, calc((100% - 48rem) / 2));
+    background: linear-gradient(180deg, #2280d8 0%, #1f77cf 100%);
+  }
+}
+
+@layer utilities {
   /* การ์ดมินิมอล: เส้นขอบบาง 1px แทนเงาหนา (flat)
      12% เพราะ 8% จางเกินไปเมื่อการ์ดขาววางบนพื้นขาว (ในไดอะล็อก/แผงหน้าคลัง) */
   .shadow-primary {

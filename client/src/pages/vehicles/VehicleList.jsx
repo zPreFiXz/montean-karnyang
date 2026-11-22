@@ -120,7 +120,7 @@ const VehicleList = () => {
   };
 
   return (
-    <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
+    <div className="bg-gradient-primary shadow-primary desktop-column flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-2 px-5 pt-4">
         <div className="bg-surface/20 flex h-10 w-10 items-center justify-center rounded-full">
           <Document color="#ffffff" />

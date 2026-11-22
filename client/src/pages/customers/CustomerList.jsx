@@ -89,7 +89,7 @@ const CustomerList = () => {
   const searchTerm = search.length > 20 ? `${search.slice(0, 20)}…` : search;
 
   return (
-    <div className="bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col">
+    <div className="bg-gradient-primary shadow-primary desktop-column flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-2 px-5 pt-4">
         <button
           onClick={() =>

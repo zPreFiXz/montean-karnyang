@@ -77,7 +77,8 @@ const ReportPeriodHeader = ({
   // ไม่มีแถบเลือกช่วง หัวจะสูงตามเนื้อหา และย้ายปุ่มปฏิทินมาไว้ที่วันที่ ชื่อหน้าจะได้มีที่พอ
   return (
     <div
-      className={`bg-gradient-primary w-full px-5 ${
+      // จอคอมใช้พื้นน้ำเงินของหน้า (desktop-column) ไล่สีซ้อนสองชั้นจะเห็นขอบกล่อง
+      className={`bg-gradient-primary w-full px-5 xl:bg-none ${
         showPeriodTabs
           ? "h-[265px] py-4 md:h-[285px]"
           : "pt-4 pb-11.25 md:pb-14.5"

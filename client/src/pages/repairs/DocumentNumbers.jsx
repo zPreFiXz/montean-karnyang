@@ -209,7 +209,7 @@ const DocumentNumbers = () => {
   );
 
   return (
-    <div className="flex min-h-svh flex-col">
+    <div className="desktop-column flex min-h-svh flex-col">
       <ReportPeriodHeader
         title="เลขที่เอกสาร"
         periodType="monthly"

@@ -144,7 +144,7 @@ const SalesReport = () => {
   };
 
   return (
-    <div>
+    <div className="desktop-column">
       <ReportPeriodHeader
         title="รายงานยอดขาย"
         basePath="/admin/reports/sales"

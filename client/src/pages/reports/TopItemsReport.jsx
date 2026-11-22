@@ -168,7 +168,7 @@ const TopItemsReport = () => {
   };
 
   return (
-    <div>
+    <div className="desktop-column">
       <ReportPeriodHeader
         title={view === "models" ? "รุ่นรถที่มาบ่อย" : "อะไหล่ขายดี"}
         basePath={`/admin/reports/top-items${view === "models" ? "?view=models" : ""}`}

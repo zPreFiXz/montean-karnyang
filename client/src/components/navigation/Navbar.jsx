@@ -4,7 +4,7 @@ import Logo from "@/components/navigation/Logo";
 
 const Navbar = () => {
   return (
-    <header className="shadow-primary relative hidden h-[73px] w-full items-center justify-between pr-6 pl-10 lg:flex">
+    <header className="shadow-primary relative hidden h-[73px] w-full items-center justify-between pr-6 pl-10 xl:flex">
       <Logo />
       <NavbarStats />
       <UserMenu />
