@@ -593,6 +593,18 @@ exports.deleteRepair = async (req, res) => {
   res.json({ message: "ลบงานซ่อมเรียบร้อยแล้ว" });
 };
 
+// ลำดับงานไว้ตรวจการถอยสถานะ (แก้สถานะที่กดผิด) ต้องตรงกับ revertTargetsOf ฝั่งหน้าเว็บ
+const STATUS_RANK = { IN_PROGRESS: 1, COMPLETED: 2, CREDIT: 3, PAID: 4 };
+const STATUS_TEXT = {
+  IN_PROGRESS: "กำลังซ่อม",
+  COMPLETED: "ซ่อมเสร็จสิ้น",
+  CREDIT: "เครดิต",
+};
+const isStatusRevert = (from, to) =>
+  !!STATUS_RANK[from] &&
+  !!STATUS_RANK[to] &&
+  STATUS_RANK[to] < STATUS_RANK[from];
+
 exports.updateRepairStatus = async (req, res) => {
   const { id } = req.params;
   // status/paymentMethod/เช็ค ผ่าน zod (updateRepairStatusSchema) มาแล้ว
@@ -607,6 +619,46 @@ exports.updateRepairStatus = async (req, res) => {
   }
   if (repair.status === "CANCELLED") {
     createError(400, CANNOT_EDIT_CANCELLED);
+  }
+
+  // ถอยได้หลายขั้น ล้างเวลาและเงินของขั้นที่ถอยออกมา เลขเอกสารกับสต็อกคงเดิม (ทุกขั้นนี้ตัดสต็อกแล้ว)
+  if (isStatusRevert(repair.status, status)) {
+    // ยกเลิกการรับเงินได้ด้วย จึงให้เฉพาะผู้ดูแลระบบ
+    if (req.user?.role !== "ADMIN") {
+      createError(403, "แก้สถานะย้อนกลับได้เฉพาะผู้ดูแลระบบ");
+    }
+    if (repair.type === "SALE") {
+      createError(400, "บิลขายอะไหล่แก้สถานะย้อนกลับไม่ได้");
+    }
+    if (status === "CREDIT" && (!repair.deliveryNo || repair.depositAmount)) {
+      createError(400, "บิลนี้ไม่เคยลงเครดิต ย้อนกลับเป็นเครดิตไม่ได้");
+    }
+
+    const revert = {
+      status,
+      paidAt: null,
+      paymentMethod: null,
+      chequeBank: null,
+      chequeNo: null,
+      chequeDate: null,
+      ...(status === "IN_PROGRESS" ? { completedAt: null } : {}),
+    };
+    // กำหนดชำระใช้ได้เฉพาะบิลที่ยังค้างเงิน ถอยแล้วไม่เข้าเงื่อนไขต้องล้างทิ้ง
+    if (
+      repair.paymentDueDate &&
+      !canSetPaymentDueDate({ ...repair, ...revert })
+    ) {
+      revert.paymentDueDate = null;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.repair.update({ where: { id: Number(id) }, data: revert });
+      await assignRepairDocumentNo(tx, Number(id));
+    });
+
+    return res.json({
+      message: `เปลี่ยนสถานะเป็น${STATUS_TEXT[status]}เรียบร้อยแล้ว`,
+    });
   }
 
   const data = { status };

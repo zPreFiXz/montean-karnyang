@@ -14,13 +14,11 @@ const TABS = [
   {
     id: "image",
     label: "รูปภาพ",
-    hint: "รูปไม่เป็นสี่เหลี่ยมจัตุรัส บนการ์ดจะถูกตัดขอบ กดแก้ไขแล้วอัปโหลดรูปใหม่",
     empty: "ไม่มีรูปที่ต้องแก้ไข",
   },
   {
     id: "min-stock",
     label: "สต็อกขั้นต่ำ",
-    hint: "อะไหล่ที่สต็อกขั้นต่ำไม่เท่ากับจำนวนสต็อก",
     empty: "ไม่มีอะไหล่ที่สต็อกขั้นต่ำไม่เท่ากับจำนวนสต็อก",
   },
 ];
@@ -109,7 +107,7 @@ const InventoryReview = () => {
         </p>
       </div>
 
-      <div className="mt-4 flex gap-4 px-5">
+      <div className="mt-4 flex justify-center gap-4 px-5">
         {TABS.map((item) => (
           <button
             key={item.id}
@@ -119,7 +117,7 @@ const InventoryReview = () => {
               next.set("tab", item.id);
               setSearchParams(next, { replace: true });
             }}
-            className={`flex h-[45px] flex-1 cursor-pointer items-center justify-center rounded-lg border-2 text-lg font-semibold duration-300 md:text-xl ${
+            className={`flex h-[45px] min-w-36 shrink-0 cursor-pointer items-center justify-center rounded-lg border-2 px-4 text-lg font-semibold duration-300 md:text-xl ${
               tab === item.id
                 ? "text-surface bg-primary border-white"
                 : "border-subtle-light text-subtle-light bg-surface"
@@ -131,7 +129,7 @@ const InventoryReview = () => {
         ))}
       </div>
 
-      <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl px-5 pt-4 pb-28 xl:pb-4">
+      <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl px-5 pb-28 xl:pb-4">
         {isLoading ? (
           <PageSpinner />
         ) : items.length === 0 ? (
@@ -142,9 +140,6 @@ const InventoryReview = () => {
           </div>
         ) : (
           <>
-            <p className="text-subtle-dark text-lg font-medium text-balance md:text-xl">
-              {current.hint}
-            </p>
             {groups.map((group) => (
               <div key={group.name}>
                 <div className="mt-4 flex items-center gap-2">

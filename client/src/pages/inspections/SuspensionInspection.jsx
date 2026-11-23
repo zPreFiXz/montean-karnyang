@@ -737,15 +737,15 @@ const SuspensionInspection = () => {
         {/* ชั้นนอกเป็นสีพื้นหลังหน้า ตอนติดขอบบนมุมโค้งของกล่องขาวจะยังเห็นเหมือนตอนอยู่กับที่ */}
         <div
           data-suspension-sticky
-          className="bg-gradient-primary sticky top-0 z-10"
+          className="bg-gradient-primary xl:bg-surface-muted sticky top-0 z-10 xl:bg-none"
         >
           <div className="bg-surface rounded-t-2xl pb-2">
             <div
               data-repair-items-top
               className="flex items-center gap-2 px-5 pt-4"
             >
-              <div className="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-full">
-                <ClipboardList className="text-primary h-6 w-6" />
+              <div className="bg-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                <ClipboardList className="text-surface h-6 w-6" />
               </div>
               <p className="text-[22px] font-semibold md:text-2xl">
                 รายการซ่อมช่วงล่าง
@@ -856,7 +856,7 @@ const SuspensionInspection = () => {
 
   return (
     <div>
-      <div className="bg-gradient-primary shadow-primary flex min-h-[100svh] flex-col xl:min-h-[calc(100vh-73px)] xl:flex-row xl:items-start xl:gap-4 xl:bg-transparent xl:px-4 xl:pt-6 xl:pb-6 xl:shadow-none">
+      <div className="bg-gradient-primary shadow-primary flex min-h-[100svh] flex-col xl:min-h-[calc(100vh-73px)] xl:flex-row xl:items-start xl:gap-4 xl:bg-transparent xl:bg-none xl:px-4 xl:pt-6 xl:pb-6 xl:shadow-none">
         <div className="xl:shadow-primary flex flex-1 flex-col xl:h-fit xl:w-1/2 xl:flex-initial xl:rounded-2xl xl:bg-white">
           <div className="flex items-center justify-between gap-2 px-5 pt-4">
             <div className="flex min-w-0 items-center gap-2">

@@ -40,7 +40,7 @@ const ChequeField = ({ name, label, error, onChange, ...props }) => (
         id={name}
         aria-invalid={error ? "true" : "false"}
         onChange={(e) => onChange(e.target.value)}
-        className={`bg-surface h-[41px] w-52.5 shrink-0 rounded-[20px] px-3 text-lg font-medium placeholder:text-lg placeholder:font-light md:text-xl md:placeholder:text-xl ${
+        className={`bg-surface h-[41px] w-52.5 shrink-0 rounded-[20px] px-3 text-lg font-medium placeholder:text-lg placeholder:font-light md:w-60 md:text-xl md:placeholder:text-xl ${
           error
             ? "border-destructive focus-visible:!border-destructive focus-visible:!ring-destructive/30 focus-visible:!border-2"
             : "focus-visible:!border-primary focus-visible:!ring-primary/35 focus-visible:!border-2"
@@ -76,6 +76,8 @@ const RepairDetailPayment = ({
   onEditDeposit,
   onDueDateChange,
   isSavingDueDate,
+  // ไม่ส่งมา = แก้สถานะย้อนกลับไม่ได้ (ไม่ใช่แอดมิน หรือไม่มีสถานะให้ถอย)
+  onEditStatus,
 }) => {
   const methodText = getPaymentMethodText(repair.paymentMethod) || "ไม่ระบุ";
   const showMethod =
@@ -160,7 +162,7 @@ const RepairDetailPayment = ({
                   {methodText}
                 </p>
               ) : (
-                <div className="w-52.5 shrink-0">
+                <div className="w-52.5 shrink-0 md:w-60">
                   <ComboBox
                     options={options}
                     value={selectedMethod}
@@ -203,7 +205,7 @@ const RepairDetailPayment = ({
                   <p className="text-subtle-dark text-lg font-medium md:text-xl">
                     ธนาคาร:
                   </p>
-                  <div className="w-52.5 shrink-0">
+                  <div className="w-52.5 shrink-0 md:w-60">
                     <ComboBox
                       options={bankOptions}
                       value={cheque.bank}
@@ -282,9 +284,25 @@ const RepairDetailPayment = ({
             {/* บิลขายไม่มีงานซ่อม จึงเรียกสถานะของบิลแทน */}
             {isSaleRepair(repair) ? "สถานะบิล:" : "สถานะการซ่อม:"}
           </p>
-          <p className={`text-lg font-semibold md:text-xl ${statusInfo.color}`}>
-            {statusInfo.text}
-          </p>
+          <div className="flex items-center gap-2">
+            <p
+              className={`text-lg font-semibold md:text-xl ${statusInfo.color}`}
+            >
+              {statusInfo.text}
+            </p>
+            {onEditStatus && (
+              // ไอคอนอย่างเดียวให้แถวไม่รก วงกลมพื้นฟ้าให้ดูออกว่าเป็นปุ่มและกดง่าย
+              <button
+                type="button"
+                onClick={onEditStatus}
+                aria-label="แก้ไขสถานะการซ่อม"
+                title="แก้ไขสถานะการซ่อม"
+                className="bg-primary/10 text-primary hover:bg-primary/15 flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full duration-200"
+              >
+                <Edit className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
         {/* ปุ่มบันทึกอยู่ท้ายกล่อง กรอกเสร็จจากบนลงล่างแล้วเจอเป็นอย่างสุดท้าย */}
         {repair.status === "PAID" && isEditingPaidMethod && (

@@ -21,9 +21,25 @@ const CarCard = ({
   badge,
   // primary = ข้อมูลทั่วไป (เช่นรับมัดจำ) ค่าเริ่มต้นสีแดงไว้เตือน
   badgeTone = "destructive",
+  // ป้ายขึ้นบรรทัดของตัวเองใต้ทะเบียน การ์ดสูงขึ้นแทนการตัดข้อความ (คอลัมน์แคบในหน้าหลักจอคอม)
+  stackBadge = false,
 }) => {
   const shownBadge = dueNote || badge;
   const shownBadgeTone = dueNote ? "destructive" : badgeTone;
+  const isStacked = stackBadge && !!shownBadge;
+  const badgeEl = shownBadge && (
+    <span
+      className={`shrink-0 rounded-full px-2 py-px text-sm font-semibold whitespace-nowrap md:text-base ${
+        isStacked ? "self-start" : "mr-1.5"
+      } ${
+        shownBadgeTone === "primary"
+          ? "bg-primary/10 text-primary"
+          : "bg-destructive/10 text-destructive"
+      }`}
+    >
+      {shownBadge}
+    </span>
+  );
 
   const bgColorMap = {
     primary: "bg-primary",
@@ -46,7 +62,11 @@ const CarCard = ({
   };
 
   return (
-    <div className="bg-surface shadow-primary flex h-20 w-full cursor-pointer items-center gap-2 rounded-lg px-2">
+    <div
+      className={`bg-surface shadow-primary flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 ${
+        isStacked ? "min-h-20 py-2" : "h-20"
+      }`}
+    >
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <div
           className={`flex h-[45px] w-[45px] shrink-0 items-center justify-center rounded-full ${bgColorMap[bg]}`}
@@ -61,19 +81,10 @@ const CarCard = ({
             >
               {licensePlate}
             </p>
+            {isStacked && badgeEl}
             {/* อยู่บรรทัดล่าง ทะเบียนบนหัวการ์ดจะได้ไม่ถูกตัด ป้ายไม่หด ข้อความหลังป้ายโดนตัดแทน */}
             <p className="text-subtle-dark flex min-w-0 items-center text-base font-medium md:text-lg">
-              {shownBadge && (
-                <span
-                  className={`mr-1.5 shrink-0 rounded-full px-2 py-px text-sm font-semibold whitespace-nowrap md:text-base ${
-                    shownBadgeTone === "primary"
-                      ? "bg-primary/10 text-primary"
-                      : "bg-destructive/10 text-destructive"
-                  }`}
-                >
-                  {shownBadge}
-                </span>
-              )}
+              {!isStacked && badgeEl}
               <span className="min-w-0 truncate">
                 {brand}
                 {date && (

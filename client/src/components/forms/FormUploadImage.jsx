@@ -1,7 +1,7 @@
 import { Label } from "@radix-ui/react-label";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState, useId, useCallback } from "react";
-import { ImageIcon, X, Upload } from "lucide-react";
+import { ImageIcon, ImageOff, X, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 // เพดานของไฟล์ต้นฉบับ รูปถูกย่อเหลือ 720x720 ก่อนส่ง
@@ -17,6 +17,9 @@ const FormUploadImage = ({
   placeholder = "เลือกรูปภาพ",
 }) => {
   const [previewImage, setPreviewImage] = useState(null);
+  // รูปเดิมที่ถูกลบออกจาก Cloudinary ไปแล้วโหลดไม่ได้ บอกให้เลือกรูปใหม่แทนการขึ้นรูปเสีย
+  const [brokenSrc, setBrokenSrc] = useState(null);
+  const isBroken = !!previewImage && brokenSrc === previewImage;
   const [isDeleting] = useState(false);
   const [, setIsMarkedForDeletion] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -178,11 +181,24 @@ const FormUploadImage = ({
         >
           {previewImage ? (
             <div className="h-full w-full">
-              <img
-                src={previewImage}
-                alt="Preview"
-                className="h-full w-full object-contain"
-              />
+              {isBroken ? (
+                <div className="flex h-full w-full flex-col items-center justify-center px-4 text-center">
+                  <ImageOff className="text-subtle-light mb-2 h-12 w-12" />
+                  <p className="text-subtle-dark text-lg font-semibold md:text-xl">
+                    โหลดรูปเดิมไม่ได้
+                  </p>
+                  <p className="text-subtle-light text-base md:text-lg">
+                    กดเพื่อเลือกรูปใหม่
+                  </p>
+                </div>
+              ) : (
+                <img
+                  src={previewImage}
+                  alt="รูปภาพอะไหล่"
+                  className="h-full w-full object-contain"
+                  onError={() => setBrokenSrc(previewImage)}
+                />
+              )}
               <button
                 type="button"
                 onClick={handleDelete}

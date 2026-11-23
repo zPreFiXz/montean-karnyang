@@ -103,7 +103,7 @@ const VehicleModelFormDialog = ({
               editingItem ? handleEditVehicleModel : handleAddVehicleModel,
               focusTopmostInvalid,
             )}
-            className="space-y-4"
+            className="space-y-4 rounded-lg bg-gray-50 p-4"
           >
             <div>
               <div className="pb-4">

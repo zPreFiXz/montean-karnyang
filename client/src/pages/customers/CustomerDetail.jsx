@@ -85,7 +85,7 @@ const CustomerDetail = () => {
   );
 
   return (
-    <div className="bg-gradient-primary shadow-primary desktop-column flex min-h-svh w-full flex-col">
+    <div className="bg-gradient-primary shadow-primary desktop-page flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-2 px-5 pt-4">
         <button
           onClick={() =>
@@ -111,128 +111,137 @@ const CustomerDetail = () => {
             </p>
           </div>
         ) : (
-          <>
-            {/* มีแต่ชื่อบรรทัดเดียวให้อยู่กลางไอคอน หลายบรรทัด (ที่อยู่ยาว) ชิดบนแบบหน้าหน่วยงาน */}
-            <div
-              className={`mt-4 flex gap-2 ${hasDetails ? "items-start" : "items-center"}`}
-            >
+          <div className="desktop-split flex flex-1 flex-col">
+            <div className="desktop-sticky">
+              {/* มีแต่ชื่อบรรทัดเดียวให้อยู่กลางไอคอน หลายบรรทัด (ที่อยู่ยาว) ชิดบนแบบหน้าหน่วยงาน */}
               <div
-                className={`bg-primary flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full ${hasDetails ? "mt-0.5" : ""}`}
+                className={`mt-4 flex gap-2 ${hasDetails ? "items-start" : "items-center"}`}
               >
-                <Icon className="text-surface h-6 w-6" />
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col">
-                <p className="text-primary text-[22px] leading-tight font-semibold md:text-2xl">
-                  {customer.name || formatPhone(customer.phoneNumber)}
-                </p>
-                {customer.organizationType && (
-                  <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                    {organizationLabel(customer.organizationType)}
+                <div
+                  className={`bg-primary flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full ${hasDetails ? "mt-0.5" : ""}`}
+                >
+                  <Icon className="text-surface h-6 w-6" />
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <p className="text-primary text-[22px] leading-tight font-semibold md:text-2xl">
+                    {customer.name || formatPhone(customer.phoneNumber)}
                   </p>
-                )}
-                {(customer.phoneNumber ||
-                  customer.address ||
-                  customer.taxId) && (
-                  <div className="mt-1 flex flex-wrap items-start gap-2">
-                    {customer.phoneNumber && (
-                      <div className="flex shrink-0 items-center gap-1">
-                        <Phone size={16} className="text-subtle-dark" />
-                        <a
-                          href={`tel:${customer.phoneNumber}`}
-                          className="text-subtle-dark text-lg leading-tight font-medium underline md:text-xl"
-                        >
-                          {formatPhone(customer.phoneNumber)}
-                        </a>
-                      </div>
-                    )}
-                    {customer.address && (
-                      <div className="flex items-start gap-1">
-                        <MapPin
-                          size={16}
-                          className="text-subtle-dark mt-0.5 shrink-0"
-                        />
-                        <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                          {customer.address}
-                        </p>
-                      </div>
-                    )}
-                    {customer.taxId && (
-                      <div className="flex shrink-0 items-center gap-1">
-                        <IdCard size={16} className="text-subtle-dark" />
-                        <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                          {customer.taxId}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  {customer.organizationType && (
+                    <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
+                      {organizationLabel(customer.organizationType)}
+                    </p>
+                  )}
+                  {(customer.phoneNumber ||
+                    customer.address ||
+                    customer.taxId) && (
+                    <div className="mt-1 flex flex-wrap items-start gap-2">
+                      {customer.phoneNumber && (
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Phone size={16} className="text-subtle-dark" />
+                          <a
+                            href={`tel:${customer.phoneNumber}`}
+                            className="text-subtle-dark text-lg leading-tight font-medium underline md:text-xl"
+                          >
+                            {formatPhone(customer.phoneNumber)}
+                          </a>
+                        </div>
+                      )}
+                      {customer.address && (
+                        <div className="flex items-start gap-1">
+                          <MapPin
+                            size={16}
+                            className="text-subtle-dark mt-0.5 shrink-0"
+                          />
+                          <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
+                            {customer.address}
+                          </p>
+                        </div>
+                      )}
+                      {customer.taxId && (
+                        <div className="flex shrink-0 items-center gap-1">
+                          <IdCard size={16} className="text-subtle-dark" />
+                          <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
+                            {customer.taxId}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
+            <div className="flex flex-1 flex-col xl:min-h-64">
+              {(vehicles.length > 0 || bills.length === 0) && (
+                <SectionTitle title="รายการรถ" count={vehicles.length} />
+              )}
+              {vehicles.length === 0 && bills.length === 0 ? (
+                <div className="flex flex-1 items-center justify-center">
+                  <p className="text-subtle-light px-5 text-center text-xl text-balance md:text-[22px]">
+                    ไม่มีรถ
+                  </p>
+                </div>
+              ) : (
+                <div className="desktop-grid">
+                  {vehicles.map((vehicle) => (
+                    <Link
+                      key={vehicle.id}
+                      to={`/vehicles/${vehicle.id}`}
+                      className="mt-4 block w-full"
+                    >
+                      <CarCard
+                        bg="primary"
+                        icon={
+                          <BrandIcons brand={vehicle.vehicleModel?.brand} />
+                        }
+                        licensePlate={
+                          vehicle.licensePlate
+                            ? `${formatPlate(vehicle.licensePlate.plateNumber)} ${vehicle.licensePlate.province}`
+                            : "ไม่ระบุทะเบียนรถ"
+                        }
+                        brand={getDisplayBrand(vehicle.vehicleModel)}
+                      />
+                    </Link>
+                  ))}
+                </div>
+              )}
 
-            {(vehicles.length > 0 || bills.length === 0) && (
-              <SectionTitle title="รายการรถ" count={vehicles.length} />
-            )}
-            {vehicles.length === 0 && bills.length === 0 ? (
-              <div className="flex flex-1 items-center justify-center">
-                <p className="text-subtle-light px-5 text-center text-xl text-balance md:text-[22px]">
-                  ไม่มีรถ
-                </p>
-              </div>
-            ) : (
-              vehicles.map((vehicle) => (
-                <Link
-                  key={vehicle.id}
-                  to={`/vehicles/${vehicle.id}`}
-                  className="mt-4 block w-full"
-                >
-                  <CarCard
-                    bg="primary"
-                    icon={<BrandIcons brand={vehicle.vehicleModel?.brand} />}
-                    licensePlate={
-                      vehicle.licensePlate
-                        ? `${formatPlate(vehicle.licensePlate.plateNumber)} ${vehicle.licensePlate.province}`
-                        : "ไม่ระบุทะเบียนรถ"
-                    }
-                    brand={getDisplayBrand(vehicle.vehicleModel)}
+              {/* ซื้ออะไหล่ไปเองหรืองานบริการที่ไม่ผูกรถ ไม่มีในประวัติรถคันไหน จึงแสดงเป็นรายบิล */}
+              {bills.length > 0 && (
+                <>
+                  <SectionTitle
+                    title="ประวัติการซื้อและบริการ"
+                    count={bills.length}
                   />
-                </Link>
-              ))
-            )}
-
-            {/* ซื้ออะไหล่ไปเองหรืองานบริการที่ไม่ผูกรถ ไม่มีในประวัติรถคันไหน จึงแสดงเป็นรายบิล */}
-            {bills.length > 0 && (
-              <>
-                <SectionTitle
-                  title="ประวัติการซื้อและบริการ"
-                  count={bills.length}
-                />
-                {bills.map((bill) => (
-                  <Link
-                    key={bill.id}
-                    to={`/repairs/${bill.id}`}
-                    className="mt-4 block w-full"
-                  >
-                    <CarCard
-                      bg={CARD_BG[bill.status] || "primary"}
-                      icon={
-                        <OutlineCardIcon
+                  <div className="desktop-grid">
+                    {bills.map((bill) => (
+                      <Link
+                        key={bill.id}
+                        to={`/repairs/${bill.id}`}
+                        className="mt-4 block w-full"
+                      >
+                        <CarCard
+                          bg={CARD_BG[bill.status] || "primary"}
                           icon={
-                            isSaleRepair(bill) ? ShoppingBag : WrenchOutline
+                            <OutlineCardIcon
+                              icon={
+                                isSaleRepair(bill) ? ShoppingBag : WrenchOutline
+                              }
+                              color={
+                                getStatusInfo(bill.status, bill.type).iconColor
+                              }
+                            />
                           }
-                          color={
-                            getStatusInfo(bill.status, bill.type).iconColor
-                          }
+                          licensePlate={getRepairTitle(bill)}
+                          brand={formatDateShort(bill.createdAt)}
+                          price={Number(bill.totalPrice) || 0}
                         />
-                      }
-                      licensePlate={getRepairTitle(bill)}
-                      brand={formatDateShort(bill.createdAt)}
-                      price={Number(bill.totalPrice) || 0}
-                    />
-                  </Link>
-                ))}
-              </>
-            )}
-          </>
+                      </Link>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>

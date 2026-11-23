@@ -63,7 +63,10 @@ import {
   CREDIT_OPTION_ID,
 } from "@/constants/paymentMethods";
 import DepositDialog from "@/components/dialogs/DepositDialog";
+import StatusRevertDialog from "@/components/dialogs/StatusRevertDialog";
+import useAuthStore from "@/stores/useAuthStore";
 import {
+  revertTargetsOf,
   isSaleRepair,
   isNoVehicleRepair,
   getRepairTitle,
@@ -150,6 +153,9 @@ const RepairDetail = () => {
     fetchRepairDetail();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  const [isStatusEditOpen, setIsStatusEditOpen] = useState(false);
+  const { user } = useAuthStore();
 
   const fetchRepairDetail = async () => {
     setIsLoading(true);
@@ -373,6 +379,21 @@ const RepairDetail = () => {
 
   // บิลขายที่จ่ายตอนสร้าง เกิดและจบพร้อมกัน มีแค่เวลาเดียว
   const isSale = isSaleRepair(repair);
+  // ถอยสถานะยกเลิกการรับเงินได้ด้วย จึงให้เฉพาะแอดมิน (เซิร์ฟเวอร์ตรวจซ้ำ)
+  const revertTargets = user?.role === "ADMIN" ? revertTargetsOf(repair) : [];
+
+  const handleRevertStatus = async (status) => {
+    try {
+      const res = await withMinDuration(() =>
+        updateRepairStatus(repair.id, { status }),
+      );
+      toast.success(res.data?.message || "เปลี่ยนสถานะเรียบร้อยแล้ว");
+      await fetchRepairDetail();
+    } catch (error) {
+      toastError(error);
+      throw error;
+    }
+  };
   // ต้องตรงกับ DEPOSIT_STATUSES ฝั่งเซิร์ฟเวอร์
   const canEditDeposit =
     !isSale &&
@@ -546,7 +567,7 @@ const RepairDetail = () => {
   };
 
   return (
-    <div className="bg-gradient-primary shadow-primary desktop-column flex min-h-svh w-full flex-col">
+    <div className="bg-gradient-primary shadow-primary desktop-page flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-2 px-5 pt-4">
         <button
           onClick={handleGoBack}
@@ -614,246 +635,261 @@ const RepairDetail = () => {
         {isLoading ? (
           <PageSpinner />
         ) : (
-          <div>
-            <div className="mb-4 flex items-center justify-between gap-2 px-5">
-              {docNo !== repair.id ? (
-                <div className="min-w-0">
-                  <p
-                    className={`truncate text-[22px] leading-tight font-semibold md:text-2xl ${statusInfo.color}`}
-                  >
-                    {docNo}
-                  </p>
-                  {earlierDocNos.map((no) => (
+          // จอคอมแบ่งซ้ายขวาแบบหน้างานซ่อมใหม่: ซ้ายรถกับรายการ ขวาการชำระเงินกับปุ่มยืนยัน
+          <div className="xl:grid xl:grid-cols-2 xl:items-start xl:gap-2">
+            <div>
+              <div className="mb-4 flex items-center justify-between gap-2 px-5">
+                {docNo !== repair.id ? (
+                  <div className="min-w-0">
                     <p
-                      key={no}
-                      className="text-subtle-dark truncate text-base leading-tight font-medium md:text-lg"
+                      className={`truncate text-[22px] leading-tight font-semibold md:text-2xl ${statusInfo.color}`}
                     >
-                      {no}
+                      {docNo}
                     </p>
-                  ))}
-                </div>
-              ) : (
-                <p
-                  className={`text-[22px] leading-tight font-semibold md:text-2xl ${statusInfo.color}`}
-                >
-                  รหัสการซ่อม: {repair.id}
-                </p>
-              )}
-              <div className="flex items-center gap-2">
-                <div className={`rounded-full p-1 ${statusInfo.bg}`}>
-                  <StatusIcon size={18} className="text-surface" />
-                </div>
-                <p
-                  className={`text-xl font-semibold md:text-[22px] ${statusInfo.color}`}
-                >
-                  {statusInfo.text}
-                </p>
-              </div>
-            </div>
-            <div
-              {...(canOpenVehicle
-                ? {
-                    role: "button",
-                    tabIndex: 0,
-                    onClick: handleOpenVehicle,
-                    onKeyDown: onKeyActivate(handleOpenVehicle),
-                    "aria-label": "ดูประวัติรถคันนี้",
-                    className:
-                      "my-4 flex cursor-pointer items-center gap-2 px-5",
-                  }
-                : {
-                    className: "my-4 flex items-center gap-2 px-5",
-                  })}
-            >
-              <div
-                className={`flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full ${statusInfo.bg}`}
-              >
-                {isSaleRepair(repair) ? (
-                  <OutlineCardIcon
-                    icon={ShoppingBag}
-                    color={statusInfo.iconColor}
-                  />
-                ) : isNoVehicleRepair(repair) ? (
-                  <OutlineCardIcon icon={Wrench} color={statusInfo.iconColor} />
+                    {earlierDocNos.map((no) => (
+                      <p
+                        key={no}
+                        className="text-subtle-dark truncate text-base leading-tight font-medium md:text-lg"
+                      >
+                        {no}
+                      </p>
+                    ))}
+                  </div>
                 ) : (
-                  <BrandIcons
-                    brand={repair.vehicle?.vehicleModel?.brand}
-                    color={statusInfo.iconColor}
-                  />
-                )}
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col">
-                <p
-                  className={`text-[22px] font-semibold md:text-2xl ${statusInfo.color} leading-tight`}
-                >
-                  {getRepairTitle(repair)}
-                </p>
-                {!isSaleRepair(repair) && !isNoVehicleRepair(repair) && (
-                  <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                    {getVehicleSubtitle(repair?.vehicle)}
+                  <p
+                    className={`text-[22px] leading-tight font-semibold md:text-2xl ${statusInfo.color}`}
+                  >
+                    รหัสการซ่อม: {repair.id}
                   </p>
                 )}
+                <div className="flex items-center gap-2">
+                  <div className={`rounded-full p-1 ${statusInfo.bg}`}>
+                    <StatusIcon size={18} className="text-surface" />
+                  </div>
+                  <p
+                    className={`text-xl font-semibold md:text-[22px] ${statusInfo.color}`}
+                  >
+                    {statusInfo.text}
+                  </p>
+                </div>
               </div>
-              {canOpenVehicle && (
-                <span className="bg-subtle-light/15 flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
-                  <ChevronRight className="text-subtle-dark h-5 w-5" />
-                </span>
+              <div
+                {...(canOpenVehicle
+                  ? {
+                      role: "button",
+                      tabIndex: 0,
+                      onClick: handleOpenVehicle,
+                      onKeyDown: onKeyActivate(handleOpenVehicle),
+                      "aria-label": "ดูประวัติรถคันนี้",
+                      className:
+                        "my-4 flex cursor-pointer items-center gap-2 px-5",
+                    }
+                  : {
+                      className: "my-4 flex items-center gap-2 px-5",
+                    })}
+              >
+                <div
+                  className={`flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full ${statusInfo.bg}`}
+                >
+                  {isSaleRepair(repair) ? (
+                    <OutlineCardIcon
+                      icon={ShoppingBag}
+                      color={statusInfo.iconColor}
+                    />
+                  ) : isNoVehicleRepair(repair) ? (
+                    <OutlineCardIcon
+                      icon={Wrench}
+                      color={statusInfo.iconColor}
+                    />
+                  ) : (
+                    <BrandIcons
+                      brand={repair.vehicle?.vehicleModel?.brand}
+                      color={statusInfo.iconColor}
+                    />
+                  )}
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <p
+                    className={`text-[22px] font-semibold md:text-2xl ${statusInfo.color} leading-tight`}
+                  >
+                    {getRepairTitle(repair)}
+                  </p>
+                  {!isSaleRepair(repair) && !isNoVehicleRepair(repair) && (
+                    <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
+                      {getVehicleSubtitle(repair?.vehicle)}
+                    </p>
+                  )}
+                </div>
+                {canOpenVehicle && (
+                  <span className="bg-subtle-light/15 flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
+                    <ChevronRight className="text-subtle-dark h-5 w-5" />
+                  </span>
+                )}
+              </div>
+              {repair.customer && (
+                <RepairDetailCustomer
+                  customer={repair.customer}
+                  statusInfo={statusInfo}
+                  onSetOrganization={canSetOrganization ? orgPrompt.open : null}
+                />
+              )}
+              {repair.mileage != null && (
+                <div className="mb-4 px-5">
+                  <div className="flex items-center justify-between rounded-lg bg-gray-50 p-4">
+                    <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                      เลขกิโลเมตร:
+                    </p>
+                    <p className="text-normal text-lg font-semibold md:text-xl">
+                      {Number(repair.mileage).toLocaleString()} กม.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {repair.repairItems && (
+                <RepairDetailItems
+                  repair={repair}
+                  canEdit={!isCancelled}
+                  onEdit={handleEditRepair}
+                  onItemClick={setPreviewItem}
+                />
+              )}
+              <div
+                className={`${statusInfo.softBorder} ${statusInfo.softBg} mx-5 mb-4 rounded-lg border bg-gradient-to-r p-4`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
+                      รวม {countDisplayedItems(repair.repairItems)} รายการ
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <p
+                      className={`text-2xl font-semibold md:text-[26px] ${statusInfo.color}`}
+                    >
+                      {formatCurrency(Number(repair.totalPrice))}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              {repair.description && (
+                <div className="mb-4 px-5">
+                  <p className="text-normal mb-4 text-[22px] font-semibold md:text-2xl">
+                    {isSaleRepair(repair) ? "หมายเหตุ" : "รายละเอียดการซ่อม"}
+                  </p>
+                  <div className="rounded-lg bg-gray-50 p-4">
+                    <p className="text-normal text-lg leading-relaxed font-medium md:text-xl">
+                      {repair.description}
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
-            {repair.customer && (
-              <RepairDetailCustomer
-                customer={repair.customer}
-                statusInfo={statusInfo}
-                onSetOrganization={canSetOrganization ? orgPrompt.open : null}
-              />
-            )}
-            {repair.mileage != null && (
-              <div className="mb-4 px-5">
-                <div className="flex items-center justify-between rounded-lg bg-gray-50 p-4">
-                  <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                    เลขกิโลเมตร:
-                  </p>
-                  <p className="text-normal text-lg font-semibold md:text-xl">
-                    {Number(repair.mileage).toLocaleString()} กม.
-                  </p>
-                </div>
-              </div>
-            )}
-            {repair.repairItems && (
-              <RepairDetailItems
+            <div className="desktop-sticky">
+              <RepairDetailPayment
+                ref={paymentSectionRef}
                 repair={repair}
-                canEdit={!isCancelled}
-                onEdit={handleEditRepair}
-                onItemClick={setPreviewItem}
+                statusInfo={statusInfo}
+                isCancelled={isCancelled}
+                isEditingPaidMethod={isEditingPaidMethod}
+                onEditPaidMethod={() => setIsEditingPaidMethod(true)}
+                onCancelEditPaidMethod={() => {
+                  // กลับไปค่าที่บันทึกไว้ ที่เลือกหรือกรอกค้างไว้ทิ้งหมด
+                  setIsEditingPaidMethod(false);
+                  setSelectedPaymentMethod(repair.paymentMethod || "");
+                  setCheque({
+                    bank: repair.chequeBank || "",
+                    no: repair.chequeNo || "",
+                    date: repair.chequeDate
+                      ? repair.chequeDate.slice(0, 10)
+                      : "",
+                  });
+                  setChequeErrors({});
+                  setPaymentMethodError("");
+                }}
+                selectedMethod={selectedPaymentMethod}
+                onSelectMethod={(value) => {
+                  setSelectedPaymentMethod(value);
+                  setPaymentMethodError("");
+                }}
+                error={paymentMethodError}
+                cheque={cheque}
+                onChequeChange={(field, value) => {
+                  setCheque((prev) => ({ ...prev, [field]: value }));
+                  const key = {
+                    bank: "chequeBank",
+                    no: "chequeNo",
+                    date: "chequeDate",
+                  }[field];
+                  setChequeErrors((prev) => {
+                    const next = { ...prev };
+                    delete next[key];
+                    return next;
+                  });
+                }}
+                chequeErrors={chequeErrors}
+                onEditDeposit={
+                  canEditDeposit ? () => setIsDepositOpen(true) : undefined
+                }
+                onDueDateChange={handleDueDateChange}
+                onEditStatus={
+                  revertTargets.length > 0
+                    ? () => setIsStatusEditOpen(true)
+                    : undefined
+                }
+                isSavingDueDate={isSavingDueDate}
+                isSavingPaidMethod={isSavingPaidMethod}
+                canSavePaidMethod={hasPaidMethodChanged}
+                onSavePaidMethod={() =>
+                  handleChangePaidMethod(selectedPaymentMethod)
+                }
               />
-            )}
-            <div
-              className={`${statusInfo.softBorder} ${statusInfo.softBg} mx-5 mb-4 rounded-lg border bg-gradient-to-r p-4`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
-                    รวม {countDisplayedItems(repair.repairItems)} รายการ
+              <RepairDetailTimeline
+                repair={repair}
+                isSale={isSale}
+                paidOnCreate={paidOnCreate}
+              />
+              {repair.user && (
+                <div className="px-5">
+                  <p className="text-normal mb-2 text-[22px] font-semibold md:text-2xl">
+                    {isSale ? "ผู้ขาย" : "ผู้รับงานซ่อม"}
                   </p>
+                  <div className="rounded-lg bg-gray-50 p-4">
+                    <p className="text-normal text-lg font-medium md:text-xl">
+                      {repair.user.name}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex flex-col items-end">
-                  <p
-                    className={`text-2xl font-semibold md:text-[26px] ${statusInfo.color}`}
-                  >
-                    {formatCurrency(Number(repair.totalPrice))}
-                  </p>
+              )}
+              {getNextStatus(repair.status) && (
+                <div className="mt-4 flex flex-col gap-4 pr-10">
+                  {/* กำลังซ่อม: เลือกวิธีชำระเงินแล้ว = รับเงินพร้อมปิดงาน ยังไม่เลือก = ปิดงานอย่างเดียว */}
+                  {!(
+                    repair.status === "IN_PROGRESS" && selectedPaymentMethod
+                  ) && (
+                    <FormButton
+                      label={getNextStatusText(repair.status)}
+                      isLoading={isUpdating}
+                      disabled={isUpdating}
+                      onClick={() => handleUpdateStatus(false)}
+                      className={getNextStatusButtonClass(repair.status)}
+                    />
+                  )}
+                  {repair.status === "IN_PROGRESS" && selectedPaymentMethod && (
+                    <FormButton
+                      label={
+                        isCreditSelected
+                          ? "ยืนยันการซ่อมเสร็จสิ้นและลงเครดิต"
+                          : "ยืนยันการซ่อมเสร็จสิ้นและรับเงิน"
+                      }
+                      isLoading={isUpdatingSkip}
+                      disabled={isUpdatingSkip}
+                      onClick={() => handleUpdateStatus(true)}
+                      className="bg-status-paid mt-0"
+                    />
+                  )}
                 </div>
-              </div>
+              )}
             </div>
-            {repair.description && (
-              <div className="mb-4 px-5">
-                <p className="text-normal mb-4 text-[22px] font-semibold md:text-2xl">
-                  {isSaleRepair(repair) ? "หมายเหตุ" : "รายละเอียดการซ่อม"}
-                </p>
-                <div className="rounded-lg bg-gray-50 p-4">
-                  <p className="text-normal text-lg leading-relaxed font-medium md:text-xl">
-                    {repair.description}
-                  </p>
-                </div>
-              </div>
-            )}
-            <RepairDetailPayment
-              ref={paymentSectionRef}
-              repair={repair}
-              statusInfo={statusInfo}
-              isCancelled={isCancelled}
-              isEditingPaidMethod={isEditingPaidMethod}
-              onEditPaidMethod={() => setIsEditingPaidMethod(true)}
-              onCancelEditPaidMethod={() => {
-                // กลับไปค่าที่บันทึกไว้ ที่เลือกหรือกรอกค้างไว้ทิ้งหมด
-                setIsEditingPaidMethod(false);
-                setSelectedPaymentMethod(repair.paymentMethod || "");
-                setCheque({
-                  bank: repair.chequeBank || "",
-                  no: repair.chequeNo || "",
-                  date: repair.chequeDate ? repair.chequeDate.slice(0, 10) : "",
-                });
-                setChequeErrors({});
-                setPaymentMethodError("");
-              }}
-              selectedMethod={selectedPaymentMethod}
-              onSelectMethod={(value) => {
-                setSelectedPaymentMethod(value);
-                setPaymentMethodError("");
-              }}
-              error={paymentMethodError}
-              cheque={cheque}
-              onChequeChange={(field, value) => {
-                setCheque((prev) => ({ ...prev, [field]: value }));
-                const key = {
-                  bank: "chequeBank",
-                  no: "chequeNo",
-                  date: "chequeDate",
-                }[field];
-                setChequeErrors((prev) => {
-                  const next = { ...prev };
-                  delete next[key];
-                  return next;
-                });
-              }}
-              chequeErrors={chequeErrors}
-              onEditDeposit={
-                canEditDeposit ? () => setIsDepositOpen(true) : undefined
-              }
-              onDueDateChange={handleDueDateChange}
-              isSavingDueDate={isSavingDueDate}
-              isSavingPaidMethod={isSavingPaidMethod}
-              canSavePaidMethod={hasPaidMethodChanged}
-              onSavePaidMethod={() =>
-                handleChangePaidMethod(selectedPaymentMethod)
-              }
-            />
-            <RepairDetailTimeline
-              repair={repair}
-              isSale={isSale}
-              paidOnCreate={paidOnCreate}
-            />
-            {repair.user && (
-              <div className="px-5">
-                <p className="text-normal mb-2 text-[22px] font-semibold md:text-2xl">
-                  {isSale ? "ผู้ขาย" : "ผู้รับงานซ่อม"}
-                </p>
-                <div className="rounded-lg bg-gray-50 p-4">
-                  <p className="text-normal text-lg font-medium md:text-xl">
-                    {repair.user.name}
-                  </p>
-                </div>
-              </div>
-            )}
-            {getNextStatus(repair.status) && (
-              <div className="mt-4 flex flex-col gap-4 pr-10">
-                {/* กำลังซ่อม: เลือกวิธีชำระเงินแล้ว = รับเงินพร้อมปิดงาน ยังไม่เลือก = ปิดงานอย่างเดียว */}
-                {!(
-                  repair.status === "IN_PROGRESS" && selectedPaymentMethod
-                ) && (
-                  <FormButton
-                    label={getNextStatusText(repair.status)}
-                    isLoading={isUpdating}
-                    disabled={isUpdating}
-                    onClick={() => handleUpdateStatus(false)}
-                    className={getNextStatusButtonClass(repair.status)}
-                  />
-                )}
-                {repair.status === "IN_PROGRESS" && selectedPaymentMethod && (
-                  <FormButton
-                    label={
-                      isCreditSelected
-                        ? "ยืนยันการซ่อมเสร็จสิ้นและลงเครดิต"
-                        : "ยืนยันการซ่อมเสร็จสิ้นและรับเงิน"
-                    }
-                    isLoading={isUpdatingSkip}
-                    disabled={isUpdatingSkip}
-                    onClick={() => handleUpdateStatus(true)}
-                    className="bg-status-paid mt-0"
-                  />
-                )}
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -997,6 +1033,14 @@ const RepairDetail = () => {
           </div>
         )}
       </ConfirmDialog>
+
+      <StatusRevertDialog
+        isOpen={isStatusEditOpen}
+        onClose={() => setIsStatusEditOpen(false)}
+        repair={repair}
+        targets={revertTargets}
+        onConfirm={handleRevertStatus}
+      />
 
       <DepositDialog
         isOpen={isDepositOpen}

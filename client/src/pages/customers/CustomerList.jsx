@@ -89,7 +89,7 @@ const CustomerList = () => {
   const searchTerm = search.length > 20 ? `${search.slice(0, 20)}…` : search;
 
   return (
-    <div className="bg-gradient-primary shadow-primary desktop-column flex min-h-svh w-full flex-col">
+    <div className="bg-gradient-primary shadow-primary desktop-page flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-2 px-5 pt-4">
         <button
           onClick={() =>
@@ -112,7 +112,7 @@ const CustomerList = () => {
         </div>
       </div>
 
-      <div className="mt-4 flex gap-4 px-5">
+      <div className="mt-4 flex justify-center gap-4 px-5">
         {TABS.map((item) => (
           <button
             key={item.id}
@@ -123,7 +123,7 @@ const CustomerList = () => {
               next.delete("search");
               setSearchParams(next, { replace: true });
             }}
-            className={`flex h-[45px] flex-1 cursor-pointer items-center justify-center rounded-lg border-2 text-lg font-semibold duration-300 md:text-xl ${
+            className={`flex h-[45px] min-w-36 shrink-0 cursor-pointer items-center justify-center rounded-lg border-2 px-4 text-lg font-semibold duration-300 md:text-xl ${
               tab === item.id && !search
                 ? "text-surface bg-primary border-white"
                 : "border-subtle-light text-subtle-light bg-surface"
@@ -147,35 +147,37 @@ const CustomerList = () => {
               </p>
             </div>
           ) : (
-            visibleCustomers.map((item) => {
-              const Icon = organizationIcon(item.organizationType);
-              return (
-                <Link
-                  key={item.id}
-                  to={`/customers/${item.id}`}
-                  className="mt-4 block w-full"
-                >
-                  <CarCard
-                    bg="primary"
-                    icon={<Icon className="text-surface h-6 w-6" />}
-                    licensePlate={
-                      item.name ||
-                      formatPhone(item.phoneNumber) ||
-                      "ไม่ระบุชื่อ"
-                    }
-                    brand={[
-                      organizationLabel(item.organizationType),
-                      item.name && item.phoneNumber
-                        ? formatPhone(item.phoneNumber)
-                        : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" | ")}
-                    amount={item.vehicleCount}
-                  />
-                </Link>
-              );
-            })
+            <div className="desktop-grid">
+              {visibleCustomers.map((item) => {
+                const Icon = organizationIcon(item.organizationType);
+                return (
+                  <Link
+                    key={item.id}
+                    to={`/customers/${item.id}`}
+                    className="mt-4 block w-full"
+                  >
+                    <CarCard
+                      bg="primary"
+                      icon={<Icon className="text-surface h-6 w-6" />}
+                      licensePlate={
+                        item.name ||
+                        formatPhone(item.phoneNumber) ||
+                        "ไม่ระบุชื่อ"
+                      }
+                      brand={[
+                        organizationLabel(item.organizationType),
+                        item.name && item.phoneNumber
+                          ? formatPhone(item.phoneNumber)
+                          : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" | ")}
+                      amount={item.vehicleCount}
+                    />
+                  </Link>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>

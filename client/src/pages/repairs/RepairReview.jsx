@@ -370,7 +370,7 @@ const RepairReview = () => {
     isSuspensionBill ? renderSuspensionItems() : renderGeneralRows();
 
   return (
-    <div className="bg-gradient-primary shadow-primary flex min-h-[100svh] flex-col xl:min-h-[calc(100vh-73px)] xl:flex-row xl:items-start xl:gap-4 xl:bg-transparent xl:px-4 xl:pt-6 xl:pb-6 xl:shadow-none">
+    <div className="bg-gradient-primary shadow-primary flex min-h-[100svh] flex-col xl:min-h-[calc(100vh-73px)] xl:flex-row xl:items-start xl:gap-4 xl:bg-transparent xl:bg-none xl:px-4 xl:pt-6 xl:pb-6 xl:shadow-none">
       <div className="xl:shadow-primary flex flex-1 flex-col xl:h-fit xl:w-1/2 xl:flex-initial xl:rounded-2xl xl:bg-white">
         <div className="flex items-center gap-2 px-5 pt-4">
           <button

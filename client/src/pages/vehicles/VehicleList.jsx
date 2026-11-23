@@ -120,7 +120,7 @@ const VehicleList = () => {
   };
 
   return (
-    <div className="bg-gradient-primary shadow-primary desktop-column flex min-h-svh w-full flex-col">
+    <div className="bg-gradient-primary shadow-primary desktop-page flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-2 px-5 pt-4">
         <div className="bg-surface/20 flex h-10 w-10 items-center justify-center rounded-full">
           <Document color="#ffffff" />
@@ -165,26 +165,28 @@ const VehicleList = () => {
               </p>
             </div>
           ) : (
-            vehicles.map((item, index) => (
-              <div key={index} className="mt-4">
-                <Link
-                  to={`/vehicles/${item.id}`}
-                  onClick={() => saveScrollPosition(SCROLL_KEY)}
-                >
-                  <CarCard
-                    bg="primary"
-                    icon={<BrandIcons brand={item.vehicleModel.brand} />}
-                    licensePlate={
-                      item.licensePlate
-                        ? `${formatPlate(item.licensePlate.plateNumber)} ${item.licensePlate.province}`
-                        : "ไม่ระบุทะเบียนรถ"
-                    }
-                    brand={getDisplayBrand(item.vehicleModel)}
-                    note={matchNote(item.repairs?.[0], search)}
-                  />
-                </Link>
-              </div>
-            ))
+            <div className="desktop-grid">
+              {vehicles.map((item, index) => (
+                <div key={index} className="mt-4">
+                  <Link
+                    to={`/vehicles/${item.id}`}
+                    onClick={() => saveScrollPosition(SCROLL_KEY)}
+                  >
+                    <CarCard
+                      bg="primary"
+                      icon={<BrandIcons brand={item.vehicleModel.brand} />}
+                      licensePlate={
+                        item.licensePlate
+                          ? `${formatPlate(item.licensePlate.plateNumber)} ${item.licensePlate.province}`
+                          : "ไม่ระบุทะเบียนรถ"
+                      }
+                      brand={getDisplayBrand(item.vehicleModel)}
+                      note={matchNote(item.repairs?.[0], search)}
+                    />
+                  </Link>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>

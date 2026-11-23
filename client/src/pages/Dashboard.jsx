@@ -253,7 +253,10 @@ const Dashboard = () => {
             <div className="bg-subtle-light/40 h-px flex-1" />
           </div>
         )}
-        {group.items.map((item) => renderStockCard(item, keyPrefix))}
+        {/* จอคอมมีที่กว้าง วางสองคอลัมน์ รายการยาวจะสั้นลงครึ่งหนึ่ง */}
+        <div className={keyPrefix === "desk" ? "grid grid-cols-2 gap-x-4" : ""}>
+          {group.items.map((item) => renderStockCard(item, keyPrefix))}
+        </div>
       </div>
     ));
 
@@ -329,6 +332,8 @@ const Dashboard = () => {
               time={repair[timeKey] && formatTime(repair[timeKey])}
               dueNote={dueNoteOf(repair, toLocalDateKey())}
               price={parseFloat(repair.totalPrice)}
+              // คอลัมน์แคบ ป้ายกับรุ่นรถอยู่บรรทัดเดียวกันจะถูกตัด
+              stackBadge
             />
           </Link>
         ))
@@ -351,73 +356,70 @@ const Dashboard = () => {
             {renderPendingLinks(true)}
           </div>
 
+          {/* บอร์ดงานสามช่องตามลำดับงาน หัวช่องเป็นการ์ดสีทึบให้เด่น บิลของสถานะนั้นอยู่ใต้หัวช่อง */}
           <div className="mt-4 grid grid-cols-3 gap-4">
-            <Link
-              to="/repairs?status=in-progress"
-              aria-label={dueLabel(
-                "กำลังซ่อม",
-                inProgressCount,
-                dueInProgressCount,
-              )}
-              className="relative"
-            >
-              <StatusCard
-                bg="progress"
-                icon={Wrench}
-                label={"กำลังซ่อม"}
-                amount={inProgressCount}
-              />
-              <AlertCountBadge count={dueInProgressCount} />
-            </Link>
-            <Link
-              to="/repairs?status=completed"
-              aria-label={dueLabel(
-                "ซ่อมเสร็จสิ้น",
-                completedCount,
-                dueCompletedCount,
-              )}
-              className="relative"
-            >
-              <StatusCard
-                bg="completed"
-                icon={Success}
-                label={"ซ่อมเสร็จสิ้น"}
-                amount={completedCount}
-              />
-              <AlertCountBadge count={dueCompletedCount} />
-            </Link>
-            <Link to="/repairs?status=paid">
-              <StatusCard
-                bg="paid"
-                icon={Paid}
-                label={"ชำระเงินแล้ว"}
-                amount={paidCount}
-              />
-            </Link>
-          </div>
-
-          <div className="mt-4 grid grid-cols-3 gap-4">
-            {renderRepairColumn(
-              inProgressRepairs,
-              "progress",
-              "#ffb000",
-              "createdAt",
-              "ไม่มีบิลที่กำลังซ่อม",
-            )}
-            {renderRepairColumn(
-              completedRepairs,
-              "completed",
-              "#22c55e",
-              "completedAt",
-              "ไม่มีบิลที่ซ่อมเสร็จสิ้น",
-            )}
-            {renderRepairColumn(
-              paidRepairs,
-              "paid",
-              undefined,
-              "paidAt",
-              "ไม่มีบิลที่ชำระเงินแล้ว",
-            )}
+            {[
+              {
+                bg: "progress",
+                icon: Wrench,
+                label: "กำลังซ่อม",
+                count: inProgressCount,
+                due: dueInProgressCount,
+                repairs: inProgressRepairs,
+                iconColor: "#ffb000",
+                timeKey: "createdAt",
+                empty: "ไม่มีบิลที่กำลังซ่อม",
+              },
+              {
+                bg: "completed",
+                icon: Success,
+                label: "ซ่อมเสร็จสิ้น",
+                count: completedCount,
+                due: dueCompletedCount,
+                repairs: completedRepairs,
+                iconColor: "#22c55e",
+                timeKey: "completedAt",
+                empty: "ไม่มีบิลที่ซ่อมเสร็จสิ้น",
+              },
+              {
+                bg: "paid",
+                icon: Paid,
+                label: "ชำระเงินแล้ว",
+                count: paidCount,
+                due: 0,
+                repairs: paidRepairs,
+                iconColor: undefined,
+                timeKey: "paidAt",
+                empty: "ไม่มีบิลที่ชำระเงินแล้ว",
+              },
+            ].map((lane) => (
+              <div
+                key={lane.bg}
+                className="flex flex-col gap-2 rounded-lg bg-gray-50 p-2"
+              >
+                {/* จอคอมเห็นบิลครบใต้หัวช่องอยู่แล้ว หัวช่องจึงแสดงผลอย่างเดียว ไม่พาไปหน้ารายการแบบมือถือ */}
+                <div
+                  role="group"
+                  aria-label={dueLabel(lane.label, lane.count, lane.due)}
+                  className="relative"
+                >
+                  <StatusCard
+                    bg={lane.bg}
+                    icon={lane.icon}
+                    label={lane.label}
+                    amount={lane.count}
+                  />
+                  <AlertCountBadge count={lane.due} />
+                </div>
+                {renderRepairColumn(
+                  lane.repairs,
+                  lane.bg,
+                  lane.iconColor,
+                  lane.timeKey,
+                  lane.empty,
+                )}
+              </div>
+            ))}
           </div>
         </div>
 

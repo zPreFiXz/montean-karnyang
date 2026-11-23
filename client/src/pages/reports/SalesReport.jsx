@@ -144,7 +144,7 @@ const SalesReport = () => {
   };
 
   return (
-    <div className="desktop-column">
+    <div className="desktop-page">
       <ReportPeriodHeader
         title="รายงานยอดขาย"
         basePath="/admin/reports/sales"
@@ -159,9 +159,13 @@ const SalesReport = () => {
       </ReportPeriodHeader>
       <div className="bg-surface -mt-4 flex min-h-[calc(100svh-249px)] w-full flex-col rounded-tl-2xl rounded-tr-2xl px-5 pb-28 md:min-h-[calc(100svh-269px)] xl:pb-4">
         {revenueByPaymentMethod.length > 0 && (
-          <div className="mt-4 space-y-2 rounded-lg bg-gray-50 p-4">
+          // จอคอมเป็นกล่องตัวเลขเรียงแถว มือถือเป็นรายการในกล่องเดียว
+          <div className="mt-4 space-y-2 rounded-lg bg-gray-50 p-4 xl:grid xl:grid-cols-4 xl:gap-4 xl:space-y-0 xl:bg-transparent xl:p-0">
             {revenueByPaymentMethod.map((method) => (
-              <div key={method.id} className="flex justify-between">
+              <div
+                key={method.id}
+                className="flex justify-between xl:flex-col xl:gap-1 xl:rounded-lg xl:bg-gray-50 xl:p-4"
+              >
                 <p className="text-subtle-dark text-lg font-medium md:text-xl">
                   {method.name}
                 </p>
@@ -197,15 +201,16 @@ const SalesReport = () => {
           </div>
         ) : periodRepairs.length > 0 ? (
           <div className={periodType === "daily" ? "pt-4" : "pt-2"}>
-            {periodType === "daily"
-              ? periodRepairs.map((entry, index) => {
+            {periodType === "daily" ? (
+              <div className="desktop-grid flex flex-col gap-4">
+                {periodRepairs.map((entry) => {
                   const repair = entry.repair;
                   const carData = getCarCardData(entry);
                   return (
                     <Link
                       to={`/repairs/${repair.id}`}
                       key={entry.key}
-                      className={`${index > 0 ? "mt-4" : ""} block`}
+                      className="block"
                       state={{
                         returnTo: location.pathname + location.search,
                         currentDate: currentDate.toISOString(),
@@ -246,21 +251,24 @@ const SalesReport = () => {
                       />
                     </Link>
                   );
-                })
-              : Object.entries(groupRepairsByDay(periodRepairs)).map(
-                  ([day, repairsForDay]) => (
-                    <div key={day} className="mb-4">
-                      <p className="text-subtle-dark mb-2 text-lg font-medium md:text-xl">
-                        {day}
-                      </p>
-                      {repairsForDay.map((entry, i) => {
+                })}
+              </div>
+            ) : (
+              Object.entries(groupRepairsByDay(periodRepairs)).map(
+                ([day, repairsForDay]) => (
+                  <div key={day} className="mb-4">
+                    <p className="text-subtle-dark mb-2 text-lg font-medium md:text-xl">
+                      {day}
+                    </p>
+                    <div className="desktop-grid flex flex-col gap-3">
+                      {repairsForDay.map((entry) => {
                         const repair = entry.repair;
                         const carData = getCarCardData(entry);
                         return (
                           <Link
                             to={`/repairs/${repair.id}`}
                             key={entry.key}
-                            className={`${i > 0 ? "mt-3" : ""} block`}
+                            className="block"
                             state={{
                               returnTo: location.pathname + location.search,
                               currentDate: currentDate.toISOString(),
@@ -303,8 +311,10 @@ const SalesReport = () => {
                         );
                       })}
                     </div>
-                  ),
-                )}
+                  </div>
+                ),
+              )
+            )}
           </div>
         ) : (
           <div className="flex flex-1 items-center justify-center">

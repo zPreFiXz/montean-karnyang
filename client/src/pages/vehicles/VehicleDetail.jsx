@@ -74,8 +74,8 @@ const VehicleDetail = () => {
   };
 
   return (
-    <div className="bg-gradient-primary shadow-primary desktop-column flex min-h-svh w-full flex-col">
-      <div className="flex items-center gap-2 px-5 py-4.5">
+    <div className="bg-gradient-primary shadow-primary desktop-page flex min-h-svh w-full flex-col">
+      <div className="flex items-center gap-2 px-5 pt-4">
         <button
           // ถอยประวัติ ให้หน้ารายการได้คำค้นกับตำแหน่งคืน (เปิดลิงก์ตรงๆ ไม่มีประวัติ จึงมีเส้นทางสำรอง)
           onClick={() =>
@@ -99,44 +99,46 @@ const VehicleDetail = () => {
           </button>
         )}
       </div>
-      <div className="bg-surface shadow-primary flex flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pt-4 pb-24">
+      <div className="bg-surface shadow-primary mt-4 flex flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pt-4 pb-24">
         {isLoading ? (
           <PageSpinner />
         ) : (
-          <div className="flex flex-1 flex-col">
-            <div className="mb-4 flex items-center gap-2 px-5">
-              <div className="bg-primary flex h-[45px] w-[45px] items-center justify-center rounded-full">
-                <BrandIcons brand={vehicle?.vehicleModel.brand} />
+          <div className="desktop-split flex flex-1 flex-col">
+            <div className="desktop-sticky">
+              <div className="mb-4 flex items-center gap-2 px-5">
+                <div className="bg-primary flex h-[45px] w-[45px] items-center justify-center rounded-full">
+                  <BrandIcons brand={vehicle?.vehicleModel.brand} />
+                </div>
+                <div className="flex flex-col">
+                  <p className="text-primary text-[22px] leading-tight font-semibold md:text-2xl">
+                    {vehicle?.licensePlate?.plateNumber &&
+                    vehicle?.licensePlate?.province
+                      ? `${formatPlate(vehicle.licensePlate.plateNumber)} ${vehicle.licensePlate.province}`
+                      : "ไม่ระบุทะเบียนรถ"}
+                  </p>
+                  <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
+                    {getVehicleSubtitle(vehicle)}
+                  </p>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <p className="text-primary text-[22px] leading-tight font-semibold md:text-2xl">
-                  {vehicle?.licensePlate?.plateNumber &&
-                  vehicle?.licensePlate?.province
-                    ? `${formatPlate(vehicle.licensePlate.plateNumber)} ${vehicle.licensePlate.province}`
-                    : "ไม่ระบุทะเบียนรถ"}
-                </p>
-                <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                  {getVehicleSubtitle(vehicle)}
-                </p>
+              <div className="mb-4 flex gap-2 px-5">
+                <button
+                  type="button"
+                  onClick={() => startNewBill("/inspections/suspension")}
+                  className="font-athiti text-primary border-primary bg-surface flex h-11 flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold md:text-xl"
+                >
+                  เช็กช่วงล่าง
+                </button>
+                <button
+                  type="button"
+                  onClick={() => startNewBill("/repairs/new")}
+                  className="font-athiti text-primary border-primary bg-surface flex h-11 flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold md:text-xl"
+                >
+                  งานซ่อมใหม่
+                </button>
               </div>
             </div>
-            <div className="mb-4 flex gap-2 px-5">
-              <button
-                type="button"
-                onClick={() => startNewBill("/inspections/suspension")}
-                className="font-athiti text-primary border-primary bg-surface flex h-11 flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold md:text-xl"
-              >
-                เช็กช่วงล่าง
-              </button>
-              <button
-                type="button"
-                onClick={() => startNewBill("/repairs/new")}
-                className="font-athiti text-primary border-primary bg-surface flex h-11 flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold md:text-xl"
-              >
-                งานซ่อมใหม่
-              </button>
-            </div>
-            <div className="mb-4 flex flex-1 flex-col px-5">
+            <div className="mb-4 flex flex-1 flex-col px-5 xl:min-h-64">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-normal text-[22px] font-semibold md:text-2xl">
                   ประวัติการซ่อม
@@ -149,7 +151,7 @@ const VehicleDetail = () => {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="desktop-grid flex flex-col gap-4">
                   {vehicle.repairs.map((item) => (
                     <Link
                       key={item.id}

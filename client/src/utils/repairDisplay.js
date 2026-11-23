@@ -108,6 +108,22 @@ export const canSetPaymentDueDate = (repair) =>
   (["IN_PROGRESS", "COMPLETED"].includes(repair?.status) &&
     Number(repair?.depositAmount) > 0);
 
+// สถานะที่ถอยกลับได้ (แก้สถานะที่กดผิด) เรียงจากใกล้ไปไกล
+// (ต้องตรงกับ isStatusRevert ใน server/controllers/repair.js)
+const REVERT_ORDER = ["IN_PROGRESS", "COMPLETED", "CREDIT", "PAID"];
+export const revertTargetsOf = (repair) => {
+  if (!repair || repair.type === "SALE") return [];
+  const rank = REVERT_ORDER.indexOf(repair.status);
+  if (rank <= 0) return [];
+  return REVERT_ORDER.slice(0, rank)
+    .reverse()
+    .filter(
+      // เครดิตได้เฉพาะบิลที่เคยลงเครดิต (มีใบส่งของ) และไม่มีมัดจำ
+      (status) =>
+        status !== "CREDIT" || (!!repair.deliveryNo && !repair.depositAmount),
+    );
+};
+
 // เก็บเป็นวันที่ล้วน (DATE) เซิร์ฟเวอร์ส่งมาเป็นเที่ยงคืน UTC เอาแค่ส่วนวันที่มาเทียบ
 const dueDateKeyOf = (repair) =>
   String(repair?.paymentDueDate || "").slice(0, 10);

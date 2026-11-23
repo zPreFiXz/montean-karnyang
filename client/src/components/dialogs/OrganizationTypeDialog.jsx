@@ -73,7 +73,8 @@ const OrganizationTypeDialog = ({
             </h2>
           )}
 
-          <div className="mt-4 flex gap-2">
+          {/* ตัวเลือกอยู่ในกล่องเทาแบบหน้าต่างแก้ไขอื่น (DepositDialog StatusRevertDialog) */}
+          <div className="mt-4 flex gap-2 rounded-lg bg-gray-50 p-4">
             {OPTIONS.map((option) => {
               const Icon = organizationIcon(option.value);
               const isActive = selected === option.value;
@@ -84,25 +85,26 @@ const OrganizationTypeDialog = ({
                   type="button"
                   onClick={() => setSelected(option.value)}
                   aria-pressed={isActive}
-                  className={`flex flex-1 cursor-pointer flex-col items-center gap-2 rounded-lg border px-2 py-4 duration-300 ${
+                  className={`flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-1.5 rounded-lg border px-1 py-3 duration-300 ${
                     isActive
                       ? "border-primary bg-primary/5"
-                      : "border-gray-200 bg-gray-50"
+                      : "bg-surface border-gray-200"
                   }`}
                 >
                   <span
-                    className={`flex h-[45px] w-[45px] items-center justify-center rounded-full duration-300 ${
+                    className={`flex h-9 w-9 items-center justify-center rounded-full duration-300 ${
                       isActive ? "bg-primary" : "bg-subtle-light/25"
                     }`}
                   >
                     <Icon
-                      className={`h-6 w-6 ${
+                      className={`h-5 w-5 ${
                         isActive ? "text-surface" : "text-subtle-dark"
                       }`}
                     />
                   </span>
                   <span
-                    className={`text-center text-lg font-semibold md:text-xl ${
+                    // สามการ์ดบนมือถือแคบ "ลูกค้าทั่วไป" ต้องอยู่บรรทัดเดียว
+                    className={`text-center text-base font-semibold whitespace-nowrap sm:text-lg md:text-xl ${
                       isActive ? "text-primary" : "text-subtle-dark"
                     }`}
                   >

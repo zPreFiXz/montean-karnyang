@@ -21,7 +21,8 @@ const Layout = () => {
         </div>
 
         {/* Suspense อยู่ตรงนี้ ไม่ครอบทั้ง <Routes> ไม่งั้นโครงหน้าจะถูกล้างแล้วโผล่กลับตอนโหลดโค้ด */}
-        <main className="bg-surface-muted flex min-h-svh flex-1 flex-col xl:max-h-[calc(100vh-73px)] xl:min-h-0 xl:overflow-y-auto">
+        {/* จอคอม main สูงจำกัดแล้วเลื่อนในตัว กล่องหน้าไม่ให้หด ไม่งั้นถูกบีบเหลือ min-h-svh แล้วเนื้อหาล้นกล่อง */}
+        <main className="bg-surface-muted flex min-h-svh flex-1 flex-col xl:max-h-[calc(100vh-73px)] xl:min-h-0 xl:overflow-y-auto xl:[&>*]:shrink-0">
           <Suspense
             fallback={
               <div className="flex flex-1 items-center justify-center">

@@ -1,11 +1,15 @@
 import { Link } from "react-router";
-import { Garage } from "@/components/icons/Icons";
 
+// โลโก้จริงของร้าน (รูปเดียวกับหน้าเข้าสู่ระบบ) สัดส่วนกว้างเกือบ 5 เท่าของความสูง
 const Logo = () => {
   return (
-    <Link to="/dashboard" className="flex items-center gap-2">
-      <Garage />
-      <p className="text-primary text-[22px] font-semibold">มณเฑียรการยาง</p>
+    <Link to="/dashboard" aria-label="ไปหน้าหลัก" className="flex items-center">
+      <img
+        src="/logo.png"
+        alt="มณเฑียรการยาง"
+        className="h-11 w-auto"
+        draggable={false}
+      />
     </Link>
   );
 };

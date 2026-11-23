@@ -122,7 +122,7 @@ const InventoryList = () => {
   }, [location.state]);
 
   return (
-    <div className="bg-gradient-primary shadow-primary desktop-column flex min-h-svh w-full flex-col">
+    <div className="bg-gradient-primary shadow-primary desktop-page flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-2 px-5 pt-4">
         <div className="bg-surface/20 flex h-10 w-10 items-center justify-center rounded-full">
           <BoxSearch color="#ffffff" />
@@ -144,6 +144,7 @@ const InventoryList = () => {
         <div className="flex flex-1 flex-col px-5 pt-4">
           <InventoryBrowser
             syncUrl
+            grid
             highlightedItem={highlightedItem}
             reloadToken={reloadToken}
             onLoadingChange={setIsListLoading}

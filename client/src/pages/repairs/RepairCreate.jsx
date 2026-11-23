@@ -426,10 +426,11 @@ const RepairCreate = () => {
       className="flex items-center justify-between px-5 pt-4"
     >
       <div className="flex items-center gap-2">
-        <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-full">
-          <ClipboardList className="text-primary h-5 w-5" />
+        <div className="bg-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full xl:hidden">
+          <ClipboardList className="text-surface h-6 w-6" />
         </div>
-        <p className="text-[22px] font-semibold md:text-2xl">
+        {/* จอคอมหัวกล่องแบบหน้าหลัก (สถานะการซ่อม) ตัวหนังสือเทาเข้ม ไม่มีวงกลมไอคอน */}
+        <p className="xl:text-subtle-dark text-[22px] font-semibold md:text-2xl xl:text-[22px] xl:font-medium">
           {isSale ? "รายการอะไหล่" : "รายการซ่อม"}
         </p>
         <ReorderButton bill={bill} />
@@ -460,8 +461,8 @@ const RepairCreate = () => {
   );
 
   return (
-    <div className="bg-gradient-primary shadow-primary flex min-h-[100svh] flex-col xl:min-h-[calc(100vh-73px)] xl:flex-row xl:items-start xl:gap-4 xl:bg-transparent xl:px-4 xl:pt-6 xl:pb-6 xl:shadow-none">
-      <div className="xl:shadow-primary flex flex-1 flex-col xl:h-fit xl:w-1/2 xl:flex-initial xl:rounded-2xl xl:bg-white">
+    <div className="bg-gradient-primary shadow-primary flex min-h-[100svh] flex-col xl:min-h-[calc(100vh-73px)] xl:flex-row xl:items-start xl:gap-5 xl:bg-transparent xl:bg-none xl:px-5 xl:pt-6 xl:pb-6 xl:shadow-none">
+      <div className="xl:shadow-primary flex flex-1 flex-col xl:h-fit xl:w-1/2 xl:flex-initial xl:rounded-lg xl:bg-white">
         <div className="flex items-center justify-between gap-2 px-5 pt-4">
           <div className="flex min-w-0 items-center gap-2">
             {isEditing || canReturnToVehicle ? (
@@ -479,13 +480,13 @@ const RepairCreate = () => {
                 <ChevronLeft className="text-primary hidden xl:block" />
               </button>
             ) : (
-              <div className="bg-surface/20 xl:bg-primary/10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+              <div className="bg-surface/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full xl:hidden">
                 <Plus color="#ffffff" className="xl:hidden" />
                 <Plus className="text-primary hidden xl:block" />
               </div>
             )}
             <div className="min-w-0">
-              <p className="text-surface xl:text-primary truncate text-2xl font-semibold md:text-[26px]">
+              <p className="text-surface xl:text-subtle-dark truncate text-2xl font-semibold md:text-[26px] xl:text-[22px] xl:font-medium">
                 {isEditing
                   ? location.state?.stockNotDeducted
                     ? "แก้ไขใบเสนอราคา"
@@ -531,7 +532,7 @@ const RepairCreate = () => {
                 aria-pressed={billType === option.id}
                 className={`h-[45px] flex-1 cursor-pointer rounded-lg border-2 text-lg font-semibold duration-300 md:text-xl ${
                   billType === option.id
-                    ? "bg-surface text-primary border-white"
+                    ? "bg-surface text-primary xl:border-primary xl:bg-primary/5 border-white"
                     : "text-surface xl:text-subtle-dark border-white/50 xl:border-gray-300"
                 }`}
               >
@@ -629,7 +630,7 @@ const RepairCreate = () => {
       </div>
 
       <div className="hidden w-1/2 xl:block">
-        <div className="bg-surface shadow-primary h-fit rounded-2xl">
+        <div className="bg-surface shadow-primary h-fit rounded-lg">
           {itemsHeader}
           {repairItems.length === 0 ? (
             <div>

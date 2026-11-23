@@ -122,20 +122,20 @@ const ConfirmDialog = ({
           onClose={onClose}
         />
 
-        <div className="font-athiti flex flex-1 flex-col items-center justify-center overflow-y-auto px-5 py-4">
+        {/* หน้าตาแบบหน้าต่างแก้ไขอื่น (DepositDialog): ชื่อรายการเป็นหัวข้อกลาง หมายเหตุอยู่ในกล่องเทา */}
+        <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5 py-4">
           {itemName && (
-            <span className="text-primary bg-primary/10 inline-block rounded-lg px-4 py-2 text-center text-lg font-semibold md:text-xl">
+            <h2 className="text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">
               {itemName}
-              {itemDetail && (
-                <>
-                  <br />
-                  {itemDetail}
-                </>
-              )}
-            </span>
+            </h2>
+          )}
+          {itemDetail && (
+            <p className="text-subtle-dark mt-1 text-center text-lg font-medium md:text-xl">
+              {itemDetail}
+            </p>
           )}
           {note && (
-            <p className="text-subtle-dark mt-3 text-center text-base font-medium md:text-lg">
+            <p className="text-subtle-dark mt-4 rounded-lg bg-gray-50 p-4 text-center text-base font-medium text-balance md:text-lg">
               {note}
             </p>
           )}

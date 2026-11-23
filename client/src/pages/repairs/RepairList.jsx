@@ -287,7 +287,7 @@ const RepairList = () => {
   }
 
   return (
-    <div className="bg-gradient-primary shadow-primary desktop-column flex min-h-svh w-full flex-col">
+    <div className="bg-gradient-primary shadow-primary desktop-page flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-2 px-5 pt-4">
         <button
           // เข้ามาจากแท็บไหนก็ได้ จึงถอยประวัติ (เปิดลิงก์ตรงๆ ไม่มีประวัติ จึงมีเส้นทางสำรอง)
@@ -322,7 +322,7 @@ const RepairList = () => {
       </div>
 
       {status !== "credit" && status !== "estimate" && (
-        <div className="scrollbar-hide mt-4 flex justify-start gap-4 overflow-x-auto px-5 xl:justify-center">
+        <div className="scrollbar-hide mt-4 flex justify-start gap-4 overflow-x-auto px-5 md:justify-center">
           <Link
             to="/repairs?status=in-progress"
             className={`flex h-[45px] w-26.5 shrink-0 items-center justify-center rounded-lg border-2 text-lg font-semibold duration-300 md:w-30 md:text-xl ${
@@ -403,11 +403,13 @@ const RepairList = () => {
                 </span>
                 <div className="bg-subtle-light/40 h-px flex-1" />
               </div>
-              {group.repairs.map(renderCard)}
+              <div className="desktop-grid">
+                {group.repairs.map(renderCard)}
+              </div>
             </div>
           ))
         ) : (
-          currentRepairs.map(renderCard)
+          <div className="desktop-grid">{currentRepairs.map(renderCard)}</div>
         )}
       </div>
     </div>

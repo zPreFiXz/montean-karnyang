@@ -120,7 +120,7 @@ const AttendanceReport = () => {
   ].filter((row) => row.people.length > 0);
 
   return (
-    <div className="desktop-column flex min-h-svh flex-col">
+    <div className="desktop-page flex min-h-svh flex-col">
       <ReportPeriodHeader
         title="รายงานเวลาเข้า-ออกงาน"
         periodType="daily"
@@ -153,9 +153,9 @@ const AttendanceReport = () => {
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-4 pt-4">
+          <div className="desktop-grid flex flex-col gap-4 pt-4">
             {summaryRows.length > 0 && (
-              <div className="divide-y divide-gray-200 rounded-lg bg-gray-50 px-4 py-1">
+              <div className="divide-y divide-gray-200 rounded-lg bg-gray-50 px-4 py-1 xl:col-span-full">
                 {summaryRows.map((row) => (
                   <div key={row.label} className="py-3">
                     <div className="flex items-center gap-2">

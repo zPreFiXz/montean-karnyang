@@ -156,7 +156,7 @@ const OrganizationList = () => {
       : "ไม่มีหน่วยงาน";
 
   return (
-    <div className="bg-gradient-primary shadow-primary desktop-column flex min-h-svh w-full flex-col">
+    <div className="bg-gradient-primary shadow-primary desktop-page flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-2 px-5 pt-4">
         <button
           // ไม่ถอยประวัติ เพราะอาจถอยไปหน้าลูกค้าหรือบิลที่เพิ่งย้ายกองออกไป เข้ามาจากปุ่มเครดิตในหน้าหลัก
@@ -171,7 +171,7 @@ const OrganizationList = () => {
         </p>
       </div>
 
-      <div className="scrollbar-hide mt-4 flex justify-start gap-4 overflow-x-auto px-5 xl:justify-center">
+      <div className="scrollbar-hide mt-4 flex justify-start gap-4 overflow-x-auto px-5 md:justify-center">
         {TABS.map((item) => (
           <button
             key={item.id}
@@ -227,38 +227,43 @@ const OrganizationList = () => {
                 </span>
                 <div className="bg-subtle-light/40 h-px flex-1" />
               </div>
-              {group.items.map((item) => (
-                <Link
-                  key={item.id}
-                  to={`/repairs/${item.id}`}
-                  state={{ from: "repair-status", statusSlug: "credit" }}
-                  className="mt-4 block w-full"
-                >
-                  <CarCard
-                    bg="credit"
-                    icon={
-                      isSaleRepair(item) ? (
-                        <OutlineCardIcon icon={ShoppingBag} color="#7c3aed" />
-                      ) : isNoVehicleRepair(item) ? (
-                        <OutlineCardIcon icon={WrenchOutline} color="#7c3aed" />
-                      ) : (
-                        <BrandIcons
-                          brand={item.vehicle?.vehicleModel?.brand}
-                          color="#7c3aed"
-                        />
-                      )
-                    }
-                    licensePlate={item.customer?.name || getRepairTitle(item)}
-                    brand={
-                      item.customer?.name
-                        ? getRepairTitle(item)
-                        : getRepairSubtitle(item)
-                    }
-                    dueNote={dueNoteOf(item, toLocalDateKey())}
-                    price={Number(item.totalPrice) || 0}
-                  />
-                </Link>
-              ))}
+              <div className="desktop-grid">
+                {group.items.map((item) => (
+                  <Link
+                    key={item.id}
+                    to={`/repairs/${item.id}`}
+                    state={{ from: "repair-status", statusSlug: "credit" }}
+                    className="mt-4 block w-full"
+                  >
+                    <CarCard
+                      bg="credit"
+                      icon={
+                        isSaleRepair(item) ? (
+                          <OutlineCardIcon icon={ShoppingBag} color="#7c3aed" />
+                        ) : isNoVehicleRepair(item) ? (
+                          <OutlineCardIcon
+                            icon={WrenchOutline}
+                            color="#7c3aed"
+                          />
+                        ) : (
+                          <BrandIcons
+                            brand={item.vehicle?.vehicleModel?.brand}
+                            color="#7c3aed"
+                          />
+                        )
+                      }
+                      licensePlate={item.customer?.name || getRepairTitle(item)}
+                      brand={
+                        item.customer?.name
+                          ? getRepairTitle(item)
+                          : getRepairSubtitle(item)
+                      }
+                      dueNote={dueNoteOf(item, toLocalDateKey())}
+                      price={Number(item.totalPrice) || 0}
+                    />
+                  </Link>
+                ))}
+              </div>
             </div>
           ))
         ) : (
@@ -273,33 +278,35 @@ const OrganizationList = () => {
                 </span>
                 <div className="bg-subtle-light/40 h-px flex-1" />
               </div>
-              {group.items.map((item) => (
-                <Link
-                  key={item.id}
-                  to={`/organizations/${item.id}`}
-                  state={{ organization: item }}
-                  aria-label={
-                    item.overdueCount > 0
-                      ? `${item.name} ${item.creditCount} บิล ถึงหรือเกินกำหนดชำระ ${item.overdueCount} บิล`
-                      : undefined
-                  }
-                  className="relative mt-4 block w-full"
-                >
-                  <AlertCountBadge count={item.overdueCount} />
-                  <CarCard
-                    bg="credit"
-                    icon={
-                      <OutlineCardIcon
-                        icon={organizationIcon(item.organizationType)}
-                        color="#7c3aed"
-                      />
+              <div className="desktop-grid">
+                {group.items.map((item) => (
+                  <Link
+                    key={item.id}
+                    to={`/organizations/${item.id}`}
+                    state={{ organization: item }}
+                    aria-label={
+                      item.overdueCount > 0
+                        ? `${item.name} ${item.creditCount} บิล ถึงหรือเกินกำหนดชำระ ${item.overdueCount} บิล`
+                        : undefined
                     }
-                    licensePlate={item.name}
-                    brand={`${item.creditCount} บิล`}
-                    price={item.creditTotal}
-                  />
-                </Link>
-              ))}
+                    className="relative mt-4 block w-full"
+                  >
+                    <AlertCountBadge count={item.overdueCount} />
+                    <CarCard
+                      bg="credit"
+                      icon={
+                        <OutlineCardIcon
+                          icon={organizationIcon(item.organizationType)}
+                          color="#7c3aed"
+                        />
+                      }
+                      licensePlate={item.name}
+                      brand={`${item.creditCount} บิล`}
+                      price={item.creditTotal}
+                    />
+                  </Link>
+                ))}
+              </div>
             </div>
           ))
         )}

@@ -437,7 +437,12 @@ const InventoryForm = () => {
   };
 
   return (
-    <div className="bg-gradient-primary shadow-primary desktop-column-narrow flex min-h-svh w-full flex-col">
+    <div
+      // บริการไม่มีรูป ฟอร์มคอลัมน์เดียวจึงแคบกว่า อะไหล่แบ่งรูปไว้ซ้ายจึงกว้างกว่า
+      className={`bg-gradient-primary shadow-primary flex min-h-svh w-full flex-col ${
+        isServiceCategory() ? "desktop-column-narrow" : "desktop-column"
+      }`}
+    >
       <div className="flex items-center gap-2 px-5 pt-4">
         <button
           onClick={() => navigate(-1)}
@@ -487,7 +492,7 @@ const InventoryForm = () => {
             )}
 
             {!isServiceCategory() && (
-              <div>
+              <div className="desktop-form">
                 <FormUploadImage
                   label="รูปภาพอะไหล่"
                   setSelectedImage={setSelectedImage}
@@ -700,7 +705,8 @@ const InventoryForm = () => {
               errors={errors}
             />
 
-            <div className="mt-4 flex justify-center pb-28 xl:pb-4">
+            {/* จอคอมปุ่มบันทึกติดขอบล่างระหว่างเลื่อน ฟอร์มยาวไม่ต้องเลื่อนลงไปหา */}
+            <div className="xl:bg-surface mt-4 flex justify-center pb-28 xl:sticky xl:bottom-0 xl:z-10 xl:border-t xl:border-gray-100 xl:pt-4 xl:pb-4">
               <FormButton
                 label={isEdit ? "บันทึก" : `เพิ่ม${itemWord}`}
                 isLoading={isSubmitting}

@@ -100,7 +100,7 @@ const EmployeeFormDialog = ({
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5">
           <form
             onSubmit={handleSubmit(editingItem ? handleEdit : handleAdd)}
-            className="space-y-4"
+            className="space-y-4 rounded-lg bg-gray-50 p-4"
           >
             <div>
               <FormInput

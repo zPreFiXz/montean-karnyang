@@ -118,12 +118,10 @@
   background: linear-gradient(180deg, #2280d8 0%, #1f77cf 100%);
 }
 
-/* หน้าแบบมือถือ (หัวน้ำเงิน แผ่นขาว) บนจอคอม: เนื้อหาอยู่กลางจอ ไม่ยืดเต็มความกว้าง ขอบสองข้างเป็นพื้นน้ำเงิน
-   ใส่ที่กล่องนอกสุดของหน้า กล่องที่ไม่มีพื้นน้ำเงินเอง (หน้ารายงาน) จะได้พื้นน้ำเงินด้วย */
+/* หน้าแบบมือถือ (หัวน้ำเงิน แผ่นขาว) บนจอคอม: เนื้อหาอยู่กลางจอ ไม่ยืดเต็มความกว้าง */
 @utility desktop-column {
   @media (width >= 80rem) {
     padding-inline: max(0px, calc((100% - 64rem) / 2));
-    background: linear-gradient(180deg, #2280d8 0%, #1f77cf 100%);
   }
 }
 
@@ -131,24 +129,96 @@
 @utility desktop-column-narrow {
   @media (width >= 80rem) {
     padding-inline: max(0px, calc((100% - 48rem) / 2));
-    background: linear-gradient(180deg, #2280d8 0%, #1f77cf 100%);
   }
 }
 
+/* โครงหน้าจอคอม เขียนนอก @layer ให้ชนะคลาส flex ของกล่องเดียวกัน (มือถือยังเป็น flex คอลัมน์ตามเดิม)
+   desktop-grid = การ์ดในหน้ารายการเรียง 2 คอลัมน์ ไม่ถึง 3 เพราะการ์ดมีราคาทุกใบ หลายคอลัมน์ลายตาและอ่านลำดับเวลายาก
+   desktop-split = หน้ารายละเอียด แผงข้อมูลซ้าย รายการขวา  desktop-sticky = แผงซ้ายติดอยู่ระหว่างเลื่อน */
+@media (width >= 80rem) {
+  .desktop-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1rem;
+  }
+  .desktop-split {
+    display: grid;
+    grid-template-columns: 22rem minmax(0, 1fr);
+    column-gap: 1.5rem;
+    align-items: start;
+  }
+  .desktop-sticky {
+    position: sticky;
+    top: 1rem;
+  }
+  /* ฟอร์มอะไหล่: รูปภาพ (ลูกตัวแรก) อยู่ซ้ายและติดอยู่ระหว่างเลื่อน ช่องอื่นเรียงลงทางขวาตามลำดับเดิม
+     ใช้ grid แทนการย้ายช่องในโค้ด เพราะช่องเปลี่ยนตามหมวดหมู่ */
+  .desktop-form {
+    display: grid;
+    grid-template-columns: 18rem minmax(0, 1fr);
+    column-gap: 1rem;
+    align-items: start;
+
+    & > * {
+      grid-column: 2;
+    }
+    & > :first-child {
+      grid-column: 1;
+      grid-row: 1 / span 40;
+      position: sticky;
+      top: 1rem;
+    }
+  }
+}
+/* จอใหญ่มาก (เช่น 1920px) หน้าเต็มความกว้างไม่ยืดเกิน 1400px การ์ดใน 2 คอลัมน์จะไม่ยาวจนสายตากวาดไกล */
+@media (width >= 96rem) {
+  .desktop-page {
+    padding-inline: max(0px, calc((100% - 87.5rem) / 2));
+  }
+}
+
+/* จอคอมใช้พื้นเทาอ่อนแบบหน้าหลัก หัวน้ำเงินเหมาะกับมือถือ บนจอใหญ่สีเข้มผืนใหญ่ดึงสายตาออกจากเนื้อหา
+   desktop-page = เต็มความกว้าง (หน้าที่แบ่งซ้ายขวาเอง) desktop-column(-narrow) = อยู่กลางจอ
+   ไม่อยู่ใน @layer จึงชนะคลาส bg-gradient-primary ของหน้า
+   ตัวหนังสือขาวนอกแผ่นขาวเปลี่ยนเป็นน้ำเงิน ปุ่มวงกลมขาวโปร่งเป็นฟ้าอ่อน
+   ปุ่มหรือแท็บที่มีสีพื้นของตัวเอง (ปุ่มลบ แท็บที่เลือก) และทุกอย่างในแผ่นขาวคงเดิม */
+@media (width >= 80rem) {
+  :is(.desktop-page, .desktop-column, .desktop-column-narrow) {
+    background: var(--color-surface-muted);
+
+    & .bg-surface\/20 {
+      background-color: rgb(25 118 210 / 0.1);
+    }
+
+    &
+      :is(.text-surface):not(
+        :is(.bg-surface, .bg-primary, .bg-destructive, [class*="bg-status-"]),
+        :is(.bg-surface, .bg-primary, .bg-destructive, [class*="bg-status-"]) *
+      ) {
+      color: var(--color-primary);
+    }
+
+    & :is(.text-surface\/70, .text-surface\/80):not(.bg-surface *) {
+      color: var(--color-subtle-dark);
+    }
+  }
+}
+
+/* การ์ดมินิมอล: เส้นขอบบาง 1px แทนเงาหนา (flat)
+   12% เพราะ 8% จางเกินไปเมื่อการ์ดขาววางบนพื้นขาว (ในไดอะล็อก/แผงหน้าคลัง)
+   เป็น @utility จึงใช้ xl:shadow-primary ได้ และ xl:shadow-none ปิดได้จริง */
+@utility shadow-primary {
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12);
+}
+
+/* แถบ tab ล่าง: เส้นขอบบาง + เงานุ่มบางๆ ให้แยกจากเนื้อหาพอมองออก */
+@utility shadow-tab {
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.06),
+    0 6px 20px -12px rgba(15, 23, 42, 0.18);
+}
+
 @layer utilities {
-  /* การ์ดมินิมอล: เส้นขอบบาง 1px แทนเงาหนา (flat)
-     12% เพราะ 8% จางเกินไปเมื่อการ์ดขาววางบนพื้นขาว (ในไดอะล็อก/แผงหน้าคลัง) */
-  .shadow-primary {
-    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12);
-  }
-
-  /* แถบ tab ล่าง: เส้นขอบบาง + เงานุ่มบางๆ ให้แยกจากเนื้อหาพอมองออก */
-  .shadow-tab {
-    box-shadow:
-      0 0 0 1px rgba(15, 23, 42, 0.06),
-      0 6px 20px -12px rgba(15, 23, 42, 0.18);
-  }
-
   /* ซ่อนแถบเลื่อน — ใช้เฉพาะแถวเลื่อนแนวนอนที่มีชิปถูกตัดที่ขอบเป็นตัวบอกว่าเลื่อนได้อยู่แล้ว
      ห้ามใช้กับพื้นที่เลื่อนแนวตั้ง เพราะจะไม่มีอะไรบอกผู้ใช้ว่ายังมีเนื้อหาต่อ */
   .scrollbar-hide {

@@ -168,7 +168,7 @@ const TopItemsReport = () => {
   };
 
   return (
-    <div className="desktop-column">
+    <div className="desktop-page">
       <ReportPeriodHeader
         title={view === "models" ? "รุ่นรถที่มาบ่อย" : "อะไหล่ขายดี"}
         basePath={`/admin/reports/top-items${view === "models" ? "?view=models" : ""}`}
@@ -234,7 +234,7 @@ const TopItemsReport = () => {
         {isLoading ? (
           <PageSpinner />
         ) : ranked.length > 0 ? (
-          <div className="space-y-3 pt-4">
+          <div className="desktop-grid flex flex-col gap-3 pt-4">
             {view === "models" &&
               ranked.map((item, index) => {
                 const rank = index + 1;

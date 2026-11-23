@@ -58,6 +58,8 @@ const InventoryBrowser = ({
   // วาดการ์ดทีละชุด เลื่อนใกล้ท้ายค่อยเพิ่ม (หน้าต่างเลือกรายการ)
   // หน้าคลังไม่ใช้ เพราะต้องเลื่อนกลับไปการ์ดเดิมได้ การ์ดทุกใบต้องอยู่ครบ
   incremental = false,
+  // การ์ดเรียงเป็นตารางบนจอคอม (หน้าคลัง) ไดอะล็อกแคบอยู่แล้วจึงไม่ใช้
+  grid = false,
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [localCategory, setLocalCategory] = useState("ทั้งหมด");
@@ -685,7 +687,8 @@ const InventoryBrowser = ({
         <div className="flex min-w-0 items-center gap-1.5">
           <p className="truncate text-xl font-semibold md:text-[22px]">
             {activeCategory === "ทั้งหมด"
-              ? "รายการอะไหล่และบริการ"
+              ? // หัวหน้าบอกอยู่แล้วว่าเป็นอะไหล่และบริการ ชื่อยาวจะถูกตัดบนมือถือ
+                "รายการทั้งหมด"
               : activeCategory}
           </p>
           {!isLoading && visibleInventory.length > 0 && (
@@ -720,11 +723,15 @@ const InventoryBrowser = ({
                 <div className="bg-subtle-light/40 h-px flex-1" />
               </div>
             )}
-            {group.shown.map(renderItem)}
+            <div className={grid ? "desktop-grid" : undefined}>
+              {group.shown.map(renderItem)}
+            </div>
           </div>
         ))
       ) : (
-        visibleInventory.slice(0, shownLimit).map(renderItem)
+        <div className={grid ? "desktop-grid" : undefined}>
+          {visibleInventory.slice(0, shownLimit).map(renderItem)}
+        </div>
       )}
       {hasMore && <div ref={sentinelRef} className="h-px" />}
     </div>

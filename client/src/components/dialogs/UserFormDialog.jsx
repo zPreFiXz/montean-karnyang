@@ -138,7 +138,7 @@ const UserFormDialog = ({
               editingItem ? handleEdit : handleAdd,
               focusTopmostInvalid,
             )}
-            className="space-y-4"
+            className="space-y-4 rounded-lg bg-gray-50 p-4"
           >
             <div className="flex flex-col gap-4 pb-1">
               <FormInput

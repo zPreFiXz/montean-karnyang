@@ -209,7 +209,7 @@ const DocumentNumbers = () => {
   );
 
   return (
-    <div className="desktop-column flex min-h-svh flex-col">
+    <div className="desktop-page flex min-h-svh flex-col">
       <ReportPeriodHeader
         title="เลขที่เอกสาร"
         periodType="monthly"
@@ -228,8 +228,8 @@ const DocumentNumbers = () => {
       </ReportPeriodHeader>
 
       <div className="bg-surface -mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl px-5 pb-28 xl:pb-4">
-        {/* ทรงเดียวกับแถวเลือกเอกสารในหน้าตัวอย่างใบเสร็จ */}
-        <div className="grid grid-cols-2 gap-2 pt-4">
+        {/* แถบเทาแบบแท็บในแผ่นขาวหน้าอื่น (ร้านค้า อะไหล่ขายดี) สี่ประเภทจึงวางสองแถว */}
+        <div className="mt-4 grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1">
           {DOC_TYPES.map((type) => (
             <button
               key={type.id}
@@ -241,10 +241,10 @@ const DocumentNumbers = () => {
                 )
               }
               aria-pressed={prefix === type.id}
-              className={`font-athiti h-9.5 cursor-pointer rounded-[20px] border text-lg font-semibold duration-300 md:text-xl ${
+              className={`font-athiti h-10 cursor-pointer rounded-lg text-lg font-semibold duration-300 md:text-xl ${
                 prefix === type.id
-                  ? "bg-primary text-surface border-transparent"
-                  : "border-subtle-light text-subtle-dark bg-surface"
+                  ? "bg-gradient-primary text-surface shadow-lg"
+                  : "text-subtle-dark"
               }`}
             >
               {type.label}
@@ -330,15 +330,17 @@ const DocumentNumbers = () => {
                       <div className="bg-subtle-light/40 h-px flex-1" />
                     </div>
                   )}
-                  {group.entries.map((entry) => (
-                    <div key={entry.no}>
-                      {entry.missing
-                        ? renderMissing(entry)
-                        : entry.billingNote
-                          ? renderBillingNote(entry)
-                          : renderRepair(entry)}
-                    </div>
-                  ))}
+                  <div className="desktop-grid">
+                    {group.entries.map((entry) => (
+                      <div key={entry.no}>
+                        {entry.missing
+                          ? renderMissing(entry)
+                          : entry.billingNote
+                            ? renderBillingNote(entry)
+                            : renderRepair(entry)}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))
             )}

@@ -190,7 +190,7 @@ const OrganizationDetail = () => {
   };
 
   return (
-    <div className="bg-gradient-primary shadow-primary desktop-column flex min-h-svh w-full flex-col">
+    <div className="bg-gradient-primary shadow-primary desktop-page flex min-h-svh w-full flex-col">
       <div className="flex items-center gap-2 px-5 pt-4">
         <button
           onClick={() => {
@@ -229,303 +229,310 @@ const OrganizationDetail = () => {
         {isLoading ? (
           <PageSpinner />
         ) : (
-          <>
-            <div className="mt-4 flex items-start gap-2">
-              <div className="bg-status-credit mt-0.5 flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full">
-                <OrganizationIcon className="text-surface h-6 w-6" />
+          <div className="desktop-split flex flex-1 flex-col">
+            <div className="desktop-sticky">
+              <div className="mt-4 flex items-start gap-2">
+                <div className="bg-status-credit mt-0.5 flex aspect-square h-[45px] w-[45px] items-center justify-center rounded-full">
+                  <OrganizationIcon className="text-surface h-6 w-6" />
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <p className="text-status-credit text-[22px] leading-tight font-semibold md:text-2xl">
+                    {customer?.name || ""}
+                  </p>
+                  {/* ประเภทคู่กับปุ่มเปลี่ยน แบบเดียวกับหน้ารายละเอียดบิล (RepairDetailCustomer) */}
+                  {customer && (
+                    <div className="text-subtle-dark flex flex-wrap items-center gap-x-1.5 text-lg leading-tight font-medium md:text-xl">
+                      <span>
+                        {organizationLabel(customer.organizationType) ||
+                          "ลูกค้าทั่วไป"}
+                      </span>
+                      <span className="text-subtle-light">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setIsTypeDialogOpen(true)}
+                        className="text-primary flex cursor-pointer items-center gap-1 font-semibold"
+                      >
+                        <SquarePen className="h-4 w-4" />
+                        เปลี่ยนประเภท
+                      </button>
+                    </div>
+                  )}
+                  {(customer?.phoneNumber ||
+                    customer?.address ||
+                    customer?.taxId) && (
+                    <div className="mt-1 flex flex-wrap items-start gap-2">
+                      {customer.phoneNumber && (
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Phone size={16} className="text-subtle-dark" />
+                          <a
+                            href={`tel:${customer.phoneNumber}`}
+                            className="text-subtle-dark text-lg leading-tight font-medium underline md:text-xl"
+                          >
+                            {formatPhone(customer.phoneNumber)}
+                          </a>
+                        </div>
+                      )}
+                      {customer.address && (
+                        <div className="flex items-start gap-1">
+                          <MapPin
+                            size={16}
+                            className="text-subtle-dark mt-0.5 shrink-0"
+                          />
+                          <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
+                            {customer.address}
+                          </p>
+                        </div>
+                      )}
+                      {customer.taxId && (
+                        <div className="flex shrink-0 items-center gap-1">
+                          <IdCard size={16} className="text-subtle-dark" />
+                          <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
+                            {customer.taxId}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="flex min-w-0 flex-1 flex-col">
-                <p className="text-status-credit text-[22px] leading-tight font-semibold md:text-2xl">
-                  {customer?.name || ""}
-                </p>
-                {/* ประเภทคู่กับปุ่มเปลี่ยน แบบเดียวกับหน้ารายละเอียดบิล (RepairDetailCustomer) */}
-                {customer && (
-                  <div className="text-subtle-dark flex flex-wrap items-center gap-x-1.5 text-lg leading-tight font-medium md:text-xl">
-                    <span>
-                      {organizationLabel(customer.organizationType) ||
-                        "ลูกค้าทั่วไป"}
-                    </span>
-                    <span className="text-subtle-light">|</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsTypeDialogOpen(true)}
-                      className="text-primary flex cursor-pointer items-center gap-1 font-semibold"
-                    >
-                      <SquarePen className="h-4 w-4" />
-                      เปลี่ยนประเภท
-                    </button>
-                  </div>
-                )}
-                {(customer?.phoneNumber ||
-                  customer?.address ||
-                  customer?.taxId) && (
-                  <div className="mt-1 flex flex-wrap items-start gap-2">
-                    {customer.phoneNumber && (
-                      <div className="flex shrink-0 items-center gap-1">
-                        <Phone size={16} className="text-subtle-dark" />
-                        <a
-                          href={`tel:${customer.phoneNumber}`}
-                          className="text-subtle-dark text-lg leading-tight font-medium underline md:text-xl"
-                        >
-                          {formatPhone(customer.phoneNumber)}
-                        </a>
-                      </div>
-                    )}
-                    {customer.address && (
-                      <div className="flex items-start gap-1">
-                        <MapPin
-                          size={16}
-                          className="text-subtle-dark mt-0.5 shrink-0"
-                        />
-                        <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                          {customer.address}
-                        </p>
-                      </div>
-                    )}
-                    {customer.taxId && (
-                      <div className="flex shrink-0 items-center gap-1">
-                        <IdCard size={16} className="text-subtle-dark" />
-                        <p className="text-subtle-dark text-lg leading-tight font-medium md:text-xl">
-                          {customer.taxId}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
 
-            <div className="border-status-credit/30 from-status-credit/10 to-status-credit/5 mt-4 rounded-lg border bg-gradient-to-r p-4">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
-                  เครดิต {repairs.length} บิล
-                </p>
-                <p className="text-status-credit text-2xl font-semibold md:text-[26px]">
-                  {formatCurrency(creditTotal)}
-                </p>
+              <div className="border-status-credit/30 from-status-credit/10 to-status-credit/5 mt-4 rounded-lg border bg-gradient-to-r p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
+                    เครดิต {repairs.length} บิล
+                  </p>
+                  <p className="text-status-credit text-2xl font-semibold md:text-[26px]">
+                    {formatCurrency(creditTotal)}
+                  </p>
+                </div>
+                {/* ร้านค้าที่เราไปรับของมาด้วย หักกลบแล้วบอกว่าใครต้องจ่ายใคร (ตรงกับท้ายใบวางบิล) */}
+                {purchases.length > 0 && (
+                  <>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <p className="text-subtle-dark text-lg font-medium md:text-xl">
+                        หัก อะไหล่ที่รับจากร้าน {purchases.length} รายการ
+                      </p>
+                      <p className="text-subtle-dark text-lg font-semibold md:text-xl">
+                        {formatCurrency(purchaseTotal)}
+                      </p>
+                    </div>
+                    <div className="border-status-credit/30 mt-2 flex items-center justify-between gap-2 border-t pt-2">
+                      <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
+                        {net > 0
+                          ? "ร้านค้าต้องชำระ"
+                          : net < 0
+                            ? "ร้านเราต้องชำระ"
+                            : "หักกลบพอดี"}
+                      </p>
+                      <p
+                        className={`text-2xl font-semibold md:text-[26px] ${
+                          net < 0 ? "text-destructive" : "text-status-credit"
+                        }`}
+                      >
+                        {formatCurrency(Math.abs(net))}
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
-              {/* ร้านค้าที่เราไปรับของมาด้วย หักกลบแล้วบอกว่าใครต้องจ่ายใคร (ตรงกับท้ายใบวางบิล) */}
-              {purchases.length > 0 && (
-                <>
-                  <div className="mt-1 flex items-center justify-between gap-2">
-                    <p className="text-subtle-dark text-lg font-medium md:text-xl">
-                      หัก อะไหล่ที่รับจากร้าน {purchases.length} รายการ
-                    </p>
-                    <p className="text-subtle-dark text-lg font-semibold md:text-xl">
-                      {formatCurrency(purchaseTotal)}
-                    </p>
-                  </div>
-                  <div className="border-status-credit/30 mt-2 flex items-center justify-between gap-2 border-t pt-2">
-                    <p className="text-subtle-dark text-xl font-semibold md:text-[22px]">
-                      {net > 0
-                        ? "ร้านค้าต้องชำระ"
-                        : net < 0
-                          ? "ร้านเราต้องชำระ"
-                          : "หักกลบพอดี"}
-                    </p>
-                    <p
-                      className={`text-2xl font-semibold md:text-[26px] ${
-                        net < 0 ? "text-destructive" : "text-status-credit"
+
+              {/* ปุ่มขอบ ไม่ใช่ปุ่มทึบ จะได้ไม่แย่งสายตาจากยอดเงินด้านบน */}
+              {hasBillContent && (
+                <button
+                  type="button"
+                  onClick={() => setIsPreviewOpen(true)}
+                  className="bg-surface text-primary border-primary mt-4 flex h-[41px] w-full cursor-pointer items-center justify-center gap-2 rounded-[20px] border text-lg font-semibold md:text-xl"
+                >
+                  <Printer className="h-5 w-5" />
+                  พิมพ์ใบวางบิล
+                </button>
+              )}
+            </div>
+            <div className="flex flex-1 flex-col xl:min-h-64">
+              {/* ร้านค้ามีอะไหล่ที่เรารับจากร้านอีกชุด แยกแท็บ ไม่ต้องเลื่อนผ่านบิลทั้งหมดกว่าจะเจอ */}
+              {/* แถบเดียวกับแท็บในหน้ารายงานและหน้าต่างรุ่นรถ (พื้นขาวใช้แถบเลื่อน) */}
+              {isShop && (
+                <div
+                  role="tablist"
+                  className="relative mt-4 flex w-full rounded-lg bg-gray-100 p-1"
+                >
+                  <div
+                    aria-hidden="true"
+                    className="bg-gradient-primary absolute top-1 bottom-1 left-1 w-[calc((100%-8px)/2)] rounded-lg shadow-lg duration-300 ease-out"
+                    style={{
+                      transform: `translateX(${tab === "purchases" ? 100 : 0}%)`,
+                    }}
+                  />
+                  {[
+                    { id: "bills", label: "บิลเครดิต", count: repairs.length },
+                    {
+                      id: "purchases",
+                      label: "อะไหล่ที่รับมา",
+                      count: purchases.length,
+                    },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={tab === item.id}
+                      onClick={() => setTab(item.id)}
+                      className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-lg text-lg font-semibold duration-300 ease-out md:text-xl ${
+                        tab === item.id ? "text-white" : "text-subtle-dark"
                       }`}
                     >
-                      {formatCurrency(Math.abs(net))}
-                    </p>
+                      {item.count > 0
+                        ? `${item.label} (${item.count})`
+                        : item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {isShop && tab === "purchases" ? null : repairs.length === 0 ? (
+                <div className="flex flex-1 items-center justify-center">
+                  <p className="text-subtle-light px-5 text-center text-xl text-balance md:text-[22px]">
+                    ไม่มีบิลเครดิต
+                  </p>
+                </div>
+              ) : (
+                monthGroups.map((group) => (
+                  <div key={group.key}>
+                    <div className="mt-4 flex items-center gap-2">
+                      <p className="text-subtle-dark text-lg font-semibold md:text-xl">
+                        {group.title}
+                      </p>
+                      <span className="text-subtle-light text-lg md:text-xl">
+                        ({group.repairs.length})
+                      </span>
+                      <div className="bg-subtle-light/40 h-px flex-1" />
+                      {/* ใบเดียวยอดรวมเท่าราคาบนการ์ดใต้มัน ไม่ต้องขึ้นซ้ำ */}
+                      {group.repairs.length > 1 && (
+                        <p className="text-status-credit text-lg font-semibold md:text-xl">
+                          {formatCurrency(group.total)}
+                        </p>
+                      )}
+                    </div>
+                    <div className="desktop-grid">
+                      {group.repairs.map((item) => (
+                        <Link
+                          key={item.id}
+                          to={`/repairs/${item.id}`}
+                          className="mt-4 block w-full"
+                        >
+                          <CarCard
+                            bg="credit"
+                            icon={
+                              isSaleRepair(item) ? (
+                                <OutlineCardIcon
+                                  icon={ShoppingBag}
+                                  color="#7c3aed"
+                                />
+                              ) : isNoVehicleRepair(item) ? (
+                                <OutlineCardIcon
+                                  icon={WrenchOutline}
+                                  color="#7c3aed"
+                                />
+                              ) : (
+                                <BrandIcons
+                                  brand={item.vehicle?.vehicleModel?.brand}
+                                  color="#7c3aed"
+                                />
+                              )
+                            }
+                            licensePlate={getRepairTitle(item)}
+                            brand={getCustomerBillSubtitle(item)}
+                            dueNote={dueNoteOf(item, toLocalDateKey())}
+                            price={Number(item.totalPrice) || 0}
+                          />
+                        </Link>
+                      ))}
+                    </div>
                   </div>
+                ))
+              )}
+
+              {isShop && tab === "purchases" && (
+                <>
+                  {/* ปุ่มเส้นประแบบเดียวกับเพิ่มรถรุ่นอื่นหรือเพิ่มเบอร์รถ ชื่อแท็บบอกอยู่แล้วจึงไม่มีหัวข้อซ้ำ */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(`/organizations/${id}/purchases/new`, {
+                        state: { organization: customer },
+                      })
+                    }
+                    className="text-subtle-light mt-4 flex h-[41px] w-full cursor-pointer items-center justify-center gap-2 rounded-[20px] border-2 border-dashed border-gray-300 text-lg font-medium transition-colors duration-200 hover:border-gray-400 hover:bg-gray-50 md:text-xl"
+                  >
+                    <Plus className="h-5 w-5" />
+                    เพิ่มอะไหล่ที่รับมา
+                  </button>
+                  {purchases.length === 0 ? (
+                    <div className="flex flex-1 items-center justify-center">
+                      <p className="text-subtle-light px-5 text-center text-xl text-balance md:text-[22px]">
+                        ไม่มีอะไหล่ที่รับจากร้าน
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {purchaseGroups.map((group) => (
+                        <div key={group.key}>
+                          <div className="mt-4 flex items-center gap-2">
+                            <p className="text-subtle-dark text-lg font-semibold md:text-xl">
+                              {group.title}
+                            </p>
+                            <span className="text-subtle-light text-lg md:text-xl">
+                              ({group.items.length})
+                            </span>
+                            <div className="bg-subtle-light/40 h-px flex-1" />
+                            {group.items.length > 1 && (
+                              <p className="text-primary text-lg font-semibold md:text-xl">
+                                {formatCurrency(group.total)}
+                              </p>
+                            )}
+                          </div>
+                          <div className="desktop-grid">
+                            {group.items.map((purchase) => (
+                              <button
+                                key={purchase.id}
+                                type="button"
+                                onClick={() => setEditingPurchase(purchase)}
+                                className="mt-4 block w-full cursor-pointer text-left"
+                              >
+                                <CarCard
+                                  bg="primary"
+                                  icon={
+                                    <OutlineCardIcon
+                                      icon={Package}
+                                      color="#1976d2"
+                                    />
+                                  }
+                                  licensePlate={purchase.itemName}
+                                  brand={`${formatQuantity(purchase.quantity)}${
+                                    purchase.unit ? ` ${purchase.unit}` : ""
+                                  } × ${formatCurrency(purchase.unitPrice)}`}
+                                  price={purchaseAmountOf(purchase) || 0}
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      {/* ตกลงเงินกับร้านเสร็จแล้วกดปิดรายการ บิลเครดิตยังต้องรับเงินทีละบิลตามปกติ */}
+                      <button
+                        type="button"
+                        onClick={() => setIsSettleOpen(true)}
+                        className="bg-surface text-primary border-primary mt-4 flex h-[41px] w-full cursor-pointer items-center justify-center gap-2 rounded-[20px] border text-lg font-semibold md:text-xl"
+                      >
+                        <ArrowLeftRight className="h-5 w-5" />
+                        หักกลบแล้ว
+                      </button>
+                    </>
+                  )}
                 </>
               )}
             </div>
-
-            {/* ปุ่มขอบ ไม่ใช่ปุ่มทึบ จะได้ไม่แย่งสายตาจากยอดเงินด้านบน */}
-            {hasBillContent && (
-              <button
-                type="button"
-                onClick={() => setIsPreviewOpen(true)}
-                className="bg-surface text-primary border-primary mt-4 flex h-[41px] w-full cursor-pointer items-center justify-center gap-2 rounded-[20px] border text-lg font-semibold md:text-xl"
-              >
-                <Printer className="h-5 w-5" />
-                พิมพ์ใบวางบิล
-              </button>
-            )}
-
-            {/* ร้านค้ามีอะไหล่ที่เรารับจากร้านอีกชุด แยกแท็บ ไม่ต้องเลื่อนผ่านบิลทั้งหมดกว่าจะเจอ */}
-            {/* แถบเดียวกับแท็บในหน้ารายงานและหน้าต่างรุ่นรถ (พื้นขาวใช้แถบเลื่อน) */}
-            {isShop && (
-              <div
-                role="tablist"
-                className="relative mt-4 flex w-full rounded-lg bg-gray-100 p-1"
-              >
-                <div
-                  aria-hidden="true"
-                  className="bg-gradient-primary absolute top-1 bottom-1 left-1 w-[calc((100%-8px)/2)] rounded-lg shadow-lg duration-300 ease-out"
-                  style={{
-                    transform: `translateX(${tab === "purchases" ? 100 : 0}%)`,
-                  }}
-                />
-                {[
-                  { id: "bills", label: "บิลเครดิต", count: repairs.length },
-                  {
-                    id: "purchases",
-                    label: "อะไหล่ที่รับมา",
-                    count: purchases.length,
-                  },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={tab === item.id}
-                    onClick={() => setTab(item.id)}
-                    className={`relative z-10 flex h-10 flex-1 cursor-pointer items-center justify-center rounded-lg text-lg font-semibold duration-300 ease-out md:text-xl ${
-                      tab === item.id ? "text-white" : "text-subtle-dark"
-                    }`}
-                  >
-                    {item.count > 0
-                      ? `${item.label} (${item.count})`
-                      : item.label}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {isShop && tab === "purchases" ? null : repairs.length === 0 ? (
-              <div className="flex flex-1 items-center justify-center">
-                <p className="text-subtle-light px-5 text-center text-xl text-balance md:text-[22px]">
-                  ไม่มีบิลเครดิต
-                </p>
-              </div>
-            ) : (
-              monthGroups.map((group) => (
-                <div key={group.key}>
-                  <div className="mt-4 flex items-center gap-2">
-                    <p className="text-subtle-dark text-lg font-semibold md:text-xl">
-                      {group.title}
-                    </p>
-                    <span className="text-subtle-light text-lg md:text-xl">
-                      ({group.repairs.length})
-                    </span>
-                    <div className="bg-subtle-light/40 h-px flex-1" />
-                    {/* ใบเดียวยอดรวมเท่าราคาบนการ์ดใต้มัน ไม่ต้องขึ้นซ้ำ */}
-                    {group.repairs.length > 1 && (
-                      <p className="text-status-credit text-lg font-semibold md:text-xl">
-                        {formatCurrency(group.total)}
-                      </p>
-                    )}
-                  </div>
-                  {group.repairs.map((item) => (
-                    <Link
-                      key={item.id}
-                      to={`/repairs/${item.id}`}
-                      className="mt-4 block w-full"
-                    >
-                      <CarCard
-                        bg="credit"
-                        icon={
-                          isSaleRepair(item) ? (
-                            <OutlineCardIcon
-                              icon={ShoppingBag}
-                              color="#7c3aed"
-                            />
-                          ) : isNoVehicleRepair(item) ? (
-                            <OutlineCardIcon
-                              icon={WrenchOutline}
-                              color="#7c3aed"
-                            />
-                          ) : (
-                            <BrandIcons
-                              brand={item.vehicle?.vehicleModel?.brand}
-                              color="#7c3aed"
-                            />
-                          )
-                        }
-                        licensePlate={getRepairTitle(item)}
-                        brand={getCustomerBillSubtitle(item)}
-                        dueNote={dueNoteOf(item, toLocalDateKey())}
-                        price={Number(item.totalPrice) || 0}
-                      />
-                    </Link>
-                  ))}
-                </div>
-              ))
-            )}
-
-            {isShop && tab === "purchases" && (
-              <>
-                {/* ปุ่มเส้นประแบบเดียวกับเพิ่มรถรุ่นอื่นหรือเพิ่มเบอร์รถ ชื่อแท็บบอกอยู่แล้วจึงไม่มีหัวข้อซ้ำ */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    navigate(`/organizations/${id}/purchases/new`, {
-                      state: { organization: customer },
-                    })
-                  }
-                  className="text-subtle-light mt-4 flex h-[41px] w-full cursor-pointer items-center justify-center gap-2 rounded-[20px] border-2 border-dashed border-gray-300 text-lg font-medium transition-colors duration-200 hover:border-gray-400 hover:bg-gray-50 md:text-xl"
-                >
-                  <Plus className="h-5 w-5" />
-                  เพิ่มอะไหล่ที่รับมา
-                </button>
-                {purchases.length === 0 ? (
-                  <div className="flex flex-1 items-center justify-center">
-                    <p className="text-subtle-light px-5 text-center text-xl text-balance md:text-[22px]">
-                      ไม่มีอะไหล่ที่รับจากร้าน
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    {purchaseGroups.map((group) => (
-                      <div key={group.key}>
-                        <div className="mt-4 flex items-center gap-2">
-                          <p className="text-subtle-dark text-lg font-semibold md:text-xl">
-                            {group.title}
-                          </p>
-                          <span className="text-subtle-light text-lg md:text-xl">
-                            ({group.items.length})
-                          </span>
-                          <div className="bg-subtle-light/40 h-px flex-1" />
-                          {group.items.length > 1 && (
-                            <p className="text-primary text-lg font-semibold md:text-xl">
-                              {formatCurrency(group.total)}
-                            </p>
-                          )}
-                        </div>
-                        {group.items.map((purchase) => (
-                          <button
-                            key={purchase.id}
-                            type="button"
-                            onClick={() => setEditingPurchase(purchase)}
-                            className="mt-4 block w-full cursor-pointer text-left"
-                          >
-                            <CarCard
-                              bg="primary"
-                              icon={
-                                <OutlineCardIcon
-                                  icon={Package}
-                                  color="#1976d2"
-                                />
-                              }
-                              licensePlate={purchase.itemName}
-                              brand={`${formatQuantity(purchase.quantity)}${
-                                purchase.unit ? ` ${purchase.unit}` : ""
-                              } × ${formatCurrency(purchase.unitPrice)}`}
-                              price={purchaseAmountOf(purchase) || 0}
-                            />
-                          </button>
-                        ))}
-                      </div>
-                    ))}
-                    {/* ตกลงเงินกับร้านเสร็จแล้วกดปิดรายการ บิลเครดิตยังต้องรับเงินทีละบิลตามปกติ */}
-                    <button
-                      type="button"
-                      onClick={() => setIsSettleOpen(true)}
-                      className="bg-surface text-primary border-primary mt-4 flex h-[41px] w-full cursor-pointer items-center justify-center gap-2 rounded-[20px] border text-lg font-semibold md:text-xl"
-                    >
-                      <ArrowLeftRight className="h-5 w-5" />
-                      หักกลบแล้ว
-                    </button>
-                  </>
-                )}
-              </>
-            )}
-          </>
+          </div>
         )}
       </div>
       <OrganizationBillPreviewDialog
