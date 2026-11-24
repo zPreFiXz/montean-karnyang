@@ -2,7 +2,11 @@ const express = require("express");
 const router = express.Router();
 
 const validate = require("../middlewares/validate");
-const { partSchema, updatePartStockSchema } = require("../utils/schemas");
+const {
+  partSchema,
+  updatePartStockSchema,
+  partLabelSchema,
+} = require("../utils/schemas");
 
 const { authCheck } = require("../middlewares/auth");
 
@@ -13,6 +17,8 @@ const {
   updatePartStock,
   deletePart,
   listPartHints,
+  previewPartLabel,
+  printPartLabel,
 } = require("../controllers/part");
 
 router.get("/parts", authCheck, listParts);
@@ -24,6 +30,18 @@ router.patch(
   authCheck,
   validate(updatePartStockSchema),
   updatePartStock,
+);
+router.post(
+  "/parts/:id/label/preview",
+  authCheck,
+  validate(partLabelSchema),
+  previewPartLabel,
+);
+router.post(
+  "/parts/:id/label/print",
+  authCheck,
+  validate(partLabelSchema),
+  printPartLabel,
 );
 router.delete("/parts/:id", authCheck, deletePart);
 

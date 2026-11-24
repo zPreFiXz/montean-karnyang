@@ -2,6 +2,7 @@ const prisma = require("../config/prisma");
 const { buildPartItemName } = require("../utils/repairItemName");
 const createError = require("../utils/createError");
 const { destroyImageQuietly } = require("../utils/cloudinaryImage");
+const { previewPartLabel, printPartLabel } = require("../utils/printLabel");
 
 // ยางส่งมาเป็นล็อต [{ dotCode, quantity }] — สต็อกรวม = ผลรวมทุกล็อต (stockQuantity เป็นตัวเลขหลักที่ต้องตรงกับล็อตเสมอ)
 const normalizeLots = (tireLots) =>
@@ -211,4 +212,26 @@ exports.listPartHints = async (req, res) => {
   });
 
   res.json(parts);
+};
+
+const findPartForLabel = async (id) => {
+  const part = await prisma.part.findUnique({
+    where: { id: Number(id) || 0 },
+    include: { category: true },
+  });
+  if (!part) createError(404, "ไม่พบอะไหล่");
+  return part;
+};
+
+// รูปตัวอย่างฉลากที่วาดจากข้อมูลชุดเดียวกับที่ส่งเครื่องพิมพ์
+exports.previewPartLabel = async (req, res) => {
+  const part = await findPartForLabel(req.params.id);
+  const image = await previewPartLabel(part, req.body);
+  res.json({ image });
+};
+
+exports.printPartLabel = async (req, res) => {
+  const part = await findPartForLabel(req.params.id);
+  const copies = await printPartLabel(part, req.body);
+  res.json({ message: `สั่งพิมพ์ฉลาก ${copies} แผ่นแล้ว` });
 };

@@ -56,14 +56,17 @@ const getBrowser = () => {
   return browserPromise;
 };
 
-const withPage = async (html, work) => {
+// ขนาดหน้าต่างเท่ากระดาษ A5 (148 x 210 มม.) รูปที่ถ่ายจะได้จัดหน้าเหมือนใบที่พิมพ์
+// ความละเอียดสองเท่า ตัวหนังสือในรูปจะคมตอนลูกค้าซูมดูในโทรศัพท์
+const A5_VIEWPORT = { width: 560, height: 794, deviceScaleFactor: 2 };
+
+// viewport เปลี่ยนได้ ฉลากสติกเกอร์ใช้ขนาดเท่าจุดของหัวพิมพ์ (ดู printLabel.js)
+const withPage = async (html, work, viewport = A5_VIEWPORT) => {
   const browser = await getBrowser();
   const page = await browser.newPage();
 
   try {
-    // ขนาดหน้าต่างเท่ากระดาษ A5 (148 x 210 มม.) รูปที่ถ่ายจะได้จัดหน้าเหมือนใบที่พิมพ์
-    // ความละเอียดสองเท่า ตัวหนังสือในรูปจะคมตอนลูกค้าซูมดูในโทรศัพท์
-    await page.setViewport({ width: 560, height: 794, deviceScaleFactor: 2 });
+    await page.setViewport(viewport);
     // ฟอนต์ฝังอยู่ใน HTML แล้ว ไม่ต้องรอเน็ตเงียบ (networkidle0 รอเปล่าครึ่งวินาที) รอแค่ฟอนต์พร้อม
     await page.setContent(html, { waitUntil: "load" });
     await page.evaluate(() => document.fonts.ready);
@@ -209,4 +212,4 @@ const printReceipt = async (html, fileTag) => {
   }
 };
 
-module.exports = { printReceipt, htmlToImages };
+module.exports = { printReceipt, htmlToImages, withPage };

@@ -24,3 +24,21 @@ test("เส้นที่ชื่อชนกับ :id ต้องถูก
     "/customers/organizations",
   );
 });
+
+test("เส้นพิมพ์ฉลากอะไหล่ถูกลงทะเบียน", () => {
+  const firstPost = (url) => {
+    for (const mounted of router.stack) {
+      for (const layer of mounted.handle.stack || []) {
+        if (layer.route?.methods.post && layer.match(url)) {
+          return layer.route.path;
+        }
+      }
+    }
+    return null;
+  };
+  assert.equal(
+    firstPost("/parts/12/label/preview"),
+    "/parts/:id/label/preview",
+  );
+  assert.equal(firstPost("/parts/12/label/print"), "/parts/:id/label/print");
+});

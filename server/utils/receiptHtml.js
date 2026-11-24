@@ -1599,6 +1599,7 @@ const buildOrganizationBillHtml = (
 };
 
 module.exports = {
+  FONT_FACES,
   buildReceiptHtml,
   buildJobSheetHtml,
   buildOrganizationBillHtml,

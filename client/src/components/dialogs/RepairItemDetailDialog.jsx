@@ -10,8 +10,10 @@ import {
   Trash,
   History,
   ShoppingCart,
+  Printer,
 } from "lucide-react";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
+import PartLabelDialog from "@/components/dialogs/PartLabelDialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import FormInput from "@/components/forms/FormInput";
 import TireLotInput from "@/components/forms/TireLotInput";
@@ -92,6 +94,7 @@ const RepairItemDetailDialog = ({
   const [isStockFormShown, setIsStockFormShown] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isLabelDialogOpen, setIsLabelDialogOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState(item);
   const isTire = isTireCategoryName(currentItem?.category?.name);
   // ยางเปอร์เซ็นต์เป็นยางแต่ไม่มีล็อตสัปดาห์/ปีผลิต เพิ่มสต็อกเป็นจำนวนเหมือนอะไหล่ทั่วไป
@@ -123,6 +126,7 @@ const RepairItemDetailDialog = ({
 
   useEffect(() => {
     if (!open) {
+      setIsLabelDialogOpen(false);
       setIsAddStockVisible(false);
       setIsStockFormShown(false);
       resetStockForm();
@@ -482,6 +486,17 @@ const RepairItemDetailDialog = ({
               >
                 <ShoppingCart className="h-4 w-4" />
               </button>
+              {/* ฉลากสติกเกอร์ติดตัวอะไหล่ บริการไม่มีของให้ติด */}
+              {!isService && (
+                <button
+                  onClick={() => setIsLabelDialogOpen(true)}
+                  aria-label="พิมพ์ฉลาก"
+                  title="พิมพ์ฉลาก"
+                  className="font-athiti text-primary bg-primary-soft flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-[20px]"
+                >
+                  <Printer className="h-4 w-4" />
+                </button>
+              )}
               {!isService && !isOilKit && !isAddStockVisible && (
                 <button
                   onClick={handleShowAddStock}
@@ -510,6 +525,14 @@ const RepairItemDetailDialog = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {!isService && (
+        <PartLabelDialog
+          part={currentItem}
+          open={isLabelDialogOpen}
+          onOpenChange={setIsLabelDialogOpen}
+        />
+      )}
 
       <ConfirmDialog
         isOpen={isDeleteConfirmOpen}

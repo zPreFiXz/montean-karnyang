@@ -357,3 +357,14 @@ exports.vehicleModelSchema = z.object({
   brand: z.string().trim().min(1, "กรุณาเลือกยี่ห้อรถ"),
   model: z.string().trim().min(1, "กรุณากรอกรุ่นรถ"),
 });
+
+// ฉลากติดอะไหล่ (เครื่องพิมพ์สติกเกอร์) จำนวนแผ่นจำกัดไว้ กดเลขผิดจะได้ไม่พิมพ์ทั้งม้วน
+exports.partLabelSchema = z.object({
+  copies: z.coerce
+    .number()
+    .int("จำนวนแผ่นต้องเป็นจำนวนเต็ม")
+    .min(1, "พิมพ์อย่างน้อย 1 แผ่น")
+    .max(100, "พิมพ์ได้ครั้งละไม่เกิน 100 แผ่น")
+    .default(1),
+  showPrice: z.boolean().default(true),
+});

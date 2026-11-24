@@ -24,3 +24,12 @@ export const deletePart = async (id) => {
 export const listPartHints = async (categoryId) => {
   return await apiClient.get("/parts/hints", { params: { categoryId } });
 };
+
+// ฉลากสติกเกอร์ติดอะไหล่ (เครื่องพิมพ์ความร้อนในร้าน) รูปตัวอย่างวาดจากข้อมูลเดียวกับที่พิมพ์
+export const previewPartLabel = async (id, options) => {
+  return await apiClient.post(`/parts/${id}/label/preview`, options);
+};
+
+export const printPartLabel = async (id, options) => {
+  return await apiClient.post(`/parts/${id}/label/print`, options);
+};
