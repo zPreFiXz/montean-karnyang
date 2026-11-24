@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { ChevronRight, History, Ticket, TriangleAlert } from "lucide-react";
+import {
+  ChevronRight,
+  ClipboardList,
+  History,
+  Ticket,
+  TriangleAlert,
+} from "lucide-react";
 import { lookupVehicleByPlate } from "@/api/vehicle";
-import { formatDateShort } from "@/utils/formats";
+import { formatCurrency, formatDateShort } from "@/utils/formats";
 import { DISCOUNT_SERVICE_NAMES } from "@/constants/services";
 import { getDisplayBrand } from "@/utils/repairDisplay";
 
@@ -102,11 +108,13 @@ const KnownVehicleHint = ({
   if (hasUnusedAlignment) showedAlignmentRef.current = true;
   const keepsAlignmentRow =
     showedAlignmentRef.current && (found?.pendingAlignments?.length || 0) > 0;
+  // ใบเสนอราคาค้างของรถคันนี้ บอกไว้ก่อนเปิดบิลซ้ำ (แก้บิลเดิมด้วยทะเบียนเดิมไม่ต้องบอก)
+  const hasOpenEstimate = (found?.openEstimates?.length || 0) > 0;
   const shouldShow =
     !!found &&
     (isOriginalPlate
       ? isOtherModel || keepsAlignmentRow
-      : keepsAlignmentRow || found._count?.repairs > 0);
+      : keepsAlignmentRow || hasOpenEstimate || found._count?.repairs > 0);
 
   useEffect(() => {
     if (!shouldShow) {
@@ -137,6 +145,10 @@ const KnownVehicleHint = ({
     (source) => !redeemedIds?.has(source.id),
   );
   const nextAlignment = unusedAlignments[0];
+  const openEstimates = isOriginalPlate ? [] : vehicle.openEstimates || [];
+  const latestEstimate = openEstimates[0];
+  // มีแต่ใบเสนอราคา ยังไม่เคยซ่อมจริง ไม่ต้องขึ้นหัว "เคยมาซ่อม 0 ครั้ง"
+  const hasVisits = (vehicle._count?.repairs || 0) > 0;
 
   // ซ้าย-ขวาเป็นสองบรรทัดในบิล นับเป็นรายการเดียว ส่วนลดไม่ใช่งานที่ทำ
   const lastJobNames = [
@@ -180,7 +192,7 @@ const KnownVehicleHint = ({
           }`}
         >
           {/* แก้บิลเดิมด้วยทะเบียนเดิม เป็นรถคันนี้อยู่แล้ว เหลือแค่แถวเตือนรุ่น */}
-          {!isOriginalPlate && (
+          {!isOriginalPlate && hasVisits && (
             <div>
               {/* ปุ่มอยู่บรรทัดหัวข้อที่สั้น บรรทัดรายละเอียดจะได้ใช้ความกว้างเต็มกล่อง ไม่ถูกตัดบนมือถือ */}
               <div className="flex items-center justify-between gap-2">
@@ -218,6 +230,36 @@ const KnownVehicleHint = ({
                     </span>
                   )}
                 </p>
+              )}
+            </div>
+          )}
+          {/* แถวแบบเดียวกับแถวสิทธิ์ตั้งศูนย์ สีประจำใบเสนอราคา กดดูใบเดิมได้ก่อนตัดสินใจเปิดบิลใหม่ บอกยอดไม่บอกวัน บรรทัดเดียวพอบนมือถือ
+              แก้บิลเดิมไม่มีร่าง ออกไปแล้วที่แก้ไว้จะหาย จึงไม่มีปุ่ม */}
+          {latestEstimate && (
+            <div
+              className={`bg-status-estimate/10 flex items-center gap-2 rounded-md py-1.5 pr-1.5 pl-2 ${
+                hasVisits ? "mt-3" : ""
+              }`}
+            >
+              <ClipboardList className="text-status-estimate h-5 w-5 shrink-0" />
+              <p className="text-status-estimate min-w-0 flex-1 truncate text-base leading-tight font-semibold md:text-lg">
+                {openEstimates.length > 1
+                  ? `มีใบเสนอราคา ${openEstimates.length} ใบ`
+                  : `มีใบเสนอราคา | ${formatCurrency(Number(latestEstimate.totalPrice))}`}
+              </p>
+              {!excludeRepairId && (
+                <Link
+                  // หลายใบไปหน้าประวัติรถ เห็นทุกใบพร้อมวันที่และยอด เลือกใบที่ใช่ได้
+                  to={
+                    openEstimates.length > 1
+                      ? `/vehicles/${vehicle.id}`
+                      : `/repairs/${latestEstimate.id}`
+                  }
+                  className={`${pillClass.replace("text-primary border-primary", "text-status-estimate border-status-estimate")} pr-2`}
+                >
+                  ดู
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
               )}
             </div>
           )}

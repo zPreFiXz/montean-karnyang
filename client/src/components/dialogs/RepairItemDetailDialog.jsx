@@ -329,18 +329,43 @@ const RepairItemDetailDialog = ({
               </>
             }
             onClose={() => onOpenChange(false)}
+            // อะไหล่มีสองปุ่มซ้าย (ประวัติ พิมพ์ฉลาก) ชื่ออยู่กลางเหมือนหน้าต่างอื่น จอแคบกว่า 380 ย่อชื่อลงนิดให้พ้นปุ่ม
+            titleClass={
+              isService
+                ? undefined
+                : "text-[22px] max-[379px]:text-xl md:text-2xl"
+            }
             leftSlot={
-              <>
+              <div
+                className={`absolute top-1/2 flex -translate-y-1/2 gap-1 ${
+                  isService ? "left-5" : "left-3"
+                }`}
+              >
                 <button
                   onClick={handleShowUsage}
                   autoFocus={false}
                   aria-label="ประวัติการใช้"
                   title="ประวัติการใช้"
-                  className="bg-primary/10 absolute top-1/2 left-5 flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full"
+                  className={`bg-primary/10 flex cursor-pointer items-center justify-center rounded-full ${
+                    isService ? "h-11 w-11" : "h-9 w-9"
+                  }`}
                 >
                   <History size={20} className="text-primary" />
                 </button>
-              </>
+                {/* ฉลากสติกเกอร์ติดตัวอะไหล่ บริการไม่มีของให้ติด */}
+                {!isService && (
+                  <button
+                    type="button"
+                    onClick={() => setIsLabelDialogOpen(true)}
+                    autoFocus={false}
+                    aria-label="พิมพ์ฉลาก"
+                    title="พิมพ์ฉลาก"
+                    className="bg-primary/10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full"
+                  >
+                    <Printer size={18} className="text-primary" />
+                  </button>
+                )}
+              </div>
             }
           />
 
@@ -486,17 +511,6 @@ const RepairItemDetailDialog = ({
               >
                 <ShoppingCart className="h-4 w-4" />
               </button>
-              {/* ฉลากสติกเกอร์ติดตัวอะไหล่ บริการไม่มีของให้ติด */}
-              {!isService && (
-                <button
-                  onClick={() => setIsLabelDialogOpen(true)}
-                  aria-label="พิมพ์ฉลาก"
-                  title="พิมพ์ฉลาก"
-                  className="font-athiti text-primary bg-primary-soft flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-[20px]"
-                >
-                  <Printer className="h-4 w-4" />
-                </button>
-              )}
               {!isService && !isOilKit && !isAddStockVisible && (
                 <button
                   onClick={handleShowAddStock}
@@ -529,6 +543,10 @@ const RepairItemDetailDialog = ({
       {!isService && (
         <PartLabelDialog
           part={currentItem}
+          onCostSaved={(costPrice) => {
+            setCurrentItem((prev) => ({ ...prev, costPrice }));
+            onStockUpdate?.();
+          }}
           open={isLabelDialogOpen}
           onOpenChange={setIsLabelDialogOpen}
         />

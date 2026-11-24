@@ -230,8 +230,27 @@ exports.previewPartLabel = async (req, res) => {
   res.json({ image });
 };
 
+// บันทึกราคาต้นทุนหลังพิมพ์สำเร็จเท่านั้น เครื่องพิมพ์ไม่พร้อมราคาก็ไม่เปลี่ยน
+// แก้ราคาต้นทุนได้เฉพาะผู้ดูแลระบบ (เหมือนฟอร์มแก้ไขอะไหล่) ตรวจก่อนพิมพ์ จะได้ไม่พิมพ์ไปแล้วค่อยปฏิเสธ
 exports.printPartLabel = async (req, res) => {
   const part = await findPartForLabel(req.params.id);
+  const { saveCostPrice, costPrice } = req.body;
+  const shouldSaveCost = saveCostPrice && costPrice != null;
+  if (shouldSaveCost && req.user?.role !== "ADMIN") {
+    createError(403, "แก้ราคาต้นทุนได้เฉพาะผู้ดูแลระบบ");
+  }
+
   const copies = await printPartLabel(part, req.body);
-  res.json({ message: `สั่งพิมพ์ฉลาก ${copies} แผ่นแล้ว` });
+
+  if (!shouldSaveCost) {
+    return res.json({ message: `สั่งพิมพ์ฉลาก ${copies} แผ่นแล้ว` });
+  }
+  await prisma.part.update({
+    where: { id: part.id },
+    data: { costPrice },
+  });
+  res.json({
+    message: `สั่งพิมพ์ฉลาก ${copies} แผ่นแล้ว และบันทึกราคาต้นทุนใหม่ ${costPrice.toLocaleString("th-TH")} บาท`,
+    costPrice,
+  });
 };

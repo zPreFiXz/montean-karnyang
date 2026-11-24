@@ -43,20 +43,26 @@ const barcodeSvg = (text, maxWidth, height) => {
   return `<svg class="barcode" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" shape-rendering="crispEdges">${bars}</svg>`;
 };
 
-// ฉลากติดสินค้า: ชื่อ (ย่อขนาดเองให้พอสองบรรทัด) บาร์โค้ดรหัสอะไหล่ และราคาขาย
+// ฉลากติดสินค้า: ชื่อ (ย่อขนาดเองให้พอสองบรรทัด) บาร์โค้ดรหัสอะไหล่ และราคาขายพร้อมหน่วย (คู่ละ 650 บาท)
+// รหัสทุนต่อท้ายรหัสอะไหล่ใต้บาร์โค้ดด้วยขีด (BP-0412-CEJ) ดูเป็นรหัสสินค้าก้อนเดียว ลูกค้าไม่สะดุดตา (บาร์โค้ดมีแค่รหัสอะไหล่)
 const buildLabelHtml = ({
   name,
   partNumber,
   price,
-  showPrice = true,
+  unit,
+  costCode,
   widthMm = 60,
   heightMm = 40,
 }) => {
   const width = widthMm * DOTS_PER_MM;
   const height = heightMm * DOTS_PER_MM;
+  // ขนาดตัวหนังสือออกแบบไว้ที่ 60 x 40 มม. สติกเกอร์เล็กกว่าย่อตามด้านที่หดมากกว่า (40 x 20 เตี้ยกว่ากว้าง)
+  const k = Math.min(width / (60 * DOTS_PER_MM), height / (40 * DOTS_PER_MM));
+  const px = (value) => Math.round(value * k);
+  // ตัวหนังสือเล็กต่ำกว่า 2 มม. (16 จุด) อ่านไม่ออกบนสติกเกอร์จริง
   const padX = 2 * DOTS_PER_MM;
   const padY = 1.5 * DOTS_PER_MM;
-  const barcode = barcodeSvg(partNumber, width - padX * 2, 64);
+  const barcode = barcodeSvg(partNumber, width - padX * 2, px(64));
 
   return `<!doctype html>
 <html lang="th">
@@ -69,39 +75,43 @@ const buildLabelHtml = ({
   body { font-family: "Athiti", sans-serif; color: #000; }
   .label {
     width: ${width}px; height: ${height}px; padding: ${padY}px ${padX}px;
-    display: flex; flex-direction: column; gap: 6px;
+    display: flex; flex-direction: column; gap: ${px(6)}px;
   }
   .name-box { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; overflow: hidden; }
   .name {
-    width: 100%; font-weight: 600; font-size: 56px; line-height: 1.15;
+    width: 100%; font-weight: 600; font-size: ${px(56)}px; line-height: 1.15;
     word-break: break-word; text-align: center;
     display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden;
   }
   .code { display: flex; flex-direction: column; align-items: center; }
   .barcode { display: block; }
   .barcode rect { fill: #000; }
-  .part-number { font-weight: 600; font-size: ${barcode ? 24 : 32}px; line-height: 1.1; letter-spacing: 1px; }
+  .part-number { font-weight: 600; font-size: ${Math.max(16, px(barcode ? 24 : 32))}px; line-height: 1.1; letter-spacing: 1px; }
   .price-row {
-    display: flex; align-items: baseline; justify-content: center; gap: 8px;
-    border-top: 3px solid #000; padding-top: 2px;
+    display: flex; align-items: baseline; justify-content: center; gap: ${px(8)}px;
+    border-top: ${Math.max(2, px(3))}px solid #000; padding-top: 2px;
   }
-  .price { font-weight: 600; font-size: 52px; line-height: 1; }
-  .baht { font-weight: 600; font-size: 28px; }
+  .price { font-weight: 600; font-size: ${px(52)}px; line-height: 1; }
+  .baht { font-weight: 600; font-size: ${Math.max(18, px(28))}px; }
 </style>
 </head>
 <body>
   <div class="label">
-    <div class="name-box"><p class="name">${escapeHtml(name)}</p></div>
+    <div class="name-box"><p class="name" data-max="${px(56)}" data-min="${Math.max(16, px(22))}">${escapeHtml(name)}</p></div>
     ${
-      partNumber
-        ? `<div class="code">${barcode}<p class="part-number">${escapeHtml(partNumber)}</p></div>`
+      partNumber || costCode
+        ? `<div class="code">${barcode}<p class="part-number">${[
+            partNumber,
+            costCode,
+          ]
+            .filter(Boolean)
+            .map(escapeHtml)
+            .join("-")}</p></div>`
         : ""
     }
-    ${
-      showPrice
-        ? `<div class="price-row"><span class="price">${formatPrice(price)}</span><span class="baht">บาท</span></div>`
-        : ""
-    }
+    <div class="price-row">${
+      unit ? `<span class="baht">${escapeHtml(unit)}ละ</span>` : ""
+    }<span class="price">${formatPrice(price)}</span><span class="baht">บาท</span></div>
   </div>
 </body>
 </html>`;

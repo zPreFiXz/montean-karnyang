@@ -2,14 +2,14 @@ const net = require("net");
 const { withPage } = require("./printReceipt");
 const { buildPartItemName } = require("./repairItemName");
 const { buildLabelHtml, DOTS_PER_MM } = require("./labelHtml");
+const { encodeCostCode } = require("./costCode");
+const createError = require("./createError");
 
 // เครื่องพิมพ์ฉลาก (สติกเกอร์ความร้อน) ต่อผ่าน LAN รับงานดิบภาษา TSPL ที่พอร์ต 9100
 // ไม่ผ่านคิวพิมพ์ของวินโดวส์ ไม่ต้องลงไดรเวอร์ และรู้ทันทีว่าเครื่องติดต่อได้หรือไม่
 const config = () => ({
   host: process.env.LABEL_PRINTER_HOST || "192.168.1.187",
   port: Number(process.env.LABEL_PRINTER_PORT) || 9100,
-  widthMm: Number(process.env.LABEL_WIDTH_MM) || 60,
-  heightMm: Number(process.env.LABEL_HEIGHT_MM) || 40,
   gapMm: Number(process.env.LABEL_GAP_MM ?? 2),
   // ฉลากออกมากลับหัว เปลี่ยนเป็น 0 (หรือ 1) ใน .env ได้โดยไม่ต้องแก้โค้ด
   direction: Number(process.env.LABEL_DIRECTION ?? 1),
@@ -18,13 +18,21 @@ const config = () => ({
 });
 
 const MAX_COPIES = 100;
+// ขนาดสติกเกอร์ที่ร้านใช้ (ต้องตรงกับ LABEL_SIZES ฝั่งหน้าเว็บและ partLabelSchema)
+const LABEL_SIZES = {
+  "60x40": { widthMm: 60, heightMm: 40 },
+  "50x30": { widthMm: 50, heightMm: 30 },
+  "40x30": { widthMm: 40, heightMm: 30 },
+  "40x20": { widthMm: 40, heightMm: 20 },
+};
+const sizeOf = (size) => LABEL_SIZES[size] || LABEL_SIZES["60x40"];
 // ค่าความสว่างที่ต่ำกว่านี้นับเป็นจุดดำ ตั้งสูงกว่ากึ่งกลางเพื่อให้ขอบตัวหนังสือไทยเส้นบางไม่ขาด
 const BLACK_THRESHOLD = 170;
 
 // วาดฉลากใน Chrome แล้วแปลงเป็นภาพขาวดำ 1 บิต ได้ทั้งรูปตัวอย่างและข้อมูลส่งเครื่องพิมพ์
 // รูปตัวอย่างมาจากข้อมูลชุดเดียวกับที่พิมพ์ หน้าจอจึงเห็นเหมือนกระดาษที่ออกมาทุกจุด
-const renderLabel = (labelData) => {
-  const { widthMm, heightMm } = config();
+const renderLabel = (labelData, size) => {
+  const { widthMm, heightMm } = sizeOf(size);
   const width = widthMm * DOTS_PER_MM;
   const height = heightMm * DOTS_PER_MM;
   const html = buildLabelHtml({ ...labelData, widthMm, heightMm });
@@ -32,12 +40,13 @@ const renderLabel = (labelData) => {
   return withPage(
     html,
     async (page) => {
-      // ชื่อยาวย่อตัวหนังสือลงจนพอกล่อง ไม่ตัดคำทิ้ง (ต่ำสุด 22 จุด ยังอ่านได้ที่ระยะมือถือ)
+      // ชื่อยาวย่อตัวหนังสือลงจนพอกล่อง ไม่ตัดคำทิ้ง ขนาดเริ่มและต่ำสุดตามขนาดสติกเกอร์ (data-max data-min)
       await page.evaluate(() => {
         const box = document.querySelector(".name-box");
         const name = document.querySelector(".name");
-        let size = 56;
-        while (name.scrollHeight > box.clientHeight && size > 22) {
+        let size = Number(name.dataset.max);
+        const min = Number(name.dataset.min);
+        while (name.scrollHeight > box.clientHeight && size > min) {
           size -= 2;
           name.style.fontSize = `${size}px`;
         }
@@ -97,8 +106,9 @@ const renderLabel = (labelData) => {
   );
 };
 
-const buildTsplJob = (bitsBase64, copies) => {
-  const { widthMm, heightMm, gapMm, direction, density } = config();
+const buildTsplJob = (bitsBase64, copies, size) => {
+  const { widthMm, heightMm } = sizeOf(size);
+  const { gapMm, direction, density } = config();
   const width = widthMm * DOTS_PER_MM;
   const height = heightMm * DOTS_PER_MM;
 
@@ -181,22 +191,36 @@ const sendToLabelPrinter = (job) => {
   });
 };
 
-const labelDataOf = (part, { showPrice }) => ({
+// costPrice ไม่ส่งมา (ช่องว่าง) = ไม่พิมพ์รหัสทุน
+const costCodeOf = (costPrice) => {
+  if (costPrice == null) return null;
+  const code = encodeCostCode(costPrice);
+  if (!code) {
+    createError(
+      400,
+      "ยังไม่ได้ตั้งคำลับรหัสราคาทุน (LABEL_COST_KEY ใน .env ต้องเป็นตัวอักษรภาษาอังกฤษไม่ซ้ำกัน 9 หรือ 10 ตัว แบบ 9 ตัวห้ามมีตัว O)",
+    );
+  }
+  return code;
+};
+
+const labelDataOf = (part, { costPrice } = {}) => ({
   name: buildPartItemName(part) || part.name,
   partNumber: part.partNumber,
   price: part.sellingPrice,
-  showPrice,
+  unit: part.unit,
+  costCode: costCodeOf(costPrice),
 });
 
-const previewPartLabel = async (part, options) => {
-  const { preview } = await renderLabel(labelDataOf(part, options));
+const previewPartLabel = async (part, { size, costPrice }) => {
+  const { preview } = await renderLabel(labelDataOf(part, { costPrice }), size);
   return preview;
 };
 
-const printPartLabel = async (part, { copies, showPrice }) => {
+const printPartLabel = async (part, { copies, size, costPrice }) => {
   const count = Math.min(Math.max(Math.trunc(copies) || 1, 1), MAX_COPIES);
-  const { bits } = await renderLabel(labelDataOf(part, { showPrice }));
-  await sendToLabelPrinter(buildTsplJob(bits, count));
+  const { bits } = await renderLabel(labelDataOf(part, { costPrice }), size);
+  await sendToLabelPrinter(buildTsplJob(bits, count, size));
   return count;
 };
 

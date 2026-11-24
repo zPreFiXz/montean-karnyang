@@ -9,7 +9,6 @@ import { getRepairTitle } from "@/utils/repairDisplay";
 const effectOf = (from, to) => {
   const effects = [];
   if (from === "CREDIT" && to !== "CREDIT") effects.push("ยกเลิกการลงเครดิต");
-  if (to === "CREDIT") effects.push("กลับไปค้างชำระในหน้าเครดิต");
   return effects.join(" ");
 };
 
@@ -83,7 +82,13 @@ const StatusRevertDialog = ({
               </p>
               <div className="flex gap-2">
                 {/* เรียงตามลำดับงานซ้ายไปขวา (กำลังซ่อมซ้ายสุด) ตัวที่เลือกไว้ก่อนยังเป็นขั้นที่ใกล้ที่สุด */}
-                {[...targets].reverse().map((status) => {
+                {/* เครดิตซ้ายสุด ตามด้วยลำดับงาน กำลังซ่อม ซ่อมเสร็จสิ้น */}
+                {[
+                  ...targets.filter((status) => status === "CREDIT"),
+                  ...[...targets]
+                    .reverse()
+                    .filter((status) => status !== "CREDIT"),
+                ].map((status) => {
                   const info = getStatusInfo(status, repair?.type);
                   const Icon = info.icon;
                   const isActive = selected === status;

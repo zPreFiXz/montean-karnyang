@@ -114,6 +114,19 @@ exports.lookupVehicleByPlate = async (req, res) => {
     },
   });
 
+  // ใบเสนอราคาที่ค้างของรถคันนี้ เปิดบิลใหม่ซ้ำจะได้รู้ว่ามีใบเดิมรอเริ่มซ่อมอยู่ (ไม่นับใบที่กำลังแก้)
+  const openEstimates = vehicle
+    ? await prisma.repair.findMany({
+        where: {
+          vehicleId: vehicle.id,
+          status: "ESTIMATE",
+          ...(excludeId ? { id: { not: excludeId } } : {}),
+        },
+        select: { id: true, createdAt: true, totalPrice: true },
+        orderBy: { createdAt: "desc" },
+      })
+    : [];
+
   res.json(
     vehicle
       ? {
@@ -123,6 +136,7 @@ exports.lookupVehicleByPlate = async (req, res) => {
             vehicle.id,
             excludeId,
           ),
+          openEstimates,
         }
       : null,
   );
