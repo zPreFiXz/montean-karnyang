@@ -108,8 +108,37 @@ const run = (command, args) =>
     });
   });
 
+// ใบเสร็จต้องออกเครื่อง Epson เสมอ ห้ามพึ่งเครื่องพิมพ์เริ่มต้นของวินโดวส์
+// ในร้านมีเครื่องพิมพ์ฉลากสติกเกอร์ด้วย (ดู printLabel.js) ถ้าวินโดวส์ตั้งตัวนั้นเป็นค่าเริ่มต้น
+// ใบเสร็จ A5 จะไปออกบนสติกเกอร์ 60 x 40 มม. — ตั้ง PRINTER_NAME ใน .env เพื่อระบุชื่อเองได้
+const RECEIPT_PRINTER_PATTERN = /epson/i;
+
+const pickReceiptPrinter = (printers, configuredName) => {
+  const names = printers.map((item) => item.name);
+
+  if (configuredName) {
+    if (!names.includes(configuredName)) {
+      createError(
+        503,
+        `ไม่พบเครื่องพิมพ์ใบเสร็จชื่อ "${configuredName}" ตรวจสอบ PRINTER_NAME ใน .env`,
+      );
+    }
+    return configuredName;
+  }
+
+  const epson = names.find((name) => RECEIPT_PRINTER_PATTERN.test(name));
+  if (!epson) {
+    createError(
+      503,
+      "ไม่พบเครื่องพิมพ์ใบเสร็จ Epson กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์",
+    );
+  }
+  return epson;
+};
+
 // คิวพิมพ์ของระบบปฏิบัติการรับงานได้เสมอ ถึงเครื่องพิมพ์จะไม่ได้เสียบอยู่
 // งานจะไปค้างในคิวเงียบๆ แล้วคนกดจะนึกว่าพิมพ์ไปแล้ว จึงต้องเช็กสถานะก่อนส่ง
+// คืนชื่อเครื่องที่จะส่งงานไป
 const ensurePrinterReady = async (printerName) => {
   if (os.platform() === "win32") {
     const printer = require("pdf-to-printer");
@@ -119,11 +148,12 @@ const ensurePrinterReady = async (printerName) => {
     }
 
     // ถามสถานะจริงของเครื่อง ถ้าถามไม่ได้ก็ปล่อยผ่าน ดีกว่าบล็อกการพิมพ์เพราะตัวเช็กเอง
-    const target = printerName || printers[0]?.name;
+    const target = pickReceiptPrinter(printers, printerName);
     const status = await run("powershell", [
       "-NoProfile",
       "-Command",
-      `(Get-Printer -Name '${target}').PrinterStatus`,
+      // ชื่อเครื่องที่มี ' อยู่ต้องเขียนเป็น '' ไม่งั้นคำสั่ง PowerShell ขาดกลางทาง
+      `(Get-Printer -Name '${target.replace(/'/g, "''")}').PrinterStatus`,
     ]).catch(() => "");
 
     if (/offline|error|paused/i.test(status)) {
@@ -132,7 +162,7 @@ const ensurePrinterReady = async (printerName) => {
         "เครื่องพิมพ์ไม่พร้อม กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์",
       );
     }
-    return;
+    return target;
   }
 
   const listing = await run("lpstat", ["-p"]).catch(() => "");
@@ -149,6 +179,7 @@ const ensurePrinterReady = async (printerName) => {
   if (/offline|ออฟไลน์|disabled|ปิดใช้งาน/i.test(block)) {
     createError(503, "เครื่องพิมพ์ไม่พร้อม กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์");
   }
+  return printerName;
 };
 
 const sendToPrinter = async (filePath, printerName) => {
@@ -192,7 +223,7 @@ const toPrinterError = (error) => {
 
 const printReceipt = async (html, fileTag) => {
   // เช็กเครื่องพิมพ์ไปพร้อมกับสร้าง PDF บนวินโดวส์ต้องเรียก PowerShell ซึ่งช้าเกือบวินาที
-  const [pdf] = await Promise.all([
+  const [pdf, printerName] = await Promise.all([
     htmlToPdf(html),
     ensurePrinterReady(process.env.PRINTER_NAME),
   ]);
@@ -203,7 +234,7 @@ const printReceipt = async (html, fileTag) => {
 
   await fs.writeFile(filePath, pdf);
   try {
-    await sendToPrinter(filePath, process.env.PRINTER_NAME);
+    await sendToPrinter(filePath, printerName);
   } catch (error) {
     createError(503, toPrinterError(error));
   } finally {
@@ -212,4 +243,9 @@ const printReceipt = async (html, fileTag) => {
   }
 };
 
-module.exports = { printReceipt, htmlToImages, withPage };
+module.exports = {
+  printReceipt,
+  htmlToImages,
+  withPage,
+  _test: { pickReceiptPrinter },
+};
