@@ -119,7 +119,9 @@ const useSuspensionTabs = ({
     );
 
   const getAllowedUnitsForPart = (part) => {
-    if (typeof part?.stockQuantity !== "number") return Infinity;
+    if (part?.unlimitedStock || typeof part?.stockQuantity !== "number") {
+      return Infinity;
+    }
     const stockQty = Math.max(part.stockQuantity, 0);
     const initial = initialRef.current;
     const initialCount =

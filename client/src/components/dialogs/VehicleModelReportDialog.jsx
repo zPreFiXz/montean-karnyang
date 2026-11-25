@@ -25,7 +25,8 @@ const STOCK_TEXT = {
 
 // หมดแล้วต้องเห็นเป็นสีแดงเสมอ แม้อะไหล่ตัวนั้นไม่ได้ตั้งขั้นต่ำไว้ เพราะหน้านี้ใช้ดูว่าต้องสั่งอะไร
 const stockLabel = (item) => {
-  const { stockQuantity, minStockLevel, isOilKit } = item.stock;
+  const { stockQuantity, minStockLevel, isOilKit, unlimitedStock } = item.stock;
+  if (unlimitedStock) return { tone: "ok", text: "ไม่นับสต็อก" };
   if (stockQuantity <= 0) return { tone: "out", text: "สต็อกหมด" };
   const { tone } = stockStatusOf(
     { stockQuantity, minStockLevel, unit: item.unit },

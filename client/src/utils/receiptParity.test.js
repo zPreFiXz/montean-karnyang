@@ -4,6 +4,7 @@ import { createRequire } from "module";
 import { describe, expect, it } from "vitest";
 import {
   asDepositReceipt,
+  depositDueDateText,
   receiptSummaryOf,
   asIssued,
   billPages,
@@ -66,6 +67,9 @@ for (const count of [1, 8, 10, 11, 14, 22]) {
         depositAmount: count % 3 === 2 ? 500 : null,
         depositPaidAt: "2026-11-10T03:00:00.000Z",
         depositMethod: "CASH",
+        // ข้อความบนใบรับเงินมัดจำที่แก้เอง ว่างใช้ข้อความมาตรฐาน
+        depositNote: count === 5 ? "มัดจำยางรถบรรทุก 4 เส้น" : null,
+        paymentDueDate: count % 2 ? "2026-12-01T00:00:00.000Z" : null,
         depositRefundedAt:
           status === "CANCELLED" && count === 14 ? "2026-11-13" : null,
         // ช่องวิธีจ่ายมีเฉพาะหน่วยงาน
@@ -117,6 +121,9 @@ describe("ตัวอย่างบนจอกับใบที่พิม�
     expect(shape(c.pages, clientName)).toEqual(shape(s.pages, s.rowName));
     expect(receiptSummaryOf(client, c.discountItems)).toEqual(
       server.receiptSummaryOf(serverBill, s.discountItems),
+    );
+    expect(depositDueDateText(client)).toBe(
+      server.depositDueDateText(serverBill),
     );
   });
 });

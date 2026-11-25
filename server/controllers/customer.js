@@ -337,8 +337,9 @@ exports.createShopPurchases = async (req, res) => {
         }
 
         const part = partById.get(item.partId);
-        await tx.part.update({
-          where: { id: part.id },
+        // ไม่จำกัดสต็อก บันทึกไว้หักกลบอย่างเดียว ไม่บวกสต็อก
+        await tx.part.updateMany({
+          where: { id: part.id, unlimitedStock: false },
           data: { stockQuantity: { increment: quantity } },
         });
         await tx.shopPurchase.create({
@@ -402,7 +403,7 @@ exports.deleteShopPurchase = async (req, res) => {
     const part = purchase.partId
       ? await tx.part.findUnique({ where: { id: purchase.partId } })
       : null;
-    if (part) {
+    if (part && !part.unlimitedStock) {
       if (Number(part.stockQuantity) < quantity) {
         createError(
           400,

@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle, Trash } from "lucide-react";
 import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
+import DialogItemTag from "@/components/dialogs/DialogItemTag";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import FormInput from "@/components/forms/FormInput";
@@ -10,7 +11,7 @@ import ComboBox from "@/components/ui/ComboBox";
 import { PAYMENT_METHODS } from "@/constants/paymentMethods";
 import { depositSchemaFor } from "@/utils/schemas";
 import { formatCurrency } from "@/utils/formats";
-import { getRepairTitle } from "@/utils/repairDisplay";
+import { getRepairDialogSubtitle, getRepairTitle } from "@/utils/repairDisplay";
 import { depositTermsOf } from "@/utils/receipt";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
@@ -59,6 +60,8 @@ const DepositDialog = ({ isOpen, onClose, repair, onSave }) => {
 
   const methodValue = watch("method");
 
+  const subtitle = getRepairDialogSubtitle(repair);
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -73,9 +76,11 @@ const DepositDialog = ({ isOpen, onClose, repair, onSave }) => {
           />
 
           <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5">
-            <h2 className="text-normal mb-4 text-center text-[22px] leading-tight font-semibold md:text-2xl">
-              {getRepairTitle(repair)}
-            </h2>
+            <DialogItemTag
+              title={getRepairTitle(repair)}
+              detail={subtitle}
+              className="mb-4"
+            />
 
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-4 rounded-lg bg-gray-50 p-4">

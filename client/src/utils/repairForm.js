@@ -67,6 +67,7 @@ export const repairToForm = (repair) => {
         // สต็อกดิบ หน้ากรอกจะบวกของที่บิลนี้เบิกไปคืนเอง (ดู restoredStockMap)
         // ชื่อฟิลด์ต้องเป็น stockQuantity ไม่งั้นเพดานจะเป็นศูนย์
         stockQuantity: ri.part.stockQuantity ?? 0,
+        unlimitedStock: !!ri.part.unlimitedStock,
         unit: ri.part.unit,
         category: ri.part.category,
         secureUrl: ri.part.secureUrl || null,

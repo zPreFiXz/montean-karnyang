@@ -122,6 +122,22 @@ describe("แปลงค่าในฟอร์มเป็นข้อมู�
     });
   });
 
+  it("ไม่นับสต็อกส่งจำนวนและขั้นต่ำเป็น 0 ยางกับชุดน้ำมันตั้งไม่ได้", () => {
+    const unlimited = { ...data, unlimitedStock: true };
+    expect(toPartPayload(unlimited, null, kind)).toMatchObject({
+      unlimitedStock: true,
+      stockQuantity: 0,
+      minStockLevel: 0,
+    });
+    expect(
+      toPartPayload(unlimited, null, { ...kind, isTire: true }),
+    ).toMatchObject({ unlimitedStock: false, minStockLevel: 1 });
+    expect(
+      toPartPayload(unlimited, null, { ...kind, isOilKit: true })
+        .unlimitedStock,
+    ).toBe(false);
+  });
+
   it("บริการ: หน่วยว่างไม่ส่ง", () => {
     expect(
       toServicePayload(

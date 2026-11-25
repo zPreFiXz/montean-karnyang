@@ -12,6 +12,7 @@ import {
   asDeliveryNote,
   asDepositReceipt,
   depositTermsOf,
+  DEPOSIT_TERMS,
   asIssued,
   canReprintDeliveryNote,
   chequeNoteRow,
@@ -34,6 +35,8 @@ import {
 import { toast } from "sonner";
 import { printRepairReceipt, renderRepairImages } from "@/api/repair";
 import { isSaleRepair, isNoVehicleRepair } from "@/utils/repairDisplay";
+import { DEPOSIT_NOTE_MAX } from "@/utils/schemas";
+import { Input } from "@/components/ui/input";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
 
@@ -93,7 +96,13 @@ const CopyChoicePicker = ({ value, onChange }) => {
   );
 };
 
-const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
+// onDepositNoteSaved = เซิร์ฟเวอร์บันทึกข้อความบนใบรับเงินมัดจำแล้ว หน้ารายละเอียดเก็บค่าใหม่ไว้ เปิดอีกครั้งจะได้ข้อความเดิม
+const ReceiptPreviewDialog = ({
+  repair: rawRepair,
+  open,
+  onOpenChange,
+  onDepositNoteSaved,
+}) => {
   const repair = asIssued(rawRepair);
   // วาดขนาดจริงของ A5 แล้วสเกลทั้งแผ่นให้พอดีไดอะล็อก ตัวอย่างจึงตรงกับที่พิมพ์
   // ส่วนที่ไม่ใช่กระดาษติดคลาส receipt-chrome ไว้ วัดรวมจากคลาสนั้น
@@ -104,6 +113,7 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
   const [showBrand, setShowBrand] = useState(false);
   const [docType, setDocType] = useState("receipt");
   const [copyChoice, setCopyChoice] = useState("both");
+  const [depositNote, setDepositNote] = useState("");
 
   const { contentRef, paperRef, scale, isMeasured } = usePaperFit({
     open,
@@ -118,10 +128,25 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
       setShowBrand(false);
       setDocType("receipt");
       setCopyChoice("both");
+      setDepositNote(rawRepair?.depositNote || DEPOSIT_TERMS.deposit.line);
     },
   });
 
   if (!repair) return null;
+
+  // มัดจำ (ยังไม่ซ่อม) เป็นบรรทัดเดียว แก้ข้อความได้ ชำระบางส่วนมีรายการครบจึงไม่มีช่องนี้
+  const hasDepositNote =
+    !!repair.depositAmount && depositTermsOf(repair) === DEPOSIT_TERMS.deposit;
+  // ส่งไปเฉพาะตอนพิมพ์ใบรับเงินมัดจำ ข้อความมาตรฐานเก็บเป็นค่าว่าง
+  const depositNoteBody =
+    docType === "deposit" && hasDepositNote
+      ? {
+          depositNote:
+            depositNote.trim() === DEPOSIT_TERMS.deposit.line
+              ? ""
+              : depositNote.trim(),
+        }
+      : {};
 
   const previewTitle = (docRepair) =>
     docType === "deposit"
@@ -131,7 +156,11 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
     docType === "delivery"
       ? asDeliveryNote(repair)
       : docType === "deposit"
-        ? asDepositReceipt(repair)
+        ? asDepositReceipt(
+            hasDepositNote
+              ? { ...repair, depositNote: depositNote.trim() || null }
+              : repair,
+          )
         : repair;
   const pageCount =
     docType === "job"
@@ -197,8 +226,12 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
           showBrand,
           docType,
           copyChoice,
+          ...depositNoteBody,
         }),
       );
+      if ("depositNote" in depositNoteBody) {
+        onDepositNoteSaved?.(depositNoteBody.depositNote || null);
+      }
       onOpenChange(false);
       toast.success(
         docType === "job"
@@ -226,8 +259,12 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
           showBrand,
           docType,
           copyChoice,
+          ...depositNoteBody,
         }),
       );
+      if ("depositNote" in depositNoteBody) {
+        onDepositNoteSaved?.(depositNoteBody.depositNote || null);
+      }
       const images = res.data?.images || [];
       // ไม่ใช้ภาษาไทยในชื่อไฟล์ เพราะบางระบบอ่านเพี้ยน
       const docNo =
@@ -325,6 +362,37 @@ const ReceiptPreviewDialog = ({ repair: rawRepair, open, onOpenChange }) => {
             <div className="overflow-hidden">
               <div className="receipt-chrome mx-4 pb-2">
                 <CopyChoicePicker value={copyChoice} onChange={setCopyChoice} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* receipt-chrome อยู่ชั้นในสุดแบบแถบต้นฉบับและสำเนา ขนาดกระดาษเผื่อที่ไว้ให้ตอนกาง */}
+        {hasDepositNote && (
+          <div
+            inert={docType !== "deposit"}
+            className={`grid transition-all duration-200 motion-reduce:transition-none ${
+              docType === "deposit"
+                ? "grid-rows-[1fr] opacity-100"
+                : "grid-rows-[0fr] opacity-0"
+            }`}
+          >
+            <div className="overflow-hidden">
+              <div className="receipt-chrome font-athiti mx-4 flex items-center gap-3 pb-2">
+                <label
+                  htmlFor="deposit-note"
+                  className="text-subtle-dark shrink-0 text-lg font-medium md:text-xl"
+                >
+                  รายการ:
+                </label>
+                <Input
+                  id="deposit-note"
+                  value={depositNote}
+                  maxLength={DEPOSIT_NOTE_MAX}
+                  placeholder={DEPOSIT_TERMS.deposit.line}
+                  onChange={(e) => setDepositNote(e.target.value)}
+                  className="bg-surface focus-visible:!border-primary focus-visible:!ring-primary/35 h-[41px] min-w-0 flex-1 rounded-[20px] px-3 text-lg font-medium placeholder:text-lg placeholder:font-light focus-visible:!border-2 md:text-xl md:placeholder:text-xl"
+                />
               </div>
             </div>
           </div>

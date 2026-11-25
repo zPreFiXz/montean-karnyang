@@ -39,6 +39,10 @@ const oilKitFields = (oilSourceId, oilLiters, selfId) => {
     : { oilSourceId: null, oilLiters: null };
 };
 
+// ไม่จำกัดสต็อกไม่ตัดไม่นับ ยางนับเป็นล็อต ชุดน้ำมันตัดจากขวดน้ำมัน จึงตั้งไม่ได้
+const isUnlimitedStock = (body, lots) =>
+  body.unlimitedStock === true && !lots && !body.oilSourceId;
+
 const partDataFrom = (body, lots, selfId) => ({
   partNumber: body.partNumber,
   // ไม่มียี่ห้อเก็บเป็น null อย่างเดียว ไม่ปนกับค่าว่าง
@@ -47,8 +51,13 @@ const partDataFrom = (body, lots, selfId) => ({
   costPrice: body.costPrice,
   sellingPrice: body.sellingPrice,
   unit: body.unit,
-  stockQuantity: lots ? sumLotQuantity(lots) : body.stockQuantity,
-  minStockLevel: body.minStockLevel,
+  ...(isUnlimitedStock(body, lots)
+    ? { unlimitedStock: true, stockQuantity: 0, minStockLevel: 0 }
+    : {
+        unlimitedStock: false,
+        stockQuantity: lots ? sumLotQuantity(lots) : body.stockQuantity,
+        minStockLevel: body.minStockLevel,
+      }),
   attributes: body.attributes,
   compatibleVehicles: body.compatibleVehicles,
   description: body.description || null,
@@ -150,6 +159,14 @@ exports.updatePartStock = async (req, res) => {
 
   if (addQty <= 0) {
     createError(400, "จำนวนที่เพิ่มต้องมากกว่า 0");
+  }
+  const target = await prisma.part.findUnique({
+    where: { id: partId },
+    select: { unlimitedStock: true },
+  });
+  if (!target) createError(404, "ไม่พบอะไหล่");
+  if (target.unlimitedStock) {
+    createError(400, "อะไหล่นี้ไม่นับสต็อก จึงเพิ่มจำนวนไม่ได้");
   }
 
   await prisma.$transaction(async (tx) => {

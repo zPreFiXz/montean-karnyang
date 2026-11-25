@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
+import DialogItemTag from "@/components/dialogs/DialogItemTag";
 import { X } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import FormInput from "@/components/forms/FormInput";
@@ -133,10 +134,10 @@ const EditRepairItemDialog = ({
 
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto">
           <div className="flex-1 px-5">
-            <div className="mb-4">
-              <h2 className="font-athiti text-normal text-center text-[22px] leading-tight font-semibold md:text-2xl">
-                {isService ? currentName || productName : productName}
-              </h2>
+            <div className="mb-4 flex justify-center">
+              <DialogItemTag
+                title={isService ? currentName || productName : productName}
+              />
             </div>
 
             {!isService && productImage && (

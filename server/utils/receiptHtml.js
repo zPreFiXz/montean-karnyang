@@ -343,13 +343,28 @@ const asDepositReceipt = (repair) => {
     repairItems: [
       {
         id: "deposit",
-        itemName: terms.line,
+        itemName: repair.depositNote || terms.line,
         quantity: 1,
         unitPrice: deposit,
       },
     ],
   };
 };
+
+// ใบรับเงินมัดจำที่ตั้งกำหนดชำระไว้ บอกวันครบกำหนดกับเงื่อนไขริบมัดจำข้างแถวคงเหลือชำระ
+// ชำระบางส่วนเริ่มซ่อมแล้วไม่มีเรื่องริบมัดจำ (ต้องตรงกับ depositDueDateText ฝั่งหน้าเว็บ)
+const depositDueDateText = (repair) =>
+  repair?.isDeposit &&
+  repair.depositKind === "deposit" &&
+  !repair.isCancelled &&
+  repair.paymentDueDate
+    ? new Date(repair.paymentDueDate).toLocaleDateString("th-TH", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      })
+    : null;
 
 // ยังไม่ซ่อม = ใบเสนอราคา, เครดิต = ใบส่งของ, เรียกใบเสร็จได้เฉพาะตอนรับเงินแล้ว
 const receiptDocTitle = (repair) => {
@@ -714,8 +729,16 @@ const receiptPagesHtml = (
       </tr>`;
   };
 
-  const summaryRowHtml = (row) => `<tr>
-        <td colspan="2" class="blank"></td>
+  const dueDateText = depositDueDateText(repair);
+  // แถวแรกใต้ยอดรวมกินที่ว่างฝั่งซ้ายของทุกแถว แถวถัดไปไม่มีช่องนี้
+  const belowLeftHtml = (index) =>
+    !dueDateText
+      ? '<td colspan="2" class="blank"></td>'
+      : index === 0
+        ? `<td colspan="2" rowspan="${summary.below.length}" class="blank due-note"><div>กรุณาชำระส่วนที่เหลือภายในวันที่ <b>${escapeHtml(dueDateText)}</b></div><div>หากเกินกำหนด ทางร้านขอสงวนสิทธิ์<b>ไม่คืนเงินมัดจำทุกกรณี</b></div></td>`
+        : "";
+  const summaryRowHtml = (row, index, rows) => `<tr>
+        ${rows === summary.below ? belowLeftHtml(index) : '<td colspan="2" class="blank"></td>'}
         <td class="c">${escapeHtml(row.label)}</td>
         <td class="r"${row.bold ? ' style="font-weight:600"' : ""}>${formatMoney(row.amount)}</td>
       </tr>`;
@@ -943,6 +966,7 @@ const RECEIPT_STYLES = `
   td.wrap { word-break: break-word; }
   /* ฝั่งซ้ายของแถวยอดรวมกับส่วนลดปล่อยโล่ง ไม่ต้องตีเส้นเป็นช่องเปล่า */
   td.blank { border: none; }
+  td.due-note { font-size: 9pt; line-height: 1.35; white-space: nowrap; vertical-align: top; padding: 3px 8px 0 0; }
   .sum-text { font-weight: 600; }
   .pays { display: flex; align-items: center; gap: 20px; margin-top: 8px; }
   .pay { display: flex; align-items: center; gap: 6px; }
@@ -1608,6 +1632,7 @@ module.exports = {
     asIssued,
     receiptSummaryOf,
     asDepositReceipt,
+    depositDueDateText,
     receiptPages,
     receiptDocNo,
     receiptDocTitle,

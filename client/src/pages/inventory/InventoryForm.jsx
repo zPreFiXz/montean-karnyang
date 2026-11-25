@@ -675,6 +675,19 @@ const InventoryForm = () => {
                 {!isOilKit && (
                   <StockFields
                     lotTracked={isLotTracked()}
+                    unlimited={!!watch("unlimitedStock")}
+                    onToggleUnlimited={
+                      isTireCategory()
+                        ? undefined
+                        : () => {
+                            setValue(
+                              "unlimitedStock",
+                              !watch("unlimitedStock"),
+                              { shouldDirty: true },
+                            );
+                            clearErrors(["stockQuantity", "minStockLevel"]);
+                          }
+                    }
                     allowDecimal={isOilCategory()}
                     // หน้าแก้ไขยอมให้ไม่มีล็อต (ยางที่ขายหมดแล้ว backend ลบล็อตทิ้ง)
                     allowEmptyLots={isEdit}

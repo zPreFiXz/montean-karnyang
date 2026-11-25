@@ -91,7 +91,11 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
     setIsPreviewLoading(true);
     previewPartLabel(part.id, { size, ...costPayload })
       .then((res) => !ignore && setPreview(res.data?.image || null))
-      .catch((error) => !ignore && toastError(error, "โหลดตัวอย่างฉลากไม่ได้"))
+      .catch(
+        (error) =>
+          !ignore &&
+          toastError(error, "โหลดตัวอย่างฉลากไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"),
+      )
       .finally(() => !ignore && setIsPreviewLoading(false));
     return () => {
       ignore = true;
@@ -122,11 +126,6 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
     setCopies(next);
     setCopiesText(String(next));
   };
-
-  const stock = Number(part?.stockQuantity);
-  // สต็อกเป็นจำนวนเต็ม (ไม่ใช่น้ำมันเป็นลิตร) เสนอปุ่มพิมพ์เท่าจำนวนของที่มี ใช้ตอนรับของเข้า
-  const canMatchStock =
-    Number.isInteger(stock) && stock > 1 && stock <= MAX_COPIES;
 
   const storedCost =
     part?.costPrice != null ? Math.round(Number(part.costPrice)) : null;
@@ -173,9 +172,10 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
 
         {/* หน้าตาแบบหน้าต่างแก้ไขอื่น (DepositDialog): รูปตัวอย่างบอกชื่ออะไหล่อยู่แล้ว ตัวเลือกอยู่ในกล่องเทา */}
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5">
-          {/* กรอบสัดส่วนเท่าสติกเกอร์จริง รูปยังไม่มาก็ไม่ยืดหดกล่อง */}
+          {/* กรอบสัดส่วนเท่าสติกเกอร์จริง รูปยังไม่มาก็ไม่ยืดหดกล่อง
+              shrink-0 เพราะจอเตี้ยเนื้อหาเกินความสูงหน้าต่าง กล่องรูปจะถูกบีบจนหายแทนที่จะเลื่อนดู */}
           <div
-            className={`mx-auto w-full max-w-90 overflow-hidden rounded-lg border border-gray-200 bg-white ${sizeInfo.aspect}`}
+            className={`mx-auto w-full max-w-90 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white ${sizeInfo.aspect}`}
           >
             {preview ? (
               <img
@@ -192,7 +192,7 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
             )}
           </div>
 
-          <div className="mt-4 space-y-4 rounded-lg bg-gray-50 p-4">
+          <div className="mt-4 shrink-0 space-y-4 rounded-lg bg-gray-50 p-4">
             <div>
               <p className="text-subtle-dark mb-2 text-lg font-medium md:text-xl">
                 ขนาดสติกเกอร์
@@ -320,20 +320,6 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
                   <Plus className="h-4 w-4" />
                 </button>
               </div>
-              {canMatchStock && (
-                <button
-                  type="button"
-                  onClick={() => setCopiesValue(stock)}
-                  aria-pressed={copies === stock}
-                  className={`mx-auto mt-3 flex cursor-pointer rounded-full border px-4 py-1 text-base font-semibold duration-300 md:text-lg ${
-                    copies === stock
-                      ? "bg-primary border-primary text-surface"
-                      : "border-primary text-primary bg-surface"
-                  }`}
-                >
-                  {`เท่าจำนวนสต็อก (${stock} ${part?.unit || ""})`.trim()}
-                </button>
-              )}
             </div>
           </div>
         </div>

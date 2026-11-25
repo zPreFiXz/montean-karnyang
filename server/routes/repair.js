@@ -6,6 +6,7 @@ const {
   updateRepairStatusSchema,
   repairDepositSchema,
   repairDueDateSchema,
+  repairDocumentSchema,
   cancelRepairSchema,
 } = require("../utils/schemas");
 
@@ -53,8 +54,18 @@ router.patch(
   validate(repairDueDateSchema),
   setRepairDueDate,
 );
-router.post("/repairs/:id/print", authCheck, printRepairReceipt);
-router.post("/repairs/:id/image", authCheck, renderRepairImages);
+router.post(
+  "/repairs/:id/print",
+  authCheck,
+  validate(repairDocumentSchema),
+  printRepairReceipt,
+);
+router.post(
+  "/repairs/:id/image",
+  authCheck,
+  validate(repairDocumentSchema),
+  renderRepairImages,
+);
 router.patch(
   "/repairs/:id/status",
   authCheck,

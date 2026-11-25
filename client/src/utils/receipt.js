@@ -261,6 +261,21 @@ export const DEPOSIT_TERMS = {
 };
 export const depositTermsOf = (repair) => DEPOSIT_TERMS[depositKindOf(repair)];
 
+// ใบรับเงินมัดจำที่ตั้งกำหนดชำระไว้ บอกวันครบกำหนดกับเงื่อนไขริบมัดจำข้างแถวคงเหลือชำระ
+// ชำระบางส่วนเริ่มซ่อมแล้วไม่มีเรื่องริบมัดจำ (ต้องตรงกับ depositDueDateText ฝั่งเซิร์ฟเวอร์ใน receiptHtml.js)
+export const depositDueDateText = (repair) =>
+  repair?.isDeposit &&
+  repair.depositKind === "deposit" &&
+  !repair.isCancelled &&
+  repair.paymentDueDate
+    ? new Date(repair.paymentDueDate).toLocaleDateString("th-TH", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      })
+    : null;
+
 // ใบรับเงินของเงินก้อนแรก (มัดจำหรือชำระบางส่วน) ใช้เลขของบิลเดิมอ้างอิง ลงวันที่รับเงิน
 // (ต้องตรงกับ asDepositReceipt ใน receiptHtml.js)
 export const asDepositReceipt = (repair) => {
@@ -300,7 +315,7 @@ export const asDepositReceipt = (repair) => {
     repairItems: [
       {
         id: "deposit",
-        itemName: terms.line,
+        itemName: repair.depositNote || terms.line,
         quantity: 1,
         unitPrice: deposit,
       },

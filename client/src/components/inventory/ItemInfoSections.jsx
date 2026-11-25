@@ -113,12 +113,16 @@ const ItemInfoSections = ({
                       .join(" ")}
                   </InfoRow>
                   <InfoRow label="น้ำมันเหลือ:">
-                    {`${formatQuantity(item.oilSource.stockQuantity)} ลิตร`}
+                    {item.oilSource.unlimitedStock
+                      ? "ไม่นับสต็อก"
+                      : `${formatQuantity(item.oilSource.stockQuantity)} ลิตร`}
                   </InfoRow>
                   <InfoRow label="ใช้ชุดละ:">
                     {`${formatQuantity(item.oilLiters)} ลิตร`}
                   </InfoRow>
                 </>
+              ) : item.unlimitedStock ? (
+                <InfoRow label="จำนวนสต็อก:">ไม่นับสต็อก</InfoRow>
               ) : (
                 <>
                   <InfoRow label="จำนวนสต็อก:" valueClass={stockTextColor}>

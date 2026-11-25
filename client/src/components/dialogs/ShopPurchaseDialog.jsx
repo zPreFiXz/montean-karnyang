@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Trash } from "lucide-react";
 import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
+import DialogItemTag from "@/components/dialogs/DialogItemTag";
 import ConfirmDialog from "@/components/dialogs/ConfirmDialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import FormInput from "@/components/forms/FormInput";
@@ -99,9 +100,9 @@ const ShopPurchaseDialog = ({
 
           <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5">
             {!isTyped && (
-              <p className="text-normal mb-4 text-center text-[22px] leading-tight font-semibold md:text-2xl">
-                {editingItem?.itemName}
-              </p>
+              <div className="mb-4 flex justify-center">
+                <DialogItemTag title={editingItem?.itemName} />
+              </div>
             )}
 
             <form onSubmit={handleSubmit(onSubmit)}>

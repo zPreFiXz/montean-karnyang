@@ -6,6 +6,7 @@ import {
   PAYMENT_QR_NAME,
   SHOP,
   buildReceiptPages,
+  depositDueDateText,
   receiptSummaryOf,
   formatAmount,
   formatMoney,
@@ -55,9 +56,31 @@ const ReceiptPaper = ({
   );
   const blankRows = Math.max(0, MIN_ROWS - usedLines - summaryRows);
   // ชื่อส่วนลดพิมพ์เองได้ยาวเท่าไรก็ได้ ให้ตัดขึ้นบรรทัดใหม่ แถวอื่นเป็นคำสั้นที่ระบบตั้ง
-  const summaryRow = (row) => (
-    <tr key={row.key}>
+  const dueDateText = depositDueDateText(repair);
+  // แถวแรกใต้ยอดรวมกินที่ว่างฝั่งซ้ายของทุกแถว (ต้องตรงกับ due-note ใน receiptHtml.js)
+  const belowLeft = (index) =>
+    !dueDateText ? (
       <td colSpan={2} />
+    ) : index === 0 ? (
+      <td
+        colSpan={2}
+        rowSpan={summary.below.length}
+        // สองบรรทัดตายตัว ไม่ให้ตัดคำต่างกันระหว่างตัวอย่างกับใบที่พิมพ์
+        className="pt-[3px] pr-2 align-top text-[9pt] leading-[1.35] whitespace-nowrap"
+      >
+        <div>
+          กรุณาชำระส่วนที่เหลือภายในวันที่{" "}
+          <span className="font-semibold">{dueDateText}</span>
+        </div>
+        <div>
+          หากเกินกำหนด ทางร้านขอสงวนสิทธิ์
+          <span className="font-semibold">ไม่คืนเงินมัดจำทุกกรณี</span>
+        </div>
+      </td>
+    ) : null;
+  const summaryRow = (row, index, rows) => (
+    <tr key={row.key}>
+      {rows === summary.below ? belowLeft(index) : <td colSpan={2} />}
       <td
         className={`border border-black px-1 text-center ${
           row.key.startsWith("discount-") ? "" : "whitespace-nowrap"

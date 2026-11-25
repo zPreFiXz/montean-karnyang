@@ -5,6 +5,7 @@ const { execFile } = require("child_process");
 const { existsSync } = require("fs");
 const puppeteer = require("puppeteer-core");
 const createError = require("./createError");
+const { labelPrinterHost } = require("./labelPrinterHost");
 
 // ใช้ Chrome ที่ลงไว้ในเครื่องอยู่แล้ว ไม่โหลดเบราว์เซอร์มาเก็บในโปรเจคอีกก้อน
 // ตั้ง CHROME_PATH ใน .env ได้ถ้าลงไว้คนละที่
@@ -108,33 +109,34 @@ const run = (command, args) =>
     });
   });
 
-// ใบเสร็จต้องออกเครื่อง Epson เสมอ ห้ามพึ่งเครื่องพิมพ์เริ่มต้นของวินโดวส์
-// ในร้านมีเครื่องพิมพ์ฉลากสติกเกอร์ด้วย (ดู printLabel.js) ถ้าวินโดวส์ตั้งตัวนั้นเป็นค่าเริ่มต้น
-// ใบเสร็จ A5 จะไปออกบนสติกเกอร์ 60 x 40 มม. — ตั้ง PRINTER_NAME ใน .env เพื่อระบุชื่อเองได้
-const RECEIPT_PRINTER_PATTERN = /epson/i;
-
-const pickReceiptPrinter = (printers, configuredName) => {
+// เลือกเครื่องพิมพ์ใบเสร็จแบบโปรแกรมทั่วไป: ระบุชื่อไว้ (PRINTER_NAME) ใช้ตัวนั้น ไม่ได้ระบุใช้เครื่องเริ่มต้นของวินโดวส์
+// ไม่ใช้เครื่องแรกในรายการ เพราะในร้านมีเครื่องพิมพ์ฉลากด้วย (ดู printLabel.js) ใบ A5 จะไปออกบนสติกเกอร์
+const pickReceiptPrinter = (printers, configuredName, defaultName) => {
   const names = printers.map((item) => item.name);
 
   if (configuredName) {
     if (!names.includes(configuredName)) {
       createError(
         503,
-        `ไม่พบเครื่องพิมพ์ใบเสร็จชื่อ "${configuredName}" ตรวจสอบ PRINTER_NAME ใน .env`,
+        `ไม่พบเครื่องพิมพ์ใบเสร็จ "${configuredName}" กรุณาแจ้งผู้ดูแลระบบ`,
       );
     }
     return configuredName;
   }
 
-  const epson = names.find((name) => RECEIPT_PRINTER_PATTERN.test(name));
-  if (!epson) {
-    createError(
-      503,
-      "ไม่พบเครื่องพิมพ์ใบเสร็จ Epson กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์",
-    );
+  if (!defaultName || !names.includes(defaultName)) {
+    createError(503, "ยังไม่ได้ตั้งเครื่องพิมพ์ใบเสร็จ กรุณาแจ้งผู้ดูแลระบบ");
   }
-  return epson;
+  return defaultName;
 };
+
+// พอร์ตของเครื่องที่ต่อผ่านแลนมีที่อยู่ไอพีอยู่ในชื่อ (เช่น IP_192.168.1.187) ตรงกับเครื่องฉลาก = ห้ามส่งใบเสร็จ
+// เทียบที่อยู่ ไม่ดูจากยี่ห้อ เปลี่ยนเครื่องยี่ห้ออื่นก็ยังกันได้
+const isLabelPrinterPort = (portName, labelHost) =>
+  !!labelHost &&
+  new RegExp(`(^|[^0-9.])${labelHost.replace(/\./g, "\\.")}($|[^0-9.])`).test(
+    String(portName || ""),
+  );
 
 // คิวพิมพ์ของระบบปฏิบัติการรับงานได้เสมอ ถึงเครื่องพิมพ์จะไม่ได้เสียบอยู่
 // งานจะไปค้างในคิวเงียบๆ แล้วคนกดจะนึกว่าพิมพ์ไปแล้ว จึงต้องเช็กสถานะก่อนส่ง
@@ -147,14 +149,30 @@ const ensurePrinterReady = async (printerName) => {
       createError(503, "ไม่พบเครื่องพิมพ์ กรุณาตรวจสอบสายและเปิดเครื่องพิมพ์");
     }
 
-    // ถามสถานะจริงของเครื่อง ถ้าถามไม่ได้ก็ปล่อยผ่าน ดีกว่าบล็อกการพิมพ์เพราะตัวเช็กเอง
-    const target = pickReceiptPrinter(printers, printerName);
-    const status = await run("powershell", [
+    const defaultPrinter = printerName
+      ? null
+      : await printer.getDefaultPrinter().catch(() => null);
+    const target = pickReceiptPrinter(
+      printers,
+      printerName,
+      defaultPrinter?.name,
+    );
+
+    // ถามสถานะและพอร์ตจริงของเครื่อง ถ้าถามไม่ได้ก็ปล่อยผ่าน ดีกว่าบล็อกการพิมพ์เพราะตัวเช็กเอง
+    const info = await run("powershell", [
       "-NoProfile",
       "-Command",
       // ชื่อเครื่องที่มี ' อยู่ต้องเขียนเป็น '' ไม่งั้นคำสั่ง PowerShell ขาดกลางทาง
-      `(Get-Printer -Name '${target.replace(/'/g, "''")}').PrinterStatus`,
+      `$p = Get-Printer -Name '${target.replace(/'/g, "''")}'; "$($p.PrinterStatus)|$($p.PortName)"`,
     ]).catch(() => "");
+    const [status = "", portName = ""] = String(info).trim().split("|");
+
+    if (isLabelPrinterPort(portName, labelPrinterHost())) {
+      createError(
+        503,
+        "เครื่องพิมพ์ที่ตั้งไว้เป็นเครื่องพิมพ์ฉลาก ไม่ใช่เครื่องพิมพ์ใบเสร็จ กรุณาแจ้งผู้ดูแลระบบ",
+      );
+    }
 
     if (/offline|error|paused/i.test(status)) {
       createError(
@@ -247,5 +265,5 @@ module.exports = {
   printReceipt,
   htmlToImages,
   withPage,
-  _test: { pickReceiptPrinter },
+  _test: { pickReceiptPrinter, isLabelPrinterPort },
 };

@@ -1,5 +1,6 @@
 import { LoaderCircle } from "lucide-react";
 import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
+import DialogItemTag from "@/components/dialogs/DialogItemTag";
 import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import FormButton from "@/components/forms/FormButton";
@@ -122,18 +123,9 @@ const ConfirmDialog = ({
           onClose={onClose}
         />
 
-        {/* หน้าตาแบบหน้าต่างแก้ไขอื่น (DepositDialog): ชื่อรายการเป็นหัวข้อกลาง หมายเหตุอยู่ในกล่องเทา */}
+        {/* ชื่อรายการเป็นป้ายฟ้าแบบหน้าต่างแก้ไขอื่น หมายเหตุอยู่ในกล่องเทา */}
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5 py-4">
-          {itemName && (
-            <h2 className="text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">
-              {itemName}
-            </h2>
-          )}
-          {itemDetail && (
-            <p className="text-subtle-dark mt-1 text-center text-lg font-medium md:text-xl">
-              {itemDetail}
-            </p>
-          )}
+          {itemName && <DialogItemTag title={itemName} detail={itemDetail} />}
           {note && (
             <p className="text-subtle-dark mt-4 rounded-lg bg-gray-50 p-4 text-center text-base font-medium text-balance md:text-lg">
               {note}

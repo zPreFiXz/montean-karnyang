@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
+import DialogItemTag from "@/components/dialogs/DialogItemTag";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import FormButton from "@/components/forms/FormButton";
 import { setCustomerOrganizationType } from "@/api/customer";
@@ -67,11 +68,7 @@ const OrganizationTypeDialog = ({
         />
 
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5">
-          {customer?.name && (
-            <h2 className="text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">
-              {customer.name}
-            </h2>
-          )}
+          {customer?.name && <DialogItemTag title={customer.name} />}
 
           {/* ตัวเลือกอยู่ในกล่องเทาแบบหน้าต่างแก้ไขอื่น (DepositDialog StatusRevertDialog) */}
           <div className="mt-4 flex gap-2 rounded-lg bg-gray-50 p-4">

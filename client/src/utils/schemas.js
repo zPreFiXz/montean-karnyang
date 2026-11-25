@@ -151,6 +151,7 @@ export const partServiceSchema = z
     unit: z.preprocess((v) => v ?? "", z.string().optional()),
     stockQuantity: z.coerce.number().optional().default(0),
     minStockLevel: z.coerce.number().optional().default(0),
+    unlimitedStock: z.boolean().optional().default(false),
     attributes: z.any().optional(),
     compatibleVehicles: z.any().optional(),
     description: z.preprocess((v) => v ?? "", z.string().optional()),
@@ -474,6 +475,9 @@ export const depositSchemaFor = (total, terms) =>
     ),
     method: z.string().min(1, "กรุณาเลือกวิธีชำระเงิน"),
   });
+
+// ข้อความบนใบรับเงินมัดจำ (ต้องตรงกับ repairDocumentSchema ฝั่งเซิร์ฟเวอร์)
+export const DEPOSIT_NOTE_MAX = 100;
 
 // อะไหล่ที่รับจากร้านค้า (ต้องตรงกับ shopPurchaseSchema ใน server/utils/schemas.js)
 // ยางต้องเป็นจำนวนเต็ม เซิร์ฟเวอร์ตรวจจากหมวดของอะไหล่ หน้าเว็บกันไว้ที่ช่องแก้จำนวน

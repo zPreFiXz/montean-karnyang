@@ -1,4 +1,5 @@
 import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
+import DialogItemTag from "@/components/dialogs/DialogItemTag";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 // ไม่ใช้ลูกศร เพราะ L คือซ้ายของรถ ไม่ใช่ซ้ายของคนดู ช่างที่หันหน้าเข้าหารถจะเห็นลูกศรผิดข้าง
@@ -22,11 +23,7 @@ const SidePickDialog = ({ isOpen, onClose, onPick, itemName, remaining }) => (
       />
 
       <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5 pb-5">
-        {itemName && (
-          <h2 className="text-normal text-center text-[22px] leading-tight font-semibold md:text-2xl">
-            {itemName}
-          </h2>
-        )}
+        {itemName && <DialogItemTag title={itemName} />}
 
         <div className="mt-4 flex gap-2">
           {OPTIONS.map(({ value, code, needs }) => {

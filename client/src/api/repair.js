@@ -48,12 +48,15 @@ export const printRepairReceipt = async (id, options = {}) => {
     showBrand = false,
     docType = "receipt",
     copyChoice = "both",
+    depositNote,
   } = options;
   return await apiClient.post(`/repairs/${id}/print`, {
     showCustomer,
     showBrand,
     docType,
     copyChoice,
+    // ไม่ส่งมา = ไม่ได้อยู่ที่ใบรับเงินมัดจำ ข้อความที่บันทึกไว้ไม่เปลี่ยน
+    depositNote,
   });
 };
 
@@ -64,12 +67,15 @@ export const renderRepairImages = async (id, options = {}) => {
     showBrand = false,
     docType = "receipt",
     copyChoice = "original",
+    depositNote,
   } = options;
   return await apiClient.post(`/repairs/${id}/image`, {
     showCustomer,
     showBrand,
     docType,
     copyChoice,
+    // ไม่ส่งมา = ไม่ได้อยู่ที่ใบรับเงินมัดจำ ข้อความที่บันทึกไว้ไม่เปลี่ยน
+    depositNote,
   });
 };
 

@@ -1,0 +1,18 @@
+// ป้ายบอกว่ากำลังทำกับรายการไหน (ทะเบียน ชื่ออะไหล่ ชื่อลูกค้า) ใช้ในหน้าต่างยืนยันและแก้ไขทุกตัว
+// พื้นฟ้าอ่อนตัวหนังสือน้ำเงินให้เด่นกว่าหัวข้อทั่วไป detail = บรรทัดรอง เช่น ยี่ห้อและรุ่นรถ
+const DialogItemTag = ({ title, detail, className = "" }) => (
+  <div
+    className={`text-primary bg-primary/10 self-center rounded-lg px-4 py-2 text-center ${className}`}
+  >
+    <p className="text-lg leading-tight font-semibold break-words md:text-xl">
+      {title}
+    </p>
+    {detail && (
+      <p className="mt-0.5 text-base leading-tight font-medium md:text-lg">
+        {detail}
+      </p>
+    )}
+  </div>
+);
+
+export default DialogItemTag;

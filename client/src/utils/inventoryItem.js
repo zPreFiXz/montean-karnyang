@@ -30,6 +30,7 @@ export const groupVehiclesByBrand = (vehicles = []) => {
 // ต่ำ = น้อยกว่าขั้นต่ำ ไม่ใช่เท่ากับ เพราะขั้นต่ำคือจำนวนที่ต้องมีอยู่เสมอ
 // ชุดน้ำมันไม่มีขั้นต่ำของตัวเอง บอกแค่ว่าเติมได้กี่ชุดหรือหมดแล้ว
 export const stockStatusOf = (item, isOilKit) => {
+  if (item.unlimitedStock) return { tone: "ok", label: "ไม่นับสต็อก" };
   const quantity = Number(item.stockQuantity) || 0;
   const amount = `${formatQuantity(quantity)} ${item.unit || ""}`.trim();
 

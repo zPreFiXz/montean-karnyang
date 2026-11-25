@@ -79,7 +79,11 @@ const useBillItems = ({
 
   // availableStock มาจากไดอะล็อกเลือกอะไหล่ (คิดของที่คืนจากบิลเดิมแล้ว)
   // รายการที่กู้คืนมาจากหน้าอื่นไม่ได้ผ่านไดอะล็อก จึงใช้สต็อกที่ติดมากับอะไหล่แทน
-  const stockLimitOf = (item) => item.availableStock ?? item.stockQuantity ?? 0;
+  // ไม่จำกัดสต็อกไม่มีเพดาน
+  const stockLimitOf = (item) =>
+    item.unlimitedStock
+      ? Infinity
+      : (item.availableStock ?? item.stockQuantity ?? 0);
 
   const isAtStockLimit = (item) => {
     if (!item.partNumber) return false;

@@ -37,6 +37,7 @@ export const itemToFormValues = (item) => {
     unit: isTireCategoryName(item.category?.name) ? TIRE_UNIT : item.unit || "",
     stockQuantity: item.stockQuantity,
     minStockLevel: item.minStockLevel,
+    unlimitedStock: !!item.unlimitedStock,
     oilSourceId: item.oilSourceId || "",
     oilLiters: item.oilLiters != null ? String(Number(item.oilLiters)) : "",
   };
@@ -79,6 +80,10 @@ export const toServicePayload = (data, image) => ({
 
 // kind: { isUsedTire, isTire, lotTracked, isOilKit, hasSideChoice, compatibleVehicles }
 // compatibleVehicles มาแยกเพราะไม่อยู่ในสคีมา ข้อมูลที่ผ่านตัวตรวจจึงไม่มีช่องนี้
+// ไม่จำกัดสต็อกตั้งไม่ได้กับยางและชุดน้ำมัน (ต้องตรงกับ isUnlimitedStock ฝั่งเซิร์ฟเวอร์)
+const unlimitedOf = (data, kind) =>
+  !!data.unlimitedStock && !kind.isTire && !kind.isOilKit;
+
 export const toPartPayload = (data, image, kind) => ({
   partNumber: data.partNumber,
   brand: kind.isUsedTire ? "" : data.brand,
@@ -87,9 +92,15 @@ export const toPartPayload = (data, image, kind) => ({
   sellingPrice: data.sellingPrice,
   unit: data.unit,
   // ยางที่นับเป็นล็อต สต็อกคิดจากผลรวมล็อตที่ฝั่งเซิร์ฟเวอร์
-  stockQuantity: kind.lotTracked ? undefined : data.stockQuantity,
+  stockQuantity: kind.lotTracked
+    ? undefined
+    : unlimitedOf(data, kind)
+      ? 0
+      : data.stockQuantity,
   // ชุดน้ำมันเตือนสต็อกที่ตัวเก็บน้ำมันแทน
-  minStockLevel: kind.isOilKit ? 0 : data.minStockLevel,
+  minStockLevel:
+    kind.isOilKit || unlimitedOf(data, kind) ? 0 : data.minStockLevel,
+  unlimitedStock: unlimitedOf(data, kind),
   oilSourceId: kind.isOilKit ? Number(data.oilSourceId) : null,
   oilLiters: kind.isOilKit ? Number(data.oilLiters) : null,
   attributes: kind.isTire

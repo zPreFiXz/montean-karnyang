@@ -132,7 +132,9 @@ exports.partSchema = z
     unit: z.string().min(1, "กรุณาเลือกหน่วย"),
     // ยาง: ไม่ส่ง stockQuantity มา — คอนโทรลเลอร์คำนวณจากผลรวมล็อตแทน
     stockQuantity: z.coerce.number().optional(),
-    minStockLevel: z.coerce.number(),
+    minStockLevel: z.coerce.number().optional(),
+    // ไม่จำกัดสต็อก ไม่ต้องส่งจำนวนกับจุดแจ้งเตือน (ต้องตรงกับ partSchema ฝั่งหน้าเว็บ)
+    unlimitedStock: z.boolean().optional(),
     attributes: z.any().optional(),
     compatibleVehicles: z.any().optional(),
     description: z.string().optional(),
@@ -169,6 +171,14 @@ exports.partSchema = z
         code: "custom",
         message: "กรุณากรอกปริมาณน้ำมันต่อชุด",
         path: ["oilLiters"],
+      });
+    }
+    if (data.unlimitedStock) return;
+    if (data.minStockLevel === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        message: "กรุณากรอกจำนวนแจ้งเตือน",
+        path: ["minStockLevel"],
       });
     }
     if (!data.tireLots && data.stockQuantity === undefined) {
@@ -250,6 +260,18 @@ exports.repairDepositSchema = z
 exports.serviceOrderSchema = z.object({
   ids: z.array(z.number().int().positive()).min(1).max(500),
 });
+
+// พิมพ์หรือบันทึกรูปใบเสร็จ ตรวจเฉพาะข้อความบนใบรับเงินมัดจำ ตัวเลือกอื่นผ่านไปตามเดิม
+// (ต้องตรงกับ depositNoteSchema ฝั่งหน้าเว็บ)
+exports.repairDocumentSchema = z
+  .object({
+    depositNote: z
+      .string()
+      .trim()
+      .max(100, "รายการยาวเกิน 100 ตัวอักษร")
+      .optional(),
+  })
+  .loose();
 
 exports.repairDueDateSchema = z.object({
   dueDate: z
@@ -374,10 +396,10 @@ exports.partLabelSchema = z.object({
     .default("60x40"),
   // ราคาทุนที่จะแปลงเป็นรหัสลับบนฉลาก ไม่ส่ง = ไม่พิมพ์รหัส (ต้องตรงกับช่องในหน้าต่างพิมพ์ฉลาก)
   costPrice: z
-    .number({ message: "ราคาทุนต้องเป็นตัวเลข" })
-    .int("ราคาทุนต้องเป็นจำนวนเต็ม")
-    .min(0, "ราคาทุนต้องไม่ติดลบ")
-    .max(9999999, "ราคาทุนมากเกินไป")
+    .number({ message: "ราคาต้นทุนต้องเป็นตัวเลข" })
+    .int("ราคาต้นทุนต้องเป็นจำนวนเต็ม")
+    .min(0, "ราคาต้นทุนต้องไม่ติดลบ")
+    .max(9999999, "ราคาต้นทุนมากเกินไป")
     .optional(),
   // ติ๊กเองในหน้าต่าง (ไม่ติ๊กไว้ให้) ถึงจะบันทึกราคาต้นทุนนี้ลงอะไหล่ เฉพาะผู้ดูแลระบบ
   saveCostPrice: z.boolean().default(false),

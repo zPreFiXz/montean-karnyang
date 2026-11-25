@@ -769,7 +769,14 @@ exports.setRepairDeposit = async (req, res) => {
         depositMethod: method,
         depositPaidAt: repair.depositPaidAt ?? new Date(),
       }
-    : { depositAmount: null, depositMethod: null, depositPaidAt: null };
+    : {
+        depositAmount: null,
+        depositMethod: null,
+        depositPaidAt: null,
+        depositNote: null,
+        // ไม่มีมัดจำแล้วไม่เข้าเงื่อนไขตั้งกำหนดชำระ (บิลเครดิตรับมัดจำไม่ได้อยู่แล้ว)
+        paymentDueDate: null,
+      };
 
   await prisma.repair.update({ where: { id: Number(id) }, data });
 
@@ -778,11 +785,11 @@ exports.setRepairDeposit = async (req, res) => {
   });
 };
 
-// ตั้งกำหนดชำระได้เฉพาะบิลที่ยังค้างเงิน: เครดิต หรือรับชำระบางส่วน/มัดจำไว้แล้วแต่ยังไม่จ่ายครบ
+// ตั้งกำหนดชำระได้เฉพาะบิลที่ยังค้างเงิน: เครดิต หรือรับชำระบางส่วน/มัดจำไว้แล้วแต่ยังไม่จ่ายครบ (รวมใบเสนอราคาที่รับมัดจำ)
 // (ต้องตรงกับ canSetPaymentDueDate ฝั่งหน้าเว็บ)
 const canSetPaymentDueDate = (repair) =>
   repair.status === "CREDIT" ||
-  (["IN_PROGRESS", "COMPLETED"].includes(repair.status) &&
+  (["ESTIMATE", "IN_PROGRESS", "COMPLETED"].includes(repair.status) &&
     Number(repair.depositAmount) > 0);
 
 exports.setRepairDueDate = async (req, res) => {
@@ -848,6 +855,22 @@ const buildRepairDocument = async (id, body, { forImage = false } = {}) => {
 
   if (!repair) {
     createError(404, "ไม่พบงานซ่อม");
+  }
+
+  // ข้อความบนใบรับเงินมัดจำที่แก้ในหน้าตัวอย่าง บันทึกไว้กับบิล พิมพ์ซ้ำได้ข้อความเดิม ว่าง = ข้อความมาตรฐาน
+  if (
+    body?.docType === "deposit" &&
+    body.depositNote !== undefined &&
+    repair.depositAmount
+  ) {
+    const depositNote = body.depositNote || null;
+    if (depositNote !== repair.depositNote) {
+      await prisma.repair.update({
+        where: { id: repair.id },
+        data: { depositNote },
+      });
+      repair.depositNote = depositNote;
+    }
   }
 
   // ค่าเริ่มต้นเท่ากับสวิตช์ในหน้าตัวอย่าง

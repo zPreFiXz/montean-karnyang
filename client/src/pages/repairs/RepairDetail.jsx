@@ -66,11 +66,11 @@ import DepositDialog from "@/components/dialogs/DepositDialog";
 import StatusRevertDialog from "@/components/dialogs/StatusRevertDialog";
 import useAuthStore from "@/stores/useAuthStore";
 import {
+  getRepairDialogSubtitle,
   revertTargetsOf,
   isSaleRepair,
   isNoVehicleRepair,
   getRepairTitle,
-  getRepairSubtitle,
   getVehicleSubtitle,
 } from "@/utils/repairDisplay";
 import { usePrefetchPages } from "@/routes/pageImports";
@@ -454,10 +454,7 @@ const RepairDetail = () => {
         ? "รายการขาย"
         : "งานซ่อม";
 
-  const confirmItemDetail =
-    getRepairSubtitle(repair) === "ลูกค้าทั่วไป"
-      ? ""
-      : getRepairSubtitle(repair);
+  const confirmItemDetail = getRepairDialogSubtitle(repair);
 
   // ลบได้เฉพาะบิลเลขล่าสุด บิลอื่นยกเลิกแทน เลขจะได้ไม่ขาดช่วง
   const isCancelled = repair?.status === "CANCELLED";
@@ -916,6 +913,9 @@ const RepairDetail = () => {
         repair={repair}
         open={isReceiptOpen}
         onOpenChange={setIsReceiptOpen}
+        onDepositNoteSaved={(depositNote) =>
+          setRepair((prev) => ({ ...prev, depositNote }))
+        }
       />
 
       {hasCustomer && (

@@ -39,6 +39,9 @@ const AddRepairItemDialog = ({
 
   // เบิกได้ = สต็อกในคลัง + ของที่บิลนี้เคยเบิกไปแล้ว − ของที่อยู่ในบิลตอนนี้
   const getStockInfo = (item) => {
+    if (item.unlimitedStock) {
+      return { displayStock: Infinity, remainingAddable: Infinity };
+    }
     const key = buildPartKey(item);
     const selectedQuantity = selectedItems.reduce(
       (sum, selected) =>
@@ -125,7 +128,7 @@ const AddRepairItemDialog = ({
         item={previewItem}
         listName={listName}
         quantity={
-          previewItem?.partNumber
+          previewItem?.partNumber && !previewItem.unlimitedStock
             ? Math.max(getStockInfo(previewItem).remainingAddable, 0)
             : null
         }

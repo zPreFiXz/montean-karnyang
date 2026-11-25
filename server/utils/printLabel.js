@@ -1,5 +1,6 @@
 const net = require("net");
 const { withPage } = require("./printReceipt");
+const { labelPrinterHost } = require("./labelPrinterHost");
 const { buildPartItemName } = require("./repairItemName");
 const { buildLabelHtml, DOTS_PER_MM } = require("./labelHtml");
 const { encodeCostCode } = require("./costCode");
@@ -8,7 +9,7 @@ const createError = require("./createError");
 // เครื่องพิมพ์ฉลาก (สติกเกอร์ความร้อน) ต่อผ่าน LAN รับงานดิบภาษา TSPL ที่พอร์ต 9100
 // ไม่ผ่านคิวพิมพ์ของวินโดวส์ ไม่ต้องลงไดรเวอร์ และรู้ทันทีว่าเครื่องติดต่อได้หรือไม่
 const config = () => ({
-  host: process.env.LABEL_PRINTER_HOST || "192.168.1.187",
+  host: labelPrinterHost(),
   port: Number(process.env.LABEL_PRINTER_PORT) || 9100,
   gapMm: Number(process.env.LABEL_GAP_MM ?? 2),
   // ฉลากออกมากลับหัว เปลี่ยนเป็น 0 (หรือ 1) ใน .env ได้โดยไม่ต้องแก้โค้ด
@@ -134,18 +135,23 @@ const buildTsplJob = (bitsBase64, copies, size) => {
 const STATUS_QUERY = Buffer.from([0x1b, 0x21, 0x3f]);
 const STATUS_WAIT_MS = 600;
 const STATUS_ERRORS = [
-  [0x01, "ฝาเครื่องพิมพ์ฉลากเปิดอยู่ ปิดฝาแล้วลองใหม่"],
-  [0x02, "กระดาษในเครื่องพิมพ์ฉลากติด ตรวจสอบแล้วลองใหม่"],
-  [0x04, "สติกเกอร์ในเครื่องพิมพ์ฉลากหมด ใส่ม้วนใหม่แล้วลองใหม่"],
-  [0x10, "เครื่องพิมพ์ฉลากหยุดชั่วคราวอยู่ กดปุ่มที่เครื่องแล้วลองใหม่"],
-  [0x80, "เครื่องพิมพ์ฉลากมีปัญหา ปิดเปิดเครื่องแล้วลองใหม่"],
+  [0x01, "ฝาเครื่องพิมพ์ฉลากเปิดอยู่ กรุณาปิดฝาแล้วลองใหม่อีกครั้ง"],
+  [0x02, "กระดาษในเครื่องพิมพ์ฉลากติด กรุณาตรวจสอบแล้วลองใหม่อีกครั้ง"],
+  [0x04, "สติกเกอร์ในเครื่องพิมพ์ฉลากหมด กรุณาใส่ม้วนใหม่แล้วลองใหม่อีกครั้ง"],
+  [
+    0x10,
+    "เครื่องพิมพ์ฉลากหยุดชั่วคราวอยู่ กรุณากดปุ่มที่เครื่องแล้วลองใหม่อีกครั้ง",
+  ],
+  [0x80, "เครื่องพิมพ์ฉลากมีปัญหา กรุณาปิดเปิดเครื่องแล้วลองใหม่อีกครั้ง"],
 ];
 
 const CONNECT_TIMEOUT_MS = 3000;
 
 const sendToLabelPrinter = (job) => {
   const { host, port } = config();
-  const offline = `เชื่อมต่อเครื่องพิมพ์ฉลากไม่ได้ (${host}) ตรวจสอบว่าเปิดเครื่องและต่อสาย LAN อยู่`;
+  // ไม่บอกเลข IP พนักงานแก้เองไม่ได้ ผู้ดูแลดูได้จาก LABEL_PRINTER_HOST ใน .env
+  const offline =
+    "เชื่อมต่อเครื่องพิมพ์ฉลากไม่ได้ กรุณาตรวจสอบว่าเปิดเครื่องและเสียบสาย LAN แล้วลองใหม่อีกครั้ง";
 
   return new Promise((resolve, reject) => {
     const socket = net.connect({ host, port });
@@ -196,10 +202,8 @@ const costCodeOf = (costPrice) => {
   if (costPrice == null) return null;
   const code = encodeCostCode(costPrice);
   if (!code) {
-    createError(
-      400,
-      "ยังไม่ได้ตั้งคำลับรหัสราคาทุน (LABEL_COST_KEY ใน .env ต้องเป็นตัวอักษรภาษาอังกฤษไม่ซ้ำกัน 9 หรือ 10 ตัว แบบ 9 ตัวห้ามมีตัว O)",
-    );
+    // LABEL_COST_KEY ใน .env ไม่มีหรือผิดรูปแบบ: ต้องเป็นตัวอักษรภาษาอังกฤษไม่ซ้ำกัน 9 หรือ 10 ตัว แบบ 9 ตัวห้ามมีตัว O
+    createError(400, "ยังไม่ได้ตั้งรหัสลับราคาต้นทุน กรุณาแจ้งผู้ดูแลระบบ");
   }
   return code;
 };

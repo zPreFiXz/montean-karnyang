@@ -1,4 +1,5 @@
 import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
+import DialogItemTag from "@/components/dialogs/DialogItemTag";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const OilUsePickDialog = ({ isOpen, onClose, onPick, itemName, uses }) => (
@@ -15,11 +16,7 @@ const OilUsePickDialog = ({ isOpen, onClose, onPick, itemName, uses }) => (
       />
 
       <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5 pb-5">
-        {itemName && (
-          <h2 className="text-normal text-center text-[22px] leading-tight font-semibold md:text-2xl">
-            {itemName}
-          </h2>
-        )}
+        {itemName && <DialogItemTag title={itemName} />}
 
         <div className="mt-4 flex gap-2">
           {uses.map((use) => (

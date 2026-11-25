@@ -14,7 +14,15 @@ const fakeTx = (parts) => ({
     },
     updateMany: async ({ where, data }) => {
       const p = parts.find((x) => x.id === where.id);
-      if (!p || p.stockQuantity < where.stockQuantity.gte) return { count: 0 };
+      if (!p) return { count: 0 };
+      if (where.unlimitedStock === false && p.unlimitedStock) {
+        return { count: 0 };
+      }
+      if (data.stockQuantity.increment !== undefined) {
+        p.stockQuantity += data.stockQuantity.increment;
+        return { count: 1 };
+      }
+      if (p.stockQuantity < where.stockQuantity.gte) return { count: 0 };
       p.stockQuantity -= data.stockQuantity.decrement;
       return { count: 1 };
     },
@@ -69,4 +77,23 @@ test("ชุดน้ำมันเทียบลิตรกับตัว�
 
 test("บรรทัดบริการไม่มีสต็อกให้เช็ก", async () => {
   await ensureStockAvailable(fakeTx([]), [{ serviceId: 3, quantity: 5 }]);
+});
+
+test("อะไหล่ไม่จำกัดสต็อกขายเกินจำนวนได้ ไม่ตัดไม่คืน", async () => {
+  const parts = [part(1, 0, { unlimitedStock: true })];
+  const tx = fakeTx(parts);
+  await ensureStockAvailable(tx, [{ partId: 1, part: parts[0], quantity: 50 }]);
+  await moveStock(tx, parts[0], 1, 50, "decrement");
+  await moveStock(tx, parts[0], 1, 50, "increment");
+  assert.equal(parts[0].stockQuantity, 0);
+});
+
+test("ชุดน้ำมันของขวดที่ไม่จำกัดสต็อกก็ไม่จำกัดตาม", async () => {
+  const source = part(9, 0, { unit: "ลิตร", unlimitedStock: true });
+  const kit = part(2, 0, { oilSourceId: 9, oilLiters: 4 });
+  const tx = fakeTx([source, kit]);
+  const lines = [{ partId: 2, part: kit, quantity: 3 }];
+  await ensureStockAvailable(tx, lines);
+  await moveStock(tx, kit, 2, 3, "decrement");
+  assert.equal(source.stockQuantity, 0);
 });

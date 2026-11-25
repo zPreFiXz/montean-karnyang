@@ -12,6 +12,13 @@ describe("สถานะสต็อก", () => {
     unit: "ชิ้น",
   });
 
+  it("ไม่นับสต็อกไม่มีหมดหรือต่ำ", () => {
+    expect(stockStatusOf({ ...item(0, 0), unlimitedStock: true })).toEqual({
+      tone: "ok",
+      label: "ไม่นับสต็อก",
+    });
+  });
+
   it("หมด / ต่ำกว่าขั้นต่ำ / ปกติ / เท่าขั้นต่ำถือว่าปกติ", () => {
     expect(stockStatusOf(item(0, 2)).tone).toBe("out");
     expect(stockStatusOf(item(1, 2))).toEqual({

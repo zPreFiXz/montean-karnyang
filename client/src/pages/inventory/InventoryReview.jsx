@@ -68,6 +68,7 @@ const InventoryReview = () => {
           (item) =>
             item.type === "part" &&
             !item.oilSourceId &&
+            !item.unlimitedStock &&
             item.category?.name !== USED_TIRE_CATEGORY &&
             Number(item.minStockLevel || 0) !== Number(item.stockQuantity || 0),
         ),

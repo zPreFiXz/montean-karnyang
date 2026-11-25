@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
+import DialogItemTag from "@/components/dialogs/DialogItemTag";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import FormButton from "@/components/forms/FormButton";
 import { formatQuantity } from "@/utils/formats";
@@ -59,9 +60,7 @@ const EditQuantityDialog = ({
         />
 
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5">
-          <h2 className="text-normal text-center text-[22px] leading-tight font-semibold break-words md:text-2xl">
-            {productName}
-          </h2>
+          <DialogItemTag title={productName} />
 
           <div className="mt-4 rounded-lg bg-gray-50 p-4">
             <label

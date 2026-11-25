@@ -6,6 +6,7 @@ const OIL_SOURCE_SELECT = {
     name: true,
     unit: true,
     stockQuantity: true,
+    unlimitedStock: true,
   },
 };
 
@@ -16,6 +17,8 @@ const withOilKitStock = (part) => {
     ...part,
     stockQuantity: Math.max(0, Math.floor(litres / Number(part.oilLiters))),
     minStockLevel: 0,
+    // ขวดน้ำมันไม่จำกัด ชุดที่ใช้ขวดนั้นก็ไม่จำกัดตาม
+    unlimitedStock: !!part.oilSource.unlimitedStock,
   };
 };
 

@@ -1,16 +1,10 @@
 import { useEffect, useState } from "react";
 import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
+import DialogItemTag from "@/components/dialogs/DialogItemTag";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import FormButton from "@/components/forms/FormButton";
 import { getStatusInfo } from "@/constants/repairStatus";
-import { getRepairTitle } from "@/utils/repairDisplay";
-
-// บอกผลของการถอยไปแต่ละสถานะ เทียบกับสถานะตอนนี้ (ล้างอะไรบ้าง)
-const effectOf = (from, to) => {
-  const effects = [];
-  if (from === "CREDIT" && to !== "CREDIT") effects.push("ยกเลิกการลงเครดิต");
-  return effects.join(" ");
-};
+import { getRepairDialogSubtitle, getRepairTitle } from "@/utils/repairDisplay";
 
 // ถอยสถานะได้หลายขั้น เลือกสถานะแล้วกดยืนยัน เลขที่เอกสารกับสต็อกไม่เปลี่ยน
 // หน้าตาแบบหน้าต่างแก้ไขอื่นในโปรเจค (DepositDialog) ตัวเลือกเป็นการ์ดแถวเดียวแบบ OrganizationTypeDialog
@@ -42,6 +36,7 @@ const StatusRevertDialog = ({
   };
 
   const current = getStatusInfo(repair?.status, repair?.type);
+  const subtitle = getRepairDialogSubtitle(repair);
 
   return (
     <Dialog
@@ -59,9 +54,11 @@ const StatusRevertDialog = ({
         />
 
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5">
-          <h2 className="text-normal mb-4 text-center text-[22px] leading-tight font-semibold md:text-2xl">
-            {getRepairTitle(repair)}
-          </h2>
+          <DialogItemTag
+            title={getRepairTitle(repair)}
+            detail={subtitle}
+            className="mb-4"
+          />
 
           {/* ทุกอย่างอยู่ในกล่องเทากล่องเดียว แบบหน้าต่างแก้ไขการชำระบางส่วน (DepositDialog) */}
           <div className="space-y-4 rounded-lg bg-gray-50 p-4">
@@ -128,13 +125,6 @@ const StatusRevertDialog = ({
                 })}
               </div>
             </div>
-
-            {/* ผลของตัวที่เลือก ไม่มีผลที่ต้องบอกก็ไม่ขึ้น */}
-            {selected && effectOf(repair?.status, selected) && (
-              <p className="text-subtle-dark text-center text-base font-medium text-balance md:text-lg">
-                {effectOf(repair?.status, selected)}
-              </p>
-            )}
           </div>
         </div>
 

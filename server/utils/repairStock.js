@@ -82,6 +82,7 @@ const STOCK_PART_SELECT = {
   unit: true,
   attributes: true,
   stockQuantity: true,
+  unlimitedStock: true,
   category: { select: { name: true } },
 };
 
@@ -113,25 +114,33 @@ const ensureStockAvailable = async (tx, lines) => {
     select: STOCK_PART_SELECT,
   });
   for (const part of parts) {
-    if (Number(part.stockQuantity) < need.get(part.id)) {
+    if (
+      !part.unlimitedStock &&
+      Number(part.stockQuantity) < need.get(part.id)
+    ) {
       shortageError(part, part.stockQuantity, need.get(part.id));
     }
   }
 };
 
 // ตัดแบบมีเงื่อนไขในคำสั่งเดียว กันสองเครื่องขายชิ้นสุดท้ายพร้อมกัน
+// อะไหล่ไม่จำกัดสต็อกไม่ตัดไม่คืน (ชุดน้ำมันดูที่ขวดน้ำมัน)
 const moveStock = async (tx, part, partId, quantity, direction) => {
   const target = stockTargetOf(part, partId, quantity);
   if (direction === "increment") {
-    await tx.part.update({
-      where: { id: target.partId },
+    await tx.part.updateMany({
+      where: { id: target.partId, unlimitedStock: false },
       data: { stockQuantity: { increment: target.amount } },
     });
     return;
   }
 
   const { count } = await tx.part.updateMany({
-    where: { id: target.partId, stockQuantity: { gte: target.amount } },
+    where: {
+      id: target.partId,
+      unlimitedStock: false,
+      stockQuantity: { gte: target.amount },
+    },
     data: { stockQuantity: { decrement: target.amount } },
   });
   if (count === 0) {
@@ -139,6 +148,7 @@ const moveStock = async (tx, part, partId, quantity, direction) => {
       where: { id: target.partId },
       select: STOCK_PART_SELECT,
     });
+    if (current?.unlimitedStock) return;
     shortageError(current, current?.stockQuantity ?? 0, target.amount);
   }
 };

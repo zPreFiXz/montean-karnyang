@@ -503,7 +503,9 @@ const RepairItemDetailDialog = ({
                   })
                 }
                 disabled={
-                  !!currentItem.partNumber && !(currentItem.stockQuantity > 0)
+                  !!currentItem.partNumber &&
+                  !currentItem.unlimitedStock &&
+                  !(currentItem.stockQuantity > 0)
                 }
                 aria-label="เพิ่มลงรายการซ่อม"
                 title="เพิ่มลงรายการซ่อม"
@@ -511,15 +513,18 @@ const RepairItemDetailDialog = ({
               >
                 <ShoppingCart className="h-4 w-4" />
               </button>
-              {!isService && !isOilKit && !isAddStockVisible && (
-                <button
-                  onClick={handleShowAddStock}
-                  className="font-athiti text-surface bg-gradient-primary flex h-11 flex-1 cursor-pointer items-center justify-center gap-1 rounded-[20px] text-lg font-semibold md:text-xl"
-                >
-                  <Plus className="h-4 w-4" />
-                  เพิ่มสต็อก
-                </button>
-              )}
+              {!isService &&
+                !isOilKit &&
+                !currentItem.unlimitedStock &&
+                !isAddStockVisible && (
+                  <button
+                    onClick={handleShowAddStock}
+                    className="font-athiti text-surface bg-gradient-primary flex h-11 flex-1 cursor-pointer items-center justify-center gap-1 rounded-[20px] text-lg font-semibold md:text-xl"
+                  >
+                    <Plus className="h-4 w-4" />
+                    เพิ่มสต็อก
+                  </button>
+                )}
               <button
                 onClick={handleEdit}
                 autoFocus={false}

@@ -18,6 +18,8 @@ const InventoryCard = ({
   sellingPrice,
   quantity,
   minStockLevel,
+  // ไม่นับสต็อก ไม่มีหมดหรือใกล้หมด
+  unlimitedStock = false,
   attributes,
   secureUrl,
   category,
@@ -102,7 +104,12 @@ const InventoryCard = ({
           <div className="flex min-w-0 flex-col">
             {renderProductInfo()}
 
-            {!isService &&
+            {!isService && unlimitedStock ? (
+              <p className="text-subtle-dark text-base font-semibold md:text-lg">
+                จำนวน: ไม่นับสต็อก
+              </p>
+            ) : (
+              !isService &&
               (!warnEmpty && !tracksStock(minStockLevel) ? (
                 <p className="text-subtle-dark text-base font-semibold md:text-lg">
                   {stockText(unit)}
@@ -123,7 +130,8 @@ const InventoryCard = ({
                 <p className="text-subtle-dark text-base font-semibold md:text-lg">
                   {stockText(unit)}
                 </p>
-              ))}
+              ))
+            )}
             {soldPriceRange && (
               <p className="text-subtle-dark truncate text-base font-semibold md:text-lg">
                 {`เคยขาย ${formatPriceRange(soldPriceRange)}`}

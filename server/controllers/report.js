@@ -209,6 +209,7 @@ exports.getVehicleModelReport = async (req, res) => {
       id: true,
       stockQuantity: true,
       minStockLevel: true,
+      unlimitedStock: true,
       unit: true,
       oilSourceId: true,
       oilLiters: true,
@@ -223,6 +224,7 @@ exports.getVehicleModelReport = async (req, res) => {
         {
           stockQuantity: Number(withStock.stockQuantity) || 0,
           minStockLevel: withStock.minStockLevel,
+          unlimitedStock: !!withStock.unlimitedStock,
           isOilKit: Boolean(part.oilSourceId && part.oilSource),
         },
       ];

@@ -489,6 +489,7 @@ const InventoryBrowser = ({
           sellingPrice={item.sellingPrice}
           quantity={item.stockQuantity}
           minStockLevel={item.minStockLevel}
+          unlimitedStock={!!item.unlimitedStock}
           attributes={item.attributes}
           tireLots={item.tireLots}
           secureUrl={item.secureUrl}

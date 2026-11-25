@@ -84,6 +84,13 @@ export const getRepairSubtitle = (repair) => {
   return getDisplayBrand(repair?.vehicle?.vehicleModel);
 };
 
+// บรรทัดรองใต้ชื่อบิลในหน้าต่าง (ยืนยัน แก้สถานะ ชำระบางส่วน) ไว้เช็กว่าเป็นคันหรือลูกค้าที่ถูก
+// ลูกค้าทั่วไปไม่บอกอะไรเพิ่ม จึงเว้นว่าง
+export const getRepairDialogSubtitle = (repair) => {
+  const subtitle = getRepairSubtitle(repair);
+  return subtitle === "ลูกค้าทั่วไป" ? "" : subtitle;
+};
+
 // การ์ดในหน้าที่ทุกบิลเป็นของลูกค้ารายเดียว (หน้าลูกค้าเครดิต, ประวัติบิล) ไม่ต้องขึ้นชื่อลูกค้าซ้ำ
 export const getCustomerBillSubtitle = (repair) =>
   [
@@ -101,11 +108,11 @@ export const hasMisfiledSuspension = (repair) =>
     (ri) => ri.part?.category?.name === "ช่วงล่าง",
   );
 
-// ตั้งกำหนดชำระได้เฉพาะบิลที่ยังค้างเงิน: เครดิต หรือรับชำระบางส่วน/มัดจำไว้แล้วแต่ยังไม่จ่ายครบ
+// ตั้งกำหนดชำระได้เฉพาะบิลที่ยังค้างเงิน: เครดิต หรือรับชำระบางส่วน/มัดจำไว้แล้วแต่ยังไม่จ่ายครบ (รวมใบเสนอราคาที่รับมัดจำ)
 // (ต้องตรงกับ canSetPaymentDueDate ใน server/controllers/repair.js)
 export const canSetPaymentDueDate = (repair) =>
   repair?.status === "CREDIT" ||
-  (["IN_PROGRESS", "COMPLETED"].includes(repair?.status) &&
+  (["ESTIMATE", "IN_PROGRESS", "COMPLETED"].includes(repair?.status) &&
     Number(repair?.depositAmount) > 0);
 
 // สถานะที่ถอยกลับได้ (แก้สถานะที่กดผิด) เรียงจากใกล้ไปไกล

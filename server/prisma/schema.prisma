@@ -103,6 +103,7 @@ model Part {
   unit               String
   stockQuantity      Decimal        @db.Decimal(10, 2)
   minStockLevel      Int
+  unlimitedStock     Boolean        @default(false)
   attributes         Json?
   compatibleVehicles Json?
   publicId           String?
@@ -166,6 +167,7 @@ model Repair {
   depositMethod     PaymentMethod?
   depositPaidAt     DateTime?
   depositRefundedAt DateTime?
+  depositNote       String?        @db.VarChar(200)
   paymentDueDate    DateTime?      @db.Date
   cancelledAt       DateTime?
   cancelledStatus   RepairStatus?
