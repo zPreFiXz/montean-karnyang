@@ -26,6 +26,15 @@ const LABEL_SIZES = [
   { id: "40x30", label: "40 x 30 มม.", aspect: "aspect-[4/3]" },
   { id: "40x20", label: "40 x 20 มม.", aspect: "aspect-[2/1]" },
 ];
+// ร้านค้าที่สั่งอะไหล่ รหัสพิมพ์ก่อนรหัสทุน (ต้องตรงกับ supplierCode ใน partLabelSchema)
+const LABEL_SUPPLIERS = [
+  { code: "PM", name: "พัฒนามอเตอร์" },
+  { code: "BKP", name: "บางกอกออโต้พาร์ท" },
+  { code: "NC", name: "เอ็นซี" },
+  { code: "H2H", name: "แฮนด์ทูแฮนด์" },
+  { code: "RJR", name: "รวมเจริญ" },
+];
+
 // ส่วนใหญ่ใช้ม้วนเดิมต่อกัน จำขนาดที่เลือกล่าสุดไว้ในเครื่อง
 const SIZE_KEY = "part-label-size";
 const loadSize = () => {
@@ -40,7 +49,7 @@ const loadSize = () => {
 const clampCopies = (value) =>
   Math.min(Math.max(Math.trunc(Number(value)) || 1, 1), MAX_COPIES);
 
-// พิมพ์สติกเกอร์ติดอะไหล่ (เลือกขนาดตามม้วนที่ใส่): ชื่อ บาร์โค้ดรหัสอะไหล่ และราคาขายพร้อมหน่วย (แสดงเสมอ)
+// พิมพ์สติกเกอร์ติดอะไหล่ (เลือกขนาดตามม้วนที่ใส่): รหัส ชื่อ และราคาขายพร้อมหน่วย (แสดงเสมอ)
 // onCostSaved(ราคาใหม่) = บันทึกราคาต้นทุนแล้ว ให้หน้าต่างรายละเอียดอัปเดตตัวเลขตาม
 const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
   const isAdmin = useAuthStore((state) => state.user?.role === "ADMIN");
@@ -53,6 +62,8 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
   const [costPartId, setCostPartId] = useState(null);
   // ไม่ติ๊กไว้ให้ ต้องตั้งใจติ๊กเองถึงจะบันทึก กันคนกดพิมพ์เร็วแล้วราคาในสต็อกเปลี่ยนโดยไม่ตั้งใจ
   const [saveCost, setSaveCost] = useState(false);
+  // ร้านที่สั่งของชิ้นนี้ ว่าง = ไม่พิมพ์รหัสร้าน
+  const [supplierCode, setSupplierCode] = useState("");
   const [copiesText, setCopiesText] = useState("1");
   const [preview, setPreview] = useState(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
@@ -63,6 +74,7 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
     if (!open) return;
     setCopies(1);
     setCopiesText("1");
+    setSupplierCode("");
   }, [open, part?.id]);
 
   // ใส่ราคาทุนในคลังไว้ให้ก่อน ร้านส่วนใหญ่ติดรหัสตามทุนจริง
@@ -82,8 +94,11 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
     return () => clearTimeout(timer);
   }, [costText]);
 
-  const costPayload =
-    costForPreview === "" ? {} : { costPrice: Number(costForPreview) };
+  const supplierPayload = supplierCode ? { supplierCode } : {};
+  const costPayload = {
+    ...supplierPayload,
+    ...(costForPreview === "" ? {} : { costPrice: Number(costForPreview) }),
+  };
 
   useEffect(() => {
     if (!open || !part?.id || costPartId !== part.id) return;
@@ -102,7 +117,7 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
     };
     // costPayload สร้างใหม่ทุกเรนเดอร์ ดูจากค่าที่หน่วงไว้แทน
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, part?.id, size, costForPreview, costPartId]);
+  }, [open, part?.id, size, costForPreview, costPartId, supplierCode]);
 
   const chooseSize = (next) => {
     setSize(next);
@@ -140,6 +155,7 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
         printPartLabel(part.id, {
           copies,
           size,
+          ...supplierPayload,
           ...(costText === "" ? {} : { costPrice: Number(costText) }),
           saveCostPrice: canSaveCost && saveCost,
         }),
@@ -217,6 +233,39 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
                     }`}
                   >
                     {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-subtle-dark mb-2 text-lg font-medium md:text-xl">
+                ร้านค้าที่สั่ง
+              </p>
+              {/* กดร้านเดิมซ้ำ = ยกเลิก ไม่พิมพ์รหัสร้าน */}
+              <div
+                role="radiogroup"
+                aria-label="ร้านค้าที่สั่ง"
+                className="grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1"
+              >
+                {LABEL_SUPPLIERS.map((item) => (
+                  <button
+                    key={item.code}
+                    type="button"
+                    role="radio"
+                    aria-checked={supplierCode === item.code}
+                    onClick={() =>
+                      setSupplierCode((current) =>
+                        current === item.code ? "" : item.code,
+                      )
+                    }
+                    className={`h-10 cursor-pointer rounded-lg px-2 text-lg font-semibold duration-300 md:text-xl ${
+                      supplierCode === item.code
+                        ? "bg-gradient-primary text-surface shadow-lg"
+                        : "text-subtle-dark"
+                    }`}
+                  >
+                    {item.name}
                   </button>
                 ))}
               </div>

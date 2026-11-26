@@ -41,15 +41,38 @@ const renderLabel = (labelData, size) => {
   return withPage(
     html,
     async (page) => {
-      // ชื่อยาวย่อตัวหนังสือลงจนพอกล่อง ไม่ตัดคำทิ้ง ขนาดเริ่มและต่ำสุดตามขนาดสติกเกอร์ (data-max data-min)
+      // ย่อตัวหนังสือจนพอกล่อง ไม่ตัดคำทิ้ง ขนาดเริ่มและต่ำสุดตามขนาดสติกเกอร์ (data-max data-min)
       await page.evaluate(() => {
+        // รหัสตัวใหญ่เท่าชื่ออะไหล่ ยาวเกินความกว้างค่อยย่อลงเฉพาะรหัสจนพอดี ย่อสุดแล้วยังไม่พอค่อยขึ้นบรรทัดใหม่ ไม่ตัดทิ้ง
+        const code = document.querySelector(".code");
+        let codeFit = Infinity;
+        if (code) {
+          codeFit = Number(code.dataset.max);
+          const codeMin = Number(code.dataset.min);
+          while (code.scrollWidth > code.clientWidth && codeFit > codeMin) {
+            codeFit -= 1;
+            code.style.fontSize = `${codeFit}px`;
+          }
+          if (code.scrollWidth > code.clientWidth) {
+            code.style.whiteSpace = "normal";
+            code.style.wordBreak = "break-all";
+            code.style.letterSpacing = "0";
+          }
+        }
+
+        // ชื่อยาวย่อลงจนพอกล่อง รหัสย่อตามไม่ให้ใหญ่กว่าชื่อ (กล่องชื่อสูงตามที่รหัสเหลือไว้)
         const box = document.querySelector(".name-box");
         const name = document.querySelector(".name");
         let size = Number(name.dataset.max);
         const min = Number(name.dataset.min);
+        const apply = () => {
+          name.style.fontSize = `${size}px`;
+          if (code) code.style.fontSize = `${Math.min(size, codeFit)}px`;
+        };
+        apply();
         while (name.scrollHeight > box.clientHeight && size > min) {
           size -= 2;
-          name.style.fontSize = `${size}px`;
+          apply();
         }
       });
 
@@ -138,10 +161,7 @@ const STATUS_ERRORS = [
   [0x01, "ฝาเครื่องพิมพ์ฉลากเปิดอยู่ กรุณาปิดฝาแล้วลองใหม่อีกครั้ง"],
   [0x02, "กระดาษในเครื่องพิมพ์ฉลากติด กรุณาตรวจสอบแล้วลองใหม่อีกครั้ง"],
   [0x04, "สติกเกอร์ในเครื่องพิมพ์ฉลากหมด กรุณาใส่ม้วนใหม่แล้วลองใหม่อีกครั้ง"],
-  [
-    0x10,
-    "เครื่องพิมพ์ฉลากหยุดชั่วคราวอยู่ กรุณากดปุ่มที่เครื่องแล้วลองใหม่อีกครั้ง",
-  ],
+  [0x10, "เครื่องพิมพ์ฉลากหยุดชั่วคราวอยู่ กรุณากดปุ่มที่เครื่องแล้วลองใหม่อีกครั้ง"],
   [0x80, "เครื่องพิมพ์ฉลากมีปัญหา กรุณาปิดเปิดเครื่องแล้วลองใหม่อีกครั้ง"],
 ];
 
@@ -208,22 +228,33 @@ const costCodeOf = (costPrice) => {
   return code;
 };
 
-const labelDataOf = (part, { costPrice } = {}) => ({
+const labelDataOf = (part, { costPrice, supplierCode } = {}) => ({
+  supplierCode,
   name: buildPartItemName(part) || part.name,
+  brand: part.brand,
   partNumber: part.partNumber,
   price: part.sellingPrice,
   unit: part.unit,
   costCode: costCodeOf(costPrice),
 });
 
-const previewPartLabel = async (part, { size, costPrice }) => {
-  const { preview } = await renderLabel(labelDataOf(part, { costPrice }), size);
+const previewPartLabel = async (part, { size, costPrice, supplierCode }) => {
+  const { preview } = await renderLabel(
+    labelDataOf(part, { costPrice, supplierCode }),
+    size,
+  );
   return preview;
 };
 
-const printPartLabel = async (part, { copies, size, costPrice }) => {
+const printPartLabel = async (
+  part,
+  { copies, size, costPrice, supplierCode },
+) => {
   const count = Math.min(Math.max(Math.trunc(copies) || 1, 1), MAX_COPIES);
-  const { bits } = await renderLabel(labelDataOf(part, { costPrice }), size);
+  const { bits } = await renderLabel(
+    labelDataOf(part, { costPrice, supplierCode }),
+    size,
+  );
   await sendToLabelPrinter(buildTsplJob(bits, count, size));
   return count;
 };
