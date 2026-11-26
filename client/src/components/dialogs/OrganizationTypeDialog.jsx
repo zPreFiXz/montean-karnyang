@@ -70,8 +70,8 @@ const OrganizationTypeDialog = ({
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5">
           {customer?.name && <DialogItemTag title={customer.name} />}
 
-          {/* ตัวเลือกอยู่ในกล่องเทาแบบหน้าต่างแก้ไขอื่น (DepositDialog StatusRevertDialog) */}
-          <div className="mt-4 flex gap-2 rounded-lg bg-gray-50 p-4">
+          {/* มีแค่การ์ดตัวเลือกแถวเดียว ไม่มีแถวอื่นให้รวบเป็นกลุ่ม จึงไม่ใส่กล่องเทาแบบหน้าต่างแก้ไขอื่น */}
+          <div className="mt-4 flex gap-2">
             {OPTIONS.map((option) => {
               const Icon = organizationIcon(option.value);
               const isActive = selected === option.value;

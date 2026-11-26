@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import DialogTitleBar from "@/components/dialogs/DialogTitleBar";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import FormButton from "@/components/forms/FormButton";
+import FieldErrorList from "@/components/forms/FieldErrorList";
 import { previewPartLabel, printPartLabel } from "@/api/part";
 import { toastError } from "@/utils/handleError";
 import { withMinDuration } from "@/utils/withMinDuration";
@@ -17,7 +18,7 @@ import useAuthStore from "@/stores/useAuthStore";
 import { formatCurrency } from "@/utils/formats";
 
 // ต้องตรงกับ partLabelSchema ฝั่งเซิร์ฟเวอร์
-const MAX_COPIES = 100;
+const MAX_COPIES = 10;
 
 // ต้องตรงกับ LABEL_SIZES ใน server/utils/printLabel.js
 const LABEL_SIZES = [
@@ -27,24 +28,15 @@ const LABEL_SIZES = [
   { id: "40x20", label: "40 x 20 มม.", aspect: "aspect-[2/1]" },
 ];
 // ร้านค้าที่สั่งอะไหล่ รหัสพิมพ์ก่อนรหัสทุน (ต้องตรงกับ supplierCode ใน partLabelSchema)
+// ไม่ระบุ = ไม่พิมพ์รหัสร้าน
 const LABEL_SUPPLIERS = [
+  { code: "", name: "ไม่ระบุ" },
   { code: "PM", name: "พัฒนามอเตอร์" },
   { code: "BKP", name: "บางกอกออโต้พาร์ท" },
   { code: "NC", name: "เอ็นซี" },
   { code: "H2H", name: "แฮนด์ทูแฮนด์" },
   { code: "RJR", name: "รวมเจริญ" },
 ];
-
-// ส่วนใหญ่ใช้ม้วนเดิมต่อกัน จำขนาดที่เลือกล่าสุดไว้ในเครื่อง
-const SIZE_KEY = "part-label-size";
-const loadSize = () => {
-  try {
-    const saved = localStorage.getItem(SIZE_KEY);
-    return LABEL_SIZES.some((s) => s.id === saved) ? saved : "60x40";
-  } catch {
-    return "60x40";
-  }
-};
 
 const clampCopies = (value) =>
   Math.min(Math.max(Math.trunc(Number(value)) || 1, 1), MAX_COPIES);
@@ -53,7 +45,8 @@ const clampCopies = (value) =>
 // onCostSaved(ราคาใหม่) = บันทึกราคาต้นทุนแล้ว ให้หน้าต่างรายละเอียดอัปเดตตัวเลขตาม
 const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
   const isAdmin = useAuthStore((state) => state.user?.role === "ADMIN");
-  const [size, setSize] = useState(loadSize);
+  // ขนาดกับร้านไม่เลือกไว้ให้ ต้องอ่านแล้วเลือกเองทุกครั้ง null = ยังไม่เลือก
+  const [size, setSize] = useState(null);
   const [copies, setCopies] = useState(1);
   // ราคาทุนที่แปลงเป็นรหัสลับบนฉลาก ว่าง = ไม่พิมพ์รหัส
   const [costText, setCostText] = useState("");
@@ -62,8 +55,9 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
   const [costPartId, setCostPartId] = useState(null);
   // ไม่ติ๊กไว้ให้ ต้องตั้งใจติ๊กเองถึงจะบันทึก กันคนกดพิมพ์เร็วแล้วราคาในสต็อกเปลี่ยนโดยไม่ตั้งใจ
   const [saveCost, setSaveCost] = useState(false);
-  // ร้านที่สั่งของชิ้นนี้ ว่าง = ไม่พิมพ์รหัสร้าน
-  const [supplierCode, setSupplierCode] = useState("");
+  // ร้านที่สั่งของชิ้นนี้ ค่าว่าง = ไม่ระบุ (ไม่พิมพ์รหัสร้าน)
+  const [supplierCode, setSupplierCode] = useState(null);
+  const [missing, setMissing] = useState({});
   const [copiesText, setCopiesText] = useState("1");
   const [preview, setPreview] = useState(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
@@ -74,7 +68,9 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
     if (!open) return;
     setCopies(1);
     setCopiesText("1");
-    setSupplierCode("");
+    setSize(null);
+    setSupplierCode(null);
+    setMissing({});
   }, [open, part?.id]);
 
   // ใส่ราคาทุนในคลังไว้ให้ก่อน ร้านส่วนใหญ่ติดรหัสตามทุนจริง
@@ -94,14 +90,18 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
     return () => clearTimeout(timer);
   }, [costText]);
 
-  const supplierPayload = supplierCode ? { supplierCode } : {};
+  // ยังไม่เลือกกับไม่ระบุได้ฉลากเหมือนกัน ไม่ต้องวาดตัวอย่างใหม่
+  const printedSupplier = supplierCode || "";
+  const supplierPayload = printedSupplier
+    ? { supplierCode: printedSupplier }
+    : {};
   const costPayload = {
     ...supplierPayload,
     ...(costForPreview === "" ? {} : { costPrice: Number(costForPreview) }),
   };
 
   useEffect(() => {
-    if (!open || !part?.id || costPartId !== part.id) return;
+    if (!open || !part?.id || !size || costPartId !== part.id) return;
     let ignore = false;
     setIsPreviewLoading(true);
     previewPartLabel(part.id, { size, ...costPayload })
@@ -117,17 +117,24 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
     };
     // costPayload สร้างใหม่ทุกเรนเดอร์ ดูจากค่าที่หน่วงไว้แทน
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, part?.id, size, costForPreview, costPartId, supplierCode]);
+  }, [open, part?.id, size, costForPreview, costPartId, printedSupplier]);
 
   const chooseSize = (next) => {
     setSize(next);
-    try {
-      localStorage.setItem(SIZE_KEY, next);
-    } catch {
-      // เก็บไม่ได้ก็แค่ไม่จำ เปิดครั้งหน้าเริ่มที่ 60 x 40
-    }
+    setMissing((prev) => ({ ...prev, size: false }));
   };
-  const sizeInfo = LABEL_SIZES.find((s) => s.id === size);
+  const chooseSupplier = (code) => {
+    setSupplierCode(code);
+    setMissing((prev) => ({
+      ...prev,
+      supplier: false,
+      cost: prev.cost && !!code,
+    }));
+  };
+  // ยังไม่เลือกขนาด กรอบตัวอย่างใช้สัดส่วนม้วนใหญ่สุดไปก่อน
+  const sizeInfo = LABEL_SIZES.find((s) => s.id === size) || {
+    aspect: LABEL_SIZES[0].aspect,
+  };
 
   // ปิดแล้วล้างรูปเก่า เปิดชิ้นถัดไปจะได้ไม่เห็นฉลากของชิ้นก่อนแวบหนึ่ง
   useEffect(() => {
@@ -149,6 +156,16 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
 
   const handlePrint = async () => {
     if (isPrinting) return;
+    // เลือกร้านแล้วต้องมีราคาต้นทุน ไม่งั้นรหัสบนฉลากมีแต่รหัสร้าน (ต้องตรงกับ partLabelPrintSchema)
+    const next = {
+      size: !size,
+      supplier: supplierCode === null,
+      cost: !!supplierCode && costText === "",
+    };
+    if (next.size || next.supplier || next.cost) {
+      setMissing(next);
+      return;
+    }
     try {
       setIsPrinting(true);
       const res = await withMinDuration(() =>
@@ -182,16 +199,16 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
       >
         <DialogTitleBar
           title="พิมพ์ฉลาก"
-          description={`พิมพ์สติกเกอร์ ${sizeInfo.label} ของ ${part?.brand || ""} ${part?.name || ""}`}
+          description={`พิมพ์สติกเกอร์ของ ${part?.brand || ""} ${part?.name || ""}`}
           onClose={() => onOpenChange(false)}
         />
 
         {/* หน้าตาแบบหน้าต่างแก้ไขอื่น (DepositDialog): รูปตัวอย่างบอกชื่ออะไหล่อยู่แล้ว ตัวเลือกอยู่ในกล่องเทา */}
         <div className="font-athiti flex flex-1 flex-col overflow-y-auto px-5">
-          {/* กรอบสัดส่วนเท่าสติกเกอร์จริง รูปยังไม่มาก็ไม่ยืดหดกล่อง
+          {/* กรอบสัดส่วนเท่าสติกเกอร์จริง สูงคงที่ทุกขนาด สลับขนาดแล้วหน้าต่างไม่ยืดหด รูปยังไม่มาก็ไม่ยืดหดกล่อง
               shrink-0 เพราะจอเตี้ยเนื้อหาเกินความสูงหน้าต่าง กล่องรูปจะถูกบีบจนหายแทนที่จะเลื่อนดู */}
           <div
-            className={`mx-auto w-full max-w-90 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white ${sizeInfo.aspect}`}
+            className={`mx-auto h-42 max-w-full shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white md:h-60 ${sizeInfo.aspect}`}
           >
             {preview ? (
               <img
@@ -201,9 +218,13 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
                   isPreviewLoading ? "opacity-40" : ""
                 }`}
               />
-            ) : (
+            ) : size ? (
               <div className="flex h-full items-center justify-center">
                 <LoaderCircle className="text-primary h-8 w-8 animate-spin" />
+              </div>
+            ) : (
+              <div className="text-subtle-light flex h-full items-center justify-center px-4 text-center text-lg font-medium md:text-xl">
+                เลือกขนาดเพื่อดูตัวอย่าง
               </div>
             )}
           </div>
@@ -217,7 +238,7 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
               <div
                 role="radiogroup"
                 aria-label="ขนาดสติกเกอร์"
-                className="grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1"
+                className="grid grid-cols-2 gap-2"
               >
                 {LABEL_SIZES.map((item) => (
                   <button
@@ -226,68 +247,130 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
                     role="radio"
                     aria-checked={size === item.id}
                     onClick={() => chooseSize(item.id)}
-                    className={`h-10 cursor-pointer rounded-lg text-lg font-semibold duration-300 md:text-xl ${
+                    className={`h-10 cursor-pointer rounded-lg border text-lg font-semibold duration-300 md:text-xl ${
                       size === item.id
-                        ? "bg-gradient-primary text-surface shadow-lg"
-                        : "text-subtle-dark"
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "bg-surface text-subtle-dark border-gray-200"
                     }`}
                   >
                     {item.label}
                   </button>
                 ))}
               </div>
+              <FieldErrorList
+                className="mt-1.5"
+                messages={[missing.size && "กรุณาเลือกขนาดสติกเกอร์"]}
+              />
             </div>
 
             <div>
               <p className="text-subtle-dark mb-2 text-lg font-medium md:text-xl">
-                ร้านค้าที่สั่ง
+                สั่งจากร้าน
               </p>
-              {/* กดร้านเดิมซ้ำ = ยกเลิก ไม่พิมพ์รหัสร้าน */}
               <div
                 role="radiogroup"
-                aria-label="ร้านค้าที่สั่ง"
-                className="grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1"
+                aria-label="สั่งจากร้าน"
+                className="grid grid-cols-3 gap-2"
               >
                 {LABEL_SUPPLIERS.map((item) => (
                   <button
-                    key={item.code}
+                    key={item.code || "none"}
                     type="button"
                     role="radio"
                     aria-checked={supplierCode === item.code}
-                    onClick={() =>
-                      setSupplierCode((current) =>
-                        current === item.code ? "" : item.code,
-                      )
-                    }
-                    className={`h-10 cursor-pointer rounded-lg px-2 text-lg font-semibold duration-300 md:text-xl ${
+                    onClick={() => chooseSupplier(item.code)}
+                    // ปุ่มแสดงรหัสที่พิมพ์ลงฉลาก ชื่อเต็มอยู่ที่ title และโปรแกรมอ่านหน้าจอ
+                    title={item.code ? item.name : undefined}
+                    aria-label={item.name}
+                    className={`h-10 cursor-pointer rounded-lg border px-2 text-lg font-semibold duration-300 md:text-xl ${
                       supplierCode === item.code
-                        ? "bg-gradient-primary text-surface shadow-lg"
-                        : "text-subtle-dark"
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "bg-surface text-subtle-dark border-gray-200"
                     }`}
                   >
-                    {item.name}
+                    {item.code || item.name}
                   </button>
                 ))}
               </div>
+              <FieldErrorList
+                className="mt-1.5"
+                messages={[missing.supplier && "กรุณาเลือกร้านที่สั่ง"]}
+              />
             </div>
 
+            {/* ราคาต้นทุนกับจำนวนแผ่นเป็นตัวเลขสั้น วางแถวเดียวกัน หน้าต่างจะพอดีจอมือถือ
+                คำเตือนกับสวิตช์บันทึกราคายาวกว่าครึ่งแถว จึงอยู่ใต้แถวเต็มความกว้าง */}
             <div>
-              <label
-                htmlFor="label-cost"
-                className="text-subtle-dark mb-2 block text-lg font-medium md:text-xl"
-              >
-                ราคาต้นทุน
-              </label>
-              <input
-                id="label-cost"
-                type="text"
-                inputMode="numeric"
-                value={costText}
-                onChange={(e) =>
-                  setCostText(e.target.value.replace(/\D/g, "").slice(0, 7))
-                }
-                placeholder="เช่น 350"
-                className="border-input bg-surface text-normal focus-visible:border-primary placeholder:text-subtle-light h-11 w-full rounded-[20px] border px-4 text-lg font-medium outline-none md:text-xl"
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label
+                    htmlFor="label-cost"
+                    className="text-subtle-dark mb-2 block text-lg font-medium md:text-xl"
+                  >
+                    ราคาต้นทุน
+                  </label>
+                  <input
+                    id="label-cost"
+                    type="text"
+                    inputMode="numeric"
+                    value={costText}
+                    onChange={(e) => {
+                      setCostText(
+                        e.target.value.replace(/\D/g, "").slice(0, 7),
+                      );
+                      setMissing((prev) => ({ ...prev, cost: false }));
+                    }}
+                    placeholder="เช่น 350"
+                    aria-invalid={missing.cost ? "true" : "false"}
+                    className={`bg-surface ${missing.cost ? "border-destructive" : "border-input"} text-normal focus-visible:border-primary placeholder:text-subtle-light h-11 w-full rounded-[20px] border px-4 text-lg font-medium outline-none md:text-xl`}
+                  />
+                </div>
+                <div>
+                  <p className="text-subtle-dark mb-2 text-lg font-medium md:text-xl">
+                    จำนวนแผ่น
+                  </p>
+                  {/* ปุ่มลดเพิ่มทรงเดียวกับปุ่มจำนวนในรายการบิล ตัวเลขไม่มีกรอบ กดแล้วพิมพ์จำนวนเองได้ */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setCopiesValue(copies - 1)}
+                      disabled={copies <= 1}
+                      aria-label="ลดจำนวนแผ่น"
+                      className="bg-surface text-subtle-dark flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md border border-gray-200 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      aria-label="จำนวนแผ่น"
+                      value={copiesText}
+                      onChange={(e) => {
+                        const digits = e.target.value
+                          .replace(/\D/g, "")
+                          .slice(0, 3);
+                        setCopiesText(digits);
+                        if (digits) setCopies(clampCopies(digits));
+                      }}
+                      onBlur={() => setCopiesValue(copiesText)}
+                      onFocus={(e) => e.target.select()}
+                      className="text-primary focus-visible:ring-primary/35 h-11 w-full min-w-0 flex-1 rounded-md bg-transparent text-center text-xl font-semibold outline-none focus-visible:ring-2"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setCopiesValue(copies + 1)}
+                      disabled={copies >= MAX_COPIES}
+                      aria-label="เพิ่มจำนวนแผ่น"
+                      className="bg-surface text-subtle-dark flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md border border-gray-200 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <FieldErrorList
+                className="mt-1.5"
+                messages={[missing.cost && "กรุณากรอกราคาต้นทุน"]}
               />
               {isCostDifferent && (
                 <p className="text-status-progress mt-2 flex items-start gap-1.5 text-base font-medium md:text-lg">
@@ -326,49 +409,6 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
                   </span>
                 </button>
               )}
-            </div>
-
-            <div>
-              <p className="text-subtle-dark mb-2 text-lg font-medium md:text-xl">
-                จำนวนแผ่น
-              </p>
-              {/* ปุ่มลดเพิ่มทรงเดียวกับปุ่มจำนวนในรายการบิล */}
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCopiesValue(copies - 1)}
-                  disabled={copies <= 1}
-                  aria-label="ลดจำนวนแผ่น"
-                  className="bg-surface text-subtle-dark flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md border border-gray-200 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  aria-label="จำนวนแผ่น"
-                  value={copiesText}
-                  onChange={(e) => {
-                    const digits = e.target.value
-                      .replace(/\D/g, "")
-                      .slice(0, 3);
-                    setCopiesText(digits);
-                    if (digits) setCopies(clampCopies(digits));
-                  }}
-                  onBlur={() => setCopiesValue(copiesText)}
-                  onFocus={(e) => e.target.select()}
-                  className="border-input bg-surface text-normal focus-visible:border-primary h-11 w-full min-w-0 flex-1 rounded-[20px] border text-center text-xl font-semibold outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => setCopiesValue(copies + 1)}
-                  disabled={copies >= MAX_COPIES}
-                  aria-label="เพิ่มจำนวนแผ่น"
-                  className="bg-surface text-subtle-dark flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md border border-gray-200 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
             </div>
           </div>
         </div>

@@ -171,25 +171,29 @@ const OrganizationList = () => {
         </p>
       </div>
 
-      <div className="scrollbar-hide mt-4 flex justify-start gap-4 overflow-x-auto px-5 md:justify-center">
-        {TABS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => {
-              const next = new URLSearchParams(searchParams);
-              next.set("type", item.id);
-              setSearchParams(next, { replace: true });
-            }}
-            className={`flex h-[45px] w-26.5 shrink-0 cursor-pointer items-center justify-center rounded-lg border-2 text-lg font-semibold duration-300 md:w-30 md:text-xl ${
-              tab === item.id
-                ? "text-surface bg-status-credit border-white"
-                : "border-subtle-light text-subtle-light bg-surface"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
+      {/* ระยะขอบซ้าย ระหว่างปุ่ม และขอบขวาเท่ากัน (px เท่ากับ gap แล้วกระจายที่เหลือแบบ evenly)
+          จอกว้างจำกัดความกว้างแถวไว้ ปุ่มไม่ห่างกันเกินไป จอแคบกว่าปุ่มเลื่อนได้ครบ */}
+      <div className="scrollbar-hide mt-4 overflow-x-auto">
+        <div className="mx-auto flex w-full max-w-120 min-w-max justify-evenly gap-2 px-2">
+          {TABS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => {
+                const next = new URLSearchParams(searchParams);
+                next.set("type", item.id);
+                setSearchParams(next, { replace: true });
+              }}
+              className={`flex h-[45px] w-26.5 shrink-0 cursor-pointer items-center justify-center rounded-lg border-2 text-lg font-semibold duration-300 md:w-30 md:text-xl ${
+                tab === item.id
+                  ? "text-surface bg-status-credit border-white"
+                  : "border-subtle-light text-subtle-light bg-surface"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl px-5 pb-28 xl:pb-4">

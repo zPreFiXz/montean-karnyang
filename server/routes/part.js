@@ -6,6 +6,7 @@ const {
   partSchema,
   updatePartStockSchema,
   partLabelSchema,
+  partLabelPrintSchema,
 } = require("../utils/schemas");
 
 const { authCheck } = require("../middlewares/auth");
@@ -40,7 +41,7 @@ router.post(
 router.post(
   "/parts/:id/label/print",
   authCheck,
-  validate(partLabelSchema),
+  validate(partLabelPrintSchema),
   printPartLabel,
 );
 router.delete("/parts/:id", authCheck, deletePart);

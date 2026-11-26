@@ -170,11 +170,19 @@ const ShopPurchaseDialog = ({
               >
                 <Trash className="h-4 w-4" />
               </button>
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isSubmitting}
+                className="font-athiti bg-surface text-subtle-dark border-subtle-light flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
+              >
+                ยกเลิก
+              </button>
               <FormButton
                 label="บันทึก"
                 isLoading={isSubmitting}
                 onClick={handleSubmit(onSubmit)}
-                className="bg-gradient-primary mr-0 ml-0"
+                className="font-athiti bg-gradient-primary mr-0 ml-0 flex-1"
               />
             </div>
           </div>

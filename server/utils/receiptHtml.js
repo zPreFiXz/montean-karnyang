@@ -735,7 +735,7 @@ const receiptPagesHtml = (
     !dueDateText
       ? '<td colspan="2" class="blank"></td>'
       : index === 0
-        ? `<td colspan="2" rowspan="${summary.below.length}" class="blank due-note"><div>กรุณาชำระส่วนที่เหลือภายในวันที่ <b>${escapeHtml(dueDateText)}</b></div><div>หากเกินกำหนด ทางร้านขอสงวนสิทธิ์<b>ไม่คืนเงินมัดจำทุกกรณี</b></div></td>`
+        ? `<td colspan="2" rowspan="${summary.below.length}" class="blank due-note"><div>กรุณาชำระส่วนที่เหลือภายในวันที่ <b>${escapeHtml(dueDateText)}</b></div><div>หากเกินกำหนด ขอสงวนสิทธิ์<b>ไม่คืนเงินมัดจำทุกกรณี</b></div></td>`
         : "";
   const summaryRowHtml = (row, index, rows) => `<tr>
         ${rows === summary.below ? belowLeftHtml(index) : '<td colspan="2" class="blank"></td>'}
@@ -966,7 +966,7 @@ const RECEIPT_STYLES = `
   td.wrap { word-break: break-word; }
   /* ฝั่งซ้ายของแถวยอดรวมกับส่วนลดปล่อยโล่ง ไม่ต้องตีเส้นเป็นช่องเปล่า */
   td.blank { border: none; }
-  td.due-note { font-size: 9pt; line-height: 1.35; white-space: nowrap; vertical-align: top; padding: 3px 8px 0 0; }
+  td.due-note { font-size: 10.5pt; line-height: 1.3; white-space: nowrap; vertical-align: top; padding: 3px 8px 0 0; }
   .sum-text { font-weight: 600; }
   .pays { display: flex; align-items: center; gap: 20px; margin-top: 8px; }
   .pay { display: flex; align-items: center; gap: 6px; }

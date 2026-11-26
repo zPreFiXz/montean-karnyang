@@ -66,14 +66,14 @@ const ReceiptPaper = ({
         colSpan={2}
         rowSpan={summary.below.length}
         // สองบรรทัดตายตัว ไม่ให้ตัดคำต่างกันระหว่างตัวอย่างกับใบที่พิมพ์
-        className="pt-[3px] pr-2 align-top text-[9pt] leading-[1.35] whitespace-nowrap"
+        className="pt-[3px] pr-2 align-top text-[10.5pt] leading-[1.3] whitespace-nowrap"
       >
         <div>
           กรุณาชำระส่วนที่เหลือภายในวันที่{" "}
           <span className="font-semibold">{dueDateText}</span>
         </div>
         <div>
-          หากเกินกำหนด ทางร้านขอสงวนสิทธิ์
+          หากเกินกำหนด ขอสงวนสิทธิ์
           <span className="font-semibold">ไม่คืนเงินมัดจำทุกกรณี</span>
         </div>
       </td>

@@ -386,7 +386,7 @@ exports.partLabelSchema = z.object({
     .number()
     .int("จำนวนแผ่นต้องเป็นจำนวนเต็ม")
     .min(1, "พิมพ์อย่างน้อย 1 แผ่น")
-    .max(100, "พิมพ์ได้ครั้งละไม่เกิน 100 แผ่น")
+    .max(10, "พิมพ์ได้ครั้งละไม่เกิน 10 แผ่น")
     .default(1),
   // ต้องตรงกับ LABEL_SIZES ใน utils/printLabel.js
   size: z
@@ -410,3 +410,10 @@ exports.partLabelSchema = z.object({
   // ติ๊กเองในหน้าต่าง (ไม่ติ๊กไว้ให้) ถึงจะบันทึกราคาต้นทุนนี้ลงอะไหล่ เฉพาะผู้ดูแลระบบ
   saveCostPrice: z.boolean().default(false),
 });
+
+// พิมพ์จริงต้องมีราคาต้นทุนเมื่อเลือกร้านที่สั่ง ตัวอย่างไม่บังคับ ระหว่างลบตัวเลขพิมพ์ใหม่จะได้ไม่ขึ้นข้อผิดพลาด
+// (ต้องตรงกับ handlePrint ใน PartLabelDialog)
+exports.partLabelPrintSchema = exports.partLabelSchema.refine(
+  (data) => !data.supplierCode || data.costPrice !== undefined,
+  { path: ["costPrice"], message: "กรุณากรอกราคาต้นทุน" },
+);

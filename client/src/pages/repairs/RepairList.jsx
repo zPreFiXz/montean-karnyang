@@ -322,37 +322,41 @@ const RepairList = () => {
       </div>
 
       {status !== "credit" && status !== "estimate" && (
-        <div className="scrollbar-hide mt-4 flex justify-start gap-4 overflow-x-auto px-5 md:justify-center">
-          <Link
-            to="/repairs?status=in-progress"
-            className={`flex h-[45px] w-26.5 shrink-0 items-center justify-center rounded-lg border-2 text-lg font-semibold duration-300 md:w-30 md:text-xl ${
-              status === "in-progress"
-                ? "text-surface bg-status-progress border-white"
-                : "border-subtle-light text-subtle-light bg-surface"
-            }`}
-          >
-            กำลังซ่อม
-          </Link>
-          <Link
-            to="/repairs?status=completed"
-            className={`flex h-[45px] w-26.5 shrink-0 items-center justify-center rounded-lg border-2 text-lg font-semibold duration-300 md:w-30 md:text-xl ${
-              status === "completed"
-                ? "text-surface bg-status-completed border-white"
-                : "border-subtle-light text-subtle-light bg-surface"
-            }`}
-          >
-            ซ่อมเสร็จสิ้น
-          </Link>
-          <Link
-            to="/repairs?status=paid"
-            className={`flex h-[45px] w-26.5 shrink-0 items-center justify-center rounded-lg border-2 text-lg font-semibold duration-300 md:w-30 md:text-xl ${
-              status === "paid"
-                ? "text-surface bg-status-paid border-white"
-                : "border-subtle-light text-subtle-light bg-surface"
-            }`}
-          >
-            ชำระเงินแล้ว
-          </Link>
+        // ระยะขอบซ้าย ระหว่างปุ่ม และขอบขวาเท่ากัน (px เท่ากับ gap แล้วกระจายที่เหลือแบบ evenly)
+        // จอกว้างจำกัดความกว้างแถวไว้ ปุ่มไม่ห่างกันเกินไป จอแคบกว่าปุ่มเลื่อนได้ครบ
+        <div className="scrollbar-hide mt-4 overflow-x-auto">
+          <div className="mx-auto flex w-full max-w-120 min-w-max justify-evenly gap-2 px-2">
+            <Link
+              to="/repairs?status=in-progress"
+              className={`flex h-[45px] w-26.5 shrink-0 items-center justify-center rounded-lg border-2 text-lg font-semibold duration-300 md:w-30 md:text-xl ${
+                status === "in-progress"
+                  ? "text-surface bg-status-progress border-white"
+                  : "border-subtle-light text-subtle-light bg-surface"
+              }`}
+            >
+              กำลังซ่อม
+            </Link>
+            <Link
+              to="/repairs?status=completed"
+              className={`flex h-[45px] w-26.5 shrink-0 items-center justify-center rounded-lg border-2 text-lg font-semibold duration-300 md:w-30 md:text-xl ${
+                status === "completed"
+                  ? "text-surface bg-status-completed border-white"
+                  : "border-subtle-light text-subtle-light bg-surface"
+              }`}
+            >
+              ซ่อมเสร็จสิ้น
+            </Link>
+            <Link
+              to="/repairs?status=paid"
+              className={`flex h-[45px] w-26.5 shrink-0 items-center justify-center rounded-lg border-2 text-lg font-semibold duration-300 md:w-30 md:text-xl ${
+                status === "paid"
+                  ? "text-surface bg-status-paid border-white"
+                  : "border-subtle-light text-subtle-light bg-surface"
+              }`}
+            >
+              ชำระเงินแล้ว
+            </Link>
+          </div>
         </div>
       )}
       <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl px-5 pb-28">

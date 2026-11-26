@@ -2,6 +2,7 @@ const { test } = require("node:test");
 const assert = require("node:assert");
 const { _test: label } = require("../utils/printLabel");
 const { encodeCostCode } = require("../utils/costCode");
+const { buildLabelHtml } = require("../utils/labelHtml");
 
 test("งานพิมพ์ TSPL มีขนาดฉลาก รูปขนาดพอดี และจำนวนแผ่น", () => {
   const bits = Buffer.alloc(60 * 320, 0xff).toString("base64");
@@ -62,4 +63,35 @@ test("คำลับต้องเป็นภาษาอังกฤษ 9 �
     if (original === undefined) delete process.env.LABEL_COST_KEY;
     else process.env.LABEL_COST_KEY = original;
   }
+});
+
+test("รหัสบนฉลาก รหัสร้านต่อรหัสทุนแยกจากรหัสอะไหล่ และยี่ห้อแยกบรรทัด", () => {
+  const html = (data) =>
+    buildLabelHtml({
+      name: "555 ลูกหมากปีกนกล่าง",
+      brand: "555",
+      partNumber: "BP-0412",
+      price: 650,
+      unit: "คู่",
+      ...data,
+    });
+  const both = html({ supplierCode: "PM", costCode: "CEJ" });
+  assert.match(both, /class="code"[^>]*>BP-0412</);
+  assert.match(both, /class="secret">PMCEJ</);
+  assert.match(html({ costCode: "CEJ" }), /class="secret">CEJ</);
+  assert.doesNotMatch(html({}), /class="secret"/);
+  assert.match(html({}), /<span class="brand">555<\/span> ลูกหมากปีกนกล่าง/);
+  assert.match(html({ partNumber: "<b>" }), /&lt;b&gt;/);
+});
+
+test("พิมพ์ฉลากที่เลือกร้านที่สั่งต้องมีราคาต้นทุน ตัวอย่างไม่บังคับ", () => {
+  const { partLabelSchema, partLabelPrintSchema } = require("../utils/schemas");
+  const noCost = { size: "60x40", supplierCode: "PM" };
+  assert.equal(partLabelPrintSchema.safeParse(noCost).success, false);
+  assert.equal(partLabelSchema.safeParse(noCost).success, true);
+  assert.equal(
+    partLabelPrintSchema.safeParse({ ...noCost, costPrice: 350 }).success,
+    true,
+  );
+  assert.equal(partLabelPrintSchema.safeParse({ size: "60x40" }).success, true);
 });

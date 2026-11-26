@@ -112,26 +112,30 @@ const CustomerList = () => {
         </div>
       </div>
 
-      <div className="mt-4 flex justify-center gap-4 px-5">
-        {TABS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => {
-              const next = new URLSearchParams(searchParams);
-              next.set("tab", item.id);
-              next.delete("search");
-              setSearchParams(next, { replace: true });
-            }}
-            className={`flex h-[45px] min-w-36 shrink-0 cursor-pointer items-center justify-center rounded-lg border-2 px-4 text-lg font-semibold duration-300 md:text-xl ${
-              tab === item.id && !search
-                ? "text-surface bg-primary border-white"
-                : "border-subtle-light text-subtle-light bg-surface"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
+      {/* ระยะขอบซ้าย ระหว่างปุ่ม และขอบขวาเท่ากัน (px เท่ากับ gap แล้วกระจายที่เหลือแบบ evenly)
+          จอกว้างจำกัดความกว้างแถวไว้ ปุ่มไม่ห่างกันเกินไป จอแคบกว่าปุ่มเลื่อนได้ครบ */}
+      <div className="scrollbar-hide mt-4 overflow-x-auto">
+        <div className="mx-auto flex w-full max-w-120 min-w-max justify-evenly gap-2 px-2">
+          {TABS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => {
+                const next = new URLSearchParams(searchParams);
+                next.set("tab", item.id);
+                next.delete("search");
+                setSearchParams(next, { replace: true });
+              }}
+              className={`flex h-[45px] min-w-36 shrink-0 cursor-pointer items-center justify-center rounded-lg border-2 px-4 text-lg font-semibold duration-300 md:text-xl ${
+                tab === item.id && !search
+                  ? "text-surface bg-primary border-white"
+                  : "border-subtle-light text-subtle-light bg-surface"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="bg-surface shadow-primary mt-4 flex w-full flex-1 flex-col rounded-tl-2xl rounded-tr-2xl pb-28 xl:pb-4">

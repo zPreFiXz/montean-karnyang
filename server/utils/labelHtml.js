@@ -24,9 +24,10 @@ const nameHtml = (name, brand) => {
 };
 
 // ฉลากติดสินค้า เรียงบนลงล่าง:
-// 1. แถบรหัสตัวเล็กด้านบน รหัสอะไหล่-รหัสร้านที่สั่ง-รหัสทุน (BP-0412-PMCEJ) ดูเป็นรหัสสินค้าก้อนเดียว ลูกค้าไม่สะดุดตา
+// 1. รหัสอะไหล่ด้านบน
 // 2. ชื่อสินค้าตรงกลาง กินที่มากสุด (ย่อขนาดเองจนพอกล่อง)
-// 3. ราคาขายพร้อมหน่วยด้านล่าง (คู่ละ 650 บาท) แยกจากรหัสคนละขอบ ไม่อ่านปนกัน
+// 3. ราคาขายพร้อมหน่วย (คู่ละ 650 บาท) กลางแถว รหัสร้านที่สั่งต่อรหัสทุน (PMCEJ) ตัวเล็กท้ายแถวเดียวกัน
+//    แยกจากรหัสอะไหล่ ดูเหมือนรหัสชั้นวาง ลูกค้าไม่สะดุดตา ไม่เสียบรรทัดเพิ่ม ชื่อสินค้าได้ที่มากขึ้น
 const buildLabelHtml = ({
   name,
   brand,
@@ -49,11 +50,10 @@ const buildLabelHtml = ({
   const codeMax = px(60);
   // เส้นคั่นบนและล่างหนาเท่ากัน
   const line = Math.max(2, px(3));
-  // รหัสร้านกับรหัสทุนติดกันเป็นก้อนเดียว (BP-0412-PMCEJ)
-  const code = [partNumber, `${supplierCode || ""}${costCode || ""}`]
-    .filter(Boolean)
-    .map(escapeHtml)
-    .join("-");
+  const code = partNumber ? escapeHtml(partNumber) : "";
+  // รหัสร้านกับรหัสทุนติดกันเป็นก้อนเดียว ไม่ต่ำกว่า 2 มม. (16 จุด) ที่ยังอ่านออกบนสติกเกอร์จริง
+  const secret = escapeHtml(`${supplierCode || ""}${costCode || ""}`);
+  const secretSize = Math.max(16, px(20));
 
   return `<!doctype html>
 <html lang="th">
@@ -81,20 +81,27 @@ const buildLabelHtml = ({
   }
   .brand { display: block; font-size: 0.65em; }
   .price-row {
-    display: flex; align-items: baseline; justify-content: center; gap: ${px(8)}px;
+    display: flex; align-items: baseline; gap: ${Math.max(10, px(14))}px;
     border-top: ${line}px solid #000; padding-top: 2px;
   }
+  /* ช่องซ้ายขวาแบ่งที่เท่ากัน ราคาจึงอยู่กลาง ช่องขวาไม่หดต่ำกว่ารหัส แถวแคบราคาเลื่อนซ้ายแทนการทับรหัส */
+  .side { flex: 1 1 0; min-width: 0; }
+  .side.right { min-width: max-content; text-align: right; }
+  .price-main { display: flex; align-items: baseline; gap: ${px(8)}px; white-space: nowrap; }
   .price { font-weight: 600; font-size: ${px(56)}px; line-height: 1; }
   .baht { font-weight: 600; font-size: ${Math.max(18, px(28))}px; }
+  .secret { font-weight: 500; font-size: ${secretSize}px; line-height: 1; letter-spacing: 1px; }
 </style>
 </head>
 <body>
   <div class="label">
     ${code ? `<p class="code" data-max="${codeMax}" data-min="16">${code}</p>` : ""}
     <div class="name-box"><p class="name" data-max="${px(60)}" data-min="${Math.max(16, px(22))}">${nameHtml(name, brand)}</p></div>
-    <div class="price-row">${
+    <div class="price-row"><span class="side"></span><span class="price-main">${
       unit ? `<span class="baht">${escapeHtml(unit)}ละ</span>` : ""
-    }<span class="price">${formatPrice(price)}</span><span class="baht">บาท</span></div>
+    }<span class="price">${formatPrice(price)}</span><span class="baht">บาท</span></span><span class="side right">${
+      secret ? `<span class="secret">${secret}</span>` : ""
+    }</span></div>
   </div>
 </body>
 </html>`;

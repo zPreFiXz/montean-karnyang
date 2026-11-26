@@ -162,7 +162,7 @@ const DepositDialog = ({ isOpen, onClose, repair, onSave }) => {
                 {isSaving && (
                   <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                ยืนยัน
+                บันทึก
               </button>
             </div>
           </div>

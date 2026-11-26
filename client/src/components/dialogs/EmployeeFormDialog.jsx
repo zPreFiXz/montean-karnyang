@@ -128,13 +128,21 @@ const EmployeeFormDialog = ({
           </form>
         </div>
 
-        <div className="flex-shrink-0 px-5 pb-4">
+        <div className="flex-shrink-0 px-5 py-4">
           <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={handleClose}
+              disabled={isSubmitting}
+              className="font-athiti bg-surface text-subtle-dark border-subtle-light flex h-[41px] flex-1 cursor-pointer items-center justify-center rounded-[20px] border text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70 md:text-xl"
+            >
+              ยกเลิก
+            </button>
             <FormButton
               label={editingItem ? "บันทึก" : "เพิ่มพนักงาน"}
               isLoading={isSubmitting}
               onClick={handleSubmit(editingItem ? handleEdit : handleAdd)}
-              className="font-athiti bg-gradient-primary mr-0 ml-0"
+              className="font-athiti bg-gradient-primary mr-0 ml-0 flex-1"
             />
           </div>
         </div>
