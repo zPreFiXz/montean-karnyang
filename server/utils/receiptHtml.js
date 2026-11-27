@@ -299,7 +299,7 @@ const DEPOSIT_TERMS = {
   partial: {
     docTitle: "ใบรับเงิน (ชำระบางส่วน)",
     line: "ชำระค่าซ่อมบางส่วน",
-    deduct: "หักชำระแล้ว",
+    deduct: "หักชำระล่วงหน้า",
   },
 };
 const depositTermsOf = (repair) => DEPOSIT_TERMS[depositKindOf(repair)];

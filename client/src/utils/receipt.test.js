@@ -10,6 +10,7 @@ import {
   hasPaymentQr,
   paymentLineFields,
   showsPaymentBoxes,
+  depositBadgeOf,
 } from "@/utils/receipt";
 import { partLine, repairWith, serviceLine } from "@/test/fixtures";
 
@@ -232,5 +233,31 @@ describe("ใบเสร็จของบิลเครดิตที่จ�
         (f) => f.value === "",
       ),
     ).toBe(true);
+  });
+});
+
+describe("ป้ายเงินที่รับไว้ก่อนบนการ์ดบิล", () => {
+  const bill = (status, depositPaidAt) => ({
+    status,
+    depositAmount: 430,
+    depositPaidAt,
+    createdAt: "2026-11-25T10:00:00.000Z",
+  });
+  const before = "2026-11-24T10:00:00.000Z";
+  const after = "2026-11-26T10:00:00.000Z";
+
+  it("ยังไม่จ่ายครบ บอกยอดที่รับไว้", () => {
+    expect(depositBadgeOf(bill("ESTIMATE", before))).toBe("มัดจำ 430");
+    expect(depositBadgeOf(bill("IN_PROGRESS", after))).toBe("ชำระแล้ว 430");
+  });
+
+  it("จ่ายครบแล้วยังติดป้าย การ์ดโชว์ยอดทั้งบิล", () => {
+    expect(depositBadgeOf(bill("PAID", before))).toBe("หักมัดจำ 430");
+    expect(depositBadgeOf(bill("PAID", after))).toBe("ชำระล่วงหน้า 430");
+  });
+
+  it("ยกเลิกหรือไม่มีเงินรับไว้ไม่ติดป้าย", () => {
+    expect(depositBadgeOf(bill("CANCELLED", before))).toBeUndefined();
+    expect(depositBadgeOf({ status: "PAID" })).toBeUndefined();
   });
 });

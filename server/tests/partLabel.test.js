@@ -95,3 +95,27 @@ test("พิมพ์ฉลากที่เลือกร้านที่�
   );
   assert.equal(partLabelPrintSchema.safeParse({ size: "60x40" }).success, true);
 });
+
+test("ไม่ระบุร้านแต่มีราคาทุน รหัสขึ้นต้นด้วย MT ไม่มีราคาทุนไม่พิมพ์รหัส", async () => {
+  const { buildLabelHtml: build } = require("../utils/labelHtml");
+  const original = process.env.LABEL_COST_KEY;
+  process.env.LABEL_COST_KEY = "ABCDEFGHIJ";
+  try {
+    const part = {
+      name: "ลูกหมาก",
+      partNumber: "BP-0412",
+      sellingPrice: 650,
+      unit: "คู่",
+    };
+    const htmlOf = (opts) => build({ ...label.labelDataOf(part, opts) });
+    assert.match(htmlOf({ costPrice: 350 }), /class="secret">MTCEJ</);
+    assert.match(
+      htmlOf({ costPrice: 350, supplierCode: "PM" }),
+      /class="secret">PMCEJ</,
+    );
+    assert.doesNotMatch(htmlOf({}), /class="secret"/);
+  } finally {
+    if (original === undefined) delete process.env.LABEL_COST_KEY;
+    else process.env.LABEL_COST_KEY = original;
+  }
+});

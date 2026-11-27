@@ -231,8 +231,11 @@ const costCodeOf = (costPrice) => {
   return code;
 };
 
+// ไม่ระบุร้าน (ของที่ร้านมีอยู่เอง) รหัสทุนขึ้นต้นด้วย MT ไม่มีราคาทุนก็ไม่พิมพ์อะไร
+const OWN_STOCK_CODE = "MT";
+
 const labelDataOf = (part, { costPrice, supplierCode } = {}) => ({
-  supplierCode,
+  supplierCode: supplierCode || (costPrice != null ? OWN_STOCK_CODE : ""),
   name: buildPartItemName(part) || part.name,
   brand: part.brand,
   partNumber: part.partNumber,
@@ -266,5 +269,5 @@ module.exports = {
   previewPartLabel,
   printPartLabel,
   MAX_COPIES,
-  _test: { buildTsplJob, renderLabel },
+  _test: { buildTsplJob, renderLabel, labelDataOf },
 };

@@ -28,7 +28,7 @@ const LABEL_SIZES = [
   { id: "40x20", label: "40 x 20 มม.", aspect: "aspect-[2/1]" },
 ];
 // ร้านค้าที่สั่งอะไหล่ รหัสพิมพ์ก่อนรหัสทุน (ต้องตรงกับ supplierCode ใน partLabelSchema)
-// ไม่ระบุ = ไม่พิมพ์รหัสร้าน
+// ไม่ระบุ = ไม่ส่งรหัสร้าน เซิร์ฟเวอร์ใส่ MT นำหน้ารหัสทุนให้ (ดู OWN_STOCK_CODE)
 const LABEL_SUPPLIERS = [
   { code: "", name: "ไม่ระบุ" },
   { code: "PM", name: "พัฒนามอเตอร์" },
@@ -55,7 +55,7 @@ const PartLabelDialog = ({ part, open, onOpenChange, onCostSaved }) => {
   const [costPartId, setCostPartId] = useState(null);
   // ไม่ติ๊กไว้ให้ ต้องตั้งใจติ๊กเองถึงจะบันทึก กันคนกดพิมพ์เร็วแล้วราคาในสต็อกเปลี่ยนโดยไม่ตั้งใจ
   const [saveCost, setSaveCost] = useState(false);
-  // ร้านที่สั่งของชิ้นนี้ ค่าว่าง = ไม่ระบุ (ไม่พิมพ์รหัสร้าน)
+  // ร้านที่สั่งของชิ้นนี้ ค่าว่าง = ไม่ระบุ
   const [supplierCode, setSupplierCode] = useState(null);
   const [missing, setMissing] = useState({});
   const [copiesText, setCopiesText] = useState("1");

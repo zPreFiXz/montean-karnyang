@@ -256,7 +256,7 @@ export const DEPOSIT_TERMS = {
     // ชื่อเต็มยาวเกินปุ่มแท็บบนมือถือ บนกระดาษยังพิมพ์ชื่อเต็ม
     tabLabel: "ใบรับเงิน",
     line: "ชำระค่าซ่อมบางส่วน",
-    deduct: "หักชำระแล้ว",
+    deduct: "หักชำระล่วงหน้า",
   },
 };
 export const depositTermsOf = (repair) => DEPOSIT_TERMS[depositKindOf(repair)];
@@ -508,13 +508,20 @@ const DELIVERY_PAGE_LINES = 14;
 // เงินก้อนแรกที่หักจากยอด บิลที่ยกเลิกแล้วคืนเงินก็ยังหัก ใบที่พิมพ์ซ้ำต้องเหมือนใบที่ออกให้ลูกค้าไปแล้ว
 // การคืนเงินดูได้ที่กรอบการชำระเงินกับรายงาน (ต้องตรงกับ depositOf ใน receiptHtml.js)
 export const depositOf = (repair) => Number(repair?.depositAmount || 0);
-// ป้ายบนการ์ดบิลที่รับเงินก้อนแรกไว้แล้วแต่ยังจ่ายไม่ครบ จ่ายครบหรือยกเลิกแล้วไม่ต้องบอก
+// ป้ายบนการ์ดบิลที่รับเงินก้อนแรกไว้แล้ว ยกเลิกแล้วไม่ต้องบอก
+// จ่ายครบแล้วยังติดป้าย เพราะการ์ดโชว์ยอดทั้งบิล แต่รายงานยอดขายวันจ่ายนับแค่ที่เหลือ ป้ายบอกว่ารับไปก่อนเท่าไหร่
 export const depositBadgeOf = (repair) => {
   const deposit = depositOf(repair);
-  if (!deposit || ["PAID", "CANCELLED"].includes(repair?.status)) {
-    return undefined;
-  }
-  const label = depositKindOf(repair) === "partial" ? "ชำระแล้ว" : "มัดจำ";
+  if (!deposit || repair?.status === "CANCELLED") return undefined;
+  const isPartial = depositKindOf(repair) === "partial";
+  const label =
+    repair.status === "PAID"
+      ? isPartial
+        ? "ชำระล่วงหน้า"
+        : "หักมัดจำ"
+      : isPartial
+        ? "ชำระแล้ว"
+        : "มัดจำ";
   return `${label} ${deposit.toLocaleString()}`;
 };
 
